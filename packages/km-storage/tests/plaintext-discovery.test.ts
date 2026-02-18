@@ -37,9 +37,7 @@ describe("plain text file discovery", () => {
     expect(result.nodeCount).toBeGreaterThanOrEqual(2) // root + notes.txt
 
     // Find the txt file node
-    const rows = db
-      .prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<Record<string, unknown>>
+    const rows = db.prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'").all() as Array<Record<string, unknown>>
     expect(rows).toHaveLength(1)
 
     const txtNode = rows[0]!
@@ -61,12 +59,8 @@ describe("plain text file discovery", () => {
 
     const result = exhaust(loadRepo(tmpDir, { db, mode: "memory" }))
 
-    const mdFiles = db
-      .prepare("SELECT * FROM nodes WHERE fstype = 'mdfile'")
-      .all() as Array<Record<string, unknown>>
-    const txtFiles = db
-      .prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<Record<string, unknown>>
+    const mdFiles = db.prepare("SELECT * FROM nodes WHERE fstype = 'mdfile'").all() as Array<Record<string, unknown>>
+    const txtFiles = db.prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'").all() as Array<Record<string, unknown>>
 
     expect(mdFiles).toHaveLength(1)
     expect(txtFiles).toHaveLength(1)
@@ -84,9 +78,7 @@ describe("plain text file discovery", () => {
 
     exhaust(loadRepo(tmpDir, { db, mode: "memory" }))
 
-    const rows = db
-      .prepare("SELECT id FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<{ id: string }>
+    const rows = db.prepare("SELECT id FROM nodes WHERE fstype = 'txtfile'").all() as Array<{ id: string }>
     expect(rows).toHaveLength(1)
 
     const children = getChildren(db, rows[0]!.id)
@@ -104,9 +96,7 @@ describe("plain text file discovery", () => {
 
     exhaust(loadRepo(tmpDir, { db, mode: "memory" }))
 
-    const rows = db
-      .prepare("SELECT content FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<{ content: string }>
+    const rows = db.prepare("SELECT content FROM nodes WHERE fstype = 'txtfile'").all() as Array<{ content: string }>
     expect(rows).toHaveLength(1)
     expect(rows[0]!.content).toBe(content)
   })
@@ -122,9 +112,7 @@ describe("plain text file discovery", () => {
 
     exhaust(loadRepo(tmpDir, { db, mode: "memory" }))
 
-    const rows = db
-      .prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<Record<string, unknown>>
+    const rows = db.prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'").all() as Array<Record<string, unknown>>
     expect(rows).toHaveLength(1)
     expect(rows[0]!.content).toBe("Deep content")
   })
@@ -147,9 +135,7 @@ describe("plain text file stub mode", () => {
     expect(txtDeferred).toHaveLength(1)
 
     // The stub node should exist
-    const rows = db
-      .prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'")
-      .all() as Array<Record<string, unknown>>
+    const rows = db.prepare("SELECT * FROM nodes WHERE fstype = 'txtfile'").all() as Array<Record<string, unknown>>
     expect(rows).toHaveLength(1)
     expect(rows[0]!.name).toBe("notes")
   })
@@ -173,9 +159,10 @@ describe("plain text file stub mode", () => {
     expect(success).toBe(true)
 
     // Verify the parsed content
-    const rows = db
-      .prepare("SELECT content, fstype FROM nodes WHERE id = ?")
-      .all(txtDeferred!.nodeId) as Array<{ content: string; fstype: string }>
+    const rows = db.prepare("SELECT content, fstype FROM nodes WHERE id = ?").all(txtDeferred!.nodeId) as Array<{
+      content: string
+      fstype: string
+    }>
     expect(rows).toHaveLength(1)
     expect(rows[0]!.fstype).toBe("txtfile")
     expect(rows[0]!.content).toBe("Parsed stub content")

@@ -963,4 +963,3 @@ export class SyncManager extends EventEmitter {
     return null
   }
 }
-

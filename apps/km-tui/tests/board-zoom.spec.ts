@@ -387,14 +387,7 @@ describe("View Modes", () => {
 
 describe("zoom: j at column header should not exit zoom", () => {
   it("j at column header preserves zoom state", () => {
-    const nodes = item(
-      "vault",
-      item(
-        "next",
-        item("inbox", item("task1"), item("task2")),
-        item("today", item("task3")),
-      ),
-    )
+    const nodes = item("vault", item("next", item("inbox", item("task1"), item("task2")), item("today", item("task3"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "next")
 
@@ -411,14 +404,7 @@ describe("zoom: j at column header should not exit zoom", () => {
   })
 
   it("j at column header of empty column preserves zoom", () => {
-    const nodes = item(
-      "vault",
-      item(
-        "project",
-        item("backlog", item("item1")),
-        item("empty-col"),
-      ),
-    )
+    const nodes = item("vault", item("project", item("backlog", item("item1")), item("empty-col")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "project")
 
@@ -452,13 +438,7 @@ describe("zoom: j at column header should not exit zoom", () => {
   })
 
   it("j at last card preserves zoom", () => {
-    const nodes = item(
-      "vault",
-      item(
-        "board",
-        item("col1", item("card1"), item("card2")),
-      ),
-    )
+    const nodes = item("vault", item("board", item("col1", item("card1"), item("card2"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -471,13 +451,7 @@ describe("zoom: j at column header should not exit zoom", () => {
   })
 
   it("repeated j presses never exit zoom", () => {
-    const nodes = item(
-      "vault",
-      item(
-        "root",
-        item("col", item("a"), item("b"), item("c")),
-      ),
-    )
+    const nodes = item("vault", item("root", item("col", item("a"), item("b"), item("c"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "root")
 
@@ -494,10 +468,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 describe("zoom on body-only nodes", () => {
   it("should zoom via handleZoomIn on a body-only node", () => {
     // bodyOnlyNode has only paragraph/code children — these are now navigable cards
-    const nodes = item(
-      "board",
-      item("col1", item("bodyOnlyNode", item.paragraph("text1"), item.code("code1"))),
-    )
+    const nodes = item("board", item("col1", item("bodyOnlyNode", item.paragraph("text1"), item.code("code1"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -531,10 +502,7 @@ describe("zoom on body-only nodes", () => {
   })
 
   it("should zoom into a node that has structural children", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("card-with-children", item("sub1"), item("sub2"))),
-    )
+    const nodes = item("board", item("col1", item("card-with-children", item("sub1"), item("sub2"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -546,10 +514,7 @@ describe("zoom on body-only nodes", () => {
   })
 
   it("should zoom into a node with mixed body and structural children", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("mixed", item.paragraph("intro text"), item("real-child"))),
-    )
+    const nodes = item("board", item("col1", item("mixed", item.paragraph("intro text"), item("real-child"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -593,7 +558,14 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Next Actions", parent_id: null }),
-      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Processing", parent_id: rootId, parent_idx: 0 }),
+      makeNode({
+        id: sectionId,
+        type: "oi",
+        fstype: "mdsection",
+        title: "Processing",
+        parent_id: rootId,
+        parent_idx: 0,
+      }),
       makeNode({
         id: embed1Id,
         type: "link",
@@ -835,11 +807,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
 describe("zoom-out fallback: cursor moves up when at repo root", () => {
   it("moves cursor from card to column header when at repo root", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task1"), item("task2")),
-        item("col2", item("task3")),
-      ),
+      item.root("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
     )
 
     // Cursor starts on first card (task1)
@@ -853,13 +821,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
   })
 
   it("moves cursor from column header to board root when at repo root", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task1")),
-        item("col2", item("task3")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("task1")), item("col2", item("task3"))))
 
     // Move to column header first
     board.press("k") // card → column header
@@ -873,12 +835,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
   })
 
   it("rings bell at board level when at repo root (nowhere to go)", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("task1"))))
 
     // Navigate up to board level
     board.press("k") // column header
@@ -892,12 +849,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
   })
 
   it("moves cursor to parent: card → column → board", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("a"), item("b"), item("c")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("a"), item("b"), item("c"))))
 
     // Start at first card, navigate to third card
     board.press("j").press("j")
@@ -919,12 +871,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
 
 describe("u zooms out to parent", () => {
   test("u zooms out one level, cursor stays on previously-rooted node", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     // Zoom into col1 via e (first move to column header)
     board.press("k") // card → column header
@@ -948,14 +895,7 @@ describe("u zooms out to parent", () => {
   test("u from deeply zoomed level zooms out one level at a time", () => {
     // Deep tree: board > col > parent > child1(gc1,gc2) + child2(gc3)
     const { board } = testEnv(() =>
-      item("board",
-        item("col",
-          item("parent",
-            item("child1", item("gc1"), item("gc2")),
-            item("child2", item("gc3")),
-          ),
-        ),
-      ),
+      item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
     )
 
     // Zoom into parent (first card in col)
@@ -985,14 +925,7 @@ describe("u zooms out to parent", () => {
 
   test("u saves history so ] (nav_forward) can return to zoomed view", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col",
-          item("parent",
-            item("child1", item("gc1")),
-            item("child2", item("gc2")),
-          ),
-        ),
-      ),
+      item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"))))),
     )
 
     // Zoom into parent — root=parent, columns=[child1, child2]
@@ -1012,11 +945,7 @@ describe("u zooms out to parent", () => {
   })
 
   test("at repo root, u acts as cursor-up instead of zoom", () => {
-    const { board } = testEnv(() =>
-      item.root("board",
-        item("col1", item("task1"), item("task2")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("task1"), item("task2"))))
 
     // At repo root, cursor on first card
     board.expect("#task1[data-cursor]").toExist()
@@ -1029,12 +958,7 @@ describe("u zooms out to parent", () => {
 
   test("u closes detail pane before zooming", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col",
-          item("card1", item("sub1")),
-          item("card2", item("sub2")),
-        ),
-      ),
+      item("board", item("col", item("card1", item("sub1")), item("card2", item("sub2")))),
     )
 
     // Zoom into card1 (cursor starts on card1, card1 has children)
@@ -1059,8 +983,10 @@ describe("u zooms out to parent", () => {
     // Simulates: km view /tmp/vt/CLAUDE.md
     // Repo root (folder) → file → section1, section2
     // Board starts rooted at the file, not the repo root
-    const nodes = item.root("repo",
-      item.file("file",
+    const nodes = item.root(
+      "repo",
+      item.file(
+        "file",
         item.section("section1", item("task1"), item("task2")),
         item.section("section2", item("task3")),
       ),
@@ -1084,13 +1010,9 @@ describe("u zooms out to parent", () => {
 
   test("u zooms out from file to folder, then falls back to cursor-up at repo root", () => {
     // Deeper tree: repo > folder > file > sections
-    const nodes = item.root("repo",
-      item.folder("folder",
-        item.file("file",
-          item.section("sec1", item("t1")),
-          item.section("sec2", item("t2")),
-        ),
-      ),
+    const nodes = item.root(
+      "repo",
+      item.folder("folder", item.file("file", item.section("sec1", item("t1")), item.section("sec2", item("t2")))),
     )
     const repo = createFakeRepo({ nodes })
 
@@ -1119,14 +1041,10 @@ describe("u zooms out to parent", () => {
 
 describe("u key — go to parent, not previous sibling", () => {
   test("u from 2nd card goes to column header (parent), not prev sibling", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1"), item("A2"), item("A3")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("j") // → A2
     board.expect("#A2[data-cursor]").toExist()
@@ -1136,14 +1054,10 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from 3rd card goes to column header (parent), not prev sibling", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1"), item("A2"), item("A3")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("j").press("j") // → A3
     board.expect("#A3[data-cursor]").toExist()
@@ -1153,14 +1067,10 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u twice from card: card → column → board", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1"), item("A2"), item("A3")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("j").press("j") // → A3
     board.expect("#A3[data-cursor]").toExist()
@@ -1173,14 +1083,7 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from board level is boundary", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A1"))), { columns: 120, rows: 24 })
 
     board.press("k").press("k") // card → col → board
     board.expect("#board[data-cursor]").toExist()
@@ -1191,15 +1094,10 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from column header goes to board level", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-          item("col2", item("B1")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A1")), item("col2", item("B1"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("k") // card → column header
     board.expect("#col1[data-cursor]").toExist()
@@ -1209,23 +1107,15 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u is different from k: u → parent, k → prev sibling", () => {
-    const { board: boardU } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1"), item("A2"), item("A3")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board: boardU } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      columns: 120,
+      rows: 24,
+    })
 
-    const { board: boardK } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1"), item("A2"), item("A3")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board: boardK } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     boardU.press("j") // → A2
     boardK.press("j") // → A2
@@ -1242,12 +1132,7 @@ describe("u key — go to parent, not previous sibling", () => {
 
   test("u from card in col2 goes to col2 header", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-          item("col2", item("B1"), item("B2"), item("B3")),
-        ),
+      () => item("board", item("col1", item("A1")), item("col2", item("B1"), item("B2"), item("B3"))),
       { columns: 120, rows: 24 },
     )
 
@@ -1261,13 +1146,7 @@ describe("u key — go to parent, not previous sibling", () => {
 
   test("u from body card goes to board level (body cards are children of root)", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("para1"),
-          item.paragraph("para2"),
-          item("col1", item("A1")),
-        ),
+      () => item("board", item.paragraph("para1"), item.paragraph("para2"), item("col1", item("A1"))),
       { columns: 120, rows: 24 },
     )
 

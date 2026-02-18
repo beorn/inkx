@@ -371,11 +371,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
         }
 
         // Check for missing content on content-bearing types
-        if (
-          ["li", "p", "oi"].includes(node.type) &&
-          node.content === undefined &&
-          node.content_hash === undefined
-        ) {
+        if (["li", "p", "oi"].includes(node.type) && node.content === undefined && node.content_hash === undefined) {
           issues.push({
             type: "missing_content",
             nodeId: node.id,

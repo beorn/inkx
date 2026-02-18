@@ -68,7 +68,8 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "existing.md",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "existing.md",
@@ -183,7 +184,8 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "deleted.md",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "deleted.md",
@@ -269,7 +271,8 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "existing.md",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
           fs_path: "existing.md",
@@ -328,7 +331,8 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "kept.md",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: ".",
           fs_path: "kept.md",
           name: "kept",
@@ -338,7 +342,8 @@ describe("disk mode filesystem reconciliation", () => {
         type: "node_created",
         data: {
           id: "removed.md",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           parent_id: ".",
           fs_path: "removed.md",
           name: "removed",

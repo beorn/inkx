@@ -113,7 +113,8 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
     augmented.scheduled_date = parts?.date ?? null
   }
   if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-    augmented.start_at = composeDatetime(augmented.scheduled_date as string | null, augmented.scheduled_time as string | null) ?? null
+    augmented.start_at =
+      composeDatetime(augmented.scheduled_date as string | null, augmented.scheduled_time as string | null) ?? null
   }
 
   if (emitter) {

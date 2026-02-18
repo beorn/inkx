@@ -55,4 +55,3 @@ export function extractBody<T extends { type: string }>(children: T[]): BodyExtr
     items: children.slice(firstStructuralIdx),
   }
 }
-

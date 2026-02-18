@@ -155,7 +155,9 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+          )
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -189,7 +191,9 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+          )
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -234,14 +238,22 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const todoSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:todo")
-          const doneSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:done")
+          const todoSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:todo",
+          )
+          const doneSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@project status:done",
+          )
 
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.type === "link" && c.embed)
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.type === "link" && c.embed)
+          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter(
+            (c) => c.type === "link" && c.embed,
+          )
+          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter(
+            (c) => c.type === "link" && c.embed,
+          )
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -272,7 +284,9 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+          )
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -300,7 +314,9 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "status:todo")
+          const openSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "status:todo",
+          )
           expect(openSection).toBeDefined()
 
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
@@ -340,8 +356,12 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const todoSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:todo")
-          const doneSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:done")
+          const todoSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:todo",
+          )
+          const doneSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@tag status:done",
+          )
 
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
@@ -398,7 +418,9 @@ describe("Database Rules", () => {
           }
 
           const allNodes = store.getAllNodes()
-          const openSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo")
+          const openSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+          )
           expect(openSection).toBeDefined()
 
           const counts = getChildCountsBatch(store.getDatabase(), [openSection!.id])

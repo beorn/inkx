@@ -165,7 +165,11 @@ export class FsWriter implements FsSync {
     if (!event.target) return
 
     const node = getNode(this.db, event.target)
-    if (node?.fs_path && node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
+    if (
+      node?.fs_path &&
+      node.type === "oi" &&
+      (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")
+    ) {
       const absPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
       if (existsSync(absPath)) {
         unlinkSync(absPath)
@@ -319,4 +323,3 @@ export class FsWriter implements FsSync {
     writeFileSync(absPath, content, "utf-8")
   }
 }
-

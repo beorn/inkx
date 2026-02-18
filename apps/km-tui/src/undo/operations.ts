@@ -18,11 +18,7 @@ import type { KNode } from "@km/core"
 // Operation Union
 // =============================================================================
 
-export type Operation =
-  | AddNodeOp
-  | RemoveNodeOp
-  | MoveNodeOp
-  | UpdateNodeOp
+export type Operation = AddNodeOp | RemoveNodeOp | MoveNodeOp | UpdateNodeOp
 
 export interface AddNodeOp {
   type: "add_node"

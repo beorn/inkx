@@ -8,34 +8,26 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("visual toolbelt: screen access", () => {
   test("screen.text returns rendered content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
     expect(board.screen.text).toContain("task1")
     expect(board.screen.text).toContain("task2")
   })
 
   test("screen.rows returns array of lines", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     expect(board.screen.rows.length).toBeGreaterThan(0)
-    expect(board.screen.rows.some(r => r.includes("task1"))).toBe(true)
+    expect(board.screen.rows.some((r) => r.includes("task1"))).toBe(true)
   })
 
   test("screen.row(n) returns specific row", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const taskRow = board.screen.findRow("task1")
     expect(taskRow).toBeGreaterThan(-1)
     expect(board.screen.row(taskRow)).toContain("task1")
   })
 
   test("screen.cell returns char/fg/bg", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     // Cell at (0,0) should have some character
     const cell = board.screen.cell(0, 0)
     expect(cell).toHaveProperty("char")
@@ -45,9 +37,7 @@ describe("visual toolbelt: screen access", () => {
   })
 
   test("screen.nodePos finds node position", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const pos = board.screen.nodePos("task1")
     expect(pos).not.toBeNull()
     expect(pos!.x).toBeGreaterThanOrEqual(0)
@@ -55,9 +45,7 @@ describe("visual toolbelt: screen access", () => {
   })
 
   test("screen.nodeBox finds node bounding box", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const box = board.screen.nodeBox("task1")
     expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThan(0)
@@ -67,33 +55,25 @@ describe("visual toolbelt: screen access", () => {
 
 describe("visual toolbelt: assertions", () => {
   test("expectScreen/expectScreenNot check content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     board.expectScreen("task1")
     board.expectScreenNot("nonexistent")
   })
 
   test("expectRow checks row content", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const taskRow = board.screen.findRow("task1")
     board.expectRow(taskRow, "task1")
   })
 
   test("expectRow with regex", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const taskRow = board.screen.findRow("task1")
     board.expectRow(taskRow, /task\d+/)
   })
 
   test("expectCellChar checks character", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     const pos = board.screen.nodePos("task1")
     expect(pos).not.toBeNull()
     // The cell at the node position should have a character
@@ -102,24 +82,15 @@ describe("visual toolbelt: assertions", () => {
   })
 
   test("chaining works — all visual assertions return board", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
     // All assertions should be chainable
-    board
-      .expectScreen("task1")
-      .expectScreen("task2")
-      .expectScreenNot("nonexistent")
-      .press("j")
-      .expectScreen("task2")
+    board.expectScreen("task1").expectScreen("task2").expectScreenNot("nonexistent").press("j").expectScreen("task2")
   })
 })
 
 describe("visual toolbelt: node color", () => {
   test("selected card has non-null background", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"), item("task2"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
     // task1 should be selected (first card) — check it has some bg color
     const pos = board.screen.nodePos("task1")
     expect(pos).not.toBeNull()
@@ -140,9 +111,7 @@ describe("visual toolbelt: node color", () => {
 
 describe("visual toolbelt: border assertions", () => {
   test("screen.nodeBox returns position for border inspection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
     // nodeBox lets you manually check border characters
     const box = board.screen.nodeBox("task1")
     expect(box).not.toBeNull()

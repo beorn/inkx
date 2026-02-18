@@ -37,10 +37,7 @@ import { formatDate } from "@km/core"
 // Helpers
 // ---------------------------------------------------------------------------
 
-function withTestRepo(
-  setup: (repoDir: string) => void,
-  fn: (store: MemoryStore) => void,
-): void {
+function withTestRepo(setup: (repoDir: string) => void, fn: (store: MemoryStore) => void): void {
   const testDir = join("/tmp", `kmtest-due-${ulid()}`)
   mkdirSync(testDir, { recursive: true })
   setup(testDir)
@@ -60,9 +57,10 @@ function yesterday(): string {
 
 /** Helper to find the Inbox section (the one with km.add:: rules containing "due:past") */
 function findInboxSection(db: Database): { id: string } | undefined {
-  const rows = db
-    .query("SELECT * FROM nodes WHERE json_extract(data, '$.rules.add') IS NOT NULL")
-    .all() as Record<string, unknown>[]
+  const rows = db.query("SELECT * FROM nodes WHERE json_extract(data, '$.rules.add') IS NOT NULL").all() as Record<
+    string,
+    unknown
+  >[]
 
   for (const row of rows) {
     const data = JSON.parse((row.data as string) || "{}")
@@ -92,11 +90,7 @@ describe("date badge display", () => {
   })
 
   it("date badge appears in card after repo.updateNode", async () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Test task"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Test task")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -123,11 +117,7 @@ describe("date badge display", () => {
   })
 
   it("date badge appears in detail pane after repo.updateNode", async () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Test task"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Test task")))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -149,11 +139,7 @@ describe("date badge display", () => {
 
   it("date badge visible in cards view with initial due_date (testEnv)", () => {
     // Create nodes, then set due_date before rendering
-    const nodes = item("board",
-      item("col1",
-        item.task("Task with date"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Task with date")))
     // Manually set due_date on the task node before creating repo
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_date = "2026-03-15"
@@ -167,14 +153,10 @@ describe("date badge display", () => {
   })
 
   it("date badge visible in cards view with multiple columns (testEnv)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Task A"),
-        item.task("Task B"),
-      ),
-      item("col2",
-        item.task("Task C"),
-      ),
+    const nodes = item(
+      "board",
+      item("col1", item.task("Task A"), item.task("Task B")),
+      item("col2", item.task("Task C")),
     )
     // Set due_date on Task A
     const taskA = nodes.find((n) => n.content === "Task A")!
@@ -192,7 +174,8 @@ describe("date badge display", () => {
   })
 
   it("date badge visible with many columns (narrow width per column)", () => {
-    const nodes = item("board",
+    const nodes = item(
+      "board",
       item("col1", item.task("Task A")),
       item("col2", item.task("Task B")),
       item("col3", item.task("Task C")),
@@ -210,11 +193,7 @@ describe("date badge display", () => {
   })
 
   it("date badge visible in columns view (testEnv)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Task with date"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_date = "2026-03-15"
     taskNode.priority = 2
@@ -227,11 +206,7 @@ describe("date badge display", () => {
 
   it("date badge appears after 'td' key simulation (full workflow)", async () => {
     // Simulate the full workflow: user presses 'td', types a date, presses Enter
-    const nodes = item("board",
-      item("col1",
-        item.task("My task"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("My task")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Before: no date badge
@@ -259,12 +234,7 @@ describe("date badge display", () => {
 
   it("structural sharing preserves date badge after unrelated mutation", () => {
     // Regression: applyStructuralSharing must detect date/priority changes
-    const nodes = item("board",
-      item("col1",
-        item.task("Task A"),
-        item.task("Task B"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Set due_date on Task A
@@ -291,11 +261,7 @@ describe("date badge display", () => {
   })
 
   it("priority badge visible in cards view (testEnv)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Priority task"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Priority task")))
     const taskNode = nodes.find((n) => n.content === "Priority task")!
     taskNode.priority = 2
 
@@ -305,11 +271,7 @@ describe("date badge display", () => {
   })
 
   it("date badge visible after setting via 'td' key sequence", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("Todo task"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("Todo task")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Simulate what 'td' does: update the node's due_date
@@ -443,9 +405,7 @@ describe("date prompt (td)", () => {
   })
 
   test("navigation keys are filtered when date dialog is open", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
 
     board.press("j") // Navigate to card level
 
@@ -488,9 +448,7 @@ describe("date prompt (td)", () => {
   test("Enter in date dialog does NOT start inline editing (km-qaco9)", () => {
     // Regression: Enter while date dialog is open must NOT trigger
     // enter_inline_edit on the background card.
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Write report"))))
 
     board.press("j") // Navigate to card level
 
@@ -520,12 +478,7 @@ describe("date prompt (td)", () => {
   test("Escape in date dialog does NOT affect background board state (km-qaco9)", () => {
     // Regression: Escape while date dialog is open must NOT trigger
     // close_or_quit or text.exit_edit on the background.
-    const { board } = testEnv(() =>
-      item("board",
-        item("col1", item.task("Task A")),
-        item("col2", item.task("Task B")),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Task A")), item("col2", item.task("Task B"))))
 
     // Navigate into column 2
     board.press("l")
@@ -553,9 +506,7 @@ describe("date prompt (td)", () => {
 
   test("multiple Enter/Escape cycles don't corrupt state (km-qaco9)", () => {
     // Regression: repeated open/close cycles should not leak state
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item.task("My task"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("My task"))))
 
     board.press("j")
 

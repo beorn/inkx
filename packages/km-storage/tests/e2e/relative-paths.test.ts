@@ -166,7 +166,8 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "Projects",
-          type: "oi", fstype: "folder",
+          type: "oi",
+          fstype: "folder",
           fs_path: "Projects",
           parent_id: null,
           name: "Projects",
@@ -181,7 +182,8 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "ref",
-          type: "oi", fstype: "folder",
+          type: "oi",
+          fstype: "folder",
           fs_path: "ref",
           parent_id: null,
           name: "ref",
@@ -196,7 +198,8 @@ describe("disk mode root node", () => {
         actor: "fs-watch",
         data: {
           id: "next-file",
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           fs_path: "@next.md",
           parent_id: null,
           name: "@next",

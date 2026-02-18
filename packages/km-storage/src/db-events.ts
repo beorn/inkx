@@ -219,7 +219,12 @@ function applyNodeUpdated(db: Database, event: Event): void {
   }
 
   // Bidirectional sync: write date field changes back to markdown file
-  if (data.due_date !== undefined || data.scheduled_date !== undefined || data.due_at !== undefined || data.start_at !== undefined) {
+  if (
+    data.due_date !== undefined ||
+    data.scheduled_date !== undefined ||
+    data.due_at !== undefined ||
+    data.start_at !== undefined
+  ) {
     const task = db.query("SELECT * FROM nodes WHERE id = ?").get(event.target) as Record<string, unknown> | null
     if (task && task.md_line !== null) {
       let fsPath = task.fs_path as string | null
@@ -277,12 +282,7 @@ function writeTaskStatusToFile(fsPath: string, mdLine: number, newStatus: TaskSt
  * Write date field changes back to markdown file (bidirectional sync).
  * Updates existing emoji (📅/⏳) or inline (due:/start:) markers, or appends inline format.
  */
-function writeDateToFile(
-  fsPath: string,
-  mdLine: number,
-  dueDate: string | null,
-  scheduledDate: string | null,
-): void {
+function writeDateToFile(fsPath: string, mdLine: number, dueDate: string | null, scheduledDate: string | null): void {
   try {
     const content = readFileSync(fsPath, "utf-8")
     const lines = content.split("\n")
@@ -301,12 +301,9 @@ function writeDateToFile(
 }
 
 function updateDateField(line: string, date: string | null, field: "due" | "scheduled"): string {
-  const emojiRegex = field === "due"
-    ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-    : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-  const inlineRegex = field === "due"
-    ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
-    : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+  const emojiRegex =
+    field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+  const inlineRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
 
   const hasEmoji = emojiRegex.test(line)
   const hasInline = inlineRegex.test(line)
@@ -314,14 +311,11 @@ function updateDateField(line: string, date: string | null, field: "due" | "sche
   if (date) {
     if (hasEmoji) {
       const emoji = field === "due" ? "📅" : "⏳"
-      const replaceRegex = field === "due"
-        ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
-        : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+      const replaceRegex =
+        field === "due" ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/ : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
       line = line.replace(replaceRegex, `${emoji} ${date}`)
     } else if (hasInline) {
-      const replaceRegex = field === "due"
-        ? /\bdue:\d{4}-\d{2}-\d{2}\b/
-        : /\bstart:\d{4}-\d{2}-\d{2}\b/
+      const replaceRegex = field === "due" ? /\bdue:\d{4}-\d{2}-\d{2}\b/ : /\bstart:\d{4}-\d{2}-\d{2}\b/
       const inlineKey = field === "due" ? "due" : "start"
       line = line.replace(replaceRegex, `${inlineKey}:${date}`)
     } else {
@@ -330,15 +324,12 @@ function updateDateField(line: string, date: string | null, field: "due" | "sche
     }
   } else {
     if (hasEmoji) {
-      const clearRegex = field === "due"
-        ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-        : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+      const clearRegex =
+        field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
       line = line.replace(clearRegex, "")
     }
     if (hasInline) {
-      const clearRegex = field === "due"
-        ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
-        : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+      const clearRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
       line = line.replace(clearRegex, "")
     }
   }

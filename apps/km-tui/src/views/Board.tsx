@@ -50,10 +50,7 @@ import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 
 // Extracted modules
-import {
-  TOP_BAR_HEIGHT,
-  BOTTOM_BAR_HEIGHT,
-} from "./board-layout.ts"
+import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
@@ -229,9 +226,7 @@ export function BoardCore({
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = 3
   // Count collapsed columns — they take much less space, so more total columns can fit
-  const totalCollapsed = state.columns.reduce(
-    (n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0,
-  )
+  const totalCollapsed = state.columns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
   // Max expanded columns that fit at ~35 char minimum width, accounting for collapsed columns' space
   const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
   const effectiveColCount = Math.min(state.columns.length, maxExpandedCols + totalCollapsed)
@@ -283,7 +278,7 @@ export function BoardCore({
                   items={state.columns}
                   width={boardWidth}
                   height={contentHeight}
-                  itemWidth={(col) => collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
+                  itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
                   gap={1}
                   scrollTo={isBoardSelected ? undefined : layout.colIndex}
                   renderItem={(col, index) => (
@@ -307,12 +302,7 @@ export function BoardCore({
             </ErrorBoundary>
           ) : ui.viewMode === "columns" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading columns view</Text>}>
-              <ColumnsView
-                state={state}
-                width={boardWidth}
-                height={contentHeight}
-                subIndex={ui.subIndex}
-              />
+              <ColumnsView state={state} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading list view</Text>}>
@@ -687,7 +677,9 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
-  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>((s) => s.undoHandle)
+  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
+    (s) => s.undoHandle,
+  )
   const dialogHandlers = useBoardDialogs({
     repo,
     state: tuiBoardState,
@@ -733,7 +725,11 @@ export function Board({ patchedConsole }: BoardProps) {
       <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
           state={tuiBoardState}
-          layout={visibleColIndex === columnsLayout.colIndex ? columnsLayout : { ...columnsLayout, columns: visibleColumns, colIndex: visibleColIndex }}
+          layout={
+            visibleColIndex === columnsLayout.colIndex
+              ? columnsLayout
+              : { ...columnsLayout, columns: visibleColumns, colIndex: visibleColIndex }
+          }
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}

@@ -253,7 +253,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
       // Restore cursor to saved position if available, otherwise keep current
-      const cursorNodeId = (result.ok && result.cursorNodeId != null) ? result.cursorNodeId : ctx.cursorNodeId
+      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
       refreshBoardState(ctx)
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       return ok()
@@ -878,9 +878,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   // If the TermEditContext already has a stickyX (from prior vertical movement),
   // use that; otherwise compute the current visual column.
   const editCtx = activeEditContextRef.current
-  const stickyX = editCtx
-    ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col)
-    : edit.stickyX
+  const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : edit.stickyX
 
   const blockCount = 1 + extractBody(ctx.repo.getChildren(edit.nodeId)).body.length
   const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
@@ -1383,7 +1381,8 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 
   let pastedCount = 0
   for (let i = 0; i < clipboard.nodeIds.length; i++) {
-    const sourceId = clipboard.nodeIds[i]!
+    const sourceId = clipboard.nodeIds[i]
+    if (!sourceId) continue
     const sourceNode = repo.getNode(sourceId)
     if (!sourceNode) continue
 

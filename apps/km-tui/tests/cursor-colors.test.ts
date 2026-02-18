@@ -24,11 +24,7 @@ function cursor(nodeId: string): string {
 describe("cursor colors (km-tui.cursor-colors)", () => {
   it("selected node date badge has black text on yellow background", () => {
     // Create a task with a due date far enough in the future to show as a short date
-    const nodes = item("board",
-      item("col1",
-        item.task("dateTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("dateTask")))
     const taskNode = nodes.find((n) => n.content === "dateTask")!
     taskNode.due_date = "2026-04-15" // Far future date -> "Apr 15"
 
@@ -56,11 +52,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
   it("selected node info suffix has black text on yellow background", () => {
     // Create a task with an assigned_to value to generate an info suffix
     // Use columns view because info suffix only shows in oneliner (non-compact) mode
-    const nodes = item("board",
-      item("col1",
-        item.task("assignedTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("assignedTask")))
     const taskNode = nodes.find((n) => n.content === "assignedTask")!
     taskNode.assigned_to = "alice"
 
@@ -86,12 +78,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
 
   it("non-selected node date badge is NOT black-on-yellow", () => {
     // Create two tasks, second one with a date
-    const nodes = item("board",
-      item("col1",
-        item.task("firstTask"),
-        item.task("secondTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("secondTask")))
     const secondTask = nodes.find((n) => n.content === "secondTask")!
     secondTask.due_date = "2026-04-15"
 
@@ -258,8 +245,14 @@ function hasNonBlackForeground(ansi: string): boolean {
       }
       // Skip background: 48;5;N or 48;2;R;G;B
       if (code === 48) {
-        if (parts[i + 1] === "5") { i += 2; continue }
-        if (parts[i + 1] === "2") { i += 4; continue }
+        if (parts[i + 1] === "5") {
+          i += 2
+          continue
+        }
+        if (parts[i + 1] === "2") {
+          i += 4
+          continue
+        }
         continue
       }
       // Standard foreground: 31-37 (not 30=black)
@@ -273,14 +266,10 @@ function hasNonBlackForeground(ansi: string): boolean {
 
 describe("cursor color override", () => {
   it("selected node with inline code renders without colored foreground", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.task("Fix the `config` bug")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.task("Fix the `config` bug"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     const ansi = board._result.ansi
     expect(board.screenshot()).toContain("Fix the config bug")
@@ -293,10 +282,7 @@ describe("cursor color override", () => {
   })
 
   it("selected node with priority date badge renders without colored foreground", () => {
-    const nodes = item(
-      "board",
-      item("col1", item.task("Important task")),
-    )
+    const nodes = item("board", item("col1", item.task("Important task")))
     const taskNode = nodes.find((n) => n.content === "Important task")!
     taskNode.priority = 1
     taskNode.due_date = "2025-01-01"
@@ -314,11 +300,7 @@ describe("cursor color override", () => {
 
   it("unselected node retains colored foreground for inline code", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.task("First task"), item.task("Has `code` text")),
-        ),
+      () => item("board", item("col1", item.task("First task"), item.task("Has `code` text"))),
       { columns: 60, rows: 20 },
     )
 
@@ -338,11 +320,7 @@ describe("cursor color override", () => {
 
   it("after navigation, newly selected node loses foreground colors", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.task("Plain task"), item.task("Has `styled` content")),
-        ),
+      () => item("board", item("col1", item.task("Plain task"), item.task("Has `styled` content"))),
       { columns: 60, rows: 20 },
     )
 
@@ -394,11 +372,7 @@ function expectCellRangeColor(
 
 describe("km-tui.selected-color: all selected card content is black-on-yellow", () => {
   it("date badge on selected card is black (fg=0) on yellow (bg=3)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("taskWithDate"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("taskWithDate")))
     const taskNode = nodes.find((n) => n.content === "taskWithDate")!
     taskNode.due_date = "2026-04-15"
 
@@ -417,20 +391,12 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     expect(aprIdx, "date badge 'Apr' should be visible").toBeGreaterThan(-1)
 
     // Every character in date badge should be black-on-yellow
-    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 3 },
-      "selected date badge")
+    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 3 }, "selected date badge")
   })
 
   it("child count on selected card is black (fg=0) on yellow (bg=3)", () => {
     // Use item() DSL to create a task with children properly
-    const nodes = item("board",
-      item("col1",
-        item("pt",
-          item.task("c1"),
-          item.task("c2"),
-        ),
-      ),
-    )
+    const nodes = item("board", item("col1", item("pt", item.task("c1"), item.task("c2"))))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -456,15 +422,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
   it("folded child count on selected card is black (fg=0) on yellow (bg=3)", () => {
     // When a node is folded, the child count shows bold (more prominent).
     // It should still be black-on-yellow when selected, NOT cyan or white.
-    const nodes = item("board",
-      item("col1",
-        item("pt",
-          item.task("c1"),
-          item.task("c2"),
-          item.task("c3"),
-        ),
-      ),
-    )
+    const nodes = item("board", item("col1", item("pt", item.task("c1"), item.task("c2"), item.task("c3"))))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -492,11 +450,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
   })
 
   it("title text on selected card is black (fg=0) on yellow (bg=3)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("mySelectedTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("mySelectedTask")))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -512,11 +466,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     tomorrow.setDate(tomorrow.getDate() + 1)
     const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`
 
-    const nodes = item("board",
-      item("col1",
-        item.task("rangeTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("rangeTask")))
     const taskNode = nodes.find((n) => n.content === "rangeTask")!
     taskNode.scheduled_date = todayStr
     taskNode.due_date = tomorrowStr
@@ -543,14 +493,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
 
 describe("km-tui.fold-count-color: fold count consistent on non-selected cards", () => {
   it("child count on non-selected card has consistent color", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("ft"),
-        item("ns",
-          item.task("nc"),
-        ),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("ft"), item("ns", item.task("nc"))))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -574,12 +517,7 @@ describe("km-tui.fold-count-color: fold count consistent on non-selected cards",
 
 describe("km-tui.date-range-color: date uses green/red when not selected", () => {
   it("overdue date on non-selected card shows red (fg=1)", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("firstTask"),
-        item.task("overdueTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("overdueTask")))
     const overdueTask = nodes.find((n) => n.content === "overdueTask")!
     overdueTask.due_date = "2025-01-01" // Past date — overdue
 
@@ -604,12 +542,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     const today = new Date()
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
-    const nodes = item("board",
-      item("col1",
-        item.task("firstTask"),
-        item.task("todayTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("todayTask")))
     const todayTask = nodes.find((n) => n.content === "todayTask")!
     todayTask.due_date = todayStr
 
@@ -630,12 +563,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
   })
 
   it("future date on non-selected card does not show green or red", () => {
-    const nodes = item("board",
-      item("col1",
-        item.task("firstTask"),
-        item.task("futureTask"),
-      ),
-    )
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("futureTask")))
     const futureTask = nodes.find((n) => n.content === "futureTask")!
     futureTask.due_date = "2026-12-15" // Far future
 

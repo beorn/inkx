@@ -232,18 +232,10 @@ export abstract class BaseStore implements NodeStore {
   /**
    * Update a date field on a task line. Handles both emoji and inline formats.
    */
-  private updateDateField(
-    line: string,
-    date: string | null,
-    time: string | null,
-    field: "due" | "scheduled",
-  ): string {
-    const emojiRegex = field === "due"
-      ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-      : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-    const inlineRegex = field === "due"
-      ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
-      : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+  private updateDateField(line: string, date: string | null, time: string | null, field: "due" | "scheduled"): string {
+    const emojiRegex =
+      field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+    const inlineRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
 
     const hasEmoji = emojiRegex.test(line)
     const hasInline = inlineRegex.test(line)
@@ -253,15 +245,12 @@ export abstract class BaseStore implements NodeStore {
       if (hasEmoji) {
         // Replace existing emoji format
         const emoji = field === "due" ? "📅" : "⏳"
-        const replaceRegex = field === "due"
-          ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
-          : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
+        const replaceRegex =
+          field === "due" ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/ : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
         line = line.replace(replaceRegex, `${emoji} ${date}${timeSuffix}`)
       } else if (hasInline) {
         // Replace existing inline format
-        const replaceRegex = field === "due"
-          ? /\bdue:\d{4}-\d{2}-\d{2}\b/
-          : /\bstart:\d{4}-\d{2}-\d{2}\b/
+        const replaceRegex = field === "due" ? /\bdue:\d{4}-\d{2}-\d{2}\b/ : /\bstart:\d{4}-\d{2}-\d{2}\b/
         const inlineKey = field === "due" ? "due" : "start"
         line = line.replace(replaceRegex, `${inlineKey}:${date}`)
       } else {
@@ -272,15 +261,14 @@ export abstract class BaseStore implements NodeStore {
     } else {
       // Clear date: remove both emoji and inline formats
       if (hasEmoji) {
-        const clearRegex = field === "due"
-          ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-          : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+        const clearRegex =
+          field === "due"
+            ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
+            : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
         line = line.replace(clearRegex, "")
       }
       if (hasInline) {
-        const clearRegex = field === "due"
-          ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g
-          : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
+        const clearRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
         line = line.replace(clearRegex, "")
       }
     }

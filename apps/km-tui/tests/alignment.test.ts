@@ -43,10 +43,7 @@ function findContentXOffset(
  * (non-space, non-border, non-alphanumeric) in the first row of a node's box.
  * Returns absolute X position, or -1 if not found.
  */
-function findBulletX(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeId: string,
-): number {
+function findBulletX(board: ReturnType<typeof testEnv>["board"], nodeId: string): number {
   const box = board.screen.nodeBox(nodeId)
   if (!box) return -1
   for (let x = box.x; x < box.x + box.width; x++) {
@@ -62,10 +59,7 @@ function findBulletX(
  * Find the X position where title text starts (after the 2-char prefix: marker + space).
  * Returns absolute X position, or -1 if not found.
  */
-function findTitleStartX(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeId: string,
-): number {
+function findTitleStartX(board: ReturnType<typeof testEnv>["board"], nodeId: string): number {
   const bulletX = findBulletX(board, nodeId)
   if (bulletX < 0) return -1
   // Title starts 2 chars after bullet (marker + space)
@@ -79,10 +73,7 @@ function findTitleStartX(
 describe("alignment: single column 80x24", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(
-      () => item("board", item("col1", item("1a"))),
-      { columns: 80, rows: 24 },
-    )
+    const env = testEnv(() => item("board", item("col1", item("1a"))), { columns: 80, rows: 24 })
     board = env.board
   })
 
@@ -152,10 +143,10 @@ describe("alignment: single column 80x24", () => {
 describe("alignment: 3 cards in single column 80x24", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      { columns: 80, rows: 24 },
-    )
+    const env = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      columns: 80,
+      rows: 24,
+    })
     board = env.board
   })
 
@@ -208,10 +199,10 @@ describe("alignment: 3 cards in single column 80x24", () => {
 
 describe("alignment: card vertical stacking", () => {
   test("card vertical stacking has no overlap", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      { columns: 80, rows: 30 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      columns: 80,
+      rows: 30,
+    })
     const boxA = board.screen.nodeBox("1a")
     const boxB = board.screen.nodeBox("1b")
     const boxC = board.screen.nodeBox("1c")
@@ -231,10 +222,7 @@ describe("alignment: card vertical stacking", () => {
 
 describe("alignment: selected vs unselected border", () => {
   test("selected body card has border, unselected has dim border", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))), { columns: 80, rows: 24 })
     // 1a is selected — should have border
     board.expectNodeBorder("1a")
     // 1b is unselected — should also have border (dim gray)
@@ -249,15 +237,7 @@ describe("alignment: selected vs unselected border", () => {
 describe("alignment: 2 columns WIDE", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-        ),
-      WIDE,
-    )
+    const env = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
     board = env.board
   })
 
@@ -318,13 +298,7 @@ describe("alignment: 3 columns WIDE", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
     const env = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       WIDE,
     )
     board = env.board
@@ -362,12 +336,7 @@ describe("alignment: 2 columns WIDE with multiple cards", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
     const env = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
       WIDE,
     )
     board = env.board
@@ -409,10 +378,10 @@ describe("alignment: 2 columns WIDE with multiple cards", () => {
 
 describe("alignment: title text", () => {
   test("titles are left-aligned (not centered or right-aligned)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Short"), item("A longer title here"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Short"), item("A longer title here"))), {
+      columns: 80,
+      rows: 24,
+    })
     const tShort = findTitleStartX(board, "Short")
     const tLong = findTitleStartX(board, "A longer title here")
     expect(tShort).toBeGreaterThan(0)
@@ -428,10 +397,7 @@ describe("alignment: title text", () => {
 
 describe("alignment: date badges", () => {
   test("date badge is right-aligned within card width", () => {
-    const nodes = item(
-      "board",
-      item("col1", item.task("Task with date")),
-    )
+    const nodes = item("board", item("col1", item.task("Task with date")))
     // Set a due date on the task
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_date = "2026-03-15"
@@ -454,10 +420,7 @@ describe("alignment: date badges", () => {
   })
 
   test("date badges in different cards are at consistent right offsets", () => {
-    const nodes = item(
-      "board",
-      item("col1", item.task("Task A"), item.task("Task B")),
-    )
+    const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const taskA = nodes.find((n) => n.content === "Task A")!
     const taskB = nodes.find((n) => n.content === "Task B")!
     taskA.due_date = "2026-03-15"
@@ -494,12 +457,7 @@ describe("alignment: collapsed columns", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
       const env = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1 km.collapse:: true", item("1a")),
-            item("col2", item("2a")),
-          ),
+        () => item("board", item("col1 km.collapse:: true", item("1a")), item("col2", item("2a"))),
         WIDE,
       )
       board = env.board
@@ -551,12 +509,7 @@ describe("alignment: collapsed columns", () => {
 
   test("collapsed column on the right is also adjacent", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2 km.collapse:: true", item("2a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2 km.collapse:: true", item("2a"))),
       WIDE,
     )
     const col1Box = board.screen.nodeBox("col1")

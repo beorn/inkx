@@ -108,7 +108,9 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 
   if (totalChildCount > 0 || totalBacklinkCount > 0 || anyHasMetadata) {
     // Non-trivial: show confirmation dialog
-    const targetNode = cards[0]!.node
+    const firstCard = cards[0]
+    if (!firstCard) return
+    const targetNode = firstCard.node
     const title =
       cards.length > 1 ? `${cards.length} selected nodes` : (targetNode.name ?? targetNode.content ?? targetNode.id)
     ctx.setUI({

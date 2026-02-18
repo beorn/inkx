@@ -345,7 +345,8 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
   ctx.undoHandle.endBatch()
 
   // Cursor follows first indented card (resolves to parent card via nodeIndex)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })
+  const firstCard = cards[0]
+  if (firstCard) ctx.dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
   clearSelection(ctx)
   return true
 }
@@ -378,7 +379,8 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
   ctx.undoHandle.endBatch()
 
   // Cursor follows first card in batch
-  ctx.dispatchBoard({ type: "SELECT", nodeId: cards[0]!.node.id })
+  const firstOutdented = cards[0]
+  if (firstOutdented) ctx.dispatchBoard({ type: "SELECT", nodeId: firstOutdented.node.id })
   clearSelection(ctx)
   return true
 }

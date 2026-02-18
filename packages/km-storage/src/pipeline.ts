@@ -255,7 +255,6 @@ export async function* pipelineResolveLinks(
   log.debug?.("pipelineResolveLinks: completed")
 }
 
-
 // ============================================================================
 // STAGE 4: applyLinks - Buffering
 // ============================================================================

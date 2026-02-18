@@ -394,7 +394,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
   // Task markers: "[] ", "[ ] ", "[x] ", "[X] ", "[/] ", "[!] ", "[-] "
   const taskMatch = content.match(/^\[([xX /!-]?)\] $/)
   if (taskMatch) {
-    const inner = taskMatch[1] === "" ? " " : taskMatch[1]!
+    const inner = taskMatch[1] === "" || taskMatch[1] === undefined ? " " : taskMatch[1]
     const markerMap: Record<string, { marker: TaskMarker; status: TaskStatus }> = {
       " ": { marker: "[ ]", status: "todo" },
       x: { marker: "[x]", status: "done" },

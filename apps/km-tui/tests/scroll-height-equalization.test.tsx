@@ -46,12 +46,7 @@ describe("body block spacing in columns view", () => {
     // When ALL children are body (no oi), all are compact
     const nodes = item(
       "board",
-      item(
-        "col1",
-        item.paragraph("para-one"),
-        item.paragraph("para-two"),
-        item.paragraph("para-three"),
-      ),
+      item("col1", item.paragraph("para-one"), item.paragraph("para-two"), item.paragraph("para-three")),
     )
 
     const { board } = testEnv(() => nodes, { viewMode: "columns" })

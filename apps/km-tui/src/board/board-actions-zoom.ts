@@ -19,7 +19,10 @@ import type { ActionCtx } from "../tui-context.ts"
  * - Filtered body nodes (HR, empty paragraphs) → skip to first structural column
  * Falls back to column header if the column is empty.
  */
-function firstCardId(children: { id: string; type: string; content?: string }[], repo: ActionCtx["repo"]): string | null {
+function firstCardId(
+  children: { id: string; type: string; content?: string }[],
+  repo: ActionCtx["repo"],
+): string | null {
   if (children.length === 0) return null
 
   // Split children into body (before first oi) and structural (oi).
@@ -30,12 +33,12 @@ function firstCardId(children: { id: string; type: string; content?: string }[],
   // Try meaningful body card first (must have visible non-HTML content)
   const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
-    return meaningfulBody[0]!.id
+    return meaningfulBody[0]?.id ?? null
   }
 
   // Fall back to first structural column's first card
   const firstCol = structuralNodes[0]
-  if (!firstCol) return children[0]!.id // all body, none meaningful — best effort
+  if (!firstCol) return children[0]?.id ?? null // all body, none meaningful — best effort
   const colChildren = repo.getChildren(firstCol.id)
   return colChildren[0]?.id ?? firstCol.id
 }

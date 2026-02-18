@@ -48,7 +48,9 @@ function findZoomTarget(
   if (ancestors.length >= 4 && greatGrandparent && parent) {
     zoomTarget = greatGrandparent
     cursorTarget = parent
-    log.debug?.(`search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`)
+    log.debug?.(
+      `search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`,
+    )
   } else if (ancestors.length >= 3 && grandparent) {
     zoomTarget = grandparent
     log.debug?.(`search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target`)

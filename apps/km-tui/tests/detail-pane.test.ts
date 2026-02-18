@@ -174,7 +174,8 @@ describe("getProjectPath", () => {
         { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "oi", fstype: "folder" as const,
+          type: "oi",
+          fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
@@ -233,13 +234,13 @@ describe("DetailPane", () => {
     expect(app.text).toContain("@bjorn")
   })
 
-  test("shows subtasks", () => {
+  test("shows subtasks as outline items", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "li", content: "Parent task" },
+        { id: "parent1", type: "oi", content: "Parent task" },
         {
           id: "sub1",
-          type: "li",
+          type: "oi",
           content: "Subtask 1",
           parent_id: "parent1",
           task_status: "done",
@@ -247,7 +248,7 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "li",
+          type: "oi",
           content: "Subtask 2",
           parent_id: "parent1",
           parent_idx: 1,
@@ -258,7 +259,6 @@ describe("DetailPane", () => {
     })
     const parent = repo.getNode("parent1")!
     const app = renderDetailPane(repo, parent, 40, 24)
-    expect(app.text).toContain("Subtasks")
     expect(app.text).toContain("Subtask 1")
     expect(app.text).toContain("Subtask 2")
   })
@@ -287,7 +287,8 @@ describe("DetailPane", () => {
         { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "oi", fstype: "folder" as const,
+          type: "oi",
+          fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
@@ -339,7 +340,8 @@ describe("DetailPane", () => {
         { id: "target1", type: "li", content: "Target task" },
         {
           id: "source1",
-          type: "oi", fstype: "mdfile" as const,
+          type: "oi",
+          fstype: "mdfile" as const,
           content: "Meeting Notes",
           parent_idx: 1,
         },

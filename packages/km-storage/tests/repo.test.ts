@@ -629,7 +629,9 @@ describe("FsWriter auto-registration", () => {
 
     // Find nodes via DB
     const db = repo.database
-    const inbox = db.query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'oi' AND fstype = 'mdsection'").get() as {
+    const inbox = db
+      .query("SELECT id FROM nodes WHERE content = 'Inbox' AND type = 'oi' AND fstype = 'mdsection'")
+      .get() as {
       id: string
     } | null
 

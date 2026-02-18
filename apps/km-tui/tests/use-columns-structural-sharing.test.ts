@@ -137,10 +137,12 @@ describe("applyStructuralSharing", () => {
     const card2 = makeCard({ node: { id: "card-2", content: "B" } })
 
     const prev = [makeColumn("col-1", [card1, card2])]
-    const next = [makeColumn("col-1", [
-      makeCard({ node: { id: "card-1", content: "A" } }),
-      makeCard({ node: { id: "card-2", content: "B" } }),
-    ])]
+    const next = [
+      makeColumn("col-1", [
+        makeCard({ node: { id: "card-1", content: "A" } }),
+        makeCard({ node: { id: "card-2", content: "B" } }),
+      ]),
+    ]
 
     const result = applyStructuralSharing(prev, next)
 
@@ -179,10 +181,7 @@ describe("applyStructuralSharing", () => {
     const prevCard1 = makeCard({ node: { id: "card-1", content: "A" } })
     const prevCard2 = makeCard({ node: { id: "card-2", content: "B" } })
 
-    const prev = [
-      makeColumn("col-1", [prevCard1]),
-      makeColumn("col-2", [prevCard2]),
-    ]
+    const prev = [makeColumn("col-1", [prevCard1]), makeColumn("col-2", [prevCard2])]
 
     const next = [
       makeColumn("col-1", [makeCard({ node: { id: "card-1", content: "A" } })]),

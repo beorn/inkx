@@ -330,7 +330,10 @@ function buildFileAncestorCache(db: Database): Map<string, KNode | null> {
   const cache = new Map<string, KNode | null>()
 
   // Get all file nodes first
-  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'oi' AND fstype IN ('file', 'mdfile')").all() as Record<string, unknown>[]
+  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'oi' AND fstype IN ('file', 'mdfile')").all() as Record<
+    string,
+    unknown
+  >[]
   const fileNodes = new Map<string, KNode>()
   for (const row of fileRows) {
     const node = rowToNode(row)

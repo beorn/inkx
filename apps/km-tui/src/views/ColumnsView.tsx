@@ -212,12 +212,7 @@ interface ColumnsViewProps {
 // Maximum column width for columns view (tighter than cards view)
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
-export function ColumnsView({
-  state,
-  width,
-  height,
-  subIndex,
-}: ColumnsViewProps): React.ReactElement {
+export function ColumnsView({ state, width, height, subIndex }: ColumnsViewProps): React.ReactElement {
   // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
   const colIndex = useCursorColIndex()
 
@@ -225,7 +220,10 @@ export function ColumnsView({
   const maxCols = Math.max(1, Math.floor(width / 35))
   const effectiveColCount = Math.min(state.columns.length, maxCols)
   const separators = Math.max(0, effectiveColCount - 1)
-  const expandedWidth = Math.min(COLUMNS_VIEW_MAX_WIDTH, Math.max(20, Math.floor((width - separators) / effectiveColCount)))
+  const expandedWidth = Math.min(
+    COLUMNS_VIEW_MAX_WIDTH,
+    Math.max(20, Math.floor((width - separators) / effectiveColCount)),
+  )
   const columnHeight = height - 1
 
   return (
@@ -255,9 +253,7 @@ export function ColumnsView({
               height={columnHeight}
             />
           )}
-          renderOverflowIndicator={(dir) => (
-            <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
-          )}
+          renderOverflowIndicator={(dir) => <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />}
           overflowIndicatorWidth={1}
           renderSeparator={() => <ColumnSeparator />}
           keyExtractor={(col) => col.node.id}

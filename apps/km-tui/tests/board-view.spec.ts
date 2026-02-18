@@ -98,10 +98,10 @@ describe("Column Fold/Collapse", () => {
   })
 
   test("collapsed column shows vertical title text", () => {
-    const { board } = testEnv(
-      () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))), {
+      columns: 80,
+      rows: 20,
+    })
     board.expect("#1a").toExist()
 
     // Collapse "Todo" column
@@ -113,9 +113,7 @@ describe("Column Fold/Collapse", () => {
   })
 
   test("c persists collapsed state to node data", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Collapse col1
     board.press("c")
     board.expect("#1a").not.toExist()

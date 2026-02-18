@@ -508,7 +508,8 @@ describe("reconcile.ts", () => {
         const folderPath = createFolder(repoDir, "no-dup-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
-        const countQuery = "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'oi' AND fstype = 'folder' AND name = 'no-dup-folder'"
+        const countQuery =
+          "SELECT COUNT(*) as cnt FROM nodes WHERE type = 'oi' AND fstype = 'folder' AND name = 'no-dup-folder'"
         expect((db.query(countQuery).get() as { cnt: number }).cnt).toBe(1)
 
         // Simulate watch handler and discovery both running
@@ -526,7 +527,8 @@ describe("reconcile.ts", () => {
           ts: Date.now(),
           data: {
             id: folderId,
-            type: "oi", fstype: "folder",
+            type: "oi",
+            fstype: "folder",
             fs_path: toRel(folderPath),
             name: "no-dup-folder",
           },

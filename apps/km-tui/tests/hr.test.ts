@@ -39,18 +39,14 @@ function hrWithContent(id: string, content: string): KNode[] {
 
 describe("HR borderless rendering", () => {
   test("HR card renders with dim border when unselected", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item.hr("my-hr"), item("task2")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
 
     // HR should have a dim gray border when unselected (same as other body blocks)
     board.expectNodeBorder("my-hr")
   })
 
   test("selected body card has border, unselected neighbor has dim border", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item.hr("my-hr"), item("task2")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
     // task1 is selected — should have a border
     board.expectNodeBorder("task1")
     // task2 is unselected — should have dim border
@@ -58,9 +54,7 @@ describe("HR borderless rendering", () => {
   })
 
   test("HR renders centered content (---) within card width", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item.hr("my-hr")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
     // Use nodeBox to find the HR's actual position
     const hrBox = board.screen.nodeBox("my-hr")
     expect(hrBox, "HR node should be visible").not.toBeNull()
@@ -75,9 +69,7 @@ describe("HR borderless rendering", () => {
   })
 
   test("selected HR is yellow", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item.hr("my-hr")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
     // HR should be selected by default (first card)
     const hrBox = board.screen.nodeBox("my-hr")
     expect(hrBox, "HR node should be visible").not.toBeNull()
@@ -85,7 +77,10 @@ describe("HR borderless rendering", () => {
       // Find the "---" content within the centered row
       let dashX = -1
       for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
-        if (board.screen.cell(x, hrBox.y).char === "-") { dashX = x; break }
+        if (board.screen.cell(x, hrBox.y).char === "-") {
+          dashX = x
+          break
+        }
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
@@ -96,9 +91,7 @@ describe("HR borderless rendering", () => {
   })
 
   test("unselected HR is dimmed", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1"), item.hr("my-hr")))
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"))))
     // task1 is selected by default, HR is not selected
     const hrBox = board.screen.nodeBox("my-hr")
     expect(hrBox, "HR node should be visible").not.toBeNull()
@@ -106,7 +99,10 @@ describe("HR borderless rendering", () => {
       // Find the "---" content within the centered row
       let dashX = -1
       for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
-        if (board.screen.cell(x, hrBox.y).char === "-") { dashX = x; break }
+        if (board.screen.cell(x, hrBox.y).char === "-") {
+          dashX = x
+          break
+        }
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
@@ -124,10 +120,10 @@ describe("HR content-based detection", () => {
 
   for (const content of hrContents) {
     test(`HR content '${content}' renders as line with dim border when unselected`, () => {
-      const { board } = testEnv(
-        () => item("board", item("Col", hrWithContent("hr-node", content), item("other"))),
-        { columns: 60, rows: 20 },
-      )
+      const { board } = testEnv(() => item("board", item("Col", hrWithContent("hr-node", content), item("other"))), {
+        columns: 60,
+        rows: 20,
+      })
       board.expectScreen("─")
       board.press("j")
       board.expectNodeBorder("hr-node")
@@ -135,10 +131,10 @@ describe("HR content-based detection", () => {
   }
 
   test("standard HR (type=hr, no content) renders as line with dim border", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col", item.hr("my-hr"), item("other"))),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Col", item.hr("my-hr"), item("other"))), {
+      columns: 60,
+      rows: 20,
+    })
     board.expectScreen("─")
     board.press("j")
     board.expectNodeBorder("my-hr")
@@ -151,10 +147,10 @@ describe("HR content-based detection", () => {
 
   for (const { content, label } of nonHrContents) {
     test(`${label} '${content}' does not render as HR line`, () => {
-      const { board } = testEnv(
-        () => item("board", item("Col", hrWithContent("edited-hr", content), item("other"))),
-        { columns: 60, rows: 20 },
-      )
+      const { board } = testEnv(() => item("board", item("Col", hrWithContent("edited-hr", content), item("other"))), {
+        columns: 60,
+        rows: 20,
+      })
       const text = stripAnsi(board.screenshot())
       expect(text).toContain(content)
       board.expectNodeBorder("edited-hr")
@@ -169,11 +165,7 @@ describe("HR content-based detection", () => {
 describe("HR display", () => {
   test("HR node (type=hr) renders with centered content and ─ padding", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-above"), item.hr("my-hr-node"), item("task-below")),
-        ),
+      () => item("board", item("col1", item("task-above"), item.hr("my-hr-node"), item("task-below"))),
       { columns: 60, rows: 20 },
     )
 
@@ -189,14 +181,10 @@ describe("HR display", () => {
   })
 
   test("item with content '---' renders showing its content", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-above"), item("---"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task-above"), item("---"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     const text = stripAnsi(board.screenshot())
     // Should show the raw HR content
@@ -205,11 +193,7 @@ describe("HR display", () => {
 
   test("HR line is dimmed when cursor is NOT on it", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-above"), item.hr("hr-node"), item("task-below")),
-        ),
+      () => item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))),
       { columns: 60, rows: 20 },
     )
 
@@ -224,11 +208,7 @@ describe("HR display", () => {
 
   test("HR card gets selection styling when cursor IS on it", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-above"), item.hr("hr-node"), item("task-below")),
-        ),
+      () => item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))),
       { columns: 60, rows: 20 },
     )
 
@@ -244,14 +224,7 @@ describe("HR display", () => {
   })
 
   test("non-HR content like '---foo' does NOT trigger HR rendering", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("---foo")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("---foo"))), { columns: 60, rows: 20 })
 
     const text = stripAnsi(board.screenshot())
     // Should show the literal content
@@ -259,42 +232,24 @@ describe("HR display", () => {
   })
 
   test("item with content '***' renders showing its content", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("***")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("***"))), { columns: 60, rows: 20 })
 
     const text = stripAnsi(board.screenshot())
     expect(text).toContain("***")
   })
 
   test("item with content '___' renders showing its content", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("___")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("___"))), { columns: 60, rows: 20 })
 
     const text = stripAnsi(board.screenshot())
     expect(text).toContain("___")
   })
 
   test("pressing Enter on HR enters edit mode showing raw content", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     // Cursor starts on HR (first card in column)
     board.expect("#my-hr[data-cursor]").toExist()
@@ -317,11 +272,7 @@ describe("HR display", () => {
 
   test("HR edit mode: Escape returns to line rendering", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-above"), item.hr("my-hr"), item("task-below")),
-        ),
+      () => item("board", item("col1", item("task-above"), item.hr("my-hr"), item("task-below"))),
       { columns: 60, rows: 20 },
     )
 
@@ -348,14 +299,10 @@ describe("HR display", () => {
 
 describe("HR editing", () => {
   test("Enter on HR node enters edit mode and accepts keyboard input", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     // Cursor starts on the HR node
     board.expect("#my-hr[data-cursor]").toExist()
@@ -379,14 +326,10 @@ describe("HR editing", () => {
   })
 
   test("Enter on HR opens edit with '---' as initial content", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     board.expect("#my-hr[data-cursor]").toExist()
     board.press("Enter")
@@ -397,14 +340,10 @@ describe("HR editing", () => {
   })
 
   test("Escape after entering edit on HR saves and returns to HR display", () => {
-    const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     board.expect("#my-hr[data-cursor]").toExist()
 
@@ -428,14 +367,10 @@ describe("HR editing", () => {
   })
 
   test("j/k navigation still works after Enter then Escape on HR", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     board.expect("#my-hr[data-cursor]").toExist()
 
@@ -452,14 +387,10 @@ describe("HR editing", () => {
   })
 
   test("HR renders as bordered card during edit mode", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     // Move cursor away, then check HR has dim border when unselected
     board.press("j")
@@ -474,14 +405,10 @@ describe("HR editing", () => {
   })
 
   test("HR edit mode: no colored background fills the row", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.hr("my-hr"), item("task-below")),
-        ),
-      { columns: 40, rows: 12 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.hr("my-hr"), item("task-below"))), {
+      columns: 40,
+      rows: 12,
+    })
 
     board.press("Enter") // Enter edit mode
 

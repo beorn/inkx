@@ -27,11 +27,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   function buildEmbedBoard(options?: { parentDisplayName?: string }) {
     const parentName = options?.parentDisplayName ?? "@next"
     return testEnv(() => {
-      const nodes = item(
-        "board",
-        item("@next", item("embed-a"), item("embed-b")),
-        item("other-col", item("task-x")),
-      )
+      const nodes = item("board", item("@next", item("embed-a"), item("embed-b")), item("other-col", item("task-x")))
 
       // Set up @next column as a sigil-named column
       for (const n of nodes) {

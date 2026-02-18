@@ -287,11 +287,7 @@ describe("embed display", () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
         // Multiple unresolved embeds (simulating real-world @next.md with PDFs)
-        const embeds = [
-          "![[2025 Tax Return.pdf]]",
-          "![[Insurance Card.pdf]]",
-          "![[Bank Statement.pdf]]",
-        ]
+        const embeds = ["![[2025 Tax Return.pdf]]", "![[Insurance Card.pdf]]", "![[Bank Statement.pdf]]"]
 
         embeds.forEach((content, idx) => {
           nodes.push({

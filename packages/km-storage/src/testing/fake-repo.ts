@@ -343,7 +343,8 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         augmented.scheduled_date = parts?.date
       }
       if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-        augmented.start_at = composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
+        augmented.start_at =
+          composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
       }
       nodes.set(id, { ...node, ...augmented, id })
       mutationVersion++

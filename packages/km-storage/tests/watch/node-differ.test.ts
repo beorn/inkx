@@ -460,7 +460,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "oi", fstype: "mdfile" }),
         makeNode({
           id: "file-2",
-          type: "oi", fstype: "mdfile", // Extra file (shouldn't happen but handle gracefully)
+          type: "oi",
+          fstype: "mdfile", // Extra file (shouldn't happen but handle gracefully)
         }),
       ]
       const newNodes = [makeNode({ id: "file-new", type: "oi", fstype: "mdfile" })]

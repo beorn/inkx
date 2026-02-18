@@ -84,14 +84,7 @@ interface CardProps {
  * Helper component that registers the Card's screen position.
  * Must be rendered INSIDE the Card's Box to get the correct node context.
  */
-function CardLayoutRegistrar({
-  colIndex,
-  cardIndex,
-}: {
-  colIndex: number
-  cardIndex: number
-  nodeId: string
-}): null {
+function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIndex: number; nodeId: string }): null {
   const registry = useNavigator()
 
   const handleLayout = useCallback(
@@ -102,7 +95,12 @@ function CardLayoutRegistrar({
       }
 
       layoutLog.trace?.(`CardLayoutRegistrar: col=${colIndex} card=${cardIndex} y=${computed.y} h=${computed.height}`)
-      registry.register(colIndex, cardIndex, { x: computed.x, y: computed.y, width: computed.width, height: computed.height })
+      registry.register(colIndex, cardIndex, {
+        x: computed.x,
+        y: computed.y,
+        width: computed.width,
+        height: computed.height,
+      })
     },
     [registry, colIndex, cardIndex],
   )
@@ -216,7 +214,8 @@ const Card = React.memo(
               dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
-              {" ".repeat(padLeft)}{hrContent}
+              {" ".repeat(padLeft)}
+              {hrContent}
             </Text>
           </Box>
         </Box>
@@ -230,7 +229,14 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...bodyBlockLayoutProps(isSelected || isEditing, bodyBorderColor, yieldTop, isLastBodyBlock, isMultiSelected, isColSelected)}
+          {...bodyBlockLayoutProps(
+            isSelected || isEditing,
+            bodyBorderColor,
+            yieldTop,
+            isLastBodyBlock,
+            isMultiSelected,
+            isColSelected,
+          )}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -245,7 +251,6 @@ const Card = React.memo(
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
-
           />
         </Box>
       )
@@ -265,13 +270,7 @@ const Card = React.memo(
 
       return (
         <Box flexDirection="column" flexShrink={0} width={width}>
-          <Box
-            flexDirection="column"
-            width={width}
-            borderStyle="round"
-            borderBottom={false}
-            borderColor={borderColor}
-          >
+          <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
               node={card.node}
@@ -297,13 +296,7 @@ const Card = React.memo(
     }
 
     return (
-      <Box
-        flexDirection="column"
-        flexShrink={0}
-        width={width}
-        borderStyle="round"
-        borderColor={borderColor}
-      >
+      <Box flexDirection="column" flexShrink={0} width={width} borderStyle="round" borderColor={borderColor}>
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
           node={card.node}
@@ -576,10 +569,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text
-              dimColor={!isColumnSelected}
-              color={isColumnSelected ? "black" : undefined}
-            >
+            <Text dimColor={!isColumnSelected} color={isColumnSelected ? "black" : undefined}>
               {countStr}
             </Text>
           </Box>
@@ -603,7 +593,14 @@ export const Column = React.memo(function Column({
     >
       {/* Column header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
       <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
-        <Box flexGrow={1} flexShrink={1} flexDirection="row" paddingLeft={1} paddingRight={1} backgroundColor={headerStyle.backgroundColor}>
+        <Box
+          flexGrow={1}
+          flexShrink={1}
+          flexDirection="row"
+          paddingLeft={1}
+          paddingRight={1}
+          backgroundColor={headerStyle.backgroundColor}
+        >
           {isInlineEditing ? (
             <Text bold color={headerStyle.color} wrap="truncate">
               <Text color={iconColor}>{icon.char}</Text>{" "}
@@ -649,9 +646,7 @@ export const Column = React.memo(function Column({
                   {wipExceeded ? (
                     <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                   ) : (
-                    <Text color={isColumnSelected ? headerStyle.color : "gray"}>
-                      {` ${countDisplay}`}
-                    </Text>
+                    <Text color={isColumnSelected ? headerStyle.color : "gray"}>{` ${countDisplay}`}</Text>
                   )}
                 </Text>
               </Box>

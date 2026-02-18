@@ -45,7 +45,6 @@ export interface CardState {
   isVirtual?: boolean
 }
 
-
 export type BoardAction = "quit" | "refresh" | null
 
 /**

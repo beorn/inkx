@@ -237,17 +237,20 @@ describe("Full-text Search with Phrases", () => {
     seedTestData(db, [
       {
         id: "doc1",
-        type: "oi", fstype: "mdfile",
+        type: "oi",
+        fstype: "mdfile",
         content: "The budget review meeting is scheduled for Monday",
       },
       {
         id: "doc2",
-        type: "oi", fstype: "mdfile",
+        type: "oi",
+        fstype: "mdfile",
         content: "Please review the budget before the deadline",
       },
       {
         id: "doc3",
-        type: "oi", fstype: "mdfile",
+        type: "oi",
+        fstype: "mdfile",
         content: "This document is about quarterly reports",
       },
     ])
@@ -317,7 +320,8 @@ describe("Status on Any Node Type", () => {
       },
       {
         id: "file1",
-        type: "oi", fstype: "mdfile",
+        type: "oi",
+        fstype: "mdfile",
         task_status: "done",
         content: "Completed Document",
         fs_path: "/repo/completed.md",

@@ -143,9 +143,7 @@ describe("Clipboard operations", () => {
   })
 
   test("paste into different column", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2", item("X"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("X"))))
 
     // Copy A
     board.press("Control+c")
@@ -199,9 +197,7 @@ describe("Clipboard operations", () => {
   })
 
   test("copy on empty column rings bell", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("A")), item("col2")),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
 
     // Navigate to col2 (empty column — cursor on column header)
     board.press("l")

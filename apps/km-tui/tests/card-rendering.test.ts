@@ -30,11 +30,7 @@ function isBorderChar(c: string): boolean {
  * Assert that the Card border has proper border chars at correct positions.
  * Checks 1 cell outside the nodeBox (where the Card's Box border renders).
  */
-function expectCardBorder(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeId: string,
-  termWidth: number,
-) {
+function expectCardBorder(board: ReturnType<typeof testEnv>["board"], nodeId: string, termWidth: number) {
   const box = board.screen.nodeBox(nodeId)
   expect(box, `node "${nodeId}" should exist`).not.toBeNull()
   if (!box) return
@@ -87,15 +83,9 @@ const ANSI_BRIGHT_BLACK = 8 // gray / dim
  * Assert that a virtual body card has a dim gray border when unselected.
  * Body cards always have borders — dim gray when unselected, yellow when selected.
  */
-function expectDimBorder(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeId: string,
-) {
+function expectDimBorder(board: ReturnType<typeof testEnv>["board"], nodeId: string) {
   const cell = findBorderCell(board, nodeId)
-  expect(
-    cell,
-    `node "${nodeId}" should have a border`,
-  ).not.toBeNull()
+  expect(cell, `node "${nodeId}" should have a border`).not.toBeNull()
   if (cell) {
     // Unselected body card border should be dim gray (bright black = 8, or black = 0)
     expect(
@@ -110,11 +100,7 @@ function expectDimBorder(
 describe("card border: structural cards (sections)", () => {
   test("structural cards always have borders", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item.section("1a", item("1a-child")), item.section("1b", item("1b-child"))),
-        ),
+      () => item("board", item("col", item.section("1a", item("1a-child")), item.section("1b", item("1b-child")))),
       { columns: 80, rows: 24 },
     )
     expectCardBorder(board, "1a", 80)
@@ -146,20 +132,20 @@ describe("card border: structural cards (sections)", () => {
 
 describe("card border: virtual body cards", () => {
   test("unselected body cards have dim gray border", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+      columns: 80,
+      rows: 24,
+    })
     // 1a is selected; 1b and 1c should have dim gray border
     expectDimBorder(board, "1b")
     expectDimBorder(board, "1c")
   })
 
   test("selected body card gets yellow border", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item("1a"), item("1b"), item("1c"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))), {
+      columns: 80,
+      rows: 24,
+    })
     board.press("j")
     // 1b is now selected — should have a yellow border
     board.expectNodeBorder("1b")
@@ -198,10 +184,9 @@ describe("card border: scrolling", () => {
 
 describe("card border: terminal widths", () => {
   test.each([30, 200])("single column borders intact at %d cols", (cols) => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item.section("1a", item("1a-child")))),
-      { columns: cols },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.section("1a", item("1a-child")))), {
+      columns: cols,
+    })
     expectCardBorder(board, "1a", cols)
   })
 
@@ -226,10 +211,10 @@ describe("card border: terminal widths", () => {
 describe("card border: overflow indicator", () => {
   test("card with overflow still has left/right borders", () => {
     const children = Array.from({ length: 10 }, (_, i) => item(`c${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col", item.section("parent", ...children))),
-      { columns: 80, rows: 30 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item.section("parent", ...children))), {
+      columns: 80,
+      rows: 30,
+    })
 
     const box = board.screen.nodeBox("parent")
     expect(box, "parent node should exist").not.toBeNull()
@@ -327,10 +312,10 @@ describe("card border: edge cases", () => {
   })
 
   test("full border verification: corners and all sides (structural card)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item.section("task1", item("task1-c")))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item.section("task1", item("task1-c")))), {
+      columns: 80,
+      rows: 24,
+    })
 
     const box = board.screen.nodeBox("task1")
     expect(box).not.toBeNull()
@@ -343,26 +328,32 @@ describe("card border: edge cases", () => {
 
     // Left and right borders on content rows
     for (let y = box.y; y < box.y + box.height; y++) {
-      if (borderLeft >= 0)
-        {expect(isBorderChar(board.screen.cell(borderLeft, y).char)).toBe(true)}
-      if (borderRight < 80)
-        {expect(isBorderChar(board.screen.cell(borderRight, y).char)).toBe(true)}
+      if (borderLeft >= 0) {
+        expect(isBorderChar(board.screen.cell(borderLeft, y).char)).toBe(true)
+      }
+      if (borderRight < 80) {
+        expect(isBorderChar(board.screen.cell(borderRight, y).char)).toBe(true)
+      }
     }
 
     // Top corners
     if (borderTop >= 0) {
-      if (borderLeft >= 0)
-        {expect(isBorderChar(board.screen.cell(borderLeft, borderTop).char)).toBe(true)}
-      if (borderRight < 80)
-        {expect(isBorderChar(board.screen.cell(borderRight, borderTop).char)).toBe(true)}
+      if (borderLeft >= 0) {
+        expect(isBorderChar(board.screen.cell(borderLeft, borderTop).char)).toBe(true)
+      }
+      if (borderRight < 80) {
+        expect(isBorderChar(board.screen.cell(borderRight, borderTop).char)).toBe(true)
+      }
     }
 
     // Bottom corners
     if (borderBottom < 24) {
-      if (borderLeft >= 0)
-        {expect(isBorderChar(board.screen.cell(borderLeft, borderBottom).char)).toBe(true)}
-      if (borderRight < 80)
-        {expect(isBorderChar(board.screen.cell(borderRight, borderBottom).char)).toBe(true)}
+      if (borderLeft >= 0) {
+        expect(isBorderChar(board.screen.cell(borderLeft, borderBottom).char)).toBe(true)
+      }
+      if (borderRight < 80) {
+        expect(isBorderChar(board.screen.cell(borderRight, borderBottom).char)).toBe(true)
+      }
     }
   })
 })
@@ -401,10 +392,10 @@ describe("layout stability invariant: body blocks", () => {
 
   test("content Y positions stable: pure body blocks", () => {
     const ids = ["a", "b", "c", "d"]
-    const { board } = testEnv(
-      () => item("board", item("col", item("a"), item("b"), item("c"), item("d"))),
-      { columns: 80, rows: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("a"), item("b"), item("c"), item("d"))), {
+      columns: 80,
+      rows: 40,
+    })
 
     const initialYs = getYs(board, ids)
 
@@ -423,11 +414,7 @@ describe("layout stability invariant: body blocks", () => {
     // Body blocks come BEFORE structural (extractBody puts body first)
     const ids = ["a", "b", "c", "s1"]
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("a"), item("b"), item("c"), item.section("sec", item("s1"))),
-        ),
+      () => item("board", item("col", item("a"), item("b"), item("c"), item.section("sec", item("s1")))),
       { columns: 80, rows: 40 },
     )
 
@@ -446,10 +433,10 @@ describe("layout stability invariant: body blocks", () => {
 
   test("total column height is constant across cursor moves", () => {
     const ids = ["a", "b", "c", "d", "e"]
-    const { board } = testEnv(
-      () => item("board", item("col", item("a"), item("b"), item("c"), item("d"), item("e"))),
-      { columns: 80, rows: 50 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("a"), item("b"), item("c"), item("d"), item("e"))), {
+      columns: 80,
+      rows: 50,
+    })
 
     function getLastBoxBottom(): number {
       for (const id of [...ids].reverse()) {
@@ -475,11 +462,7 @@ describe("layout stability invariant: body blocks", () => {
   test("total height stable: body blocks then structural", () => {
     // Realistic: body content (description, HR) followed by sections
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("b1"), item("b2"), item("b3"), item.section("sec", item("s1"))),
-        ),
+      () => item("board", item("col", item("b1"), item("b2"), item("b3"), item.section("sec", item("s1")))),
       { columns: 80, rows: 50 },
     )
 
@@ -527,10 +510,10 @@ describe("layout stability invariant: body blocks", () => {
   test("content Y positions stable: body blocks with HR (pure body column)", () => {
     // Pure virtual column — all body blocks including HR
     const ids = ["a", "b"]
-    const { board } = testEnv(
-      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"))),
-      { columns: 80, rows: 40 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("a"), item.hr("hr1"), item("b"))), {
+      columns: 80,
+      rows: 40,
+    })
 
     const initialYs = getYs(board, ids)
 
@@ -548,11 +531,7 @@ describe("layout stability invariant: body blocks", () => {
     // This test verifies body blocks + structural in the same column.
     const ids = ["a", "b", "s1"]
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("a"), item.hr("hr1"), item("b"), item.section("sec", item("s1"))),
-        ),
+      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.section("sec", item("s1")))),
       { columns: 80, rows: 40 },
     )
 
@@ -581,14 +560,7 @@ describe("card-overflow-dots", () => {
           "board",
           item(
             "col1",
-            item(
-              "heading1",
-              item("child1"),
-              item("child2"),
-              item("child3"),
-              item("child4"),
-              item("child5"),
-            ),
+            item("heading1", item("child1"), item("child2"), item("child3"), item("child4"), item("child5")),
           ),
         ),
       { rows: 30, columns: 80, viewMode: "cards" },
@@ -603,17 +575,11 @@ describe("card-overflow-dots", () => {
 
   test("card without overflow does not show overflow border", () => {
     // Create a card with few enough children to not overflow
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item("heading1", item("child1"), item("child2")),
-          ),
-        ),
-      { rows: 30, columns: 80, viewMode: "cards" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("heading1", item("child1"), item("child2")))), {
+      rows: 30,
+      columns: 80,
+      viewMode: "cards",
+    })
 
     const text = board.screenshot()
     // No overflow border indicator (no +N in bottom border)
@@ -632,22 +598,8 @@ describe("card-overflow-dots", () => {
               "col1",
               item(
                 "parent-card",
-                item(
-                  "heading-A",
-                  item("A1"),
-                  item("A2"),
-                  item("A3"),
-                  item("A4"),
-                  item("A5"),
-                ),
-                item(
-                  "heading-B",
-                  item("B1"),
-                  item("B2"),
-                  item("B3"),
-                  item("B4"),
-                  item("B5"),
-                ),
+                item("heading-A", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
+                item("heading-B", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
               ),
             ),
           ),
@@ -722,14 +674,10 @@ describe("card child line truncation", () => {
   test("long child items render on exactly one line in cards view", () => {
     // Use item() with a simple ID but make the content long via the node
     // item() uses content as ID, so we need a simple ID
-    const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("card1", item("long-child"))),
-        ),
-      { columns: 40, rows: 20 },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("card1", item("long-child")))), {
+      columns: 40,
+      rows: 20,
+    })
 
     // Override the content to be very long (the ID stays "long-child")
     repo.updateNode("long-child", {
@@ -749,14 +697,10 @@ describe("card child line truncation", () => {
   })
 
   test("card root (depth 0) remains multiline while children truncate", () => {
-    const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("card1", item("child1"), item("child2"))),
-        ),
-      { columns: 40, rows: 20 },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("card1", item("child1"), item("child2")))), {
+      columns: 40,
+      rows: 20,
+    })
 
     // Override content to be very long
     repo.updateNode("child1", {

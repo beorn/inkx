@@ -34,7 +34,8 @@ function createTestDb(): Database {
 function createNode(id: string, overrides: Partial<ParsedFile["nodes"][0]> = {}): ParsedFile["nodes"][0] {
   return {
     id,
-    type: "oi", fstype: "mdfile",
+    type: "oi",
+    fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
     link_to: null,

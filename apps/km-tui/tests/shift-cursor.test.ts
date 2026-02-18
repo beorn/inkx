@@ -86,7 +86,8 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("shift column right then down enters correct column's cards", () => {
     const { board } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item("col1", item("1a"), item("1b")),
         item("col2", item("2a"), item("2b")),
         item("col3", item("3a")),
@@ -111,11 +112,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("shift column left then down enters correct column's cards", () => {
     const { board } = testEnv(() =>
-      item("board",
-        item("col1", item("1a")),
-        item("col2", item("2a"), item("2b")),
-        item("col3", item("3a")),
-      ),
+      item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
     board.press("l").press("k")
@@ -179,12 +176,14 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   test("multiple shifts preserve cursor and visual order", () => {
     // Use wider terminal for 4 columns
     const { board } = testEnv(
-      () => item("board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-        item("col4", item("4a")),
-      ),
+      () =>
+        item(
+          "board",
+          item("col1", item("1a")),
+          item("col2", item("2a")),
+          item("col3", item("3a")),
+          item("col4", item("4a")),
+        ),
       { columns: 160, rows: 24 },
     )
     // Navigate to col1 header
@@ -220,8 +219,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("shift right then left returns column to original position", () => {
     const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 160, rows: 24 },
     )
     board.press("k")
@@ -244,8 +242,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("shift right twice then left once — column ends in middle", () => {
     const { board } = testEnv(
-      () =>
-        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 160, rows: 24 },
     )
     board.press("k")
@@ -362,12 +359,54 @@ describe("shift card boundary detection", () => {
   const twoCols = () => item("board", item("Col1", item("a")), item("Col2", item("b")))
 
   test.each([
-    { name: "shift up at top card", fixture: singleCol, opts: { columns: 60, rows: 20 }, nav: [], key: "Meta+k", bell: true },
-    { name: "shift down at bottom card", fixture: () => item("board", item("Col", item("a"), item("b"))), opts: { columns: 60, rows: 20 }, nav: ["j"], key: "Meta+j", bell: true },
-    { name: "shift left at leftmost column", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: [], key: "Meta+h", bell: true },
-    { name: "shift right at rightmost column", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: ["l"], key: "Meta+l", bell: true },
-    { name: "shift down in middle succeeds (no bell)", fixture: singleCol, opts: { columns: 60, rows: 20 }, nav: [], key: "Meta+j", bell: false },
-    { name: "shift up at column header", fixture: twoCols, opts: { columns: 80, rows: 20 }, nav: ["k"], key: "Meta+k", bell: true },
+    {
+      name: "shift up at top card",
+      fixture: singleCol,
+      opts: { columns: 60, rows: 20 },
+      nav: [],
+      key: "Meta+k",
+      bell: true,
+    },
+    {
+      name: "shift down at bottom card",
+      fixture: () => item("board", item("Col", item("a"), item("b"))),
+      opts: { columns: 60, rows: 20 },
+      nav: ["j"],
+      key: "Meta+j",
+      bell: true,
+    },
+    {
+      name: "shift left at leftmost column",
+      fixture: twoCols,
+      opts: { columns: 80, rows: 20 },
+      nav: [],
+      key: "Meta+h",
+      bell: true,
+    },
+    {
+      name: "shift right at rightmost column",
+      fixture: twoCols,
+      opts: { columns: 80, rows: 20 },
+      nav: ["l"],
+      key: "Meta+l",
+      bell: true,
+    },
+    {
+      name: "shift down in middle succeeds (no bell)",
+      fixture: singleCol,
+      opts: { columns: 60, rows: 20 },
+      nav: [],
+      key: "Meta+j",
+      bell: false,
+    },
+    {
+      name: "shift up at column header",
+      fixture: twoCols,
+      opts: { columns: 80, rows: 20 },
+      nav: ["k"],
+      key: "Meta+k",
+      bell: true,
+    },
   ])("$name", ({ fixture, opts, nav, key, bell }) => {
     const { board } = testEnv(fixture, opts)
     for (const k of nav) board.press(k)

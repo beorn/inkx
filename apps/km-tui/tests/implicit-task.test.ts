@@ -103,7 +103,7 @@ describe("implicit task rendering", () => {
   it("node with due_date shows date badge", () => {
     const nodes = item("board", item("col", item("task1")))
     // Modify the leaf node to be an implicit task (has due_date but no task_status)
-    const taskNode = nodes.find(n => n.id === "task1")!
+    const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_date = "2026-03-20"
     // Remove explicit task status/marker that item() sets by default
     taskNode.task_status = undefined
@@ -116,7 +116,7 @@ describe("implicit task rendering", () => {
 
   it("node with priority shows priority badge", () => {
     const nodes = item("board", item("col", item("task1")))
-    const taskNode = nodes.find(n => n.id === "task1")!
+    const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.priority = 2
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
@@ -127,7 +127,7 @@ describe("implicit task rendering", () => {
 
   it("node with due_date shows task icon (□)", () => {
     const nodes = item("board", item("col", item("task1")))
-    const taskNode = nodes.find(n => n.id === "task1")!
+    const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_date = "2026-03-20"
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
@@ -146,7 +146,7 @@ describe("implicit task rendering", () => {
 
   it("node with assigned_to shows assignee in columns view", () => {
     const nodes = item("board", item("col", item("task1")))
-    const taskNode = nodes.find(n => n.id === "task1")!
+    const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.assigned_to = "beorn"
     taskNode.task_status = undefined
     taskNode.task_marker = undefined

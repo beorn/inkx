@@ -40,12 +40,7 @@ export interface NavState {
  * What "selectable" means depends on the view mode and current state.
  */
 export interface ViewNavigation {
-  navigate(
-    dir: "up" | "down" | "left" | "right",
-    state: NavState,
-    repo: Repo,
-    navigator: GridNavigator,
-  ): string | null
+  navigate(dir: "up" | "down" | "left" | "right", state: NavState, repo: Repo, navigator: GridNavigator): string | null
 }
 
 // =============================================================================
@@ -77,12 +72,7 @@ export function createCardsViewNavigation(): ViewNavigation {
 // Vertical navigation (j/k)
 // =============================================================================
 
-function navigateVertical(
-  dir: "up" | "down",
-  state: NavState,
-  repo: Repo,
-  navigator: GridNavigator,
-): string | null {
+function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navigator: GridNavigator): string | null {
   const { cursorNodeId, rootId } = state
 
   // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
@@ -144,7 +134,7 @@ function navigateVertical(
 
       // No stickyX: prefer first meaningful body card, then first structural column
       if (bodyNodes.length > 0) {
-        return bodyNodes[0]!.id
+        return bodyNodes[0]?.id ?? null
       }
       return structuralCols[0]?.id ?? allChildren[0]?.id ?? null
     }
@@ -157,7 +147,7 @@ function navigateVertical(
       const bodyNodes = filterMeaningfulBody(rawBody)
       const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
       if (bodyIdx >= 0 && bodyIdx < bodyNodes.length - 1) {
-        return bodyNodes[bodyIdx + 1]!.id
+        return bodyNodes[bodyIdx + 1]?.id ?? null
       }
       // At last body card — boundary (can't go down to column headers,
       // they're in a different visual column)
@@ -186,7 +176,7 @@ function navigateVertical(
       const bodyNodes = filterMeaningfulBody(rawBody)
       const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
       if (bodyIdx > 0) {
-        return bodyNodes[bodyIdx - 1]!.id
+        return bodyNodes[bodyIdx - 1]?.id ?? null
       }
       // At first body card → body column header (virtual node)
       return `__body__${rootId ?? "root"}`
@@ -273,7 +263,7 @@ function navigateHorizontal(
     const { structuralCols } = splitBodyAndColumns(allChildren)
     if (structuralCols.length === 0) return null
     // Navigate to structural column header (column-to-column navigation)
-    return structuralCols[0]!.id
+    return structuralCols[0]?.id ?? null
   }
 
   const cursorNode = repo.getNode(cursorNodeId)
@@ -325,13 +315,31 @@ function navigateHorizontal(
       return navigateToBody(bodyNodes, navigator)
     }
     // Navigate to previous structural column
-    return navigateToStructuralCol(colIdx - 1, structuralCols, state, navigator, repo, hasBody, isAtColumnLevel, cursorColId)
+    return navigateToStructuralCol(
+      colIdx - 1,
+      structuralCols,
+      state,
+      navigator,
+      repo,
+      hasBody,
+      isAtColumnLevel,
+      cursorColId,
+    )
   }
 
   // dir === "right"
   const targetColIdx = colIdx + 1
   if (targetColIdx >= structuralCols.length) return null
-  return navigateToStructuralCol(targetColIdx, structuralCols, state, navigator, repo, hasBody, isAtColumnLevel, cursorColId)
+  return navigateToStructuralCol(
+    targetColIdx,
+    structuralCols,
+    state,
+    navigator,
+    repo,
+    hasBody,
+    isAtColumnLevel,
+    cursorColId,
+  )
 }
 
 /**
@@ -406,25 +414,22 @@ function navigateToStructuralCol(
  * Navigate to the virtual body column, selecting the appropriate body card.
  * Body cards are at view column index 0.
  */
-function navigateToBody(
-  bodyNodes: { id: string }[],
-  navigator: GridNavigator,
-): string | null {
+function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator): string | null {
   if (bodyNodes.length === 0) return null
 
   const stickyY = navigator.stickyY
   if (stickyY === null) {
-    return bodyNodes[0]!.id
+    return bodyNodes[0]?.id ?? null
   }
 
   // Body is always view column 0
   if (navigator.hasSection(0)) {
     const targetCardIdx = navigator.findItemAtY(0, stickyY)
     const clampedIdx = Math.min(Math.max(0, targetCardIdx), bodyNodes.length - 1)
-    return bodyNodes[clampedIdx]!.id
+    return bodyNodes[clampedIdx]?.id ?? null
   }
 
-  return bodyNodes[0]!.id
+  return bodyNodes[0]?.id ?? null
 }
 
 // =============================================================================

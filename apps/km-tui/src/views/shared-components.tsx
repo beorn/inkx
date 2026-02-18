@@ -138,7 +138,12 @@ function CardLayoutTracker({
       if (!registry) return
 
       // Use measured dimensions directly from inkx layout
-      registry.register(colIndex, cardIndex, { x: computed.x, y: computed.y, width: computed.width, height: computed.height })
+      registry.register(colIndex, cardIndex, {
+        x: computed.x,
+        y: computed.y,
+        width: computed.width,
+        height: computed.height,
+      })
       log.debug?.(
         `registered: col=${colIndex} card=${cardIndex} id=${nodeId.slice(-8)} y=${computed.y} h=${computed.height}`,
       )

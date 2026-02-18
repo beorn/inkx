@@ -51,7 +51,8 @@ export function stripFgColor(text: string): string {
     const kept: number[] = []
 
     for (let i = 0; i < codes.length; i++) {
-      const code = codes[i]!
+      const code = codes[i]
+      if (code === undefined) continue
       // Skip basic fg colors (30-37, 90-97)
       if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97)) continue
       // Skip default fg (39)
@@ -59,9 +60,15 @@ export function stripFgColor(text: string): string {
       // Skip dim (2) — it's a color-appearance modifier
       if (code === 2) continue
       // Skip 256-color fg: 38;5;N
-      if (code === 38 && codes[i + 1] === 5) { i += 2; continue }
+      if (code === 38 && codes[i + 1] === 5) {
+        i += 2
+        continue
+      }
       // Skip truecolor fg: 38;2;R;G;B
-      if (code === 38 && codes[i + 1] === 2) { i += 4; continue }
+      if (code === 38 && codes[i + 1] === 2) {
+        i += 4
+        continue
+      }
       kept.push(code)
     }
 
@@ -207,9 +214,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
   }
 
   // Style bracketed inline fields [key:: value]
-  let result = text.replace(INLINE_FIELD_BRACKET_REGEX, (_m, k: string, v: string) =>
-    styleInlineProp(_m, k, v),
-  )
+  let result = text.replace(INLINE_FIELD_BRACKET_REGEX, (_m, k: string, v: string) => styleInlineProp(_m, k, v))
   // Handle all key:: value props in one pass: strip km.* system props, style bare user props
   PROP_REGEX.lastIndex = 0
   result = result.replace(PROP_REGEX, (match, key: string, value: string) => {

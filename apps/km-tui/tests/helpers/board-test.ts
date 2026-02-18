@@ -131,8 +131,7 @@ function computeInitialCursor(initialState: TUIBoardState) {
   const selectedCol = initialState.columns[colIndex]
   const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
   const selectedCard = selectedCol && !isCollapsed ? selectedCol.cards[0] : undefined
-  const selectionLevel: "board" | "column" | "card" =
-    cursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+  const selectionLevel: "board" | "column" | "card" = cursorNodeId === null ? "board" : selectedCard ? "card" : "column"
 
   return { cursorNodeId, colIndex, cardIndex: selectedCard ? 0 : cardIndex, selectedCard, selectedCol, selectionLevel }
 }
@@ -183,7 +182,9 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   const node: KNode = {
     id: content,
     type: hasChildren ? "oi" : "li",
-    ...(hasChildren ? { fstype: "folder" as const } : { list_marker: "-", task_marker: "[ ]", task_status: "todo" as const }),
+    ...(hasChildren
+      ? { fstype: "folder" as const }
+      : { list_marker: "-", task_marker: "[ ]", task_status: "todo" as const }),
     content: hasChildren ? undefined : cleanContent,
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
@@ -358,7 +359,13 @@ export function testEnv(
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
+  const {
+    cursorNodeId: initialCursorNodeId,
+    colIndex: initialColIndex,
+    selectedCard,
+    selectedCol,
+    selectionLevel: initialSelectionLevel,
+  } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
@@ -379,7 +386,12 @@ export function testEnv(
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+      initialState.collapsedNodeIds,
+    ),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -825,7 +837,9 @@ export function testEnv(
       }
       const cell = result.term.cell(box.x, box.y)
       // eslint-disable-next-line no-console
-      console.log(`node "${nodeId}": box=${JSON.stringify(box)}, cell(${box.x},${box.y})=${JSON.stringify({ char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs })}`)
+      console.log(
+        `node "${nodeId}": box=${JSON.stringify(box)}, cell(${box.x},${box.y})=${JSON.stringify({ char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs })}`,
+      )
       return { box, cell }
     },
 
@@ -1036,16 +1050,12 @@ export function testEnv(
           if (ch.length === 1) {
             const code = ch.charCodeAt(0)
             // NUL byte
-            expect(
-              code !== 0,
-              `ghost char: NUL byte at (${x},${y})`,
-            ).toBe(true)
+            expect(code !== 0, `ghost char: NUL byte at (${x},${y})`).toBe(true)
             // Control characters (1-31) excluding tab(9), newline(10), carriage return(13)
             if (code >= 1 && code <= 31 && code !== 9 && code !== 10 && code !== 13) {
-              expect(
-                false,
-                `ghost char: control char 0x${code.toString(16).padStart(2, "0")} at (${x},${y})`,
-              ).toBe(true)
+              expect(false, `ghost char: control char 0x${code.toString(16).padStart(2, "0")} at (${x},${y})`).toBe(
+                true,
+              )
             }
           }
         }
@@ -1055,10 +1065,7 @@ export function testEnv(
       const screenText = result.text
       const artifactPatterns = ["[object Object]", "undefined", "NaN"]
       for (const pattern of artifactPatterns) {
-        expect(
-          !screenText.includes(pattern),
-          `ghost char: found "${pattern}" in screen text`,
-        ).toBe(true)
+        expect(!screenText.includes(pattern), `ghost char: found "${pattern}" in screen text`).toBe(true)
       }
 
       return board
@@ -1077,10 +1084,7 @@ export function testEnv(
       for (let cy = y; cy < y + height && cy < rows; cy++) {
         for (let cx = x; cx < x + width && cx < columns; cx++) {
           const ch = result.term.cell(cx, cy).char
-          expect(
-            ch === " " || ch === "",
-            `expected blank at (${cx},${cy}), got "${ch}"`,
-          ).toBe(true)
+          expect(ch === " " || ch === "", `expected blank at (${cx},${cy}), got "${ch}"`).toBe(true)
         }
       }
       return board
@@ -1110,10 +1114,7 @@ export function testEnv(
             break
           }
         }
-        expect(
-          !allBlank,
-          `unexpected blank line at row ${y}`,
-        ).toBe(true)
+        expect(!allBlank, `unexpected blank line at row ${y}`).toBe(true)
       }
       return board
     },
@@ -1135,14 +1136,8 @@ export function testEnv(
       expect(box, "cursor element has boundingBox").not.toBeNull()
       if (!box) return board
 
-      expect(
-        box.x >= 0 && box.x < columns,
-        `cursor x=${box.x} is within screen bounds [0, ${columns})`,
-      ).toBe(true)
-      expect(
-        box.y >= 0 && box.y < rows,
-        `cursor y=${box.y} is within screen bounds [0, ${rows})`,
-      ).toBe(true)
+      expect(box.x >= 0 && box.x < columns, `cursor x=${box.x} is within screen bounds [0, ${columns})`).toBe(true)
+      expect(box.y >= 0 && box.y < rows, `cursor y=${box.y} is within screen bounds [0, ${rows})`).toBe(true)
 
       return board
     },
@@ -1181,9 +1176,7 @@ export function testEnv(
           Array.from({ length: fresh.width }, (_, x) => fresh!.getCellChar(x, y)).join(""),
         ).join("\n")
 
-        expect.fail(
-          `Incremental/fresh buffer mismatch:\n${formatMismatch(mismatch, { incrementalText, freshText })}`,
-        )
+        expect.fail(`Incremental/fresh buffer mismatch:\n${formatMismatch(mismatch, { incrementalText, freshText })}`)
       }
 
       return board
@@ -1235,7 +1228,13 @@ export function testEnvWithRepo(
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
+  const {
+    cursorNodeId: initialCursorNodeId,
+    colIndex: initialColIndex,
+    selectedCard,
+    selectedCol,
+    selectionLevel: initialSelectionLevel,
+  } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
@@ -1256,7 +1255,12 @@ export function testEnvWithRepo(
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+      initialState.collapsedNodeIds,
+    ),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -2038,7 +2042,13 @@ export function renderBoardWithStore(
 
   ensureCommandSystemInitialized()
 
-  const { cursorNodeId: initialCursorNodeId, colIndex: initialColIndex, selectedCard, selectedCol, selectionLevel: initialSelectionLevel } = computeInitialCursor(initialState)
+  const {
+    cursorNodeId: initialCursorNodeId,
+    colIndex: initialColIndex,
+    selectedCard,
+    selectedCol,
+    selectionLevel: initialSelectionLevel,
+  } = computeInitialCursor(initialState)
 
   const initialLayout = {
     columns: initialState.columns,
@@ -2059,7 +2069,12 @@ export function renderBoardWithStore(
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+      initialState.collapsedNodeIds,
+    ),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
@@ -2189,11 +2204,16 @@ export type { BoardTest, BoardTestOptions }
 // =============================================================================
 
 /** Test helper: compute card head midpoint Y */
-export function getCardMidY(layout: { headY?: number; headHeight?: number; y: number; cardHeight?: number; height?: number }): number {
+export function getCardMidY(layout: {
+  headY?: number
+  headHeight?: number
+  y: number
+  cardHeight?: number
+  height?: number
+}): number {
   if (layout.headY !== undefined && layout.headHeight !== undefined) {
     return layout.headY + layout.headHeight / 2
   }
   const h = layout.cardHeight ?? layout.height ?? 0
   return layout.y + h / 2
 }
-

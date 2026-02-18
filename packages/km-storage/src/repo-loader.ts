@@ -942,9 +942,7 @@ function parseOneFile(
   const { nodeId, fsPath } = deferredFile
   const content = readFileSync(fsPath, "utf-8")
   const isTxt = fsPath.endsWith(".txt")
-  const { nodes, wikilinks } = isTxt
-    ? parsePlainTextToNodes(content, fsPath)
-    : parseMarkdownWithLinks(content, fsPath)
+  const { nodes, wikilinks } = isTxt ? parsePlainTextToNodes(content, fsPath) : parseMarkdownWithLinks(content, fsPath)
 
   const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
     parent_id: string | null
@@ -959,7 +957,10 @@ function parseOneFile(
   deleteStmt.run(nodeId)
 
   const fileNode = nodes[0]
-  if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")) {
+  if (
+    fileNode?.type === "oi" &&
+    (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
+  ) {
     fileNode.id = nodeId
     fileNode.parent_id = stubRow.parent_id
     fileNode.parent_idx = stubRow.parent_idx
@@ -1046,9 +1047,7 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
   try {
     const content = readFileSync(fsPath, "utf-8")
     const isTxt = fsPath.endsWith(".txt")
-    const { nodes } = isTxt
-      ? parsePlainTextToNodes(content, fsPath)
-      : parseMarkdownWithLinks(content, fsPath)
+    const { nodes } = isTxt ? parsePlainTextToNodes(content, fsPath) : parseMarkdownWithLinks(content, fsPath)
 
     const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
@@ -1067,7 +1066,10 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
 
       const fileNode = nodes[0]
       const originalFileId = fileNode?.id
-      if (fileNode?.type === "oi" && (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")) {
+      if (
+        fileNode?.type === "oi" &&
+        (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
+      ) {
         fileNode.id = nodeId
         fileNode.parent_id = stubRow.parent_id
         fileNode.parent_idx = stubRow.parent_idx

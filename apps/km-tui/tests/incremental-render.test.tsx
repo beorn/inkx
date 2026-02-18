@@ -132,12 +132,11 @@ describe("incremental rendering", () => {
           if (cell.bg === 3) {
             // This cell has yellow bg - it should be within the cursor bounds
             const inCursorArea =
-              y >= afterBox.y && y < afterBox.y + afterBox.height &&
-              x >= afterBox.x && x < afterBox.x + afterBox.width
+              y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursorArea) {
               expect.fail(
                 `Stale yellow bg at (${x},${y}) after moving cursor from "${cursorText}" to "${afterCursorText}"` +
-                `, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
+                  `, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
               )
             }
           }

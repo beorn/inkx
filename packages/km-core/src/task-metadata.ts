@@ -181,11 +181,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
  * - nodes2md.ts serializer (appendTaskMetadata) — roundtrip preserves format
  * - TreeNode.tsx TUI editor (composeRawEditContent) — edits trigger key:: value rewrite
  */
-export function stringifyTaskMetadata(
-  content: string,
-  node: KNode,
-  options?: { includeAssignedTo?: boolean },
-): string {
+export function stringifyTaskMetadata(content: string, node: KNode, options?: { includeAssignedTo?: boolean }): string {
   // Extract current node field values
   const dueParts =
     decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)

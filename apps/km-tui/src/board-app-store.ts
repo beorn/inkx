@@ -204,309 +204,310 @@ export function createBoardAppStoreState(
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
 
     return {
-    // Board navigation (flat — source of truth)
-    rootId: bs.rootId,
-    rootPath: bs.rootPath,
-    cursorNodeId: bs.cursorNodeId,
-    selectedNodes: bs.selectedNodes,
-    foldedNodes: bs.foldedNodes,
-    collapsedNodes: bs.collapsedNodes,
-    navHistory: bs.navHistory,
-    navHistoryIndex: bs.navHistoryIndex,
-    moveMode: bs.moveMode,
-    moveSourceNodes: bs.moveSourceNodes,
-    moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
-    curswantX: bs.curswantX,
-    curswantY: bs.curswantY,
+      // Board navigation (flat — source of truth)
+      rootId: bs.rootId,
+      rootPath: bs.rootPath,
+      cursorNodeId: bs.cursorNodeId,
+      selectedNodes: bs.selectedNodes,
+      foldedNodes: bs.foldedNodes,
+      collapsedNodes: bs.collapsedNodes,
+      navHistory: bs.navHistory,
+      navHistoryIndex: bs.navHistoryIndex,
+      moveMode: bs.moveMode,
+      moveSourceNodes: bs.moveSourceNodes,
+      moveSourceCursorNodeId: bs.moveSourceCursorNodeId,
+      curswantX: bs.curswantX,
+      curswantY: bs.curswantY,
 
-    // UI state
-    ui: params.initialUIState,
+      // UI state
+      ui: params.initialUIState,
 
-    // Derived layout
-    layout: params.initialLayout,
-    tuiBoardState: params.initialTUIBoardState,
+      // Derived layout
+      layout: params.initialLayout,
+      tuiBoardState: params.initialTUIBoardState,
 
-    // Derived
-    selectedNode: params.initialSelectedNode,
-    selectionLevel: params.initialSelectionLevel,
+      // Derived
+      selectedNode: params.initialSelectedNode,
+      selectionLevel: params.initialSelectionLevel,
 
-    // Injected — use the undoable-wrapped repo so mutations auto-record
-    repo: undoableRepo,
-    toastQueue: params.toastQueue,
-    jobRunner: createJobRunner(params.toastQueue),
-    navigator: params.navigator,
+      // Injected — use the undoable-wrapped repo so mutations auto-record
+      repo: undoableRepo,
+      toastQueue: params.toastQueue,
+      jobRunner: createJobRunner(params.toastQueue),
+      navigator: params.navigator,
 
-    // Text input
-    textEditTarget: null,
+      // Text input
+      textEditTarget: null,
 
-    // Dimensions
-    dimensions: params.dimensions,
+      // Dimensions
+      dimensions: params.dimensions,
 
-    // Cursor store
-    cursorStore: params.cursorStore,
+      // Cursor store
+      cursorStore: params.cursorStore,
 
-    // Undo/redo
-    undoStack,
-    undoHandle,
+      // Undo/redo
+      undoStack,
+      undoHandle,
 
-    // --- Board action dispatcher (inlined from boardReducer) ---
+      // --- Board action dispatcher (inlined from boardReducer) ---
 
-    // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
-    dispatchBoard(action: BoardAction) {
-      // Track whether this action only changes cursor position (no column changes)
-      let cursorOnly = false
+      // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
+      dispatchBoard(action: BoardAction) {
+        // Track whether this action only changes cursor position (no column changes)
+        let cursorOnly = false
 
-      // --- Fast path: SELECT bypasses Zustand set() entirely ---
-      if (action.type === "SELECT") {
-        const s = _get()
-        // Silent mutation on Zustand state (no subscriber notification)
-        s.cursorNodeId = action.nodeId
-        s.curswantX = null
-        s.curswantY = null
+        // --- Fast path: SELECT bypasses Zustand set() entirely ---
+        if (action.type === "SELECT") {
+          const s = _get()
+          // Silent mutation on Zustand state (no subscriber notification)
+          s.cursorNodeId = action.nodeId
+          s.curswantX = null
+          s.curswantY = null
 
-        // If repo has been mutated since last layout computation, the nodeIndex
-        // and columns are stale. Fall through to full recompute which re-derives
-        // columns, builds a fresh nodeIndex, and resolves cursor position.
-        if (s.repo.getSnapshot() !== _layoutRepoVersion) {
-          recomputeLayout(_get)
+          // If repo has been mutated since last layout computation, the nodeIndex
+          // and columns are stale. Fall through to full recompute which re-derives
+          // columns, builds a fresh nodeIndex, and resolves cursor position.
+          if (s.repo.getSnapshot() !== _layoutRepoVersion) {
+            recomputeLayout(_get)
+            return
+          }
+
+          // Use position hints if provided (from refreshBoardState's fresh repo query),
+          // otherwise fall back to O(1) nodeIndex lookup
+          let colIndex: number, cardIndex: number, hasPosition: boolean
+          if (action.colIndex !== undefined && action.cardIndex !== undefined) {
+            colIndex = action.colIndex
+            cardIndex = action.cardIndex
+            hasPosition = true
+          } else {
+            const pos = s.layout.nodeIndex?.get(action.nodeId)
+            colIndex = pos?.colIndex ?? -1
+            cardIndex = pos?.cardIndex ?? -1
+            hasPosition = !!pos
+          }
+          const isColumnHeader = cardIndex === -1
+          const selectionLevel = !hasPosition
+            ? ("board" as const)
+            : isColumnHeader
+              ? ("column" as const)
+              : ("card" as const)
+
+          // Update layout silently
+          s.layout = {
+            ...s.layout,
+            colIndex,
+            cardIndex,
+            isAtCardLevel: !isColumnHeader && hasPosition,
+          }
+          const selectedCol = s.layout.columns[colIndex]
+          const selectedCard = selectedCol?.cards[cardIndex]
+          s.selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
+          s.selectionLevel = selectionLevel
+
+          // Notify CursorStore subscribers (only cursor-aware components re-render)
+          s.cursorStore.setState({
+            cursorNodeId: action.nodeId,
+            colIndex,
+            cardIndex,
+            selectionLevel,
+          })
           return
         }
 
-        // Use position hints if provided (from refreshBoardState's fresh repo query),
-        // otherwise fall back to O(1) nodeIndex lookup
-        let colIndex: number, cardIndex: number, hasPosition: boolean
-        if (action.colIndex !== undefined && action.cardIndex !== undefined) {
-          colIndex = action.colIndex
-          cardIndex = action.cardIndex
-          hasPosition = true
-        } else {
-          const pos = s.layout.nodeIndex?.get(action.nodeId)
-          colIndex = pos?.colIndex ?? -1
-          cardIndex = pos?.cardIndex ?? -1
-          hasPosition = !!pos
+        // --- Fast path: SET_CURSWANT also bypasses Zustand set() ---
+        if (action.type === "SET_CURSWANT") {
+          const s = _get()
+          if (action.x !== undefined) s.curswantX = action.x
+          if (action.y !== undefined) s.curswantY = action.y
+          return
         }
-        const isColumnHeader = cardIndex === -1
-        const selectionLevel = !hasPosition
-          ? ("board" as const)
-          : isColumnHeader
-            ? ("column" as const)
-            : ("card" as const)
 
-        // Update layout silently
-        s.layout = {
-          ...s.layout,
-          colIndex,
-          cardIndex,
-          isAtCardLevel: !isColumnHeader && hasPosition,
-        }
-        const selectedCol = s.layout.columns[colIndex]
-        const selectedCard = selectedCol?.cards[cardIndex]
-        s.selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-        s.selectionLevel = selectionLevel
+        set((state) => {
+          let flatUpdate: Partial<BoardAppState>
 
-        // Notify CursorStore subscribers (only cursor-aware components re-render)
-        s.cursorStore.setState({
-          cursorNodeId: action.nodeId,
-          colIndex,
-          cardIndex,
-          selectionLevel,
-        })
-        return
-      }
+          switch (action.type) {
+            // SELECT and SET_CURSWANT handled above (fast path)
+            case "SELECT":
+            case "SET_CURSWANT":
+              return state
 
-      // --- Fast path: SET_CURSWANT also bypasses Zustand set() ---
-      if (action.type === "SET_CURSWANT") {
-        const s = _get()
-        if (action.x !== undefined) s.curswantX = action.x
-        if (action.y !== undefined) s.curswantY = action.y
-        return
-      }
-
-      set((state) => {
-        let flatUpdate: Partial<BoardAppState>
-
-        switch (action.type) {
-          // SELECT and SET_CURSWANT handled above (fast path)
-          case "SELECT":
-          case "SET_CURSWANT":
-            return state
-
-          case "TOGGLE_FOLD": {
-            const newFolded = new Set(state.foldedNodes)
-            if (newFolded.has(action.nodeId)) {
-              newFolded.delete(action.nodeId)
-            } else {
-              newFolded.add(action.nodeId)
+            case "TOGGLE_FOLD": {
+              const newFolded = new Set(state.foldedNodes)
+              if (newFolded.has(action.nodeId)) {
+                newFolded.delete(action.nodeId)
+              } else {
+                newFolded.add(action.nodeId)
+              }
+              flatUpdate = { foldedNodes: newFolded }
+              break
             }
-            flatUpdate = { foldedNodes: newFolded }
-            break
-          }
 
-          case "TOGGLE_COLLAPSE": {
-            const newCollapsed = new Set(state.collapsedNodes)
-            if (newCollapsed.has(action.nodeId)) {
-              newCollapsed.delete(action.nodeId)
-            } else {
-              newCollapsed.add(action.nodeId)
+            case "TOGGLE_COLLAPSE": {
+              const newCollapsed = new Set(state.collapsedNodes)
+              if (newCollapsed.has(action.nodeId)) {
+                newCollapsed.delete(action.nodeId)
+              } else {
+                newCollapsed.add(action.nodeId)
+              }
+              flatUpdate = { collapsedNodes: newCollapsed }
+              break
             }
-            flatUpdate = { collapsedNodes: newCollapsed }
-            break
-          }
 
-          case "ZOOM_IN": {
-            flatUpdate = {
-              rootId: action.nodeId,
-              cursorNodeId: action.cursorNodeId ?? null,
-              curswantX: null,
-              curswantY: null,
+            case "ZOOM_IN": {
+              flatUpdate = {
+                rootId: action.nodeId,
+                cursorNodeId: action.cursorNodeId ?? null,
+                curswantX: null,
+                curswantY: null,
+              }
+              break
             }
-            break
-          }
 
-          case "SET_ROOT": {
-            const newHistory = [
-              ...state.navHistory.slice(0, state.navHistoryIndex + 1),
-              {
-                rootId: state.rootId,
-                rootPath: state.rootPath,
-                cursorNodeId: state.cursorNodeId,
-              },
-            ]
-            flatUpdate = {
-              rootId: action.rootId,
-              rootPath: action.rootPath,
-              cursorNodeId: action.cursorNodeId,
-              navHistory: newHistory,
-              navHistoryIndex: newHistory.length,
-              curswantX: null,
-              curswantY: null,
+            case "SET_ROOT": {
+              const newHistory = [
+                ...state.navHistory.slice(0, state.navHistoryIndex + 1),
+                {
+                  rootId: state.rootId,
+                  rootPath: state.rootPath,
+                  cursorNodeId: state.cursorNodeId,
+                },
+              ]
+              flatUpdate = {
+                rootId: action.rootId,
+                rootPath: action.rootPath,
+                cursorNodeId: action.cursorNodeId,
+                navHistory: newHistory,
+                navHistoryIndex: newHistory.length,
+                curswantX: null,
+                curswantY: null,
+              }
+              break
             }
-            break
-          }
 
-          case "SELECT_NODE_ADD": {
-            const newSelected = new Set(state.selectedNodes)
-            newSelected.add(action.nodeId)
-            flatUpdate = { selectedNodes: newSelected }
-            break
-          }
-
-          case "SELECT_NODE_REMOVE": {
-            const newSelected = new Set(state.selectedNodes)
-            newSelected.delete(action.nodeId)
-            flatUpdate = { selectedNodes: newSelected }
-            break
-          }
-
-          case "SELECT_NODE_TOGGLE": {
-            const newSelected = new Set(state.selectedNodes)
-            if (newSelected.has(action.nodeId)) {
-              newSelected.delete(action.nodeId)
-            } else {
+            case "SELECT_NODE_ADD": {
+              const newSelected = new Set(state.selectedNodes)
               newSelected.add(action.nodeId)
+              flatUpdate = { selectedNodes: newSelected }
+              break
             }
-            flatUpdate = { selectedNodes: newSelected }
-            break
-          }
 
-          case "CLEAR_SELECTION": {
-            flatUpdate = { selectedNodes: new Set() }
-            break
-          }
-
-          case "ENTER_MOVE_MODE": {
-            if (action.nodeIds.length === 0) return state
-            flatUpdate = {
-              moveMode: true,
-              moveSourceNodes: action.nodeIds,
-              moveSourceCursorNodeId: action.cursorNodeId,
+            case "SELECT_NODE_REMOVE": {
+              const newSelected = new Set(state.selectedNodes)
+              newSelected.delete(action.nodeId)
+              flatUpdate = { selectedNodes: newSelected }
+              break
             }
-            break
-          }
 
-          case "CONFIRM_MOVE": {
-            flatUpdate = {
-              moveMode: false,
-              moveSourceNodes: [],
-              moveSourceCursorNodeId: null,
-              selectedNodes: new Set(),
+            case "SELECT_NODE_TOGGLE": {
+              const newSelected = new Set(state.selectedNodes)
+              if (newSelected.has(action.nodeId)) {
+                newSelected.delete(action.nodeId)
+              } else {
+                newSelected.add(action.nodeId)
+              }
+              flatUpdate = { selectedNodes: newSelected }
+              break
             }
-            break
-          }
 
-          case "CANCEL_MOVE": {
-            flatUpdate = {
-              moveMode: false,
-              moveSourceNodes: [],
-              cursorNodeId: state.moveSourceCursorNodeId ?? state.cursorNodeId,
-              moveSourceCursorNodeId: null,
-              curswantX: null,
-              curswantY: null,
+            case "CLEAR_SELECTION": {
+              flatUpdate = { selectedNodes: new Set() }
+              break
             }
-            break
+
+            case "ENTER_MOVE_MODE": {
+              if (action.nodeIds.length === 0) return state
+              flatUpdate = {
+                moveMode: true,
+                moveSourceNodes: action.nodeIds,
+                moveSourceCursorNodeId: action.cursorNodeId,
+              }
+              break
+            }
+
+            case "CONFIRM_MOVE": {
+              flatUpdate = {
+                moveMode: false,
+                moveSourceNodes: [],
+                moveSourceCursorNodeId: null,
+                selectedNodes: new Set(),
+              }
+              break
+            }
+
+            case "CANCEL_MOVE": {
+              flatUpdate = {
+                moveMode: false,
+                moveSourceNodes: [],
+                cursorNodeId: state.moveSourceCursorNodeId ?? state.cursorNodeId,
+                moveSourceCursorNodeId: null,
+                curswantX: null,
+                curswantY: null,
+              }
+              break
+            }
+
+            // View config: kept in UIState only via setUI.
+            // These cases are kept for backward compat with @km/board's BoardAction type.
+            case "INCREASE_OUTLINE_DEPTH":
+            case "DECREASE_OUTLINE_DEPTH":
+            case "INCREASE_CONTENT_LINES":
+            case "DECREASE_CONTENT_LINES":
+              return state
+
+            default: {
+              const unhandled = action as { type: string }
+              throw new Error(`[km:board] Unhandled board action: ${unhandled.type}`)
+            }
           }
 
-          // View config: kept in UIState only via setUI.
-          // These cases are kept for backward compat with @km/board's BoardAction type.
-          case "INCREASE_OUTLINE_DEPTH":
-          case "DECREASE_OUTLINE_DEPTH":
-          case "INCREASE_CONTENT_LINES":
-          case "DECREASE_CONTENT_LINES":
-            return state
+          return flatUpdate
+        })
+        // Synchronously derive layout so key handler has fresh data immediately
+        // SELECT and SET_CURSWANT use the fast path above (no set(), no recomputeLayout)
+        recomputeLayout(_get)
+      },
 
-          default: {
-            const unhandled = action as { type: string }
-            throw new Error(`[km:board] Unhandled board action: ${unhandled.type}`)
-          }
-        }
+      // --- Direct setters ---
 
-        return flatUpdate
-      })
-      // Synchronously derive layout so key handler has fresh data immediately
-      // SELECT and SET_CURSWANT use the fast path above (no set(), no recomputeLayout)
-      recomputeLayout(_get)
-    },
+      setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) {
+        set((state) => {
+          const updates = typeof partial === "function" ? partial(state.ui) : partial
+          return { ui: { ...state.ui, ...updates } }
+        })
+      },
 
-    // --- Direct setters ---
+      setFoldedNodes(nodes: Set<string>) {
+        set({ foldedNodes: nodes })
+        recomputeLayout(_get)
+      },
 
-    setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) {
-      set((state) => {
-        const updates = typeof partial === "function" ? partial(state.ui) : partial
-        return { ui: { ...state.ui, ...updates } }
-      })
-    },
+      setTextEditTarget(target: EditTarget | null) {
+        set({ textEditTarget: target })
+      },
 
-    setFoldedNodes(nodes: Set<string>) {
-      set({ foldedNodes: nodes })
-      recomputeLayout(_get)
-    },
+      setDimensions(dims: { columns: number; rows: number }) {
+        set((state) => ({
+          dimensions: dims,
+          ui: { ...state.ui, dimensions: dims },
+        }))
+      },
 
-    setTextEditTarget(target: EditTarget | null) {
-      set({ textEditTarget: target })
-    },
-
-    setDimensions(dims: { columns: number; rows: number }) {
-      set((state) => ({
-        dimensions: dims,
-        ui: { ...state.ui, dimensions: dims },
-      }))
-    },
-
-    updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
-      // Silent mutation: update derived fields WITHOUT triggering Zustand
-      // subscribers. This prevents the double-render-per-keypress issue:
-      //   1. Key handler sets cursorNodeId → doRender() → React renders Board
-      //   2. Board effect computes new layout → calls updateLayout
-      //   3. If updateLayout calls set(), Zustand fires subscriber → pendingRerender → 2nd doRender()
-      //   4. The 2nd render is WASTED — React already has the correct state
-      //
-      // By mutating getState() directly, the key handler sees fresh layout
-      // (via get().layout) without triggering a re-render cycle.
-      const state = _get()
-      state.layout = layout
-      state.selectedNode = selectedNode
-      state.selectionLevel = selectionLevel
-      state.tuiBoardState = tuiBoardState
-    },
-  }}
+      updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
+        // Silent mutation: update derived fields WITHOUT triggering Zustand
+        // subscribers. This prevents the double-render-per-keypress issue:
+        //   1. Key handler sets cursorNodeId → doRender() → React renders Board
+        //   2. Board effect computes new layout → calls updateLayout
+        //   3. If updateLayout calls set(), Zustand fires subscriber → pendingRerender → 2nd doRender()
+        //   4. The 2nd render is WASTED — React already has the correct state
+        //
+        // By mutating getState() directly, the key handler sees fresh layout
+        // (via get().layout) without triggering a re-render cycle.
+        const state = _get()
+        state.layout = layout
+        state.selectedNode = selectedNode
+        state.selectionLevel = selectionLevel
+        state.tuiBoardState = tuiBoardState
+      },
+    }
+  }
 }

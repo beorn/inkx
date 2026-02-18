@@ -872,10 +872,7 @@ describe("edit focus ring", () => {
 
   test("non-active body blocks show cyan text during inline edit mode", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("task1", item.paragraph("body line 1"), item.paragraph("body line 2"))),
-      ),
+      item("board", item("col", item("task1", item.paragraph("body line 1"), item.paragraph("body line 2")))),
     )
 
     // Enter inline edit mode
@@ -893,10 +890,7 @@ describe("edit focus ring", () => {
 
   test("navigating to body block does not add blue background", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("task1", item.paragraph("body text"), item.paragraph("more text"))),
-      ),
+      item("board", item("col", item("task1", item.paragraph("body text"), item.paragraph("more text")))),
     )
 
     // Enter inline edit mode on title
@@ -929,15 +923,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
    */
   test("typing in a body block card shows typed text on screen", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph("See instructions."),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph("See instructions."), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -966,15 +952,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
 
   test("typing in body block with incremental rendering matches fresh render", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph("Hello world"),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph("Hello world"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -996,15 +974,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
     // This tests body blocks that appear inside a column's card list,
     // not just at the root level virtual body column
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph("Body content here"),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph("Body content here"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -1033,17 +1003,10 @@ describe("body block edit display (km-tui.edit-display)", () => {
 describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowUp in body block edit moves cursor within visual lines", () => {
     // Use long content that wraps across multiple visual lines
-    const longContent = "This is a longer body block that should wrap across multiple visual lines for testing cursor navigation"
+    const longContent =
+      "This is a longer body block that should wrap across multiple visual lines for testing cursor navigation"
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph(longContent),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
       { columns: 40, rows: 20 },
     )
 
@@ -1062,15 +1025,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowDown traverses all visual lines then exits to next block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ"
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph(longContent),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
       { columns: 30, rows: 20 },
     )
 
@@ -1095,15 +1050,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("Control+a clears cursor inverse attr at old position (incremental)", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph(longContent),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
       { columns: 30, rows: 20, checkIncremental: true },
     )
 
@@ -1117,15 +1064,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowUp at first visual line exits to previous block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.paragraph(longContent),
-            item("section1", item("task1")),
-          ),
-        ),
+      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
       { columns: 30, rows: 20, checkIncremental: true },
     )
 

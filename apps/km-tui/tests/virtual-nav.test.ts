@@ -198,15 +198,10 @@ describe("spatial navigation: Y-position matching", () => {
   })
 
   test("h from first column rings bell, l from last column rings bell", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", item("A1")),
-          item("ColB", item("B1")),
-        ),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", item("A1")), item("ColB", item("B1"))), {
+      rows: 24,
+      columns: 80,
+    })
 
     // h from first column → bell
     board.press("h")

@@ -16,10 +16,7 @@ import { describe, test, it, expect } from "vitest"
 // Rendering invariants — checked after every navigation action
 // =============================================================================
 
-function assertInvariants(
-  board: ReturnType<typeof testEnv>["board"],
-  label: string,
-) {
+function assertInvariants(board: ReturnType<typeof testEnv>["board"], label: string) {
   const screenshot = board.screenshot()
 
   // 1. Exactly one cursor element
@@ -49,11 +46,7 @@ function assertInvariants(
  * Press a key and assert invariants hold after the action.
  * Returns the board for chaining.
  */
-function press(
-  board: ReturnType<typeof testEnv>["board"],
-  key: string,
-  label: string,
-) {
+function press(board: ReturnType<typeof testEnv>["board"], key: string, label: string) {
   board.press(key)
   assertInvariants(board, `after ${label}`)
   return board
@@ -175,10 +168,7 @@ describe("stickyY reliability", () => {
 describe("sticky out-of-bounds behavior", () => {
   test("move from deep card in tall col to short col, then back", () => {
     const { board, registry } = testEnv(() =>
-      item("board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
-        item("col2", item("2a")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")), item("col2", item("2a"))),
     )
 
     // Navigate to card 1e (deep in col1)
@@ -198,7 +188,8 @@ describe("sticky out-of-bounds behavior", () => {
 
   test("move from deep card in tall col to short col, navigate vertically, then back", () => {
     const { board, registry } = testEnv(() =>
-      item("board",
+      item(
+        "board",
         item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         item("col2", item("2a"), item("2b")),
       ),
@@ -227,11 +218,7 @@ describe("sticky out-of-bounds behavior", () => {
 
   test("stickyX round-trip: board -> deep col -> board -> different col", () => {
     const { board, registry } = testEnv(() =>
-      item("board",
-        item("col0", item("a0")),
-        item("col1", item("b0")),
-        item("col2", item("c0")),
-      ),
+      item("board", item("col0", item("a0")), item("col1", item("b0")), item("col2", item("c0"))),
     )
 
     // Navigate to col2
@@ -267,11 +254,7 @@ describe("stickyX reset", () => {
   it("h/l clears stickyX so j from board uses default column", () => {
     // Board with 3 columns
     const { board, registry } = testEnv(() =>
-      item("board",
-        item("col0", item("a0")),
-        item("col1", item("b0")),
-        item("col2", item("c0")),
-      ),
+      item("board", item("col0", item("a0")), item("col1", item("b0")), item("col2", item("c0"))),
     )
 
     // Navigate to col1's card
@@ -313,10 +296,7 @@ describe("stickyX reset", () => {
 
   it("stickyX persists through j/k within columns (not cleared by vertical nav)", () => {
     const { board, registry } = testEnv(() =>
-      item("board",
-        item("col0", item("a0"), item("a1")),
-        item("col1", item("b0")),
-      ),
+      item("board", item("col0", item("a0"), item("a1")), item("col1", item("b0"))),
     )
 
     // Navigate to col1
@@ -414,13 +394,14 @@ describe("stickyY reset on boundary actions", () => {
   })
 
   test("3-column cross-column navigation with boundary and invariants", () => {
-    const { board, registry } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
-        item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
-        item("col3", item("3a"), item("3b"), item("3c"), item("3d"), item("3e")),
-      ),
+    const { board, registry } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
+          item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
+          item("col3", item("3a"), item("3b"), item("3c"), item("3d"), item("3e")),
+        ),
       { columns: 120 }, // wider to fit 3 columns
     )
 
@@ -514,11 +495,7 @@ describe("stickyY reset on boundary actions", () => {
   test("vertical nav after boundary h/l clears stickyY independently", () => {
     // Verify that j/k after boundary still clears stickyY (no double-clear issue)
     const { board, registry } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-      ),
+      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"), item("2c"))),
     )
 
     assertInvariants(board, "initial")

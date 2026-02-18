@@ -18,15 +18,10 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("km-tui.uncollapse-header", () => {
   test("header row has column name text (not card content) after uncollapse", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("a1"), item("a2")),
-          item("Beta", item("b1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     // Collapse
     board.press("c")
@@ -50,12 +45,7 @@ describe("km-tui.uncollapse-header", () => {
 
   test("header is not rendered as card (no card border chars) after uncollapse", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("MyCol", item("task1"), item("task2")),
-          item("Other", item("task3")),
-        ),
+      () => item("board", item("MyCol", item("task1"), item("task2")), item("Other", item("task3"))),
       { columns: 80, rows: 20 },
     )
 
@@ -79,12 +69,7 @@ describe("km-tui.uncollapse-header", () => {
 
   test("cards are rendered below separator after uncollapse", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("task-x"), item("task-y")),
-          item("Col2", item("task-z")),
-        ),
+      () => item("board", item("Col1", item("task-x"), item("task-y")), item("Col2", item("task-z"))),
       { columns: 80, rows: 20 },
     )
 
@@ -109,15 +94,10 @@ describe("km-tui.uncollapse-header", () => {
   })
 
   test("uncollapse works after navigating to another column and back", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Left", item("l1"), item("l2")),
-          item("Right", item("r1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Left", item("l1"), item("l2")), item("Right", item("r1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     // Collapse Left
     board.press("c")
@@ -149,15 +129,10 @@ describe("km-tui.uncollapse-header", () => {
 
 describe("km-tui.collapsed-shift", () => {
   test("collapsed column starts at x=0 (no left margin shift) in 2-column board", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("First", item("f1"), item("f2")),
-          item("Second", item("s1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("First", item("f1"), item("f2")), item("Second", item("s1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     // Collapse first column
     board.press("c")
@@ -169,15 +144,10 @@ describe("km-tui.collapsed-shift", () => {
   })
 
   test("collapsed column width is exactly COLLAPSED_WIDTH=3", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Todo", item("t1")),
-          item("Done", item("d1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Todo", item("t1")), item("Done", item("d1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     board.press("c")
 
@@ -187,15 +157,10 @@ describe("km-tui.collapsed-shift", () => {
   })
 
   test("expanded column starts right after collapsed column + separator", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("ColA", item("a1")),
-          item("ColB", item("b1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("ColA", item("a1")), item("ColB", item("b1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     board.press("c")
 
@@ -209,13 +174,7 @@ describe("km-tui.collapsed-shift", () => {
 
   test("collapsed column in middle position has symmetric borders", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Left", item("l1")),
-          item("Middle", item("m1")),
-          item("Right", item("r1")),
-        ),
+      () => item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
       { columns: 80, rows: 20 },
     )
 
@@ -272,14 +231,7 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("selected body card has border in narrow terminal (40 cols)", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("narrow-task")),
-        ),
-      { columns: 40, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("narrow-task"))), { columns: 40, rows: 20 })
 
     // narrow-task is selected — should have border
     board.expectNodeBorder("narrow-task")
@@ -287,10 +239,7 @@ describe("km-tui.card-border-missing", () => {
 
   test("selected card visible after scrolling through many cards", () => {
     const items = Array.from({ length: 10 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(
-      () => item("board", item("BigCol", ...items)),
-      { columns: 80, rows: 15 },
-    )
+    const { board } = testEnv(() => item("board", item("BigCol", ...items)), { columns: 80, rows: 15 })
 
     // Navigate to a card near the middle
     for (let i = 0; i < 5; i++) board.press("j")
@@ -305,11 +254,7 @@ describe("km-tui.card-border-missing", () => {
       () =>
         item(
           "board",
-          item(
-            "Work",
-            item.section("Section A", item("task-a")),
-            item.section("Section B", item("task-b")),
-          ),
+          item("Work", item.section("Section A", item("task-a")), item.section("Section B", item("task-b"))),
         ),
       { columns: 80, rows: 20 },
     )
@@ -321,19 +266,14 @@ describe("km-tui.card-border-missing", () => {
 
   test("unselected body cards have dim border after cursor movement", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("a1"), item("a2")),
-          item("Col2", item("b1"), item("b2")),
-        ),
+      () => item("board", item("Col1", item("a1"), item("a2")), item("Col2", item("b1"), item("b2"))),
       { columns: 80, rows: 20 },
     )
 
     // Move between columns
-    board.press("l")  // to Col2
-    board.press("h")  // back to Col1
-    board.press("j")  // down to a2
+    board.press("l") // to Col2
+    board.press("h") // back to Col1
+    board.press("j") // down to a2
 
     // Cursor should be on a2
     board.expect("#a2[data-cursor]").toExist()
@@ -344,14 +284,10 @@ describe("km-tui.card-border-missing", () => {
   })
 
   test("cursor movement transfers selection between body cards", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("selected-task"), item("other-task")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("selected-task"), item("other-task"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     // First card is selected
     board.expect("#selected-task[data-cursor]").toExist()
@@ -374,12 +310,7 @@ describe("km-tui.card-border-missing", () => {
 describe("uncollapse header edge cases", () => {
   test("incremental render matches fresh render after collapse/uncollapse — km-tui.uncollapse-header", () => {
     const { board: incBoard } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("a1"), item("a2")),
-          item("Beta", item("b1")),
-        ),
+      () => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))),
       { columns: 80, rows: 20, incremental: true },
     )
 
@@ -396,24 +327,17 @@ describe("uncollapse header edge cases", () => {
         const a = incBuffer.getCell(x, y)
         const b = freshBuffer.getCell(x, y)
         if (a.char !== b.char) {
-          expect.fail(
-            `Cell (${x},${y}): incremental='${a.char}' fresh='${b.char}'`,
-          )
+          expect.fail(`Cell (${x},${y}): incremental='${a.char}' fresh='${b.char}'`)
         }
       }
     }
   })
 
   test("multiple collapse/uncollapse cycles keep header visible", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Cycle", item("c1"), item("c2")),
-          item("Other", item("o1")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     for (let i = 0; i < 5; i++) {
       board.press("c") // collapse
@@ -427,12 +351,7 @@ describe("uncollapse header edge cases", () => {
 
   test("uncollapse column with km.collapse:: true rule shows header", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("PreCollapsed km.collapse:: true", item("p1"), item("p2")),
-          item("Normal", item("n1")),
-        ),
+      () => item("board", item("PreCollapsed km.collapse:: true", item("p1"), item("p2")), item("Normal", item("n1"))),
       { columns: 80, rows: 20 },
     )
 
@@ -448,15 +367,11 @@ describe("uncollapse header edge cases", () => {
   })
 
   test("uncollapse incremental buffer matches fresh after collapse/uncollapse — km-tui.uncollapse-header", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("TestCol", item("t1"), item("t2")),
-          item("Other", item("o1")),
-        ),
-      { columns: 80, rows: 20, incremental: true },
-    )
+    const { board } = testEnv(() => item("board", item("TestCol", item("t1"), item("t2")), item("Other", item("o1"))), {
+      columns: 80,
+      rows: 20,
+      incremental: true,
+    })
 
     board.press("c")
     board.press("c")
@@ -493,13 +408,7 @@ describe("uncollapse header edge cases", () => {
 describe("collapsed column shift edge cases", () => {
   test("two collapsed columns side by side have correct positions", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("A", item("a1")),
-          item("B", item("b1")),
-          item("C", item("c1")),
-        ),
+      () => item("board", item("A", item("a1")), item("B", item("b1")), item("C", item("c1"))),
       { columns: 80, rows: 20 },
     )
 
@@ -527,13 +436,7 @@ describe("collapsed column shift edge cases", () => {
 
   test("collapsed column with 3+ columns: middle collapsed maintains position", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Left", item("l1")),
-          item("Mid", item("m1")),
-          item("Right", item("r1")),
-        ),
+      () => item("board", item("Left", item("l1")), item("Mid", item("m1")), item("Right", item("r1"))),
       { columns: 120, rows: 20 },
     )
 
@@ -567,25 +470,18 @@ describe("card border missing edge cases", () => {
   test("selected body card with long content has border", () => {
     // Create a card whose content would be exactly the right length to potentially overflow
     const longContent = "X".repeat(35) // roughly fills a 40-char column
-    const { board } = testEnv(
-      () => item("board", item("Col1", item(longContent))),
-      { columns: 40, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item(longContent))), { columns: 40, rows: 20 })
 
     // Selected body card should have a border
     board.expectNodeBorder(longContent)
   })
 
   test("incremental render card borders match fresh render", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Col1", item("t1"), item("t2")),
-          item("Col2", item("t3")),
-        ),
-      { columns: 80, rows: 20, incremental: true },
-    )
+    const { board } = testEnv(() => item("board", item("Col1", item("t1"), item("t2")), item("Col2", item("t3"))), {
+      columns: 80,
+      rows: 20,
+      incremental: true,
+    })
 
     // Navigate to force re-render
     board.press("j")
@@ -608,9 +504,7 @@ describe("card border missing edge cases", () => {
         // Only flag mismatches where fresh has a border but incremental doesn't
         // (stale border in incremental but not in fresh is tolerable for body cards)
         if (!isBorderChar(a.char) && isBorderChar(b.char)) {
-          expect.fail(
-            `Missing border at (${x},${y}): inc='${a.char}' fresh='${b.char}'`,
-          )
+          expect.fail(`Missing border at (${x},${y}): inc='${a.char}' fresh='${b.char}'`)
         }
       }
     }

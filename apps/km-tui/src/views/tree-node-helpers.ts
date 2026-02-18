@@ -256,17 +256,15 @@ export function formatDateBadge(node: KNode): string {
 
   // Start date → due date (or just one)
   // Hide past start dates for WIP tasks (already started, not useful info)
-  const hasStart = !!startDate
-  const startInPast = hasStart && daysFromToday(startDate!) < 0
-  const showStart = hasStart && !(startInPast && node.task_status === "wip")
-  const hasDue = !!dueDate
+  const startInPast = startDate ? daysFromToday(startDate) < 0 : false
+  const visibleStart = startDate && !(startInPast && node.task_status === "wip") ? startDate : undefined
 
-  if (showStart && hasDue) {
-    parts.push(`${formatScheduledDisplay(startDate!)} → ${formatDueDisplay(dueDate!)}`)
-  } else if (showStart) {
-    parts.push(`${formatScheduledDisplay(startDate!)} →`)
-  } else if (hasDue) {
-    parts.push(formatDueDisplay(dueDate!))
+  if (visibleStart && dueDate) {
+    parts.push(`${formatScheduledDisplay(visibleStart)} → ${formatDueDisplay(dueDate)}`)
+  } else if (visibleStart) {
+    parts.push(`${formatScheduledDisplay(visibleStart)} →`)
+  } else if (dueDate) {
+    parts.push(formatDueDisplay(dueDate))
   }
 
   // Recurrence

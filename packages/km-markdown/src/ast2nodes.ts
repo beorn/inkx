@@ -314,7 +314,7 @@ function convertListItem(
   }
 
   const taskMarker: TaskMarker | undefined = isTask ? markToMarker(taskMark ?? " ") : undefined
-  const taskStatus = isTask ? getStatusForMarker(taskMarker) ?? ("todo" as TaskStatus) : undefined
+  const taskStatus = isTask ? (getStatusForMarker(taskMarker) ?? ("todo" as TaskStatus)) : undefined
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}

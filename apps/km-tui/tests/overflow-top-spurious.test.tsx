@@ -14,10 +14,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("overflow-top-spurious", () => {
   test("no spurious ▲ at top (cards view)", () => {
     const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...children)),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
 
     const text = board.screenshot()
     expect(text).not.toContain("\u25b2")
@@ -26,10 +23,11 @@ describe("overflow-top-spurious", () => {
 
   test("no spurious ▲ at top (columns view)", () => {
     const children = Array.from({ length: 40 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...children)),
-      { rows: 24, columns: 80, viewMode: "columns" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...children)), {
+      rows: 24,
+      columns: 80,
+      viewMode: "columns",
+    })
 
     const text = board.screenshot()
     expect(text).not.toContain("\u25b2")
@@ -38,10 +36,7 @@ describe("overflow-top-spurious", () => {
 
   test("▲ disappears after scrolling back to top", () => {
     const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...children)),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
 
     // Scroll down
     for (let i = 0; i < 10; i++) board.press("j")

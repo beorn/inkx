@@ -115,7 +115,12 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: meaningfulBody.map((n) => ({ node: n, children: [], childCount: 0, ...(n.link_to ? {} : { isVirtual: true }) })),
+      cards: meaningfulBody.map((n) => ({
+        node: n,
+        children: [],
+        childCount: 0,
+        ...(n.link_to ? {} : { isVirtual: true }),
+      })),
       isVirtual: true,
     })
   }
@@ -272,7 +277,9 @@ function cardsEqual(prev: CardState, next: CardState): boolean {
   // Check children nodes for content changes (unfolded cards)
   if (prev.children.length > 0 && next.children.length > 0) {
     for (let i = 0; i < prev.children.length; i++) {
-      if (!nodesEqual(prev.children[i]!, next.children[i]!)) return false
+      const prevChild = prev.children[i]
+      const nextChild = next.children[i]
+      if (!prevChild || !nextChild || !nodesEqual(prevChild, nextChild)) return false
     }
   }
 
@@ -310,7 +317,8 @@ export function applyStructuralSharing(prev: ColumnState[], next: ColumnState[])
     const sharedCards: CardState[] = []
 
     for (let i = 0; i < nextCol.cards.length; i++) {
-      const nextCard = nextCol.cards[i]!
+      const nextCard = nextCol.cards[i]
+      if (!nextCard) continue
       const prevCard = prevCol.cards[i]
 
       if (prevCard && cardsEqual(prevCard, nextCard)) {
@@ -342,7 +350,7 @@ export function applyStructuralSharing(prev: ColumnState[], next: ColumnState[])
   if (!anyColumnChanged && prev.length === next.length) {
     let sameOrder = true
     for (let i = 0; i < prev.length; i++) {
-      if (prev[i]!.node.id !== next[i]!.node.id) {
+      if (prev[i]?.node.id !== next[i]?.node.id) {
         sameOrder = false
         break
       }

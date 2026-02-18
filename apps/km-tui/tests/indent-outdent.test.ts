@@ -74,8 +74,16 @@ describe("Indent (Tab)", () => {
 
   describe("boundary cases", () => {
     test.each([
-      { name: "first child (no previous sibling)", fixture: () => item("board", item("col1", item("A"), item("B"))), expected: ["A", "B"] },
-      { name: "single child", fixture: () => item("board", item("col1", item("only-child"))), expected: ["only-child"] },
+      {
+        name: "first child (no previous sibling)",
+        fixture: () => item("board", item("col1", item("A"), item("B"))),
+        expected: ["A", "B"],
+      },
+      {
+        name: "single child",
+        fixture: () => item("board", item("col1", item("only-child"))),
+        expected: ["only-child"],
+      },
     ])("indent $name bells (no-op)", ({ fixture, expected }) => {
       const { board, repo } = testEnv(fixture)
       board.press("Tab")
@@ -514,10 +522,34 @@ describe("Multi-select outdent (atomic batch)", () => {
 
 describe("Cursor follows node (invariant)", () => {
   test.each([
-    { name: "indent: cursor follows to parent card", fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))), nav: ["j"], key: "Tab", expected: "A" },
-    { name: "indent: cursor follows when only sibling left", fixture: () => item("board", item("col1", item("A"), item("B"))), nav: ["j"], key: "Tab", expected: "A" },
-    { name: "outdent: cursor follows to board level", fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))), nav: [], key: "Shift+Tab", expected: "A" },
-    { name: "outdent: cursor follows last card to board level", fixture: () => item("board", item("col1", item("A"), item("B"))), nav: ["j"], key: "Shift+Tab", expected: "B" },
+    {
+      name: "indent: cursor follows to parent card",
+      fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))),
+      nav: ["j"],
+      key: "Tab",
+      expected: "A",
+    },
+    {
+      name: "indent: cursor follows when only sibling left",
+      fixture: () => item("board", item("col1", item("A"), item("B"))),
+      nav: ["j"],
+      key: "Tab",
+      expected: "A",
+    },
+    {
+      name: "outdent: cursor follows to board level",
+      fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))),
+      nav: [],
+      key: "Shift+Tab",
+      expected: "A",
+    },
+    {
+      name: "outdent: cursor follows last card to board level",
+      fixture: () => item("board", item("col1", item("A"), item("B"))),
+      nav: ["j"],
+      key: "Shift+Tab",
+      expected: "B",
+    },
   ])("$name", ({ fixture, nav, key, expected }) => {
     const { board } = testEnv(fixture)
     for (const k of nav) board.press(k)

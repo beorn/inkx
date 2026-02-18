@@ -44,18 +44,21 @@ export type { BuildInfo } from "./build-info.gen.ts"
 export { isOutline, isListItem, isItem, isLink, isBlock } from "./types.ts"
 
 // Task utilities (new names)
-export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker, hasTaskProperties, isTask } from "./types.ts"
+export {
+  getMarkerForStatus,
+  getStatusForMarker,
+  markToMarker,
+  extractTitleTaskMarker,
+  hasTaskProperties,
+  isTask,
+} from "./types.ts"
 
 // Date utilities (due_at / start_at ↔ date/time/tz)
 export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-utils.ts"
 export type { DateParts } from "./date-utils.ts"
 
 // Task metadata (shared between parser, serializer, and TUI editor)
-export {
-  extractTaskMetadata,
-  stringifyTaskMetadata,
-  parseTaskMetadataFromText,
-} from "./task-metadata.ts"
+export { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "./task-metadata.ts"
 export type { ExtractedTaskMetadata } from "./task-metadata.ts"
 
 // Unified inline metadata (key:: value format)

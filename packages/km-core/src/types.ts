@@ -198,7 +198,9 @@ export function extractTitleTaskMarker(text: string): {
  * @example hasTaskProperties({ priority: 2 } as KNode) // true
  * @example hasTaskProperties({} as KNode) // false
  */
-export function hasTaskProperties(node: Pick<KNode, "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+export function hasTaskProperties(
+  node: Pick<KNode, "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence">,
+): boolean {
   return !!(
     node.due_at ||
     node.due_date ||
@@ -214,7 +216,12 @@ export function hasTaskProperties(node: Pick<KNode, "due_at" | "due_date" | "pri
  * Check if a node is a task (explicit task_status OR implicit task properties).
  * Single source of truth for task detection — use this instead of inline checks.
  */
-export function isTask(node: Pick<KNode, "task_status" | "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence">): boolean {
+export function isTask(
+  node: Pick<
+    KNode,
+    "task_status" | "due_at" | "due_date" | "priority" | "start_at" | "scheduled_date" | "assigned_to" | "recurrence"
+  >,
+): boolean {
   return node.task_status != null || hasTaskProperties(node)
 }
 

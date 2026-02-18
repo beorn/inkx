@@ -18,11 +18,7 @@ import { createFakeRepo } from "@km/storage"
 // =============================================================================
 
 /** Create a minimal board fixture with a sigil column and a second column. */
-function createSigilBoard(opts: {
-  displayName: string
-  sigilName: string
-  secondCol?: boolean
-}): KNode[] {
+function createSigilBoard(opts: { displayName: string; sigilName: string; secondCol?: boolean }): KNode[] {
   const nodes: KNode[] = [
     {
       id: "root",
@@ -122,15 +118,10 @@ describe("col-title-truncate", () => {
     // Title is 90 chars — longer than the 80-col terminal, so it MUST be
     // truncated everywhere (breadcrumb header AND column header).
     const longTitle = "This Is A Very Long Column Name That Should Definitely Be Truncated Because It Is Way Too Long"
-    const { board } = testEnv(
-      () =>
-        item.root(
-          "board",
-          item(longTitle, item("task-a")),
-          item("col2", item("task-b")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item.root("board", item(longTitle, item("task-a")), item("col2", item("task-b"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     const text = board.screenshot()
     // Full title should NOT appear — it's 95 chars, wider than the 80-col terminal
@@ -157,12 +148,7 @@ describe("col-title-truncate", () => {
     // 10 cards produce a 2-digit count display that reduces available name space
     const cards = Array.from({ length: 10 }, (_, i) => item(`card${i}`))
     const { board } = testEnv(
-      () =>
-        item.root(
-          "board",
-          item("A Somewhat Long Column Name Here", ...cards),
-          item("Short", item("x")),
-        ),
+      () => item.root("board", item("A Somewhat Long Column Name Here", ...cards), item("Short", item("x"))),
       { columns: 60, rows: 20 },
     )
 

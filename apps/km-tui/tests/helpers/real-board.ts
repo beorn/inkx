@@ -157,7 +157,12 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
     }),
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialCursorNodeId, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(
+      initialState.rootId,
+      initialState.rootPath,
+      initialCursorNodeId,
+      initialState.collapsedNodeIds,
+    ),
     initialUIState: createInitialUIState(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],

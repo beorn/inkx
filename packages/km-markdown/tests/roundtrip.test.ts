@@ -458,8 +458,12 @@ describe("Round-trip: Fixture Files", () => {
     expect(md2).toContain("Code Blocks")
 
     // Node counts should be consistent between round-trips
-    expect(nodes1.filter((n) => n.type === "li" && n.task_marker).length).toBe(nodes2.filter((n) => n.type === "li" && n.task_marker).length)
-    expect(nodes1.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBe(nodes2.filter((n) => n.type === "oi" && n.fstype === "mdsection").length)
+    expect(nodes1.filter((n) => n.type === "li" && n.task_marker).length).toBe(
+      nodes2.filter((n) => n.type === "li" && n.task_marker).length,
+    )
+    expect(nodes1.filter((n) => n.type === "oi" && n.fstype === "mdsection").length).toBe(
+      nodes2.filter((n) => n.type === "oi" && n.fstype === "mdsection").length,
+    )
   })
 })
 

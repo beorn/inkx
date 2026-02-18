@@ -22,7 +22,8 @@ function setupRepoWithLinks(): {
 
   // Create a target file node (what we'll rename)
   const targetId = repo.addNode(null, {
-    type: "oi", fstype: "mdfile",
+    type: "oi",
+    fstype: "mdfile",
     content: "Old Name",
     name: "Old Name",
   })
@@ -92,7 +93,8 @@ describe("renameNode", () => {
     const repo = createTestRepo()
 
     const targetId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "Target File",
       name: "Target File",
     })
@@ -123,7 +125,8 @@ describe("renameNode", () => {
     const repo = createTestRepo()
 
     const targetId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "Original",
       name: "Original",
     })
@@ -168,7 +171,8 @@ describe("renameNode", () => {
     const repo = createTestRepo()
 
     const targetId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "Lonely Node",
       name: "Lonely Node",
     })
@@ -184,7 +188,8 @@ describe("renameNode", () => {
     const repo = createTestRepo()
 
     const targetId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "Same",
       name: "Same",
     })
@@ -216,7 +221,8 @@ describe("renameNode", () => {
     const repo = createTestRepo()
 
     const targetId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "My Note",
       name: "My Note",
     })
@@ -265,7 +271,8 @@ describe("getRenameImpact", () => {
     const repo = createTestRepo()
 
     const nodeId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "Isolated",
       name: "Isolated",
     })
@@ -282,7 +289,8 @@ describe("getRenameImpact", () => {
 
     // Create a folder node
     const folderId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "inbox",
       name: "inbox",
       fs_path: "inbox",
@@ -320,7 +328,8 @@ describe("renameNode - rule path references", () => {
 
     // Create a folder node that we'll rename
     const folderId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "inbox",
       name: "inbox",
       fs_path: "inbox",
@@ -348,7 +357,8 @@ describe("renameNode - rule path references", () => {
     const repo = createTestRepo()
 
     const folderId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "projects",
       name: "projects",
       fs_path: "projects",
@@ -372,7 +382,8 @@ describe("renameNode - rule path references", () => {
     const repo = createTestRepo()
 
     const folderId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "inbox",
       name: "inbox",
       fs_path: "inbox",
@@ -396,7 +407,8 @@ describe("renameNode - rule path references", () => {
     const repo = createTestRepo()
 
     const folderId = repo.addNode(null, {
-      type: "oi", fstype: "mdfile",
+      type: "oi",
+      fstype: "mdfile",
       content: "inbox",
       name: "inbox",
       fs_path: "inbox",

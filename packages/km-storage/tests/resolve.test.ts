@@ -233,7 +233,8 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi", fstype: "folder",
+          type: "oi",
+          fstype: "folder",
           fs_path: folderPath,
           name: "inbox",
         },
@@ -243,7 +244,8 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi", fstype: "mdfile",
+          type: "oi",
+          fstype: "mdfile",
           fs_path: filePath,
           name: "inbox.md",
         },
@@ -263,7 +265,8 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi", fstype: "folder",
+          type: "oi",
+          fstype: "folder",
           fs_path: fsPath,
           name: "projects",
         },

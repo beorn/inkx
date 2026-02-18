@@ -197,7 +197,12 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: meaningfulBody.map((n) => ({ node: n, children: [], childCount: 0, ...(n.link_to ? {} : { isVirtual: true }) })),
+      cards: meaningfulBody.map((n) => ({
+        node: n,
+        children: [],
+        childCount: 0,
+        ...(n.link_to ? {} : { isVirtual: true }),
+      })),
       isVirtual: true,
     })
   }
@@ -297,7 +302,6 @@ function normalizeColumnName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "_")
 }
 
-
 /**
  * Build board state from a specific root ID (synchronous).
  * Delegates to the generator version, exhausting all yields.
@@ -308,4 +312,3 @@ export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
   while (!result.done) result = gen.next()
   return result.value
 }
-

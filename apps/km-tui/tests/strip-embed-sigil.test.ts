@@ -131,10 +131,7 @@ describe("strip embed sigil", () => {
   test("inline @next sigil in card content is stripped inside @next column", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("@next", item("task-a"), item("task-b")),
-        )
+        const nodes = item("board", item("@next", item("task-a"), item("task-b")))
 
         for (const n of nodes) {
           if (n.id === "@next") {
@@ -181,10 +178,7 @@ describe("strip embed sigil", () => {
     // The parent context would normally show "@next" but should be suppressed
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("@next", item("embed-c")),
-        )
+        const nodes = item("board", item("@next", item("embed-c")))
 
         for (const n of nodes) {
           if (n.id === "@next") {

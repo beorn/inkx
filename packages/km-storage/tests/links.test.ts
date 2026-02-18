@@ -171,7 +171,9 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the Conclusion section
-      const conclusionSection = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Conclusion")
+      const conclusionSection = nodes.find(
+        (n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Conclusion",
+      )
       expect(conclusionSection).toBeDefined()
 
       // The embedding should point to the specific section
@@ -233,7 +235,9 @@ describe("Links and Backlinks", () => {
       writeFileSync(join(testDir, "my-folder", "file.md"), "# File\n\nContent")
 
       using store = new MemoryStore(testDir)
-      const folder = store.getAllNodes().find((n) => n.type === "oi" && n.fstype === "folder" && n.fs_path?.endsWith("my-folder"))
+      const folder = store
+        .getAllNodes()
+        .find((n) => n.type === "oi" && n.fstype === "folder" && n.fs_path?.endsWith("my-folder"))
 
       expect(folder).toBeDefined()
       expect(folder?.name).toBe("my-folder")
@@ -371,7 +375,9 @@ describe("Links and Backlinks", () => {
       expect(resolved).not.toBeNull()
 
       // Verify it points to the correct section
-      const section = store.getAllNodes().find((n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Section")
+      const section = store
+        .getAllNodes()
+        .find((n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Section")
       expect(section).toBeDefined()
       expect(resolved).toBe(section!.id)
     })

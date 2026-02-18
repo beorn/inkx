@@ -227,19 +227,7 @@ code
 
         const allNodes = getAllNodes(db)
 
-        const validTypes = [
-          "oi",
-          "li",
-          "p",
-          "code",
-          "quote",
-          "table",
-          "hr",
-          "html",
-          "math",
-          "h",
-          "link",
-        ]
+        const validTypes = ["oi", "li", "p", "code", "quote", "table", "hr", "html", "math", "h", "link"]
 
         for (const node of allNodes) {
           expect(node.type).toBeDefined()
@@ -482,10 +470,15 @@ code
         const allNodes = getAllNodes(db)
 
         const relSubFolder = toRel(repoDir, subFolder)
-        const folderNodes = allNodes.filter((n) => n.type === "oi" && n.fstype === "folder" && n.fs_path === relSubFolder)
+        const folderNodes = allNodes.filter(
+          (n) => n.type === "oi" && n.fstype === "folder" && n.fs_path === relSubFolder,
+        )
         expect(folderNodes.length).toBe(1)
 
-        const fileNodes = allNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.startsWith(relSubFolder))
+        const fileNodes = allNodes.filter(
+          (n) =>
+            n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.startsWith(relSubFolder),
+        )
         expect(fileNodes.length).toBe(3)
 
         const folderId = folderNodes[0]!.id

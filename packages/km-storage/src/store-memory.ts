@@ -444,7 +444,8 @@ export class MemoryStore extends BaseStore {
       augmented.scheduled_date = parts?.date
     }
     if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-      augmented.start_at = composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
+      augmented.start_at =
+        composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
     }
 
     // Route fields to SQL columns vs data blob (matches db-ops.ts logic)
@@ -490,7 +491,13 @@ export class MemoryStore extends BaseStore {
     }
 
     // Write through date fields to markdown file
-    if ((changes.due_date !== undefined || changes.scheduled_date !== undefined || changes.due_at !== undefined || changes.start_at !== undefined) && node.md_line !== undefined) {
+    if (
+      (changes.due_date !== undefined ||
+        changes.scheduled_date !== undefined ||
+        changes.due_at !== undefined ||
+        changes.start_at !== undefined) &&
+      node.md_line !== undefined
+    ) {
       const relPath = node.fs_path || this.getFilePathForNode(node)
       if (relPath) {
         const absPath = join(this.rootPath, relPath)

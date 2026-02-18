@@ -269,11 +269,7 @@ function makeScopeBoard() {
     () =>
       item(
         "board",
-        item(
-          "col1",
-          item("Alpha project", item("Alpha subtask one"), item("Alpha subtask two")),
-          item("Beta project"),
-        ),
+        item("col1", item("Alpha project", item("Alpha subtask one"), item("Alpha subtask two")), item("Beta project")),
         item("col2", item("Gamma project"), item("Delta project")),
       ),
     { columns: 100, rows: 30 },

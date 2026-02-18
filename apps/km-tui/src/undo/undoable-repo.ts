@@ -21,11 +21,7 @@ import { createLogger } from "@beorn/logger"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoStack } from "../undo-stack.ts"
-import {
-  type Operation,
-  type HistoryEntry,
-  invertOperations,
-} from "./operations.ts"
+import { type Operation, type HistoryEntry, invertOperations } from "./operations.ts"
 
 const log = createLogger("km:tui:undo:repo")
 
@@ -76,10 +72,7 @@ export interface UndoResult {
  * IMPORTANT: `handle.undo()` and `handle.redo()` apply operations via the
  * original (raw) repo to avoid re-recording the undo/redo mutations.
  */
-export function createUndoableRepo(
-  rawRepo: Repo,
-  undoStack: UndoStack,
-): { repo: Repo; handle: UndoableRepoHandle } {
+export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo: Repo; handle: UndoableRepoHandle } {
   // --- Batch state ---
   let batchOps: Operation[] | null = null
   let batchLabel: string | undefined

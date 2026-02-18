@@ -74,10 +74,25 @@ function createSetStatusCommand(id: string, name: string, description: string, s
 }
 
 const setStatusTodo = createSetStatusCommand("set_status_todo", "Set Todo", "Set task status to todo", "todo")
-const setStatusWip = createSetStatusCommand("set_status_wip", "Set In Progress", "Set task status to work in progress", "wip")
-const setStatusBlocked = createSetStatusCommand("set_status_blocked", "Set Blocked", "Set task status to blocked", "blocked")
+const setStatusWip = createSetStatusCommand(
+  "set_status_wip",
+  "Set In Progress",
+  "Set task status to work in progress",
+  "wip",
+)
+const setStatusBlocked = createSetStatusCommand(
+  "set_status_blocked",
+  "Set Blocked",
+  "Set task status to blocked",
+  "blocked",
+)
 const setStatusDone = createSetStatusCommand("set_status_done", "Set Done", "Mark task as done", "done")
-const setStatusDropped = createSetStatusCommand("set_status_dropped", "Set Dropped", "Mark task as dropped/cancelled", "dropped")
+const setStatusDropped = createSetStatusCommand(
+  "set_status_dropped",
+  "Set Dropped",
+  "Mark task as dropped/cancelled",
+  "dropped",
+)
 
 // Property commands
 const setDueDate = {

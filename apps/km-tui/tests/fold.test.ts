@@ -555,10 +555,9 @@ describe("fold border blank — buffer-level assertions", () => {
     expect(rightIdx, `╮ in top border row for "${nodeText}"`).toBeGreaterThan(leftIdx)
     const between = row.slice(leftIdx + 1, rightIdx)
     for (let i = 0; i < between.length; i++) {
-      expect(
-        between[i],
-        `"${nodeText}" top border at col ${leftIdx + 1 + i} should be ─ but got "${between[i]}"`,
-      ).toBe("\u2500")
+      expect(between[i], `"${nodeText}" top border at col ${leftIdx + 1 + i} should be ─ but got "${between[i]}"`).toBe(
+        "\u2500",
+      )
     }
   }
 
@@ -566,11 +565,7 @@ describe("fold border blank — buffer-level assertions", () => {
    * Assert no stale content between two cards (no orphaned border chars or content
    * between one card's bottom border and the next card's top border).
    */
-  function expectNoStaleBetweenCards(
-    board: ReturnType<typeof testEnv>["board"],
-    upperNode: string,
-    lowerNode: string,
-  ) {
+  function expectNoStaleBetweenCards(board: ReturnType<typeof testEnv>["board"], upperNode: string, lowerNode: string) {
     const { bottomRow: upperBottom } = findCardBorderRows(board, upperNode)
     const { topRow: lowerTop } = findCardBorderRows(board, lowerNode)
     const rows = board.screenshot().split("\n")
@@ -871,7 +866,14 @@ describe("fold count color", () => {
     if (match?.index === undefined) return null
     const countX = match.index + 1 // skip leading space
     const cell = board.screen.cell(countX, row)
-    return { x: countX, y: row, char: cell.char, fg: cell.fg, bg: cell.bg, attrs: cell.attrs as Record<string, unknown> }
+    return {
+      x: countX,
+      y: row,
+      char: cell.char,
+      fg: cell.fg,
+      bg: cell.bg,
+      attrs: cell.attrs as Record<string, unknown>,
+    }
   }
 
   describe("nested node with children (depth 1)", () => {
@@ -880,13 +882,7 @@ describe("fold count color", () => {
         () =>
           item(
             "board",
-            item(
-              "col1",
-              item(
-                "parent-card",
-                item("Essential Commands", item("cmd1"), item("cmd2"), item("cmd3")),
-              ),
-            ),
+            item("col1", item("parent-card", item("Essential Commands", item("cmd1"), item("cmd2"), item("cmd3")))),
           ),
         { columns: 80, rows: 24 },
       )

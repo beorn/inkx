@@ -436,10 +436,16 @@ function updateRulePathReferences(
     let changed = false
 
     const addResult = replacePathInRuleField(newRules.add, oldName, newName)
-    if (addResult.changed) { newRules.add = addResult.value as typeof newRules.add; changed = true }
+    if (addResult.changed) {
+      newRules.add = addResult.value as typeof newRules.add
+      changed = true
+    }
 
     const syncResult = replacePathInRuleField(newRules.sync, oldName, newName)
-    if (syncResult.changed) { newRules.sync = syncResult.value as string; changed = true }
+    if (syncResult.changed) {
+      newRules.sync = syncResult.value as string
+      changed = true
+    }
 
     if (changed) {
       const newData = { ...node.data, rules: newRules }
@@ -890,9 +896,9 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
 
   // Check root's structural children (files and folders that should map to fs entries)
   const rootStructural = (
-    db
-      .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'oi'")
-      .get() as { cnt: number }
+    db.prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'oi'").get() as {
+      cnt: number
+    }
   ).cnt
 
   if (rootStructural === 0 && fsEntries.length > 0) {

@@ -788,10 +788,7 @@ describe("Keyboard Navigation: i (zoom inwards)", () => {
 
   test("i keeps cursor on third card after zoom inwards", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a", item("sub1")), item("1b", item("sub2")), item("1c", item("sub3"))),
-      ),
+      item("board", item("col1", item("1a", item("sub1")), item("1b", item("sub2")), item("1c", item("sub3")))),
     )
 
     // Navigate to third card

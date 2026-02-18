@@ -46,11 +46,7 @@ describe("body content within a column: j/k navigation", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col1",
-          item.paragraph("body-p1"),
-          item.paragraph("body-p2"),
-          item("sub-section", item("task1")),
-        ),
+        item("col1", item.paragraph("body-p1"), item.paragraph("body-p2"), item("sub-section", item("task1"))),
       ),
     )
 
@@ -66,11 +62,7 @@ describe("body content within a column: j/k navigation", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col1",
-          item.paragraph("body-p1"),
-          item.paragraph("body-p2"),
-          item("sub-section", item("task1")),
-        ),
+        item("col1", item.paragraph("body-p1"), item.paragraph("body-p2"), item("sub-section", item("task1"))),
       ),
     )
 
@@ -88,11 +80,7 @@ describe("body content within a column: j/k navigation", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col1",
-          item.paragraph("body-p1"),
-          item.paragraph("body-p2"),
-          item("sub-section", item("task1")),
-        ),
+        item("col1", item.paragraph("body-p1"), item.paragraph("body-p2"), item("sub-section", item("task1"))),
       ),
     )
 
@@ -117,16 +105,8 @@ describe("body content within a column: j/k navigation", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col-with-body",
-          item.paragraph("intro"),
-          item.paragraph("details"),
-          item("child1"),
-          item("child2"),
-        ),
-        item("col-normal",
-          item("task-a"),
-          item("task-b"),
-        ),
+        item("col-with-body", item.paragraph("intro"), item.paragraph("details"), item("child1"), item("child2")),
+        item("col-normal", item("task-a"), item("task-b")),
       ),
     )
 
@@ -156,14 +136,8 @@ describe("body content within a column: j/k navigation", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("body-col",
-          item.paragraph("para1"),
-          item.paragraph("para2"),
-          item.paragraph("para3"),
-        ),
-        item("normal-col",
-          item("task1"),
-        ),
+        item("body-col", item.paragraph("para1"), item.paragraph("para2"), item.paragraph("para3")),
+        item("normal-col", item("task1")),
       ),
     )
 
@@ -192,14 +166,8 @@ describe("body content within a column: j/k navigation", () => {
 
 describe("body content navigation", () => {
   it("j moves down through body cards", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("para1"),
-          item.paragraph("para2"),
-          item("col1", item("task1")),
-        ),
+    const { board } = testEnv(() =>
+      item("board", item.paragraph("para1"), item.paragraph("para2"), item("col1", item("task1"))),
     )
 
     // Cursor should start on first body paragraph
@@ -211,14 +179,8 @@ describe("body content navigation", () => {
   })
 
   it("k moves up through body cards", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("para1"),
-          item.paragraph("para2"),
-          item("col1", item("task1")),
-        ),
+    const { board } = testEnv(() =>
+      item("board", item.paragraph("para1"), item.paragraph("para2"), item("col1", item("task1"))),
     )
 
     // Move to second paragraph first
@@ -231,14 +193,7 @@ describe("body content navigation", () => {
   })
 
   it("k from first body card goes to body column header, then board level", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("para1"),
-          item("col1", item("task1")),
-        ),
-    )
+    const { board } = testEnv(() => item("board", item.paragraph("para1"), item("col1", item("task1"))))
 
     // Start on para1
     board.expect("#para1[data-cursor]").toExist()
@@ -253,14 +208,7 @@ describe("body content navigation", () => {
   })
 
   it("j from last body card hits boundary", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("para1"),
-          item("col1", item("task1")),
-        ),
-    )
+    const { board } = testEnv(() => item("board", item.paragraph("para1"), item("col1", item("task1"))))
 
     // Start on para1 (last/only body card)
     board.expect("#para1[data-cursor]").toExist()
@@ -272,14 +220,13 @@ describe("body content navigation", () => {
   })
 
   it("l from body card navigates to structural column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("body text"),
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3")),
-        ),
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item.paragraph("body text"),
+        item("col1", item("task1"), item("task2")),
+        item("col2", item("task3")),
+      ),
     )
 
     // Start on body card
@@ -291,11 +238,7 @@ describe("body content navigation", () => {
   })
 
   it("navigation layer correctly classifies body nodes", () => {
-    const nodes = item(
-      "board",
-      item.paragraph("body text"),
-      item("col1", item("task1")),
-    )
+    const nodes = item("board", item.paragraph("body text"), item("col1", item("task1")))
     const repo = createFakeRepo({ nodes })
 
     const nav = createCardsViewNavigation()
@@ -331,19 +274,54 @@ describe("body content navigation", () => {
     const registry = createGridNavigator()
 
     // Down from p1 → p2
-    expect(nav.navigate("down", { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("p2")
+    expect(
+      nav.navigate(
+        "down",
+        { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        repo,
+        registry,
+      ),
+    ).toBe("p2")
 
     // Down from p2 → p3
-    expect(nav.navigate("down", { cursorNodeId: "p2", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("p3")
+    expect(
+      nav.navigate(
+        "down",
+        { cursorNodeId: "p2", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        repo,
+        registry,
+      ),
+    ).toBe("p3")
 
     // Down from p3 → null (boundary)
-    expect(nav.navigate("down", { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBeNull()
+    expect(
+      nav.navigate(
+        "down",
+        { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        repo,
+        registry,
+      ),
+    ).toBeNull()
 
     // Up from p3 → p2
-    expect(nav.navigate("up", { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("p2")
+    expect(
+      nav.navigate(
+        "up",
+        { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        repo,
+        registry,
+      ),
+    ).toBe("p2")
 
     // Up from p1 → body column header
-    expect(nav.navigate("up", { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() }, repo, registry)).toBe("__body__board")
+    expect(
+      nav.navigate(
+        "up",
+        { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        repo,
+        registry,
+      ),
+    ).toBe("__body__board")
   })
 })
 
@@ -353,16 +331,11 @@ describe("body content navigation", () => {
 
 describe("body column navigation after zoom", () => {
   it("l from body column header after zoom goes to structural column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("root-section",
-            item.paragraph("body-text"),
-            item("sub1", item("t1")),
-            item("sub2", item("t2")),
-          ),
-        ),
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("root-section", item.paragraph("body-text"), item("sub1", item("t1")), item("sub2", item("t2"))),
+      ),
     )
 
     // Navigate to column header and zoom in to root-section
@@ -384,16 +357,8 @@ describe("body column navigation after zoom", () => {
   })
 
   it("l from body card after zoom goes to structural column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("root4",
-            item.paragraph("body-p"),
-            item("sec-x", item("tx1")),
-            item("sec-y", item("ty1")),
-          ),
-        ),
+    const { board } = testEnv(() =>
+      item("board", item("root4", item.paragraph("body-p"), item("sec-x", item("tx1")), item("sec-y", item("ty1")))),
     )
 
     // Navigate to column header and zoom
@@ -421,8 +386,10 @@ describe("zoom into node with body content: cursor placement", () => {
     // Zooming into the card should place cursor on the first meaningful body card.
     const nodes = item(
       "board",
-      item("col1",
-        item("target-card",
+      item(
+        "col1",
+        item(
+          "target-card",
           item.paragraph("intro-text"),
           item.paragraph("detail-text"),
           item("subsection1", item("task1")),
@@ -450,12 +417,9 @@ describe("zoom into node with body content: cursor placement", () => {
     // Zoom should still place cursor on a valid card.
     const nodes = item(
       "board",
-      item("col1",
-        item("section-with-hr",
-          item.hr("hr1"),
-          item.paragraph("after-hr-text"),
-          item("subsection", item("task1")),
-        ),
+      item(
+        "col1",
+        item("section-with-hr", item.hr("hr1"), item.paragraph("after-hr-text"), item("subsection", item("task1"))),
       ),
     )
     const repo = createFakeRepo({ nodes })
@@ -477,8 +441,10 @@ describe("zoom into node with body content: cursor placement", () => {
     const { board } = testEnv(() =>
       item(
         "board",
-        item("col1",
-          item("target",
+        item(
+          "col1",
+          item(
+            "target",
             item.paragraph("body1"),
             item.paragraph("body2"),
             item("sub1", item("t1")),
@@ -508,12 +474,9 @@ describe("zoom into node with body content: cursor placement", () => {
     // board-level j should navigate to the first structural column, not loop.
     const nodes = item(
       "board",
-      item("col1",
-        item("section",
-          item.hr("hr-only"),
-          item("subsection1", item("task1")),
-          item("subsection2", item("task2")),
-        ),
+      item(
+        "col1",
+        item("section", item.hr("hr-only"), item("subsection1", item("task1")), item("subsection2", item("task2"))),
       ),
     )
     const repo = createFakeRepo({ nodes })
@@ -550,9 +513,11 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     // SELECT can't find it in nodeIndex → cursor stays at board level → stuck!
     const nodes = item(
       "board",
-      item("col1",
-        item("root-section",
-          item.hr("hr-empty"),    // HR = no content → filtered out
+      item(
+        "col1",
+        item(
+          "root-section",
+          item.hr("hr-empty"), // HR = no content → filtered out
           item("sec1", item("task1")),
           item("sec2", item("task2")),
         ),
@@ -580,9 +545,11 @@ describe("BUG: empty body node blocks j/k navigation", () => {
   it("zoom into node with empty first body child should not get stuck", () => {
     const nodes = item(
       "board",
-      item("col1",
-        item("target",
-          item.hr("hr-first"),    // HR = no content → filtered out
+      item(
+        "col1",
+        item(
+          "target",
+          item.hr("hr-first"), // HR = no content → filtered out
           item("sub1", item("t1")),
           item("sub2", item("t2")),
         ),
@@ -617,15 +584,19 @@ describe("real vault scenario: zoom into section with mixed columns", () => {
     const { board } = testEnv(() =>
       item(
         "root",
-        item("col1",
-          item("landing",
+        item(
+          "col1",
+          item(
+            "landing",
             item("someday", item("ideas"), item("projects")),
-            item("agent-instructions",
+            item(
+              "agent-instructions",
               item.paragraph("bd-beads-text"),
               item("quick-ref", item("bd-ready")),
               item("landing-sub", item("sub-task1")),
             ),
-            item("claude-md",
+            item(
+              "claude-md",
               item.paragraph("instructions-text"),
               item("owner", item("serial-entrepreneur")),
               item("context-system", item("para-style")),
@@ -668,12 +639,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
   test("pressing c on body column should not produce console.error about __body__ not in repo", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-    const { board } = testEnv(() =>
-      item("board",
-        item.paragraph("body text here"),
-        item("col1", item("A")),
-      )
-    )
+    const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // Cursor starts on body column (first non-collapsed column).
     // Press c to toggle collapse on body column — this triggers the bug:
@@ -681,8 +647,8 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     board.press("c")
 
     // Check no error was logged about __body__
-    const bodyErrors = errorSpy.mock.calls.filter(
-      (args) => args.some((arg) => typeof arg === "string" && arg.includes("__body__"))
+    const bodyErrors = errorSpy.mock.calls.filter((args) =>
+      args.some((arg) => typeof arg === "string" && arg.includes("__body__")),
     )
     expect(bodyErrors, "should not log __body__ repo lookup error").toHaveLength(0)
 
@@ -690,12 +656,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
   })
 
   test("pressing c on body column should produce a boundary bell (body is not collapsible)", () => {
-    const { board } = testEnv(() =>
-      item("board",
-        item.paragraph("body text here"),
-        item("col1", item("A")),
-      )
-    )
+    const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // Body column is virtual/synthetic — collapse should be a boundary error (bell)
     board.press("c")
@@ -705,12 +666,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
   test("navigate to body column then collapse — key sequence c, l, c", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
 
-    const { board } = testEnv(() =>
-      item("board",
-        item.paragraph("body text here"),
-        item("col1", item("A")),
-      )
-    )
+    const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // c on body column (should be noop/boundary)
     board.press("c")
@@ -719,8 +675,8 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     // c to collapse col1 (this should work fine)
     board.press("c")
 
-    const bodyErrors = errorSpy.mock.calls.filter(
-      (args) => args.some((arg) => typeof arg === "string" && arg.includes("__body__"))
+    const bodyErrors = errorSpy.mock.calls.filter((args) =>
+      args.some((arg) => typeof arg === "string" && arg.includes("__body__")),
     )
     expect(bodyErrors, "no __body__ errors during sequence c,l,c").toHaveLength(0)
 
@@ -869,12 +825,7 @@ describe("body h/l navigation Y-position matching", () => {
 
   test("l from body-1 goes to task-a (both at top)", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("body-1"),
-          item("col1", item("task-a"), item("task-b"), item("task-c")),
-        ),
+      () => item("board", item.paragraph("body-1"), item("col1", item("task-a"), item("task-b"), item("task-c"))),
       { rows: 40 },
     )
 
@@ -956,14 +907,7 @@ describe("Body block spacing", () => {
   describe("cards view", () => {
     test("body blocks have compact content (blank lines collapsed)", () => {
       // Create a body card with internal blank lines
-      const nodes = item(
-        "board",
-        item(
-          "col1",
-          item.paragraph("line one\n\nline two\n\n\nline three"),
-          item("task-a"),
-        ),
-      )
+      const nodes = item("board", item("col1", item.paragraph("line one\n\nline two\n\n\nline three"), item("task-a")))
       const { board } = testEnv(() => nodes)
 
       const screenshot = board.screenshot()
@@ -1071,7 +1015,8 @@ describe("Body block spacing", () => {
 describe("Body content: vertical navigation (j/k)", () => {
   test("j navigates down through body cards", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
+      item.file(
+        "doc",
         item.paragraph("intro-p"),
         item.paragraph("second-p"),
         item.section("sec1", item("task1"), item("task2")),
@@ -1087,12 +1032,7 @@ describe("Body content: vertical navigation (j/k)", () => {
   })
 
   test("j at last body card hits boundary (cannot cross to structural column)", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
     board.expect(cursor("intro")).toExist()
@@ -1103,12 +1043,7 @@ describe("Body content: vertical navigation (j/k)", () => {
   })
 
   test("k at first body card moves to body column header, then board level", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
     board.expect(cursor("intro")).toExist()
@@ -1124,7 +1059,8 @@ describe("Body content: vertical navigation (j/k)", () => {
 
   test("k navigates up through body cards", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
+      item.file(
+        "doc",
         item.paragraph("p1"),
         item.paragraph("p2"),
         item.paragraph("p3"),
@@ -1160,10 +1096,7 @@ describe("Body content: vertical navigation (j/k)", () => {
 describe("Body content: horizontal navigation (h/l)", () => {
   test("l from body card navigates to first structural column card", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1"), item("task2")),
-      ),
+      item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"), item("task2"))),
     )
 
     // Start at body card
@@ -1175,12 +1108,7 @@ describe("Body content: horizontal navigation (h/l)", () => {
   })
 
   test("h from structural column card navigates back to body", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"))))
 
     // Navigate to structural column
     board.press("l")
@@ -1192,12 +1120,7 @@ describe("Body content: horizontal navigation (h/l)", () => {
   })
 
   test("h at body card is boundary (leftmost)", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
     board.expect(cursor("intro")).toExist()
@@ -1209,7 +1132,8 @@ describe("Body content: horizontal navigation (h/l)", () => {
 
   test("l between structural columns works with body present", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
+      item.file(
+        "doc",
         item.paragraph("intro"),
         item.section("sec1", item("task1")),
         item.section("sec2", item("task2")),
@@ -1241,10 +1165,7 @@ describe("Body content: horizontal navigation (h/l)", () => {
 describe("Body content: deep nesting", () => {
   test("j/k works in structural column when body column exists", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1"), item("task2"), item("task3")),
-      ),
+      item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"), item("task2"), item("task3"))),
     )
 
     // Navigate to structural column
@@ -1263,12 +1184,7 @@ describe("Body content: deep nesting", () => {
   })
 
   test("k from structural card to column header to board", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.section("sec1", item("task1")),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("intro"), item.section("sec1", item("task1"))))
 
     // Navigate to structural column card
     board.press("l")
@@ -1290,13 +1206,7 @@ describe("Body content: deep nesting", () => {
 
 describe("Body content only (no sections)", () => {
   test("j/k through body-only file", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("p1"),
-        item.paragraph("p2"),
-        item.paragraph("p3"),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("p1"), item.paragraph("p2"), item.paragraph("p3")))
 
     // Should start on first body card
     board.expect(cursor("p1")).toExist()
@@ -1316,12 +1226,7 @@ describe("Body content only (no sections)", () => {
   })
 
   test("h/l at body-only file hits boundary", () => {
-    const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("p1"),
-        item.paragraph("p2"),
-      ),
-    )
+    const { board } = testEnv(() => item.file("doc", item.paragraph("p1"), item.paragraph("p2")))
 
     board.expect(cursor("p1")).toExist()
 
@@ -1342,7 +1247,8 @@ describe("Body content only (no sections)", () => {
 describe("Board-level j/k with body content", () => {
   test("j from board level goes to first body card", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
+      item.file(
+        "doc",
         item.paragraph("intro"),
         item.section("sec1", item("task1")),
         item.section("sec2", item("task2")),
@@ -1363,7 +1269,8 @@ describe("Board-level j/k with body content", () => {
 
   test("j from board level goes to structural column when stickyX remembers it", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
+      item.file(
+        "doc",
         item.paragraph("intro"),
         item.section("sec1", item("task1")),
         item.section("sec2", item("task2")),
@@ -1390,11 +1297,7 @@ describe("Board-level j/k with body content", () => {
 
   test("j from board after navigating from body card up goes back to body", () => {
     const { board } = testEnv(() =>
-      item.file("doc",
-        item.paragraph("intro"),
-        item.paragraph("detail"),
-        item.section("sec1", item("task1")),
-      ),
+      item.file("doc", item.paragraph("intro"), item.paragraph("detail"), item.section("sec1", item("task1"))),
     )
 
     // Start at body card

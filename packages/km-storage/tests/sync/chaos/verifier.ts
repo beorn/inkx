@@ -226,7 +226,11 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
     const errors: string[] = []
 
-    const fsNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") || n.type === "oi" && n.fstype === "folder")
+    const fsNodes = nodes.filter(
+      (n) =>
+        (n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile")) ||
+        (n.type === "oi" && n.fstype === "folder"),
+    )
 
     for (const node of fsNodes) {
       if (!node.fs_path) {
@@ -276,7 +280,11 @@ export class Verifier implements IVerifier {
 
     // Get database file nodes
     const nodes = getAllNodes(db)
-    const dbFiles = new Set(nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path).map((n) => n.fs_path!))
+    const dbFiles = new Set(
+      nodes
+        .filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
+        .map((n) => n.fs_path!),
+    )
 
     // Check for files in filesystem but not in database
     for (const path of fsFiles) {
@@ -317,7 +325,9 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
+    const fileNodes = nodes.filter(
+      (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path,
+    )
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!
@@ -383,7 +393,9 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
+    const fileNodes = nodes.filter(
+      (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path,
+    )
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!

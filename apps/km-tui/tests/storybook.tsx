@@ -488,11 +488,20 @@ function DateBadgeDemo(): React.ReactElement {
     // Start date
     { label: "Start only (future)", badge: formatDateBadge({ scheduled_date: d(3) } as KNode) },
     { label: "Start → due", badge: formatDateBadge({ scheduled_date: d(2), due_date: d(7) } as KNode) },
-    { label: "Start past, WIP (hidden)", badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "wip" } as KNode) },
-    { label: "Start past, todo (shown)", badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "todo" } as KNode) },
+    {
+      label: "Start past, WIP (hidden)",
+      badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "wip" } as KNode),
+    },
+    {
+      label: "Start past, todo (shown)",
+      badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "todo" } as KNode),
+    },
 
     // Full combo
-    { label: "P2 start → due ↻", badge: formatDateBadge({ priority: 2, scheduled_date: d(1), due_date: d(7), recurrence: "monthly" } as KNode) },
+    {
+      label: "P2 start → due ↻",
+      badge: formatDateBadge({ priority: 2, scheduled_date: d(1), due_date: d(7), recurrence: "monthly" } as KNode),
+    },
 
     // Edge cases
     { label: "P4 only (dim)", badge: formatDateBadge({ priority: 4 } as KNode) },
@@ -502,7 +511,10 @@ function DateBadgeDemo(): React.ReactElement {
   return (
     <>
       <Text dimColor> {"Description".padEnd(34)} Badge Output</Text>
-      <Text dimColor> {"─".repeat(34)} {"─".repeat(30)}</Text>
+      <Text dimColor>
+        {" "}
+        {"─".repeat(34)} {"─".repeat(30)}
+      </Text>
       {examples.map(({ label, badge }, i) => (
         <Text key={i}>
           {" "}
@@ -737,7 +749,19 @@ function mockNode(
     link_alias: options?.linkAlias,
     content,
     task_status: status as KNode["task_status"],
-    ...(status ? { task_marker: (status === "done" ? "[x]" : status === "wip" ? "[/]" : status === "blocked" ? "[!]" : status === "dropped" ? "[-]" : "[ ]") as KNode["task_marker"] } : {}),
+    ...(status
+      ? {
+          task_marker: (status === "done"
+            ? "[x]"
+            : status === "wip"
+              ? "[/]"
+              : status === "blocked"
+                ? "[!]"
+                : status === "dropped"
+                  ? "[-]"
+                  : "[ ]") as KNode["task_marker"],
+        }
+      : {}),
     due_date: options?.due_date,
     due_time: options?.due_time,
     scheduled_date: options?.scheduled_date,
@@ -769,7 +793,10 @@ const treeNodeDIProps = {
 }
 
 /** Width-constrained TreeNode wrapper for storybook demos */
-function DemoTreeNode({ maxWidth = 40, ...props }: { maxWidth?: number } & React.ComponentProps<typeof TreeNode>): React.ReactElement {
+function DemoTreeNode({
+  maxWidth = 40,
+  ...props
+}: { maxWidth?: number } & React.ComponentProps<typeof TreeNode>): React.ReactElement {
   return (
     <Box width={maxWidth}>
       <TreeNode {...props} />
@@ -930,13 +957,16 @@ function createMockTUIBoardState(): TUIBoardState {
   mockNode("source-file-infra", "projects/infra.md", undefined, "oi", { fstype: "mdfile" })
 
   // Section level (parent - THIS is shown in context as "{section name}")
-  mockNode("source-api", "API Integration Project", undefined, "oi", { fstype: "mdsection",
+  mockNode("source-api", "API Integration Project", undefined, "oi", {
+    fstype: "mdsection",
     parentId: "source-file-api",
   })
-  mockNode("source-design", "Design System Work", undefined, "oi", { fstype: "mdsection",
+  mockNode("source-design", "Design System Work", undefined, "oi", {
+    fstype: "mdsection",
     parentId: "source-file-design",
   })
-  mockNode("source-infra", "Infrastructure Tasks", undefined, "oi", { fstype: "mdsection",
+  mockNode("source-infra", "Infrastructure Tasks", undefined, "oi", {
+    fstype: "mdsection",
     parentId: "source-file-infra",
   })
 
@@ -1057,11 +1087,18 @@ function createMockTUIBoardState(): TUIBoardState {
     ]),
     // Code block body card
     ...mockBodyCards("md-code", [
-      { type: "code", content: "const greeting = \"Hello, world!\"\nfunction add(a: number, b: number): number {\n  return a + b\n}" },
+      {
+        type: "code",
+        content: 'const greeting = "Hello, world!"\nfunction add(a: number, b: number): number {\n  return a + b\n}',
+      },
     ]),
     // Table body card (pipe-delimited markdown)
     ...mockBodyCards("md-table", [
-      { type: "table", content: "| Name    | Role      | Status |\n| ------- | --------- | ------ |\n| Alice   | Engineer  | Active |\n| Bob     | Designer  | Away   |\n| Charlie | PM        | Active |" },
+      {
+        type: "table",
+        content:
+          "| Name    | Role      | Status |\n| ------- | --------- | ------ |\n| Alice   | Engineer  | Active |\n| Bob     | Designer  | Away   |\n| Charlie | PM        | Active |",
+      },
     ]),
     // Blockquote body card
     ...mockBodyCards("md-quote", [

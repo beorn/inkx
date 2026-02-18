@@ -17,10 +17,11 @@ describe("col-scroll-indicator", () => {
 
   test("▼ shows in columns view when cards exceed viewport", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...cards)),
-      { rows: 20, columns: 80, viewMode: "columns" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+      rows: 20,
+      columns: 80,
+      viewMode: "columns",
+    })
 
     const text = board.screenshot()
     expect(text).toContain("\u25bc")
@@ -28,10 +29,11 @@ describe("col-scroll-indicator", () => {
 
   test("▲ shows in columns view after scrolling down", () => {
     const cards = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", ...cards)),
-      { rows: 20, columns: 80, viewMode: "columns" },
-    )
+    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+      rows: 20,
+      columns: 80,
+      viewMode: "columns",
+    })
 
     for (let i = 0; i < 15; i++) board.press("j")
 
@@ -45,13 +47,8 @@ describe("col-scroll-indicator", () => {
 
   test("▸ shows in columns view when more columns exist to the right", () => {
     // maxCols = floor(80/35) = 2 columns fit. With 4 columns, right indicator should show.
-    const cols = Array.from({ length: 4 }, (_, i) =>
-      item(`col${i}`, item(`task${i}`)),
-    )
-    const { board } = testEnv(
-      () => item("board", ...cols),
-      { rows: 20, columns: 80, viewMode: "columns" },
-    )
+    const cols = Array.from({ length: 4 }, (_, i) => item(`col${i}`, item(`task${i}`)))
+    const { board } = testEnv(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
 
     const text = board.screenshot()
     // Right indicator (▸) should show since columns 2,3 are off-screen
@@ -59,13 +56,8 @@ describe("col-scroll-indicator", () => {
   })
 
   test("◂ shows in columns view after scrolling right", () => {
-    const cols = Array.from({ length: 4 }, (_, i) =>
-      item(`col${i}`, item(`task${i}`)),
-    )
-    const { board } = testEnv(
-      () => item("board", ...cols),
-      { rows: 20, columns: 80, viewMode: "columns" },
-    )
+    const cols = Array.from({ length: 4 }, (_, i) => item(`col${i}`, item(`task${i}`)))
+    const { board } = testEnv(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
 
     // Move right to next column to trigger horizontal scroll
     board.press("l").press("l")

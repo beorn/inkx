@@ -183,13 +183,7 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
   for (const width of [73, 75, 77, 85]) {
     test(`width=${width}: cursor column is fully visible after navigating right`, () => {
       const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("A1")),
-            item("col2", item("B1")),
-            item("col3", item("C1")),
-          ),
+        () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
         { columns: width, rows: 20 },
       )
 
@@ -220,13 +214,7 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
   test("navigating to last column and back preserves full visibility", () => {
     // Use width=73 (a known failing width before the fix)
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("A1")),
-          item("col2", item("B1")),
-          item("col3", item("C1")),
-        ),
+      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
       { columns: 73, rows: 20 },
     )
 
@@ -257,13 +245,7 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
     // Broader range of widths where columns should be narrower than viewport
     for (const width of [70, 72, 74, 76, 78, 80, 90, 100, 120]) {
       const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("A1")),
-            item("col2", item("B1")),
-            item("col3", item("C1")),
-          ),
+        () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
         { columns: width, rows: 20 },
       )
 
@@ -273,10 +255,7 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
       const col3Box = board.q("#col3").boundingBox()
       expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
       if (col3Box) {
-        expect(
-          col3Box.x + col3Box.width,
-          `col3 right edge at width=${width}`,
-        ).toBeLessThanOrEqual(width)
+        expect(col3Box.x + col3Box.width, `col3 right edge at width=${width}`).toBeLessThanOrEqual(width)
       }
     }
   })
@@ -508,13 +487,7 @@ describe("column shift with body column", () => {
 
   test("shifting towards body column — should swap with body column or boundary", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("some description text"),
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-        ),
+      () => item("board", item.paragraph("some description text"), item("col1", item("1a")), item("col2", item("2a"))),
       { columns: 120, rows: 24 },
     )
 
@@ -595,13 +568,7 @@ describe("column shift with body column", () => {
 describe("column shift with collapsed columns", () => {
   test("shift collapsed column right — cursor follows", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 120, rows: 24 },
     )
 
@@ -619,13 +586,7 @@ describe("column shift with collapsed columns", () => {
 
   test("shift column right past collapsed column — cursor follows", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 120, rows: 24 },
     )
 
@@ -649,13 +610,7 @@ describe("column shift with collapsed columns", () => {
 
   test("shift non-collapsed column when some columns are collapsed", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 120, rows: 24 },
     )
 

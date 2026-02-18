@@ -89,7 +89,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   if (node.task_marker != null) {
     const marker = node.task_marker
     // Extract inner character from bracket marker: "[x]" → "x"
-    const inner = marker.length === 3 ? marker[1]! : marker
+    const inner = marker.length === 3 ? (marker[1] ?? marker) : marker
     const status = getStatusForMarker(marker) ?? "todo"
     // Only color the marker character, not the brackets
     const coloredMark =

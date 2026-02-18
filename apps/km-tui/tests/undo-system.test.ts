@@ -429,9 +429,7 @@ describe("invertOperation", () => {
 
 describe("undo: TUI integration", () => {
   test("Ctrl+Z undoes the last operation", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("task-a"), item("task-b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate task-a (d key)
     board.press("d")
@@ -449,9 +447,7 @@ describe("undo: TUI integration", () => {
   })
 
   test("Ctrl+Shift+Z redoes the last undone operation", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("task-a"), item("task-b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate
     board.press("d")
@@ -473,15 +469,7 @@ describe("undo: TUI integration", () => {
 
 describe("undo: delete with descendants", () => {
   test("delete node with children -> undo restores entire subtree", () => {
-    const nodes = item("board",
-      item("col1",
-        item("parent",
-          item("child-a"),
-          item("child-b"),
-        ),
-        item("sibling"),
-      ),
-    )
+    const nodes = item("board", item("col1", item("parent", item("child-a"), item("child-b")), item("sibling")))
     const { repo, handle } = setup(nodes)
 
     // parent has 2 children
@@ -694,9 +682,7 @@ describe("UndoStack unit tests", () => {
 
 describe("undo cursor restore", () => {
   it("restores cursor to original card after duplicate + undo", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task-a"), item("task-b"), item("task-c")))
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Cursor starts on task-a. Move to task-b.
     board.press("j")
@@ -716,9 +702,7 @@ describe("undo cursor restore", () => {
   })
 
   it("restores cursor when undoing duplicate of first card", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("first"), item("second")))
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("first"), item("second"))))
 
     // Cursor starts on first card
     board.expect("#first[data-cursor]").toExist()

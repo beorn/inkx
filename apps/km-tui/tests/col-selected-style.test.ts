@@ -14,12 +14,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 describe("km-tui.col-selected-style: column selected style at column level", () => {
   it("column header has yellow bg when cursor is at column level", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
     )
 
@@ -55,12 +50,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
 
   it("separator line is bright yellow when cursor is at column level", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
     )
 
@@ -93,12 +83,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
 
   it("column card area has visible yellow left border when cursor is at column level", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
     )
 
@@ -131,21 +116,16 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
       expect(
         isYellowBorder || isYellowBg,
         `column left edge at (${colBox.x}, ${y}) should have yellow styling ` +
-        `(fg=${leftCell.fg}, bg=${leftCell.bg}, char="${leftCell.char}")`,
+          `(fg=${leftCell.fg}, bg=${leftCell.bg}, char="${leftCell.char}")`,
       ).toBe(true)
     }
   })
 
   it("non-selected column does NOT have yellow header styling", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1")),
-          item("col2", item("task3")),
-        ),
-      { columns: 100, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1")), item("col2", item("task3"))), {
+      columns: 100,
+      rows: 20,
+    })
 
     // Go to column level on col1
     board.press("k")
@@ -169,12 +149,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
 
   it("returning to card level removes column-level yellow border", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
     )
 

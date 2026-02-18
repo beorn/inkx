@@ -28,11 +28,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 describe("collapse/uncollapse columns", () => {
   test("c collapses the current column (regular children)", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Cursor starts at first card in col1
@@ -52,11 +48,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("c on collapsed column uncollapses it", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse col1
@@ -77,11 +69,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("c collapses column with file children", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col-files", item.file("file1"), item.file("file2")),
-        item("col-other", item("task1")),
-      ),
+      item.root("board", item("col-files", item.file("file1"), item.file("file2")), item("col-other", item("task1"))),
     )
 
     // Cursor should be on file1
@@ -133,11 +121,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("c collapses column with body content (paragraphs before items)", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col-body", item.paragraph("intro text"), item("task1")),
-        item("col-other", item("x")),
-      ),
+      item.root("board", item("col-body", item.paragraph("intro text"), item("task1")), item("col-other", item("x"))),
     )
 
     // Navigate to col-body body card (intro text)
@@ -151,13 +135,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c collapses empty column", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("empty-col"),
-        item("col-other", item("x")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("empty-col"), item("col-other", item("x"))))
 
     // Navigate to empty column header
     // First, navigate up to board level
@@ -179,11 +157,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("column with km.collapse:: true starts collapsed", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1 km.collapse:: true", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // col1 should be collapsed from the start
@@ -197,11 +171,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("uncollapsing a km.collapse:: true column works", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1 km.collapse:: true", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Navigate to collapsed col1 header (h from col2's card)
@@ -258,11 +228,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("j/k on collapsed column stays on header", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse col1
@@ -281,11 +247,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("cursor moves to column header on collapse", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b"), item("task-c")),
-        item("col2", item("task-d")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b"), item("task-c")), item("col2", item("task-d"))),
     )
 
     // Navigate to task-b (second card)
@@ -305,11 +267,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("cursor goes to first card on uncollapse", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse
@@ -329,12 +287,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("multiple columns can be collapsed independently", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a")),
-        item("col2", item("task-b")),
-        item("col3", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a")), item("col2", item("task-b")), item("col3", item("task-c"))),
     )
 
     // Collapse col1 (cursor starts on task-a)
@@ -367,13 +320,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("c on virtual body column (Description) does not crash", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item.paragraph("intro text"),
-        item("col1", item("task-a")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item.paragraph("intro text"), item("col1", item("task-a"))))
 
     // Cursor starts on body card ("intro text")
     expect(board.q("[data-cursor]").textContent()).toContain("intro text")
@@ -392,11 +339,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("c from column header level collapses the column", () => {
     const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a"), item("task-b")),
-        item("col2", item("task-c")),
-      ),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Navigate to column header (k from first card)
@@ -408,13 +351,7 @@ describe("collapse/uncollapse columns", () => {
   })
 
   test("c from board level does nothing (no column to collapse)", () => {
-    const { board } = testEnv(() =>
-      item.root(
-        "board",
-        item("col1", item("task-a")),
-        item("col2", item("task-b")),
-      ),
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("task-a")), item("col2", item("task-b"))))
 
     // Navigate to board level
     board.press("k").press("k")
@@ -480,12 +417,7 @@ describe("collapsed column width", () => {
 
   it("expanded columns should get more space when sibling is collapsed", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-        ),
+      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24 },
     )
 
@@ -505,12 +437,7 @@ describe("collapsed column width", () => {
   it("incremental render of collapse matches fresh render", () => {
     // Render board and collapse col2 incrementally
     const { board: incrementalBoard } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-        ),
+      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24, incremental: true },
     )
     incrementalBoard.press("l").press("c")
@@ -518,12 +445,7 @@ describe("collapsed column width", () => {
 
     // Render same board with same collapse, but use fresh (non-incremental) rendering
     const { board: freshBoard } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-        ),
+      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24, incremental: false },
     )
     freshBoard.press("l").press("c")
@@ -554,7 +476,12 @@ describe("collapsed column width", () => {
       for (let x = 0; x < incBuffer.width; x++) {
         const a = incBuffer.getCell(x, y)
         const b = freshBuffer.getCell(x, y)
-        if (a.char !== b.char || JSON.stringify(a.fg) !== JSON.stringify(b.fg) || JSON.stringify(a.bg) !== JSON.stringify(b.bg) || JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)) {
+        if (
+          a.char !== b.char ||
+          JSON.stringify(a.fg) !== JSON.stringify(b.fg) ||
+          JSON.stringify(a.bg) !== JSON.stringify(b.bg) ||
+          JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)
+        ) {
           expect.fail(
             `Cell mismatch at (${x},${y}): ` +
               `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)} attrs:${JSON.stringify(a.attrs)}} ` +
@@ -567,12 +494,7 @@ describe("collapsed column width", () => {
 
   it("collapsed column cards are not visible in rendered output", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-        ),
+      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24 },
     )
 
@@ -603,15 +525,10 @@ describe("collapsed column border symmetry", () => {
   // Shared env: Todo(1a,1b) + Done(2a), collapsed via 'c' press
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(
-      () =>
-        item(
-          "board",
-          item("Todo", item("1a"), item("1b")),
-          item("Done", item("2a")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const env = testEnv(() => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a"))), {
+      columns: 80,
+      rows: 20,
+    })
     board = env.board
     board.press("c")
     board.expect("[data-collapsed]").toExist()
@@ -636,15 +553,11 @@ describe("collapsed column border symmetry", () => {
     }
 
     // First border char should be at box.x (no left margin shift)
-    expect(
-      firstBorderX,
-      `First border char at top should be at x=${box.x}, got ${firstBorderX}`,
-    ).toBe(box.x)
+    expect(firstBorderX, `First border char at top should be at x=${box.x}, got ${firstBorderX}`).toBe(box.x)
     // Last border char should be at box.x + box.width - 1 (right border present)
-    expect(
-      lastBorderX,
-      `Last border char at top should be at x=${box.x + box.width - 1}, got ${lastBorderX}`,
-    ).toBe(box.x + box.width - 1)
+    expect(lastBorderX, `Last border char at top should be at x=${box.x + box.width - 1}, got ${lastBorderX}`).toBe(
+      box.x + box.width - 1,
+    )
   })
 
   test("collapsed column right border is not cut off", () => {
@@ -696,13 +609,7 @@ describe("collapsed column after shift", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
       const env = testEnv(
-        () =>
-          item(
-            "board",
-            item("Todo", item("1a"), item("1b")),
-            item("Done", item("2a")),
-            item("Later", item("3a")),
-          ),
+        () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a")), item("Later", item("3a"))),
         { columns: 80, rows: 20 },
       )
       board = env.board
@@ -757,22 +664,13 @@ describe("collapsed column after shift", () => {
           break
         }
       }
-      expect(
-        firstBorderX,
-        `First border char should be at box.x=${box.x}, got ${firstBorderX}`,
-      ).toBe(box.x)
+      expect(firstBorderX, `First border char should be at box.x=${box.x}, got ${firstBorderX}`).toBe(box.x)
     })
   })
 
   test("incremental render matches fresh after collapse + shift", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Todo", item("1a"), item("1b")),
-          item("Done", item("2a")),
-          item("Later", item("3a")),
-        ),
+      () => item("board", item("Todo", item("1a"), item("1b")), item("Done", item("2a")), item("Later", item("3a"))),
       { columns: 80, rows: 20, incremental: true },
     )
 
@@ -789,7 +687,12 @@ describe("collapsed column after shift", () => {
       for (let x = 0; x < incBuffer.width; x++) {
         const a = incBuffer.getCell(x, y)
         const b = freshBuffer.getCell(x, y)
-        if (a.char !== b.char || JSON.stringify(a.fg) !== JSON.stringify(b.fg) || JSON.stringify(a.bg) !== JSON.stringify(b.bg) || JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)) {
+        if (
+          a.char !== b.char ||
+          JSON.stringify(a.fg) !== JSON.stringify(b.fg) ||
+          JSON.stringify(a.bg) !== JSON.stringify(b.bg) ||
+          JSON.stringify(a.attrs) !== JSON.stringify(b.attrs)
+        ) {
           expect.fail(
             `Cell mismatch at (${x},${y}): ` +
               `inc={char:${JSON.stringify(a.char)} fg:${JSON.stringify(a.fg)} bg:${JSON.stringify(a.bg)} attrs:${JSON.stringify(a.attrs)}} ` +
@@ -833,10 +736,7 @@ describe("collapsed column after shift", () => {
     for (let y = betaBox.y; y < betaBox.y + betaBox.height; y++) {
       const leftCell = board.screen.cell(betaBox.x, y)
       const rightCell = board.screen.cell(betaBox.x + betaBox.width - 1, y)
-      expect(
-        isBorderChar(leftCell.char),
-        `Row y=${y}: left at x=${betaBox.x} got '${leftCell.char}'`,
-      ).toBe(true)
+      expect(isBorderChar(leftCell.char), `Row y=${y}: left at x=${betaBox.x} got '${leftCell.char}'`).toBe(true)
       expect(
         isBorderChar(rightCell.char),
         `Row y=${y}: right at x=${betaBox.x + betaBox.width - 1} got '${rightCell.char}'`,
@@ -867,15 +767,10 @@ describe("uncollapse header rendering", () => {
   describe("Alpha column round-trip (shared env)", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
-      const env = testEnv(
-        () =>
-          item(
-            "board",
-            item("Alpha", item("a1"), item("a2")),
-            item("Beta", item("b1")),
-          ),
-        { columns: 80, rows: 20 },
-      )
+      const env = testEnv(() => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
+        columns: 80,
+        rows: 20,
+      })
       board = env.board
       // Collapse and uncollapse
       board.press("c")
@@ -895,12 +790,7 @@ describe("uncollapse header rendering", () => {
 
   test("header row contains column name after uncollapsing", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("MyColumn", item("task1"), item("task2")),
-          item("Other", item("other1")),
-        ),
+      () => item("board", item("MyColumn", item("task1"), item("task2")), item("Other", item("other1"))),
       { columns: 80, rows: 20 },
     )
 
@@ -921,12 +811,7 @@ describe("uncollapse header rendering", () => {
 
   test("card count visible in header after uncollapsing", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("a1"), item("a2"), item("a3")),
-          item("Beta", item("b1")),
-        ),
+      () => item("board", item("Alpha", item("a1"), item("a2"), item("a3")), item("Beta", item("b1"))),
       { columns: 80, rows: 20 },
     )
 

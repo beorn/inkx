@@ -49,10 +49,20 @@ const INTERVAL_PATTERNS: [RegExp, string][] = [
 ]
 
 const DAY_CODES: Record<string, string> = {
-  monday: "MO", mon: "MO", tuesday: "TU", tue: "TU",
-  wednesday: "WE", wed: "WE", thursday: "TH", thu: "TH",
-  friday: "FR", fri: "FR", saturday: "SA", sat: "SA",
-  sunday: "SU", sun: "SU",
+  monday: "MO",
+  mon: "MO",
+  tuesday: "TU",
+  tue: "TU",
+  wednesday: "WE",
+  wed: "WE",
+  thursday: "TH",
+  thu: "TH",
+  friday: "FR",
+  fri: "FR",
+  saturday: "SA",
+  sat: "SA",
+  sunday: "SU",
+  sun: "SU",
 }
 
 /**

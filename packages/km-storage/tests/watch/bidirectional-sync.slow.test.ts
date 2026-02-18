@@ -611,7 +611,9 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("draft"))
+        const fileNode = getAllNodes(db).find(
+          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("draft"),
+        )
         expect(fileNode).toBeDefined()
 
         repo.updateNode(fileNode!.id, { content: "Published" })
@@ -726,7 +728,9 @@ describe("File & Folder Renames", () => {
         expect(updatedFolder!.name).toBe("archive")
 
         // Child nodes should have updated fs_path
-        const childFile = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("readme"))
+        const childFile = getAllNodes(db).find(
+          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("readme"),
+        )
         expect(childFile!.fs_path).toBe("archive/readme.md")
       }))
 
