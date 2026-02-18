@@ -631,7 +631,7 @@ describe("Round-trip: Wiki Link Embeddings", () => {
   test.each([
     { desc: "simple embedding", md: "![[Target Page]]" },
     { desc: "embedding with section anchor", md: "![[Target Page#Section]]" },
-    { desc: "embedding with block ID", md: "![[Target Page^block123]]" },
+    { desc: "embedding with block ID", md: "![[Target Page#^block123]]" },
     { desc: "embedding with alias", md: "![[Target Page|Display Text]]" },
     {
       desc: "embedding with section and alias",
