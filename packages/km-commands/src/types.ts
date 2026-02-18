@@ -13,6 +13,9 @@ import type { BoardAction, TNode, ViewMode, TaskStatus, NodeDirection } from "@k
 
 export type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View" | "TextEdit"
 
+/** Filter categories for property-based filtering */
+export type FilterCategory = "taskStatus" | "priority" | "dueDate" | "assignedTo" | "nodeType"
+
 export type CommandMode = "normal" | "move" | "search" | "input"
 
 /**
@@ -236,6 +239,14 @@ interface DialogNavDownAction {
   type: "DIALOG_NAV_DOWN"
 }
 
+interface DialogNavLeftAction {
+  type: "DIALOG_NAV_LEFT"
+}
+
+interface DialogNavRightAction {
+  type: "DIALOG_NAV_RIGHT"
+}
+
 interface DialogConfirmAction {
   type: "DIALOG_CONFIRM"
 }
@@ -302,10 +313,40 @@ interface ToggleShowIgnoredAction {
   type: "TOGGLE_SHOW_IGNORED"
 }
 
-// UI stubs (future features)
-interface FilterAction {
-  type: "FILTER"
+// Filter
+interface ShowFilterDialogAction {
+  type: "SHOW_FILTER_DIALOG"
 }
+interface SetFilterAction {
+  type: "SET_FILTER"
+  text: string
+}
+interface ClearFilterAction {
+  type: "CLEAR_FILTER"
+}
+interface ToggleFilterPropertyAction {
+  type: "TOGGLE_FILTER_PROPERTY"
+  category: FilterCategory
+  value: string
+}
+interface ClearFilterCategoryAction {
+  type: "CLEAR_FILTER_CATEGORY"
+  category: FilterCategory
+}
+interface ClearAllFilterPropertiesAction {
+  type: "CLEAR_ALL_FILTER_PROPERTIES"
+}
+interface ToggleHideDoneAction {
+  type: "TOGGLE_HIDE_DONE"
+}
+type FilterAction =
+  | ShowFilterDialogAction
+  | SetFilterAction
+  | ClearFilterAction
+  | ToggleFilterPropertyAction
+  | ClearFilterCategoryAction
+  | ClearAllFilterPropertiesAction
+  | ToggleHideDoneAction
 
 interface CommandPaletteAction {
   type: "COMMAND_PALETTE"
@@ -484,6 +525,8 @@ export type TUIAction =
   | OpenInTerminalAction
   | DialogNavUpAction
   | DialogNavDownAction
+  | DialogNavLeftAction
+  | DialogNavRightAction
   | DialogConfirmAction
   | DialogCancelAction
   | ToggleSearchScopeAction

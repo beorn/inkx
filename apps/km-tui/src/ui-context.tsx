@@ -154,6 +154,8 @@ export interface TreeConfig {
   variant: "oneliner" | "multiline"
   iconStyle: IconStyle
   borderMode: BorderMode
+  /** Inner width of a card (column width minus borders). Used for line-aware title truncation. */
+  cardInnerWidth: number
 }
 
 /**
@@ -188,7 +190,7 @@ export function useTreeRenderContext(): TreeRenderCtx {
 /**
  * Derive TreeConfig from UI state. Pure computation.
  */
-export function deriveTreeConfig(ui: UIState): TreeConfig {
+export function deriveTreeConfig(ui: UIState, cardInnerWidth = 30): TreeConfig {
   const viewMode = ui.viewMode
   return {
     maxOutlineDepth: viewMode === "cards" ? ui.maxOutlineDepth : Math.min(1, ui.maxOutlineDepth),
@@ -198,6 +200,7 @@ export function deriveTreeConfig(ui: UIState): TreeConfig {
     variant: viewMode === "cards" ? "multiline" : "oneliner",
     iconStyle: ui.iconStyle,
     borderMode: ui.borderMode,
+    cardInnerWidth,
   }
 }
 

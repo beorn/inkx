@@ -35,9 +35,9 @@ describe("Parser: block_id extraction", () => {
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBe("k7m2")
-    // Content should have the date metadata but not the ^id
-    expect(task!.content).toContain("Buy groceries")
-    expect(task!.content).toContain("📅 2025-03-15")
+    // Content should be clean (metadata stripped to node fields), and no ^id
+    expect(task!.content).toBe("Buy groceries")
+    expect(task!.due_at).toBe("2025-03-15")
     expect(task!.content).not.toContain("^k7m2")
   })
 
@@ -546,8 +546,9 @@ describe("Round-trip: block_id preservation", () => {
   test("task with metadata and block_id survives round-trip", () => {
     const output = roundtrip(`- [ ] Task 📅 2025-12-25 ⏫ ^m3n4`)
     expect(output).toContain("^m3n4")
-    expect(output).toContain("📅 2025-12-25")
-    expect(output).toContain("⏫")
+    // Emoji format migrated to key:: value on roundtrip (content stripped, serializer rewrites)
+    expect(output).toContain("due:: 2025-12-25")
+    expect(output).toContain("p:: 1")
     expect(output).toContain("Task")
   })
 

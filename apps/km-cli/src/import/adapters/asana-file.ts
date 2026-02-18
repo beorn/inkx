@@ -82,7 +82,10 @@ export function parseAsanaFile(jsonContent: string): ImportData {
   const tasks = asana.data
 
   // Group tasks by project → section
-  const projectMap = new Map<string, { name: string; sections: Map<string, AsanaTask[]>; loose: AsanaTask[] }>()
+  const projectMap = new Map<
+    string,
+    { name: string; sections: Map<string, AsanaTask[]>; sectionNames: Map<string, string>; loose: AsanaTask[] }
+  >()
 
   for (const task of tasks) {
     const membership = task.memberships?.[0]
@@ -93,7 +96,7 @@ export function parseAsanaFile(jsonContent: string): ImportData {
 
     let project = projectMap.get(projectGid)
     if (!project) {
-      project = { name: projectName, sections: new Map(), loose: [] }
+      project = { name: projectName, sections: new Map(), sectionNames: new Map(), loose: [] }
       projectMap.set(projectGid, project)
     }
 
@@ -103,10 +106,9 @@ export function parseAsanaFile(jsonContent: string): ImportData {
         sectionTasks = []
         project.sections.set(sectionGid, sectionTasks)
       }
-      // Store section name on first task (we need it later)
-      // Attach section name as metadata on the array
-      if (sectionTasks.length === 0) {
-        ;(sectionTasks as unknown as { _name: string })._name = sectionName
+      // Store section name in the lookup map
+      if (!project.sectionNames.has(sectionGid)) {
+        project.sectionNames.set(sectionGid, sectionName)
       }
       sectionTasks.push(task)
     } else {
@@ -121,7 +123,7 @@ export function parseAsanaFile(jsonContent: string): ImportData {
     const sections: ImportSection[] = []
 
     for (const [sectionGid, sectionTasks] of projectData.sections) {
-      const sectionName = (sectionTasks as unknown as { _name: string })._name ?? "Untitled Section"
+      const sectionName = projectData.sectionNames.get(sectionGid) ?? "Untitled Section"
       sections.push({
         sourceId: sectionGid,
         title: sectionName,

@@ -387,6 +387,62 @@ This is a paragraph.
       expect(task!.priority).toBe(1) // ⏫ = high priority = 1
     })
 
+    test("should strip task metadata from content field", () => {
+      const md = `- [ ] Buy groceries due:: 2024-04-18 created:: 2022-11-02 completed:: 2024-04-18`
+      const nodes = parseMarkdownToNodes(md, "test.md")
+      const task = nodes.find((n) => n.type === "li" && n.task_marker)
+
+      expect(task).toBeDefined()
+      // Task-specific metadata (due::) stripped from content, extracted to node fields
+      expect(task!.due_at).toBe("2024-04-18")
+      expect(task!.content).not.toContain("due:: 2024-04-18")
+      // Inline properties (created::, completed::) also stripped — stored in data.metadata,
+      // reconstructed by the serializer via stringifyMetadata.
+      expect(task!.content).not.toContain("created:: 2022-11-02")
+      expect(task!.content).not.toContain("completed:: 2024-04-18")
+      expect(task!.content).toContain("Buy groceries")
+      // Verify they're stored in data.metadata
+      const meta = task!.data?.metadata as Record<string, string>
+      expect(meta?.created).toBe("2022-11-02")
+      expect(meta?.completed).toBe("2024-04-18")
+    })
+
+    test("should strip all task metadata formats from content", () => {
+      // Emoji format
+      const emojiTask = parseMarkdownToNodes(`- [ ] Task A 📅 2025-03-15 ⏫`, "test.md").find(
+        (n) => n.type === "li" && n.task_marker,
+      )
+      expect(emojiTask!.content).toBe("Task A")
+      expect(emojiTask!.due_at).toBe("2025-03-15")
+      expect(emojiTask!.priority).toBe(1)
+
+      // Legacy format
+      const legacyTask = parseMarkdownToNodes(`- [ ] Task B due:2025-06-01 p:2`, "test.md").find(
+        (n) => n.type === "li" && n.task_marker,
+      )
+      expect(legacyTask!.content).toBe("Task B")
+      expect(legacyTask!.due_at).toBe("2025-06-01")
+      expect(legacyTask!.priority).toBe(2)
+
+      // New key:: value format
+      const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 p:: 3`, "test.md").find(
+        (n) => n.type === "li" && n.task_marker,
+      )
+      expect(newTask!.content).toBe("Task C")
+      expect(newTask!.due_at).toBe("2025-09-01")
+      expect(newTask!.priority).toBe(3)
+    })
+
+    test("should not strip metadata from non-task list items", () => {
+      const md = `- Regular item due:: 2025-03-15`
+      const nodes = parseMarkdownToNodes(md, "test.md")
+      const item = nodes.find((n) => n.type === "li" && !n.task_marker)
+
+      expect(item).toBeDefined()
+      // Non-task items keep metadata in content (no stripping)
+      expect(item!.content).toContain("due:: 2025-03-15")
+    })
+
     test("should handle nested structure", () => {
       const md = `# Top Level
 

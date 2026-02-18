@@ -33,8 +33,11 @@ export type {
   OutdentNodeAction,
   DialogNavUpAction,
   DialogNavDownAction,
+  DialogNavLeftAction,
+  DialogNavRightAction,
   DialogConfirmAction,
   DialogCancelAction,
+  FilterCategory,
   BoardAction,
   TNode,
   ViewMode,
@@ -107,6 +110,7 @@ export {
   allCommands,
   blockEditCommands,
   dialogCommands,
+  filterDialogCommands,
   type TaskAction,
 } from "./commands/index.ts"
 
@@ -126,6 +130,8 @@ export {
   projectPickerOpen,
   newItemDialogOpen,
   anyDialogOpen,
+  filterDialogOpen,
+  anyOverlayOpen,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,

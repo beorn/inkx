@@ -428,8 +428,8 @@ describe("Multi-project task dedup", () => {
     expect(alpha).toContain("- [ ] Shared task ^shared-1")
     expect(alpha).toContain("  > Details here")
 
-    // Beta has reference line with block reference
-    expect(beta).toContain("→ [[^shared-1]]")
+    // Beta has embed reference (renders target node inline)
+    expect(beta).toContain("![[^shared-1]]")
     expect(beta).not.toContain("  > Details here")
 
     // Non-shared task renders normally
@@ -700,7 +700,8 @@ describe("Within-file dedup", () => {
     const fullMatches = md.match(/- \[ \] Exercise daily/g)
     expect(fullMatches).toHaveLength(1)
 
-    // No within-file cross-reference
+    // No within-file cross-reference (embed or old title+link)
+    expect(md).not.toContain("![[^task-1]]")
     expect(md).not.toContain("→ [[^task-1]]")
   })
 
@@ -739,10 +740,10 @@ describe("Within-file dedup", () => {
     // Alpha: full content once, no self-reference
     const alphaFullMatches = alpha.match(/- \[ \] Shared task/g)
     expect(alphaFullMatches).toHaveLength(1)
-    expect(alpha).not.toContain("→ [[^shared-task]]")
+    expect(alpha).not.toContain("![[^shared-task]]")
 
-    // Beta: cross-project reference (this is correct behavior)
-    expect(beta).toContain("→ [[^shared-task]]")
+    // Beta: cross-project embed reference (renders target node inline)
+    expect(beta).toContain("![[^shared-task]]")
     expect(beta).not.toContain("> Full body")
   })
 })
@@ -784,8 +785,8 @@ describe("Tag file dedup", () => {
     const tagFile = files.get("#health.md")!
     expect(tagFile).toBeDefined()
 
-    // The task should appear only once in the tag file (as a cross-ref since it was rendered in project file)
-    const refMatches = tagFile.match(/Tagged task/g)
+    // The task should appear only once in the tag file (as an embed since it was rendered in project file)
+    const refMatches = tagFile.match(/!\[\[\^tag-task-1\]\]/g)
     expect(refMatches).toHaveLength(1)
   })
 })

@@ -110,6 +110,9 @@ export function getNodeStyle(
     // Design system: yellow background, black foreground for selection
     backgroundColor = "yellow"
     textColor = "black"
+  } else {
+    // Default: explicit white for readable card text in dark terminals
+    textColor = "white"
   }
   // No colored background for nodes with ownColor - color only applies to fold marker
 
@@ -276,6 +279,22 @@ export function formatDateBadge(node: KNode): string {
   return parts.length > 0 ? parts.join(" ") : ""
 }
 
+/**
+ * Convert an assignee name to a short code (initials).
+ * Splits on hyphens/underscores/spaces and takes the first letter of each segment.
+ *
+ * @example shortName("bjorn-stabell") // "BS"
+ * @example shortName("beorn") // "B"
+ * @example shortName("alice-bob-charlie") // "ABC"
+ */
+export function shortName(name: string): string {
+  return name
+    .split(/[-_\s]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s[0]?.toUpperCase() ?? "")
+    .join("")
+}
+
 /** Type for getBoardPills callback (repo is captured in closure by caller) */
 export type GetBoardPillsFn = (node: KNode, excludeBoardIds: Set<string>) => BoardPill[]
 
@@ -299,7 +318,7 @@ export function formatInfoSuffix(
   if (!isCompact) {
     const infoParts: string[] = []
 
-    if (node.assigned_to) infoParts.push(`@${node.assigned_to}`)
+    if (node.assigned_to) infoParts.push(`@${shortName(node.assigned_to)}`)
     if (boardPillsStr) infoParts.push(boardPillsStr)
 
     return infoParts.length > 0 ? `  ${infoParts.join(" ")}` : ""

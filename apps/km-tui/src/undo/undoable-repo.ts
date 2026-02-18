@@ -203,7 +203,8 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
             const before: Partial<KNode> = {}
             if (existing) {
               for (const key of Object.keys(changes)) {
-                ;(before as Record<string, unknown>)[key] = (existing as Record<string, unknown>)[key]
+                const k = key as keyof KNode
+                ;(before as Record<string, unknown>)[k] = existing[k]
               }
             }
 

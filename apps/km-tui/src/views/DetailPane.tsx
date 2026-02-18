@@ -13,7 +13,7 @@ import { decomposeDatetime } from "@km/core"
 import { extractBody, stripForDisplay } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
+import { renderRich, getNodeIcon, getStatusIcon } from "../text/index.ts"
 import { NodeLine } from "./shared-components.tsx"
 import {
   formatDate,
@@ -145,8 +145,6 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   const dueParts = decomposeDatetime(node.due_at)
   const startParts = decomposeDatetime(node.start_at)
   const dueDate = formatDate(dueParts?.date)
-  const assignedTo = node.assigned_to
-
   // Get project path
   const projectPath = getProjectPath(repo, node)
 
@@ -181,10 +179,6 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
   const maxBacklinks = 3
 
-  // Check if we have any references to show
-  const hasRefs =
-    refs.mentions.length > 0 || refs.tags.length > 0 || refs.projects.length > 0 || refs.wikilinks.length > 0
-
   return (
     <Box
       flexDirection="column"
@@ -198,7 +192,10 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
         {/* Title - rich rendered, stripped of refs shown separately below */}
         <Box width={innerWidth}>
-          <Text bold wrap="wrap">
+          <Text bold color="white" wrap="wrap">
+            {node.task_status && (
+              <Text color={getStatusIcon(node.task_status).color}>{getStatusIcon(node.task_status).char} </Text>
+            )}
             {renderRich(stripInlineRefs(title))}
           </Text>
         </Box>
@@ -208,171 +205,39 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
         </Box>
 
-        {/* Fields */}
-        <Box flexDirection="row" gap={2}>
-          <Text>
-            <Text dimColor>Status: </Text>
-            <Text color={statusInfo.color}>{statusInfo.text}</Text>
-          </Text>
-          {node.priority != null && node.priority > 0 && (
-            <Text>
-              <Text dimColor>Priority: </Text>
-              <Text
-                dimColor={isDone}
-                color={
-                  isDone
-                    ? undefined
-                    : node.priority === 1
-                      ? "red"
-                      : node.priority === 2
-                        ? "yellow"
-                        : node.priority === 3
-                          ? "yellowBright"
-                          : "gray"
-                }
-              >
-                P{node.priority}
-              </Text>
-            </Text>
-          )}
-        </Box>
-
-        {dueDate.text && (
-          <Box>
-            <Text>
-              <Text dimColor>Due: </Text>
-              <Text
-                dimColor={isDone}
-                color={
-                  isDone
-                    ? undefined
-                    : dueDate.urgency === "overdue"
-                      ? "red"
-                      : dueDate.urgency === "urgent"
-                        ? "yellow"
-                        : undefined
-                }
-                underline={
-                  isDone
-                    ? false
-                    : dueDate.urgency === "overdue" || dueDate.urgency === "urgent" || dueDate.urgency === "soon"
-                }
-              >
-                {dueDate.text}
-              </Text>
-              {dueParts?.time && <Text dimColor> {dueParts.time}</Text>}
-            </Text>
-          </Box>
-        )}
-
-        {startParts?.date && (
-          <Box>
-            <Text>
-              <Text dimColor>Start: </Text>
-              <Text dimColor={isDone}>{formatDate(startParts.date).text}</Text>
-              {startParts.time && <Text dimColor> {startParts.time}</Text>}
-            </Text>
-          </Box>
-        )}
-
-        {node.recurrence && (
-          <Box>
-            <Text>
-              <Text dimColor>Recurrence: </Text>
-              <Text dimColor={isDone}>{node.recurrence}</Text>
-            </Text>
-          </Box>
-        )}
-
-        {assignedTo && (
-          <Box flexDirection="row" gap={2}>
-            <Text>
-              <Text dimColor>Assigned: </Text>
-              <Text dimColor={isDone} color={isDone ? undefined : "magenta"}>
-                @{assignedTo}
-              </Text>
-            </Text>
-          </Box>
-        )}
-
-        {/* Project path */}
-        {projectPath.length > 0 && (
-          <Box>
-            <Text>
-              <Text dimColor>Project: </Text>
-              <Text dimColor={isDone} color={isDone ? undefined : "green"}>
-                +{projectPath.map(renderPlain).join("/")}
-              </Text>
-            </Text>
-          </Box>
-        )}
-
-        {/* References */}
-        {hasRefs && (
-          <Box flexDirection="row" flexWrap="wrap" gap={1}>
-            {refs.tags.map((tag) => (
-              <Text key={`tag-${tag}`} color="blue">
-                #{tag}
-              </Text>
-            ))}
-            {refs.mentions.map((m) => (
-              <Text key={`mention-${m}`} color="magenta">
-                @{m}
-              </Text>
-            ))}
-            {refs.projects.map((p) => (
-              <Text key={`project-${p}`} color="green">
-                +{p}
-              </Text>
-            ))}
-            {refs.wikilinks.map((w) => (
-              <Text key={`wiki-${w}`} color="cyan" underline>
-                {w.includes("|") ? w.split("|")[1] : w}
-              </Text>
-            ))}
-          </Box>
-        )}
-
-        {/* Structured metadata (created::, completed::, etc.) */}
-        <DataFields entries={Object.entries((node.data?.metadata as Record<string, string>) ?? {})} />
-
-        {/* Block ID */}
-        {node.block_id && (
-          <Box>
-            <Text>
-              <Text dimColor>ID: </Text>
-              <Text dimColor>^{node.block_id}</Text>
-            </Text>
-          </Box>
-        )}
-
-        {/* Inline properties (key:: value from markdown) */}
-        <DataFields entries={Object.entries((node.data?.propsRaw as Record<string, string>) ?? {})} isDone={isDone} />
-
-        {/* Extra data fields (key:value for anything not already rendered) */}
-        <DataFields
-          entries={Object.entries((node.data as Record<string, unknown>) ?? {}).filter(
-            ([k, v]) => !KNOWN_DATA_KEYS.has(k) && v != null && v !== "",
-          )}
-          capitalizeKey={false}
+        {/* Metadata fields — aligned key:value table */}
+        <MetadataTable
+          node={node}
+          isDone={isDone}
+          statusInfo={statusInfo}
+          dueDate={dueDate}
+          dueParts={dueParts}
+          startParts={startParts}
+          projectPath={projectPath}
+          refs={refs}
         />
 
-        {/* Body content — raw text, stripped of metadata */}
-        {bodyChildren.length > 0 && (
-          <Box flexDirection="column" marginTop={1} width={innerWidth}>
+        {/* Column-style content area — separator then body + children like a column */}
+        {(bodyChildren.length > 0 || structuralChildren.length > 0) && (
+          <>
+            <Box>
+              <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+            </Box>
+
+            {/* Body content */}
             {bodyChildren.map((child) => (
               <Text key={child.id} wrap="wrap">
-                {stripForDisplay(child.content ?? "")}
+                {renderRich(child.content ?? "")}
               </Text>
             ))}
-          </Box>
-        )}
 
-        {/* Structural children — outline items (tasks, sections) */}
-        {structuralChildren.length > 0 && (
-          <Box flexDirection="column" marginTop={bodyChildren.length > 0 ? 0 : 1} width={innerWidth}>
-            <OutlineItems repo={repo} items={structuralChildren} depth={0} />
-          </Box>
+            {/* Children rendered as outline items (column cards) */}
+            {structuralChildren.length > 0 && (
+              <Box flexDirection="column" width={innerWidth}>
+                <ColumnItems repo={repo} items={structuralChildren} depth={0} innerWidth={innerWidth} />
+              </Box>
+            )}
+          </>
         )}
 
         {/* Backlinks */}
@@ -399,7 +264,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 }
 
 // =============================================================================
-// Data Fields — shared renderer for structured metadata/props blocks
+// Metadata Table — aligned key:value display
 // =============================================================================
 
 const KNOWN_DATA_KEYS = new Set([
@@ -416,21 +281,129 @@ const KNOWN_DATA_KEYS = new Set([
   "recurrence",
 ])
 
-interface DataFieldsProps {
-  entries: [string, unknown][]
-  isDone?: boolean
-  capitalizeKey?: boolean
+interface MetadataRow {
+  key: string
+  value: string
+  valueColor?: string
 }
 
-function DataFields({ entries, isDone = false, capitalizeKey = true }: DataFieldsProps): React.ReactElement | null {
-  if (entries.length === 0) return null
+interface MetadataTableProps {
+  node: KNode
+  isDone: boolean
+  statusInfo: { text: string; color: string }
+  dueDate: { text: string; urgency: string }
+  dueParts: { date?: string; time?: string } | undefined
+  startParts: { date?: string; time?: string } | undefined
+  projectPath: string[]
+  refs: { mentions: string[]; tags: string[]; projects: string[] }
+}
+
+function MetadataTable({
+  node,
+  isDone,
+  statusInfo,
+  dueDate,
+  dueParts,
+  startParts,
+  projectPath,
+  refs,
+}: MetadataTableProps): React.ReactElement | null {
+  const rows: MetadataRow[] = []
+
+  // Status
+  if (node.task_status) {
+    rows.push({ key: "Status", value: statusInfo.text, valueColor: statusInfo.color })
+  }
+
+  // Priority
+  if (node.priority) {
+    const pColors = ["red", "yellow", "yellowBright", "gray"]
+    rows.push({ key: "Priority", value: `P${node.priority}`, valueColor: pColors[node.priority - 1] })
+  }
+
+  // Assigned
+  if (node.assigned_to) {
+    rows.push({ key: "Assigned", value: node.assigned_to })
+  }
+
+  // Due date
+  if (dueParts?.date) {
+    const urgencyColors: Record<string, string | undefined> = {
+      overdue: "red",
+      urgent: "green",
+      soon: "yellow",
+      normal: undefined,
+    }
+    rows.push({ key: "Due", value: dueDate.text, valueColor: urgencyColors[dueDate.urgency] })
+  }
+
+  // Start date
+  if (startParts?.date) {
+    const startDate = formatDate(startParts.date)
+    rows.push({ key: "Start", value: startDate.text })
+  }
+
+  // Recurrence
+  if (node.recurrence) {
+    rows.push({ key: "Recurrence", value: node.recurrence })
+  }
+
+  // Location — filesystem path (e.g., "board/col1"), shown separately from project tags
+  if (projectPath.length > 0) {
+    rows.push({ key: "Location", value: projectPath.join("/") })
+  }
+
+  // Projects — Asana/inline +project refs only, all with + prefix
+  if (refs.projects.length > 0) {
+    rows.push({ key: "Projects", value: refs.projects.map((p) => `+${p}`).join(", ") })
+  }
+
+  // Tags (preserve # prefix)
+  if (refs.tags.length > 0) {
+    rows.push({ key: "Tags", value: refs.tags.map((t) => `#${t}`).join(", ") })
+  }
+
+  // Mentions (preserve @ prefix) — exclude assignee to avoid duplication
+  const nonAssigneeMentions = refs.mentions.filter((m) => m !== node.assigned_to)
+  if (nonAssigneeMentions.length > 0) {
+    rows.push({ key: "Mentions", value: nonAssigneeMentions.map((m) => `@${m}`).join(", ") })
+  }
+
+  // data.metadata entries (created, completed, etc.)
+  const data = node.data as Record<string, unknown> | undefined
+  if (data?.metadata && typeof data.metadata === "object") {
+    for (const [k, v] of Object.entries(data.metadata as Record<string, unknown>)) {
+      rows.push({ key: capitalize(k), value: String(v) })
+    }
+  }
+
+  // data.propsRaw entries (inline properties from markdown)
+  if (data?.propsRaw && typeof data.propsRaw === "object") {
+    for (const [k, v] of Object.entries(data.propsRaw as Record<string, unknown>)) {
+      rows.push({ key: capitalize(k), value: String(v) })
+    }
+  }
+
+  // Extra data fields not in KNOWN_DATA_KEYS
+  if (data) {
+    for (const [k, v] of Object.entries(data)) {
+      if (KNOWN_DATA_KEYS.has(k)) continue
+      rows.push({ key: capitalize(k), value: typeof v === "object" ? JSON.stringify(v) : String(v) })
+    }
+  }
+
+  if (rows.length === 0) return null
+
+  // Pad keys to the widest key + 2 spaces gap
+  const maxKeyLen = Math.max(...rows.map((r) => r.key.length))
+
   return (
     <>
-      {entries.map(([k, v]) => (
-        <Box key={k}>
-          <Text dimColor={isDone}>
-            <Text dimColor>{capitalizeKey ? capitalize(k) : k}: </Text>
-            <Text>{typeof v === "object" ? JSON.stringify(v) : String(v)}</Text>
+      {rows.map((row) => (
+        <Box key={row.key} flexDirection="row">
+          <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
+          <Text color={isDone ? undefined : row.valueColor} dimColor={isDone}>
+            {row.value}
           </Text>
         </Box>
       ))}
@@ -439,24 +412,47 @@ function DataFields({ entries, isDone = false, capitalizeKey = true }: DataField
 }
 
 // =============================================================================
-// Node Outline — body content + structural children as unified tree
+// Column Items — children rendered like cards in a column
 // =============================================================================
 
-function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; depth: number }): React.ReactElement {
+function ColumnItems({
+  repo,
+  items,
+  depth,
+  innerWidth,
+}: {
+  repo: Repo
+  items: KNode[]
+  depth: number
+  innerWidth: number
+}): React.ReactElement {
   return (
     <>
-      {items.map((item) => {
+      {items.map((item, idx) => {
         const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
         const indent = "  ".repeat(depth)
         const isDone = item.task_status === "done" || item.task_status === "dropped"
-        const kids = depth < 2 ? repo.getChildren(item.id) : []
+        const kids = depth < 3 ? repo.getChildren(item.id) : []
         const { body: kidBody, items: kidItems } = extractBody(kids)
+        // Metadata badges for top-level items (like cards show)
+        const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
+        const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
         return (
           <React.Fragment key={item.id}>
+            {/* Dot separator between top-level items */}
+            {depth === 0 && idx > 0 && (
+              <Text dimColor>{"· ".repeat(Math.min(3, Math.floor((innerWidth - 2) / 2)))}</Text>
+            )}
             <Text wrap="wrap" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
               {renderRich(stripInlineRefs(getNodeDisplayName(repo, item)))}
+              {depth === 0 && (dueBadge || assigneeBadge) && (
+                <Text dimColor>
+                  {dueBadge}
+                  {assigneeBadge}
+                </Text>
+              )}
             </Text>
             {kidBody.map((b) => (
               <Text key={b.id} wrap="wrap" dimColor>
@@ -465,7 +461,9 @@ function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; dept
                 {stripForDisplay(b.content ?? "")}
               </Text>
             ))}
-            {kidItems.length > 0 && <OutlineItems repo={repo} items={kidItems} depth={depth + 1} />}
+            {kidItems.length > 0 && (
+              <ColumnItems repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
+            )}
           </React.Fragment>
         )
       })}

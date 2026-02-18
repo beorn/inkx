@@ -135,7 +135,8 @@ describe("date badge display", () => {
     const screen = driver.getState().screen
     const clean = screen.replace(/\x1b\[[0-9;]*m/g, "")
     // Detail pane should show the due date (rendered as relative date)
-    expect(clean).toContain("Due: Mar 15")
+    expect(clean).toContain("Due")
+    expect(clean).toContain("Mar 15")
   })
 
   it("date badge visible in cards view with initial due_at (testEnv)", () => {

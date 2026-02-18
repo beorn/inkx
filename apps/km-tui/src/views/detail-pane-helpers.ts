@@ -101,9 +101,9 @@ export function extractReferences(content: string | undefined): References {
     return { mentions: [], tags: [], projects: [], wikilinks: [] }
   }
   return {
-    mentions: extractMatches(content, /@(\w+)/g),
-    tags: extractMatches(content, /#(\w+)/g),
-    projects: extractMatches(content, /\+(\w+)/g),
+    mentions: extractMatches(content, /@([\p{L}\p{N}_-]+)/gu),
+    tags: extractMatches(content, /#([\p{L}\p{N}_-]+)/gu),
+    projects: extractMatches(content, /\+([\p{L}\p{N}_-]+)/gu),
     wikilinks: extractMatches(content, /\[\[([^\]]+)\]\]/g),
   }
 }
@@ -141,9 +141,9 @@ export function getProjectPath(repo: Repo, node: KNode): string[] {
 /** Strip @mentions, #tags, +projects from text (they're shown separately in props) */
 export function stripInlineRefs(text: string): string {
   return text
-    .replace(/\s*@\w[\w-]*/g, "")
-    .replace(/\s*#\w[\w-]*/g, "")
-    .replace(/\s*\+\w[\w/.-]*/g, "")
+    .replace(/\s*@[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
+    .replace(/\s*#[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
+    .replace(/\s*\+[\p{L}\p{N}][\p{L}\p{N}_/.-]*/gu, "")
     .trim()
 }
 

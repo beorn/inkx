@@ -144,7 +144,7 @@ const HTML_TAG_REGEX = /<[^>]+>/g
 const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i
 
 // Sigil patterns for @ mentions, # tags, and + projects
-const SIGIL_REGEX = /([@#\+])([a-zA-Z0-9_-]+)/g
+const SIGIL_REGEX = /([@#\+])([\p{L}\p{N}_-]+)/gu
 
 /**
  * Options for rich text rendering

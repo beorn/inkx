@@ -43,7 +43,7 @@ const TASK_MARK_REGEX = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\
 const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]*)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
 
 /** Combined refs: #tag, @mention, +project in single pass */
-const COMBINED_REFS_REGEX = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g
+const COMBINED_REFS_REGEX = /#([\p{L}\p{N}_-]+)|@([\p{L}\p{N}_-]+)|\+([\p{L}\p{N}_-]+)/gu
 
 /** Fast wikilink presence check (avoid full regex if no wikilinks) */
 const HAS_WIKILINK = /\[\[/
@@ -494,9 +494,9 @@ export function listItemToText(item: RootContent): string {
     return nodeToText(item)
   }
 
-  // Only process direct content (paragraphs, text), not nested lists
+  // Only process direct content (paragraphs, text), not nested lists or block content (blockquotes, code)
   return item.children
-    .filter((child: RootContent) => child.type !== "list")
+    .filter((child: RootContent) => child.type !== "list" && child.type !== "blockquote" && child.type !== "code")
     .map((child: RootContent) => nodeToText(child))
     .join("")
 }

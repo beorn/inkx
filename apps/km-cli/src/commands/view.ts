@@ -145,6 +145,12 @@ export const viewCommand = new Command("view")
         })
         if (aborted) return
 
+        // Signal TUI to show skeleton loading while background parsing runs
+        tuiModule.tuiEvents.emit("watcher-status", {
+          state: "syncing",
+          pendingPaths: deferredFiles.length,
+        })
+
         try {
           const { parsed, pendingLinks } =
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded
@@ -185,6 +191,14 @@ export const viewCommand = new Command("view")
         } catch (err) {
           if (!aborted) {
             debug.debug?.(`background parsing/resolution failed: ${String(err)}`)
+          }
+        } finally {
+          // Clear skeleton loading state regardless of success or failure
+          if (!aborted) {
+            tuiModule.tuiEvents.emit("watcher-status", {
+              state: "ready",
+              pendingPaths: 0,
+            })
           }
         }
       })()

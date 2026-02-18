@@ -90,6 +90,8 @@ interface BoardDialogHandlers {
   handleNewItemCancel: () => void
   handleSearchSelect: (targetNode: KNode) => void
   handleSearchCancel: () => void
+  handleFilterApply: (text: string) => void
+  handleFilterCancel: () => void
   handleDatePromptConfirm: () => void
   handleDatePromptCancel: () => void
 }
@@ -244,6 +246,18 @@ export function useBoardDialogs({
     setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
   }, [setUI])
 
+  // Filter: apply sets filter text, cancel closes dialog without changing filter
+  const handleFilterApply = useCallback(
+    (text: string) => {
+      setUI({ filterText: text, showFilterDialog: false })
+    },
+    [setUI],
+  )
+
+  const handleFilterCancel = useCallback(() => {
+    setUI({ showFilterDialog: false })
+  }, [setUI])
+
   // Date prompt: confirm handler reads input from activeEditTargetRef and resolves dates
   const handleDatePromptConfirm = useCallback(() => {
     const input = activeEditTargetRef.current?.getContent() ?? ""
@@ -305,6 +319,8 @@ export function useBoardDialogs({
     handleNewItemCancel,
     handleSearchSelect,
     handleSearchCancel,
+    handleFilterApply,
+    handleFilterCancel,
     handleDatePromptConfirm,
     handleDatePromptCancel,
   }

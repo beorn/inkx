@@ -8,6 +8,7 @@ import {
   projectPickerOpen,
   newItemDialogOpen,
   anyDialogOpen,
+  filterDialogOpen,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
@@ -44,6 +45,7 @@ export interface KeybindingContext {
   projectPickerOpen: boolean
   newItemDialogOpen: boolean
   datePromptOpen: boolean
+  filterDialogOpen: boolean
   helpOverlayOpen: boolean
   deleteConfirmOpen: boolean
   consoleOpen: boolean
@@ -276,7 +278,27 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 3: Dialog navigation (when any dialog is open) ---
+  // --- Layer 3: Filter dialog navigation (when filter panel is open) ---
+  {
+    name: "filter-dialog",
+    bindings: [
+      { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
+      { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
+      { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
+      { key: "ArrowUp", commandId: "dialog.nav_up", when: filterDialogOpen },
+      { key: "h", commandId: "filter.nav_left", when: filterDialogOpen },
+      { key: "l", commandId: "filter.nav_right", when: filterDialogOpen },
+      { key: "ArrowLeft", commandId: "filter.nav_left", when: filterDialogOpen },
+      { key: "ArrowRight", commandId: "filter.nav_right", when: filterDialogOpen },
+      { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
+      { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
+      { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
+    ],
+  },
+
+  // --- Layer 4: Dialog navigation (when any text-input dialog is open) ---
   {
     name: "dialog",
     bindings: [
@@ -503,8 +525,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "_", commandId: "decrease_content_lines" },
 
       // Filter and command palette
-      { key: "\\", commandId: "filter" },
-      { key: "/", ctrl: true, commandId: "command_palette" },
+      { key: "/", ctrl: true, commandId: "filter" },
+      { key: "D", commandId: "toggle_hide_done" },
+      { key: "\\", commandId: "command_palette" },
     ],
   },
 

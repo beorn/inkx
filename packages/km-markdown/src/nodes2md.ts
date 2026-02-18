@@ -416,12 +416,22 @@ function serializeLi(
   return md
 }
 
-/** Append task metadata as text key:value tags (due:, start:, p:, recur:, plus data.metadata entries). */
+/** Append task metadata as text key:value tags (due:, start:, p:, recur:, plus data.metadata and data.propsRaw entries). */
 function appendTaskMetadata(node: KNode): string {
   let content = stringifyTaskMetadata(node.content ?? "", node)
   const metadata = (node.data?.metadata as Record<string, string>) ?? {}
   if (Object.keys(metadata).length > 0) {
     content = stringifyMetadata(content, metadata)
+  }
+  // Also emit structural inline properties (blocked-by::, rating::, etc.)
+  // Use raw values directly (no quoting) to preserve wikilinks and special chars.
+  const propsRaw = (node.data?.propsRaw as Record<string, string>) ?? {}
+  for (const [key, value] of Object.entries(propsRaw)) {
+    if (value === undefined || value === "") continue
+    // Skip if already present in content (e.g., not stripped)
+    const keyPattern = new RegExp(`\\b${key}:: `)
+    if (keyPattern.test(content)) continue
+    content += ` ${key}:: ${value}`
   }
   return content
 }

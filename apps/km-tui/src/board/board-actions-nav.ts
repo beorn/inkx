@@ -7,7 +7,7 @@
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
+import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { CardState } from "../types.ts"
@@ -140,7 +140,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 /** Default tree navigation (first, last, prev, next, in, out). */
 function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
   const { dispatchBoard } = ctx
-  const treeDir = dir as TreeDirection
+  const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId && targetId !== ctx.cursorNodeId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })

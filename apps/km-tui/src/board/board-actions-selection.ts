@@ -54,8 +54,8 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   }
 
   // Move cursor (focus)
-  const treeDir = direction === "up" ? "prev" : "next"
-  const targetId = handleTreeNavigation(treeDir as TreeDirection, ctx, ctx.repo)
+  const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
+  const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Derive selection from anchor to new focus

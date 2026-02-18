@@ -106,8 +106,8 @@ export const NodePath = {
 
       const parentId = node.parent_id
       const siblings = repo.getChildren(parentId)
-      // currentId is non-null: loop entered because currentId !== rootId, and `repo.getNode(currentId)` succeeded
-      const index = indexOfChild(siblings, currentId as string)
+      if (!currentId) return null // Unreachable: getNode(currentId) succeeded above
+      const index = indexOfChild(siblings, currentId)
       if (index === -1) return null
 
       indices.push(index)

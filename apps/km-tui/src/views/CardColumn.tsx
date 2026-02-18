@@ -370,6 +370,41 @@ function bodyBlockLayoutProps(
 }
 
 // =============================================================================
+// Skeleton Cards — shown in empty columns during background parse
+// =============================================================================
+
+/**
+ * Placeholder cards displayed in a column that has no content yet because
+ * background parsing is still in progress (discoverOnly mode).
+ * Keeps the board interactive (user can navigate between columns)
+ * while giving visual feedback that content is loading.
+ */
+function SkeletonCards({
+  width,
+  height,
+  colIndex,
+}: {
+  width: number
+  height: number
+  colIndex: number
+}): React.ReactElement {
+  const cardHeight = 3 // border top + content line + border bottom
+  const cardCount = Math.max(1, Math.floor(height / cardHeight))
+
+  return (
+    <Box flexDirection="column" width={width} height={height} overflow="hidden">
+      {Array.from({ length: cardCount }, (_, ri) => (
+        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
+          <Text dimColor wrap="truncate">
+            {"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
+          </Text>
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+// =============================================================================
 // Column Component
 // =============================================================================
 
@@ -416,6 +451,10 @@ export const Column = React.memo(function Column({
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
+
+  // Check if the board is in background-loading state (discoverOnly + background parse).
+  // Used to show skeleton cards in empty columns instead of "(empty)".
+  const isLoading = useUISelector((state) => state.isLoading)
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
@@ -691,6 +730,8 @@ export const Column = React.memo(function Column({
           renderItem={renderItem}
           overflowIndicator
         />
+      ) : isLoading ? (
+        <SkeletonCards width={width - 1} height={height - 2} colIndex={colIndex} />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1} paddingLeft={3}>

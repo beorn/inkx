@@ -48,7 +48,8 @@ function buildCommandContexts(ctx: ActionCtx) {
   const kbCtx = buildKeybindingContext({
     inMoveMode: ctx.moveMode,
     inSearchMode: ui.showSearchDialog,
-    inInputMode: ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog || !!ui.datePrompt,
+    inInputMode:
+      ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog || ui.showFilterDialog || !!ui.datePrompt,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.showDetailPane,
     isInOutlineMode: ui.inOutlineMode,
@@ -60,6 +61,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     projectPickerOpen: ui.showProjectPicker,
     newItemDialogOpen: ui.showNewItemDialog,
     datePromptOpen: !!ui.datePrompt,
+    filterDialogOpen: ui.showFilterDialog,
     helpOverlayOpen: ui.showHelp,
     deleteConfirmOpen: !!ui.deleteConfirm,
     consoleOpen: ui.showConsole,

@@ -152,7 +152,8 @@ describe("implicit task rendering", () => {
     taskNode.task_marker = undefined
 
     // Use columns view where assignee is shown inline (cards view only shows board pill dots)
+    // shortName("beorn") → "B", so displays as "@B"
     const { board } = testEnv(() => nodes, { viewMode: "columns" })
-    board.expectScreen("@beorn")
+    board.expectScreen("@B")
   })
 })

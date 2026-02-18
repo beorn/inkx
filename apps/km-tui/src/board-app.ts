@@ -202,7 +202,11 @@ function routeThroughCommandSystem(
 
   // When a dialog is open, unhandled keys are expected (limited key set)
   const dialogOpen =
-    ctx.ui.showSearchDialog || ctx.ui.showNewItemDialog || ctx.ui.showProjectPicker || !!ctx.ui.datePrompt
+    ctx.ui.showSearchDialog ||
+    ctx.ui.showNewItemDialog ||
+    ctx.ui.showProjectPicker ||
+    !!ctx.ui.datePrompt ||
+    ctx.ui.showFilterDialog
   // Chord pending: show status indicator and start timeout
   if (result.pending) {
     parentSpan.spanData.outcome = "chord"
@@ -218,7 +222,10 @@ function routeThroughCommandSystem(
     parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
     // Visual bell for unhandled keys (only outside dialogs)
     if (!dialogOpen) {
-      ctx.setUI({ bellState: "unhandled" })
+      ctx.setUI({
+        bellState: "unhandled",
+        status: { level: "warning", message: `Unmapped key: ${describeKey(input, key)}` },
+      })
       process.stdout.write("\x07")
     }
     return
@@ -227,9 +234,12 @@ function routeThroughCommandSystem(
   if (result.actions) {
     const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
 
-    // When a dialog is open, only process dialog and text commands
+    // When a dialog is open, only process dialog, filter, and text commands
     if (dialogOpen && result.commandId) {
-      const isDialogOrTextCommand = result.commandId.startsWith("dialog.") || result.commandId.startsWith("text.")
+      const isDialogOrTextCommand =
+        result.commandId.startsWith("dialog.") ||
+        result.commandId.startsWith("text.") ||
+        result.commandId.startsWith("filter.")
       if (!isDialogOrTextCommand) {
         parentSpan.spanData.outcome = "dialog-filtered"
         return
@@ -262,6 +272,49 @@ function routeThroughCommandSystem(
 // =============================================================================
 // App Definition
 // =============================================================================
+
+/** Produce a human-readable label for a key press (e.g. "Ctrl+x", "F5", "w"). */
+function describeKey(input: string, key: Key): string {
+  const parts: string[] = []
+  if (key.ctrl) parts.push("Ctrl")
+  if (key.meta) parts.push("Meta")
+  if (key.shift) parts.push("Shift")
+
+  const name = key.upArrow
+    ? "Up"
+    : key.downArrow
+      ? "Down"
+      : key.leftArrow
+        ? "Left"
+        : key.rightArrow
+          ? "Right"
+          : key.pageUp
+            ? "PageUp"
+            : key.pageDown
+              ? "PageDown"
+              : key.home
+                ? "Home"
+                : key.end
+                  ? "End"
+                  : key.return
+                    ? "Enter"
+                    : key.escape
+                      ? "Esc"
+                      : key.tab
+                        ? "Tab"
+                        : key.backspace
+                          ? "Backspace"
+                          : key.delete
+                            ? "Delete"
+                            : input.length === 1 && input >= " "
+                              ? input
+                              : input.length > 0
+                                ? `<${input.charCodeAt(0).toString(16)}>`
+                                : "?"
+
+  parts.push(name)
+  return parts.join("+")
+}
 
 /**
  * Create the board app definition.

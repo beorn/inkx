@@ -204,37 +204,38 @@ export function BottomBar({
           </>
         )}
       </Box>
-      {/* Right side: counters group + view info */}
-      <Box flexGrow={0} flexShrink={0}>
-        <Text dimColor>
-          {" "}
-          {/* Log counter (only when logs exist) */}
-          {logTotal > 0 && (
-            <Text dimColor={!logFlash} id="console-indicator">
-              {hasWarnings ? "⚠" : "💬"}
-              {logTotal}{" "}
-            </Text>
-          )}
-          {/* Node counter */}
-          <Text dimColor={!nodeFlash} id="node-count">
-            📋{nodeCount}
+      {/* Right side: counters group + view info — each section is a separate
+          layout element to prevent width miscalculation from merging inline text */}
+      <Box flexGrow={0} flexShrink={0} flexDirection="row">
+        {/* Log counter (only when logs exist) */}
+        {logTotal > 0 && (
+          <Text dimColor={!logFlash} id="console-indicator">
+            {" "}
+            {hasWarnings ? "⚠" : "💬"}
+            {logTotal}
           </Text>
-          {/* Watcher/file counter */}
-          {watcherInfo && (
-            <Text dimColor={!fileFlash} id="watcher-status">
-              {watcherInfo}
-            </Text>
-          )}
-          {showColPosition && (
-            <>
-              {"   "}
-              <Text id="column-position">
-                col {layout.colIndex + 1}/{state.columns.length}
-              </Text>
-            </>
-          )}
+        )}
+        {/* Node counter */}
+        <Text dimColor={!nodeFlash} id="node-count">
+          {" "}
+          📋{nodeCount}
+        </Text>
+        {/* Watcher/file counter */}
+        {watcherInfo && (
+          <Text dimColor={!fileFlash} id="watcher-status">
+            {watcherInfo}
+          </Text>
+        )}
+        {showColPosition && (
+          <Text dimColor id="column-position">
+            {"   "}col {layout.colIndex + 1}/{state.columns.length}
+          </Text>
+        )}
+        {/* Filter indicator moved to top bar */}
+        {/* View mode label */}
+        <Text dimColor id="view-mode">
           {"   "}
-          <Text id="view-mode">{viewModeStr}</Text>{" "}
+          {viewModeStr}{" "}
         </Text>
       </Box>
     </Box>

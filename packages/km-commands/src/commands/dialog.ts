@@ -5,7 +5,7 @@
  * These are routed via when predicates that check dialog state.
  */
 
-import type { CommandDef, CommandAction } from "../types.ts"
+import type { CommandDef, CommandAction, FilterCategory } from "../types.ts"
 
 export const dialogCommands: CommandDef[] = [
   {
@@ -42,5 +42,36 @@ export const dialogCommands: CommandDef[] = [
     description: "Toggle search scope between All and Selected",
     category: "Navigation",
     execute: (): CommandAction => ({ type: "TOGGLE_SEARCH_SCOPE" }),
+  },
+]
+
+/**
+ * Filter dialog commands
+ *
+ * Navigation and toggle commands specific to the filter panel.
+ * These use DIALOG_NAV_UP/DOWN for row navigation and DIALOG_CONFIRM for toggle.
+ * h/l and clear operations dispatch filter-specific actions.
+ */
+export const filterDialogCommands: CommandDef[] = [
+  {
+    id: "filter.nav_left",
+    name: "Filter Navigate Left",
+    description: "Move to previous filter option",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "DIALOG_NAV_LEFT" }),
+  },
+  {
+    id: "filter.nav_right",
+    name: "Filter Navigate Right",
+    description: "Move to next filter option",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "DIALOG_NAV_RIGHT" }),
+  },
+  {
+    id: "filter.clear_all",
+    name: "Clear All Filters",
+    description: "Clear all active filters",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "CLEAR_ALL_FILTER_PROPERTIES" }),
   },
 ]

@@ -96,7 +96,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       // Invalid/unknown status - show the actual value with inverted colors
       // This helps debug what invalid status was received
       return {
-        char: (status as string).charAt(0),
+        char: String(status).charAt(0),
         color: "black",
         backgroundColor: "white",
       }

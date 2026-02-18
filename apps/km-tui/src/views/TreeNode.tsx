@@ -15,7 +15,14 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { extractTitleTaskMarker, isTask, isBlock, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
+import {
+  extractTitleTaskMarker,
+  isTask,
+  isBlock,
+  stringifyTaskMetadata,
+  parseTaskMetadataFromText,
+  getStatusForMarker,
+} from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
   getNodeDisplayName,
@@ -33,9 +40,9 @@ import {
   type StatusIcon,
 } from "../text/index.ts"
 import { stripFgColor } from "../text/rich.ts"
-import { truncateText } from "../layout/index.ts"
+import { constrainText } from "inkx"
 import { makeSelectionKey } from "../types.ts"
-import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
 import {
@@ -182,7 +189,15 @@ function TreeNodeImpl({
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, maxContentLines, inOutlineMode, currentSubIndex, variant, iconStyle } = treeConfig
+  const {
+    maxOutlineDepth: maxDepth,
+    maxContentLines,
+    inOutlineMode,
+    currentSubIndex,
+    variant,
+    iconStyle,
+    cardInnerWidth,
+  } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -486,14 +501,25 @@ function TreeNodeImpl({
       sigilColors,
       resolveSigilColor,
     })
-    // Estimate available width for cards (accounting for borders, padding, prefix)
-    // Only truncate card titles (oi items) — body content (p, quote, etc.)
-    // should wrap naturally via inkx's wrap="wrap"
+    // Card titles: line-aware truncation to avoid partial trailing lines.
+    // constrainText wraps to width, takes maxLines, and appends ellipsis on the last line if truncated.
+    // Body content (p, quote, etc.) wraps naturally via inkx's wrap="wrap".
     if (!isOneliner && !isBlock(node.type)) {
-      return truncateText(rich, 70) // Default ~70 chars for card title
+      const textWidth = Math.max(10, cardInnerWidth - 2) // 2 chars for prefix (marker + space)
+      const { lines } = constrainText(rich, textWidth, 2)
+      return lines.join("\n")
     }
     return rich
-  }, [cleanContent, compactContent, excludedSigils, sigilColors, resolveSigilColor, isOneliner, node.type])
+  }, [
+    cleanContent,
+    compactContent,
+    excludedSigils,
+    sigilColors,
+    resolveSigilColor,
+    isOneliner,
+    node.type,
+    cardInnerWidth,
+  ])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (assigned_to, board pills)
@@ -561,11 +587,21 @@ function TreeNodeImpl({
   )
 
   // Child rendering
+  // Apply task status filter (e.g., hide done/dropped) at all tree depths
+  const taskStatusFilter = useUISelector((s) => s.filterProperties.taskStatus)
+  const filteredChildren = useMemo(() => {
+    if (taskStatusFilter.size === 0) return children
+    return children.filter((child) => {
+      const status = child.task_status ?? getStatusForMarker(child.task_marker)
+      return !status || taskStatusFilter.has(status)
+    })
+  }, [children, taskStatusFilter])
+
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
   // In oneliner mode, a fixed cap prevents performance issues with large nodes.
   const maxChildren = variant === "multiline" ? maxContentLines : VARIANT_CONFIG.oneliner.maxChildren
-  const visibleChildren = children.slice(0, maxChildren)
-  const hiddenCount = children.length - visibleChildren.length
+  const visibleChildren = filteredChildren.slice(0, maxChildren)
+  const hiddenCount = filteredChildren.length - visibleChildren.length
 
   // Children are hidden when individually folded OR when outline depth limit is exceeded
   const childrenVisible = hasChildren && !isFolded && depth < maxDepth
@@ -594,7 +630,7 @@ function TreeNodeImpl({
       {/* paddingLeft={depth} makes marker flush with border at depth 0 */}
       {/* alignItems="flex-start" prevents row from stretching to match content height */}
       {/* backgroundColor on Box (not Text) to fill row background properly */}
-      {/* Always height={1} to keep title on single line; use truncateText() for ellipsis in cards view */}
+      {/* Always height={1} to keep title on single line; use constrainText() for ellipsis in cards view */}
       <HeadRow onLayout={handleHeadLayout}>
         <Box
           id={node.id}
@@ -784,6 +820,7 @@ function TreeNodeImpl({
             inOutlineMode={inOutlineMode}
             currentSubIndex={currentSubIndex}
             dimInactiveChildren={dimInactiveChildren}
+            dim={dim || style.isDoneOrDropped}
             hiddenCount={isInlineEditing ? 0 : hiddenCount}
             getChildren={resolvedGetChildren}
             getParentContext={resolvedGetParentContext}
@@ -904,6 +941,8 @@ interface NodeChildrenProps {
   inOutlineMode: boolean
   currentSubIndex: number
   dimInactiveChildren: boolean
+  /** Force dim on all children (e.g., parent is done/dropped) */
+  dim?: boolean
   hiddenCount: number
   /** Callback to fetch children for nested nodes */
   getChildren?: (id: string) => KNode[]
@@ -927,6 +966,7 @@ function NodeChildren({
   inOutlineMode,
   currentSubIndex,
   dimInactiveChildren,
+  dim: parentDim = false,
   hiddenCount,
   getChildren,
   getParentContext,
@@ -966,6 +1006,7 @@ function NodeChildren({
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={childSubIndex}
+            dim={parentDim}
             dimInactiveChildren={dimInactiveChildren || item.isBody}
             getChildren={getChildren}
             getParentContext={getParentContext}

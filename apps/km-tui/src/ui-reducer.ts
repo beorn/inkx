@@ -137,7 +137,85 @@ export interface UIState {
     level: "info" | "success" | "warning" | "error"
     message: string
   } | null
+
+  // Filter state — persistent property-based + text filter across views
+  showFilterDialog: boolean
+  filterText: string
+  filterProperties: FilterProperties
+  filterCursorRow: number
+  filterCursorVal: number
 }
+
+/** Structured filter state for property-based filtering */
+export interface FilterProperties {
+  taskStatus: Set<string> // "todo" | "wip" | "blocked" | "done" | "dropped"
+  priority: Set<string> // "1" | "2" | "3" | "4"
+  dueDate: Set<string> // "overdue" | "today" | "this-week" | "no-date"
+  assignedTo: Set<string>
+  nodeType: Set<string> // "li" | "oi" | "h" | "p" | "code" | "quote" | "hr"
+}
+
+export function createEmptyFilterProperties(): FilterProperties {
+  return {
+    taskStatus: new Set(),
+    priority: new Set(),
+    dueDate: new Set(),
+    assignedTo: new Set(),
+    nodeType: new Set(),
+  }
+}
+
+/** Check if any property filters are active */
+export function hasActivePropertyFilters(props: FilterProperties): boolean {
+  return (
+    props.taskStatus.size > 0 ||
+    props.priority.size > 0 ||
+    props.dueDate.size > 0 ||
+    props.assignedTo.size > 0 ||
+    props.nodeType.size > 0
+  )
+}
+
+/** Filter row definitions for the filter panel */
+export interface FilterRowDef {
+  category: keyof FilterProperties
+  label: string
+  values: Array<{ value: string; label: string }>
+}
+
+export const FILTER_ROWS: FilterRowDef[] = [
+  {
+    category: "taskStatus",
+    label: "Status",
+    values: [
+      { value: "todo", label: "todo" },
+      { value: "wip", label: "wip" },
+      { value: "blocked", label: "blocked" },
+      { value: "done", label: "done" },
+      { value: "dropped", label: "dropped" },
+    ],
+  },
+  {
+    category: "priority",
+    label: "Priority",
+    values: [
+      { value: "1", label: "P1" },
+      { value: "2", label: "P2" },
+      { value: "3", label: "P3" },
+      { value: "4", label: "P4" },
+    ],
+  },
+  {
+    category: "dueDate",
+    label: "Due",
+    values: [
+      { value: "overdue", label: "overdue" },
+      { value: "today", label: "today" },
+      { value: "this-week", label: "week" },
+      { value: "no-date", label: "none" },
+    ],
+  },
+]
 
 // =============================================================================
 // Initial State Factory
@@ -212,5 +290,11 @@ export function createInitialUIState(
 
     bellState: null,
     status: null,
+
+    showFilterDialog: false,
+    filterText: "",
+    filterProperties: createEmptyFilterProperties(),
+    filterCursorRow: 0,
+    filterCursorVal: 0,
   }
 }

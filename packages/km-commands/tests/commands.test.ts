@@ -16,7 +16,7 @@ import { historyCommands } from "../src/commands/history.ts"
 import { tuiCommands } from "../src/commands/tui.ts"
 import { textEditingCommands, detailPaneCommands } from "../src/commands/text-editing.ts"
 import { blockEditCommands } from "../src/commands/block-edit.ts"
-import { dialogCommands } from "../src/commands/dialog.ts"
+import { dialogCommands, filterDialogCommands } from "../src/commands/dialog.ts"
 import type { CommandContext, TNode, CommandAction, CommandDef } from "../src/types.ts"
 
 // ============================================================================
@@ -132,7 +132,8 @@ describe("allCommands", () => {
       textEditingCommands.length +
       detailPaneCommands.length +
       blockEditCommands.length +
-      dialogCommands.length
+      dialogCommands.length +
+      filterDialogCommands.length
 
     expect(allCommands.length).toBe(expectedCount)
   })

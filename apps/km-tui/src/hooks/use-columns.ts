@@ -115,12 +115,16 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: meaningfulBody.map((n) => ({
-        node: n,
-        children: [],
-        childCount: 0,
-        ...(n.link_to ? {} : { isVirtual: true }),
-      })),
+      cards: meaningfulBody.map((n) => {
+        const childChildren = repo.getChildren(n.id)
+        const isFolded = foldedNodes.has(n.id)
+        return {
+          node: n,
+          children: isFolded ? [] : childChildren,
+          childCount: childChildren.length,
+          ...(n.link_to ? {} : { isVirtual: true }),
+        }
+      }),
       isVirtual: true,
     })
   }

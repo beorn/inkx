@@ -61,14 +61,14 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // The first task should be selected
     board.expect(cursor("assignedTask")).toExist()
 
-    // Find where "@alice" appears in the node's row
+    // Find where "@A" (short code for "alice") appears in the node's row
     const nodeBox = board.screen.nodeBox("assignedTask")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
 
     const row = board.screen.row(nodeBox.y)
-    const aliceIdx = row.indexOf("@alice")
-    expect(aliceIdx, "info suffix '@alice' should be visible").toBeGreaterThan(-1)
+    const aliceIdx = row.indexOf("@A")
+    expect(aliceIdx, "info suffix '@A' should be visible").toBeGreaterThan(-1)
 
     // The info suffix text should be black (0) on yellow (3) when selected
     const cell = board.screen.cell(aliceIdx, nodeBox.y)

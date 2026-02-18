@@ -52,10 +52,24 @@ export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectP
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
-/** Any dialog is open (search, project picker, new item, or date prompt) */
+/** Any text-input dialog is open (search, project picker, new item, date prompt) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
   (ctx) => ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen || ctx.datePromptOpen,
+)
+
+/** Filter dialog is open (separate from text-input dialogs — has its own key handling) */
+export const filterDialogOpen = when("filterDialogOpen", (ctx) => ctx.filterDialogOpen)
+
+/** Any dialog OR filter panel is open */
+export const anyOverlayOpen = when(
+  "anyOverlayOpen",
+  (ctx) =>
+    ctx.searchDialogOpen ||
+    ctx.projectPickerOpen ||
+    ctx.newItemDialogOpen ||
+    ctx.datePromptOpen ||
+    ctx.filterDialogOpen,
 )
 
 export const helpOverlayOpen = when("helpOverlayOpen", (ctx) => ctx.helpOverlayOpen)

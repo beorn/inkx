@@ -33,7 +33,13 @@ export function createWatcherStatusHandler(setUI: SetUI, toastQueue?: ToastQueue
   let lastSyncCount = 0
 
   const handleWatcherStatus = (status: WatcherStatus) => {
-    setUI({ watcherStatus: status })
+    // Show skeleton loading during sync (large repos may take noticeable time)
+    const isSyncing = status.state === "syncing"
+    setUI({
+      watcherStatus: status,
+      isLoading: isSyncing,
+      ...(isSyncing ? { loadingStartTime: Date.now() } : { loadingStartTime: null }),
+    })
 
     // Show toast when sync completes with changes
     if (status.state === "idle" || status.state === "ready") {

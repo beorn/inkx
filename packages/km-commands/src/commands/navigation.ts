@@ -241,14 +241,14 @@ const openInTerminal = {
   },
 } satisfies CommandDef
 
-// Filter bar (stub)
+// Filter dialog
 const filter = {
   id: "filter",
   name: "Filter",
-  description: "Open filter bar",
+  description: "Open filter dialog to filter visible cards",
   category: "Navigation",
-  shortcuts: ["\\"],
-  execute: () => ({ type: "FILTER" }),
+  shortcuts: ["Ctrl+/"],
+  execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
 // Command palette (stub)
@@ -257,7 +257,7 @@ const commandPalette = {
   name: "Command Palette",
   description: "Open command palette",
   category: "Navigation",
-  shortcuts: ["Ctrl+/"],
+  shortcuts: ["\\"],
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 

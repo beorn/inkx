@@ -27,7 +27,13 @@ const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
-import { CUSTOM_TASK_MARKS, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "@km/core"
+import {
+  CUSTOM_TASK_MARKS,
+  getStatusForMarker,
+  markToMarker,
+  extractTitleTaskMarker,
+  parseTaskMetadataFromText,
+} from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -326,6 +332,35 @@ function convertListItem(
   // Priority from metadata only
   const priority: number | undefined = metadata.priority
 
+  // Strip metadata from content for tasks only.
+  // The serializer (nodes2md appendTaskMetadata) reconstructs task metadata from node fields
+  // and inline properties from data.metadata + data.propsRaw.
+  // Non-task items keep everything in content since their serializer doesn't reconstruct.
+  let displayContent = text
+  if (isTask) {
+    if (Object.keys(parsedProps.propsRaw).length > 0) {
+      // Strip ALL key:: value pairs (cleanText) — they're stored in propsRaw/metadata
+      // and reconstructed by the serializer.
+      displayContent = parsedProps.cleanText
+      // Also strip emoji/legacy task metadata formats that cleanText doesn't handle
+      displayContent = parseTaskMetadataFromText(displayContent).cleanContent
+    } else {
+      // No inline properties, just strip task-specific metadata (due::, start::, p::, recur::)
+      displayContent = parseTaskMetadataFromText(text).cleanContent
+    }
+  }
+
+  // Separate metadata-like props (created, completed) from structured props
+  const metadataFromProps: Record<string, string> = {}
+  const structuralPropsRaw: Record<string, string> = {}
+  for (const [k, v] of Object.entries(parsedProps.propsRaw)) {
+    if (k === "created" || k === "completed") {
+      metadataFromProps[k] = v
+    } else {
+      structuralPropsRaw[k] = v
+    }
+  }
+
   const node: KNode = {
     id: ulid(),
     type: "li",
@@ -337,7 +372,7 @@ function convertListItem(
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
     block_id: blockIdMatch?.[1],
-    content: text,
+    content: displayContent,
     content_hash: undefined,
     task_status: taskStatus,
     due_at: metadata.dueAt,
@@ -350,7 +385,8 @@ function convertListItem(
       ...(projects.length > 0 ? { projects } : {}),
       ...(metadata.recurrence ? { recurrence: metadata.recurrence } : {}),
       ...(Object.keys(parsedProps.props).length > 0 ? { props: parsedProps.props } : {}),
-      ...(Object.keys(parsedProps.propsRaw).length > 0 ? { propsRaw: parsedProps.propsRaw } : {}),
+      ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
+      ...(Object.keys(metadataFromProps).length > 0 ? { metadata: metadataFromProps } : {}),
     },
     created_at: now,
     updated_at: now,
@@ -359,16 +395,18 @@ function convertListItem(
 
   nodes.push(node)
 
-  // Handle nested lists
+  // Handle nested lists and block content (blockquotes, code, extra paragraphs)
+  let childSort = 0
   for (const child of item.children) {
     if (child.type === "list") {
       const list = child as List
-      let nestedSort = 0
-
       for (const nestedItem of list.children) {
-        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, nestedSort++, sourceText)
+        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++, sourceText)
         nodes.push(...nestedNodes)
       }
+    } else if (child.type === "blockquote" || child.type === "code") {
+      const blockNode = convertBlock(child, node, childSort++, sourceText)
+      if (blockNode) nodes.push(blockNode)
     }
   }
 

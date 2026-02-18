@@ -45,6 +45,7 @@ import {
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"
+import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -313,7 +314,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Persist collapsed state to node.data so it survives across sessions
       const colNode = ctx.repo.getNode(collapseNodeId)
       if (colNode) {
-        const existingData = (colNode.data ?? {}) as Record<string, unknown>
+        const existingData = colNode.data
         if (!wasCollapsed) {
           ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
         } else {
@@ -468,8 +469,69 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       handleDuplicateNode(ctx, action.nodeId)
       return ok()
 
+    // === Filter ===
+    case "SHOW_FILTER_DIALOG":
+      ctx.setUI({
+        showFilterDialog: !ctx.ui.showFilterDialog,
+        inlineEditBlock: null,
+        showDetailPane: false,
+      })
+      return ok()
+    case "SET_FILTER":
+      ctx.setUI({
+        filterText: action.text,
+        showFilterDialog: false,
+      })
+      return ok()
+    case "CLEAR_FILTER":
+      ctx.setUI({
+        filterText: "",
+        filterProperties: createEmptyFilterProperties(),
+        showFilterDialog: false,
+      })
+      return ok()
+    case "TOGGLE_FILTER_PROPERTY": {
+      const current = ctx.ui.filterProperties[action.category]
+      const next = new Set(current)
+      if (next.has(action.value)) {
+        next.delete(action.value)
+      } else {
+        next.add(action.value)
+      }
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, [action.category]: next },
+      })
+      return ok()
+    }
+    case "CLEAR_FILTER_CATEGORY":
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, [action.category]: new Set() },
+      })
+      return ok()
+    case "CLEAR_ALL_FILTER_PROPERTIES":
+      ctx.setUI({
+        filterProperties: createEmptyFilterProperties(),
+        filterCursorRow: 0,
+        filterCursorVal: 0,
+      })
+      return ok()
+    case "TOGGLE_HIDE_DONE": {
+      const activeStatuses = new Set(["todo", "wip", "blocked"])
+      const current = ctx.ui.filterProperties.taskStatus
+      // If currently showing only active (hiding done), toggle off → show all
+      const isHidingDone = current.size === activeStatuses.size && [...activeStatuses].every((s) => current.has(s))
+      const nextTaskStatus = isHidingDone ? new Set<string>() : activeStatuses
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, taskStatus: nextTaskStatus },
+        status: {
+          level: "info" as const,
+          message: isHidingDone ? "Showing all tasks" : "Hiding done/dropped tasks",
+        },
+      })
+      return ok()
+    }
+
     // === UI stubs (future features) ===
-    case "FILTER":
     case "COMMAND_PALETTE":
       return unimplemented("ui")
 
@@ -772,23 +834,69 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
 
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
+    // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
     case "DIALOG_NAV_UP":
+      if (ctx.ui.showFilterDialog) {
+        ctx.setUI((prev) => ({
+          filterCursorRow: Math.max(prev.filterCursorRow - 1, 0),
+          filterCursorVal: 0,
+        }))
+        return ok()
+      }
       dialogTargetRef.current?.navUp()
       return ok()
     case "DIALOG_NAV_DOWN":
+      if (ctx.ui.showFilterDialog) {
+        ctx.setUI((prev) => ({
+          filterCursorRow: Math.min(prev.filterCursorRow + 1, FILTER_ROWS.length - 1),
+          filterCursorVal: 0,
+        }))
+        return ok()
+      }
       dialogTargetRef.current?.navDown()
       return ok()
+    case "DIALOG_NAV_LEFT":
+      if (ctx.ui.showFilterDialog) {
+        ctx.setUI((prev) => ({
+          filterCursorVal: Math.max(prev.filterCursorVal - 1, 0),
+        }))
+      }
+      return ok()
+    case "DIALOG_NAV_RIGHT":
+      if (ctx.ui.showFilterDialog) {
+        const row = FILTER_ROWS[ctx.ui.filterCursorRow]
+        if (row) {
+          ctx.setUI((prev) => ({
+            filterCursorVal: Math.min(prev.filterCursorVal + 1, row.values.length - 1),
+          }))
+        }
+      }
+      return ok()
     case "DIALOG_CONFIRM": {
+      if (ctx.ui.showFilterDialog) {
+        // Toggle the currently selected filter value
+        const row = FILTER_ROWS[ctx.ui.filterCursorRow]
+        const val = row?.values[ctx.ui.filterCursorVal]
+        if (row && val) {
+          const current = ctx.ui.filterProperties[row.category]
+          const next = new Set(current)
+          if (next.has(val.value)) {
+            next.delete(val.value)
+          } else {
+            next.add(val.value)
+          }
+          ctx.setUI({
+            filterProperties: { ...ctx.ui.filterProperties, [row.category]: next },
+          })
+        }
+        return ok()
+      }
       if (dialogTargetRef.current) {
         dialogTargetRef.current.confirm()
       } else if (activeEditTargetRef.current) {
-        // Fallback: if dialogTargetRef wasn't registered yet but the edit context is active
-        // (e.g., DatePromptDialog's useEditContext fires before its dialogTargetRef layout effect),
-        // use the edit target's confirm method which triggers the same onConfirm callback.
         log.warn?.("DIALOG_CONFIRM: dialogTargetRef null, falling back to activeEditTargetRef")
         activeEditTargetRef.current.confirm()
       } else {
-        // Both refs null — dialog component hasn't mounted yet. Force close any open dialog.
         log.warn?.("DIALOG_CONFIRM: both refs null, force-closing dialogs")
         if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
         else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
@@ -798,6 +906,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "DIALOG_CANCEL":
+      if (ctx.ui.showFilterDialog) {
+        ctx.setUI({ showFilterDialog: false })
+        return ok()
+      }
       if (dialogTargetRef.current) {
         dialogTargetRef.current.cancel()
       } else if (activeEditTargetRef.current) {
@@ -1029,6 +1141,10 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   }
   if (ui.showSearchDialog) {
     dialogTargetRef.current?.cancel()
+    return ok()
+  }
+  if (ui.showFilterDialog) {
+    ctx.setUI({ showFilterDialog: false })
     return ok()
   }
   if (ui.showProjectPicker) {
@@ -1271,6 +1387,7 @@ function resolveDate(input: string): { date: string; time: string } | null {
 }
 
 /** Handle confirmation of the date prompt dialog. */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: date parsing with multiple formats
 function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   const prompt = ctx.ui.datePrompt
   if (!prompt) return ok()

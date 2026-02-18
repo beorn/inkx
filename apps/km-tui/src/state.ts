@@ -39,7 +39,7 @@ function buildColumnCards(
     cards.push({
       node,
       children: [],
-      childCount: 0,
+      childCount: childCounts?.get(node.id) ?? 0,
       ...(node.link_to ? {} : { isVirtual: true }),
     })
   }
@@ -160,9 +160,15 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   const columnIds = columnNodes.map((n) => n.id)
   const columnChildCounts = repo.getChildCounts(columnIds)
 
-  // First pass: collect all card IDs
+  // First pass: collect all card IDs (including body nodes for child count)
   const columnCardNodes: KNode[][] = []
   const allCardIds: string[] = []
+
+  // Include body node IDs so their child counts are fetched
+  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+  for (const n of meaningfulBody) {
+    allCardIds.push(n.id)
+  }
 
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx]
@@ -193,14 +199,13 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
 
   // Add virtual body column if there's meaningful leading content
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
-  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
       cards: meaningfulBody.map((n) => ({
         node: n,
         children: [],
-        childCount: 0,
+        childCount: childCounts.get(n.id) ?? 0,
         ...(n.link_to ? {} : { isVirtual: true }),
       })),
       isVirtual: true,
@@ -229,7 +234,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
 
     // Track collapsed columns (offset by body column if present)
     const actualColIdx = colIdx + (bodyNodes.length > 0 ? 1 : 0)
-    const isCollapsed = rules.collapse || (colNode.data as Record<string, unknown>)?.collapsed === true
+    const isCollapsed = rules.collapse || colNode.data?.collapsed === true
     if (isCollapsed) {
       collapsedColumns.add(actualColIdx)
       collapsedNodeIds.add(colNode.id)
@@ -283,8 +288,9 @@ function extractWipLimits(rootNode: KNode | null): Map<string, number> {
   const limits = new Map<string, number>()
   if (!rootNode?.data?.columns) return limits
 
-  const columnsConfig = rootNode.data.columns as Record<string, { limit?: number }>
-  for (const [colName, config] of Object.entries(columnsConfig)) {
+  const columnsConfig = rootNode.data.columns
+  if (typeof columnsConfig !== "object" || columnsConfig === null) return limits
+  for (const [colName, config] of Object.entries(columnsConfig as Record<string, { limit?: number }>)) {
     if (typeof config?.limit === "number" && config.limit > 0) {
       // Normalize column name: lowercase, replace spaces with underscores
       const normalizedName = colName.toLowerCase().replace(/\s+/g, "_")

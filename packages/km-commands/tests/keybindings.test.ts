@@ -791,8 +791,10 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding("n", {}, ctx)).toBe("insert_below")
     // Tab → indent_node (structural indent)
     expect(resolveKeybinding("Tab", {}, ctx)).toBe("indent_node")
-    // \ → filter
-    expect(resolveKeybinding("\\", {}, ctx)).toBe("filter")
+    // \ → command_palette
+    expect(resolveKeybinding("\\", {}, ctx)).toBe("command_palette")
+    // Ctrl+/ → filter
+    expect(resolveKeybinding("/", { ctrl: true }, ctx)).toBe("filter")
   })
 
   it("D no longer maps to delete_node", () => {

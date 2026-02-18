@@ -22,6 +22,7 @@ import { HelpOverlay } from "./HelpOverlay.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
+import { FilterDialog, formatFilterIndicator } from "./FilterDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
@@ -30,7 +31,8 @@ import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
-import type { UIState } from "../ui-reducer.ts"
+import type { UIState, FilterProperties } from "../ui-reducer.ts"
+import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
@@ -47,7 +49,7 @@ import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 
 // Extracted modules
-import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
+import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
@@ -60,7 +62,7 @@ import {
   createSyncEventCollector,
 } from "./board-effects.ts"
 import type { ToastQueue } from "@km/core"
-import { createToastQueue } from "@km/core"
+import { createToastQueue, getStatusForMarker } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
@@ -145,8 +147,19 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
 /**
  * TopBar - subscribes to cursor position for path display.
  * Extracted from BoardCore so BoardCore doesn't re-render on j/k.
+ * Also shows compact filter indicator in the right side when filters are active.
  */
-function BoardTopBar({ state, termWidth }: { state: TUIBoardState; termWidth: number }): React.ReactElement {
+function BoardTopBar({
+  state,
+  termWidth,
+  filterProperties,
+  filterText,
+}: {
+  state: TUIBoardState
+  termWidth: number
+  filterProperties: FilterProperties
+  filterText: string
+}): React.ReactElement {
   const repo = useRepo()
   const cursorPos = useCursorPosition()
   const isBoardSelected = cursorPos.selectionLevel === "board"
@@ -161,7 +174,12 @@ function BoardTopBar({ state, termWidth }: { state: TUIBoardState; termWidth: nu
         ? selectedCol.node.id
         : selectedCard.node.id
   // Let inkx's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
-  const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, state.rootId), termWidth - 4)
+  const filterIndicator = formatFilterIndicator(filterProperties, filterText)
+  const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
+  const selectedPathSegments = renderPath(
+    getPathSegments(repo, pathNodeId, state.rootId),
+    termWidth - 4 - reservedWidth,
+  )
 
   const rootNode = state.rootId ? repo.getNode(state.rootId) : null
   const boardColor = rootNode
@@ -169,10 +187,28 @@ function BoardTopBar({ state, termWidth }: { state: TUIBoardState; termWidth: nu
     : undefined
 
   return (
-    <Box id="top-bar" flexShrink={0} width={termWidth} backgroundColor={isBoardSelected ? "yellow" : "white"}>
-      <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-        {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
-      </Text>
+    <Box
+      id="top-bar"
+      flexShrink={0}
+      width={termWidth}
+      flexDirection="column"
+      backgroundColor={isBoardSelected ? "yellow" : "white"}
+    >
+      <Box flexDirection="row" width={termWidth}>
+        <Box flexGrow={1} overflow="hidden">
+          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+            {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
+          </Text>
+        </Box>
+        {filterIndicator && (
+          <Box flexShrink={0}>
+            <Text color="cyan" id="filter-indicator">
+              {" F: "}
+              {filterIndicator}{" "}
+            </Text>
+          </Box>
+        )}
+      </Box>
     </Box>
   )
 }
@@ -274,7 +310,9 @@ export function BoardCore({
   const separators = Math.max(0, effectiveColCount - 1)
   const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
 
-  // Render loading skeleton until terminal is ready
+  // Render loading skeleton until terminal is ready (dimensions detected).
+  // Note: ui.isLoading is intentionally NOT blocking here — per-column skeleton
+  // cards are shown in CardColumn instead, keeping the board always interactive.
   if (!ui.isReady) {
     return <SkeletonBoard width={termWidth} height={termHeight} />
   }
@@ -296,7 +334,12 @@ export function BoardCore({
         {...(ui.bellState && { "data-bell-flash": true })}
       >
         {/* Top bar — subscribes to cursor position independently */}
-        <BoardTopBar state={state} termWidth={termWidth} />
+        <BoardTopBar
+          state={state}
+          termWidth={termWidth}
+          filterProperties={ui.filterProperties}
+          filterText={ui.filterText}
+        />
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
@@ -421,6 +464,23 @@ export function BoardCore({
                 scopeNodeIds={ui.searchScopeNodeIds}
               />
             </DialogBox>
+          )}
+          {/* Filter panel — top-right corner */}
+          {ui.showFilterDialog && (
+            <Box
+              position="absolute"
+              marginLeft={Math.max(0, termWidth - FILTER_PANEL_WIDTH)}
+              marginTop={0}
+              data-dialog="filter"
+            >
+              <FilterDialog
+                filterProperties={ui.filterProperties}
+                filterText={ui.filterText}
+                cursorRow={ui.filterCursorRow}
+                cursorVal={ui.filterCursorVal}
+                width={FILTER_PANEL_WIDTH}
+              />
+            </Box>
           )}
           {/* Delete confirmation dialog */}
           {ui.deleteConfirm && (
@@ -638,6 +698,29 @@ export function Board({ patchedConsole }: BoardProps) {
     return Math.min(columnsLayout.colIndex, Math.max(0, visibleColumns.length - 1))
   }, [visibleColumns, columnsLayout])
 
+  // Apply text + property filters to cards within columns
+  const filteredColumns = useMemo(() => {
+    const hasTextFilter = !!ui.filterText
+    const hasPropertyFilter = hasActivePropertyFilters(ui.filterProperties)
+    if (!hasTextFilter && !hasPropertyFilter) return visibleColumns
+    const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
+    return visibleColumns.map((col) => ({
+      ...col,
+      cards: col.cards.filter((card) => {
+        // Text filter: match card content
+        if (hasTextFilter) {
+          const name = (card.node.content ?? "").toLowerCase()
+          if (!name.includes(lowerFilter)) return false
+        }
+        // Property filters (AND logic between categories)
+        if (hasPropertyFilter) {
+          if (!matchesPropertyFilters(card.node, ui.filterProperties)) return false
+        }
+        return true
+      }),
+    }))
+  }, [visibleColumns, ui.filterText, ui.filterProperties])
+
   // Assemble TUIBoardState for rendering.
   // Uses individual fields as deps for stable memoization.
   const emptyStringSet = useMemo(() => new Set<string>(), [])
@@ -646,7 +729,7 @@ export function Board({ patchedConsole }: BoardProps) {
     () => ({
       rootId,
       rootPath,
-      columns: visibleColumns,
+      columns: filteredColumns,
       selectedNodes: emptyStringSet,
       visualMode: false,
       foldedNodes,
@@ -656,7 +739,7 @@ export function Board({ patchedConsole }: BoardProps) {
       searchMode: false,
       helpMode: false,
     }),
-    [rootId, rootPath, visibleColumns, foldedNodes, emptyStringSet, emptyNumberSet, collapsedNodes],
+    [rootId, rootPath, filteredColumns, foldedNodes, emptyStringSet, emptyNumberSet, collapsedNodes],
   )
 
   // Get selected node — use columnsLayout indices (for store consistency)
@@ -750,10 +833,34 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // NO useInput — keys handled by term:key in board-app.ts
 
+  // Estimate card inner width for line-aware title truncation.
+  // Card inner width = column width - 2 (border). Column width ~= termWidth / numVisibleCols.
+  // Approximate: don't need exact collapsed/expanded split — just a reasonable estimate.
+  const cardInnerWidth = useMemo(() => {
+    const termWidth = ui.dimensions.columns
+    const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
+    const boardWidth = termWidth - detailPaneWidth
+    // Estimate ~35 chars per column (min), minus 2 for card border
+    const approxColWidth = Math.max(
+      20,
+      Math.min(boardWidth, Math.floor(boardWidth / Math.max(1, Math.floor(boardWidth / 35)))),
+    )
+    return approxColWidth - 2
+  }, [ui.dimensions.columns, ui.showDetailPane])
+
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
-    () => deriveTreeConfig(ui),
-    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex, ui.iconStyle, ui.borderMode],
+    () => deriveTreeConfig(ui, cardInnerWidth),
+    [
+      ui.viewMode,
+      ui.maxOutlineDepth,
+      ui.maxContentLines,
+      ui.inOutlineMode,
+      ui.subIndex,
+      ui.iconStyle,
+      ui.borderMode,
+      cardInnerWidth,
+    ],
   )
 
   return (
@@ -829,6 +936,56 @@ export function BoardApp({
       />
     </Box>
   )
+}
+
+// =============================================================================
+// Property Filter Matching
+// =============================================================================
+
+/** Check if a node matches all active property filters (AND logic between categories) */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-category filter matching
+function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean {
+  // Task status filter — only applies to task nodes; non-task nodes (headings, paragraphs) pass through
+  if (filters.taskStatus.size > 0) {
+    const status = node.task_status ?? getStatusForMarker(node.task_marker)
+    if (status && !filters.taskStatus.has(status)) return false
+  }
+
+  // Priority filter
+  if (filters.priority.size > 0) {
+    const priority = node.priority ? String(node.priority) : null
+    if (!priority || !filters.priority.has(priority)) return false
+  }
+
+  // Due date filter
+  if (filters.dueDate.size > 0) {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekEnd = new Date(today)
+    weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()))
+
+    if (filters.dueDate.has("no-date") && !node.due_at) return true
+    if (!node.due_at) return false
+
+    const due = new Date(node.due_at)
+    let matches = false
+    if (filters.dueDate.has("overdue") && due < today) matches = true
+    if (filters.dueDate.has("today") && due >= today && due < new Date(today.getTime() + 86400000)) matches = true
+    if (filters.dueDate.has("this-week") && due >= today && due <= weekEnd) matches = true
+    if (!matches) return false
+  }
+
+  // Assigned to filter
+  if (filters.assignedTo.size > 0) {
+    if (!node.assigned_to || !filters.assignedTo.has(node.assigned_to)) return false
+  }
+
+  // Node type filter
+  if (filters.nodeType.size > 0) {
+    if (!filters.nodeType.has(node.type)) return false
+  }
+
+  return true
 }
 
 // =============================================================================

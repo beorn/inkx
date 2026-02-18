@@ -156,7 +156,7 @@ function itemToNodes(
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
     return
   }
-  // Cross-project dedup: if already rendered in another project, emit compact reference
+  // Cross-project dedup: if already rendered in another project, emit embed reference
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
@@ -167,7 +167,7 @@ function itemToNodes(
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
-        content: `${item.title} → [[^${item.sourceId}]]`,
+        content: `![[^${item.sourceId}]]`,
       }),
     )
     return
@@ -430,7 +430,7 @@ function* generateTagFiles(
     )
 
     for (const item of items) {
-      // Use cross-reference for items already rendered in project files
+      // Use embed reference for items already rendered in project files
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
@@ -441,7 +441,7 @@ function* generateTagFiles(
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,
-            content: `${item.title} → [[^${item.sourceId}]]`,
+            content: `![[^${item.sourceId}]]`,
           }),
         )
       } else {

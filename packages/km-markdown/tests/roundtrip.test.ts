@@ -91,19 +91,21 @@ describe("Round-trip: Tasks", () => {
 
   test("should preserve task with due date", () => {
     const output = roundtrip(`- [ ] Task with due 📅 2025-03-15`)
-    expect(output).toContain("📅 2025-03-15")
+    // Emoji format migrated to key:: value on roundtrip
+    expect(output).toContain("due:: 2025-03-15")
     expect(output).toContain("Task with due")
   })
 
   test("should preserve task with scheduled date", () => {
-    expect(roundtrip(`- [ ] Task scheduled ⏳ 2025-03-10`)).toContain("⏳ 2025-03-10")
+    expect(roundtrip(`- [ ] Task scheduled ⏳ 2025-03-10`)).toContain("start:: 2025-03-10")
   })
 
   test("should preserve task with full metadata", () => {
     const output = roundtrip(`- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 ⏫`)
-    expect(output).toContain("📅 2025-04-01")
-    expect(output).toContain("⏳ 2025-03-25")
-    expect(output).toContain("⏫")
+    // Emoji format migrated to key:: value on roundtrip
+    expect(output).toContain("due:: 2025-04-01")
+    expect(output).toContain("start:: 2025-03-25")
+    expect(output).toContain("p:: 1")
   })
 
   test("should preserve task with tags", () => {
@@ -130,6 +132,25 @@ describe("Round-trip: Lists", () => {
     expect(output).toContain("First item")
     expect(output).toContain("Second item")
     expect(output).toContain("Third item")
+  })
+
+  test("should preserve list item with blockquote body (not run together)", () => {
+    const input = `- [x] Task title ^1203443757802387\n  > Body content here`
+    const nodes = parse(input)
+    // The title node should NOT contain the blockquote text
+    const titleNode = nodes.find((n) => n.type === "li")
+    expect(titleNode?.content).not.toContain("Body content")
+    expect(titleNode?.content).toContain("Task title")
+    // There should be a separate quote node as a child
+    const quoteNode = nodes.find((n) => n.type === "quote")
+    expect(quoteNode).toBeDefined()
+    expect(quoteNode?.content).toContain("Body content")
+    // Roundtrip should keep them separate
+    const output = roundtrip(input)
+    expect(output).toContain("Task title")
+    expect(output).toContain("> Body content")
+    // They should NOT be run together
+    expect(output).not.toMatch(/\^1203443757802387Body/)
   })
 })
 
@@ -377,7 +398,7 @@ Final paragraph.`)
     expect(output).toContain("This is a paragraph")
     expect(output).toContain("## Tasks")
     expect(output).toContain("Task one")
-    expect(output).toContain("📅 2025-03-15")
+    expect(output).toContain("due:: 2025-03-15")
     expect(output).toContain("Task two done")
     expect(output).toContain("## Code")
     expect(output).toContain("```javascript")
@@ -745,7 +766,7 @@ describe("Round-trip: All Task Status Marks", () => {
 })
 
 describe("Round-trip: Task Metadata Formats", () => {
-  test("should preserve Obsidian Tasks emoji format", () => {
+  test("should migrate Obsidian Tasks emoji format to key:: value on roundtrip", () => {
     const nodes = parse(`- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`)
     const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
@@ -753,11 +774,14 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.due_at).toBe("2025-12-25")
     expect(task!.start_at).toBe("2025-12-20")
     expect(task!.priority).toBe(1)
+    // Content is clean — metadata stripped to node fields
+    expect(task!.content).toBe("Task with all metadata")
 
+    // Roundtrip migrates emoji to key:: value format
     const output = nodesToMarkdown(nodes)
-    expect(output).toContain("📅 2025-12-25")
-    expect(output).toContain("⏳ 2025-12-20")
-    expect(output).toContain("⏫")
+    expect(output).toContain("due:: 2025-12-25")
+    expect(output).toContain("start:: 2025-12-20")
+    expect(output).toContain("p:: 1")
   })
 
   test("should preserve recurrence metadata", () => {
@@ -766,7 +790,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.data?.recurrence).toBe("every week")
   })
 
-  test("should preserve inline field format (due:, start:, p:)", () => {
+  test("should extract inline field format (due:, start:, p:) and strip from content", () => {
     const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
       (n) => n.type === "li" && n.task_marker,
     )
@@ -775,9 +799,10 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.due_at).toBe("2025-11-15")
     expect(task!.start_at).toBe("2025-11-10")
     expect(task!.priority).toBe(2)
+    expect(task!.content).toBe("Task with inline fields")
   })
 
-  test("should preserve all priority levels", () => {
+  test("should extract all priority levels and migrate to key:: value", () => {
     const nodes = parse(`- [ ] High priority ⏫
 - [ ] Medium priority 🔼
 - [ ] Low priority 🔽`)
@@ -788,9 +813,9 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(tasks[2]?.priority).toBe(3)
 
     const output = nodesToMarkdown(nodes)
-    expect(output).toContain("⏫")
-    expect(output).toContain("🔼")
-    expect(output).toContain("🔽")
+    expect(output).toContain("p:: 1")
+    expect(output).toContain("p:: 2")
+    expect(output).toContain("p:: 3")
   })
 })
 

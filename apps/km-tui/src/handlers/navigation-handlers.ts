@@ -30,6 +30,13 @@ const log = createLogger("km:tui:nav")
  */
 export type TreeDirection = "next" | "prev" | "first" | "last" | "child" | "parent"
 
+const TREE_DIRECTIONS = new Set<string>(["next", "prev", "first", "last", "child", "parent"])
+
+/** Type guard for TreeDirection string values */
+export function isTreeDirection(dir: string): dir is TreeDirection {
+  return TREE_DIRECTIONS.has(dir)
+}
+
 /**
  * Navigation state fields needed for tree navigation.
  */

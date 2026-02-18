@@ -174,6 +174,16 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
   },
 
+  // Toggle hide done/dropped tasks
+  {
+    id: "toggle_hide_done",
+    name: "Toggle Hide Done",
+    description: "Toggle hiding done and dropped tasks",
+    category: "View",
+    shortcuts: ["D"],
+    execute: (): CommandAction => ({ type: "TOGGLE_HIDE_DONE" }),
+  },
+
   // Toast
   {
     id: "toast.dismiss",

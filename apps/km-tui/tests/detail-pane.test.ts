@@ -226,12 +226,12 @@ describe("DetailPane", () => {
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 40, 24)
     expect(app.text).toContain("Review Q1 budget")
-    expect(app.text).toContain("Status:")
+    expect(app.text).toContain("Status")
     expect(app.text).toContain("todo")
-    expect(app.text).toContain("Due:")
+    expect(app.text).toContain("Due")
     expect(app.text).toContain("Jan")
-    expect(app.text).toContain("Assigned:")
-    expect(app.text).toContain("@bjorn")
+    expect(app.text).toContain("Assigned")
+    expect(app.text).toContain("bjorn")
   })
 
   test("shows subtasks as outline items", () => {
@@ -277,7 +277,7 @@ describe("DetailPane", () => {
     const app = renderDetailPane(repo, task, 50, 24)
     expect(app.text).toContain("#budget")
     expect(app.text).toContain("@john")
-    expect(app.text).toContain("+work")
+    expect(app.text).toContain("work")
     expect(app.text).toContain("Meeting Notes")
   })
 
@@ -302,9 +302,8 @@ describe("DetailPane", () => {
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
-    expect(app.text).toContain("Project:")
-    expect(app.text).toContain("Work")
-    expect(app.text).toContain("Finance")
+    expect(app.text).toContain("Location")
+    expect(app.text).toContain("Work/Finance")
   })
 
   test("shows keybindings hint", () => {

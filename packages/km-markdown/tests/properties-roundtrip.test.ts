@@ -227,14 +227,15 @@ describe("Round-trip: Mixed Content with Properties", () => {
     expect(output).toContain("done:: 2026-01-20")
   })
 
-  test("preserves properties alongside task metadata emojis", () => {
+  test("preserves properties alongside task metadata (migrated to key:: value)", () => {
     const original = "# Test\n\n- [ ] Task status:: active 📅 2026-02-01 ⏫\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
 
     expect(output).toContain("status:: active")
-    expect(output).toContain("📅 2026-02-01")
-    expect(output).toContain("⏫")
+    // Emoji format migrated to key:: value on roundtrip
+    expect(output).toContain("due:: 2026-02-01")
+    expect(output).toContain("p:: 1")
   })
 
   test("preserves properties alongside tags and mentions", () => {

@@ -406,7 +406,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const targetNode = c.node.link_to ? ctx.repo.getNode(c.node.link_to) : c.node
     const currentStatus = targetNode?.task_status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
-    const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
+    const nextIndex = (currentIndex + 1) % statusCycle.length
+    const nextStatus = statusCycle[nextIndex] ?? "todo"
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
     const dueParts = decomposeDatetime(targetNode?.due_at)

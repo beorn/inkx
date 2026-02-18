@@ -89,8 +89,7 @@ function displayFields(node: KNode, rootPath: string): void {
   displayRefs(node)
 
   // Show other data if present (excluding already-displayed ref fields)
-  const data = node.data as Record<string, unknown>
-  const otherData = { ...data }
+  const otherData = { ...node.data }
   delete otherData.mentions
   delete otherData.tags
   delete otherData.projects
@@ -272,14 +271,17 @@ const DISPLAY_FIELDS: DisplayField[] = [
  * Display refs (mentions, tags, projects) from node data
  */
 function displayRefs(node: KNode): void {
-  const data = node.data as Record<string, unknown>
-  if (data.mentions && Array.isArray(data.mentions) && data.mentions.length > 0) {
-    console.log(term.bold("Refs:"), (data.mentions as string[]).map((m) => term.magenta(`@${m}`)).join(" "))
+  const { data } = node
+  const mentions = Array.isArray(data.mentions) ? (data.mentions as string[]) : []
+  const tags = Array.isArray(data.tags) ? (data.tags as string[]) : []
+  const projects = Array.isArray(data.projects) ? (data.projects as string[]) : []
+  if (mentions.length > 0) {
+    console.log(term.bold("Refs:"), mentions.map((m) => term.magenta(`@${m}`)).join(" "))
   }
-  if (data.tags && Array.isArray(data.tags) && data.tags.length > 0) {
-    console.log(term.bold("Tags:"), (data.tags as string[]).map((t) => term.cyan(`#${t}`)).join(" "))
+  if (tags.length > 0) {
+    console.log(term.bold("Tags:"), tags.map((t) => term.cyan(`#${t}`)).join(" "))
   }
-  if (data.projects && Array.isArray(data.projects) && data.projects.length > 0) {
-    console.log(term.bold("Projects:"), (data.projects as string[]).map((p) => term.yellow(`+${p}`)).join(" "))
+  if (projects.length > 0) {
+    console.log(term.bold("Projects:"), projects.map((p) => term.yellow(`+${p}`)).join(" "))
   }
 }

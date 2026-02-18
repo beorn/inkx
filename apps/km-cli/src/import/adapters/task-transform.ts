@@ -14,7 +14,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
 
   // Prefer html_notes (rich text) over plain notes
   if (task.html_notes?.trim()) {
-    const md = turndown.turndown(task.html_notes).trim()
+    const md = turndown.turndown(preprocessAsanaHtml(task.html_notes)).trim()
     if (md) item.body = md
   } else if (task.notes?.trim()) {
     item.body = task.notes.trim()
@@ -102,4 +102,19 @@ export async function fetchSubtasks(client: AsanaClient, taskGid: string, opts?:
   const subtasks = await client.get<AsanaApiTask[]>(`/tasks/${taskGid}/subtasks`, { opt_fields: TASK_FIELDS })
 
   return Promise.all(subtasks.map((sub) => enrichItem(client, sub, opts)))
+}
+
+/**
+ * Preprocess Asana html_notes before turndown conversion.
+ * Asana uses bare \n for line breaks in html_notes, but HTML spec treats \n as
+ * insignificant whitespace. Turndown correctly collapses them, losing line breaks.
+ * Fix: convert \n to <br> while preserving structural whitespace between tags.
+ */
+function preprocessAsanaHtml(html: string): string {
+  let result = html.replace(/\n/g, "<br>\n")
+  // Remove <br> between tags (structural whitespace, e.g. </li>\n<li>)
+  result = result.replace(/><br>\n</g, ">\n<")
+  // Collapse double <br> from existing <br>\n -> <br><br>\n
+  result = result.replace(/<br><br>/g, "<br>")
+  return result
 }
