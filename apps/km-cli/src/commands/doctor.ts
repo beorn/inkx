@@ -121,33 +121,7 @@ const doctorRebuildCommand = new Command("rebuild")
       if (existsSync(p)) unlinkSync(p)
     }
 
-    try {
-      // Don't use `using` — we need the repo alive for deferred file parsing
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let repo: any
-      await steps({
-        rebuildState: function* () {
-          repo = yield* createRepo(repoPath, { loadFiles: true })
-          return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
-        },
-      }).run({ clear: true })
-
-      // Parse deferred files (reconciliation stubs that need markdown parsing)
-      if (repo.deferredFiles.length > 0) {
-        console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
-        await parseDeferredAsync(repo.database, repo.deferredFiles)
-      }
-
-      const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
-      repo.close()
-
-      console.log(term.green("✓"), "Rebuild complete")
-      console.log(term.dim(`  Nodes: ${nodeCount}`))
-      console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
-    } catch (error) {
-      console.error(term.red("Rebuild failed:"), error)
-      process.exit(1)
-    }
+    await loadAndReport(repoPath, "rebuildState", "Rebuild complete")
   })
 
 const doctorResetCommand = new Command("reset")
@@ -185,33 +159,7 @@ const doctorResetCommand = new Command("reset")
       console.log(term.dim(`  Deleted ${toDelete.length} file(s)`))
     }
 
-    try {
-      // Don't use `using` — we need the repo alive for deferred file parsing
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let repo: any
-      await steps({
-        syncFromWorktree: function* () {
-          repo = yield* createRepo(repoPath, { loadFiles: true })
-          return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
-        },
-      }).run({ clear: true })
-
-      // Parse deferred files (reconciliation stubs that need markdown parsing)
-      if (repo.deferredFiles.length > 0) {
-        console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
-        await parseDeferredAsync(repo.database, repo.deferredFiles)
-      }
-
-      const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
-      repo.close()
-
-      console.log(term.green("✓"), "Reset complete")
-      console.log(term.dim(`  Nodes: ${nodeCount}`))
-      console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
-    } catch (error) {
-      console.error(term.red("Reset failed:"), error)
-      process.exit(1)
-    }
+    await loadAndReport(repoPath, "syncFromWorktree", "Reset complete")
   })
 
 // ============================================
@@ -273,6 +221,36 @@ export const doctorCommand = new Command("doctor")
 // ============================================
 // Helpers
 // ============================================
+
+async function loadAndReport(repoPath: string, stepLabel: string, successMessage: string): Promise<void> {
+  try {
+    // Don't use `using` — we need the repo alive for deferred file parsing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let repo: any
+    await steps({
+      [stepLabel]: function* () {
+        repo = yield* createRepo(repoPath, { loadFiles: true })
+        return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
+      },
+    }).run({ clear: true })
+
+    // Parse deferred files (reconciliation stubs that need markdown parsing)
+    if (repo.deferredFiles.length > 0) {
+      console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
+      await parseDeferredAsync(repo.database, repo.deferredFiles)
+    }
+
+    const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
+    repo.close()
+
+    console.log(term.green("✓"), successMessage)
+    console.log(term.dim(`  Nodes: ${nodeCount}`))
+    console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
+  } catch (error) {
+    console.error(term.red(`${successMessage.split(" ")[0]} failed:`), error)
+    process.exit(1)
+  }
+}
 
 function resolveKmDir(path?: string): { kmDir: string; repoPath: string } {
   const searchPath = path ? resolve(path) : process.cwd()
