@@ -376,7 +376,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
     expect(md).toContain("imported_from: asana")
-    expect(md).toContain('asana_project_id: "p1"')
+    expect(md).toContain("asana_project_id: p1")
   })
 
   test("renders sections as H2", () => {
@@ -389,7 +389,13 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("renders tasks with inline metadata", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
-    expect(md).toContain("- [ ] Design login page @alice due:: 2026-03-01 start:: 2026-02-15 created:: 2026-02-10 p:: 1 #design")
+    // Content: title @assignee #tags +projects, then stringifyMetadata appends created/completed,
+    // then stringifyTaskMetadata appends due/start/p from KNode fields
+    expect(md).toContain("- [ ] Design login page @alice #design")
+    expect(md).toContain("created:: 2026-02-10")
+    expect(md).toContain("due:: 2026-03-01")
+    expect(md).toContain("start:: 2026-02-15")
+    expect(md).toContain("p:: 1")
   })
 
   test("renders completedAt on done tasks", () => {
@@ -525,8 +531,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
-    expect(md).toContain("- [◆] Launch day")
-    expect(md).toContain("- [x] Past milestone")
+    expect(md).toContain("- [ ] ◆ Launch day")
+    expect(md).toContain("- [x] ◆ Past milestone")
   })
 
   test("renders all-metadata task with every field in output", () => {
@@ -766,7 +772,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("## ------------------")
     expect(edge).toContain("## Milestones")
     // Milestone renders with diamond marker
-    expect(edge).toContain("- [◆] Beta release")
+    expect(edge).toContain("- [ ] ◆ Beta release")
     // HTML notes converted to markdown with bullets in blockquote
     expect(edge).toMatch(/>\s+\*\s+First option/)
     // Multi-line comment has continuation lines
@@ -1013,15 +1019,15 @@ describe("roundtrip: convert → parse", () => {
     const { frontmatter, body } = extractFrontmatter(md)
     expect(frontmatter).not.toBeNull()
 
-    // Verify all frontmatter fields are preserved
+    // Verify all frontmatter fields are preserved (YAML serializer doesn't quote simple values)
     expect(frontmatter).toContain("imported_from: asana")
-    expect(frontmatter).toContain('imported_at: "2026-01-15T10:30:00Z"')
-    expect(frontmatter).toContain('asana_project_id: "proj-fm"')
-    expect(frontmatter).toContain('workspace: "My Workspace"')
-    expect(frontmatter).toContain('owner: "Bjorn"')
-    expect(frontmatter).toContain('team: "Engineering"')
-    expect(frontmatter).toContain('created_at: "2025-12-01T00:00:00Z"')
-    expect(frontmatter).toContain('modified_at: "2026-01-10T12:00:00Z"')
+    expect(frontmatter).toContain("imported_at: 2026-01-15T10:30:00Z")
+    expect(frontmatter).toContain("asana_project_id: proj-fm")
+    expect(frontmatter).toContain("workspace: My Workspace")
+    expect(frontmatter).toContain("owner: Bjorn")
+    expect(frontmatter).toContain("team: Engineering")
+    expect(frontmatter).toContain("created_at: 2025-12-01T00:00:00Z")
+    expect(frontmatter).toContain("modified_at: 2026-01-10T12:00:00Z")
 
     // Body should still parse as valid markdown with heading + list
     const tree = parseMarkdown(body)

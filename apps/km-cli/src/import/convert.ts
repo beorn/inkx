@@ -2,9 +2,12 @@
  * Import Pipeline — Stage 2: Convert
  *
  * Converts ImportData → FileMap (slug → markdown content).
- * One markdown file per project, sections as H2 headings.
+ * Builds KNode trees (typed intermediate) and serializes via nodesToMarkdown().
  */
 
+import type { KNode, TaskMarker, TaskStatus } from "@km/core"
+import { getMarkerForStatus, stringifyMetadata, type MetadataEntries } from "@km/core"
+import { nodesToMarkdown } from "@km/markdown"
 import type { ImportData, ImportItem, ImportProject, ImportSection, FileMap } from "./types.ts"
 
 /** Slugify a title for use as filename */
@@ -18,172 +21,241 @@ export function slugify(title: string): string {
 /**
  * Convert Asana task/project URLs to km block references.
  * Since each task has ^GID as its block ID, links become [[^GID]].
- * Formats: https://app.asana.com/0/PROJECT_GID/TASK_GID
- *          https://app.asana.com/1/WORKSPACE_GID/task/TASK_GID
- *          https://app.asana.com/1/WORKSPACE_GID/project/PROJECT_GID/task/TASK_GID
  */
 function convertAsanaLinks(text: string): string {
   return text
-    // /0/project/task format
     .replace(/https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/g, "[[^$1]]")
-    // /1/workspace/task/id format
     .replace(/https?:\/\/app\.asana\.com\/1\/\d+\/task\/(\d+)(?:\?[^\s)]*)?/g, "[[^$1]]")
-    // /1/workspace/project/pid/task/tid format
     .replace(/https?:\/\/app\.asana\.com\/1\/\d+\/project\/\d+\/task\/(\d+)(?:\?[^\s)]*)?/g, "[[^$1]]")
 }
 
-/** Format a compact reference to a task rendered elsewhere (GIDs are globally unique) */
-function formatReference(item: ImportItem, indent: number): string {
-  const prefix = "  ".repeat(indent)
-  const marker = item.status === "done" ? "[x]" : "[ ]"
-  return `${prefix}- ${marker} ${item.title} → [[^${item.sourceId}]]`
+// =============================================================================
+// ImportItem → KNode conversion
+// =============================================================================
+
+/** Map import status to km TaskStatus */
+function toTaskStatus(status?: string): TaskStatus {
+  switch (status) {
+    case "done": return "done"
+    case "wip": return "doing"
+    case "blocked": return "blocked"
+    case "dropped": return "dropped"
+    default: return "todo"
+  }
 }
 
-/** Format a single task item as a markdown line */
-function formatItem(item: ImportItem, indent: number, rendered?: Set<string>, primaryMap?: Map<string, string>): string {
-  // Multi-project dedup: if this task was already rendered in another project, emit reference
-  if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
-    return formatReference(item, indent)
-  }
-  if (rendered && item.sourceId) rendered.add(item.sourceId)
-  const prefix = "  ".repeat(indent)
-  const marker = item.milestone
-    ? (item.status === "done" ? "[x]" : "[◆]")
-    : (item.status === "done" ? "[x]" : "[ ]")
-  const parts: string[] = [`${prefix}- ${marker} ${item.title}`]
+let _nextIdx = 0
 
-  // Inline metadata (canonical key:: value format)
+/** Create a KNode with required fields */
+function mkNode(fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
+  return {
+    parent_id: null,
+    parent_idx: _nextIdx++,
+    link_to: null,
+    data: {},
+    created_at: Date.now(),
+    updated_at: Date.now(),
+    version: "",
+    ...fields,
+  }
+}
+
+/**
+ * Build the content string for a task node.
+ * Title + @assignee + #tags + +projects are inline text.
+ * created:: and completed:: use km's stringifyMetadata for canonical key:: value format.
+ * Task metadata (due::, start::, p::) is NOT included — stringifyTaskMetadata
+ * appends those from KNode fields during serialization.
+ */
+function buildTaskContent(item: ImportItem): string {
+  const title = item.milestone ? `◆ ${item.title}` : item.title
+  const parts: string[] = [title]
   if (item.assignee) parts.push(`@${item.assignee}`)
-  if (item.dueAt) parts.push(`due:: ${item.dueAt.slice(0, 10)}`)
-  if (item.startAt) parts.push(`start:: ${item.startAt.slice(0, 10)}`)
-  if (item.createdAt) parts.push(`created:: ${item.createdAt.slice(0, 10)}`)
-  if (item.completedAt) parts.push(`completed:: ${item.completedAt.slice(0, 10)}`)
-  if (item.priority) parts.push(`p:: ${item.priority}`)
   if (item.tags?.length) parts.push(...item.tags.map((t) => `#${t}`))
-  // Multi-project membership as +Project tags
   if (item.projects && item.projects.length > 1) {
     parts.push(...item.projects.map((p) => `+${slugify(p)}`))
   }
-  // Block ID = Asana GID (makes task addressable via ^gid syntax)
-  if (item.sourceId) parts.push(`^${item.sourceId}`)
 
-  const lines: string[] = [parts.join(" ")]
+  // Non-task metadata via km's stringifyMetadata (canonical key:: value format)
+  const entries: MetadataEntries = {}
+  if (item.createdAt) entries.created = item.createdAt.slice(0, 10)
+  if (item.completedAt) entries.completed = item.completedAt.slice(0, 10)
+  return stringifyMetadata(parts.join(" "), entries)
+}
 
-  // Body, attachments, and comments in a blockquote (keeps them separate from subtask list)
-  const bqLines: string[] = []
+/** Build blockquote content for body, attachments, and comments */
+function buildBlockquoteContent(item: ImportItem): string | null {
+  const lines: string[] = []
 
   if (item.body) {
-    const bodyLines = convertAsanaLinks(item.body.trim()).split("\n")
-    for (const line of bodyLines) {
-      bqLines.push(line)
+    for (const line of convertAsanaLinks(item.body.trim()).split("\n")) {
+      lines.push(line)
     }
   }
 
-  // Attachments (prefer local path if downloaded)
   if (item.attachments?.length) {
-    if (bqLines.length) bqLines.push("")
+    if (lines.length) lines.push("")
     for (const att of item.attachments) {
       const href = att.localPath ?? att.url
-      if (att.type === "image") {
-        bqLines.push(`![${att.name}](${href})`)
-      } else {
-        bqLines.push(`[${att.name}](${href})`)
-      }
+      lines.push(att.type === "image" ? `![${att.name}](${href})` : `[${att.name}](${href})`)
     }
   }
 
-  // Comments
   if (item.comments?.length) {
-    if (bqLines.length) bqLines.push("")
-    bqLines.push("**Comments:**")
+    if (lines.length) lines.push("")
+    lines.push("**Comments:**")
     for (const c of item.comments) {
       const date = c.createdAt.slice(0, 10)
       const author = c.author ? `@${c.author}` : ""
-      const firstLine = c.text.split("\n")[0]!
-      bqLines.push(`- ${date} ${author}: ${firstLine}`)
-      // Multi-line comments: indent continuation lines
-      const rest = c.text.split("\n").slice(1)
+      const [firstLine, ...rest] = c.text.split("\n")
+      lines.push(`- ${date} ${author}: ${firstLine}`)
       for (const line of rest) {
-        bqLines.push(`  ${line}`)
+        lines.push(`  ${line}`)
       }
     }
   }
 
-  // Emit blockquote
-  if (bqLines.length) {
-    for (const line of bqLines) {
-      lines.push(line ? `${prefix}  > ${line}` : `${prefix}  >`)
-    }
+  return lines.length > 0 ? lines.join("\n") : null
+}
+
+/** Convert an ImportItem to KNode(s) and append to the nodes array */
+function itemToNodes(
+  item: ImportItem,
+  parentId: string,
+  nodes: KNode[],
+  rendered?: Set<string>,
+  primaryMap?: Map<string, string>,
+): void {
+  // Multi-project dedup: if already rendered, emit compact reference
+  if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
+    const status = toTaskStatus(item.status)
+    const marker = status === "done" ? "[x]" : "[ ]"
+    nodes.push(mkNode({
+      id: `ref-${item.sourceId}`,
+      type: "li",
+      parent_id: parentId,
+      task_marker: marker as TaskMarker,
+      task_status: status,
+      content: `${item.title} → [[^${item.sourceId}]]`,
+    }))
+    return
+  }
+  if (rendered && item.sourceId) rendered.add(item.sourceId)
+
+  const status = toTaskStatus(item.status)
+
+  const taskNode = mkNode({
+    id: item.sourceId,
+    type: "li",
+    parent_id: parentId,
+    task_marker: getMarkerForStatus(status),
+    task_status: status,
+    content: buildTaskContent(item),
+    block_id: item.sourceId,
+    assigned_to: item.assignee,
+    due_at: item.dueAt?.slice(0, 10),
+    start_at: item.startAt?.slice(0, 10),
+    priority: item.priority,
+    created_at: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+    updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now(),
+  })
+  nodes.push(taskNode)
+
+  // Body/attachments/comments as a blockquote child node
+  const bqContent = buildBlockquoteContent(item)
+  if (bqContent) {
+    nodes.push(mkNode({
+      id: `bq-${item.sourceId}`,
+      type: "quote",
+      parent_id: item.sourceId,
+      content: bqContent,
+    }))
   }
 
-  // Recursive children
+  // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      lines.push(formatItem(child, indent + 1, rendered, primaryMap))
+      itemToNodes(child, item.sourceId, nodes, rendered, primaryMap)
     }
   }
-
-  return lines.join("\n")
 }
 
-/** Format a section as H2 + items */
-function formatSection(section: ImportSection, rendered?: Set<string>, primaryMap?: Map<string, string>): string {
-  const lines: string[] = [`## ${section.title}`, ""]
+/** Convert a section to KNode(s) */
+function sectionToNodes(
+  section: ImportSection,
+  parentId: string,
+  nodes: KNode[],
+  rendered?: Set<string>,
+  primaryMap?: Map<string, string>,
+): void {
+  const sectionId = `section-${section.sourceId}`
+  nodes.push(mkNode({
+    id: sectionId,
+    type: "oi",
+    parent_id: parentId,
+    fstype: "mdsection",
+    content: section.title,
+    title: section.title,
+    data: { depth: 2 },
+  }))
+
   for (const item of section.items) {
-    lines.push(formatItem(item, 0, rendered, primaryMap))
+    itemToNodes(item, sectionId, nodes, rendered, primaryMap)
   }
-  return lines.join("\n")
 }
 
-/** Generate frontmatter for a project file */
-function formatFrontmatter(project: ImportProject, source: string, fetchedAt: string): string {
-  const lines = [
-    "---",
-    `imported_from: ${source}`,
-    `imported_at: "${fetchedAt}"`,
-    `${source}_project_id: "${project.sourceId}"`,
-  ]
-  if (project.workspace) lines.push(`workspace: "${project.workspace}"`)
-  if (project.owner) lines.push(`owner: "${project.owner}"`)
-  if (project.team) lines.push(`team: "${project.team}"`)
-  if (project.createdAt) lines.push(`created_at: "${project.createdAt}"`)
-  if (project.modifiedAt) lines.push(`modified_at: "${project.modifiedAt}"`)
-  lines.push("---")
-  return lines.join("\n")
-}
-
-/** Convert a single project to markdown */
-function convertProject(
+/** Convert a project to a KNode tree (file + sections + items) */
+function projectToNodes(
   project: ImportProject,
   source: string,
   fetchedAt: string,
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
-): string {
-  const parts: string[] = []
+): KNode[] {
+  _nextIdx = 0
+  const nodes: KNode[] = []
 
-  parts.push(formatFrontmatter(project, source, fetchedAt))
-  parts.push("")
-  parts.push(`# ${project.title}`)
+  // File root node — data becomes frontmatter, content becomes H1
+  const fileId = `file-${project.sourceId}`
+  const frontmatter: Record<string, unknown> = {
+    imported_from: source,
+    imported_at: fetchedAt,
+    [`${source}_project_id`]: project.sourceId,
+  }
+  if (project.workspace) frontmatter.workspace = project.workspace
+  if (project.owner) frontmatter.owner = project.owner
+  if (project.team) frontmatter.team = project.team
+  if (project.createdAt) frontmatter.created_at = project.createdAt
+  if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt
+
+  nodes.push(mkNode({
+    id: fileId,
+    type: "oi",
+    fstype: "mdfile",
+    content: project.title,
+    data: frontmatter,
+  }))
 
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      parts.push("")
-      parts.push(formatSection(section, rendered, primaryMap))
+      sectionToNodes(section, fileId, nodes, rendered, primaryMap)
     }
   }
 
-  // Loose items (not in any section)
+  // Loose items
   if (project.items?.length) {
-    parts.push("")
     for (const item of project.items) {
-      parts.push(formatItem(item, 0, rendered, primaryMap))
+      itemToNodes(item, fileId, nodes, rendered, primaryMap)
     }
   }
 
-  return parts.join("\n") + "\n"
+  return nodes
 }
+
+// =============================================================================
+// Public API
+// =============================================================================
 
 /** Collect all task sourceIds from a project, recursively including children */
 function collectTaskIds(items: ImportItem[], out: string[]): void {
@@ -192,6 +264,9 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
     if (item.children?.length) collectTaskIds(item.children, out)
   }
 }
+
+/** Export for testing: convert a single ImportItem to KNode */
+export { itemToNodes, buildTaskContent, buildBlockquoteContent }
 
 /** Convert ImportData to a map of relative file paths → markdown content */
 export function convert(data: ImportData): FileMap {
@@ -216,11 +291,12 @@ export function convert(data: ImportData): FileMap {
 
   // Convert projects with dedup: first occurrence gets full content, rest get reference
   const rendered = new Set<string>()
-  for (let i = 0; i < data.projects.length; i++) {
-    const project = data.projects[i]!
-    const filename = projectFilenames[i]!
-    const content = convertProject(project, data.source, data.fetchedAt, rendered, primaryMap)
-    files.set(filename, content)
+  for (const [i, project] of data.projects.entries()) {
+    const filename = projectFilenames[i]
+    if (!filename) continue
+    const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap)
+    const markdown = nodesToMarkdown(nodes)
+    files.set(filename, markdown)
   }
 
   return files

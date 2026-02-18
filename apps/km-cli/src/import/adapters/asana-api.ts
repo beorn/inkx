@@ -61,13 +61,32 @@ async function batchEnrich(
     const batch = tasks.slice(i, i + CONCURRENCY)
     const results = await Promise.all(batch.map((t) => enrichItem(client, t, enrichOpts)))
     for (let j = 0; j < batch.length; j++) {
-      enrichedMap.set(batch[j]!.gid, results[j]!)
+      const task = batch[j]
+      const result = results[j]
+      if (task && result) enrichedMap.set(task.gid, result)
       bar.increment()
     }
   }
   if (tasks.length > 0) bar.stop(true)
 
   return enrichedMap
+}
+
+/** Derive section list from task memberships (preserves first-seen order) */
+function deriveSections(tasks: AsanaApiTask[], projectGid?: string): Array<{ gid: string; name: string }> {
+  const seen = new Set<string>()
+  const result: Array<{ gid: string; name: string }> = []
+  for (const task of tasks) {
+    const membership = projectGid
+      ? task.memberships?.find((m) => m.project?.gid === projectGid)
+      : task.memberships?.find((m) => m.section?.gid)
+    const section = membership?.section
+    if (section?.gid && !seen.has(section.gid)) {
+      seen.add(section.gid)
+      result.push({ gid: section.gid, name: section.name ?? "Untitled" })
+    }
+  }
+  return result
 }
 
 /** Group tasks by section, returning assembled sections and loose items */
@@ -86,8 +105,12 @@ function groupBySections(
       : task.memberships?.find((m) => m.section?.gid)
     const sectionGid = membership?.section?.gid ?? task.memberships?.[0]?.section?.gid
     if (sectionGid) {
-      if (!sectionMap.has(sectionGid)) sectionMap.set(sectionGid, [])
-      sectionMap.get(sectionGid)!.push(task)
+      const existing = sectionMap.get(sectionGid)
+      if (existing) {
+        existing.push(task)
+      } else {
+        sectionMap.set(sectionGid, [task])
+      }
     } else {
       looseTasks.push(task)
     }
@@ -96,13 +119,13 @@ function groupBySections(
   const importSections: ImportSection[] = []
   for (const section of sections) {
     const sectionTasks = sectionMap.get(section.gid) ?? []
-    const items = sectionTasks.map((t) => enrichedMap.get(t.gid)!).filter(Boolean)
+    const items = sectionTasks.map((t) => enrichedMap.get(t.gid)).filter((item): item is ImportItem => !!item)
     if (items.length > 0) {
       importSections.push({ sourceId: section.gid, title: section.name, items })
     }
   }
 
-  const looseItems = looseTasks.map((t) => enrichedMap.get(t.gid)!).filter(Boolean)
+  const looseItems = looseTasks.map((t) => enrichedMap.get(t.gid)).filter((item): item is ImportItem => !!item)
   return { importSections, looseItems }
 }
 
@@ -114,7 +137,9 @@ async function fetchAndSaveTaskList(
   downloadDir: string,
 ): Promise<{ project: ImportProject; tasks: AsanaApiTask[] }> {
   const tasks = await spec.fetchTasks()
-  const sections = spec.fetchSections ? await spec.fetchSections() : (spec.sections ?? [])
+  const sections = spec.fetchSections
+    ? await spec.fetchSections()
+    : spec.sections ?? deriveSections(tasks, spec.projectGid)
 
   const enrichedMap = await batchEnrich(
     client,
@@ -214,11 +239,13 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
     { opt_fields: "name,email,workspaces.name" },
   )
 
+  const firstWorkspace = me.workspaces[0]
+  if (!firstWorkspace) throw new Error("No workspaces found for user")
   let workspace: { gid: string; name: string }
   if (options.workspace) {
-    workspace = me.workspaces.find((w) => w.name === options.workspace || w.gid === options.workspace) ?? me.workspaces[0]!
+    workspace = me.workspaces.find((w) => w.name === options.workspace || w.gid === options.workspace) ?? firstWorkspace
   } else {
-    workspace = me.workspaces[0]!
+    workspace = firstWorkspace
   }
 
   // Create download dir and check for already-fetched projects (resume)
@@ -281,10 +308,11 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
     { workspace: workspace.gid, opt_fields: "name,created_at,modified_at,owner.name,team.name", limit: "100" },
   )
 
-  const filteredProjects = options.projectFilter
+  const projectFilter = options.projectFilter
+  const filteredProjects = projectFilter
     ? projects.filter((p) =>
-        p.gid === options.projectFilter ||
-        p.name.toLowerCase().includes(options.projectFilter!.toLowerCase()),
+        p.gid === projectFilter ||
+        p.name.toLowerCase().includes(projectFilter.toLowerCase()),
       )
     : projects
 
@@ -408,7 +436,8 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
         slug: `@${userSlug}`,
         title: `@${user.name}`,
         fetchTasks: async () => orphanTasks,
-        // User task lists don't support /sections API — tasks go as loose items
+        // Sections derived from task memberships (API doesn't support /user_task_lists/sections)
+        projectGid: taskList.gid,
         workspace: workspace.name,
         owner: user.name,
       }, enrichOpts, downloadDir)
