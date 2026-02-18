@@ -186,17 +186,26 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
       })
       return ok()
-    case "CYCLE_ICON_STYLE":
+    case "CYCLE_ICON_STYLE": {
       ctx.setUI((prev) => {
-        const styles = ["nerdfont", "workflowy", "regular"] as const
-        const idx = styles.indexOf(prev.iconStyle)
-        const next = styles[(idx + 1) % styles.length] ?? "nerdfont"
+        const iconStyles = ["nerdfont", "workflowy", "regular"] as const
+        const borderModes = ["normal", "black"] as const
+        const iconIdx = iconStyles.indexOf(prev.iconStyle)
+        const borderIdx = borderModes.indexOf(prev.borderMode)
+        // Cycle: increment icon first, when it wraps, advance border
+        const nextIconIdx = (iconIdx + 1) % iconStyles.length
+        const nextBorderIdx = nextIconIdx === 0 ? (borderIdx + 1) % borderModes.length : borderIdx
+        const nextIcon = iconStyles[nextIconIdx] ?? "nerdfont"
+        const nextBorder = borderModes[nextBorderIdx] ?? "normal"
+        const label = nextBorder === "black" ? `${nextIcon} (dark borders)` : nextIcon
         return {
-          iconStyle: next,
-          status: { level: "info" as const, message: `Icon style: ${next}` },
+          iconStyle: nextIcon,
+          borderMode: nextBorder,
+          status: { level: "info" as const, message: `Style: ${label}` },
         }
       })
       return ok()
+    }
     case "SHOW_HELP":
       ctx.setUI({ showHelp: true })
       return ok()
@@ -817,6 +826,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "CONSOLE_CLOSE":
       ctx.setUI({ showConsole: false })
+      return ok()
+    case "SYNC_PANE_TOGGLE":
+      ctx.setUI((prev) => ({ showSyncPane: !prev.showSyncPane }))
+      return ok()
+    case "SYNC_PANE_CLOSE":
+      ctx.setUI({ showSyncPane: false })
       return ok()
     case "DELETE_CONFIRM_EXECUTE":
       if (ctx.ui.deleteConfirm) {

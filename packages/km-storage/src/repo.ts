@@ -313,8 +313,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         task_status: changes.task_status ?? "todo",
         task_marker: changes.task_marker ?? "[ ]",
         assigned_to: changes.assigned_to ?? source.assigned_to,
-        due_date: changes.due_date ?? source.due_date,
-        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
+        due_at: changes.due_at ?? source.due_at,
+        start_at: changes.start_at ?? source.start_at,
         priority: changes.priority ?? source.priority,
         data: {
           ...source.data,

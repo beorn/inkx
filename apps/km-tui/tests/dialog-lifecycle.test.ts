@@ -76,7 +76,7 @@ describe("DatePromptDialog lifecycle", () => {
     const col = repo.getChildren("board")[0]!
     const task = repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeFalsy()
-    expect(task.due_date).toBeFalsy()
+    expect(task.due_at).toBeFalsy()
   })
 
   test("td -> type date -> Escape cancels without applying typed date", () => {

@@ -98,7 +98,7 @@ describe("undo: delete node", () => {
     // Set some properties on task-a
     repo.updateNode("task-a", {
       priority: 2,
-      due_date: "2026-03-15",
+      due_at: "2026-03-15",
       task_status: "wip",
       task_marker: "[/]",
     })
@@ -124,7 +124,7 @@ describe("undo: delete node", () => {
     const restored = repo.getNode("task-a")
     expect(restored).not.toBeNull()
     expect(restored!.priority).toBe(2)
-    expect(restored!.due_date).toBe("2026-03-15")
+    expect(restored!.due_at).toBe("2026-03-15")
     expect(restored!.task_status).toBe("wip")
     expect(repo.getChildren("col1").length).toBe(3)
   })
@@ -191,14 +191,14 @@ describe("undo: update node", () => {
     expect(repo.getNode("task-a")?.priority).toBeUndefined()
 
     // Update
-    repo.updateNode("task-a", { priority: 1, due_date: "2026-04-01" })
+    repo.updateNode("task-a", { priority: 1, due_at: "2026-04-01" })
     expect(repo.getNode("task-a")?.priority).toBe(1)
-    expect(repo.getNode("task-a")?.due_date).toBe("2026-04-01")
+    expect(repo.getNode("task-a")?.due_at).toBe("2026-04-01")
 
     // Undo
     handle.undo()
     expect(repo.getNode("task-a")?.priority).toBeUndefined()
-    expect(repo.getNode("task-a")?.due_date).toBeUndefined()
+    expect(repo.getNode("task-a")?.due_at).toBeUndefined()
   })
 
   test("update -> undo -> redo re-applies the changes", () => {

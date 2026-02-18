@@ -38,7 +38,7 @@ const makeTask = (
   opts: {
     status?: "todo" | "done" | "wip" | "dropped" | "blocked"
     marker?: "[ ]" | "[x]" | "[X]" | "[/]" | "[-]" | "[!]"
-    dueDate?: string
+    dueAt?: string
     priority?: number
   } = {},
 ) =>
@@ -48,7 +48,7 @@ const makeTask = (
     content,
     task_status: opts.status ?? "todo",
     task_marker: opts.marker ?? "[ ]",
-    due_date: opts.dueDate,
+    due_at: opts.dueAt,
     priority: opts.priority,
   })
 
@@ -167,23 +167,23 @@ tags: [a, b, c]
       // Emoji format
       {
         text: "Task with due 📅 2025-03-15",
-        field: "dueDate",
+        field: "dueAt",
         expected: "2025-03-15",
       },
       {
         text: "Task scheduled ⏳ 2025-03-10",
-        field: "scheduledDate",
+        field: "startAt",
         expected: "2025-03-10",
       },
       // Inline field format
       {
         text: "Submit report due:2026-01-20",
-        field: "dueDate",
+        field: "dueAt",
         expected: "2026-01-20",
       },
       {
         text: "Call client start:2026-01-15",
-        field: "scheduledDate",
+        field: "startAt",
         expected: "2026-01-15",
       },
     ] as const)("should parse $field from '$text'", ({ text, field, expected }) => {
@@ -205,33 +205,29 @@ tags: [a, b, c]
 
     test("should parse multiple inline fields", () => {
       const result = parseTaskMetadata("Submit report due:2026-01-20 p:1")
-      expect(result.dueDate).toBe("2026-01-20")
+      expect(result.dueAt).toBe("2026-01-20")
       expect(result.priority).toBe(1)
     })
 
     test("text format takes precedence over emoji (canonical format)", () => {
       const result = parseTaskMetadata("Task 📅 2025-03-15 due:2026-01-20")
-      expect(result.dueDate).toBe("2026-01-20") // Text format is canonical
+      expect(result.dueAt).toBe("2026-01-20") // Text format is canonical
     })
 
     test("parses due date with time", () => {
       const result = parseTaskMetadata("Task 📅 2025-03-15T14:30")
-      expect(result.dueDate).toBe("2025-03-15")
-      expect(result.dueTime).toBe("14:30")
+      expect(result.dueAt).toBe("2025-03-15T14:30")
     })
 
     test("parses scheduled date with time", () => {
       const result = parseTaskMetadata("Task ⏳ 2025-03-10T09:00")
-      expect(result.scheduledDate).toBe("2025-03-10")
-      expect(result.scheduledTime).toBe("09:00")
+      expect(result.startAt).toBe("2025-03-10T09:00")
     })
 
-    test("date without time has no time field", () => {
+    test("date without time is date-only string", () => {
       const result = parseTaskMetadata("Task 📅 2025-03-15 ⏳ 2025-03-10")
-      expect(result.dueDate).toBe("2025-03-15")
-      expect(result.dueTime).toBeUndefined()
-      expect(result.scheduledDate).toBe("2025-03-10")
-      expect(result.scheduledTime).toBeUndefined()
+      expect(result.dueAt).toBe("2025-03-15")
+      expect(result.startAt).toBe("2025-03-10")
     })
   })
 
@@ -387,7 +383,7 @@ This is a paragraph.
       const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
       expect(task).toBeDefined()
-      expect(task!.due_date).toBe("2025-03-15")
+      expect(task!.due_at).toBe("2025-03-15")
       expect(task!.priority).toBe(1) // ⏫ = high priority = 1
     })
 
@@ -535,7 +531,7 @@ describe("Nodes to Markdown", () => {
     })
 
     test("should serialize task with metadata using key:: value format", () => {
-      const md = nodesToMarkdown([makeTask("Important task", { dueDate: "2025-03-15", priority: 1 })])
+      const md = nodesToMarkdown([makeTask("Important task", { dueAt: "2025-03-15", priority: 1 })])
       expect(md).toContain("due:: 2025-03-15")
       expect(md).toContain("p:: 1")
     })
@@ -559,29 +555,27 @@ describe("Nodes to Markdown", () => {
       expect(nodesToMarkdown([makeHr()])).toContain("---")
     })
 
-    test("should serialize task with due_time as T suffix", () => {
+    test("should serialize task with due_at including time", () => {
       const node = makeTestNode({
         type: "li",
         list_marker: "-",
         content: "Meeting prep",
         task_status: "todo",
         task_marker: "[ ]",
-        due_date: "2025-03-15",
-        due_time: "14:30",
+        due_at: "2025-03-15T14:30",
       })
       const md = nodesToMarkdown([node])
       expect(md).toContain("due:: 2025-03-15T14:30")
     })
 
-    test("should serialize task with scheduled_time as T suffix", () => {
+    test("should serialize task with start_at including time", () => {
       const node = makeTestNode({
         type: "li",
         list_marker: "-",
         content: "Start project",
         task_status: "todo",
         task_marker: "[ ]",
-        scheduled_date: "2025-03-10",
-        scheduled_time: "09:00",
+        start_at: "2025-03-10T09:00",
       })
       const md = nodesToMarkdown([node])
       expect(md).toContain("start:: 2025-03-10T09:00")

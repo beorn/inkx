@@ -21,7 +21,7 @@ interface TaskJson {
   type: string
   content: string
   task_status?: string
-  due_date?: string
+  due_at?: string
   priority?: number
   parent_id?: string | null
   fs_path?: string
@@ -279,7 +279,7 @@ describe("CLI Integration", () => {
       expect(result.exitCode).toBe(0)
       const tasks = await getTasks(["--detail"])
       const newTask = findTask(tasks, "Task with due")
-      expect(newTask?.due_date).toBe("2025-12-25")
+      expect(newTask?.due_at).toBe("2025-12-25")
     })
   })
 

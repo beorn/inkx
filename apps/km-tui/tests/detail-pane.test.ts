@@ -218,7 +218,7 @@ describe("DetailPane", () => {
           type: "li",
           content: "Review Q1 budget",
           task_status: "todo",
-          due_date: "2026-01-10",
+          due_at: "2026-01-10",
           assigned_to: "bjorn",
         },
       ]),

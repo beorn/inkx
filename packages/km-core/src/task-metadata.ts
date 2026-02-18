@@ -183,11 +183,8 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
  */
 export function stringifyTaskMetadata(content: string, node: KNode, options?: { includeAssignedTo?: boolean }): string {
   // Extract current node field values
-  const dueParts =
-    decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  const startParts =
-    decomposeDatetime(node.start_at) ??
-    (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
+  const dueParts = decomposeDatetime(node.due_at)
+  const startParts = decomposeDatetime(node.start_at)
   const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
 
   // Extract what's already in the content (any format)

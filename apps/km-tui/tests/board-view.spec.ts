@@ -407,22 +407,34 @@ describe("Icon Style Cycling", () => {
     board.press("V")
     const status = board.getStatus()
     expect(status).not.toBeNull()
-    expect(status?.message).toBe("Icon style: workflowy")
+    expect(status?.message).toBe("Style: workflowy")
   })
 
-  test("V cycles through all three styles", () => {
+  test("V cycles through all 6 visual presets (3 icons x 2 border modes)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    // nerdfont -> workflowy
+    // nerdfont/normal -> workflowy/normal
     board.press("V")
-    expect(board.getStatus()?.message).toBe("Icon style: workflowy")
+    expect(board.getStatus()?.message).toBe("Style: workflowy")
 
-    // workflowy -> regular
+    // workflowy/normal -> regular/normal
     board.press("V")
-    expect(board.getStatus()?.message).toBe("Icon style: regular")
+    expect(board.getStatus()?.message).toBe("Style: regular")
 
-    // regular -> nerdfont (wraps around)
+    // regular/normal -> nerdfont/black (icon wraps, border advances)
     board.press("V")
-    expect(board.getStatus()?.message).toBe("Icon style: nerdfont")
+    expect(board.getStatus()?.message).toBe("Style: nerdfont (dark borders)")
+
+    // nerdfont/black -> workflowy/black
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Style: workflowy (dark borders)")
+
+    // workflowy/black -> regular/black
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Style: regular (dark borders)")
+
+    // regular/black -> nerdfont/normal (full wrap)
+    board.press("V")
+    expect(board.getStatus()?.message).toBe("Style: nerdfont")
   })
 
   test("V does not trigger bell (is a valid action)", () => {

@@ -400,7 +400,7 @@ describe("alignment: date badges", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     // Set a due date on the task
     const taskNode = nodes.find((n) => n.content === "Task with date")!
-    taskNode.due_date = "2026-03-15"
+    taskNode.due_at = "2026-03-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screenshot = board.screenshot()
@@ -423,8 +423,8 @@ describe("alignment: date badges", () => {
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const taskA = nodes.find((n) => n.content === "Task A")!
     const taskB = nodes.find((n) => n.content === "Task B")!
-    taskA.due_date = "2026-03-15"
-    taskB.due_date = "2026-04-20"
+    taskA.due_at = "2026-03-15"
+    taskB.due_at = "2026-04-20"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screenshot = board.screenshot()
@@ -586,5 +586,54 @@ describe("alignment: cross-cutting", () => {
     for (const row of rows) {
       expect(row.length).toBeLessThanOrEqual(WIDE.columns)
     }
+  })
+})
+
+// =============================================================================
+// Visual invariant assertions
+// =============================================================================
+
+describe("visual invariant assertions", () => {
+  test("expectColumnsAligned verifies column order and non-overlap", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
+      WIDE,
+    )
+    board.expectColumnsAligned(["col1", "col2", "col3"])
+  })
+
+  test("expectNoBlankLine detects no blank rows in content area", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))), {
+      columns: 80,
+      rows: 24,
+    })
+    // Skip row 0 (breadcrumb) and row 1 (spacer); check rows 2-9 (column content)
+    board.expectNoBlankLine(2, 10)
+  })
+
+  test("expectCursorVisible confirms cursor is on screen", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    board.expectCursorVisible()
+    board.press("j").expectCursorVisible()
+  })
+
+  test("expectNoGhostChars passes on clean render", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    board.expectNoGhostChars()
+  })
+
+  test("expectTextNotOverflowing passes for normal cards", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    board.expectTextNotOverflowing("1a")
+  })
+
+  test("expectBorderContinuous verifies card border integrity", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+    board.expectBorderContinuous("1a")
+  })
+
+  test("expectAdjacentBorders verifies neighboring borders after navigation", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    board.press("j").expectAdjacentBorders("1b")
   })
 })

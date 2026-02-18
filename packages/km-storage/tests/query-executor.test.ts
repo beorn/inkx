@@ -172,28 +172,28 @@ describe("Date Query Execution", () => {
         type: "li",
         task_status: "todo",
         content: "Task due today",
-        due_date: formatDate(today()),
+        due_at: formatDate(today()),
       },
       {
         id: "task-overdue",
         type: "li",
         task_status: "todo",
         content: "Overdue task",
-        due_date: formatDate(offsetDate(-1)),
+        due_at: formatDate(offsetDate(-1)),
       },
       {
         id: "task-tomorrow",
         type: "li",
         task_status: "todo",
         content: "Task due tomorrow",
-        due_date: formatDate(offsetDate(1)),
+        due_at: formatDate(offsetDate(1)),
       },
       {
         id: "task-nodue",
         type: "li",
         task_status: "todo",
         content: "Task without due date",
-        due_date: null,
+        due_at: null,
       },
     ])
   })

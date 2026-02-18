@@ -78,9 +78,9 @@ function findInboxSection(db: Database): { id: string } | undefined {
 // ---------------------------------------------------------------------------
 
 describe("date badge display", () => {
-  it("formatDateBadge returns badge for node with due_date", () => {
+  it("formatDateBadge returns badge for node with due_at", () => {
     // Use a date 30+ days out so it renders as "Mon DD" not relative
-    const badge = formatDateBadge({ due_date: "2026-03-15" } as KNode)
+    const badge = formatDateBadge({ due_at: "2026-03-15" } as KNode)
     expect(badge).not.toBe("")
     expect(badge).toContain("Mar 15")
   })
@@ -100,11 +100,11 @@ describe("date badge display", () => {
     let clean = screen.replace(/\x1b\[[0-9;]*m/g, "")
     expect(clean).not.toContain("Mar 15")
 
-    // Set due_date on the task node
+    // Set due_at on the task node
     const col = repo.getChildren("board")[0]!
     const taskNode = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_date: "2026-03-15" })
+      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Trigger render flush (inkx custom renderer needs a keypress to flush
@@ -122,11 +122,11 @@ describe("date badge display", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Set due_date on the task node
+    // Set due_at on the task node
     const col = repo.getChildren("board")[0]!
     const taskNode = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_date: "2026-03-15" })
+      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Open detail pane (Space opens detail for current node)
@@ -138,12 +138,12 @@ describe("date badge display", () => {
     expect(clean).toContain("Due: Mar 15")
   })
 
-  it("date badge visible in cards view with initial due_date (testEnv)", () => {
-    // Create nodes, then set due_date before rendering
+  it("date badge visible in cards view with initial due_at (testEnv)", () => {
+    // Create nodes, then set due_at before rendering
     const nodes = item("board", item("col1", item.task("Task with date")))
-    // Manually set due_date on the task node before creating repo
+    // Manually set due_at on the task node before creating repo
     const taskNode = nodes.find((n) => n.content === "Task with date")!
-    taskNode.due_date = "2026-03-15"
+    taskNode.due_at = "2026-03-15"
     taskNode.priority = 1
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
@@ -159,9 +159,9 @@ describe("date badge display", () => {
       item("col1", item.task("Task A"), item.task("Task B")),
       item("col2", item.task("Task C")),
     )
-    // Set due_date on Task A
+    // Set due_at on Task A
     const taskA = nodes.find((n) => n.content === "Task A")!
-    taskA.due_date = "2026-03-15"
+    taskA.due_at = "2026-03-15"
     taskA.priority = 2
     // Set priority on Task C
     const taskC = nodes.find((n) => n.content === "Task C")!
@@ -182,9 +182,9 @@ describe("date badge display", () => {
       item("col3", item.task("Task C")),
       item("col4", item.task("Task D")),
     )
-    // Set due_date on Task A
+    // Set due_at on Task A
     const taskA = nodes.find((n) => n.content === "Task A")!
-    taskA.due_date = "2026-03-15"
+    taskA.due_at = "2026-03-15"
 
     // 80 columns / 4 columns = 20 chars per column -- very narrow
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
@@ -196,7 +196,7 @@ describe("date badge display", () => {
   it("date badge visible in columns view (testEnv)", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!
-    taskNode.due_date = "2026-03-15"
+    taskNode.due_at = "2026-03-15"
     taskNode.priority = 2
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24, viewMode: "columns" })
@@ -222,7 +222,7 @@ describe("date badge display", () => {
     const col = repo.getChildren("board")[0]!
     const taskNode = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_date: "2026-03-15" })
+      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Press Escape to close the date prompt
@@ -238,11 +238,11 @@ describe("date badge display", () => {
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
-    // Set due_date on Task A
+    // Set due_at on Task A
     const col = repo.getChildren("board")[0]!
     const taskA = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskA.id, { due_date: "2026-03-15", priority: 1 })
+      repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: 1 })
     })
     board.press("j") // flush
     let screen = board.screenshot()
@@ -275,11 +275,11 @@ describe("date badge display", () => {
     const nodes = item("board", item("col1", item.task("Todo task")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
-    // Simulate what 'td' does: update the node's due_date
+    // Simulate what 'td' does: update the node's due_at
     const col = repo.getChildren("board")[0]!
     const taskNode = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskNode.id, { due_date: "2026-03-15" })
+      repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
     // Flush by pressing a no-op key
@@ -327,7 +327,7 @@ describe("date prompt (td)", () => {
 
   test("td chord timeout does not leak 'd' into text input (km-tui.chord-leak)", () => {
     // Regression: when 't' and 'd' are pressed with >300ms gap, the chord
-    // timeout fires first (resolving 't' standalone → set_due_date), then
+    // timeout fires first (resolving 't' standalone → set_due_at), then
     // 'd' arrives with textInputFocused=true and leaks into the dialog.
     // The grace period in handleKey should suppress this.
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
@@ -773,12 +773,7 @@ describe("due date queries for @next board", () => {
 
         // Simulate interactive "td" — set due_at to yesterday (matches due:past rule)
         const yest = yesterday()
-        db.run("UPDATE nodes SET due_at = ?, due_date = ?, updated_at = ? WHERE id = ?", [
-          yest,
-          yest,
-          Date.now(),
-          taskNode!.id,
-        ])
+        db.run("UPDATE nodes SET due_at = ?, updated_at = ? WHERE id = ?", [yest, Date.now(), taskNode!.id])
 
         // Call onNodeChanged (same as handleDatePromptConfirm does)
         const ruleCtx = createRuleContext()

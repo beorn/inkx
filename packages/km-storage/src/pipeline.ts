@@ -427,8 +427,6 @@ function insertFileNodes(
       node.assigned_to ?? null,
       node.due_at ?? null,
       node.start_at ?? null,
-      node.due_date ?? null,
-      node.scheduled_date ?? null,
       node.priority ?? null,
       node.content ?? null,
       node.content_hash ?? null,

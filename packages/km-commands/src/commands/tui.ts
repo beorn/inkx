@@ -164,6 +164,16 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
   },
 
+  // Sync Pane
+  {
+    id: "sync_pane.toggle",
+    name: "Toggle Sync Pane",
+    description: "Toggle sync activity pane",
+    category: "View",
+    shortcuts: ["S"],
+    execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
+  },
+
   // Toast
   {
     id: "toast.dismiss",

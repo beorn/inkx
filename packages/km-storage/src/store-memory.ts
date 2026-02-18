@@ -10,7 +10,6 @@ import { existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, append
 import { join, dirname, basename, relative } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
 import type { KNode } from "@km/core"
-import { composeDatetime, decomposeDatetime } from "@km/core"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, NODE_COLUMNS } from "./schema.ts"
 import { addLink } from "./db.ts"
@@ -369,7 +368,7 @@ export class MemoryStore extends BaseStore {
 
   /**
    * Insert a node into the in-memory database.
-   * Non-column KNode fields (due_time, scheduled_time, etc.) are merged into data blob.
+   * Non-column KNode fields (recurrence, etc.) are merged into data blob.
    */
   private insertNode(node: Partial<KNode>): void {
     const now = Date.now()
@@ -387,9 +386,9 @@ export class MemoryStore extends BaseStore {
         id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
         fs_path, md_pos, md_line, name, block_id,
         content, content_hash, title, list_marker, task_marker,
-        task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
+        task_status, assigned_to, due_at, start_at, priority,
         data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
@@ -413,8 +412,6 @@ export class MemoryStore extends BaseStore {
         node.assigned_to ?? null,
         node.due_at ?? null,
         node.start_at ?? null,
-        node.due_date ?? null,
-        node.scheduled_date ?? null,
         node.priority ?? null,
         JSON.stringify(mergedData),
         now,
@@ -430,23 +427,7 @@ export class MemoryStore extends BaseStore {
     const node = this.getNode(id)
     if (!node) return
 
-    // Dual-write: keep due_at ↔ due_date and start_at ↔ scheduled_date in sync
     const augmented: Partial<KNode> = { ...changes }
-    if ("due_at" in augmented && !("due_date" in augmented)) {
-      const parts = decomposeDatetime(augmented.due_at)
-      augmented.due_date = parts?.date
-    }
-    if ("due_date" in augmented && !("due_at" in augmented)) {
-      augmented.due_at = composeDatetime(augmented.due_date, augmented.due_time ?? node.due_time) ?? undefined
-    }
-    if ("start_at" in augmented && !("scheduled_date" in augmented)) {
-      const parts = decomposeDatetime(augmented.start_at)
-      augmented.scheduled_date = parts?.date
-    }
-    if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-      augmented.start_at =
-        composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
-    }
 
     // Route fields to SQL columns vs data blob (matches db-ops.ts logic)
     const sets: string[] = []
@@ -463,7 +444,7 @@ export class MemoryStore extends BaseStore {
         sets.push(`${key} = ?`)
         values.push(value as string | number | null)
       } else {
-        // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+        // Non-column KNode field → data blob
         dataOverrides[key] = value
       }
     }
@@ -491,13 +472,7 @@ export class MemoryStore extends BaseStore {
     }
 
     // Write through date fields to markdown file
-    if (
-      (changes.due_date !== undefined ||
-        changes.scheduled_date !== undefined ||
-        changes.due_at !== undefined ||
-        changes.start_at !== undefined) &&
-      node.md_line !== undefined
-    ) {
+    if ((changes.due_at !== undefined || changes.start_at !== undefined) && node.md_line !== undefined) {
       const relPath = node.fs_path || this.getFilePathForNode(node)
       if (relPath) {
         const absPath = join(this.rootPath, relPath)
@@ -570,8 +545,6 @@ export class MemoryStore extends BaseStore {
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_at = changes.due_at ?? source.due_at ?? null
     const start_at = changes.start_at ?? source.start_at ?? null
-    const due_date = changes.due_date ?? source.due_date ?? null
-    const scheduled_date = changes.scheduled_date ?? source.scheduled_date ?? null
     const priority = changes.priority ?? source.priority ?? null
     const content = changes.content ?? source.content ?? ""
     const data = JSON.stringify({
@@ -583,9 +556,9 @@ export class MemoryStore extends BaseStore {
     // Insert into database
     this.db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx,
-        task_status, task_marker, assigned_to, due_at, start_at, due_date, scheduled_date,
+        task_status, task_marker, assigned_to, due_at, start_at,
         priority, content, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         type,
@@ -596,8 +569,6 @@ export class MemoryStore extends BaseStore {
         assigned_to,
         due_at,
         start_at,
-        due_date,
-        scheduled_date,
         priority,
         content,
         data,
@@ -612,8 +583,8 @@ export class MemoryStore extends BaseStore {
     if (filePath && content) {
       let taskLine = `\n- [ ] ${content}`
       taskLine = taskLine.replace(/\s*due:\d{4}-\d{2}-\d{2}/g, "")
-      if (due_date) {
-        taskLine += ` due:${due_date}`
+      if (due_at) {
+        taskLine += ` due:${due_at}`
       }
       appendFileSync(filePath, taskLine)
     }

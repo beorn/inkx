@@ -151,14 +151,15 @@ describe("Zooming", () => {
     board.expect("#col").not.toExist()
 
     // u zooms out one level (back to col as root)
+    // Cursor stays on sub1 (visible as card under card2 column)
     board.press("u")
     board.expect("#card1").toExist()
     board.expect("#card2").toExist()
+    board.expect("#sub1[data-cursor]").toExist()
 
     // --- zoom out returns cursor to parent ---
-    // After u, cursor may be on card2 (the node we zoomed into).
-    // Navigate to card2 via G (last card), then zoom in.
-    board.press("G")
+    // Navigate to card2 column header via k, then zoom in.
+    board.press("k") // sub1 → card2 column header
     board.expect("#card2[data-cursor]").toExist()
     board.press("e")
     board.expect("#sub1[data-cursor]").toExist()
@@ -870,7 +871,7 @@ describe("zoom-out fallback: cursor moves up when at repo root", () => {
 // --- Merged from zoom-out.test.ts (bead: km-tui.u-zoom-out, km-tui.u-zoom-parent) ---
 
 describe("u zooms out to parent", () => {
-  test("u zooms out one level, cursor stays on previously-rooted node", () => {
+  test("u zooms out one level, cursor stays on visible node nearest to where user was", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
     // Zoom into col1 via e (first move to column header)
@@ -887,8 +888,8 @@ describe("u zooms out to parent", () => {
     // Press u to zoom back out to board level
     board.press("u")
 
-    // Should be back at board level with cursor on col1 (the previously-rooted node)
-    board.expect("#col1[data-cursor]").toExist()
+    // Cursor stays on 1a (grandchild of board, visible as card under col1)
+    board.expect("#1a[data-cursor]").toExist()
     board.expect("#col2").toExist()
   })
 
@@ -909,18 +910,21 @@ describe("u zooms out to parent", () => {
     board.expect("#gc1").toExist()
     board.expect("#gc2").toExist()
 
-    // u zooms out one level: root=child1 → root=parent, cursor on child1
+    // u zooms out one level: root=child1 → root=parent
+    // cursor stays on gc1 (visible as card under child1 column)
     board.press("u")
-    board.expect("#child1[data-cursor]").toExist()
+    board.expect("#gc1[data-cursor]").toExist()
     board.expect("#child2").toExist()
 
-    // u again: root=parent → root=col, cursor on parent
+    // u again: root=parent → root=col
+    // gc1 not visible (too deep), cursor goes to child1 (the column user was in, now a card)
+    board.press("u")
+    board.expect("#child1[data-cursor]").toExist()
+
+    // u again: root=col → root=board
+    // child1 not visible (too deep), cursor goes to parent (the column user was in, now a card)
     board.press("u")
     board.expect("#parent[data-cursor]").toExist()
-
-    // u again: root=col → root=board, cursor on col
-    board.press("u")
-    board.expect("#col[data-cursor]").toExist()
   })
 
   test("u saves history so ] (nav_forward) can return to zoomed view", () => {
@@ -933,15 +937,57 @@ describe("u zooms out to parent", () => {
     board.expect("#child1").toExist()
     board.expect("#child2").toExist()
 
-    // u zooms out: root=parent → root=col, cursor on parent
-    // This saves history so we can go back to parent-as-root
+    // u zooms out: root=parent → root=col
+    // cursor on child1 (the column user was in, now a card under parent)
     board.press("u")
-    board.expect("#parent[data-cursor]").toExist()
+    board.expect("#child1[data-cursor]").toExist()
 
     // ] (nav forward) should restore the zoomed-into-parent view
     board.press("]")
     board.expect("#child1").toExist()
     board.expect("#child2").toExist()
+  })
+
+  test("u keeps cursor on current column (not root) when cursor is on a card", () => {
+    // board > col > parent > child1(gc1,gc2) + child2(gc3)
+    const { board } = testEnv(() =>
+      item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
+    )
+
+    // Zoom into parent: root=parent, columns=[child1, child2], cursor=gc1
+    board.press("e")
+    board.expect("#gc1[data-cursor]").toExist()
+
+    // Navigate to gc2 (second card in child1 column)
+    board.press("j")
+    board.expect("#gc2[data-cursor]").toExist()
+
+    // Press u to zoom out: root=parent → root=col
+    // Cursor should land on child1 (the column the user was in, now a card),
+    // NOT on parent (the old root)
+    board.press("u")
+    board.expect("#child1[data-cursor]").toExist()
+    board.expect("#child2").toExist()
+  })
+
+  test("u keeps cursor on current column even when in second column", () => {
+    // board > col > parent > child1(gc1) + child2(gc2, gc3)
+    const { board } = testEnv(() =>
+      item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"), item("gc3"))))),
+    )
+
+    // Zoom into parent: root=parent, columns=[child1, child2], cursor=gc1
+    board.press("e")
+    board.expect("#gc1[data-cursor]").toExist()
+
+    // Navigate right to child2 column
+    board.press("l")
+    board.expect("#gc2[data-cursor]").toExist()
+
+    // Press u to zoom out: root=parent → root=col
+    // Cursor should land on child2 (the column the user was in)
+    board.press("u")
+    board.expect("#child2[data-cursor]").toExist()
   })
 
   test("at repo root, u acts as cursor-up instead of zoom", () => {
@@ -974,8 +1020,9 @@ describe("u zooms out to parent", () => {
     board.expect("#sub1").toExist()
 
     // Second u should actually zoom out to col
+    // cursor stays on sub1 (visible as card under card1 column)
     board.press("u")
-    board.expect("#card1[data-cursor]").toExist()
+    board.expect("#sub1[data-cursor]").toExist()
     board.expect("#card2").toExist()
   })
 
@@ -1001,11 +1048,9 @@ describe("u zooms out to parent", () => {
     board.expect("#section2").toExist()
 
     // Press u — should zoom out from file to repo root
+    // Cursor stays on section1 (the column user was in, now a card under file)
     board.press("u")
-
-    // After zooming out, the file should be visible as a card/column
-    // and cursor should be on the file node
-    board.expect("#file[data-cursor]").toExist()
+    board.expect("#section1[data-cursor]").toExist()
   })
 
   test("u zooms out from file to folder, then falls back to cursor-up at repo root", () => {
@@ -1023,16 +1068,21 @@ describe("u zooms out to parent", () => {
     board.expect("#sec2").toExist()
 
     // First u: zoom out from file to folder
+    // Cursor stays on sec1 (the column user was in, now a card under file)
+    board.press("u")
+    board.expect("#sec1[data-cursor]").toExist()
+
+    // Second u: zoom out from folder to repo root
+    // sec1 not visible (too deep), cursor goes to file (the column user was in, now a card under folder)
     board.press("u")
     board.expect("#file[data-cursor]").toExist()
 
-    // Second u: zoom out from folder to repo root
+    // Third u: at repo root, cursor on file → navigates up to folder (column header)
     board.press("u")
     board.expect("#folder[data-cursor]").toExist()
 
-    // Third u: at repo root, falls back to cursor-up
+    // Fourth u: cursor on folder (column header, parent=repo=root) → navigates to root
     board.press("u")
-    // repo root has parent_id null, so u acts as cursor-up
     board.expect("#repo[data-cursor]").toExist()
   })
 })

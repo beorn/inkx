@@ -252,6 +252,14 @@ interface ConsoleCloseAction {
   type: "CONSOLE_CLOSE"
 }
 
+interface SyncPaneToggleAction {
+  type: "SYNC_PANE_TOGGLE"
+}
+
+interface SyncPaneCloseAction {
+  type: "SYNC_PANE_CLOSE"
+}
+
 interface DeleteConfirmExecuteAction {
   type: "DELETE_CONFIRM_EXECUTE"
 }
@@ -481,6 +489,8 @@ export type TUIAction =
   | ToggleSearchScopeAction
   | ConsoleToggleAction
   | ConsoleCloseAction
+  | SyncPaneToggleAction
+  | SyncPaneCloseAction
   | DeleteConfirmExecuteAction
   | DeleteConfirmCancelAction
   | ToastDismissAction

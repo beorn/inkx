@@ -299,13 +299,22 @@ export async function fetchFromAsana(
 
   // Resume: read existing project JSONs from download dir
   const existingFiles = readdirSync(downloadDir).filter((f) => f.endsWith(".json") && !f.startsWith("_"))
+  let emptyOnDisk = 0
   for (const f of existingFiles) {
     const proj = JSON.parse(readFileSync(join(downloadDir, f), "utf-8")) as ImportProject
-    importData.projects.push(proj)
-    alreadyFetched.add(proj.sourceId)
+    const hasItems = (proj.items?.length ?? 0) > 0 || (proj.sections ?? []).some((s) => s.items.length > 0)
+    if (hasItems) {
+      importData.projects.push(proj)
+      alreadyFetched.add(proj.sourceId)
+    } else {
+      emptyOnDisk++
+    }
   }
   if (alreadyFetched.size > 0) {
     console.log(term.cyan(`  Resuming:`), `${alreadyFetched.size} project(s) already downloaded`)
+  }
+  if (emptyOnDisk > 0) {
+    console.log(term.yellow(`  Re-fetching:`), `${emptyOnDisk} empty project(s) on disk`)
   }
 
   // Fetch projects (with metadata for frontmatter)
@@ -459,7 +468,7 @@ export async function fetchFromAsana(
           sourceId: `user-${user.gid}`,
           slug: `@${userSlug}`,
           title: `@${user.name}`,
-          fetchTasks: async () => orphanTasks,
+          fetchTasks: () => orphanTasks,
           // Sections derived from task memberships (API doesn't support /user_task_lists/sections)
           projectGid: taskList.gid,
           workspace: workspace.name,
@@ -510,7 +519,7 @@ export async function fetchFromAsana(
           sourceId: `tag-${tag.gid}`,
           slug: `#${tagSlug}`,
           title: `#${tag.name}`,
-          fetchTasks: async () => orphanTasks,
+          fetchTasks: () => orphanTasks,
           workspace: workspace.name,
         },
         enrichOpts,

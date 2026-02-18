@@ -848,6 +848,202 @@ describe("Fold border regression", () => {
 })
 
 // =============================================================================
+// Overflow-to-no-overflow transition (fold-border-blank root cause)
+// =============================================================================
+
+describe("fold overflow transition border integrity", () => {
+  /**
+   * When a card has overflow (+N indicator), folding it via zc removes all children
+   * and the card transitions from custom bottom border (╰─ +N ─╯) to standard
+   * round border (╰──────╯). This transition must not leave stale pixels.
+   */
+  test("fold card with overflow preserves bottom border (no blank cells)", () => {
+    // Create cards with enough children to trigger overflow
+    // maxContentLines defaults to 3, so 6 children will show +3 overflow
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
+            item("SmallCard"),
+          ),
+        ),
+      { columns: 60, rows: 30, incremental: true },
+    )
+
+    // Verify overflow is showing before fold
+    const before = board.screenshot()
+    expect(before, "should show overflow indicator").toContain("+")
+
+    // Fold BigCard via zc
+    board.press("z").press("c")
+
+    // After fold, the +N indicator should be gone and borders should be intact
+    const after = board.screenshot()
+    const lines = after.split("\n")
+
+    // Find BigCard and check its bottom border row
+    let bigCardRow = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]!.includes("BigCard")) {
+        bigCardRow = i
+        break
+      }
+    }
+    expect(bigCardRow, "BigCard should be found in screenshot").toBeGreaterThan(-1)
+
+    // Check that no row between BigCard and SmallCard has blank/space cells
+    // where border characters should be
+    let bottomBorderRow = -1
+    for (let i = bigCardRow + 1; i < lines.length; i++) {
+      if (lines[i]!.includes("╰")) {
+        bottomBorderRow = i
+        break
+      }
+    }
+    expect(bottomBorderRow, "BigCard should have bottom border").toBeGreaterThan(bigCardRow)
+
+    // Cell-level check: bottom border row should have proper border characters.
+    // The row pattern is: ╰─── +N ───╯ (when overflow, label has spaces)
+    // or ╰────────────╯ (when no overflow)
+    // Allowed chars between ╰ and ╯: ─, space (part of +N label), +, digits
+    const rowText = board.screen.row(bottomBorderRow)
+    let inBorder = false
+    const ALLOWED = new Set(["─", " ", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+    for (let x = 0; x < board.screen.width; x++) {
+      const cell = board.screen.cell(x, bottomBorderRow)
+      if (cell.char === "╰") {
+        inBorder = true
+        continue
+      }
+      if (cell.char === "╯") {
+        inBorder = false
+        continue
+      }
+      if (inBorder && !ALLOWED.has(cell.char)) {
+        expect(
+          cell.char,
+          `BigCard bottom border at (${x},${bottomBorderRow}) has unexpected char "${cell.char}" (row: "${rowText}")`,
+        ).toBe("─")
+      }
+    }
+
+    // Also verify the row is entirely accounted for (has both corners)
+    expect(rowText, "bottom border should have ╰").toContain("╰")
+    expect(rowText, "bottom border should have ╯").toContain("╯")
+  })
+
+  test("unfold card restores overflow indicator without border corruption", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
+            item("NextCard", item("n1")),
+          ),
+        ),
+      { columns: 60, rows: 30, incremental: true },
+    )
+
+    // Fold then unfold — should restore overflow indicator with intact borders
+    board.press("z").press("c") // fold
+    board.press("z").press("o") // unfold
+
+    const after = board.screenshot()
+    expect(after, "should show overflow indicator after unfold").toContain("+")
+
+    // Check NextCard's top border is intact (card below BigCard)
+    const lines = after.split("\n")
+    let nextCardRow = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]!.includes("NextCard")) {
+        nextCardRow = i
+        break
+      }
+    }
+    expect(nextCardRow).toBeGreaterThan(-1)
+
+    // Row above NextCard should be a top border (╭) or BigCard's bottom border
+    if (nextCardRow > 0) {
+      const rowAbove = lines[nextCardRow - 1]!
+      expect(
+        rowAbove.includes("╭") || rowAbove.includes("╰") || rowAbove.includes("+"),
+        `Row above NextCard should be a border: "${rowAbove}"`,
+      ).toBe(true)
+    }
+  })
+
+  test("decrease outline depth with overflow cards preserves all borders (cell-level)", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "CardA",
+              item("a1", item("deep1")),
+              item("a2", item("deep2")),
+              item("a3", item("deep3")),
+              item("a4"),
+              item("a5"),
+            ),
+            item("CardB", item("b1"), item("b2"), item("b3"), item("b4")),
+            item("CardC"),
+          ),
+        ),
+      { columns: 60, rows: 25, incremental: true },
+    )
+
+    // Decrease outline depth — should change overflow counts
+    board.press("<")
+
+    // Check every visible card's bottom border row
+    for (const nodeText of ["CardA", "CardB", "CardC"]) {
+      const lines = board.screenshot().split("\n")
+      let textRow = -1
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i]!.includes(nodeText) && lines[i]!.includes("│")) {
+          textRow = i
+          break
+        }
+      }
+      if (textRow === -1) continue // card may be off-screen
+
+      // Find bottom border below this card
+      let bottomRow = -1
+      for (let i = textRow + 1; i < lines.length; i++) {
+        if (lines[i]!.includes("╰")) {
+          bottomRow = i
+          break
+        }
+        if (lines[i]!.includes("╭")) break // hit next card's top, no bottom border found
+      }
+      if (bottomRow === -1) continue
+
+      // Cell-level: no blank cells in bottom border
+      let inBorder = false
+      for (let x = 0; x < board.screen.width; x++) {
+        const cell = board.screen.cell(x, bottomRow)
+        if (cell.char === "\u2570") inBorder = true
+        if (cell.char === "\u256f") inBorder = false
+        if (inBorder && cell.char !== "\u2570" && cell.char !== "\u2500" && cell.char !== " ") {
+          // Allow spaces for "+N" label, but not blank cells outside the label
+          const rowText = board.screen.row(bottomRow)
+          if (!rowText.includes("+")) {
+            expect(cell.char, `"${nodeText}" bottom border at (${x},${bottomRow}) should be ─`).toBe("\u2500")
+          }
+        }
+      }
+    }
+  })
+})
+
+// =============================================================================
 // Fold count color
 // =============================================================================
 

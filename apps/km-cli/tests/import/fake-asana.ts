@@ -166,6 +166,14 @@ export function minimalFixtures(): FakeAsanaOptions {
         { gid: "user-1", name: "Test User", email: "test@example.com" },
         { gid: "user-2", name: "Alice Smith", email: "alice@example.com" },
       ],
+      // User task list endpoints
+      "/users/user-1/user_task_list": { gid: "utl-1" },
+      "/users/user-2/user_task_list": { gid: "utl-2" },
+      // Tags
+      "/tags": [
+        { gid: "tag-pa", name: "@PA" },
+        { gid: "tag-empty", name: "empty-tag" },
+      ],
     },
     recordings: [
       // --- proj-1: Sprint 4 ---
@@ -568,6 +576,90 @@ export function minimalFixtures(): FakeAsanaOptions {
       { path: "/tasks/sub-full-1/attachments", response: [] },
       { path: "/tasks/sub-full-1a/stories", response: [] },
       { path: "/tasks/sub-full-1a/attachments", response: [] },
+
+      // --- User task lists (My Tasks) ---
+      {
+        path: "/user_task_lists/utl-1/tasks",
+        response: [
+          // task-1 is already in Sprint 4, should be deduped
+          {
+            gid: "task-1",
+            name: "Design login page",
+            completed: false,
+            memberships: [],
+            num_subtasks: 0,
+          },
+          // Orphan task: not in any project
+          {
+            gid: "task-orphan-1",
+            name: "Personal reminder",
+            notes: "Buy groceries",
+            completed: false,
+            created_at: "2026-02-17T08:00:00Z",
+            memberships: [],
+            num_subtasks: 0,
+            tags: [],
+            custom_fields: [],
+          },
+        ],
+      },
+      {
+        path: "/user_task_lists/utl-2/tasks",
+        response: [
+          // task-2 is already in Sprint 4, all deduped
+          {
+            gid: "task-2",
+            name: "Write tests",
+            completed: true,
+            memberships: [],
+            num_subtasks: 0,
+          },
+        ],
+      },
+      { path: "/tasks/task-orphan-1/stories", response: [] },
+      { path: "/tasks/task-orphan-1/attachments", response: [] },
+
+      // --- Tag task lists ---
+      {
+        path: "/tags/tag-pa/tasks",
+        response: [
+          {
+            gid: "task-tag-orphan",
+            name: "PA follow-up",
+            notes: "Call client",
+            completed: false,
+            created_at: "2026-02-16T10:00:00Z",
+            memberships: [],
+            num_subtasks: 0,
+            tags: [{ name: "@PA" }],
+            custom_fields: [],
+          },
+        ],
+      },
+      {
+        path: "/tags/tag-empty/tasks",
+        response: [
+          // All tasks already captured via projects
+          {
+            gid: "task-1",
+            name: "Design login page",
+            completed: false,
+            memberships: [],
+            num_subtasks: 0,
+          },
+        ],
+      },
+      { path: "/tasks/task-tag-orphan/stories", response: [] },
+      { path: "/tasks/task-tag-orphan/attachments", response: [] },
     ],
   }
+}
+
+// ============================================================================
+// Recording-based fixture (from --record output)
+// ============================================================================
+
+/** Create FakeAsana options from a recording file (output of --record flag) */
+export function fromRecording(recorded: RecordedCall[]): FakeAsanaOptions {
+  return { recordings: recorded }
 }

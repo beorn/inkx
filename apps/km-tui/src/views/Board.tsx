@@ -12,9 +12,6 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
-import { createLogger } from "@beorn/logger"
-
-const _log = createLogger("km:board")
 import type { TUIBoardState, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -55,7 +52,13 @@ import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-con
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { ToastStack } from "./ToastStack.tsx"
-import { createFileDropHandler, createWatcherStatusHandler, createErrorWarningHandler } from "./board-effects.ts"
+import { SyncPane } from "./SyncPane.tsx"
+import {
+  createFileDropHandler,
+  createWatcherStatusHandler,
+  createErrorWarningHandler,
+  createSyncEventCollector,
+} from "./board-effects.ts"
 import type { ToastQueue } from "@km/core"
 import { createToastQueue } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
@@ -103,6 +106,40 @@ export interface BoardCoreProps {
   consoleStats?: { total: number; errors: number; warnings: number }
   /** Toast queue instance (injected, not global). Optional for static render tests. */
   toastQueue?: ToastQueue
+}
+
+/**
+ * SkeletonBoard — loading placeholder with column outlines.
+ * Shown briefly while terminal dimensions are being detected.
+ */
+function SkeletonBoard({ width, height }: { width: number; height: number }): React.ReactElement {
+  const colWidth = 30
+  const colCount = Math.max(1, Math.floor((width - 1) / (colWidth + 1)))
+  const cardHeight = 3 // border top + content + border bottom
+  const cardsPerCol = Math.max(1, Math.floor((height - 4) / cardHeight))
+
+  return (
+    <Box height={height} width={width} flexDirection="row" gap={1}>
+      {Array.from({ length: colCount }, (_, ci) => (
+        <Box key={ci} flexDirection="column" width={colWidth}>
+          {/* Column header */}
+          <Box height={1}>
+            <Text dimColor wrap="truncate">
+              {"░".repeat(8 + ((ci * 3) % 5))}
+            </Text>
+          </Box>
+          {/* Skeleton cards */}
+          {Array.from({ length: cardsPerCol }, (_, ri) => (
+            <Box key={ri} borderStyle="round" borderDimColor width={colWidth} height={cardHeight}>
+              <Text dimColor wrap="truncate">
+                {"░".repeat(6 + ((ri * 5 + ci * 7) % 12))}
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </Box>
+  )
 }
 
 /**
@@ -221,7 +258,8 @@ export function BoardCore({
   const boardWidth = termWidth - detailPaneWidth
 
   // Calculate content area height - space between top and bottom bars
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT
+  const SYNC_PANE_HEIGHT = 6
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = 3
@@ -238,12 +276,7 @@ export function BoardCore({
 
   // Render loading skeleton until terminal is ready
   if (!ui.isReady) {
-    return (
-      <Box height={termHeight} width={termWidth} flexDirection="column">
-        <Text dimColor>{"░".repeat(Math.min(20, termWidth - 2))}</Text>
-        <Text dimColor>{"░".repeat(Math.min(12, termWidth - 2))}</Text>
-      </Box>
-    )
+    return <SkeletonBoard width={termWidth} height={termHeight} />
   }
 
   return (
@@ -422,6 +455,8 @@ export function BoardCore({
         </Box>
         {/* Toast stack - bottom-right corner */}
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
+        {/* Sync activity pane (above bottom bar) */}
+        {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
         {/* Bottom bar (includes status messages) */}
         <BottomBar
           ui={ui}
@@ -711,13 +746,14 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => createFileDropHandler(setUI), [setUI])
   useEffect(() => createWatcherStatusHandler(setUI, toastQueue), [setUI, toastQueue])
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
+  useEffect(() => createSyncEventCollector(setUI), [setUI])
 
   // NO useInput — keys handled by term:key in board-app.ts
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
     () => deriveTreeConfig(ui),
-    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex, ui.iconStyle],
+    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.inOutlineMode, ui.subIndex, ui.iconStyle, ui.borderMode],
   )
 
   return (

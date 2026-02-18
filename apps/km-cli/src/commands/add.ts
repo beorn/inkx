@@ -11,7 +11,6 @@
  * km add #urgent TASKID        # Link task to #urgent + add #urgent sigil
  * km add myboard TASKID        # Link only (no sigil — not a sigil target)
  */
-
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
@@ -28,6 +27,14 @@ interface AddOptions {
   dryRun?: boolean
   json?: boolean
   force?: boolean
+  quiet?: boolean
+}
+
+/** Show phase completion with timing */
+function phaseOk(label: string, detail?: string, startMs?: number): void {
+  const timing = startMs != null ? ` ${term.dim(`${Date.now() - startMs}ms`)}` : ""
+  const suffix = detail ? ` ${term.dim(`(${detail})`)}` : ""
+  console.log(`${term.green("✔")} ${label}${suffix}${timing}`)
 }
 
 // Sigil prefix → data key mapping
@@ -89,6 +96,7 @@ export const addCommand = new Command("add")
   .option("--dry-run", "Preview without making changes")
   .option("--json", "Output as JSON")
   .option("--force", "Re-add tasks even if already linked on the target board")
+  .option("--quiet", "Suppress progress output")
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
   .action(async (target: string, sources: string[], options: AddOptions) => {
     // Detect sigil target (@next, +project, #tag)
@@ -98,6 +106,8 @@ export const addCommand = new Command("add")
     const sigilPrefix = sigilMatch?.[1] ?? null
     const sigilName = sigilMatch?.[2] ?? null
     const sigilStr = sigilMatch?.[0] ?? null
+
+    const verbose = !options.json && !options.quiet && process.stdout.isTTY
 
     // Resolve target path argument - may detect repo root
     const resolvedTarget = resolvePathArg(target, getRootPath())
@@ -109,14 +119,17 @@ export const addCommand = new Command("add")
     }
 
     // Resolve target board/container
+    let t0 = Date.now()
     const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
       console.error(term.red(`Target not found: ${target}`))
       console.error(term.dim("Use ID, path, or filename (e.g., @next, @someday)"))
       process.exit(1)
     }
+    if (verbose) phaseOk("Resolve target", targetNode.content?.slice(0, 40) || target, t0)
 
     // Collect candidate tasks
+    t0 = Date.now()
     const candidates: KNode[] = []
 
     for (const source of sources) {
@@ -168,6 +181,8 @@ export const addCommand = new Command("add")
       console.warn(term.yellow(`No tasks found for: ${source}`))
     }
 
+    if (verbose) phaseOk("Query tasks", `${candidates.length} found`, t0)
+
     if (candidates.length === 0) {
       console.log(term.yellow("No tasks to add"))
       process.exit(0)
@@ -175,6 +190,7 @@ export const addCommand = new Command("add")
 
     // Find the default column (section with data.rules.default=true)
     // Falls back to the first section if no explicit default is set
+    t0 = Date.now()
     let actualTarget = targetNode
     const findDefaultSection = (parentId: string): KNode | undefined => {
       const children = repo.getChildren(parentId)
@@ -241,6 +257,14 @@ export const addCommand = new Command("add")
       }
     }
 
+    if (verbose) {
+      const parts = []
+      if (tasksToLink.length > 0) parts.push(`${tasksToLink.length} to link`)
+      if (tasksToSigil.length > 0) parts.push(`${tasksToSigil.length} to tag`)
+      if (skipped.length > 0) parts.push(`${skipped.length} skipped`)
+      phaseOk("Dedup", parts.join(", "), t0)
+    }
+
     if (tasksToLink.length === 0 && tasksToSigil.length === 0 && skipped.length > 0) {
       console.log(term.yellow(`All ${skipped.length} task(s) already linked (use --force to re-add)`))
       process.exit(0)
@@ -282,6 +306,7 @@ export const addCommand = new Command("add")
     const sourceFileSyncIds = new Set<string>()
 
     // Create link nodes + append sigils inside deferred FS
+    t0 = Date.now()
     repo.withDeferredFs(() => {
       // Create link nodes
       for (const task of tasksToLink) {
@@ -324,12 +349,19 @@ export const addCommand = new Command("add")
       }
     })
 
+    if (verbose) phaseOk("Create links", `${tasksToLink.length}/${tasksToLink.length}`, t0)
+
     // Sync target board file
+    t0 = Date.now()
     repo.syncToFs(actualTarget.id)
 
     // Sync source task files that had sigils appended
     for (const id of sourceFileSyncIds) {
       repo.syncToFs(id)
+    }
+    if (verbose) {
+      const syncCount = 1 + sourceFileSyncIds.size
+      phaseOk("Sync to disk", `${syncCount} file${syncCount !== 1 ? "s" : ""}`, t0)
     }
 
     const sigilCount = tasksToSigil.filter((t) => !t.link_to).length

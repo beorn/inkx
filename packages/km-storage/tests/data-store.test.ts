@@ -59,15 +59,13 @@ function testDataStore(name: string, factory: () => DataStore) {
         const id = store.addNode(null, {
           type: "li",
           content: "Test",
-          due_date: "2026-03-01",
-          due_time: "09:00",
-          scheduled_time: "10:30",
+          due_at: "2026-03-01T09:00",
+          start_at: "2026-03-01T10:30",
         } as Partial<import("@km/core").KNode>)
 
         const node = store.getNode(id)
-        expect(node?.due_date).toBe("2026-03-01")
-        expect(node?.due_time).toBe("09:00")
-        expect(node?.scheduled_time).toBe("10:30")
+        expect(node?.due_at).toBe("2026-03-01T09:00")
+        expect(node?.start_at).toBe("2026-03-01T10:30")
       })
 
       test("sets task defaults for task type", () => {
@@ -174,12 +172,12 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("routes non-column fields to data blob", () => {
         const id = store.addNode(null, { type: "li", content: "Test" })
-        store.updateNode(id, { due_date: "2026-03-01", due_time: "14:30" } as Record<string, unknown>)
+        store.updateNode(id, { due_at: "2026-03-01T14:30", recurrence: "weekly" } as Record<string, unknown>)
 
         const node = store.getNode(id)
-        expect(node?.due_date).toBe("2026-03-01")
-        // due_time is stored in data blob and extracted by rowToNode
-        expect(node?.due_time).toBe("14:30")
+        expect(node?.due_at).toBe("2026-03-01T14:30")
+        // recurrence is stored in data blob and extracted by rowToNode
+        expect(node?.recurrence).toBe("weekly")
       })
     })
 

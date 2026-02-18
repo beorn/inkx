@@ -9,16 +9,16 @@ describe("mapFieldName", () => {
     expect(mapFieldName("status")).toBe("task_status")
   })
 
-  test("normalizes 'due' to 'due_date'", () => {
-    expect(mapFieldName("due")).toBe("due_date")
+  test("normalizes 'due' to 'due_at'", () => {
+    expect(mapFieldName("due")).toBe("due_at")
   })
 
-  test("normalizes 'start' to 'scheduled_date'", () => {
-    expect(mapFieldName("start")).toBe("scheduled_date")
+  test("normalizes 'start' to 'start_at'", () => {
+    expect(mapFieldName("start")).toBe("start_at")
   })
 
-  test("normalizes 'scheduled' to 'scheduled_date'", () => {
-    expect(mapFieldName("scheduled")).toBe("scheduled_date")
+  test("normalizes 'scheduled' to 'start_at'", () => {
+    expect(mapFieldName("scheduled")).toBe("start_at")
   })
 
   test("normalizes 'assigned' to 'assigned_to'", () => {
@@ -41,8 +41,8 @@ describe("mapFieldName", () => {
     expect(mapFieldName("STATUS")).toBe("task_status")
   })
 
-  test("is case-insensitive: 'Due' to 'due_date'", () => {
-    expect(mapFieldName("Due")).toBe("due_date")
+  test("is case-insensitive: 'Due' to 'due_at'", () => {
+    expect(mapFieldName("Due")).toBe("due_at")
   })
 
   test("unknown fields returned unchanged", () => {
@@ -79,7 +79,7 @@ describe("parseQuery - field conditions", () => {
     const ast = parseQuery("due:2026-01-21")
     expect(ast.conditions).toHaveLength(1)
     expect(ast.conditions[0]).toMatchObject({
-      field: "due_date",
+      field: "due_at",
       op: "=",
       value: "2026-01-21",
     })

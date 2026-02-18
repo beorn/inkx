@@ -76,11 +76,35 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
     if (parentNode) {
       saveNavHistory(ctx)
 
-      // When zooming out, keep the current root as the cursor
+      // Determine best cursor target after zoom out.
+      // Visible nodes in zoomed-out view: children (columns) and grandchildren (cards) of parentNode.
+      // Keep cursor on current node if it would be visible; otherwise use the column
+      // the cursor was in (becomes a card); otherwise fall back to old root (becomes a column).
+      const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
+      const col = layout.columns[layout.colIndex]
+      let cursorTarget = ctx.rootId // fallback: old root (always a column)
+
+      if (cursorNode) {
+        const cursorParent = cursorNode.parent_id
+        const cursorGrandparent = cursorParent ? ctx.repo.getNode(cursorParent)?.parent_id : null
+        // Cursor is a child of new root (will be a column) — visible
+        if (cursorParent === parentNode.id) {
+          cursorTarget = ctx.cursorNodeId
+        }
+        // Cursor is a grandchild of new root (will be a card) — visible
+        else if (cursorGrandparent === parentNode.id) {
+          cursorTarget = ctx.cursorNodeId
+        }
+        // Cursor not directly visible — try the column it was in (becomes a card under old root)
+        else if (col) {
+          cursorTarget = col.node.id
+        }
+      }
+
       dispatchBoard({
         type: "ZOOM_IN",
         nodeId: parentNode.id,
-        cursorNodeId: ctx.rootId,
+        cursorNodeId: cursorTarget,
       })
       clearSelection(ctx)
       return ok()

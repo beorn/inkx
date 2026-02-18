@@ -37,6 +37,7 @@ import { truncateText } from "../layout/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
+import { BodyEditField } from "./BodyEditField.tsx"
 import {
   getNodeStyle,
   buildPrefix,
@@ -122,10 +123,8 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (
     prev.node.content !== next.node.content ||
     prev.node.task_status !== next.node.task_status ||
-    prev.node.due_date !== next.node.due_date ||
-    prev.node.due_time !== next.node.due_time ||
-    prev.node.scheduled_date !== next.node.scheduled_date ||
-    prev.node.scheduled_time !== next.node.scheduled_time ||
+    prev.node.due_at !== next.node.due_at ||
+    prev.node.start_at !== next.node.start_at ||
     prev.node.priority !== next.node.priority ||
     prev.node.recurrence !== next.node.recurrence ||
     prev.node.assigned_to !== next.node.assigned_to ||
@@ -254,9 +253,9 @@ function TreeNodeImpl({
   }, [
     displayNode.id,
     displayNode.task_status,
-    displayNode.due_date,
+    displayNode.due_at,
     displayNode.priority,
-    displayNode.scheduled_date,
+    displayNode.start_at,
     displayNode.assigned_to,
     displayNode.recurrence,
     isSelected,
@@ -464,8 +463,10 @@ function TreeNodeImpl({
   }, [displayNode.id, repo, setUI, undoHandle])
 
   // When selected (yellow bg), strip ANSI color codes from styled content
-  // so all text renders as black-on-yellow for readability
+  // so all text renders as black-on-yellow for readability.
+  // Also strip colors for done/dropped tasks — colored dates/priorities aren't meaningful.
   const isHighlighted = isSelected || isMultiSelected
+  const shouldStripColor = isHighlighted || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
   const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
@@ -502,14 +503,7 @@ function TreeNodeImpl({
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
   const dateBadge = useMemo(
     () => formatDateBadge(displayNode),
-    [
-      displayNode.due_date,
-      displayNode.due_time,
-      displayNode.scheduled_date,
-      displayNode.scheduled_time,
-      displayNode.priority,
-      displayNode.recurrence,
-    ],
+    [displayNode.due_at, displayNode.start_at, displayNode.priority, displayNode.recurrence],
   )
 
   // Parent context for embedded tasks - use prop or default implementation
@@ -617,7 +611,15 @@ function TreeNodeImpl({
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
             <Text color={style.textColor} dimColor={style.shouldDim}>
-              <Text color={isSelected || isMultiSelected ? style.textColor : prefix.markerColor}>
+              <Text
+                color={
+                  isSelected || isMultiSelected
+                    ? style.textColor
+                    : style.isDoneOrDropped
+                      ? undefined
+                      : prefix.markerColor
+                }
+              >
                 {prefix.markerChar}
               </Text>
               {prefix.afterMarker}
@@ -655,7 +657,7 @@ function TreeNodeImpl({
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
-                {isHighlighted ? stripFgColor(styledContent) : styledContent}
+                {shouldStripColor ? stripFgColor(styledContent) : styledContent}
                 {sigilName && (
                   <>
                     {" "}
@@ -663,7 +665,7 @@ function TreeNodeImpl({
                   </>
                 )}
                 {!childrenHidden && infoSuffix && (
-                  <Text dimColor={!isHighlighted}>{isHighlighted ? stripFgColor(infoSuffix) : infoSuffix}</Text>
+                  <Text dimColor={!isHighlighted}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
                 )}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={!isHighlighted} italic>
@@ -675,11 +677,11 @@ function TreeNodeImpl({
           </Box>
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
           {/* Hidden during inline editing — metadata is shown in the editable text */}
-          {dateBadge && !isInlineEditing && (
+          {dateBadge && !isInlineEditing && !style.isDoneOrDropped && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
                 {" "}
-                {isHighlighted ? stripFgColor(dateBadge) : dateBadge}
+                {shouldStripColor ? stripFgColor(dateBadge) : dateBadge}
               </Text>
             </Box>
           )}
@@ -706,7 +708,7 @@ function TreeNodeImpl({
                 {"  "}
               </Text>
               {isActiveBlock ? (
-                <InlineEditField
+                <BodyEditField
                   initialValue={child.content ?? ""}
                   onConfirm={(v) => {
                     handleBlockSave(child.id, v)

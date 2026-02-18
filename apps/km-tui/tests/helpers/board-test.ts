@@ -408,7 +408,8 @@ export function testEnv(
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Render Board with StoreContext.Provider for L3 mode
-  const render = createRenderer({ cols: columns, rows })
+  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
@@ -1143,6 +1144,190 @@ export function testEnv(
     },
 
     /**
+     * Assert that text within a node is truncated (doesn't overflow its bounding box).
+     * Checks that no non-space characters appear beyond the node's right edge.
+     * Useful for verifying wrap="truncate" and overflow="hidden" behavior.
+     *
+     * @example
+     * ```typescript
+     * board.expectTextNotOverflowing("col1-header")
+     * ```
+     */
+    expectTextNotOverflowing(nodeId: string) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+
+      // Check that no non-space chars appear in the row(s) beyond the node's right edge
+      const rightEdge = box.x + box.width
+      for (let y = box.y; y < box.y + box.height && y < rows; y++) {
+        // Only check between rightEdge and the next visible element or screen edge
+        // We check a few cells past the edge to catch overflow
+        const checkEnd = Math.min(rightEdge + 3, columns)
+        for (let x = rightEdge; x < checkEnd; x++) {
+          const ch = result.term.cell(x, y).char
+          // Space, empty, and border chars are fine past the edge
+          const BORDER_CHARS = new Set("─═│║┌┐└┘╭╮╰╯┬┴├┤╔╗╚╝")
+          if (ch !== " " && ch !== "" && !BORDER_CHARS.has(ch)) {
+            expect.fail(
+              `text overflow: node "${nodeId}" has char "${ch}" at (${x},${y}), ` +
+                `${x - box.x - box.width + 1}px past right edge (rightEdge=${rightEdge})`,
+            )
+          }
+        }
+      }
+
+      return board
+    },
+
+    /**
+     * Assert that columns are vertically aligned — each column's left edge
+     * matches the expected position based on equal-width distribution.
+     * Catches layout bugs where columns shift or overlap.
+     *
+     * @example
+     * ```typescript
+     * board.expectColumnsAligned(["col1", "col2", "col3"])
+     * ```
+     */
+    expectColumnsAligned(columnIds: string[]) {
+      if (columnIds.length < 2) return board
+
+      const boxes = columnIds.map((id) => {
+        const loc = result.locator(`[id="${id}"]`)
+        expect(loc.count(), `column "${id}" exists`).toBeGreaterThan(0)
+        return { id, box: loc.boundingBox() }
+      })
+
+      // All columns should exist
+      for (const { id, box } of boxes) {
+        expect(box, `column "${id}" has boundingBox`).not.toBeNull()
+      }
+
+      const validBoxes = boxes.filter((b) => b.box != null) as {
+        id: string
+        box: NonNullable<(typeof boxes)[0]["box"]>
+      }[]
+      if (validBoxes.length < 2) return board
+
+      // Columns should be sorted left-to-right
+      const sorted = [...validBoxes].sort((a, b) => a.box.x - b.box.x)
+      for (let i = 0; i < sorted.length; i++) {
+        expect(sorted[i]!.id, `column order: position ${i} should be ${columnIds[i]}`).toBe(columnIds[i])
+      }
+
+      // No overlap: each column's left edge >= previous column's right edge
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1]!
+        const curr = sorted[i]!
+        expect(
+          curr.box.x >= prev.box.x + prev.box.width,
+          `columns "${prev.id}" and "${curr.id}" overlap: ` +
+            `"${prev.id}" ends at x=${prev.box.x + prev.box.width}, "${curr.id}" starts at x=${curr.box.x}`,
+        ).toBe(true)
+      }
+
+      // Consistent height: all columns should have the same height (±1 for rounding)
+      const heights = validBoxes.map((b) => b.box.height)
+      const maxH = Math.max(...heights)
+      const minH = Math.min(...heights)
+      expect(
+        maxH - minH <= 1,
+        `column heights differ: ${validBoxes.map((b) => `"${b.id}"=${b.box.height}`).join(", ")}`,
+      ).toBe(true)
+
+      return board
+    },
+
+    /**
+     * Assert that a node's text content is visually truncated —
+     * the rendered text is shorter than the full node text.
+     * The node must have a bounding box narrower than its full text.
+     *
+     * @example
+     * ```typescript
+     * board.expectTextTruncated("long-title-node")
+     * ```
+     */
+    expectTextTruncated(nodeId: string) {
+      const loc = result.locator(`[id="${nodeId}"]`)
+      expect(loc.count(), `node "${nodeId}" exists`).toBeGreaterThan(0)
+      const box = loc.boundingBox()
+      expect(box, `node "${nodeId}" has boundingBox`).not.toBeNull()
+      if (!box) return board
+
+      const fullText = loc.textContent()
+      // If the full text fits in the box width, it's not truncated
+      if (fullText.length <= box.width) return board
+
+      // Read the actual rendered text from the buffer at the node's position
+      let renderedText = ""
+      for (let x = box.x; x < box.x + box.width && x < columns; x++) {
+        renderedText += result.term.cell(x, box.y).char
+      }
+      renderedText = renderedText.trimEnd()
+
+      // The rendered text should be shorter than the full text
+      expect(
+        renderedText.length < fullText.length,
+        `expected text truncation for "${nodeId}": rendered "${renderedText}" (${renderedText.length} chars) ` +
+          `but full text "${fullText}" (${fullText.length} chars) fits in width ${box.width}`,
+      ).toBe(true)
+
+      return board
+    },
+
+    /**
+     * Assert that the screen has no unexpected horizontal gaps —
+     * no row within the content area is completely blank when it shouldn't be.
+     * More intelligent than expectNoBlankLine: skips rows that are
+     * legitimately blank (below all content, status bar separators).
+     *
+     * @param contentRows - Number of rows that should contain content (default: rows - 1 for status bar)
+     *
+     * @example
+     * ```typescript
+     * board.expectNoContentGaps()
+     * board.expectNoContentGaps(20) // Only check first 20 rows
+     * ```
+     */
+    expectNoContentGaps(contentRows?: number) {
+      const checkRows = contentRows ?? rows - 1 // Default: all but status bar
+
+      // Find the last row that has any non-space content
+      let lastContentRow = 0
+      for (let y = 0; y < checkRows && y < rows; y++) {
+        for (let x = 0; x < columns; x++) {
+          const ch = result.term.cell(x, y).char
+          if (ch !== " " && ch !== "") {
+            lastContentRow = y
+            break
+          }
+        }
+      }
+
+      // Check for blank rows within the content area (row 0 to lastContentRow)
+      for (let y = 0; y <= lastContentRow; y++) {
+        let allBlank = true
+        for (let x = 0; x < columns; x++) {
+          const ch = result.term.cell(x, y).char
+          if (ch !== " " && ch !== "") {
+            allBlank = false
+            break
+          }
+        }
+        expect(
+          !allBlank,
+          `unexpected content gap: row ${y} is blank within content area (last content at row ${lastContentRow})`,
+        ).toBe(true)
+      }
+
+      return board
+    },
+
+    /**
      * Compare current incremental render buffer against a fresh render.
      * For each mismatch, reports position, incremental cell, and fresh cell.
      *
@@ -1277,7 +1462,8 @@ export function testEnvWithRepo(
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Render Board with StoreContext.Provider for L3 mode
-  const render = createRenderer({ cols: columns, rows })
+  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,
@@ -1964,7 +2150,8 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
   // Create a fake repo for static rendering tests
   const repo = createFakeRepo()
 
-  const render = createRenderer({ cols: columns, rows })
+  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardCoreElement = React.createElement(BoardCore, {
     state,
     layout: {
@@ -2090,7 +2277,8 @@ export function renderBoardWithStore(
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
-  const renderFn = options.render ?? createRenderer({ cols: columns, rows })
+  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  const renderFn = options.render ?? createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
     initialState,
     initialViewMode: viewMode,

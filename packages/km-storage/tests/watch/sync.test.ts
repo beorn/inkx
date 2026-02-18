@@ -161,13 +161,13 @@ Some content here.
 
         expect(tasks.length).toBe(4)
 
-        const dueTask = tasks.find((t) => t.due_date === "2025-03-15")
+        const dueTask = tasks.find((t) => t.due_at === "2025-03-15")
         expect(dueTask).toBeDefined()
 
         const highPriorityTask = tasks.find((t) => t.priority === 1)
         expect(highPriorityTask).toBeDefined()
 
-        const scheduledTask = tasks.find((t) => t.scheduled_date === "2025-03-10")
+        const scheduledTask = tasks.find((t) => t.start_at === "2025-03-10")
         expect(scheduledTask).toBeDefined()
       }))
 

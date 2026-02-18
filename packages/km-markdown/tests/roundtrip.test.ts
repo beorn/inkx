@@ -490,12 +490,12 @@ describe("Round-trip: Content Preservation Verification", () => {
     const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(task).toBeDefined()
-    expect(task!.due_date).toBe("2025-12-25")
+    expect(task!.due_at).toBe("2025-12-25")
     expect(task!.priority).toBe(1)
 
     // After round-trip, metadata should be preserved
     const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "li" && n.task_marker)
-    expect(task2!.due_date).toBe("2025-12-25")
+    expect(task2!.due_at).toBe("2025-12-25")
     expect(task2!.priority).toBe(1)
   })
 
@@ -750,8 +750,8 @@ describe("Round-trip: Task Metadata Formats", () => {
     const task = nodes.find((n) => n.type === "li" && n.task_marker)
 
     expect(task).toBeDefined()
-    expect(task!.due_date).toBe("2025-12-25")
-    expect(task!.scheduled_date).toBe("2025-12-20")
+    expect(task!.due_at).toBe("2025-12-25")
+    expect(task!.start_at).toBe("2025-12-20")
     expect(task!.priority).toBe(1)
 
     const output = nodesToMarkdown(nodes)
@@ -772,8 +772,8 @@ describe("Round-trip: Task Metadata Formats", () => {
     )
 
     expect(task).toBeDefined()
-    expect(task!.due_date).toBe("2025-11-15")
-    expect(task!.scheduled_date).toBe("2025-11-10")
+    expect(task!.due_at).toBe("2025-11-15")
+    expect(task!.start_at).toBe("2025-11-10")
     expect(task!.priority).toBe(2)
   })
 

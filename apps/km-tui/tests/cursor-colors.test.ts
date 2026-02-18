@@ -26,7 +26,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // Create a task with a due date far enough in the future to show as a short date
     const nodes = item("board", item("col1", item.task("dateTask")))
     const taskNode = nodes.find((n) => n.content === "dateTask")!
-    taskNode.due_date = "2026-04-15" // Far future date -> "Apr 15"
+    taskNode.due_at = "2026-04-15" // Far future date -> "Apr 15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -80,7 +80,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // Create two tasks, second one with a date
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("secondTask")))
     const secondTask = nodes.find((n) => n.content === "secondTask")!
-    secondTask.due_date = "2026-04-15"
+    secondTask.due_at = "2026-04-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -103,7 +103,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
 
 describe("date badge colors (km-tui.date-not-dim)", () => {
   it("formatDateBadge colorizes scheduled date for today", () => {
-    // Create a node with scheduled_date = today and due_date = tomorrow
+    // Create a node with start_at = today and due_at = tomorrow
     const today = new Date()
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -112,8 +112,8 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
     const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`
 
     const badge = formatDateBadge({
-      scheduled_date: todayStr,
-      due_date: tomorrowStr,
+      start_at: todayStr,
+      due_at: tomorrowStr,
     } as KNode)
 
     // The badge should contain ANSI green for "Today" (scheduled date)
@@ -135,8 +135,8 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
     const futureStr = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, "0")}-${String(futureDate.getDate()).padStart(2, "0")}`
 
     const badge = formatDateBadge({
-      scheduled_date: tomorrowStr,
-      due_date: futureStr,
+      start_at: tomorrowStr,
+      due_at: futureStr,
     } as KNode)
 
     // The scheduled "Tomorrow" part should have green coloring
@@ -155,8 +155,8 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
     const nextMonthStr = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-${String(nextMonth.getDate()).padStart(2, "0")}`
 
     const badge = formatDateBadge({
-      scheduled_date: nextWeekStr,
-      due_date: nextMonthStr,
+      start_at: nextWeekStr,
+      due_at: nextMonthStr,
     } as KNode)
 
     // Future scheduled date should NOT have ANSI color codes around it
@@ -175,7 +175,7 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
     const badge = formatDateBadge({
-      scheduled_date: todayStr,
+      start_at: todayStr,
     } as KNode)
 
     const GREEN = "\x1b[32m"
@@ -285,7 +285,7 @@ describe("cursor color override", () => {
     const nodes = item("board", item("col1", item.task("Important task")))
     const taskNode = nodes.find((n) => n.content === "Important task")!
     taskNode.priority = 1
-    taskNode.due_date = "2025-01-01"
+    taskNode.due_at = "2025-01-01"
 
     const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
 
@@ -374,7 +374,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
   it("date badge on selected card is black (fg=0) on yellow (bg=3)", () => {
     const nodes = item("board", item("col1", item.task("taskWithDate")))
     const taskNode = nodes.find((n) => n.content === "taskWithDate")!
-    taskNode.due_date = "2026-04-15"
+    taskNode.due_at = "2026-04-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -416,8 +416,8 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
 
     const nodes = item("board", item("col1", item.task("rangeTask")))
     const taskNode = nodes.find((n) => n.content === "rangeTask")!
-    taskNode.scheduled_date = todayStr
-    taskNode.due_date = tomorrowStr
+    taskNode.start_at = todayStr
+    taskNode.due_at = tomorrowStr
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -446,7 +446,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
   it("overdue date on non-selected card shows red (fg=1)", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("overdueTask")))
     const overdueTask = nodes.find((n) => n.content === "overdueTask")!
-    overdueTask.due_date = "2025-01-01" // Past date — overdue
+    overdueTask.due_at = "2025-01-01" // Past date — overdue
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -471,7 +471,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
 
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("todayTask")))
     const todayTask = nodes.find((n) => n.content === "todayTask")!
-    todayTask.due_date = todayStr
+    todayTask.due_at = todayStr
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -492,7 +492,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
   it("future date on non-selected card does not show green or red", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("futureTask")))
     const futureTask = nodes.find((n) => n.content === "futureTask")!
-    futureTask.due_date = "2026-12-15" // Far future
+    futureTask.due_at = "2026-12-15" // Far future
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -510,5 +510,131 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     // Future date should NOT be red (1) or green (2)
     expect(cell.fg, "future date should not be red").not.toEqual(1)
     expect(cell.fg, "future date should not be green").not.toEqual(2)
+  })
+})
+
+describe("km-tui.done-style: completed task date badge hidden, title dimmed", () => {
+  it("done task hides date badge entirely (saves space, not relevant)", () => {
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneOverdue")))
+    const doneTask = nodes.find((n) => n.content === "doneOverdue")!
+    doneTask.due_at = "2025-01-01" // Past date — would show "Jan 1" on a todo task
+    doneTask.task_status = "done"
+    doneTask.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    board.expect('[id="firstTask"][data-cursor]').toExist()
+
+    const nodeBox = board.screen.nodeBox("doneOverdue")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    // Date should NOT appear anywhere on the done task's row
+    const row = board.screen.row(nodeBox.y)
+    expect(row.indexOf("Jan"), "done task should not show date 'Jan'").toBe(-1)
+  })
+
+  it("done task with priority hides date badge (including priority)", () => {
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("donePrio")))
+    const doneTask = nodes.find((n) => n.content === "donePrio")!
+    doneTask.priority = 1
+    doneTask.due_at = "2025-01-01"
+    doneTask.task_status = "done"
+    doneTask.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    const nodeBox = board.screen.nodeBox("donePrio")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+    // "P1" should not appear — content is "donePrio" which doesn't contain "P1"
+    expect(row.indexOf("P1"), "done task should not show priority badge").toBe(-1)
+  })
+
+  it("todo task DOES show date badge with colors", () => {
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("todoDate")))
+    const todoTask = nodes.find((n) => n.content === "todoDate")!
+    todoTask.due_at = "2026-04-15" // Future date
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    const nodeBox = board.screen.nodeBox("todoDate")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+    expect(row.indexOf("Apr"), "todo task should show date").toBeGreaterThan(-1)
+  })
+
+  it("done task title is dimmed", () => {
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneTitle")))
+    const doneTask = nodes.find((n) => n.content === "doneTitle")!
+    doneTask.task_status = "done"
+    doneTask.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    const nodeBox = board.screen.nodeBox("doneTitle")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+    const titleIdx = row.indexOf("doneTitle")
+    expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
+    const titleCell = board.screen.cell(titleIdx, nodeBox.y)
+    expect(titleCell.attrs.dim, "done task title should be dimmed").toBe(true)
+  })
+
+  it("dropped task also hides date badge and dims title", () => {
+    // Dropped tasks get the same treatment as done tasks
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("droppedTask")))
+    const droppedTask = nodes.find((n) => n.content === "droppedTask")!
+    droppedTask.due_at = "2025-01-01"
+    droppedTask.priority = 2
+    droppedTask.task_status = "dropped"
+    droppedTask.task_marker = "[-]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    const nodeBox = board.screen.nodeBox("droppedTask")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+
+    // Date badge should be hidden
+    expect(row.indexOf("Jan"), "dropped task should not show date").toBe(-1)
+    expect(row.indexOf("P2"), "dropped task should not show priority").toBe(-1)
+
+    // Title should be dimmed
+    const titleIdx = row.indexOf("droppedTask")
+    expect(titleIdx, "title should be visible").toBeGreaterThan(-1)
+    const titleCell = board.screen.cell(titleIdx, nodeBox.y)
+    expect(titleCell.attrs.dim, "dropped task title should be dimmed").toBe(true)
+  })
+
+  it("done task with inline code has colors stripped (not cyan)", () => {
+    // Regression: done tasks should strip ANSI colors from title content,
+    // including inline code (backtick) which normally renders as cyan.
+    const nodes = item("board", item("col1", item.task("firstTask"), item.task("Fix the `config` bug")))
+    const doneTask = nodes.find((n) => n.content === "Fix the `config` bug")!
+    doneTask.task_status = "done"
+    doneTask.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    const nodeBox = board.screen.nodeBox("Fix the `config` bug")
+    expect(nodeBox).not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+    const configIdx = row.indexOf("config")
+    expect(configIdx, "'config' should be visible").toBeGreaterThan(-1)
+
+    // "config" should NOT be cyan (6) — colors stripped for done tasks
+    const cell = board.screen.cell(configIdx, nodeBox.y)
+    expect(cell.fg, "done task inline code should not be cyan").not.toEqual(6)
   })
 })

@@ -468,39 +468,39 @@ function DateBadgeDemo(): React.ReactElement {
 
   const examples = [
     // Due date relative formatting + urgency coloring
-    { label: "Overdue (3 days ago)", badge: formatDateBadge({ due_date: d(-3) } as KNode) },
-    { label: "Overdue (yesterday)", badge: formatDateBadge({ due_date: d(-1) } as KNode) },
-    { label: "Due today", badge: formatDateBadge({ due_date: d(0) } as KNode) },
-    { label: "Due tomorrow", badge: formatDateBadge({ due_date: d(1) } as KNode) },
-    { label: "Due in 2 days", badge: formatDateBadge({ due_date: d(2) } as KNode) },
-    { label: "Due in 4 days", badge: formatDateBadge({ due_date: d(4) } as KNode) },
-    { label: "Due in 6 days", badge: formatDateBadge({ due_date: d(6) } as KNode) },
-    { label: "Due in 10 days", badge: formatDateBadge({ due_date: d(10) } as KNode) },
+    { label: "Overdue (3 days ago)", badge: formatDateBadge({ due_at: d(-3) } as KNode) },
+    { label: "Overdue (yesterday)", badge: formatDateBadge({ due_at: d(-1) } as KNode) },
+    { label: "Due today", badge: formatDateBadge({ due_at: d(0) } as KNode) },
+    { label: "Due tomorrow", badge: formatDateBadge({ due_at: d(1) } as KNode) },
+    { label: "Due in 2 days", badge: formatDateBadge({ due_at: d(2) } as KNode) },
+    { label: "Due in 4 days", badge: formatDateBadge({ due_at: d(4) } as KNode) },
+    { label: "Due in 6 days", badge: formatDateBadge({ due_at: d(6) } as KNode) },
+    { label: "Due in 10 days", badge: formatDateBadge({ due_at: d(10) } as KNode) },
 
     // With priority
-    { label: "P1 overdue", badge: formatDateBadge({ priority: 1, due_date: d(-3) } as KNode) },
-    { label: "P2 due today", badge: formatDateBadge({ priority: 2, due_date: d(0) } as KNode) },
+    { label: "P1 overdue", badge: formatDateBadge({ priority: 1, due_at: d(-3) } as KNode) },
+    { label: "P2 due today", badge: formatDateBadge({ priority: 2, due_at: d(0) } as KNode) },
 
     // With recurrence
-    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_date: d(1), recurrence: "weekly" } as KNode) },
-    { label: "Future ↻", badge: formatDateBadge({ due_date: d(14), recurrence: "monthly" } as KNode) },
+    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_at: d(1), recurrence: "weekly" } as KNode) },
+    { label: "Future ↻", badge: formatDateBadge({ due_at: d(14), recurrence: "monthly" } as KNode) },
 
     // Start date
-    { label: "Start only (future)", badge: formatDateBadge({ scheduled_date: d(3) } as KNode) },
-    { label: "Start → due", badge: formatDateBadge({ scheduled_date: d(2), due_date: d(7) } as KNode) },
+    { label: "Start only (future)", badge: formatDateBadge({ start_at: d(3) } as KNode) },
+    { label: "Start → due", badge: formatDateBadge({ start_at: d(2), due_at: d(7) } as KNode) },
     {
       label: "Start past, WIP (hidden)",
-      badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "wip" } as KNode),
+      badge: formatDateBadge({ start_at: d(-5), due_at: d(3), task_status: "wip" } as KNode),
     },
     {
       label: "Start past, todo (shown)",
-      badge: formatDateBadge({ scheduled_date: d(-5), due_date: d(3), task_status: "todo" } as KNode),
+      badge: formatDateBadge({ start_at: d(-5), due_at: d(3), task_status: "todo" } as KNode),
     },
 
     // Full combo
     {
       label: "P2 start → due ↻",
-      badge: formatDateBadge({ priority: 2, scheduled_date: d(1), due_date: d(7), recurrence: "monthly" } as KNode),
+      badge: formatDateBadge({ priority: 2, start_at: d(1), due_at: d(7), recurrence: "monthly" } as KNode),
     },
 
     // Edge cases
@@ -729,10 +729,8 @@ function mockNode(
     parentId?: string
     linkTo?: string
     linkAlias?: string
-    due_date?: string
-    due_time?: string
-    scheduled_date?: string
-    scheduled_time?: string
+    due_at?: string
+    start_at?: string
     priority?: number
     recurrence?: string
     fstype?: KNode["fstype"]
@@ -762,10 +760,8 @@ function mockNode(
                   : "[ ]") as KNode["task_marker"],
         }
       : {}),
-    due_date: options?.due_date,
-    due_time: options?.due_time,
-    scheduled_date: options?.scheduled_date,
-    scheduled_time: options?.scheduled_time,
+    due_at: options?.due_at,
+    start_at: options?.start_at,
     priority: options?.priority,
     recurrence: options?.recurrence,
     data: {},
@@ -816,24 +812,23 @@ function Layer3Views(): React.ReactElement {
   // Tasks with date badges
   const overdueTask = mockNode("dated-1", "Overdue payment", "todo", "li", {
     priority: 1,
-    due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
+    due_at: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
   })
   const dueTodayTask = mockNode("dated-2", "Submit report", "wip", "li", {
     priority: 2,
-    due_date: new Date().toISOString().slice(0, 10),
-    due_time: "17:00",
+    due_at: `${new Date().toISOString().slice(0, 10)}T17:00`,
   })
   const dueWeekTask = mockNode("dated-3", "Review design docs", "todo", "li", {
-    due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+    due_at: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
   })
   const recurringTask = mockNode("dated-4", "Weekly standup", "todo", "li", {
-    due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    due_at: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
     recurrence: "weekly",
   })
   const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "li", {
     priority: 2,
-    scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-    due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+    start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+    due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
     recurrence: "monthly",
   })
 
@@ -1435,7 +1430,7 @@ function VisualLanguageSection(): React.ReactElement {
         {...commonProps}
         node={mockNode("db-1", "Overdue payment", "todo", "li", {
           priority: 1,
-          due_date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
+          due_at: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
         })}
         isSelected={false}
       />
@@ -1446,8 +1441,7 @@ function VisualLanguageSection(): React.ReactElement {
         {...commonProps}
         node={mockNode("db-2", "Submit report", "wip", "li", {
           priority: 2,
-          due_date: new Date().toISOString().slice(0, 10),
-          due_time: "17:00",
+          due_at: `${new Date().toISOString().slice(0, 10)}T17:00`,
         })}
         isSelected={false}
       />
@@ -1457,7 +1451,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-3", "Review design docs", "todo", "li", {
-          due_date: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
+          due_at: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         })}
         isSelected={false}
       />
@@ -1467,7 +1461,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-4", "Weekly standup", "todo", "li", {
-          due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+          due_at: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
           recurrence: "weekly",
         })}
         isSelected={false}
@@ -1479,8 +1473,8 @@ function VisualLanguageSection(): React.ReactElement {
         {...commonProps}
         node={mockNode("db-5", "Launch feature", "wip", "li", {
           priority: 2,
-          scheduled_date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-          due_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+          due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
           recurrence: "monthly",
         })}
         isSelected={false}

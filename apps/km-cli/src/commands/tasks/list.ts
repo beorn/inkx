@@ -279,9 +279,9 @@ function showTaskDetails(repo: Repo, task: KNode, options: { json?: boolean }): 
   console.log(term.bold("Task:"), task.id)
   console.log(term.dim("Status:"), task.task_status ?? "todo")
   console.log(term.dim("Content:"), task.content ?? "(none)")
-  if (task.due_date) console.log(term.dim("Due:"), task.due_date)
-  if (task.scheduled_date) {
-    console.log(term.dim("Scheduled:"), task.scheduled_date)
+  if (task.due_at) console.log(term.dim("Due:"), task.due_at)
+  if (task.start_at) {
+    console.log(term.dim("Start:"), task.start_at)
   }
   if (task.priority) console.log(term.dim("Priority:"), task.priority)
   if (task.assigned_to) {

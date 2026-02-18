@@ -19,9 +19,9 @@ const term = createTerm(process)
 
 import { steps } from "@beorn/inkx-ui/progress"
 import { CURSOR_SHOW, write } from "@beorn/inkx-ui/cli"
-import type { ImportData, ImportProject, FileMap } from "../import/types.ts"
+import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana-api.ts"
-import { convert, slugify } from "../import/convert.ts"
+import { convertBatch, slugify } from "../import/convert.ts"
 import { writeFiles } from "../import/write.ts"
 import { getRootPath } from "../program.ts"
 import { ensureAsanaSetup, resetAsanaConfig } from "./import-auth.ts"
@@ -282,18 +282,10 @@ Pipeline:
         console.log(term.dim(`  ${dlResult.skipped} attachment(s) cached`))
       }
 
-      // Stage 3: Convert
-      const convertResult = await steps({
-        convert: () => convert(importData),
-      }).run({ clear: true })
-      const files: FileMap = convertResult.convert
-
-      console.log(term.dim(`  ${files.size} file(s) to write`))
-
-      // Stage 4: Write
+      // Stage 3+4: Convert and write (streaming, one project at a time)
       console.log(term.cyan(options.dryRun ? "Dry run:" : "Writing to"), outDir)
 
-      const { written, skipped } = writeFiles(files, {
+      const { written, skipped } = writeFiles(convertBatch(importData), {
         outDir,
         dryRun: options.dryRun,
         force: options.force,

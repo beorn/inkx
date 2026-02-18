@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   assigned_to TEXT,
   due_at TEXT,       -- ISO 8601: "2026-02-20" or "2026-02-20T14:00"
   start_at TEXT,     -- ISO 8601: same format as due_at
-  due_date TEXT,     -- Legacy: YYYY-MM-DD (kept for backward compat, derived from due_at)
-  scheduled_date TEXT, -- Legacy: YYYY-MM-DD (kept for backward compat, derived from start_at)
+  due_date TEXT,     -- UNUSED: kept for backward compat with existing DBs
+  scheduled_date TEXT, -- UNUSED: kept for backward compat with existing DBs
   priority INTEGER,
 
   -- Content
@@ -64,7 +64,6 @@ CREATE INDEX IF NOT EXISTS idx_nodes_fstype ON nodes(fstype);
 CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
-CREATE INDEX IF NOT EXISTS idx_nodes_due ON nodes(due_date);
 CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
 CREATE INDEX IF NOT EXISTS idx_nodes_block_id ON nodes(block_id);
 
@@ -137,7 +136,8 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
 
 /**
  * Set of actual SQL column names on the nodes table.
- * Used to route non-column KNode fields (due_time, scheduled_time, etc.) to the data blob.
+ * Used to route non-column KNode fields to the data blob.
+ * Note: due_date/scheduled_date columns exist in DB but are no longer written or read.
  */
 export const NODE_COLUMNS = new Set([
   "id",
@@ -162,8 +162,6 @@ export const NODE_COLUMNS = new Set([
   "assigned_to",
   "due_at",
   "start_at",
-  "due_date",
-  "scheduled_date",
   "priority",
   "content",
   "content_hash",

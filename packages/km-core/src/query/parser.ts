@@ -112,9 +112,9 @@ const FIELD_ALIASES: Record<string, string> = {
   status: "task_status",
   priority: "priority",
   p: "priority",
-  due: "due_date",
-  start: "scheduled_date",
-  scheduled: "scheduled_date",
+  due: "due_at",
+  start: "start_at",
+  scheduled: "start_at",
   assigned: "assigned_to",
   type: "type",
 }

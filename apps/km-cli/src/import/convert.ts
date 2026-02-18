@@ -23,11 +23,24 @@ export function slugify(title: string): string {
  * Convert Asana task/project URLs to km block references.
  * Since each task has ^GID as its block ID, links become [[^GID]].
  */
+const ASANA_URL_PATTERNS = [
+  /https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/,
+  /https?:\/\/app\.asana\.com\/1\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
+  /https?:\/\/app\.asana\.com\/1\/\d+\/project\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
+]
+
 function convertAsanaLinks(text: string): string {
+  // First pass: convert markdown links [text](asana-url) → [[^GID]]
+  // (turndown produces these from <a> tags in html_notes)
+  for (const pattern of ASANA_URL_PATTERNS) {
+    const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
+    text = text.replace(mdLinkRe, "[[^$2]]")
+  }
+  // Second pass: convert bare Asana URLs → [[^GID]]
+  for (const pattern of ASANA_URL_PATTERNS) {
+    text = text.replace(new RegExp(pattern.source, "g"), "[[^$1]]")
+  }
   return text
-    .replace(/https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/g, "[[^$1]]")
-    .replace(/https?:\/\/app\.asana\.com\/1\/\d+\/task\/(\d+)(?:\?[^\s)]*)?/g, "[[^$1]]")
-    .replace(/https?:\/\/app\.asana\.com\/1\/\d+\/project\/\d+\/task\/(\d+)(?:\?[^\s)]*)?/g, "[[^$1]]")
 }
 
 // =============================================================================
@@ -50,13 +63,14 @@ function toTaskStatus(status?: string): TaskStatus {
   }
 }
 
-let _nextIdx = 0
+/** Mutable counter scoped to each conversion pass (avoids module-level state) */
+type IdxCounter = { value: number }
 
 /** Create a KNode with required fields */
-function mkNode(fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
+function mkNode(counter: IdxCounter, fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
   return {
     parent_id: null,
-    parent_idx: _nextIdx++,
+    parent_idx: counter.value++,
     link_to: null,
     data: {},
     created_at: Date.now(),
@@ -129,6 +143,7 @@ function buildBlockquoteContent(item: ImportItem): string | null {
 
 /** Convert an ImportItem to KNode(s) and append to the nodes array */
 function itemToNodes(
+  counter: IdxCounter,
   item: ImportItem,
   parentId: string,
   nodes: KNode[],
@@ -141,7 +156,7 @@ function itemToNodes(
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
     nodes.push(
-      mkNode({
+      mkNode(counter, {
         id: `ref-${item.sourceId}`,
         type: "li",
         parent_id: parentId,
@@ -160,7 +175,7 @@ function itemToNodes(
   if (item.createdAt) metadata.created = item.createdAt.slice(0, 10)
   if (item.completedAt) metadata.completed = item.completedAt.slice(0, 10)
 
-  const taskNode = mkNode({
+  const taskNode = mkNode(counter, {
     id: item.sourceId,
     type: "li",
     parent_id: parentId,
@@ -182,7 +197,7 @@ function itemToNodes(
   const bqContent = buildBlockquoteContent(item)
   if (bqContent) {
     nodes.push(
-      mkNode({
+      mkNode(counter, {
         id: `bq-${item.sourceId}`,
         type: "quote",
         parent_id: item.sourceId,
@@ -194,13 +209,14 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(child, item.sourceId, nodes, rendered, primaryMap, currentProject)
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject)
     }
   }
 }
 
 /** Convert a section to KNode(s) */
 function sectionToNodes(
+  counter: IdxCounter,
   section: ImportSection,
   parentId: string,
   nodes: KNode[],
@@ -210,7 +226,7 @@ function sectionToNodes(
 ): void {
   const sectionId = `section-${section.sourceId}`
   nodes.push(
-    mkNode({
+    mkNode(counter, {
       id: sectionId,
       type: "oi",
       parent_id: parentId,
@@ -222,7 +238,7 @@ function sectionToNodes(
   )
 
   for (const item of section.items) {
-    itemToNodes(item, sectionId, nodes, rendered, primaryMap, currentProject)
+    itemToNodes(counter, item, sectionId, nodes, rendered, primaryMap, currentProject)
   }
 }
 
@@ -234,7 +250,7 @@ function projectToNodes(
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
 ): KNode[] {
-  _nextIdx = 0
+  const counter: IdxCounter = { value: 0 }
   const nodes: KNode[] = []
 
   // File root node — data becomes frontmatter, content becomes H1
@@ -251,7 +267,7 @@ function projectToNodes(
   if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt
 
   nodes.push(
-    mkNode({
+    mkNode(counter, {
       id: fileId,
       type: "oi",
       fstype: "mdfile",
@@ -263,14 +279,14 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(section, fileId, nodes, rendered, primaryMap, project.title)
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(item, fileId, nodes, rendered, primaryMap, project.title)
+      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title)
     }
   }
 
@@ -292,17 +308,17 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
 /** Export for testing: convert a single ImportItem to KNode */
 export { itemToNodes, buildTaskContent, buildBlockquoteContent }
 
-/** Convert ImportData to a map of relative file paths → markdown content */
-export function convert(data: ImportData): FileMap {
-  const files: FileMap = new Map()
-
-  // Build primaryMap: task sourceId → filename of the first project that contains it
+/**
+ * Build the primaryMap (task sourceId → filename) and filename list.
+ * Pass 1 of the two-pass convert: lightweight ID scan only.
+ */
+function buildPrimaryMap(data: ImportData): { primaryMap: Map<string, string>; filenames: string[] } {
   const primaryMap = new Map<string, string>()
-  const projectFilenames: string[] = []
+  const filenames: string[] = []
   for (const project of data.projects) {
     const slug = slugify(project.title)
     const filename = `${project.sourceId}-${slug}.md`
-    projectFilenames.push(filename)
+    filenames.push(filename)
     const ids: string[] = []
     if (project.sections?.length) {
       for (const section of project.sections) collectTaskIds(section.items, ids)
@@ -312,16 +328,112 @@ export function convert(data: ImportData): FileMap {
       if (!primaryMap.has(id)) primaryMap.set(id, filename)
     }
   }
+  return { primaryMap, filenames }
+}
 
-  // Convert projects with dedup: first occurrence gets full content, rest get reference
+/** Convert ImportData to a map of relative file paths → markdown content */
+export function convert(data: ImportData): FileMap {
+  const files: FileMap = new Map()
+  for (const [filename, markdown] of convertBatch(data)) {
+    files.set(filename, markdown)
+  }
+  return files
+}
+
+/**
+ * Streaming convert: yields [filename, markdown] pairs one project at a time.
+ * Memory-efficient for large imports — each project's KNode tree is GC'd after yield.
+ */
+export function* convertBatch(data: ImportData): Generator<[string, string]> {
+  const { primaryMap, filenames } = buildPrimaryMap(data)
   const rendered = new Set<string>()
+
   for (const [i, project] of data.projects.entries()) {
-    const filename = projectFilenames[i]
+    const filename = filenames[i]
     if (!filename) continue
     const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap)
     const markdown = nodesToMarkdown(nodes)
-    files.set(filename, markdown)
+    yield [filename, markdown]
   }
 
-  return files
+  // Tag aggregate files: collect items by tag across all projects
+  yield* generateTagFiles(data, rendered, primaryMap)
+}
+
+/**
+ * Generate #tag.md aggregate files: one per tag, containing all tasks with that tag.
+ * Only includes tags that appear on 2+ tasks (single-use tags aren't worth aggregating).
+ */
+function* generateTagFiles(
+  data: ImportData,
+  rendered: Set<string>,
+  primaryMap: Map<string, string>,
+): Generator<[string, string]> {
+  // Collect items by tag
+  const tagItems = new Map<string, ImportItem[]>()
+  const collectByTag = (items: ImportItem[]): void => {
+    for (const item of items) {
+      if (item.tags?.length) {
+        for (const tag of item.tags) {
+          let list = tagItems.get(tag)
+          if (!list) {
+            list = []
+            tagItems.set(tag, list)
+          }
+          list.push(item)
+        }
+      }
+      if (item.children?.length) collectByTag(item.children)
+    }
+  }
+
+  for (const proj of data.projects) {
+    for (const item of proj.items ?? []) collectByTag([item])
+    for (const sec of proj.sections ?? []) collectByTag(sec.items)
+  }
+
+  // Generate a file per tag (only for tags with 2+ items)
+  for (const [tag, items] of tagItems) {
+    if (items.length < 2) continue
+    const counter: IdxCounter = { value: 0 }
+    const nodes: KNode[] = []
+    const fileId = `tag-${tag}`
+    nodes.push(
+      mkNode(counter, {
+        id: fileId,
+        type: "oi",
+        fstype: "mdfile",
+        content: `#${tag}`,
+        data: {
+          imported_from: data.source,
+          imported_at: data.fetchedAt,
+          tag,
+          item_count: items.length,
+        },
+      }),
+    )
+
+    for (const item of items) {
+      // Use cross-reference for items already rendered in project files
+      if (rendered.has(item.sourceId)) {
+        const status = toTaskStatus(item.status)
+        const marker = status === "done" ? "[x]" : "[ ]"
+        nodes.push(
+          mkNode(counter, {
+            id: `tagref-${tag}-${item.sourceId}`,
+            type: "li",
+            parent_id: fileId,
+            task_marker: marker as TaskMarker,
+            task_status: status,
+            content: `${item.title} → [[^${item.sourceId}]]`,
+          }),
+        )
+      } else {
+        itemToNodes(counter, item, fileId, nodes, rendered, primaryMap)
+      }
+    }
+
+    const markdown = nodesToMarkdown(nodes)
+    yield [`#${slugify(tag)}.md`, markdown]
+  }
 }

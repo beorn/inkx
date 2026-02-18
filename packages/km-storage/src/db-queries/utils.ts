@@ -7,7 +7,6 @@
 
 import type { Database } from "bun:sqlite"
 import type { KNode, TaskStatus, TaskMarker, FsType, NodeType, NodeRules, Reminder } from "@km/core"
-import { composeDatetime, decomposeDatetime } from "@km/core"
 
 // =============================================================================
 // Utility Queries
@@ -61,21 +60,6 @@ export function rowToNode(row: Record<string, unknown>): KNode {
   // Extract rules from data.rules (stored by parser during sync)
   const rules = data.rules as NodeRules | undefined
 
-  // Resolve due_at / start_at: prefer the new columns, fall back to composing from legacy fields
-  const rawDueAt = (row.due_at ?? undefined) as string | undefined
-  const rawStartAt = (row.start_at ?? undefined) as string | undefined
-  const rawDueDate = (row.due_date ?? undefined) as string | undefined
-  const rawScheduledDate = (row.scheduled_date ?? undefined) as string | undefined
-  const rawDueTime = data.due_time as string | undefined
-  const rawScheduledTime = data.scheduled_time as string | undefined
-
-  const dueAt = rawDueAt ?? composeDatetime(rawDueDate, rawDueTime)
-  const startAt = rawStartAt ?? composeDatetime(rawScheduledDate, rawScheduledTime)
-
-  // Derive legacy fields from due_at/start_at for backward compatibility
-  const dueParts = decomposeDatetime(dueAt)
-  const startParts = decomposeDatetime(startAt)
-
   return {
     id: row.id as string,
     type,
@@ -96,21 +80,13 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     task_marker: (row.task_marker ?? undefined) as TaskMarker | undefined,
     task_status: (row.task_status ?? undefined) as TaskStatus | undefined,
     assigned_to: (row.assigned_to ?? undefined) as string | undefined,
-    due_at: dueAt,
-    start_at: startAt,
-    due_date: dueParts?.date,
-    scheduled_date: startParts?.date,
+    due_at: (row.due_at ?? undefined) as string | undefined,
+    start_at: (row.start_at ?? undefined) as string | undefined,
     priority: (row.priority ?? undefined) as number | undefined,
     content,
     content_hash: row.content_hash as string | undefined,
     title: row.title as string | undefined,
     rules,
-    // Extract data-blob fields (stored in data JSON, surfaced as top-level KNode fields)
-    // Prefer decomposed values from due_at/start_at; fall back to raw data blob values
-    due_time: dueParts?.time ?? rawDueTime,
-    due_tz: data.due_tz as string | undefined,
-    scheduled_time: startParts?.time ?? rawScheduledTime,
-    scheduled_tz: data.scheduled_tz as string | undefined,
     recurrence: data.recurrence as string | undefined,
     recur_prev: data.recur_prev as string | undefined,
     completed_at: data.completed_at as number | undefined,

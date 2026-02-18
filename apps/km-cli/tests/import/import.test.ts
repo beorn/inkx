@@ -10,7 +10,7 @@ import { existsSync, readFileSync, mkdirSync, rmSync, writeFileSync as fsWriteFi
 import { join } from "path"
 import { createFakeAsana, minimalFixtures } from "./fake-asana.ts"
 import type { FakeAsana } from "./fake-asana.ts"
-import { convert } from "../../src/import/convert.ts"
+import { convert, convertBatch } from "../../src/import/convert.ts"
 import { writeFiles } from "../../src/import/write.ts"
 import { fetchFromAsana as _fetchFromAsana } from "../../src/import/adapters/asana-api.ts"
 import { parseAsanaFile } from "../../src/import/adapters/asana-file.ts"
@@ -497,5 +497,282 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("@alice-smith")
     expect(edge).toContain("due:: 2026-02-15")
     expect(edge).toContain("p:: 2")
+  })
+
+  test("converts Asana URLs to block references in markdown", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: e2eDownloadDir,
+    })
+
+    const files = convert(data)
+    const edge = files.get("proj-3-edge-cases.md")!
+    // The html_notes for task-links contain Asana URLs that should be converted
+    // to [[^GID]] references in the final markdown
+    expect(edge).toContain("[[^789012]]")
+    expect(edge).toContain("[[^222333]]")
+    expect(edge).not.toContain("app.asana.com")
+  })
+
+  test("includes workspace in frontmatter", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: e2eDownloadDir,
+    })
+
+    const files = convert(data)
+    const sprint = files.get("proj-1-sprint-4.md")!
+    expect(sprint).toContain("workspace: Test Workspace")
+  })
+
+  test("multi-project tasks show +project tags for other projects", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: e2eDownloadDir,
+    })
+
+    const files = convert(data)
+    // task-full is in proj-3 (primary) AND proj-1 — should show +sprint-4 tag
+    const edge = files.get("proj-3-edge-cases.md")!
+    expect(edge).toContain("- [x] Comprehensive task")
+    expect(edge).toContain("+sprint-4")
+  })
+})
+
+// ============================================================================
+// Resume: empty project re-fetch
+// ============================================================================
+
+describe("Resume: re-fetches empty projects from disk", () => {
+  let fake: FakeAsana
+  let restore: () => void
+  const downloadDir = "/tmp/km-resume-test-" + Date.now()
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {})
+    fake = createFakeAsana(minimalFixtures())
+    restore = fake.install()
+  })
+
+  afterEach(() => {
+    restore()
+    vi.restoreAllMocks()
+    if (existsSync(downloadDir)) rmSync(downloadDir, { recursive: true })
+  })
+
+  test("re-fetches project when saved JSON has 0 items", async () => {
+    // Pre-seed download dir with an empty project JSON (simulates the bug)
+    mkdirSync(downloadDir, { recursive: true })
+    const emptyProject = {
+      sourceId: "proj-1",
+      title: "Sprint 4",
+      workspace: "Test Workspace",
+    }
+    fsWriteFileSync(join(downloadDir, "proj-1-sprint-4.json"), JSON.stringify(emptyProject, null, 2))
+    // Also seed workspace meta so it doesn't try to re-fetch
+    fsWriteFileSync(
+      join(downloadDir, "_workspace.json"),
+      JSON.stringify({
+        gid: "ws-1",
+        name: "Test Workspace",
+        user: { gid: "user-1", name: "Test User", email: "test@example.com" },
+        teams: [{ gid: "team-1", name: "Engineering" }],
+        users: [{ gid: "user-1", name: "Test User" }],
+      }),
+    )
+
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    // Sprint 4 should have been re-fetched and now have items
+    const sprint = data.projects.find((p) => p.sourceId === "proj-1")!
+    expect(sprint).toBeDefined()
+    expect(sprint.sections).toBeDefined()
+    expect(sprint.sections!.length).toBeGreaterThan(0)
+    const totalItems = sprint.sections!.reduce((n, s) => n + s.items.length, 0)
+    expect(totalItems).toBeGreaterThan(0)
+  })
+
+  test("does not re-fetch project when saved JSON has items", async () => {
+    // First fetch to populate the download dir
+    await fetchFromAsana({ token: "fake-token", downloadDir })
+    const callCount1 = fake.calls.length
+
+    // Reset and resume — all projects should be skipped
+    fake.calls.length = 0
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    expect(data.projects).toHaveLength(3)
+    // Should not have made any task-fetching calls (only /users/me and /projects for discovery)
+    const taskCalls = fake.calls.filter((c) => c.path === "/tasks")
+    expect(taskCalls).toHaveLength(0)
+  })
+})
+
+// ============================================================================
+// User task lists (orphan tasks) and tag task lists
+// ============================================================================
+
+describe("User task lists and tag task lists", () => {
+  const downloadDir = "/tmp/km-usertasks-test-" + Date.now()
+  let fake: FakeAsana
+  let restore: () => void
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {})
+    fake = createFakeAsana(minimalFixtures())
+    restore = fake.install()
+  })
+
+  afterEach(() => {
+    restore()
+    vi.restoreAllMocks()
+    if (existsSync(downloadDir)) rmSync(downloadDir, { recursive: true })
+  })
+
+  test("fetches orphan tasks from user task lists", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeUserTaskLists: true,
+    })
+
+    // Should have 3 projects + 1 user task list (user-2 has 0 orphans)
+    const userProj = data.projects.find((p) => p.sourceId === "user-user-1")
+    expect(userProj).toBeDefined()
+    expect(userProj!.title).toBe("@Test User")
+
+    // Only orphan task (not task-1 which is in Sprint 4)
+    const allItems = [...(userProj!.items ?? []), ...(userProj!.sections ?? []).flatMap((s) => s.items)]
+    expect(allItems).toHaveLength(1)
+    expect(allItems[0]!.title).toBe("Personal reminder")
+  })
+
+  test("fetches orphan tasks from tag task lists", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeTagTaskLists: true,
+    })
+
+    // Should have a tag project for @PA with orphan task
+    const tagProj = data.projects.find((p) => p.sourceId === "tag-tag-pa")
+    expect(tagProj).toBeDefined()
+    expect(tagProj!.title).toBe("#@PA")
+
+    const allItems = [...(tagProj!.items ?? []), ...(tagProj!.sections ?? []).flatMap((s) => s.items)]
+    expect(allItems).toHaveLength(1)
+    expect(allItems[0]!.title).toBe("PA follow-up")
+
+    // empty-tag should NOT have a project (0 orphans, task-1 already in Sprint 4)
+    const emptyTagProj = data.projects.find((p) => p.sourceId === "tag-tag-empty")
+    expect(emptyTagProj).toBeUndefined()
+  })
+
+  test("deduplicates tasks across user task lists and tag task lists", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeUserTaskLists: true,
+      includeTagTaskLists: true,
+    })
+
+    // task-orphan-1 appears in user task list, task-tag-orphan in tag list
+    // Neither should be duplicated
+    const allSourceIds = data.projects.flatMap((p) => {
+      const items = [...(p.items ?? []), ...(p.sections ?? []).flatMap((s) => s.items)]
+      return items.map((i) => i.sourceId)
+    })
+    const uniqueIds = new Set(allSourceIds)
+    expect(allSourceIds.length).toBe(uniqueIds.size)
+  })
+})
+
+// ============================================================================
+// Batch convert (streaming) and tag aggregate files
+// ============================================================================
+
+describe("Batch convert and tag aggregation", () => {
+  const testDir = "/tmp/km-batch-test-" + Date.now()
+  const batchDownloadDir = "/tmp/km-batch-dl-" + Date.now()
+  let fake: FakeAsana
+  let restore: () => void
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {})
+    fake = createFakeAsana(minimalFixtures())
+    restore = fake.install()
+  })
+
+  afterEach(() => {
+    restore()
+    vi.restoreAllMocks()
+    if (existsSync(testDir)) rmSync(testDir, { recursive: true })
+    if (existsSync(batchDownloadDir)) rmSync(batchDownloadDir, { recursive: true })
+  })
+
+  test("convertBatch yields same files as convert", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: batchDownloadDir,
+      includeComments: true,
+      includeAttachments: true,
+    })
+
+    const mapResult = convert(data)
+    const batchResult = new Map<string, string>()
+    for (const [filename, markdown] of convertBatch(data)) {
+      batchResult.set(filename, markdown)
+    }
+
+    // Same project files
+    const projectFiles = [...mapResult.keys()].filter((f) => !f.startsWith("#"))
+    for (const file of projectFiles) {
+      expect(batchResult.has(file)).toBe(true)
+      expect(batchResult.get(file)).toBe(mapResult.get(file))
+    }
+  })
+
+  test("convertBatch generates #tag.md aggregate files for multi-use tags", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: batchDownloadDir,
+    })
+
+    const files = new Map<string, string>()
+    for (const [filename, markdown] of convertBatch(data)) {
+      files.set(filename, markdown)
+    }
+
+    // "backend" tag is used on task-full only (1 item) — should NOT generate a file
+    expect(files.has("#backend.md")).toBe(false)
+
+    // Check that tag files contain cross-references (not full content)
+    const tagFiles = [...files.keys()].filter((f) => f.startsWith("#"))
+    for (const tagFile of tagFiles) {
+      const content = files.get(tagFile)!
+      expect(content).toContain("tag:")
+    }
+  })
+
+  test("writeFiles accepts convertBatch generator directly", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir: batchDownloadDir,
+    })
+
+    // writeFiles should work with the generator (Iterable<[string, string]>)
+    const { written } = writeFiles(convertBatch(data), { outDir: testDir })
+    expect(written.length).toBeGreaterThanOrEqual(3) // at least 3 project files
+
+    // Verify files exist on disk
+    for (const file of written) {
+      expect(existsSync(join(testDir, file))).toBe(true)
+    }
   })
 })

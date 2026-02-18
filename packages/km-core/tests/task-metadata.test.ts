@@ -36,8 +36,8 @@ describe("stringifyTaskMetadata", () => {
       expect(stringifyTaskMetadata("Meeting", node)).toBe("Meeting due:: 2025-03-15T14:30")
     })
 
-    test("appends due:: from legacy due_date field", () => {
-      const node = makeNode({ content: "Task", due_date: "2025-01-20" })
+    test("appends due:: from due_at field (date-only)", () => {
+      const node = makeNode({ content: "Task", due_at: "2025-01-20" })
       expect(stringifyTaskMetadata("Task", node)).toBe("Task due:: 2025-01-20")
     })
 

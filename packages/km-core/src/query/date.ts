@@ -51,7 +51,7 @@ const DATE_SHORTCUTS = ["today", "tomorrow", "yesterday", "week", "past", "overd
 /**
  * Date fields in the schema
  */
-const DATE_FIELDS = ["due_at", "start_at", "due_date", "scheduled_date", "created_at", "updated_at"]
+const DATE_FIELDS = ["due_at", "start_at", "created_at", "updated_at"]
 
 /**
  * Check if a value is a date shortcut or date range

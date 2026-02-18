@@ -21,7 +21,7 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import { getMarkerForStatus, type KNode, type TaskMarker, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskMarker, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
@@ -409,9 +409,9 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length] as TaskStatus
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
-    const dueDate = targetNode?.due_date
-    if (nextStatus === "done" && targetNode?.recurrence && dueDate) {
-      const nextDue = getNextOccurrence(targetNode.recurrence, dueDate)
+    const dueParts = decomposeDatetime(targetNode?.due_at)
+    if (nextStatus === "done" && targetNode?.recurrence && dueParts?.date) {
+      const nextDue = getNextOccurrence(targetNode.recurrence, dueParts.date)
       // Mark current task done with completion timestamp
       ctx.repo.updateNode(targetId, {
         task_status: "done",
@@ -421,7 +421,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       if (nextDue) {
         // Clone task with next due date, reset to todo
         // Compose due_at from the next due date + existing time
-        const nextDueAt = targetNode.due_time ? `${nextDue}T${targetNode.due_time}` : nextDue
+        const nextDueAt = dueParts.time ? `${nextDue}T${dueParts.time}` : nextDue
         const parentId = targetNode.parent_id
         if (parentId) {
           ctx.repo.addNode(parentId, {

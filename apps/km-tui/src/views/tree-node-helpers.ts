@@ -64,6 +64,8 @@ export interface NodeStyleResult {
   backgroundColor: string | undefined
   textColor: string | undefined
   shouldDim: boolean
+  /** True when task is done/dropped — used to strip metadata colors (dates, priority) */
+  isDoneOrDropped: boolean
   shouldStrikethrough: boolean
   /** Task status icon to prepend to content (null for non-tasks) */
   taskStatusIcon: StatusIcon | null
@@ -122,6 +124,7 @@ export function getNodeStyle(
     backgroundColor,
     textColor,
     shouldDim,
+    isDoneOrDropped,
     shouldStrikethrough,
     taskStatusIcon,
     ownColor,
@@ -250,9 +253,8 @@ export function formatDateBadge(node: KNode): string {
     parts.push(`${color}P${node.priority}\x1b[0m`)
   }
 
-  // Use due_at/start_at (preferred) with fallback to legacy fields
-  const dueDate = decomposeDatetime(node.due_at)?.date ?? node.due_date
-  const startDate = decomposeDatetime(node.start_at)?.date ?? node.scheduled_date
+  const dueDate = decomposeDatetime(node.due_at)?.date
+  const startDate = decomposeDatetime(node.start_at)?.date
 
   // Start date → due date (or just one)
   // Hide past start dates for WIP tasks (already started, not useful info)

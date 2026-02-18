@@ -1,7 +1,7 @@
 /**
  * Implicit task detection tests
  *
- * Nodes with task-related properties (due_date, priority, scheduled_date,
+ * Nodes with task-related properties (due_at, priority, start_at,
  * assigned_to, recurrence) should be treated as implicit tasks even without
  * an explicit task_status. They should show task icons and metadata badges.
  */
@@ -21,9 +21,9 @@ describe("hasTaskProperties", () => {
   })
 
   const taskProps: Array<[string, Record<string, unknown>]> = [
-    ["due_date", { due_date: "2026-02-20" }],
+    ["due_at", { due_at: "2026-02-20" }],
     ["priority", { priority: 2 }],
-    ["scheduled_date", { scheduled_date: "2026-02-20" }],
+    ["start_at", { start_at: "2026-02-20" }],
     ["assigned_to", { assigned_to: "beorn" }],
     ["recurrence", { recurrence: "FREQ=WEEKLY" }],
   ]
@@ -45,8 +45,8 @@ describe("hasTaskProperties", () => {
 // =============================================================================
 
 describe("getNodeStyle with implicit tasks", () => {
-  it("returns taskStatusIcon for node with due_date but no task_status", () => {
-    const node = { due_date: "2026-02-20" } as KNode
+  it("returns taskStatusIcon for node with due_at but no task_status", () => {
+    const node = { due_at: "2026-02-20" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u25A1") // □ todo icon
@@ -59,14 +59,14 @@ describe("getNodeStyle with implicit tasks", () => {
   })
 
   it("explicit task_status takes precedence over implicit", () => {
-    const node = { due_date: "2026-02-20", task_status: "done" } as KNode
+    const node = { due_at: "2026-02-20", task_status: "done" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u2713") // ✓ done icon
   })
 
   it("implicit task with no status is not dimmed", () => {
-    const node = { due_date: "2026-02-20" } as KNode
+    const node = { due_at: "2026-02-20" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.shouldDim).toBe(false)
   })
@@ -78,7 +78,7 @@ describe("getNodeStyle with implicit tasks", () => {
 
 describe("formatInfoSuffix with implicit tasks", () => {
   it("shows board pills for node with task properties", () => {
-    const node = { due_date: "2026-02-20" } as KNode
+    const node = { due_at: "2026-02-20" } as KNode
     // getBoardPills returns pills when called for a task
     const mockGetBoardPills = () => [{ boardId: "b1", boardName: "board", color: "cyan" }]
     const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
@@ -100,11 +100,11 @@ describe("formatInfoSuffix with implicit tasks", () => {
 // =============================================================================
 
 describe("implicit task rendering", () => {
-  it("node with due_date shows date badge", () => {
+  it("node with due_at shows date badge", () => {
     const nodes = item("board", item("col", item("task1")))
-    // Modify the leaf node to be an implicit task (has due_date but no task_status)
+    // Modify the leaf node to be an implicit task (has due_at but no task_status)
     const taskNode = nodes.find((n) => n.id === "task1")!
-    taskNode.due_date = "2026-03-20"
+    taskNode.due_at = "2026-03-20"
     // Remove explicit task status/marker that item() sets by default
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
@@ -125,10 +125,10 @@ describe("implicit task rendering", () => {
     board.expectScreen("P2")
   })
 
-  it("node with due_date shows task icon (□)", () => {
+  it("node with due_at shows task icon (□)", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
-    taskNode.due_date = "2026-03-20"
+    taskNode.due_at = "2026-03-20"
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
 

@@ -67,8 +67,8 @@ export const newCommand = new Command("new")
 
     // Add metadata from options (if not already in content)
     const metadata = formatMetadata({
-      due: options.due && !existingMetadata.dueDate ? options.due : undefined,
-      start: options.start && !existingMetadata.scheduledDate ? options.start : undefined,
+      due: options.due && !existingMetadata.dueAt ? options.due : undefined,
+      start: options.start && !existingMetadata.startAt ? options.start : undefined,
       priority: options.priority && !existingMetadata.priority ? options.priority : undefined,
       owner: options.owner && !mentions.includes(options.owner) ? options.owner : undefined,
     })
@@ -119,8 +119,8 @@ export const newCommand = new Command("new")
           content: taskContent,
           file: targetPath,
           metadata: {
-            due: options.due || existingMetadata.dueDate,
-            start: options.start || existingMetadata.scheduledDate,
+            due: options.due || existingMetadata.dueAt,
+            start: options.start || existingMetadata.startAt,
             priority: options.priority || existingMetadata.priority,
             tags,
             mentions,

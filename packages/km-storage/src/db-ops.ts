@@ -13,7 +13,6 @@ import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
-import { composeDatetime, decomposeDatetime } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import type { Emitter } from "./emitter.ts"
 
@@ -99,23 +98,7 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
     throw new Error(`updateNode called with undefined updates for node ${nodeId}`)
   }
 
-  // Dual-write: keep due_at ↔ due_date and start_at ↔ scheduled_date in sync
   const augmented = { ...updates }
-  if ("due_at" in augmented && !("due_date" in augmented)) {
-    const parts = decomposeDatetime(augmented.due_at as string | null)
-    augmented.due_date = parts?.date ?? null
-  }
-  if ("due_date" in augmented && !("due_at" in augmented)) {
-    augmented.due_at = composeDatetime(augmented.due_date as string | null, augmented.due_time as string | null) ?? null
-  }
-  if ("start_at" in augmented && !("scheduled_date" in augmented)) {
-    const parts = decomposeDatetime(augmented.start_at as string | null)
-    augmented.scheduled_date = parts?.date ?? null
-  }
-  if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-    augmented.start_at =
-      composeDatetime(augmented.scheduled_date as string | null, augmented.scheduled_time as string | null) ?? null
-  }
 
   if (emitter) {
     emitter.emit(
@@ -142,7 +125,7 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
         sets.push(`${key} = ?`)
         values.push(value as string | number | null)
       } else {
-        // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+        // Non-column KNode field → data blob
         dataOverrides[key] = value
       }
     }
@@ -183,7 +166,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   log.debug?.(`addNode: ${nodeId} type=${node.type ?? "li"} parent=${parentId} emitter=${!!emitter}`)
   const now = Date.now()
 
-  // Merge data-blob fields (due_time, scheduled_time, etc.) into the data object
+  // Merge non-column fields into data blob
   const mergedData: Record<string, unknown> = { ...(node.data ?? {}) }
   for (const [key, value] of Object.entries(node)) {
     if (key !== "data" && !NODE_COLUMNS.has(key) && value !== undefined && value !== null) {
@@ -194,12 +177,6 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   // Default type: "li" with task_marker "[ ]" (replaces old "task" default)
   const defaultType = node.type ?? "li"
   const isTask = node.task_marker !== undefined || (defaultType === "li" && node.type === undefined)
-
-  // Compute due_at/start_at from either new or legacy fields
-  const dueAt = node.due_at ?? composeDatetime(node.due_date, node.due_time) ?? null
-  const startAt = node.start_at ?? composeDatetime(node.scheduled_date, node.scheduled_time) ?? null
-  const dueParts = decomposeDatetime(dueAt)
-  const startParts = decomposeDatetime(startAt)
 
   const nodeData = {
     id: nodeId,
@@ -220,10 +197,8 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     task_marker: node.task_marker ?? (isTask ? "[ ]" : null),
     task_status: node.task_status ?? (isTask ? "todo" : null),
     assigned_to: node.assigned_to ?? null,
-    due_at: dueAt,
-    start_at: startAt,
-    due_date: dueParts?.date ?? null,
-    scheduled_date: startParts?.date ?? null,
+    due_at: node.due_at ?? null,
+    start_at: node.start_at ?? null,
     priority: node.priority ?? null,
     content: node.content ?? null,
     content_hash: node.content_hash ?? null,
@@ -247,13 +222,13 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
         fs_path, fs_ino, name, title, md_pos, md_line,
         list_marker, task_marker,
-        task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
+        task_status, assigned_to, due_at, start_at, priority,
         content, content_hash, data, created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?
       )`,
       [
@@ -277,8 +252,6 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         nodeData.assigned_to,
         nodeData.due_at,
         nodeData.start_at,
-        nodeData.due_date,
-        nodeData.scheduled_date,
         nodeData.priority,
         nodeData.content,
         nodeData.content_hash,

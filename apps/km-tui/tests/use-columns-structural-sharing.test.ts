@@ -96,9 +96,9 @@ describe("applyStructuralSharing", () => {
     expect(result[0]!.cards[0]).toBe(nextCard)
   })
 
-  it("returns new card reference when due_date changes", () => {
-    const prevCard = makeCard({ node: { id: "card-1", content: "Task", due_date: "2026-01-01" } })
-    const nextCard = makeCard({ node: { id: "card-1", content: "Task", due_date: "2026-02-01" } })
+  it("returns new card reference when due_at changes", () => {
+    const prevCard = makeCard({ node: { id: "card-1", content: "Task", due_at: "2026-01-01" } })
+    const nextCard = makeCard({ node: { id: "card-1", content: "Task", due_at: "2026-02-01" } })
 
     const prev = [makeColumn("col-1", [prevCard])]
     const next = [makeColumn("col-1", [nextCard])]

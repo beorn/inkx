@@ -1,7 +1,7 @@
 /**
  * Due Date Persistence Tests
  *
- * Verifies that due_date set via updateNode persists:
+ * Verifies that due_at set via updateNode persists:
  * 1. In the database after updateNode
  * 2. In the markdown file after write-through
  * 3. After re-parsing the file (round-trip)
@@ -27,7 +27,7 @@ function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
 }
 
 describe("due date persistence", () => {
-  test("updateNode sets due_date in DB", () =>
+  test("updateNode sets due_at in DB", () =>
     withTestEnv(async ({ repoDir, data, db }) => {
       // Write a file with a task (no due date)
       const filePath = join(repoDir, "tasks.md")
@@ -41,17 +41,17 @@ describe("due date persistence", () => {
       const allNodes = getAllNodes(db)
       const task = allNodes.find((n) => n.content === "Buy milk")
       expect(task).toBeDefined()
-      expect(task!.due_date).toBeUndefined()
+      expect(task!.due_at).toBeUndefined()
 
-      // Set due_date via updateNode
-      data.updateNode(task!.id, { due_date: "2026-02-14" })
+      // Set due_at via updateNode
+      data.updateNode(task!.id, { due_at: "2026-02-14" })
 
-      // Verify DB has due_date
+      // Verify DB has due_at
       const updated = getNode(db, task!.id)
-      expect(updated?.due_date).toBe("2026-02-14")
+      expect(updated?.due_at).toBe("2026-02-14")
     }))
 
-  test("due_date appears in serialized markdown via nodesToMarkdown", () =>
+  test("due_at appears in serialized markdown via nodesToMarkdown", () =>
     withTestEnv(async ({ repoDir, data, db }) => {
       // Write a file with a task
       const filePath = join(repoDir, "tasks.md")
@@ -61,17 +61,17 @@ describe("due date persistence", () => {
       const manager = createSyncManager(db, repoDir)
       await manager.syncFromFs()
 
-      // Find the task and set due_date
+      // Find the task and set due_at
       const allNodes = getAllNodes(db)
       const task = allNodes.find((n) => n.content === "Buy milk")
       expect(task).toBeDefined()
-      data.updateNode(task!.id, { due_date: "2026-02-14" })
+      data.updateNode(task!.id, { due_at: "2026-02-14" })
 
       // Serialize back to markdown
       const fileNode = allNodes.find((n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "file"))
       expect(fileNode).toBeDefined()
 
-      // Re-read all nodes from DB (to get updated due_date)
+      // Re-read all nodes from DB (to get updated due_at)
       const updatedNodes = getAllNodes(db)
       const subtree = updatedNodes.filter((n) => {
         // Include file node and all descendants
@@ -90,7 +90,7 @@ describe("due date persistence", () => {
       expect(md).toContain("2026-02-14")
     }))
 
-  test("due_date survives file write-through and re-parse", () =>
+  test("due_at survives file write-through and re-parse", () =>
     withTestEnv(async ({ repoDir, data, db }) => {
       // Write a file with a task
       const filePath = join(repoDir, "tasks.md")
@@ -100,11 +100,11 @@ describe("due date persistence", () => {
       const manager = createSyncManager(db, repoDir)
       await manager.syncFromFs()
 
-      // Find the task and set due_date
+      // Find the task and set due_at
       const allNodes = getAllNodes(db)
       const task = allNodes.find((n) => n.content === "Buy milk")
       expect(task).toBeDefined()
-      data.updateNode(task!.id, { due_date: "2026-02-14" })
+      data.updateNode(task!.id, { due_at: "2026-02-14" })
 
       // Sync DB → FS (write-through)
       await manager.syncToFs()
@@ -113,14 +113,14 @@ describe("due date persistence", () => {
       const fileContent = readFileSync(filePath, "utf-8")
       expect(fileContent).toContain("2026-02-14")
 
-      // Re-parse the file and verify due_date survives
+      // Re-parse the file and verify due_at survives
       const reparsed = parseMarkdownToNodes(fileContent, filePath)
       const reparsedTask = reparsed.find((n) => n.content?.includes("Buy milk"))
       expect(reparsedTask).toBeDefined()
-      expect(reparsedTask!.due_date).toBe("2026-02-14")
+      expect(reparsedTask!.due_at).toBe("2026-02-14")
     }))
 
-  test("due_date with inline format (due:) survives round-trip", () =>
+  test("due_at with inline format (due:) survives round-trip", () =>
     withTestEnv(async ({ repoDir, data, db }) => {
       // Write a file with a task that already has inline due date
       const filePath = join(repoDir, "tasks.md")
@@ -130,11 +130,11 @@ describe("due date persistence", () => {
       const manager = createSyncManager(db, repoDir)
       await manager.syncFromFs()
 
-      // Verify due_date was parsed
+      // Verify due_at was parsed
       const allNodes = getAllNodes(db)
       const task = allNodes.find((n) => n.content?.includes("Buy milk"))
       expect(task).toBeDefined()
-      expect(task!.due_date).toBe("2026-02-14")
+      expect(task!.due_at).toBe("2026-02-14")
 
       // Sync DB → FS → re-parse
       await manager.syncToFs()
@@ -148,10 +148,10 @@ describe("due date persistence", () => {
       const reparsed = parseMarkdownToNodes(fileContent, filePath)
       const reparsedTask = reparsed.find((n) => n.content?.includes("Buy milk"))
       expect(reparsedTask).toBeDefined()
-      expect(reparsedTask!.due_date).toBe("2026-02-14")
+      expect(reparsedTask!.due_at).toBe("2026-02-14")
     }))
 
-  test("due_date with emoji format survives round-trip", () =>
+  test("due_at with emoji format survives round-trip", () =>
     withTestEnv(async ({ repoDir, data, db }) => {
       const filePath = join(repoDir, "tasks.md")
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk 📅 2026-02-14\n")
@@ -162,7 +162,7 @@ describe("due date persistence", () => {
       const allNodes = getAllNodes(db)
       const task = allNodes.find((n) => n.content?.includes("Buy milk"))
       expect(task).toBeDefined()
-      expect(task!.due_date).toBe("2026-02-14")
+      expect(task!.due_at).toBe("2026-02-14")
 
       // Round-trip
       await manager.syncToFs()
@@ -174,6 +174,6 @@ describe("due date persistence", () => {
       const reparsed = parseMarkdownToNodes(fileContent, filePath)
       const reparsedTask = reparsed.find((n) => n.content?.includes("Buy milk"))
       expect(reparsedTask).toBeDefined()
-      expect(reparsedTask!.due_date).toBe("2026-02-14")
+      expect(reparsedTask!.due_at).toBe("2026-02-14")
     }))
 })

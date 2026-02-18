@@ -129,13 +129,13 @@ describe("Query Parser", () => {
     test("maps field aliases", () => {
       const ast = parseQuery("due:2026-01-20 start:2026-01-15")
       expect(ast.conditions[0]).toMatchObject({
-        field: "due_date",
+        field: "due_at",
         op: "=",
         value: "2026-01-20",
         negated: false,
       })
       expect(ast.conditions[1]).toMatchObject({
-        field: "scheduled_date",
+        field: "start_at",
         op: "=",
         value: "2026-01-15",
         negated: false,

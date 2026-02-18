@@ -55,12 +55,12 @@ describe("isDateShortcut", () => {
 })
 
 describe("isDateField", () => {
-  test("recognizes 'due_date'", () => {
-    expect(isDateField("due_date")).toBe(true)
+  test("recognizes 'due_at'", () => {
+    expect(isDateField("due_at")).toBe(true)
   })
 
-  test("recognizes 'scheduled_date'", () => {
-    expect(isDateField("scheduled_date")).toBe(true)
+  test("recognizes 'start_at'", () => {
+    expect(isDateField("start_at")).toBe(true)
   })
 
   test("recognizes 'created_at'", () => {

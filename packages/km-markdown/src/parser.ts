@@ -25,7 +25,7 @@ import { fromMarkdown } from "mdast-util-from-markdown"
 import { gfmFromMarkdown } from "mdast-util-gfm"
 import { gfm } from "micromark-extension-gfm"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
-import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker, extractTaskMetadata } from "@km/core"
+import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
@@ -274,20 +274,18 @@ export function extractAllRefs(text: string): {
  * - Inline fields: due:2024-01-15, start:2024-01-10, p:1
  */
 export function parseTaskMetadata(text: string): {
-  dueDate?: string
-  dueTime?: string
-  scheduledDate?: string
-  scheduledTime?: string
+  dueAt?: string
+  startAt?: string
   priority?: number
   recurrence?: string
 } {
   // Delegate to shared extraction in @km/core (DRY: same regexes for parser and editor)
   const extracted = extractTaskMetadata(text)
+  const dueAt = composeDatetime(extracted.dueDate, extracted.dueTime)
+  const startAt = composeDatetime(extracted.startDate, extracted.startTime)
   return {
-    ...(extracted.dueDate && { dueDate: extracted.dueDate }),
-    ...(extracted.dueTime && { dueTime: extracted.dueTime }),
-    ...(extracted.startDate && { scheduledDate: extracted.startDate }),
-    ...(extracted.startTime && { scheduledTime: extracted.startTime }),
+    ...(dueAt && { dueAt }),
+    ...(startAt && { startAt }),
     ...(extracted.priority !== undefined && { priority: extracted.priority }),
     ...(extracted.recurrence && { recurrence: extracted.recurrence }),
   }

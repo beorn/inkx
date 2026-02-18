@@ -14,21 +14,21 @@ import type { KNode } from "@km/core"
 // INSERT OR IGNORE (idempotent — disk mode / deferred parsing)
 // ============================================================================
 
-/** SQL for the 30-column INSERT OR IGNORE used by applyEvents, parseDeferredSequential, and parseStubFile.
+/** SQL for the 28-column INSERT OR IGNORE used by applyEvents, parseDeferredSequential, and parseStubFile.
  * Uses INSERT OR IGNORE to match applyEventWithDb behavior — in disk mode,
  * events.jsonl may contain events for nodes that already exist in state.db. */
 export const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
     id, type, fstype, parent_id, link_to, link_alias, parent_idx,
     fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
-    list_marker, task_marker, task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
+    list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 /**
- * Run the 30-column INSERT OR IGNORE for a KNode.
+ * Run the 28-column INSERT OR IGNORE for a KNode.
  * Shared by parseDeferredSequential and parseStubFile where the source is a KNode.
  */
 export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: number): void {
@@ -55,8 +55,6 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
     node.assigned_to ?? null,
     node.due_at ?? null,
     node.start_at ?? null,
-    node.due_date ?? null,
-    node.scheduled_date ?? null,
     node.priority ?? null,
     node.content ?? null,
     node.content_hash ?? null,
@@ -71,14 +69,14 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
 // Plain INSERT (pipeline — full create, no idempotency needed)
 // ============================================================================
 
-/** SQL for the 30-column plain INSERT used by the pipeline's applyNodes stage.
+/** SQL for the 28-column plain INSERT used by the pipeline's applyNodes stage.
  * No OR IGNORE — used when we know the node does not yet exist (fresh create). */
 export const INSERT_NODE_PLAIN_SQL = `
   INSERT INTO nodes (
     id, type, fstype, parent_id, link_to, link_alias, parent_idx,
     fs_path, fs_ino, fs_mtime, name, block_id, title, md_pos, md_line,
-    list_marker, task_marker, task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
+    list_marker, task_marker, task_status, assigned_to, due_at, start_at, priority,
     content, content_hash, data,
     created_at, updated_at, version
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `

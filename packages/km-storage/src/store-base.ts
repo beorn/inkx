@@ -89,7 +89,7 @@ export abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE task_status IS NOT NULL
-         ORDER BY task_status, priority ASC, due_date ASC, created_at ASC`,
+         ORDER BY task_status, priority ASC, due_at ASC, created_at ASC`,
       )
       .all() as Record<string, unknown>[]
     return rows.map(rowToNode)
@@ -101,7 +101,7 @@ export abstract class BaseStore implements NodeStore {
     const rows = this.db
       .query(
         `SELECT * FROM nodes WHERE task_status IS NOT NULL AND task_status IN (${placeholders})
-         ORDER BY priority ASC, due_date ASC, created_at ASC`,
+         ORDER BY priority ASC, due_at ASC, created_at ASC`,
       )
       .all(...statuses) as Record<string, unknown>[]
     return rows.map(rowToNode)
@@ -217,10 +217,9 @@ export abstract class BaseStore implements NodeStore {
       let line = lines[mdLine]
       if (!line) return
 
-      // Update or add due_date
-      line = this.updateDateField(line, node.due_date ?? null, node.due_time ?? null, "due")
-      // Update or add scheduled_date
-      line = this.updateDateField(line, node.scheduled_date ?? null, node.scheduled_time ?? null, "scheduled")
+      // Update or add due_at / start_at
+      line = this.updateDateField(line, node.due_at ?? null, "due")
+      line = this.updateDateField(line, node.start_at ?? null, "scheduled")
 
       lines[mdLine] = line
       writeFileSync(filePath, lines.join("\n"))
@@ -232,7 +231,7 @@ export abstract class BaseStore implements NodeStore {
   /**
    * Update a date field on a task line. Handles both emoji and inline formats.
    */
-  private updateDateField(line: string, date: string | null, time: string | null, field: "due" | "scheduled"): string {
+  private updateDateField(line: string, value: string | null, field: "due" | "scheduled"): string {
     const emojiRegex =
       field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
     const inlineRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
@@ -240,23 +239,22 @@ export abstract class BaseStore implements NodeStore {
     const hasEmoji = emojiRegex.test(line)
     const hasInline = inlineRegex.test(line)
 
-    if (date) {
-      const timeSuffix = time ? `T${time}` : ""
+    if (value) {
       if (hasEmoji) {
         // Replace existing emoji format
         const emoji = field === "due" ? "📅" : "⏳"
         const replaceRegex =
           field === "due" ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/ : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
-        line = line.replace(replaceRegex, `${emoji} ${date}${timeSuffix}`)
+        line = line.replace(replaceRegex, `${emoji} ${value}`)
       } else if (hasInline) {
         // Replace existing inline format
         const replaceRegex = field === "due" ? /\bdue:\d{4}-\d{2}-\d{2}\b/ : /\bstart:\d{4}-\d{2}-\d{2}\b/
         const inlineKey = field === "due" ? "due" : "start"
-        line = line.replace(replaceRegex, `${inlineKey}:${date}`)
+        line = line.replace(replaceRegex, `${inlineKey}:${value}`)
       } else {
         // Append inline format (preferred for new dates)
         const inlineKey = field === "due" ? "due" : "start"
-        line = line.trimEnd() + ` ${inlineKey}:${date}`
+        line = line.trimEnd() + ` ${inlineKey}:${value}`
       }
     } else {
       // Clear date: remove both emoji and inline formats

@@ -143,6 +143,18 @@ For rendering bugs (wrong colors, missing borders, bad layout), use the buffer a
 | `board.expectNodeColor(id,{fg,bg,attrs})` | Colors on node's text |
 | `board.expectNodeBorder(id)` | Node has border chars |
 | `board.expectNodeNoBorder(id)` | Node has no border |
+| `board.expectBorderContinuous(id)` | All 4 sides have unbroken border chars |
+| `board.expectHorizontalBorder(id, side)` | Top or bottom border exists |
+| `board.expectAdjacentBorders(id)` | Node + neighbors have intact borders |
+| `board.expectNoGhostChars(region?)` | No NUL, control chars, "[object Object]" |
+| `board.expectBlankRegion(x,y,w,h)` | Region is all spaces |
+| `board.expectNoBlankLine(from?,to?)` | No fully blank rows in range |
+| `board.expectNoContentGaps(rows?)` | No blank rows within content area |
+| `board.expectCursorVisible()` | Cursor exists and within screen bounds |
+| `board.expectTextNotOverflowing(id)` | Text doesn't bleed past node's right edge |
+| `board.expectTextTruncated(id)` | Long text is truncated within bounds |
+| `board.expectColumnsAligned(ids[])` | Columns ordered, non-overlapping, same height |
+| `board.expectIncrementalMatchesFresh()` | Incremental buffer matches fresh render |
 
 **Color numbers**: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
 

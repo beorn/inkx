@@ -27,7 +27,7 @@ const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
-import { CUSTOM_TASK_MARKS, getStatusForMarker, markToMarker, extractTitleTaskMarker, composeDatetime } from "@km/core"
+import { CUSTOM_TASK_MARKS, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -325,9 +325,6 @@ function convertListItem(
   // Priority from metadata only
   const priority: number | undefined = metadata.priority
 
-  const dueAt = composeDatetime(metadata.dueDate, metadata.dueTime)
-  const startAt = composeDatetime(metadata.scheduledDate, metadata.scheduledTime)
-
   const node: KNode = {
     id: ulid(),
     type: "li",
@@ -342,12 +339,8 @@ function convertListItem(
     content: text,
     content_hash: undefined,
     task_status: taskStatus,
-    due_at: dueAt,
-    start_at: startAt,
-    due_date: metadata.dueDate,
-    due_time: metadata.dueTime,
-    scheduled_date: metadata.scheduledDate,
-    scheduled_time: metadata.scheduledTime,
+    due_at: metadata.dueAt,
+    start_at: metadata.startAt,
     priority,
     recurrence: metadata.recurrence,
     data: {

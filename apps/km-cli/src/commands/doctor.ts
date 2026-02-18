@@ -225,7 +225,7 @@ export const doctorCommand = new Command("doctor")
 async function loadAndReport(repoPath: string, stepLabel: string, successMessage: string): Promise<void> {
   try {
     // Don't use `using` — we need the repo alive for deferred file parsing
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
     let repo: any
     await steps({
       [stepLabel]: function* () {
@@ -246,6 +246,7 @@ async function loadAndReport(repoPath: string, stepLabel: string, successMessage
     console.log(term.green("✓"), successMessage)
     console.log(term.dim(`  Nodes: ${nodeCount}`))
     console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
+    /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
   } catch (error) {
     console.error(term.red(`${successMessage.split(" ")[0]} failed:`), error)
     process.exit(1)

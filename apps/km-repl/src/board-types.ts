@@ -30,8 +30,8 @@ export interface TNode {
   task_status?: TaskStatus
   task_marker?: TaskMarker
   priority?: number
-  due_date?: string
-  scheduled_date?: string
+  due_at?: string
+  start_at?: string
   content?: string
   rules?: NodeRules
   data: Record<string, unknown>

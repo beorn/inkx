@@ -258,7 +258,7 @@ describe("MemoryStore", () => {
     expect(fileContent).toContain("- [x] Open task")
   })
 
-  test("should update due_date and write through to file", () => {
+  test("should update due_at and write through to file", () => {
     const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
@@ -266,19 +266,19 @@ describe("MemoryStore", () => {
     const openTask = tasks.find((t) => t.content === "Open task")
     expect(openTask).toBeDefined()
 
-    // Set due_date
-    store.updateNode(openTask!.id, { due_date: "2026-03-15" })
+    // Set due_at
+    store.updateNode(openTask!.id, { due_at: "2026-03-15" })
 
     // Verify in-memory update
     const updated = store.getNode(openTask!.id)
-    expect(updated!.due_date).toBe("2026-03-15")
+    expect(updated!.due_at).toBe("2026-03-15")
 
     // Verify write-through to file
     const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
     expect(fileContent).toContain("due:2026-03-15")
   })
 
-  test("should handle due_time in data blob, not as SQL column", () => {
+  test("should handle due_at with time component", () => {
     const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
@@ -286,19 +286,15 @@ describe("MemoryStore", () => {
     const openTask = tasks.find((t) => t.content === "Open task")
     expect(openTask).toBeDefined()
 
-    // This is what handleDatePromptConfirm does: passes due_date + due_time
-    store.updateNode(openTask!.id, {
-      due_date: "2026-03-15",
-      due_time: "14:30",
-    } as Partial<KNode>)
+    // Set due_at with time
+    store.updateNode(openTask!.id, { due_at: "2026-03-15T14:30" })
 
-    // Both should be readable
+    // Should be readable with time included
     const updated = store.getNode(openTask!.id)
-    expect(updated!.due_date).toBe("2026-03-15")
-    expect(updated!.due_time).toBe("14:30")
+    expect(updated!.due_at).toBe("2026-03-15T14:30")
   })
 
-  test("should clear due_date and remove from file", () => {
+  test("should clear due_at and remove from file", () => {
     const rootDir = createTestDir()
     writeFileSync(join(rootDir, "tasks.md"), `# Tasks\n\n- [ ] Task with date due:2026-03-15\n`)
     using store = new MemoryStore(rootDir)
@@ -306,13 +302,13 @@ describe("MemoryStore", () => {
     const tasks = store.getAllTasks()
     const task = tasks.find((t) => t.content?.includes("Task with date"))
     expect(task).toBeDefined()
-    expect(task!.due_date).toBe("2026-03-15")
+    expect(task!.due_at).toBe("2026-03-15")
 
     // Clear the date
-    store.updateNode(task!.id, { due_date: null } as Partial<KNode>)
+    store.updateNode(task!.id, { due_at: null } as Partial<KNode>)
 
     const updated = store.getNode(task!.id)
-    expect(updated!.due_date).toBeUndefined()
+    expect(updated!.due_at).toBeUndefined()
 
     // File should no longer contain the date
     const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
@@ -329,7 +325,7 @@ describe("MemoryStore", () => {
     expect(task).toBeDefined()
 
     // Update to new date
-    store.updateNode(task!.id, { due_date: "2026-06-15" })
+    store.updateNode(task!.id, { due_at: "2026-06-15" })
 
     const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")
     expect(fileContent).toContain("📅 2026-06-15")

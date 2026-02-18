@@ -66,7 +66,7 @@ function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean 
   const rrule = naturalToRRule(recurrence) || recurrence
 
   // Calculate next due date
-  const baseDate = node.due_date || new Date().toISOString().slice(0, 10)
+  const baseDate = node.due_at || new Date().toISOString().slice(0, 10)
   const nextDue = getNextOccurrence(rrule, baseDate)
   if (!nextDue) return false
 

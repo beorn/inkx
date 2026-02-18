@@ -25,7 +25,7 @@ export function getTasksByStatus(db: Database, status: TaskStatus | TaskStatus[]
       `
     SELECT * FROM nodes
     WHERE task_status IN (${placeholders})
-    ORDER BY priority ASC, due_date ASC, created_at ASC
+    ORDER BY priority ASC, due_at ASC, created_at ASC
   `,
     )
     .all(...statuses) as Record<string, unknown>[]
@@ -43,7 +43,7 @@ export function getAllTasks(db: Database): KNode[] {
       `
     SELECT * FROM nodes
     WHERE task_status IS NOT NULL
-    ORDER BY task_status, priority ASC, due_date ASC, created_at ASC
+    ORDER BY task_status, priority ASC, due_at ASC, created_at ASC
   `,
     )
     .all() as Record<string, unknown>[]
@@ -90,7 +90,7 @@ export function getTasksFiltered(
     sql += " AND task_status IN ('todo', 'wip')"
   }
 
-  sql += " ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC"
+  sql += " ORDER BY priority ASC NULLS LAST, due_at ASC NULLS LAST, created_at DESC"
 
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[]
   return rows.map(rowToNode)
@@ -113,7 +113,7 @@ export function getTasksUnderNode(db: Database, rootId: string): KNode[] {
     )
     SELECT * FROM nodes
     WHERE id IN descendants AND task_status IS NOT NULL
-    ORDER BY priority ASC NULLS LAST, due_date ASC NULLS LAST, created_at DESC
+    ORDER BY priority ASC NULLS LAST, due_at ASC NULLS LAST, created_at DESC
   `,
     )
     .all(rootId) as Record<string, unknown>[]

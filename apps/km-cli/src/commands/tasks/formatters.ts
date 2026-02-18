@@ -110,8 +110,8 @@ export function formatTaskLine(task: KNode, options: { detail?: boolean; showId?
   line += content
 
   if (options.detail) {
-    if (task.due_date) {
-      line += term.cyan(` 📅 ${task.due_date}`)
+    if (task.due_at) {
+      line += term.cyan(` 📅 ${task.due_at}`)
     }
     if (task.priority) {
       const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽"

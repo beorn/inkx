@@ -7,7 +7,6 @@
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
 import type { KNode, TaskStatus, Event } from "@km/core"
-import { composeDatetime, decomposeDatetime } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
 import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
@@ -329,24 +328,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       if (!node) {
         throw new Error(`Node ${id} not found`)
       }
-      // Dual-write: keep due_at ↔ due_date and start_at ↔ scheduled_date in sync
-      const augmented = { ...changes }
-      if ("due_at" in augmented && !("due_date" in augmented)) {
-        const parts = decomposeDatetime(augmented.due_at)
-        augmented.due_date = parts?.date
-      }
-      if ("due_date" in augmented && !("due_at" in augmented)) {
-        augmented.due_at = composeDatetime(augmented.due_date, augmented.due_time ?? node.due_time) ?? undefined
-      }
-      if ("start_at" in augmented && !("scheduled_date" in augmented)) {
-        const parts = decomposeDatetime(augmented.start_at)
-        augmented.scheduled_date = parts?.date
-      }
-      if ("scheduled_date" in augmented && !("start_at" in augmented)) {
-        augmented.start_at =
-          composeDatetime(augmented.scheduled_date, augmented.scheduled_time ?? node.scheduled_time) ?? undefined
-      }
-      nodes.set(id, { ...node, ...augmented, id })
+      nodes.set(id, { ...node, ...changes, id })
       mutationVersion++
       notifyListeners()
     },
@@ -415,8 +397,6 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         content: changes.content ?? source.content,
         due_at: changes.due_at ?? source.due_at,
         start_at: changes.start_at ?? source.start_at,
-        due_date: changes.due_date ?? source.due_date,
-        scheduled_date: changes.scheduled_date ?? source.scheduled_date,
         parent_idx: (source.parent_idx ?? 0) + 0.001,
         data: { ...source.data, ...changes.data, recur_prev: sourceId },
         created_at: now,

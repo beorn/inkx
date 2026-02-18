@@ -742,8 +742,6 @@ function* reconcileFilesystem(
   return { events, deferredFiles }
 }
 
-// INSERT_NODE_SQL is imported from ./db-insert.ts
-
 // ============================================================================
 // SHARED PIPELINE
 // ============================================================================
@@ -798,8 +796,6 @@ function* applyEvents(
             (data.assigned_to as string) ?? null,
             (data.due_at as string) ?? null,
             (data.start_at as string) ?? null,
-            (data.due_date as string) ?? null,
-            (data.scheduled_date as string) ?? null,
             (data.priority as number) ?? null,
             (data.content as string) ?? null,
             (data.content_hash as string) ?? null,
@@ -834,6 +830,3 @@ function* materializeRules(db: Database): Generator<StepYield, void, unknown> {
     yield { current: progress.current, total: progress.total }
   }
 }
-
-// parseDeferredAsync and parseStubFile are extracted to ./deferred-parsing.ts
-// and re-exported above via parseDeferredAsyncImpl / parseStubFileImpl aliases.

@@ -1,4 +1,12 @@
 export type IconStyle = "nerdfont" | "workflowy" | "regular"
+export type BorderMode = "normal" | "black"
+
+/** A sync activity event for the sync pane log */
+export interface SyncEvent {
+  timestamp: number
+  type: "sync-start" | "sync-complete" | "state-change" | "error" | "write-complete" | "write-error"
+  message: string
+}
 
 /**
  * UI State Types and Factory
@@ -22,6 +30,7 @@ export interface UIState {
   maxOutlineDepth: number
   maxContentLines: number
   iconStyle: IconStyle
+  borderMode: BorderMode
 
   // Board context
   rootBoardId: string | null
@@ -37,6 +46,7 @@ export interface UIState {
   /** Node IDs that define the search scope when searchScope is "selected" */
   searchScopeNodeIds: string[]
   showConsole: boolean
+  showSyncPane: boolean
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
   subIndex: number
@@ -87,6 +97,9 @@ export interface UIState {
 
   // Watcher status (for bottom bar display)
   watcherStatus: WatcherStatus | null
+
+  // Sync activity log (for sync pane display)
+  syncEvents: SyncEvent[]
 
   // Inline edit state - which block is being edited (null = not editing)
   // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
@@ -142,6 +155,7 @@ export function createInitialUIState(
     maxOutlineDepth: 2,
     maxContentLines: 3,
     iconStyle: "nerdfont" as IconStyle,
+    borderMode: "normal" as BorderMode,
 
     rootBoardId,
 
@@ -153,6 +167,7 @@ export function createInitialUIState(
     searchScope: "all",
     searchScopeNodeIds: [],
     showConsole: false,
+    showSyncPane: false,
 
     subIndex: 0,
     inOutlineMode: false,
@@ -185,6 +200,7 @@ export function createInitialUIState(
     loadingStartTime: null,
 
     watcherStatus: null,
+    syncEvents: [],
 
     inlineEditBlock: null,
 

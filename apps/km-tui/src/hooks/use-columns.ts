@@ -257,8 +257,6 @@ function nodesEqual(a: KNode, b: KNode): boolean {
     a.task_status === b.task_status &&
     a.due_at === b.due_at &&
     a.start_at === b.start_at &&
-    a.due_date === b.due_date &&
-    a.scheduled_date === b.scheduled_date &&
     a.priority === b.priority &&
     a.recurrence === b.recurrence
   )

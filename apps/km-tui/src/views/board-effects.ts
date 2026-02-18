@@ -1,7 +1,7 @@
 /**
  * Board lifecycle effects - setup/teardown hooks
  */
-import type { UIState } from "../ui-reducer.ts"
+import type { UIState, SyncEvent } from "../ui-reducer.ts"
 import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
@@ -13,7 +13,7 @@ type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>))
  * Creates the file drop handler effect
  * Handles bracketed paste for file drops
  */
-export function createFileDropHandler(setUI: SetUI): () => void | undefined {
+export function createFileDropHandler(setUI: SetUI): () => void {
   if (!supportsFileDrop()) return () => {}
 
   const cleanup = createPasteHandler((files) => {
@@ -51,6 +51,68 @@ export function createWatcherStatusHandler(setUI: SetUI, toastQueue?: ToastQueue
   tuiEvents.on("watcher-status", handleWatcherStatus)
   return () => {
     tuiEvents.off("watcher-status", handleWatcherStatus)
+  }
+}
+
+const MAX_SYNC_EVENTS = 100
+
+/**
+ * Creates the sync event collector effect
+ * Subscribes to watcher status changes and pushes SyncEvent entries for the sync pane
+ */
+export function createSyncEventCollector(setUI: SetUI): () => void {
+  let lastState: string | null = null
+
+  const pushEvent = (event: SyncEvent) => {
+    setUI((prev) => ({
+      syncEvents: [event, ...prev.syncEvents].slice(0, MAX_SYNC_EVENTS),
+    }))
+  }
+
+  const handleWatcherStatus = (status: WatcherStatus) => {
+    const newState = status.state
+    if (newState === lastState) return
+    lastState = newState
+
+    if (newState === "syncing") {
+      pushEvent({
+        timestamp: Date.now(),
+        type: "sync-start",
+        message: `Syncing${status.pendingPaths > 0 ? ` (${status.pendingPaths} pending)` : ""}`,
+      })
+    } else if (newState === "idle" || newState === "ready") {
+      pushEvent({
+        timestamp: Date.now(),
+        type: "sync-complete",
+        message: `Sync complete (${status.watchedPaths ?? 0} files watched)`,
+      })
+    } else if (newState === "error") {
+      pushEvent({
+        timestamp: Date.now(),
+        type: "error",
+        message: `Watcher error${status.error ? `: ${status.error}` : ""}`,
+      })
+    } else {
+      pushEvent({
+        timestamp: Date.now(),
+        type: "state-change",
+        message: `Watcher: ${newState}`,
+      })
+    }
+  }
+
+  const unsubSyncError = kmEvents.on("sync-error", (e) => {
+    pushEvent({
+      timestamp: Date.now(),
+      type: "write-error",
+      message: `Write error: ${e.path} — ${e.message}`,
+    })
+  })
+
+  tuiEvents.on("watcher-status", handleWatcherStatus)
+  return () => {
+    tuiEvents.off("watcher-status", handleWatcherStatus)
+    unsubSyncError()
   }
 }
 

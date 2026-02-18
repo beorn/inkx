@@ -92,7 +92,7 @@ export function vacuumDb(kmDir: string): number {
   const sizeBefore = statSync(dbPath).size
   // Open a separate connection for VACUUM (can't run on existing connection)
   const vacDb = new Database(dbPath)
-  vacDb.exec("VACUUM")
+  vacDb.run("VACUUM")
   vacDb.close()
   const sizeAfter = statSync(dbPath).size
 

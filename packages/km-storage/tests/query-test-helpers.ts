@@ -18,8 +18,8 @@ export interface TestNode {
   priority?: number | null
   content: string
   fs_path?: string | null
-  due_date?: string | null
-  scheduled_date?: string | null
+  due_at?: string | null
+  start_at?: string | null
   name?: string | null
   data?: string
 }
@@ -43,7 +43,7 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
   const stmt = db.prepare(`
     INSERT INTO nodes (
       id, type, fstype, name, task_status, task_marker, priority, content,
-      fs_path, due_date, scheduled_date, data,
+      fs_path, due_at, start_at, data,
       created_at, updated_at, version, parent_idx
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
@@ -60,8 +60,8 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
       n.priority ?? null,
       n.content,
       n.fs_path ?? null,
-      n.due_date ?? null,
-      n.scheduled_date ?? null,
+      n.due_at ?? null,
+      n.start_at ?? null,
       n.data ?? "{}",
       now,
       now,

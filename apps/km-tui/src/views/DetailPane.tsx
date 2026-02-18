@@ -10,7 +10,7 @@ import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
-import { extractBody } from "@km/tree"
+import { extractBody, stripForDisplay } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
@@ -140,14 +140,10 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   const innerWidth = Math.max(10, width - 6) // Account for border + paddingX(1)
   const title = getNodeDisplayName(repo, node)
 
-  // Get fields — use due_at/start_at (preferred), fall back to legacy
   const statusInfo = getStatusDisplay(node.task_status)
   const isDone = node.task_status === "done" || node.task_status === "dropped"
-  const dueParts =
-    decomposeDatetime(node.due_at) ?? (node.due_date ? { date: node.due_date, time: node.due_time } : undefined)
-  const startParts =
-    decomposeDatetime(node.start_at) ??
-    (node.scheduled_date ? { date: node.scheduled_date, time: node.scheduled_time } : undefined)
+  const dueParts = decomposeDatetime(node.due_at)
+  const startParts = decomposeDatetime(node.start_at)
   const dueDate = formatDate(dueParts?.date)
   const assignedTo = node.assigned_to
 
@@ -158,22 +154,16 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   const refs = extractReferences(node.content)
 
   // Also check data for stored references
+  const mergeUnique = (target: string[], source: string[] | undefined): void => {
+    if (!source) return
+    for (const item of source) {
+      if (!target.includes(item)) target.push(item)
+    }
+  }
   const dataRefs = node.data as { mentions?: string[]; tags?: string[]; projects?: string[] } | undefined
-  if (dataRefs?.mentions) {
-    for (const m of dataRefs.mentions) {
-      if (!refs.mentions.includes(m)) refs.mentions.push(m)
-    }
-  }
-  if (dataRefs?.tags) {
-    for (const t of dataRefs.tags) {
-      if (!refs.tags.includes(t)) refs.tags.push(t)
-    }
-  }
-  if (dataRefs?.projects) {
-    for (const p of dataRefs.projects) {
-      if (!refs.projects.includes(p)) refs.projects.push(p)
-    }
-  }
+  mergeUnique(refs.mentions, dataRefs?.mentions)
+  mergeUnique(refs.tags, dataRefs?.tags)
+  mergeUnique(refs.projects, dataRefs?.projects)
 
   // Get children — split into body (content blocks) and structural (outline items)
   const children = repo.getChildren(node.id)
@@ -367,12 +357,12 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           capitalizeKey={false}
         />
 
-        {/* Body content — paragraphs, code blocks, etc. */}
+        {/* Body content — raw text, stripped of metadata */}
         {bodyChildren.length > 0 && (
           <Box flexDirection="column" marginTop={1} width={innerWidth}>
             {bodyChildren.map((child) => (
               <Text key={child.id} wrap="wrap">
-                {renderRich(child.content ?? "")}
+                {stripForDisplay(child.content ?? "")}
               </Text>
             ))}
           </Box>
@@ -472,7 +462,7 @@ function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; dept
               <Text key={b.id} wrap="wrap" dimColor>
                 {indent}
                 {"  "}
-                {renderRich(b.content ?? "")}
+                {stripForDisplay(b.content ?? "")}
               </Text>
             ))}
             {kidItems.length > 0 && <OutlineItems repo={repo} items={kidItems} depth={depth + 1} />}
@@ -482,6 +472,4 @@ function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; dept
     </>
   )
 }
-
-// Export for testing (re-exported from helpers)
 export { extractReferences, formatDate, getStatusDisplay, getProjectPath } from "./detail-pane-helpers.ts"

@@ -248,7 +248,7 @@ const DISPLAY_FIELDS: DisplayField[] = [
     label: "Status",
     get: (n) => (n.task_status ? formatStatus(n.task_status) : undefined),
   },
-  { key: "due_date", label: "Due" },
+  { key: "due_at", label: "Due" },
   { key: "priority", label: "Priority" },
   { key: "assigned_to", label: "Assigned" },
   {

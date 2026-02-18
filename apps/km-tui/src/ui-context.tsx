@@ -8,7 +8,7 @@
 
 import React, { createContext, useContext, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
-import type { UIState, IconStyle } from "./ui-reducer.ts"
+import type { UIState, IconStyle, BorderMode } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { useRepo, type Repo } from "./repo-context.tsx"
 import { getOwnColor } from "./board-pills.ts"
@@ -153,6 +153,7 @@ export interface TreeConfig {
   currentSubIndex: number
   variant: "oneliner" | "multiline"
   iconStyle: IconStyle
+  borderMode: BorderMode
 }
 
 /**
@@ -196,6 +197,7 @@ export function deriveTreeConfig(ui: UIState): TreeConfig {
     currentSubIndex: ui.subIndex,
     variant: viewMode === "cards" ? "multiline" : "oneliner",
     iconStyle: ui.iconStyle,
+    borderMode: ui.borderMode,
   }
 }
 

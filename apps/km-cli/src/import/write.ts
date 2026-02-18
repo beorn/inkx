@@ -21,14 +21,16 @@ export interface WriteOptions {
   force?: boolean
 }
 
+export type FileSource = FileMap | Iterable<[string, string]>
+
 /** Extract frontmatter field from markdown content */
 function getFrontmatterField(content: string, field: string): string | undefined {
   const match = content.match(new RegExp(`^${field}:\\s*"?([^"\\n]+)"?`, "m"))
   return match?.[1]
 }
 
-/** Write a FileMap to disk */
-export function writeFiles(files: FileMap, options: WriteOptions): { written: string[]; skipped: string[] } {
+/** Write files to disk from a FileMap or any iterable of [path, content] pairs */
+export function writeFiles(files: FileSource, options: WriteOptions): { written: string[]; skipped: string[] } {
   const written: string[] = []
   const skipped: string[] = []
 

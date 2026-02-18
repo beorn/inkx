@@ -187,6 +187,7 @@ const Card = React.memo(
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
     const yieldTop = isPrevBodyBlock && isPrevAtCursor
+    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "black" : "gray"
 
     if (isHR && !isEditing) {
       const innerWidth = width - 2 // border or padding L+R both consume 2
@@ -197,7 +198,15 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...bodyBlockLayoutProps(isSelected, "yellow", yieldTop, isLastBodyBlock, isMultiSelected, isColSelected)}
+          {...bodyBlockLayoutProps(
+            isSelected,
+            "yellow",
+            yieldTop,
+            isLastBodyBlock,
+            isMultiSelected,
+            isColSelected,
+            bodyDefaultBorder,
+          )}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -236,6 +245,7 @@ const Card = React.memo(
             isLastBodyBlock,
             isMultiSelected,
             isColSelected,
+            bodyDefaultBorder,
           )}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -257,8 +267,9 @@ const Card = React.memo(
       )
     }
 
-    // Border: cyan when editing, yellow when selected/multi-selected/column-selected, gray otherwise
-    const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected || isColSelected ? "yellow" : "blackBright"
+    // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
+    const defaultBorder = treeConfig.borderMode === "black" ? "black" : "blackBright"
+    const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected || isColSelected ? "yellow" : defaultBorder
 
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -348,12 +359,13 @@ function bodyBlockLayoutProps(
   _isLastBodyBlock: boolean,
   isMultiSelected: boolean,
   isColumnSelected = false,
+  defaultBorderColor = "gray",
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
     borderStyle: "round" as const,
-    borderColor: isMultiSelected || isColumnSelected ? "yellow" : "gray",
-    borderDimColor: !isMultiSelected && !isColumnSelected,
+    borderColor: isMultiSelected || isColumnSelected ? "yellow" : defaultBorderColor,
+    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
   }
 }
 
@@ -390,7 +402,7 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle },
+    treeConfig: { iconStyle, borderMode },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)

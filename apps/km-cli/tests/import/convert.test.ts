@@ -201,8 +201,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("> See also: [Related]([[^789012]])")
-    expect(md).toContain("[Another]([[^222333]])")
+    expect(md).toContain("> See also: [[^789012]] and [[^222333]]")
     expect(md).not.toContain("app.asana.com")
   })
 
@@ -614,8 +613,8 @@ describe("roundtrip: convert → parse", () => {
     expect(taskLine).toBeDefined()
 
     const meta = parseTaskMetadata(taskLine)
-    expect(meta.dueDate).toBe("2026-03-15")
-    expect(meta.scheduledDate).toBe("2026-03-01")
+    expect(meta.dueAt).toBe("2026-03-15")
+    expect(meta.startAt).toBe("2026-03-01")
     expect(meta.priority).toBe(2)
 
     const mentions = extractMentions(taskLine)

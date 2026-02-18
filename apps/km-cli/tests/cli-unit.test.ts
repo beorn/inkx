@@ -31,7 +31,7 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
   } as KNode
 
   db.prepare(
-    `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, priority, due_date, assigned_to, created_at, updated_at)
+    `INSERT INTO nodes (id, type, list_marker, task_marker, content, task_status, priority, due_at, assigned_to, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     node.id,
@@ -41,7 +41,7 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
     node.content ?? null,
     node.task_status ?? "todo",
     node.priority ?? null,
-    node.due_date ?? null,
+    node.due_at ?? null,
     node.assigned_to ?? null,
     node.created_at,
     node.updated_at,
@@ -123,16 +123,16 @@ describe.sequential("Task Priority Sorting", () => {
 describe.sequential("Task Due Date Sorting", () => {
   test("should sort by due date ascending", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Due tomorrow", { due_date: "2026-01-10" })
-      createTask(db, "Due today", { due_date: "2026-01-09" })
-      createTask(db, "Due next week", { due_date: "2026-01-16" })
+      createTask(db, "Due tomorrow", { due_at: "2026-01-10" })
+      createTask(db, "Due today", { due_at: "2026-01-09" })
+      createTask(db, "Due next week", { due_at: "2026-01-16" })
 
       const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => {
-        if (!a.due_date && !b.due_date) return 0
-        if (!a.due_date) return 1
-        if (!b.due_date) return -1
-        return a.due_date.localeCompare(b.due_date)
+        if (!a.due_at && !b.due_at) return 0
+        if (!a.due_at) return 1
+        if (!b.due_at) return -1
+        return a.due_at.localeCompare(b.due_at)
       })
 
       expect(tasks[0]!.content).toBe("Due today")
@@ -144,14 +144,14 @@ describe.sequential("Task Due Date Sorting", () => {
   test("should put tasks without due date last", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "No due date")
-      createTask(db, "Has due date", { due_date: "2026-01-15" })
+      createTask(db, "Has due date", { due_at: "2026-01-15" })
 
       const tasks = getTasksByStatus(db, ["todo"])
       tasks.sort((a, b) => {
-        if (!a.due_date && !b.due_date) return 0
-        if (!a.due_date) return 1
-        if (!b.due_date) return -1
-        return a.due_date.localeCompare(b.due_date)
+        if (!a.due_at && !b.due_at) return 0
+        if (!a.due_at) return 1
+        if (!b.due_at) return -1
+        return a.due_at.localeCompare(b.due_at)
       })
 
       expect(tasks[0]!.content).toBe("Has due date")
@@ -203,7 +203,7 @@ describe.sequential("Node ID Prefix Matching", () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Test task", {
         priority: 2,
-        due_date: "2026-01-15",
+        due_at: "2026-01-15",
         assigned_to: "alice",
       })
 
@@ -211,7 +211,7 @@ describe.sequential("Node ID Prefix Matching", () => {
 
       expect(found?.content).toBe("Test task")
       expect(found?.priority).toBe(2)
-      expect(found?.due_date).toBe("2026-01-15")
+      expect(found?.due_at).toBe("2026-01-15")
       expect(found?.assigned_to).toBe("alice")
     })
   })
@@ -358,12 +358,12 @@ describe.sequential("Overdue Detection", () => {
       yesterday.setDate(yesterday.getDate() - 1)
       const yesterdayStr = yesterday.toISOString().split("T")[0]
 
-      createTask(db, "Overdue task", { due_date: yesterdayStr })
+      createTask(db, "Overdue task", { due_at: yesterdayStr })
 
       const tasks = getTasksByStatus(db, ["todo"])
       const overdue = tasks.filter((t) => {
-        if (!t.due_date) return false
-        return new Date(t.due_date) < new Date()
+        if (!t.due_at) return false
+        return new Date(t.due_at) < new Date()
       })
 
       expect(overdue.length).toBe(1)
@@ -377,12 +377,12 @@ describe.sequential("Overdue Detection", () => {
       tomorrow.setDate(tomorrow.getDate() + 1)
       const tomorrowStr = tomorrow.toISOString().split("T")[0]
 
-      createTask(db, "Future task", { due_date: tomorrowStr })
+      createTask(db, "Future task", { due_at: tomorrowStr })
 
       const tasks = getTasksByStatus(db, ["todo"])
       const overdue = tasks.filter((t) => {
-        if (!t.due_date) return false
-        return new Date(t.due_date) < new Date()
+        if (!t.due_at) return false
+        return new Date(t.due_at) < new Date()
       })
 
       expect(overdue.length).toBe(0)

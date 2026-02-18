@@ -84,7 +84,7 @@ describe("E2E Round-Trip Features", () => {
         const { nodes } = await roundTrip(data.database, repoDir, "due.md", "# Due\n\n- [ ] Pay bills 📅 2025-03-15\n")
 
         const task = nodes.find((n) => n.task_status != null)
-        expect(task?.due_date).toBe("2025-03-15")
+        expect(task?.due_at).toBe("2025-03-15")
       }))
 
     test("scheduled date survives round-trip", () =>
@@ -97,7 +97,7 @@ describe("E2E Round-Trip Features", () => {
         )
 
         const task = nodes.find((n) => n.task_status != null)
-        expect(task?.scheduled_date).toBe("2025-03-10")
+        expect(task?.start_at).toBe("2025-03-10")
       }))
 
     test("priority survives round-trip", () =>

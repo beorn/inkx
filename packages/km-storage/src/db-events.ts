@@ -10,7 +10,7 @@ import type { Database, SQLQueryBindings } from "bun:sqlite"
 
 const log = createLogger("km:storage:db:events")
 import { readFileSync } from "fs"
-import { getMarkerForStatus, composeDatetime, decomposeDatetime } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 
@@ -68,12 +68,6 @@ export function applyEventWithDb(db: Database, event: Event): void {
 function applyNodeCreated(db: Database, event: Event): void {
   const data = event.data as Record<string, unknown>
 
-  // Derive due_at/start_at and legacy fields for dual-write
-  const dueAt = (data.due_at as string) ?? null
-  const startAt = (data.start_at as string) ?? null
-  const dueParts = decomposeDatetime(dueAt)
-  const startParts = decomposeDatetime(startAt)
-
   // Use INSERT OR IGNORE as safety net for duplicate path-based IDs
   // This can happen if both discovery and watch handler create the same node
   db.run(
@@ -82,14 +76,14 @@ function applyNodeCreated(db: Database, event: Event): void {
       id, type, fstype, parent_id, link_to, link_alias, embed, parent_idx,
       fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line,
       list_marker, task_marker,
-      task_status, assigned_to, due_at, start_at, due_date, scheduled_date, priority,
+      task_status, assigned_to, due_at, start_at, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?,
-      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?,
       ?, ?, ?,
       ?, ?, ?
     )
@@ -114,10 +108,8 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.task_marker as string) ?? null,
       (data.task_status as string) ?? null,
       (data.assigned_to as string) ?? null,
-      dueAt,
-      startAt,
-      dueParts?.date ?? (data.due_date as string) ?? null,
-      startParts?.date ?? (data.scheduled_date as string) ?? null,
+      (data.due_at as string) ?? null,
+      (data.start_at as string) ?? null,
       (data.priority as number) ?? null,
       (data.content as string) ?? null,
       (data.content_hash as string) ?? null,
@@ -135,22 +127,6 @@ function applyNodeUpdated(db: Database, event: Event): void {
 
   const data = event.data as Record<string, unknown>
 
-  // Dual-write: keep due_at ↔ due_date and start_at ↔ scheduled_date in sync
-  if ("due_at" in data && !("due_date" in data)) {
-    const parts = decomposeDatetime(data.due_at as string | null)
-    data.due_date = parts?.date ?? null
-  }
-  if ("due_date" in data && !("due_at" in data)) {
-    data.due_at = composeDatetime(data.due_date as string | null, data.due_time as string | null) ?? null
-  }
-  if ("start_at" in data && !("scheduled_date" in data)) {
-    const parts = decomposeDatetime(data.start_at as string | null)
-    data.scheduled_date = parts?.date ?? null
-  }
-  if ("scheduled_date" in data && !("start_at" in data)) {
-    data.start_at = composeDatetime(data.scheduled_date as string | null, data.scheduled_time as string | null) ?? null
-  }
-
   const sets: string[] = []
   const values: unknown[] = []
 
@@ -165,7 +141,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
       sets.push(`${key} = ?`)
       values.push(value)
     } else {
-      // Non-column KNode field (due_time, scheduled_time, etc.) → data blob
+      // Non-column KNode field → data blob
       dataOverrides[key] = value
     }
   }
@@ -219,12 +195,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
   }
 
   // Bidirectional sync: write date field changes back to markdown file
-  if (
-    data.due_date !== undefined ||
-    data.scheduled_date !== undefined ||
-    data.due_at !== undefined ||
-    data.start_at !== undefined
-  ) {
+  if (data.due_at !== undefined || data.start_at !== undefined) {
     const task = db.query("SELECT * FROM nodes WHERE id = ?").get(event.target) as Record<string, unknown> | null
     if (task && task.md_line !== null) {
       let fsPath = task.fs_path as string | null
@@ -243,12 +214,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
         fsPath = file?.fs_path ?? null
       }
       if (fsPath) {
-        writeDateToFile(
-          fsPath,
-          task.md_line as number,
-          task.due_date as string | null,
-          task.scheduled_date as string | null,
-        )
+        writeDateToFile(fsPath, task.md_line as number, task.due_at as string | null, task.start_at as string | null)
       }
     }
   }
@@ -282,7 +248,7 @@ function writeTaskStatusToFile(fsPath: string, mdLine: number, newStatus: TaskSt
  * Write date field changes back to markdown file (bidirectional sync).
  * Updates existing emoji (📅/⏳) or inline (due:/start:) markers, or appends inline format.
  */
-function writeDateToFile(fsPath: string, mdLine: number, dueDate: string | null, scheduledDate: string | null): void {
+function writeDateToFile(fsPath: string, mdLine: number, dueAt: string | null, startAt: string | null): void {
   try {
     const content = readFileSync(fsPath, "utf-8")
     const lines = content.split("\n")
@@ -290,8 +256,8 @@ function writeDateToFile(fsPath: string, mdLine: number, dueDate: string | null,
     let line = lines[mdLine]
     if (!line) return
 
-    line = updateDateField(line, dueDate, "due")
-    line = updateDateField(line, scheduledDate, "scheduled")
+    line = updateDateField(line, dueAt, "due")
+    line = updateDateField(line, startAt, "scheduled")
 
     lines[mdLine] = line
     void Bun.write(fsPath, lines.join("\n"))

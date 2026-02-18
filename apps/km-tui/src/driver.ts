@@ -234,7 +234,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   registry.registerAll(allCommands)
 
   // Render Board component with StoreContext.Provider for L3 mode
-  const render = createRenderer({ cols: columns, rows })
+  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
     initialState: initialTUIState,
     initialViewMode: viewMode,

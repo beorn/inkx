@@ -180,8 +180,6 @@ const CHILD_DIFF_FIELDS = [
   "md_pos",
   "due_at",
   "start_at",
-  "due_date",
-  "scheduled_date",
   "priority",
   "link_to",
   "link_alias",
