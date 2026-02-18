@@ -163,6 +163,8 @@ Match on core symptom, not exact wording. "Blank cards after scroll" and "empty 
 
 ## Issue Templates
 
+**Incremental checking**: When creating a test for a discovered bug, verify `checkIncremental` is ON (default in `testEnv`). Never create a bug test with `checkIncremental: false`.
+
 ### Bug Bead
 
 ```bash

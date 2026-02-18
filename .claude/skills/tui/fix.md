@@ -11,6 +11,7 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 
 Follow the [test-first protocol](../tests/test-first-protocol.md). No code analysis or theorizing until you have a failing test.
 
+0. **Verify incremental checking is ON** — `testEnv()` has `checkIncremental: true` by default. If the test uses `checkIncremental: false`, remove it first. Incremental checking catches stale-pixel bugs that are invisible to other assertions.
 1. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
 2. **Write to /tmp/** — diagnostics are exploratory, promote when stable
 3. **If tests pass but bug is visible** — fix the diagnostic tooling, don't blame terminals
@@ -313,3 +314,7 @@ TUI tests check DOM content and computed colors (Phase 3), but bugs often live i
 5. **Verify edit mode component lifecycle** — for edit/input bugs, assert that the input component is mounted and focused, not just that final rendered text is correct.
 
 6. **Check adjacent element integrity** — fold-border-blank was about the card *below* the folded card losing its border. Tests should verify neighboring elements after mutations, not just the mutated element.
+
+7. **Prefer layout invariants over fixed-height checks** — When validating inline editing, use content-driven sizing invariants (e.g., "height >= line count", "width fills column") rather than hard-coded expected heights. Fixed heights drift when content, prefixes, or wrapping rules change. The HR editing flow broke because tests asserted exact pixel heights instead of structural invariants.
+
+8. **Use border-based focus cues** — Isolate focus cues as borders (cyan) rather than broad background color changes. This reduces UI noise and improves accessibility during editing workflows.
