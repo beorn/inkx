@@ -256,7 +256,6 @@ const Card = React.memo(
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={0}
-            dim={!isSelected}
             dimInactiveChildren={false}
             childCount={card.childCount}
             extraExcludedSigils={extraExcludedSigils}
