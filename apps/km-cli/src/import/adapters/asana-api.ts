@@ -408,10 +408,7 @@ export async function fetchFromAsana(options: FetchOptions & { _testMode?: boole
         slug: `@${userSlug}`,
         title: `@${user.name}`,
         fetchTasks: async () => orphanTasks,
-        fetchSections: () => client.get<Array<{ gid: string; name: string }>>(
-          `/user_task_lists/${taskList.gid}/sections` as `/projects/${string}/sections`,
-          { opt_fields: "name" },
-        ),
+        // User task lists don't support /sections API — tasks go as loose items
         workspace: workspace.name,
         owner: user.name,
       }, enrichOpts, downloadDir)
