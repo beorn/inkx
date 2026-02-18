@@ -181,7 +181,7 @@ describe("Search dialog bugs", () => {
               item("Task Epsilon"),
             ),
           ),
-        { rows: 20, checkIncremental: false }, // TODO: fix incremental rendering bug (km-inkx.incremental-unmount)
+        { rows: 20 },
       )
 
       board.press("/")

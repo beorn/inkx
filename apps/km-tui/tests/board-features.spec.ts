@@ -310,7 +310,7 @@ describe("Search and Filter", () => {
             item("Task 20"),
           ),
         ),
-      { checkIncremental: false }, // TODO: fix incremental rendering bug (km-inkx.incremental-unmount)
+      {},
     )
     board.press("/")
     // Type query to trigger results (min 2 chars required)
