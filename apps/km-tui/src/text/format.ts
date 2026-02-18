@@ -18,6 +18,12 @@ function createTermStyle(): StyleChain {
   return createTerm()
 }
 
+/** Collapse content to a single line, truncated. */
+function oneLine(text: string, max = 80): string {
+  const collapsed = text.replace(/\n/g, " ").replace(/\s+/g, " ").trim()
+  return collapsed.length > max ? collapsed.slice(0, max) + "…" : collapsed
+}
+
 /**
  * Format a collapsed ancestor for display with its type suffix.
  * Used in tree/context displays.
@@ -95,14 +101,26 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
             ? style.red(inner)
             : style.dim(inner)
     const checkbox = style.dim("[") + coloredMark + style.dim("]")
-    return prefix + checkbox + " " + (node.content ?? "(no content)")
+    return prefix + checkbox + " " + oneLine(node.content ?? "(no content)")
   }
 
   switch (node.type) {
+    case "h": {
+      const depth = (node.data?.depth as number) ?? 1
+      return prefix + style.dim("#".repeat(depth) + " ") + oneLine(node.content ?? "")
+    }
     case "p":
-      return prefix + style.dim("¶ ") + (node.content?.slice(0, 50) ?? "")
+      return prefix + style.dim("¶ ") + oneLine(node.content ?? "")
+    case "hr":
+      return prefix + style.dim("---")
+    case "code":
+      return prefix + style.dim("``` ") + oneLine(node.content ?? "")
+    case "quote":
+      return prefix + style.dim("> ") + oneLine(node.content ?? "")
+    case "table":
+      return prefix + style.dim("| ") + oneLine(node.content ?? "table")
     default:
-      return prefix + style.dim("• ") + (node.content?.slice(0, 50) ?? node.type)
+      return prefix + style.dim("• ") + oneLine(node.content ?? node.type)
   }
 }
 

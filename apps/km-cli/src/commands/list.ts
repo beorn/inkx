@@ -170,11 +170,16 @@ function getFilteredNodesWithQuery(
     // No type filter - get all nodes via subtree from root
     // Include root node itself, then all descendants
     const rootNode = repo.getRepoRootNode()
-    const getAllDescendants = (parentId: string | null): KNode[] => {
+    const getAllDescendants = (parentId: string | null, depth: number): Array<KNode & { _depth: number }> => {
       const children = repo.getChildren(parentId)
-      return children.flatMap((child: KNode) => [child, ...getAllDescendants(child.id)])
+      return children.flatMap((child: KNode) => [
+        Object.assign(child, { _depth: depth }),
+        ...getAllDescendants(child.id, depth + 1),
+      ])
     }
-    nodes = rootNode ? [rootNode, ...getAllDescendants(null)] : getAllDescendants(null)
+    nodes = rootNode
+      ? [Object.assign(rootNode, { _depth: 0 }), ...getAllDescendants(null, 1)]
+      : getAllDescendants(null, 0)
   }
 
   // Apply query filter if provided (only when not already handled above)
@@ -261,10 +266,12 @@ function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boole
 }
 
 /**
- * Display nodes without context (simple list)
+ * Display nodes as a tree with indentation
  */
 function displaySimple(repo: Repo, nodes: KNode[], options: { showId: boolean }): void {
   for (const node of nodes) {
-    console.log(formatNode(repo, node, options.showId))
+    const depth = (node as KNode & { _depth?: number })._depth ?? 0
+    const indent = "  ".repeat(depth)
+    console.log(indent + formatNode(repo, node, options.showId))
   }
 }
