@@ -15,6 +15,14 @@ import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, renderPlain, getNodeIcon } from "../text/index.ts"
 import { NodeLine } from "./shared-components.tsx"
+import {
+  formatDate,
+  getStatusDisplay,
+  extractReferences,
+  getProjectPath,
+  stripInlineRefs,
+  capitalize,
+} from "./detail-pane-helpers.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -336,23 +344,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         )}
 
         {/* Structured metadata (created::, completed::, etc.) */}
-        {(() => {
-          const metadata = (node.data?.metadata as Record<string, string>) ?? {}
-          const entries = Object.entries(metadata)
-          if (entries.length === 0) return null
-          return (
-            <>
-              {entries.map(([k, v]) => (
-                <Box key={k}>
-                  <Text>
-                    <Text dimColor>{(k[0] ?? "").toUpperCase() + k.slice(1)}: </Text>
-                    <Text>{v}</Text>
-                  </Text>
-                </Box>
-              ))}
-            </>
-          )
-        })()}
+        <DataFields entries={Object.entries((node.data?.metadata as Record<string, string>) ?? {})} />
 
         {/* Block ID */}
         {node.block_id && (
@@ -365,56 +357,15 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         )}
 
         {/* Inline properties (key:: value from markdown) */}
-        {(() => {
-          const propsRaw = (node.data?.propsRaw as Record<string, string>) ?? {}
-          const entries = Object.entries(propsRaw)
-          if (entries.length === 0) return null
-          return (
-            <>
-              {entries.map(([k, v]) => (
-                <Box key={`prop-${k}`}>
-                  <Text>
-                    <Text dimColor>{(k[0] ?? "").toUpperCase() + k.slice(1)}: </Text>
-                    <Text dimColor={isDone}>{v}</Text>
-                  </Text>
-                </Box>
-              ))}
-            </>
-          )
-        })()}
+        <DataFields entries={Object.entries((node.data?.propsRaw as Record<string, string>) ?? {})} isDone={isDone} />
 
         {/* Extra data fields (key:value for anything not already rendered) */}
-        {(() => {
-          const knownKeys = new Set([
-            "tags",
-            "mentions",
-            "projects",
-            "short_id",
-            "props",
-            "propsRaw",
-            "block_id",
-            "metadata",
-            "name",
-            "title",
-            "recurrence",
-          ])
-          const data = node.data as Record<string, unknown> | undefined
-          if (!data) return null
-          const extras = Object.entries(data).filter(([k, v]) => !knownKeys.has(k) && v != null && v !== "")
-          if (extras.length === 0) return null
-          return (
-            <>
-              {extras.map(([k, v]) => (
-                <Box key={k}>
-                  <Text>
-                    <Text dimColor>{k}: </Text>
-                    <Text>{typeof v === "object" ? JSON.stringify(v) : String(v)}</Text>
-                  </Text>
-                </Box>
-              ))}
-            </>
-          )
-        })()}
+        <DataFields
+          entries={Object.entries((node.data as Record<string, unknown>) ?? {}).filter(
+            ([k, v]) => !KNOWN_DATA_KEYS.has(k) && v != null && v !== "",
+          )}
+          capitalizeKey={false}
+        />
 
         {/* Body content — paragraphs, code blocks, etc. */}
         {bodyChildren.length > 0 && (
@@ -458,6 +409,46 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 }
 
 // =============================================================================
+// Data Fields — shared renderer for structured metadata/props blocks
+// =============================================================================
+
+const KNOWN_DATA_KEYS = new Set([
+  "tags",
+  "mentions",
+  "projects",
+  "short_id",
+  "props",
+  "propsRaw",
+  "block_id",
+  "metadata",
+  "name",
+  "title",
+  "recurrence",
+])
+
+interface DataFieldsProps {
+  entries: [string, unknown][]
+  isDone?: boolean
+  capitalizeKey?: boolean
+}
+
+function DataFields({ entries, isDone = false, capitalizeKey = true }: DataFieldsProps): React.ReactElement | null {
+  if (entries.length === 0) return null
+  return (
+    <>
+      {entries.map(([k, v]) => (
+        <Box key={k}>
+          <Text dimColor={isDone}>
+            <Text dimColor>{capitalizeKey ? capitalize(k) : k}: </Text>
+            <Text>{typeof v === "object" ? JSON.stringify(v) : String(v)}</Text>
+          </Text>
+        </Box>
+      ))}
+    </>
+  )
+}
+
+// =============================================================================
 // Node Outline — body content + structural children as unified tree
 // =============================================================================
 
@@ -492,131 +483,5 @@ function OutlineItems({ repo, items, depth }: { repo: Repo; items: KNode[]; dept
   )
 }
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-// Due date urgency levels
-type DueUrgency = "overdue" | "urgent" | "soon" | "normal"
-
-// Format date for display (e.g., "Jan 10" or "2026-01-10") with urgency info
-function formatDate(dateStr: string | undefined): {
-  text: string
-  urgency: DueUrgency
-} {
-  if (!dateStr) return { text: "", urgency: "normal" }
-  try {
-    // Parse date string as local date to avoid timezone issues
-    // YYYY-MM-DD should be treated as local midnight, not UTC midnight
-    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    const date = parts ? new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])) : new Date(dateStr)
-
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-
-    const dateLocal = new Date(date)
-    dateLocal.setHours(0, 0, 0, 0)
-
-    // Calculate days until due
-    const daysUntilDue = Math.floor((dateLocal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-    // Determine urgency
-    let urgency: DueUrgency = "normal"
-    if (daysUntilDue < 0) {
-      urgency = "overdue"
-    } else if (daysUntilDue <= 1) {
-      urgency = "urgent" // Due today or tomorrow
-    } else if (daysUntilDue <= 3) {
-      urgency = "soon" // Due within 3 days
-    }
-
-    // Format display text
-    const sameYear = date.getFullYear() === now.getFullYear()
-    const text = sameYear
-      ? date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })
-      : dateStr
-
-    return { text, urgency }
-  } catch {
-    return { text: dateStr, urgency: "normal" }
-  }
-}
-
-// Status display with color
-const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
-  done: { text: "done", color: "green" },
-  wip: { text: "wip", color: "yellow" },
-  blocked: { text: "blocked", color: "red" },
-  dropped: { text: "dropped", color: "gray" },
-}
-
-function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" }
-}
-
-// Extract references from content
-interface References {
-  mentions: string[]
-  tags: string[]
-  projects: string[]
-  wikilinks: string[]
-}
-
-// Extract unique matches from content using a regex pattern
-function extractMatches(content: string, pattern: RegExp): string[] {
-  const matches = new Set<string>()
-  let match
-  while ((match = pattern.exec(content)) !== null) {
-    if (match[1]) matches.add(match[1])
-  }
-  return [...matches]
-}
-
-function extractReferences(content: string | undefined): References {
-  if (!content) {
-    return { mentions: [], tags: [], projects: [], wikilinks: [] }
-  }
-  return {
-    mentions: extractMatches(content, /@(\w+)/g),
-    tags: extractMatches(content, /#(\w+)/g),
-    projects: extractMatches(content, /\+(\w+)/g),
-    wikilinks: extractMatches(content, /\[\[([^\]]+)\]\]/g),
-  }
-}
-
-// Build project path (ancestors to root)
-function getProjectPath(repo: Repo, node: KNode): string[] {
-  const path: string[] = []
-  let currentId = node.parent_id
-
-  while (currentId) {
-    const parent = repo.getNode(currentId)
-    if (!parent) break
-
-    // Only include folders and files (not sections or the board root)
-    if (
-      parent.type === "oi" &&
-      (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile")
-    ) {
-      path.unshift(getNodeDisplayName(repo, parent))
-    }
-    currentId = parent.parent_id
-  }
-
-  return path
-}
-
-/** Strip @mentions, #tags, +projects from text (they're shown separately in props) */
-function stripInlineRefs(text: string): string {
-  return text
-    .replace(/\s*@\w[\w-]*/g, "")
-    .replace(/\s*#\w[\w-]*/g, "")
-    .replace(/\s*\+\w[\w/.-]*/g, "")
-    .trim()
-}
-
-// Export for testing
-export { extractReferences, formatDate, getStatusDisplay, getProjectPath }
+// Export for testing (re-exported from helpers)
+export { extractReferences, formatDate, getStatusDisplay, getProjectPath } from "./detail-pane-helpers.ts"
