@@ -100,44 +100,46 @@ export async function downloadAttachments(
 
   for (let i = 0; i < attachments.length; i += DOWNLOAD_CONCURRENCY) {
     const batch = attachments.slice(i, i + DOWNLOAD_CONCURRENCY)
-    await Promise.all(batch.map(async (att) => {
-      const filename = localFilename(att)
-      const localPath = join(opts.dir, filename)
-      const relativePath = opts.relativePath ? `${opts.relativePath}/${filename}` : filename
+    await Promise.all(
+      batch.map(async (att) => {
+        const filename = localFilename(att)
+        const localPath = join(opts.dir, filename)
+        const relativePath = opts.relativePath ? `${opts.relativePath}/${filename}` : filename
 
-      // Already cached?
-      if (existsSync(localPath)) {
-        att.localPath = relativePath
-        result.skipped++
-        bar.increment()
-        return
-      }
-
-      if (opts.dryRun) {
-        att.localPath = relativePath
-        result.downloaded++
-        bar.increment()
-        return
-      }
-
-      try {
-        const res = await fetch(att.url)
-        if (!res.ok) {
-          console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
-          result.failed++
+        // Already cached?
+        if (existsSync(localPath)) {
+          att.localPath = relativePath
+          result.skipped++
           bar.increment()
           return
         }
-        const buffer = Buffer.from(await res.arrayBuffer())
-        writeFileSync(localPath, buffer)
-        att.localPath = relativePath
-        result.downloaded++
-      } catch (err) {
-        console.log(term.yellow(`  Failed to download ${att.name}: ${(err as Error).message}`))
-        result.failed++
-      }
-      bar.increment()
-    }))
+
+        if (opts.dryRun) {
+          att.localPath = relativePath
+          result.downloaded++
+          bar.increment()
+          return
+        }
+
+        try {
+          const res = await fetch(att.url)
+          if (!res.ok) {
+            console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
+            result.failed++
+            bar.increment()
+            return
+          }
+          const buffer = Buffer.from(await res.arrayBuffer())
+          writeFileSync(localPath, buffer)
+          att.localPath = relativePath
+          result.downloaded++
+        } catch (err) {
+          console.log(term.yellow(`  Failed to download ${att.name}: ${(err as Error).message}`))
+          result.failed++
+        }
+        bar.increment()
+      }),
+    )
   }
 
   bar.stop(true)

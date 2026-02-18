@@ -86,7 +86,9 @@ function logImportSuccess(action: string, count: number, source?: string): void 
 function createAsanaCommand(): Command {
   const cmd = new Command("asana")
     .description("Import from Asana")
-    .addHelpText("after", `
+    .addHelpText(
+      "after",
+      `
 Pipeline:
   1. Auth     Prompts for Asana PAT on first run, validates, saves to
               ~/.config/km/import.json (token + default workspace).
@@ -107,7 +109,8 @@ Pipeline:
   Run with no flags to list your Asana projects and download history.
 
   [root] can be a km repository path. If omitted, auto-detects from cwd.
-`)
+`,
+    )
     .argument("[root]", "km repository root (default: auto-detect)")
 
     // Input source
@@ -240,7 +243,7 @@ Pipeline:
           includeCompleted: true,
           includeComments: true,
           includeAttachments: true,
-          includeCommentLogs: options.includeCommentLogs,  // Only system logs are opt-in
+          includeCommentLogs: options.includeCommentLogs, // Only system logs are opt-in
           includeUserTaskLists: true,
           includeTagTaskLists: true,
           workspace: resolved.name,

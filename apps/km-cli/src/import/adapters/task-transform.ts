@@ -29,23 +29,22 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   if (task.start_on) item.startAt = task.start_on
   if (task.assignee?.name) item.assignee = task.assignee.name.replace(/\s+/g, "-").toLowerCase()
   if (task.tags?.length) {
-    item.tags = task.tags.filter((t) => t.name).map((t) => t.name!.replace(/\s+/g, "-").toLowerCase())
+    item.tags = task.tags
+      .map((t) => t.name)
+      .filter((name): name is string => !!name)
+      .map((name) => name.replace(/\s+/g, "-").toLowerCase())
     if (item.tags.length === 0) delete item.tags
   }
 
   // Multi-project membership -> projects list
   if (task.memberships && task.memberships.length > 0) {
-    const projectNames = task.memberships
-      .map((m) => m.project?.name)
-      .filter((n): n is string => !!n)
+    const projectNames = task.memberships.map((m) => m.project?.name).filter((n): n is string => !!n)
     if (projectNames.length > 0) {
       item.projects = [...new Set(projectNames)]
     }
   }
 
-  const priorityField = task.custom_fields?.find(
-    (f) => f.name.toLowerCase() === "priority" && f.number_value != null,
-  )
+  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value != null)
   if (priorityField?.number_value) {
     item.priority = Math.max(1, Math.min(4, priorityField.number_value))
   }
@@ -85,11 +84,7 @@ export interface EnrichOpts {
 }
 
 /** Enrich a single task with comments, attachments, subtasks (all parallel) */
-export async function enrichItem(
-  client: AsanaClient,
-  task: AsanaApiTask,
-  opts?: EnrichOpts,
-): Promise<ImportItem> {
+export async function enrichItem(client: AsanaClient, task: AsanaApiTask, opts?: EnrichOpts): Promise<ImportItem> {
   const item = toImportItem(task)
   const [comments, attachments, children] = await Promise.all([
     opts?.comments ? fetchComments(client, task.gid, { includeLogs: opts.commentLogs }) : undefined,
@@ -103,15 +98,8 @@ export async function enrichItem(
 }
 
 /** Recursively fetch subtasks with optional comments/attachments */
-export async function fetchSubtasks(
-  client: AsanaClient,
-  taskGid: string,
-  opts?: EnrichOpts,
-): Promise<ImportItem[]> {
-  const subtasks = await client.get<AsanaApiTask[]>(
-    `/tasks/${taskGid}/subtasks`,
-    { opt_fields: TASK_FIELDS },
-  )
+export async function fetchSubtasks(client: AsanaClient, taskGid: string, opts?: EnrichOpts): Promise<ImportItem[]> {
+  const subtasks = await client.get<AsanaApiTask[]>(`/tasks/${taskGid}/subtasks`, { opt_fields: TASK_FIELDS })
 
   return Promise.all(subtasks.map((sub) => enrichItem(client, sub, opts)))
 }

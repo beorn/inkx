@@ -52,9 +52,8 @@ export async function printDiscovery(
   for (const ws of structure.workspaces) {
     const active = ws.projects.filter((p) => !p.archived)
     const archived = ws.projects.filter((p) => p.archived)
-    const countText = archived.length > 0
-      ? `${active.length} active, ${archived.length} archived`
-      : `${active.length} projects`
+    const countText =
+      archived.length > 0 ? `${active.length} active, ${archived.length} archived` : `${active.length} projects`
     const maxGid = Math.max(...ws.projects.map((p) => p.gid.length), 0)
 
     console.log(`  ${term.cyan(ws.name)} ${term.dim(`(${ws.gid}) — ${countText}`)}`)
@@ -63,8 +62,12 @@ export async function printDiscovery(
     const byTeam = new Map<string, typeof ws.projects>()
     for (const proj of ws.projects) {
       const team = proj.team ?? "(no team)"
-      if (!byTeam.has(team)) byTeam.set(team, [])
-      byTeam.get(team)!.push(proj)
+      const existing = byTeam.get(team)
+      if (existing) {
+        existing.push(proj)
+      } else {
+        byTeam.set(team, [proj])
+      }
     }
     const teamNames = [...byTeam.keys()].sort((a, b) =>
       a === "(no team)" ? 1 : b === "(no team)" ? -1 : a.localeCompare(b),
@@ -72,7 +75,7 @@ export async function printDiscovery(
     const hasTeams = byTeam.size > 1 || !byTeam.has("(no team)")
 
     for (const team of teamNames) {
-      const projects = byTeam.get(team)!
+      const projects = byTeam.get(team) ?? []
       const teamActive = projects.filter((p) => !p.archived).sort((a, b) => a.name.localeCompare(b.name))
       const teamArchived = projects.filter((p) => p.archived).sort((a, b) => a.name.localeCompare(b.name))
 
@@ -138,9 +141,7 @@ export async function printDiscovery(
           .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
           .sort()
         const tsMatch = dl.match(/asana-(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/)
-        const ts = tsMatch
-          ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]} ${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}`
-          : dl
+        const ts = tsMatch ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]} ${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}` : dl
         console.log(`  ${term.dim(ts)}  ${projectFiles.length} projects`)
         for (const pf of projectFiles.slice(0, 8)) {
           console.log(`    ${term.dim(pf.replace(/\.json$/, ""))}`)
@@ -162,7 +163,7 @@ export async function printDiscovery(
   console.log(term.dim("  Fetches everything: all projects, completed tasks, comments, attachments"))
   console.log(term.dim("  Interrupted fetches auto-resume where they left off"))
   console.log()
-  console.log(`  ${term.cyan("km import asana --project \"Name\"")}`)
+  console.log(`  ${term.cyan('km import asana --project "Name"')}`)
   console.log(term.dim("    Fetch + convert one project → imports/asana/name.md"))
   console.log()
   console.log(`  ${term.cyan("km import asana --fetch")}`)

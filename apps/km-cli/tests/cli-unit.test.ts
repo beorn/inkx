@@ -239,7 +239,9 @@ describe.sequential("Task Assignment", () => {
       createTask(db, "Unassigned 1")
       createTask(db, "Unassigned 2")
 
-      const unassigned = db.prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND assigned_to IS NULL").all() as KNode[]
+      const unassigned = db
+        .prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND assigned_to IS NULL")
+        .all() as KNode[]
 
       expect(unassigned.length).toBe(2)
     })
@@ -287,7 +289,9 @@ describe.sequential("Search Functionality", () => {
       createTask(db, "Call Alice")
       createTask(db, "Review code")
 
-      const results = db.prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND content LIKE ?").all("%Alice%") as KNode[]
+      const results = db
+        .prepare("SELECT * FROM nodes WHERE task_status IS NOT NULL AND content LIKE ?")
+        .all("%Alice%") as KNode[]
 
       expect(results.length).toBe(1)
       expect(results[0]!.content).toBe("Call Alice")

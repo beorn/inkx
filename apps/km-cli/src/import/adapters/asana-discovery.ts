@@ -15,14 +15,17 @@ export async function resolveAsanaWorkspace(
   const client = new AsanaClient(token, false, opts?._testMode ? 0 : undefined)
 
   console.log(term.dim("  Validating token..."))
-  const me = await client.get<{ gid: string; name: string; email: string; workspaces: Array<{ gid: string; name: string }> }>(
-    "/users/me",
-    { opt_fields: "name,email,workspaces.name" },
-  )
+  const me = await client.get<{
+    gid: string
+    name: string
+    email: string
+    workspaces: Array<{ gid: string; name: string }>
+  }>("/users/me", { opt_fields: "name,email,workspaces.name" })
   console.log(term.green("  Authenticated as"), me.name, term.dim(`(${me.email})`))
 
   const workspaces = me.workspaces
-  if (workspaces.length === 0) {
+  const firstWorkspace = workspaces[0]
+  if (!firstWorkspace) {
     throw new Error("No workspaces found for this Asana account.")
   }
 
@@ -36,9 +39,9 @@ export async function resolveAsanaWorkspace(
     }
     workspace = found
   } else if (workspaces.length === 1) {
-    workspace = workspaces[0]!
+    workspace = firstWorkspace
   } else {
-    workspace = workspaces[0]!
+    workspace = firstWorkspace
     console.log(
       term.yellow(`  Multiple workspaces found, using "${workspace.name}".`),
       term.dim(`Use --workspace to select: ${workspaces.map((w) => w.name).join(", ")}`),
@@ -89,9 +92,13 @@ export async function listAsanaStructure(
 
   for (const ws of workspaces) {
     interface RawProject {
-      gid: string; name: string; archived?: boolean
-      team?: { name?: string }; owner?: { name?: string }
-      members?: Array<{ name?: string }>; notes?: string
+      gid: string
+      name: string
+      archived?: boolean
+      team?: { name?: string }
+      owner?: { name?: string }
+      members?: Array<{ name?: string }>
+      notes?: string
     }
     const [allRaw, users, tags] = await Promise.all([
       client.getAll<RawProject>("/projects", {
@@ -133,7 +140,9 @@ export async function listAsanaStructure(
 }
 
 /** Validate an Asana token by calling /users/me */
-export async function validateAsanaToken(token: string): Promise<{ name: string; email: string; workspaces: Array<{ gid: string; name: string }> }> {
+export async function validateAsanaToken(
+  token: string,
+): Promise<{ name: string; email: string; workspaces: Array<{ gid: string; name: string }> }> {
   const res = await fetch(`${ASANA_BASE}/users/me?opt_fields=name,email,workspaces.name`, {
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -145,6 +154,8 @@ export async function validateAsanaToken(token: string): Promise<{ name: string;
     throw new Error(`Asana API error ${res.status}: ${await res.text()}`)
   }
 
-  const json = (await res.json()) as { data: { name: string; email: string; workspaces: Array<{ gid: string; name: string }> } }
+  const json = (await res.json()) as {
+    data: { name: string; email: string; workspaces: Array<{ gid: string; name: string }> }
+  }
   return json.data
 }

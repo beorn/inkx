@@ -63,9 +63,7 @@ function convertTask(task: AsanaTask): ImportItem {
   }
 
   // Priority from custom fields
-  const priorityField = task.custom_fields?.find(
-    (f) => f.name.toLowerCase() === "priority" && f.number_value != null,
-  )
+  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value != null)
   if (priorityField?.number_value) {
     item.priority = Math.max(1, Math.min(4, priorityField.number_value))
   }
@@ -93,17 +91,19 @@ export function parseAsanaFile(jsonContent: string): ImportData {
     const sectionGid = membership?.section?.gid
     const sectionName = membership?.section?.name
 
-    if (!projectMap.has(projectGid)) {
-      projectMap.set(projectGid, { name: projectName, sections: new Map(), loose: [] })
+    let project = projectMap.get(projectGid)
+    if (!project) {
+      project = { name: projectName, sections: new Map(), loose: [] }
+      projectMap.set(projectGid, project)
     }
-    const project = projectMap.get(projectGid)!
 
     if (sectionGid && sectionName) {
-      if (!project.sections.has(sectionGid)) {
-        project.sections.set(sectionGid, [])
+      let sectionTasks = project.sections.get(sectionGid)
+      if (!sectionTasks) {
+        sectionTasks = []
+        project.sections.set(sectionGid, sectionTasks)
       }
       // Store section name on first task (we need it later)
-      const sectionTasks = project.sections.get(sectionGid)!
       // Attach section name as metadata on the array
       if (sectionTasks.length === 0) {
         ;(sectionTasks as unknown as { _name: string })._name = sectionName

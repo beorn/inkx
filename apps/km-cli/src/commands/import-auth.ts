@@ -68,7 +68,7 @@ export async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token:
       options: userInfo.workspaces.map((w) => ({ label: w.name, value: w.name })),
     })
   } else if (userInfo.workspaces.length === 1) {
-    defaultWorkspace = userInfo.workspaces[0]!.name
+    defaultWorkspace = userInfo.workspaces[0]?.name
     console.log(term.dim(`Workspace: ${defaultWorkspace}`))
   }
 

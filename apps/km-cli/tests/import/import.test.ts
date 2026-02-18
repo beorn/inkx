@@ -269,22 +269,40 @@ describe("Stage 1: Parse Asana JSON export", () => {
     const json = JSON.stringify({
       data: [
         {
-          gid: "1001", name: "Task A", notes: "Description", completed: false,
-          due_on: "2026-03-01", start_on: null, assignee: { name: "Alice" },
-          tags: [{ name: "urgent" }], custom_fields: [], subtasks: [],
-          memberships: [{
-            project: { gid: "p1", name: "My Project" },
-            section: { gid: "s1", name: "Doing" },
-          }],
+          gid: "1001",
+          name: "Task A",
+          notes: "Description",
+          completed: false,
+          due_on: "2026-03-01",
+          start_on: null,
+          assignee: { name: "Alice" },
+          tags: [{ name: "urgent" }],
+          custom_fields: [],
+          subtasks: [],
+          memberships: [
+            {
+              project: { gid: "p1", name: "My Project" },
+              section: { gid: "s1", name: "Doing" },
+            },
+          ],
         },
         {
-          gid: "1002", name: "Task B", notes: "", completed: true,
-          due_on: null, start_on: null, assignee: null,
-          tags: [], custom_fields: [], subtasks: [],
-          memberships: [{
-            project: { gid: "p1", name: "My Project" },
-            section: { gid: "s2", name: "Done" },
-          }],
+          gid: "1002",
+          name: "Task B",
+          notes: "",
+          completed: true,
+          due_on: null,
+          start_on: null,
+          assignee: null,
+          tags: [],
+          custom_fields: [],
+          subtasks: [],
+          memberships: [
+            {
+              project: { gid: "p1", name: "My Project" },
+              section: { gid: "s2", name: "Done" },
+            },
+          ],
         },
       ],
     })
@@ -301,16 +319,29 @@ describe("Stage 1: Parse Asana JSON export", () => {
 
   test("parses recursive subtasks", () => {
     const json = JSON.stringify({
-      data: [{
-        gid: "1", name: "Parent", notes: "", completed: false,
-        due_on: null, start_on: null, assignee: null,
-        tags: [], custom_fields: [],
-        subtasks: [{
-          gid: "1a", name: "Child", notes: "", completed: false,
-          subtasks: [{ gid: "1aa", name: "Grandchild", notes: "", completed: true, subtasks: [] }],
-        }],
-        memberships: [{ project: { gid: "p1", name: "P" }, section: { gid: "s1", name: "S" } }],
-      }],
+      data: [
+        {
+          gid: "1",
+          name: "Parent",
+          notes: "",
+          completed: false,
+          due_on: null,
+          start_on: null,
+          assignee: null,
+          tags: [],
+          custom_fields: [],
+          subtasks: [
+            {
+              gid: "1a",
+              name: "Child",
+              notes: "",
+              completed: false,
+              subtasks: [{ gid: "1aa", name: "Grandchild", notes: "", completed: true, subtasks: [] }],
+            },
+          ],
+          memberships: [{ project: { gid: "p1", name: "P" }, section: { gid: "s1", name: "S" } }],
+        },
+      ],
     })
 
     const data = parseAsanaFile(json)
@@ -330,40 +361,55 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   const fixture: ImportData = {
     source: "asana",
     fetchedAt: "2026-02-17T12:00:00Z",
-    projects: [{
-      sourceId: "p1",
-      title: "Sprint 4",
-      sections: [
-        {
-          sourceId: "s1", title: "To Do",
-          items: [{
-            sourceId: "t1", title: "Design login page",
-            assignee: "alice", dueAt: "2026-03-01", startAt: "2026-02-15",
-            createdAt: "2026-02-10T08:00:00Z",
-            priority: 1, tags: ["design"],
-            projects: ["Sprint 4", "Backlog"],
-            body: "Create wireframes\nReview with team",
-            comments: [{
-              author: "bob", createdAt: "2026-02-16T10:30:00Z",
-              text: "Looks great, minor tweaks needed",
-            }],
-            attachments: [{
-              name: "wireframe.png",
-              url: "https://example.com/wireframe.png",
-              type: "image",
-            }],
-            children: [
-              { sourceId: "s1", title: "Create wireframes", status: "todo" },
-              { sourceId: "s2", title: "Review with team", status: "done" },
+    projects: [
+      {
+        sourceId: "p1",
+        title: "Sprint 4",
+        sections: [
+          {
+            sourceId: "s1",
+            title: "To Do",
+            items: [
+              {
+                sourceId: "t1",
+                title: "Design login page",
+                assignee: "alice",
+                dueAt: "2026-03-01",
+                startAt: "2026-02-15",
+                createdAt: "2026-02-10T08:00:00Z",
+                priority: 1,
+                tags: ["design"],
+                projects: ["Sprint 4", "Backlog"],
+                body: "Create wireframes\nReview with team",
+                comments: [
+                  {
+                    author: "bob",
+                    createdAt: "2026-02-16T10:30:00Z",
+                    text: "Looks great, minor tweaks needed",
+                  },
+                ],
+                attachments: [
+                  {
+                    name: "wireframe.png",
+                    url: "https://example.com/wireframe.png",
+                    type: "image",
+                  },
+                ],
+                children: [
+                  { sourceId: "s1", title: "Create wireframes", status: "todo" },
+                  { sourceId: "s2", title: "Review with team", status: "done" },
+                ],
+              },
             ],
-          }],
-        },
-        {
-          sourceId: "s2", title: "Done",
-          items: [{ sourceId: "t2", title: "Write tests", status: "done", completedAt: "2026-02-09T16:30:00Z" }],
-        },
-      ],
-    }],
+          },
+          {
+            sourceId: "s2",
+            title: "Done",
+            items: [{ sourceId: "t2", title: "Write tests", status: "done", completedAt: "2026-02-09T16:30:00Z" }],
+          },
+        ],
+      },
+    ],
   }
 
   test("generates one file per project with correct slug", () => {
@@ -448,15 +494,19 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [{
-          sourceId: "t1",
-          title: "Task with links",
-          body: "See https://app.asana.com/0/123/456 and https://app.asana.com/1/789/task/101112",
-        }],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Task with links",
+              body: "See https://app.asana.com/0/123/456 and https://app.asana.com/1/789/task/101112",
+            },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -477,15 +527,19 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [{
-          sourceId: "t1",
-          title: "Task with bullets",
-          body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
-        }],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Task with bullets",
+              body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
+            },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -499,15 +553,19 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [{
-          sourceId: "t1",
-          title: "Task with asana links",
-          body: "See also: [Related](https://app.asana.com/0/123456/789012) and [Another](https://app.asana.com/1/111/task/222333)",
-        }],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Task with asana links",
+              body: "See also: [Related](https://app.asana.com/0/123456/789012) and [Another](https://app.asana.com/1/111/task/222333)",
+            },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -520,14 +578,16 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [
-          { sourceId: "m1", title: "Launch day", milestone: true, status: "todo" },
-          { sourceId: "m2", title: "Past milestone", milestone: true, status: "done" },
-        ],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            { sourceId: "m1", title: "Launch day", milestone: true, status: "todo" },
+            { sourceId: "m2", title: "Past milestone", milestone: true, status: "done" },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -539,32 +599,43 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [{
-          sourceId: "tf1",
-          title: "Full task",
-          body: "Description with **bold** text.",
-          status: "done",
-          assignee: "alice-smith",
-          dueAt: "2026-02-15",
-          startAt: "2026-01-20",
-          createdAt: "2026-01-15T09:00:00Z",
-          completedAt: "2026-02-10T17:00:00Z",
-          priority: 2,
-          tags: ["backend", "urgent"],
-          projects: ["Test", "Other Project"],
-          children: [{ sourceId: "cs1", title: "Sub-step", status: "done" }],
-          comments: [{
-            author: "bob", createdAt: "2026-02-09T14:00:00Z",
-            text: "Approved. Ship it!",
-          }],
-          attachments: [{
-            name: "spec.pdf", url: "https://example.com/spec.pdf", type: "file",
-          }],
-        }],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            {
+              sourceId: "tf1",
+              title: "Full task",
+              body: "Description with **bold** text.",
+              status: "done",
+              assignee: "alice-smith",
+              dueAt: "2026-02-15",
+              startAt: "2026-01-20",
+              createdAt: "2026-01-15T09:00:00Z",
+              completedAt: "2026-02-10T17:00:00Z",
+              priority: 2,
+              tags: ["backend", "urgent"],
+              projects: ["Test", "Other Project"],
+              children: [{ sourceId: "cs1", title: "Sub-step", status: "done" }],
+              comments: [
+                {
+                  author: "bob",
+                  createdAt: "2026-02-09T14:00:00Z",
+                  text: "Approved. Ship it!",
+                },
+              ],
+              attachments: [
+                {
+                  name: "spec.pdf",
+                  url: "https://example.com/spec.pdf",
+                  type: "file",
+                },
+              ],
+            },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -591,18 +662,25 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-17T12:00:00Z",
-      projects: [{
-        sourceId: "p1",
-        title: "Test",
-        items: [{
-          sourceId: "t1",
-          title: "Task with multiline comment",
-          comments: [{
-            author: "alice", createdAt: "2026-02-12T15:00:00Z",
-            text: "First line of feedback\nSecond line with details\nThird line conclusion",
-          }],
-        }],
-      }],
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Task with multiline comment",
+              comments: [
+                {
+                  author: "alice",
+                  createdAt: "2026-02-12T15:00:00Z",
+                  text: "First line of feedback\nSecond line with details\nThird line conclusion",
+                },
+              ],
+            },
+          ],
+        },
+      ],
     }
     const files = convert(data)
     const md = files.get("p1-test.md")!
@@ -668,9 +746,7 @@ describe("Stage 3: Write files to disk", () => {
   })
 
   test("writes files to output directory", () => {
-    const files = new Map([
-      ["test.md", "# Test\n\n- [ ] Task 1\n"],
-    ])
+    const files = new Map([["test.md", "# Test\n\n- [ ] Task 1\n"]])
     const { written, skipped } = writeFiles(files, { outDir: testDir })
     expect(written).toEqual(["test.md"])
     expect(skipped).toHaveLength(0)
@@ -679,12 +755,10 @@ describe("Stage 3: Write files to disk", () => {
 
   test("skips existing files without --force", () => {
     mkdirSync(testDir, { recursive: true })
-    const content = "---\nasana_project_id: \"p1\"\n---\n# Old\n"
+    const content = '---\nasana_project_id: "p1"\n---\n# Old\n'
     fsWriteFileSync(join(testDir, "test.md"), content)
 
-    const files = new Map([
-      ["test.md", "---\nasana_project_id: \"p1\"\n---\n# New\n"],
-    ])
+    const files = new Map([["test.md", '---\nasana_project_id: "p1"\n---\n# New\n']])
     const { written, skipped } = writeFiles(files, { outDir: testDir })
     expect(written).toHaveLength(0)
     expect(skipped).toEqual(["test.md"])
@@ -798,25 +872,29 @@ function makeImportData(items: ImportItem[], title = "Test Project"): ImportData
   return {
     source: "asana",
     fetchedAt: "2026-01-01T00:00:00Z",
-    projects: [{
-      sourceId: "proj-rt",
-      title,
-      sections: [{ sourceId: "sec-rt", title: "Section", items }],
-    }],
+    projects: [
+      {
+        sourceId: "proj-rt",
+        title,
+        sections: [{ sourceId: "sec-rt", title: "Section", items }],
+      },
+    ],
   }
 }
 
 describe("roundtrip: convert → parse", () => {
   test("task hierarchy preserved through roundtrip", () => {
-    const data = makeImportData([{
-      sourceId: "parent-1",
-      title: "Parent task",
-      body: "Some body text about this task",
-      children: [
-        { sourceId: "sub-1", title: "Subtask one", status: "done" },
-        { sourceId: "sub-2", title: "Subtask two", status: "todo" },
-      ],
-    }])
+    const data = makeImportData([
+      {
+        sourceId: "parent-1",
+        title: "Parent task",
+        body: "Some body text about this task",
+        children: [
+          { sourceId: "sub-1", title: "Subtask one", status: "done" },
+          { sourceId: "sub-2", title: "Subtask two", status: "todo" },
+        ],
+      },
+    ])
 
     const files = convert(data)
     const md = files.get("proj-rt-test-project.md")!
@@ -848,11 +926,13 @@ describe("roundtrip: convert → parse", () => {
   })
 
   test("task with body bullets doesn't create extra children", () => {
-    const data = makeImportData([{
-      sourceId: "bullet-task",
-      title: "Task with bullets",
-      body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
-    }])
+    const data = makeImportData([
+      {
+        sourceId: "bullet-task",
+        title: "Task with bullets",
+        body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
+      },
+    ])
 
     const files = convert(data)
     const md = files.get("proj-rt-test-project.md")!
@@ -873,19 +953,25 @@ describe("roundtrip: convert → parse", () => {
   })
 
   test("nested subtasks preserve depth", () => {
-    const data = makeImportData([{
-      sourceId: "lvl1",
-      title: "Level 1",
-      children: [{
-        sourceId: "lvl2",
-        title: "Level 2",
-        children: [{
-          sourceId: "lvl3",
-          title: "Level 3",
-          status: "done",
-        }],
-      }],
-    }])
+    const data = makeImportData([
+      {
+        sourceId: "lvl1",
+        title: "Level 1",
+        children: [
+          {
+            sourceId: "lvl2",
+            title: "Level 2",
+            children: [
+              {
+                sourceId: "lvl3",
+                title: "Level 3",
+                status: "done",
+              },
+            ],
+          },
+        ],
+      },
+    ])
 
     const files = convert(data)
     const md = files.get("proj-rt-test-project.md")!
@@ -921,17 +1007,27 @@ describe("roundtrip: convert → parse", () => {
         {
           sourceId: "projA",
           title: "Project Alpha",
-          sections: [{ sourceId: "s1", title: "Work", items: [
-            { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
-          ] }],
+          sections: [
+            {
+              sourceId: "s1",
+              title: "Work",
+              items: [{ sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" }],
+            },
+          ],
         },
         {
           sourceId: "projB",
           title: "Project Beta",
-          sections: [{ sourceId: "s2", title: "Work", items: [
-            { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
-            { sourceId: "beta-only", title: "Beta only", status: "done" },
-          ] }],
+          sections: [
+            {
+              sourceId: "s2",
+              title: "Work",
+              items: [
+                { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
+                { sourceId: "beta-only", title: "Beta only", status: "done" },
+              ],
+            },
+          ],
         },
       ],
     }
@@ -958,16 +1054,18 @@ describe("roundtrip: convert → parse", () => {
   })
 
   test("metadata fields roundtrip through parser", () => {
-    const data = makeImportData([{
-      sourceId: "meta-task",
-      title: "Metadata task",
-      dueAt: "2026-03-15",
-      startAt: "2026-03-01",
-      priority: 2,
-      assignee: "alice-smith",
-      tags: ["backend", "urgent"],
-      createdAt: "2026-02-01T09:00:00Z",
-    }])
+    const data = makeImportData([
+      {
+        sourceId: "meta-task",
+        title: "Metadata task",
+        dueAt: "2026-03-15",
+        startAt: "2026-03-01",
+        priority: 2,
+        assignee: "alice-smith",
+        tags: ["backend", "urgent"],
+        createdAt: "2026-02-01T09:00:00Z",
+      },
+    ])
 
     const files = convert(data)
     const md = files.get("proj-rt-test-project.md")!
@@ -999,18 +1097,18 @@ describe("roundtrip: convert → parse", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-01-15T10:30:00Z",
-      projects: [{
-        sourceId: "proj-fm",
-        title: "Frontmatter Test",
-        workspace: "My Workspace",
-        owner: "Bjorn",
-        team: "Engineering",
-        createdAt: "2025-12-01T00:00:00Z",
-        modifiedAt: "2026-01-10T12:00:00Z",
-        sections: [{ sourceId: "s1", title: "Tasks", items: [
-          { sourceId: "t1", title: "A task" },
-        ] }],
-      }],
+      projects: [
+        {
+          sourceId: "proj-fm",
+          title: "Frontmatter Test",
+          workspace: "My Workspace",
+          owner: "Bjorn",
+          team: "Engineering",
+          createdAt: "2025-12-01T00:00:00Z",
+          modifiedAt: "2026-01-10T12:00:00Z",
+          sections: [{ sourceId: "s1", title: "Tasks", items: [{ sourceId: "t1", title: "A task" }] }],
+        },
+      ],
     }
 
     const files = convert(data)

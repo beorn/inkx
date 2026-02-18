@@ -1,7 +1,8 @@
 import TurndownService from "turndown"
 
 export const ASANA_BASE = "https://app.asana.com/api/1.0"
-export const TASK_FIELDS = "name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,assignee.name,tags.name,custom_fields,memberships.project.name,memberships.section.name,num_subtasks,permalink_url,resource_subtype"
+export const TASK_FIELDS =
+  "name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,assignee.name,tags.name,custom_fields,memberships.project.name,memberships.section.name,num_subtasks,permalink_url,resource_subtype"
 
 /** Convert Asana HTML notes to markdown */
 export const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" })

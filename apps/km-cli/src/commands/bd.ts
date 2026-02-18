@@ -554,9 +554,7 @@ bdCommand
     }
 
     const children = repo.getChildren(issue.id)
-    const childIssues = children
-      .filter((c) => c.task_status != null)
-      .map((c) => nodeToIssue(c, { repo }))
+    const childIssues = children.filter((c) => c.task_status != null).map((c) => nodeToIssue(c, { repo }))
 
     if (opts.json) {
       console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))
@@ -586,7 +584,9 @@ bdCommand
 
     const boardTag = configObj.beads.board || undefined
     const issues = queryIssues({}, undefined, boardTag, { repo })
-    const blocked = issues.filter((i) => i.blockedBy && i.blockedBy.length > 0 && i.status !== "done" && i.status !== "dropped")
+    const blocked = issues.filter(
+      (i) => i.blockedBy && i.blockedBy.length > 0 && i.status !== "done" && i.status !== "dropped",
+    )
 
     if (opts.json) {
       console.log(JSON.stringify(blocked.map(issueToBdJson), null, 2))
