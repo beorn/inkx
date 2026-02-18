@@ -69,39 +69,50 @@ function formatItem(item: ImportItem, indent: number, rendered?: Set<string>, pr
 
   const lines: string[] = [parts.join(" ")]
 
-  // Body as indented paragraph (with Asana link conversion)
+  // Body, attachments, and comments in a blockquote (keeps them separate from subtask list)
+  const bqLines: string[] = []
+
   if (item.body) {
     const bodyLines = convertAsanaLinks(item.body.trim()).split("\n")
     for (const line of bodyLines) {
-      lines.push(`${prefix}  ${line}`)
+      bqLines.push(line)
     }
   }
 
   // Attachments (prefer local path if downloaded)
   if (item.attachments?.length) {
+    if (bqLines.length) bqLines.push("")
     for (const att of item.attachments) {
       const href = att.localPath ?? att.url
       if (att.type === "image") {
-        lines.push(`${prefix}  ![${att.name}](${href})`)
+        bqLines.push(`![${att.name}](${href})`)
       } else {
-        lines.push(`${prefix}  [${att.name}](${href})`)
+        bqLines.push(`[${att.name}](${href})`)
       }
     }
   }
 
   // Comments
   if (item.comments?.length) {
-    lines.push(`${prefix}  **Comments:**`)
+    if (bqLines.length) bqLines.push("")
+    bqLines.push("**Comments:**")
     for (const c of item.comments) {
       const date = c.createdAt.slice(0, 10)
       const author = c.author ? `@${c.author}` : ""
       const firstLine = c.text.split("\n")[0]!
-      lines.push(`${prefix}  - ${date} ${author}: ${firstLine}`)
+      bqLines.push(`- ${date} ${author}: ${firstLine}`)
       // Multi-line comments: indent continuation lines
       const rest = c.text.split("\n").slice(1)
       for (const line of rest) {
-        lines.push(`${prefix}    ${line}`)
+        bqLines.push(`  ${line}`)
       }
+    }
+  }
+
+  // Emit blockquote
+  if (bqLines.length) {
+    for (const line of bqLines) {
+      lines.push(line ? `${prefix}  > ${line}` : `${prefix}  >`)
     }
   }
 

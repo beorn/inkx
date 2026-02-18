@@ -48,7 +48,7 @@ describe("Stage 1: Fetch from Asana API", () => {
     })
 
     expect(data.source).toBe("asana")
-    expect(data.projects).toHaveLength(2)
+    expect(data.projects).toHaveLength(3)
 
     const sprint = data.projects[0]!
     expect(sprint.title).toBe("Sprint 4")
@@ -183,6 +183,80 @@ describe("Stage 1: Fetch from Asana API", () => {
     // Should have calls for: /users/me, /projects, /projects/:id/sections x2, /tasks x2, /tasks/:id/subtasks
     expect(result.recorded!.some((r) => r.path === "/users/me")).toBe(true)
     expect(result.recorded!.some((r) => r.path === "/projects")).toBe(true)
+  })
+
+  test("converts html_notes with bullets via turndown", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const htmlTask = edge.sections![0]!.items.find((i) => i.sourceId === "task-html")!
+    expect(htmlTask.body).toContain("Planning notes:")
+    // turndown converts <li> to "* " bullets
+    expect(htmlTask.body).toMatch(/\*\s+First option/)
+    expect(htmlTask.body).toContain("Additional context here.")
+  })
+
+  test("preserves Asana internal links in html_notes after turndown", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const linkTask = edge.sections![0]!.items.find((i) => i.sourceId === "task-links")!
+    // turndown converts <a> to markdown links; Asana URLs stay as-is until convert stage
+    expect(linkTask.body).toContain("Related task")
+    expect(linkTask.body).toContain("app.asana.com")
+  })
+
+  test("fetches milestone tasks with resource_subtype", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const milestone = edge.sections![2]!.items.find((i) => i.sourceId === "task-mile")!
+    expect(milestone.milestone).toBe(true)
+    expect(milestone.title).toBe("Beta release")
+  })
+
+  test("fetches all-metadata task with every field", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeComments: true,
+      includeAttachments: true,
+    })
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    expect(full.assignee).toBe("alice-smith")
+    expect(full.dueAt).toBe("2026-02-15")
+    expect(full.startAt).toBe("2026-01-20")
+    expect(full.createdAt).toBe("2026-01-15T09:00:00Z")
+    expect(full.completedAt).toBe("2026-02-10T17:00:00Z")
+    expect(full.status).toBe("done")
+    expect(full.priority).toBe(2)
+    expect(full.tags).toEqual(["backend", "urgent"])
+    expect(full.projects).toEqual(["Edge Cases", "Sprint 4"])
+    expect(full.permalink).toBe("https://app.asana.com/0/proj-3/task-full")
+    expect(full.children).toHaveLength(1)
+    expect(full.children![0]!.title).toBe("Sub-step one")
+    expect(full.comments).toHaveLength(1)
+    expect(full.attachments).toHaveLength(1)
+    expect(full.body).toContain("bold")
+  })
+
+  test("fetches multi-line comments", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeComments: true,
+    })
+    const edge = data.projects[2]!
+    const mlc = edge.sections![0]!.items.find((i) => i.sourceId === "task-mlc")!
+    expect(mlc.comments).toHaveLength(1)
+    expect(mlc.comments![0]!.text).toContain("First line of feedback")
+    expect(mlc.comments![0]!.text).toContain("Second line with details")
+    expect(mlc.comments![0]!.text).toContain("Third line conclusion")
+  })
+
+  test("fetches separator section name as-is", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const sectionNames = edge.sections!.map((s) => s.title)
+    expect(sectionNames).toContain("------------------")
   })
 })
 
@@ -344,24 +418,24 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("  - [x] Review with team")
   })
 
-  test("renders body as indented paragraph", () => {
+  test("renders body as blockquote", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
-    expect(md).toContain("  Create wireframes")
-    expect(md).toContain("  Review with team")
+    expect(md).toContain("  > Create wireframes")
+    expect(md).toContain("  > Review with team")
   })
 
-  test("renders comments", () => {
+  test("renders comments in blockquote", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
-    expect(md).toContain("**Comments:**")
-    expect(md).toContain("2026-02-16 @bob: Looks great")
+    expect(md).toContain("> **Comments:**")
+    expect(md).toContain("> - 2026-02-16 @bob: Looks great")
   })
 
-  test("renders image attachments as ![]()", () => {
+  test("renders image attachments in blockquote", () => {
     const files = convert(fixture)
     const md = files.get("p1-sprint-4.md")!
-    expect(md).toContain("![wireframe.png](https://example.com/wireframe.png)")
+    expect(md).toContain("> ![wireframe.png](https://example.com/wireframe.png)")
   })
 
   test("converts Asana URLs to ^block references", () => {
@@ -392,6 +466,144 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("^t2")
     expect(md).not.toContain("gid:")
   })
+
+  test("renders body with markdown bullets inside blockquote", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [{
+        sourceId: "p1",
+        title: "Test",
+        items: [{
+          sourceId: "t1",
+          title: "Task with bullets",
+          body: "Planning notes:\n\n*   First option\n*   Second option\n*   Third option\n\nAdditional context here.",
+        }],
+      }],
+    }
+    const files = convert(data)
+    const md = files.get("p1-test.md")!
+    expect(md).toContain("> Planning notes:")
+    expect(md).toContain("> *   First option")
+    expect(md).toContain("> *   Third option")
+    expect(md).toContain("> Additional context here.")
+  })
+
+  test("renders Asana links in body as block references inside blockquote", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [{
+        sourceId: "p1",
+        title: "Test",
+        items: [{
+          sourceId: "t1",
+          title: "Task with asana links",
+          body: "See also: [Related](https://app.asana.com/0/123456/789012) and [Another](https://app.asana.com/1/111/task/222333)",
+        }],
+      }],
+    }
+    const files = convert(data)
+    const md = files.get("p1-test.md")!
+    expect(md).toContain("> See also: [Related]([[^789012]])")
+    expect(md).toContain("[Another]([[^222333]])")
+    expect(md).not.toContain("app.asana.com")
+  })
+
+  test("renders milestone task with diamond marker", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [{
+        sourceId: "p1",
+        title: "Test",
+        items: [
+          { sourceId: "m1", title: "Launch day", milestone: true, status: "todo" },
+          { sourceId: "m2", title: "Past milestone", milestone: true, status: "done" },
+        ],
+      }],
+    }
+    const files = convert(data)
+    const md = files.get("p1-test.md")!
+    expect(md).toContain("- [◆] Launch day")
+    expect(md).toContain("- [x] Past milestone")
+  })
+
+  test("renders all-metadata task with every field in output", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [{
+        sourceId: "p1",
+        title: "Test",
+        items: [{
+          sourceId: "tf1",
+          title: "Full task",
+          body: "Description with **bold** text.",
+          status: "done",
+          assignee: "alice-smith",
+          dueAt: "2026-02-15",
+          startAt: "2026-01-20",
+          createdAt: "2026-01-15T09:00:00Z",
+          completedAt: "2026-02-10T17:00:00Z",
+          priority: 2,
+          tags: ["backend", "urgent"],
+          projects: ["Test", "Other Project"],
+          children: [{ sourceId: "cs1", title: "Sub-step", status: "done" }],
+          comments: [{
+            author: "bob", createdAt: "2026-02-09T14:00:00Z",
+            text: "Approved. Ship it!",
+          }],
+          attachments: [{
+            name: "spec.pdf", url: "https://example.com/spec.pdf", type: "file",
+          }],
+        }],
+      }],
+    }
+    const files = convert(data)
+    const md = files.get("p1-test.md")!
+    expect(md).toContain("- [x] Full task")
+    expect(md).toContain("@alice-smith")
+    expect(md).toContain("due:: 2026-02-15")
+    expect(md).toContain("start:: 2026-01-20")
+    expect(md).toContain("created:: 2026-01-15")
+    expect(md).toContain("completed:: 2026-02-10")
+    expect(md).toContain("p:: 2")
+    expect(md).toContain("#backend")
+    expect(md).toContain("#urgent")
+    expect(md).toContain("+test")
+    expect(md).toContain("+other-project")
+    expect(md).toContain("^tf1")
+    expect(md).toContain("> Description with **bold** text.")
+    expect(md).toContain("  - [x] Sub-step")
+    expect(md).toContain("> **Comments:**")
+    expect(md).toContain("> - 2026-02-09 @bob: Approved. Ship it!")
+    expect(md).toContain("> [spec.pdf](https://example.com/spec.pdf)")
+  })
+
+  test("renders multi-line comments with continuation lines", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [{
+        sourceId: "p1",
+        title: "Test",
+        items: [{
+          sourceId: "t1",
+          title: "Task with multiline comment",
+          comments: [{
+            author: "alice", createdAt: "2026-02-12T15:00:00Z",
+            text: "First line of feedback\nSecond line with details\nThird line conclusion",
+          }],
+        }],
+      }],
+    }
+    const files = convert(data)
+    const md = files.get("p1-test.md")!
+    expect(md).toContain("> - 2026-02-12 @alice: First line of feedback")
+    expect(md).toContain(">   Second line with details")
+    expect(md).toContain(">   Third line conclusion")
+  })
 })
 
 describe("Multi-project task dedup", () => {
@@ -421,12 +633,12 @@ describe("Multi-project task dedup", () => {
 
     // Alpha has full content (body, ^block-id)
     expect(alpha).toContain("- [ ] Shared task ^shared-1")
-    expect(alpha).toContain("  Details here")
+    expect(alpha).toContain("  > Details here")
 
     // Beta has reference line with block reference (GIDs are globally unique)
     expect(beta).toContain("→ [[^shared-1]]")
     // Beta should NOT have the body (it's a reference)
-    expect(beta).not.toContain("  Details here")
+    expect(beta).not.toContain("  > Details here")
 
     // Non-shared task renders normally in Beta
     expect(beta).toContain("- [x] Beta only")
@@ -526,11 +738,11 @@ describe("End-to-end: FakeAsana → markdown files", () => {
 
     // Stage 2
     const files = convert(data)
-    expect(files.size).toBe(2)
+    expect(files.size).toBe(3)
 
     // Stage 3
     const { written } = writeFiles(files, { outDir: testDir })
-    expect(written).toHaveLength(2)
+    expect(written).toHaveLength(3)
 
     // Verify Sprint 4 file (FakeAsana uses gid="proj-1")
     const sprint = readFileSync(join(testDir, "proj-1-sprint-4.md"), "utf-8")
@@ -546,5 +758,24 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const backlog = readFileSync(join(testDir, "proj-2-product-backlog.md"), "utf-8")
     expect(backlog).toContain("# Product Backlog")
     expect(backlog).toContain("- [ ] API spec review")
+
+    // Verify Edge Cases file
+    const edge = readFileSync(join(testDir, "proj-3-edge-cases.md"), "utf-8")
+    expect(edge).toContain("# Edge Cases")
+    expect(edge).toContain("## Active")
+    expect(edge).toContain("## ------------------")
+    expect(edge).toContain("## Milestones")
+    // Milestone renders with diamond marker
+    expect(edge).toContain("- [◆] Beta release")
+    // HTML notes converted to markdown with bullets in blockquote
+    expect(edge).toMatch(/>\s+\*\s+First option/)
+    // Multi-line comment has continuation lines
+    expect(edge).toContain("@alice-smith: First line of feedback")
+    expect(edge).toMatch(/>\s+Second line with details/)
+    // All-metadata task
+    expect(edge).toContain("- [x] Comprehensive task")
+    expect(edge).toContain("@alice-smith")
+    expect(edge).toContain("due:: 2026-02-15")
+    expect(edge).toContain("p:: 2")
   })
 })

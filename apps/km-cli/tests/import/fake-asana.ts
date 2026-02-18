@@ -152,6 +152,7 @@ export function minimalFixtures(): FakeAsanaOptions {
       "/projects": [
         { gid: "proj-1", name: "Sprint 4", created_at: "2026-01-01T00:00:00Z", modified_at: "2026-02-15T10:00:00Z", owner: { name: "Test User" }, team: { name: "Engineering" } },
         { gid: "proj-2", name: "Product Backlog", created_at: "2025-12-01T00:00:00Z" },
+        { gid: "proj-3", name: "Edge Cases", created_at: "2026-02-01T00:00:00Z" },
       ],
       "/workspaces/ws-1/teams": [
         { gid: "team-1", name: "Engineering", description: "The engineering team" },
@@ -317,6 +318,180 @@ export function minimalFixtures(): FakeAsanaOptions {
       },
       { path: "/tasks/task-3/stories", response: [] },
       { path: "/tasks/task-3/attachments", response: [] },
+
+      // --- proj-3: Edge Cases ---
+      {
+        path: "/projects/proj-3/sections",
+        params: { opt_fields: "name" },
+        response: [
+          { gid: "sec-active", name: "Active" },
+          { gid: "sec-separator", name: "------------------" },
+          { gid: "sec-milestones", name: "Milestones" },
+        ],
+      },
+      {
+        path: "/tasks",
+        params: { project: "proj-3" },
+        response: [
+          // Edge case 1: Rich HTML notes with bullets
+          {
+            gid: "task-html",
+            name: "Plan migration",
+            notes: "",
+            html_notes: "<body><p>Planning notes:</p><ul><li>First option</li><li>Second option with <a href=\"https://example.com\">link</a></li><li>Third option</li></ul><p>Additional context here.</p></body>",
+            completed: false,
+            created_at: "2026-02-12T09:00:00Z",
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-active", name: "Active" } },
+            ],
+          },
+          // Edge case 2: Asana internal links in html_notes (numeric GIDs like real Asana)
+          {
+            gid: "task-links",
+            name: "Cross-reference task",
+            notes: "",
+            html_notes: "<body>See also: <a href=\"https://app.asana.com/0/123456/789012\">Related task</a> and <a href=\"https://app.asana.com/1/111/task/222333\">Another task</a></body>",
+            completed: false,
+            created_at: "2026-02-13T10:00:00Z",
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-active", name: "Active" } },
+            ],
+          },
+          // Edge case 3: Task in separator section (Asana uses dashes as section dividers)
+          {
+            gid: "task-sep",
+            name: "Unsorted item",
+            notes: "",
+            completed: false,
+            created_at: "2026-02-13T12:00:00Z",
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-separator", name: "------------------" } },
+            ],
+          },
+          // Edge case 5: Milestone task
+          {
+            gid: "task-mile",
+            name: "Beta release",
+            notes: "",
+            completed: false,
+            created_at: "2026-02-14T08:00:00Z",
+            resource_subtype: "milestone",
+            due_on: "2026-04-01", due_at: null, start_on: null,
+            assignee: { name: "Alice Smith" },
+            tags: [{ name: "release" }],
+            custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-milestones", name: "Milestones" } },
+            ],
+          },
+          // Edge case 6: All metadata fields populated
+          {
+            gid: "task-full",
+            name: "Comprehensive task",
+            notes: "",
+            html_notes: "<body><p>Full description with <strong>bold</strong> text.</p></body>",
+            completed: true,
+            created_at: "2026-01-15T09:00:00Z",
+            completed_at: "2026-02-10T17:00:00Z",
+            due_on: "2026-02-15",
+            due_at: null,
+            start_on: "2026-01-20",
+            resource_subtype: "default_task",
+            permalink_url: "https://app.asana.com/0/proj-3/task-full",
+            assignee: { name: "Alice Smith" },
+            tags: [{ name: "backend" }, { name: "urgent" }],
+            custom_fields: [{ name: "Priority", number_value: 2 }],
+            num_subtasks: 1,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-active", name: "Active" } },
+              { project: { gid: "proj-1", name: "Sprint 4" }, section: { gid: "sec-todo", name: "To Do" } },
+            ],
+          },
+          // Edge case 7: Task with multi-line comment
+          {
+            gid: "task-mlc",
+            name: "Review feedback",
+            notes: "Gather feedback from stakeholders",
+            completed: false,
+            created_at: "2026-02-11T11:00:00Z",
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-active", name: "Active" } },
+            ],
+          },
+        ],
+      },
+      // Subtasks for task-full
+      {
+        path: "/tasks/task-full/subtasks",
+        response: [
+          {
+            gid: "sub-full-1",
+            name: "Sub-step one",
+            notes: "",
+            completed: true,
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0, memberships: [],
+          },
+        ],
+      },
+      // Stories for edge case tasks
+      { path: "/tasks/task-sep/stories", response: [] },
+      { path: "/tasks/task-sep/attachments", response: [] },
+      { path: "/tasks/task-html/stories", response: [] },
+      { path: "/tasks/task-html/attachments", response: [] },
+      { path: "/tasks/task-links/stories", response: [] },
+      { path: "/tasks/task-links/attachments", response: [] },
+      { path: "/tasks/task-mile/stories", response: [] },
+      { path: "/tasks/task-mile/attachments", response: [] },
+      {
+        path: "/tasks/task-full/stories",
+        response: [
+          {
+            gid: "story-full-1", type: "comment",
+            text: "Approved by lead. Ship it!",
+            created_at: "2026-02-09T14:00:00Z",
+            created_by: { name: "Bob Jones" },
+          },
+        ],
+      },
+      {
+        path: "/tasks/task-full/attachments",
+        response: [
+          {
+            gid: "att-full-1", name: "spec.pdf",
+            download_url: "https://asana.com/files/spec.pdf",
+            host: "asana",
+          },
+        ],
+      },
+      {
+        path: "/tasks/task-mlc/stories",
+        response: [
+          {
+            gid: "story-mlc-1", type: "comment",
+            text: "First line of feedback\nSecond line with details\nThird line conclusion",
+            created_at: "2026-02-12T15:00:00Z",
+            created_by: { name: "Alice Smith" },
+          },
+        ],
+      },
+      { path: "/tasks/task-mlc/attachments", response: [] },
+      { path: "/tasks/sub-full-1/stories", response: [] },
+      { path: "/tasks/sub-full-1/attachments", response: [] },
     ],
   }
 }
