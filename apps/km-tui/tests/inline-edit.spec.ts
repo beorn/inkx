@@ -1092,6 +1092,28 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     expect(screenshot).toContain("task1")
   })
 
+  test("Control+a clears cursor inverse attr at old position (incremental)", () => {
+    const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.paragraph(longContent),
+            item("section1", item("task1")),
+          ),
+        ),
+      { columns: 30, rows: 20, checkIncremental: true },
+    )
+
+    // Enter edit mode (cursor at end of text)
+    board.press("Enter")
+
+    // Control+a moves cursor to start — old cursor position must clear inverse attr
+    board.press("Control+a")
+  })
+
   test("ArrowUp at first visual line exits to previous block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     const { board } = testEnv(
@@ -1104,7 +1126,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
             item("section1", item("task1")),
           ),
         ),
-      { columns: 30, rows: 20, checkIncremental: false }, // Separate bug: cursor inverse attr mismatch
+      { columns: 30, rows: 20, checkIncremental: true },
     )
 
     // Enter edit mode, move cursor to start
