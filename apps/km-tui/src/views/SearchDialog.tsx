@@ -94,7 +94,7 @@ function SearchResults({ results, selectedIndex, scrollOffset, maxVisible }: Sea
 
         return (
           <NodeLine
-            key={result.node.id}
+            key={`${result.node.id}-${i}`}
             node={result.node}
             title={result.title}
             parentContext={result.parentContext}

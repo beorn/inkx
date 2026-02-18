@@ -45,11 +45,11 @@ function findZoomTarget(
 
   const [, parent, grandparent, greatGrandparent] = ancestors
 
-  if (ancestors.length >= 4 && greatGrandparent && parent) {
-    zoomTarget = greatGrandparent
-    cursorTarget = parent
+  if (ancestors.length >= 4 && grandparent) {
+    zoomTarget = grandparent
+    cursorTarget = target
     log.debug?.(
-      `search: ZOOM_IN to great-grandparent=${zoomTarget.id.slice(-8)}, cursor on parent=${cursorTarget.id.slice(-8)}`,
+      `search: ZOOM_IN to grandparent=${zoomTarget.id.slice(-8)}, cursor on target=${cursorTarget.id.slice(-8)}`,
     )
   } else if (ancestors.length >= 3 && grandparent) {
     zoomTarget = grandparent

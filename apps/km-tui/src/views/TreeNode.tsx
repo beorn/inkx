@@ -57,6 +57,7 @@ import {
   type GetBoardPillsFn,
 } from "./tree-node-helpers.ts"
 import { useNavigator } from "../layout-context.tsx"
+import { stripInlineRefs } from "./detail-pane-helpers.ts"
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
@@ -318,6 +319,8 @@ function TreeNodeImpl({
   // The task mark is displayed via the icon, so we don't need it in the text
   const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
+  // Strip @mentions and +projects from card title display — the info suffix already shows short names
+  const displayContent = depth === 0 && isOneliner ? stripInlineRefs(cleanContent) : cleanContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
   // Skip sigils that are in the excluded list (e.g., @next on the @next board)
@@ -492,7 +495,7 @@ function TreeNodeImpl({
   // Code blocks and tables render verbatim (no markdown formatting applied)
   const styledContent = useMemo(() => {
     // Collapse blank lines for compact body cards (cards view)
-    const content = compactContent ? cleanContent.replace(/\n\s*\n/g, "\n") : cleanContent
+    const content = compactContent ? displayContent.replace(/\n\s*\n/g, "\n") : displayContent
     if (node.type === "code" || node.type === "table") {
       return content // Verbatim — no renderRich processing
     }
@@ -511,7 +514,7 @@ function TreeNodeImpl({
     }
     return rich
   }, [
-    cleanContent,
+    displayContent,
     compactContent,
     excludedSigils,
     sigilColors,
@@ -682,7 +685,7 @@ function TreeNodeImpl({
             ) : isHR ? (
               <Text
                 color={style.textColor}
-                dimColor={style.shouldDim || (!isSelected && !isMultiSelected)}
+                dimColor={style.shouldDim}
                 wrap="truncate"
               >
                 {cleanContent.trim()}
@@ -699,14 +702,14 @@ function TreeNodeImpl({
                 {sigilName && (
                   <>
                     {" "}
-                    <Text dimColor={!isHighlighted}>{sigilName}</Text>
+                    <Text dimColor={style.shouldDim}>{sigilName}</Text>
                   </>
                 )}
                 {!childrenHidden && infoSuffix && (
-                  <Text dimColor={!isHighlighted}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
+                  <Text dimColor={style.shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
                 )}
                 {!childrenHidden && showInlineContext && (
-                  <Text dimColor={!isHighlighted} italic>
+                  <Text dimColor={style.shouldDim} italic>
                     {contextSuffix}
                   </Text>
                 )}
@@ -741,7 +744,7 @@ function TreeNodeImpl({
           const blockIndex = i + 1 // 0 is title
           const isActiveBlock = editBlockIndex === blockIndex
           return (
-            <Box key={child.id} paddingLeft={depth + 1}>
+            <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
               <Text dimColor={!isActiveBlock} color="cyan">
                 {"  "}
               </Text>
@@ -999,7 +1002,7 @@ function NodeChildren({
 
         return (
           <TreeNode
-            key={item.node.id}
+            key={`${item.node.id}-${i}`}
             node={item.node}
             depth={depth + 1}
             isSelected={childSelected}

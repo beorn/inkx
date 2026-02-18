@@ -105,7 +105,7 @@ const ColumnTree = React.memo(function ColumnTree({
     (card: CardState, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
       return (
-        <Box key={card.node.id} paddingLeft={1}>
+        <Box key={`${card.node.id}-${actualIndex}`} paddingLeft={1}>
           <MemoizedTreeCard
             card={card}
             colIndex={colIndex}

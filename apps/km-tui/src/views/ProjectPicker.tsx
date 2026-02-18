@@ -140,7 +140,7 @@ function ProjectOptions({
 
         return (
           <NodeLine
-            key={opt.node.id}
+            key={`${opt.node.id}-${i}`}
             node={opt.node}
             title={opt.title}
             parentContext={opt.parentContext}

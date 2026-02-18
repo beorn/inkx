@@ -23,6 +23,7 @@ import {
   stripInlineRefs,
   capitalize,
 } from "./detail-pane-helpers.ts"
+import { shortName } from "./tree-node-helpers.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -105,12 +106,12 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
         {/* Outline */}
         <Box flexDirection="column" marginTop={1} overflow="hidden" flexGrow={1}>
-          {entries.map((entry) => {
+          {entries.map((entry, i) => {
             const indent = "  ".repeat(entry.depth)
             const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.task_marker !== undefined)
             const entryTitle = getNodeDisplayName(repo, entry.node)
             return (
-              <Box key={entry.node.id} height={1}>
+              <Box key={`${entry.node.id}-${i}`} height={1}>
                 <Text wrap="truncate">
                   {indent}
                   <Text color={icon.color}>{icon.char}</Text> {renderRich(entryTitle)}
@@ -225,8 +226,8 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             </Box>
 
             {/* Body content */}
-            {bodyChildren.map((child) => (
-              <Text key={child.id} wrap="wrap">
+            {bodyChildren.map((child, i) => (
+              <Text key={`${child.id}-${i}`} wrap="wrap">
                 {renderRich(child.content ?? "")}
               </Text>
             ))}
@@ -246,8 +247,8 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             <Text bold dimColor>
               Backlinks ({backlinkNodes.length})
             </Text>
-            {backlinkNodes.slice(0, maxBacklinks).map((bl) => (
-              <NodeLine key={bl.id} node={bl} title={getNodeDisplayName(repo, bl)} />
+            {backlinkNodes.slice(0, maxBacklinks).map((bl, i) => (
+              <NodeLine key={`${bl.id}-${i}`} node={bl} title={getNodeDisplayName(repo, bl)} />
             ))}
             {backlinkNodes.length > maxBacklinks && <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>}
           </Box>
@@ -364,23 +365,33 @@ function MetadataTable({
   }
 
   // Mentions (preserve @ prefix) — exclude assignee to avoid duplication
-  const nonAssigneeMentions = refs.mentions.filter((m) => m !== node.assigned_to)
+  // Compare via shortName() to handle Unicode vs ASCII mismatches (e.g., "bjørn" vs "bjorn")
+  const nonAssigneeMentions = refs.mentions.filter(
+    (m) => shortName(m) !== shortName(node.assigned_to ?? ""),
+  )
   if (nonAssigneeMentions.length > 0) {
     rows.push({ key: "Mentions", value: nonAssigneeMentions.map((m) => `@${m}`).join(", ") })
   }
 
   // data.metadata entries (created, completed, etc.)
   const data = node.data as Record<string, unknown> | undefined
+  const usedKeys = new Set(rows.map((r) => r.key))
   if (data?.metadata && typeof data.metadata === "object") {
     for (const [k, v] of Object.entries(data.metadata as Record<string, unknown>)) {
-      rows.push({ key: capitalize(k), value: String(v) })
+      const key = capitalize(k)
+      if (usedKeys.has(key)) continue
+      usedKeys.add(key)
+      rows.push({ key, value: String(v) })
     }
   }
 
   // data.propsRaw entries (inline properties from markdown)
   if (data?.propsRaw && typeof data.propsRaw === "object") {
     for (const [k, v] of Object.entries(data.propsRaw as Record<string, unknown>)) {
-      rows.push({ key: capitalize(k), value: String(v) })
+      const key = capitalize(k)
+      if (usedKeys.has(key)) continue
+      usedKeys.add(key)
+      rows.push({ key, value: String(v) })
     }
   }
 
@@ -388,7 +399,10 @@ function MetadataTable({
   if (data) {
     for (const [k, v] of Object.entries(data)) {
       if (KNOWN_DATA_KEYS.has(k)) continue
-      rows.push({ key: capitalize(k), value: typeof v === "object" ? JSON.stringify(v) : String(v) })
+      const key = capitalize(k)
+      if (usedKeys.has(key)) continue
+      usedKeys.add(key)
+      rows.push({ key, value: typeof v === "object" ? JSON.stringify(v) : String(v) })
     }
   }
 
@@ -399,8 +413,8 @@ function MetadataTable({
 
   return (
     <>
-      {rows.map((row) => (
-        <Box key={row.key} flexDirection="row">
+      {rows.map((row, i) => (
+        <Box key={`${row.key}-${i}`} flexDirection="row">
           <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
           <Text color={isDone ? undefined : row.valueColor} dimColor={isDone}>
             {row.value}
@@ -438,7 +452,7 @@ function ColumnItems({
         const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
         const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
         return (
-          <React.Fragment key={item.id}>
+          <React.Fragment key={`${item.id}-${idx}`}>
             {/* Dot separator between top-level items */}
             {depth === 0 && idx > 0 && (
               <Text dimColor>{"· ".repeat(Math.min(3, Math.floor((innerWidth - 2) / 2)))}</Text>
@@ -454,8 +468,8 @@ function ColumnItems({
                 </Text>
               )}
             </Text>
-            {kidBody.map((b) => (
-              <Text key={b.id} wrap="wrap" dimColor>
+            {kidBody.map((b, bi) => (
+              <Text key={`${b.id}-${bi}`} wrap="wrap" dimColor>
                 {indent}
                 {"  "}
                 {stripForDisplay(b.content ?? "")}

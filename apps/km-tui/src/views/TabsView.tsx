@@ -95,7 +95,7 @@ export function TabsView({
           const textColor = isTabSelected ? "black" : showActiveHighlight ? "yellow" : "white"
 
           return (
-            <React.Fragment key={column.node.id}>
+            <React.Fragment key={`${column.node.id}-${cIdx}`}>
               {/* Tab with background - content-based width */}
               <Box
                 id={column.node.id}
@@ -150,7 +150,7 @@ export function TabsView({
 
                 return (
                   <MemoizedTreeCard
-                    key={card.node.id}
+                    key={`${card.node.id}-${actualCardIndex}`}
                     card={card}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}

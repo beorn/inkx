@@ -138,14 +138,14 @@ export function ListView({
 
   // Render item callback for VirtualList
   const renderItem = useCallback(
-    (item: FlatItem, _index: number) => {
+    (item: FlatItem, flatIndex: number) => {
       if (item.type === "header") {
         const cIdx = item.colIdx
         const isColSelected = selectionLevel === "column" && colIndex === cIdx
         const isSelected = colIndex === cIdx
 
         return (
-          <Box key={`header-${item.column.node.id}`} position="sticky" stickyTop={0}>
+          <Box key={`header-${item.column.node.id}-${flatIndex}`} position="sticky" stickyTop={0}>
             <MemoizedColumnHeader
               column={item.column}
               colIdx={cIdx}
@@ -166,7 +166,7 @@ export function ListView({
 
       return (
         <MemoizedTreeCard
-          key={item.card.node.id}
+          key={`${item.card.node.id}-${flatIndex}`}
           card={item.card}
           colIndex={cIdx}
           cardIndex={cardIdx}

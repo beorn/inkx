@@ -555,7 +555,7 @@ export const Column = React.memo(function Column({
       const isLastBody = isBody && (!nextCard || !(isVirtual || nextCard.isVirtual))
       return (
         <Card
-          key={card.node.id}
+          key={`${card.node.id}-${actualIndex}`}
           card={card}
           selectedSubIndex={selectedSubIndex}
           width={width - 1}
