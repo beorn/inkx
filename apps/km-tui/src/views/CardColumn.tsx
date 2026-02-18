@@ -66,6 +66,8 @@ interface CardProps {
   isLastBodyBlock?: boolean
   /** Additional sigils to exclude from card content (e.g., column-level sigils) */
   extraExcludedSigils?: string[]
+  /** True if the parent column is at column-level selection (cursor on column header) */
+  isColumnSelected?: boolean
 }
 
 /**
@@ -131,6 +133,7 @@ const Card = React.memo(
     isPrevBodyBlock,
     isLastBodyBlock,
     extraExcludedSigils,
+    isColumnSelected: isColSelected = false,
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
@@ -196,7 +199,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...bodyBlockLayoutProps(isSelected, "yellow", yieldTop, isLastBodyBlock, isMultiSelected)}
+          {...bodyBlockLayoutProps(isSelected, "yellow", yieldTop, isLastBodyBlock, isMultiSelected, isColSelected)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -227,7 +230,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...bodyBlockLayoutProps(isSelected || isEditing, bodyBorderColor, yieldTop, isLastBodyBlock, isMultiSelected)}
+          {...bodyBlockLayoutProps(isSelected || isEditing, bodyBorderColor, yieldTop, isLastBodyBlock, isMultiSelected, isColSelected)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -248,8 +251,8 @@ const Card = React.memo(
       )
     }
 
-    // Border: cyan when editing, yellow when selected or multi-selected, gray otherwise
-    const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected ? "yellow" : "blackBright"
+    // Border: cyan when editing, yellow when selected/multi-selected/column-selected, gray otherwise
+    const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected || isColSelected ? "yellow" : "blackBright"
 
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -329,7 +332,8 @@ const Card = React.memo(
       prev.cardIndex === next.cardIndex &&
       prev.isPrevBodyBlock === next.isPrevBodyBlock &&
       prev.isLastBodyBlock === next.isLastBodyBlock &&
-      prev.extraExcludedSigils === next.extraExcludedSigils
+      prev.extraExcludedSigils === next.extraExcludedSigils &&
+      prev.isColumnSelected === next.isColumnSelected
     )
   },
 )
@@ -347,12 +351,13 @@ function bodyBlockLayoutProps(
   _yieldTop: boolean,
   _isLastBodyBlock: boolean,
   isMultiSelected: boolean,
+  isColumnSelected = false,
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
     borderStyle: "round" as const,
-    borderColor: isMultiSelected ? "yellow" : "gray",
-    borderDimColor: !isMultiSelected,
+    borderColor: isMultiSelected || isColumnSelected ? "yellow" : "gray",
+    borderDimColor: !isMultiSelected && !isColumnSelected,
   }
 }
 
@@ -513,10 +518,11 @@ export const Column = React.memo(function Column({
           isPrevBodyBlock={isPrevBody}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
+          isColumnSelected={isColumnSelected}
         />
       )
     },
-    [colIndex, selectedSubIndex, width, isVirtual, cards, extraExcludedSigils],
+    [colIndex, selectedSubIndex, width, isVirtual, cards, extraExcludedSigils, isColumnSelected],
   )
 
   const keyExtractor = useCallback((card: CardState) => card.node.id, [])
