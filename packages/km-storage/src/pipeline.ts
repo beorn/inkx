@@ -76,7 +76,7 @@ export interface PipelineOptions {
   emitter?: Emitter
   repoRoot?: string
   /** For creates: pre-computed parent info from stub lookup */
-  stubInfo?: Map<string, { parent_id: string | null; parent_idx: number }>
+  stubInfo?: Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }>
   /** For updates: map of old ID -> new ID for node matching */
   idMap?: Map<string, string>
 }
@@ -387,18 +387,21 @@ function insertFileNodes(
   file: ParsedFile,
   insertStmt: ReturnType<Database["prepare"]>,
   deleteStmt: ReturnType<Database["prepare"]>,
-  stubInfo: Map<string, { parent_id: string | null; parent_idx: number }> | undefined,
+  stubInfo: Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }> | undefined,
   emitter: Emitter | undefined,
   now: number,
 ): void {
   // Get stub info if available (for deferred parsing)
   const stub = stubInfo?.get(file.nodeId)
 
-  // Set parent info on file node
+  // Set parent info on file node, preserving relative fs_path from stub
   const fileNode = file.nodes[0]
   if (fileNode && stub) {
     fileNode.parent_id = stub.parent_id
     fileNode.parent_idx = stub.parent_idx
+    if (stub.fs_path) {
+      fileNode.fs_path = stub.fs_path
+    }
   }
 
   // Delete stub if it exists
@@ -496,11 +499,12 @@ export async function runDeferredPipeline(
   const { signal } = options
 
   // Build stub info from existing nodes
-  const stubInfo = new Map<string, { parent_id: string | null; parent_idx: number }>()
+  const stubInfo = new Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }>()
   for (const { nodeId } of deferredFiles) {
-    const row = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
+    const row = db.prepare("SELECT parent_id, parent_idx, fs_path FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
       parent_idx: number
+      fs_path: string | null
     } | null
     if (row) {
       stubInfo.set(nodeId, row)

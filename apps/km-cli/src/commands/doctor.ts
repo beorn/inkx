@@ -14,7 +14,14 @@ import { steps } from "@beorn/inkx-ui/progress"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:doctor")
-import { findKmRootFromPath, createRepo, getStoreHealth, compactEvents, vacuumDb } from "@km/storage"
+import {
+  findKmRootFromPath,
+  createRepo,
+  getStoreHealth,
+  compactEvents,
+  vacuumDb,
+  parseDeferredAsync,
+} from "@km/storage"
 import { Database } from "bun:sqlite"
 import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
@@ -115,24 +122,28 @@ const doctorRebuildCommand = new Command("rebuild")
     }
 
     try {
-      const results = await steps({
+      // Don't use `using` — we need the repo alive for deferred file parsing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let repo: any
+      await steps({
         rebuildState: function* () {
-          using repo = yield* createRepo(repoPath, { loadFiles: true })
-          return {
-            nodeCount: repo.stats.nodeCount,
-            duration: repo.stats.duration,
-          }
+          repo = yield* createRepo(repoPath, { loadFiles: true })
+          return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
         },
       }).run({ clear: true })
 
-      const result = results.rebuildState as unknown as {
-        duration: number
-        nodeCount: number
+      // Parse deferred files (reconciliation stubs that need markdown parsing)
+      if (repo.deferredFiles.length > 0) {
+        console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
+        await parseDeferredAsync(repo.database, repo.deferredFiles)
       }
 
+      const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
+      repo.close()
+
       console.log(term.green("✓"), "Rebuild complete")
-      console.log(term.dim(`  Nodes: ${result.nodeCount}`))
-      console.log(term.dim(`  Time: ${result.duration}ms`))
+      console.log(term.dim(`  Nodes: ${nodeCount}`))
+      console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
     } catch (error) {
       console.error(term.red("Rebuild failed:"), error)
       process.exit(1)
@@ -175,24 +186,28 @@ const doctorResetCommand = new Command("reset")
     }
 
     try {
-      const results = await steps({
+      // Don't use `using` — we need the repo alive for deferred file parsing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let repo: any
+      await steps({
         syncFromWorktree: function* () {
-          using repo = yield* createRepo(repoPath, { loadFiles: true })
-          return {
-            nodeCount: repo.stats.nodeCount,
-            duration: repo.stats.duration,
-          }
+          repo = yield* createRepo(repoPath, { loadFiles: true })
+          return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
         },
       }).run({ clear: true })
 
-      const result = results.syncFromWorktree as unknown as {
-        duration: number
-        nodeCount: number
+      // Parse deferred files (reconciliation stubs that need markdown parsing)
+      if (repo.deferredFiles.length > 0) {
+        console.log(term.dim(`  Parsing ${repo.deferredFiles.length} new files...`))
+        await parseDeferredAsync(repo.database, repo.deferredFiles)
       }
 
+      const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
+      repo.close()
+
       console.log(term.green("✓"), "Reset complete")
-      console.log(term.dim(`  Nodes: ${result.nodeCount}`))
-      console.log(term.dim(`  Time: ${result.duration}ms`))
+      console.log(term.dim(`  Nodes: ${nodeCount}`))
+      console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
     } catch (error) {
       console.error(term.red("Reset failed:"), error)
       process.exit(1)

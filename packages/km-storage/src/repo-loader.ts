@@ -194,11 +194,13 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   yield* applyEvents(db, source.events, errors, repoRoot)
 
   // 4a. Disk mode: reconcile filesystem to detect externally added/removed files
+  let reconcileDeferredFiles: DeferredFile[] = []
   if (mode === "disk") {
-    const reconcileEvents = yield* reconcileFilesystem(db, repoRoot, errors)
-    if (reconcileEvents.length > 0) {
-      yield* applyEvents(db, reconcileEvents, errors, repoRoot)
+    const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors)
+    if (reconcileResult.events.length > 0) {
+      yield* applyEvents(db, reconcileResult.events, errors, repoRoot)
     }
+    reconcileDeferredFiles = reconcileResult.deferredFiles
   }
 
   // 5. Resolve links and evaluate rules
@@ -207,9 +209,18 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   let returnDeferredFiles: DeferredFile[] | undefined
 
   if (discoverOnly) {
-    returnDeferredFiles = source.deferredFiles
+    // Merge discovery stubs with reconciliation stubs
+    const discoveryDeferred = source.deferredFiles ?? []
+    returnDeferredFiles =
+      reconcileDeferredFiles.length > 0 ? [...discoveryDeferred, ...reconcileDeferredFiles] : discoveryDeferred
     log.debug?.(`discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`)
   } else {
+    // Even in full mode, reconciliation may find new files that need parsing
+    if (reconcileDeferredFiles.length > 0) {
+      returnDeferredFiles = reconcileDeferredFiles
+      log.debug?.(`reconciliation found ${reconcileDeferredFiles.length} new files to parse`)
+    }
+
     if (source.pendingLinks.length > 0) {
       if (skipLinks) {
         returnPendingLinks = source.pendingLinks
@@ -481,14 +492,20 @@ function* discoverFromEvents(
  *
  * Generates node_created / node_deleted events for the differences.
  */
+interface ReconcileResult {
+  events: Event[]
+  deferredFiles: DeferredFile[]
+}
+
 function* reconcileFilesystem(
   db: Database,
   repoRoot: string,
   errors: LoadError[],
-): Generator<StepYield, Event[], unknown> {
+): Generator<StepYield, ReconcileResult, unknown> {
   yield "Reconciling filesystem"
 
   const events: Event[] = []
+  const deferredFiles: DeferredFile[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
 
@@ -503,7 +520,7 @@ function* reconcileFilesystem(
   if (dbRows.some((row) => isAbsolute(row.fs_path))) {
     log.debug?.("reconcileFilesystem: skipping — DB contains absolute fs_path values")
     yield { current: 0, total: 0 }
-    return events
+    return { events, deferredFiles }
   }
 
   const dbPathSet = new Set<string>()
@@ -522,7 +539,7 @@ function* reconcileFilesystem(
   } catch {
     errors.push({ phase: "discover", message: `Cannot resolve repo root: ${repoRoot}` })
     yield { current: 0, total: 0 }
-    return events
+    return { events, deferredFiles }
   }
 
   const visitedDirs = new Set<string>([repoRealpath])
@@ -675,6 +692,7 @@ function* reconcileFilesystem(
           data: { _stub: true },
         },
       })
+      deferredFiles.push({ nodeId, fsPath: fullPath })
     } else {
       // Non-markdown file
       events.push({
@@ -709,10 +727,12 @@ function* reconcileFilesystem(
     }
   }
 
-  log.debug?.(`reconcileFilesystem: ${events.length} events (fs=${fsPathSet.size} db=${dbPathSet.size})`)
+  log.debug?.(
+    `reconcileFilesystem: ${events.length} events, ${deferredFiles.length} deferred (fs=${fsPathSet.size} db=${dbPathSet.size})`,
+  )
   yield { current: events.length, total: events.length }
 
-  return events
+  return { events, deferredFiles }
 }
 
 // ============================================================================
@@ -944,9 +964,10 @@ function parseOneFile(
   const isTxt = fsPath.endsWith(".txt")
   const { nodes, wikilinks } = isTxt ? parsePlainTextToNodes(content, fsPath) : parseMarkdownWithLinks(content, fsPath)
 
-  const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
+  const stubRow = db.prepare("SELECT parent_id, parent_idx, fs_path FROM nodes WHERE id = ?").get(nodeId) as {
     parent_id: string | null
     parent_idx: number
+    fs_path: string | null
   } | null
 
   if (!stubRow) {
@@ -964,6 +985,10 @@ function parseOneFile(
     fileNode.id = nodeId
     fileNode.parent_id = stubRow.parent_id
     fileNode.parent_idx = stubRow.parent_idx
+    // Preserve relative fs_path from the stub (parser sets absolute path)
+    if (stubRow.fs_path) {
+      fileNode.fs_path = stubRow.fs_path
+    }
   }
 
   const now = Date.now()
