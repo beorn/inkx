@@ -16,7 +16,7 @@ import { readKeychainCredential } from "./keychain.ts"
 import { checkAllQuotas, findBestAccount } from "./quota.ts"
 import { discoverAccounts } from "./discover.ts"
 import { switchAccount } from "./switcher.ts"
-import { formatStatus } from "./display.ts"
+import { formatStatus } from "./display.tsx"
 import { fetchClaudeProfile } from "./providers/claude-oauth.ts"
 import type { AccountProvider } from "./types.ts"
 
@@ -44,7 +44,7 @@ program.action(async () => {
   const active = getActiveAccount()
   const quotas = await checkAllQuotas(discovered)
   const accounts = discovered.map((d) => d.config)
-  console.log(formatStatus(quotas, active, accounts))
+  console.log(await formatStatus(quotas, active, accounts))
 
   const claudeCount = discovered.filter((d) => d.config.provider === "claude-oauth").length
   if (claudeCount <= 1) {
@@ -65,7 +65,7 @@ program
     const active = getActiveAccount()
     const quotas = await checkAllQuotas(discovered)
     const accounts = discovered.map((d) => d.config)
-    console.log(formatStatus(quotas, active, accounts))
+    console.log(await formatStatus(quotas, active, accounts))
   })
 
 // ── import ──────────────────────────────────────────────────────────────
