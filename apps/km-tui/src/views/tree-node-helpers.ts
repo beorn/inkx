@@ -111,8 +111,9 @@ export function getNodeStyle(
     backgroundColor = "yellow"
     textColor = "black"
   } else {
-    // Default: explicit white for readable card text in dark terminals
-    textColor = "white"
+    // Default: bright white for readable card text in dark terminals
+    // "white" (ANSI 7) renders as grey in most dark themes; "whiteBright" (ANSI 15) is actual white
+    textColor = "whiteBright"
   }
   // No colored background for nodes with ownColor - color only applies to fold marker
 
