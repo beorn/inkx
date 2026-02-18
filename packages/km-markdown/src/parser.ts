@@ -49,12 +49,58 @@ const COMBINED_REFS_REGEX = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-
 const HAS_WIKILINK = /\[\[/
 
 // km-fast-md.3: Task metadata regexes moved to @km/core (extractTaskMetadata)
-// Kept only for local use in parseInlineProperties
 
-// Generic key=value regex for heading rules
-// Matches: key="value with spaces", key='value', key=simple_value, `key="value"`
-// Supports any key name — known keys are mapped to typed SectionRules fields
-const KEY_VALUE_REGEX = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
+/**
+ * Unified property regex — matches both km-prefixed and bare key:: value syntax.
+ * Captures: (1) full key including optional "km." prefix, (2) raw value.
+ * Value runs until next property or end of string.
+ *
+ * Examples:
+ *   "Title km.add:: query km.collapse:: true" → [km.add, query], [km.collapse, true]
+ *   "Task rating:: 5 blocked-by:: [[other]]"  → [rating, 5], [blocked-by, [[other]]]
+ *   "Mixed km.sync:: status:done priority:: 1" → [km.sync, status:done], [priority, 1]
+ */
+export const PROP_REGEX = /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi
+
+/**
+ * Extracted property from text
+ */
+export interface ExtractedProp {
+  key: string // full key including "km." prefix if present
+  value: string // raw value string (trimmed)
+  start: number // match start index in original text
+  end: number // match end index in original text
+}
+
+/**
+ * Extract all key:: value properties from text (both km-prefixed and bare).
+ * Returns entries and clean text with all properties removed.
+ */
+export function extractKVProperties(text: string): { entries: ExtractedProp[]; cleanText: string } {
+  PROP_REGEX.lastIndex = 0
+  const entries: ExtractedProp[] = []
+  let match
+  while ((match = PROP_REGEX.exec(text)) !== null) {
+    entries.push({
+      key: match[1] ?? "",
+      value: (match[2] ?? "").trim(),
+      start: match.index,
+      end: match.index + match[0].length,
+    })
+  }
+
+  // Build clean text by removing all matched ranges
+  let cleanText = ""
+  let lastEnd = 0
+  for (const entry of entries) {
+    cleanText += text.slice(lastEnd, entry.start)
+    lastEnd = entry.end
+  }
+  cleanText += text.slice(lastEnd)
+  cleanText = cleanText.replace(/\s+/g, " ").trim()
+
+  return { entries, cleanText }
+}
 
 /**
  * Extended ListItem with task mark
@@ -254,6 +300,7 @@ export interface SectionRules {
   add?: string | string[] // Query to auto-pull matching tasks (multiple allowed)
   sync?: string // Bidirectional field sync (e.g., "status:blocked")
   collapse?: boolean // Start collapsed
+  hidden?: boolean // Hide section from view entirely
   limit?: number // WIP limit
   default?: boolean // Default column for new items
   removed?: boolean // Items dismissed from the board (km add skips these)
@@ -273,36 +320,23 @@ export interface ParsedHeading {
  * Parse heading text to extract title and inline rules
  * km-fast-md.4: Single-pass extraction using combined regex
  *
- * Format: "Column Name add=\"query\" sync=field:value collapse=true limit=3"
+ * Format: "Column Name km.add:: query km.sync:: field:value km.collapse:: true km.limit:: 3"
  * Returns: { title: "Column Name", rules: { add: "query", sync: "field:value", ... } }
  */
 export function parseHeadingRules(text: string): ParsedHeading {
+  const { entries, cleanText } = extractKVProperties(text)
   const rules: SectionRules = {}
   const addValues: string[] = []
   const warnings: string[] = []
 
-  // Track which singleton keys we've seen, to warn on duplicates
   const seenKeys = new Set<string>()
-  // Keys that allow multiple values (accumulated into arrays)
   const multiKeys = new Set(["add"])
 
-  // Generic key=value extraction — reset lastIndex since it's global
-  KEY_VALUE_REGEX.lastIndex = 0
+  for (const { key: fullKey, value } of entries) {
+    // Only process km.* prefixed properties for heading rules
+    if (!fullKey.startsWith("km.")) continue
+    const key = fullKey.slice(3)
 
-  // Track matched ranges for title extraction
-  const matchedRanges: Array<{ start: number; end: number }> = []
-
-  let match
-  while ((match = KEY_VALUE_REGEX.exec(text)) !== null) {
-    const key = match[1]!
-    const value = match[2] ?? match[3] ?? match[4]!
-
-    matchedRanges.push({
-      start: match.index,
-      end: match.index + match[0].length,
-    })
-
-    // Warn on duplicate singleton keys (add is multi-valued, so skip it)
     if (!multiKeys.has(key) && seenKeys.has(key)) {
       warnings.push(`duplicate key "${key}" — last value wins`)
     }
@@ -317,6 +351,9 @@ export function parseHeadingRules(text: string): ParsedHeading {
         break
       case "collapse":
         if (value === "true") rules.collapse = true
+        break
+      case "hidden":
+        if (value === "true") rules.hidden = true
         break
       case "limit":
         rules.limit = parseInt(value, 10)
@@ -334,24 +371,33 @@ export function parseHeadingRules(text: string): ParsedHeading {
     }
   }
 
-  // Single add stays string for backward compat, multiple becomes array
   if (addValues.length === 1) {
     rules.add = addValues[0]
   } else if (addValues.length > 1) {
     rules.add = addValues
   }
 
-  // Extract title by removing matched key=value ranges
-  let title = ""
-  let lastEnd = 0
-  for (const range of matchedRanges) {
-    title += text.slice(lastEnd, range.start)
-    lastEnd = range.end
-  }
-  title += text.slice(lastEnd)
-  title = title.replace(/\s+/g, " ").trim()
+  return { title: cleanText, rules, ...(warnings.length > 0 ? { warnings } : {}) }
+}
 
-  return { title, rules, ...(warnings.length > 0 ? { warnings } : {}) }
+/**
+ * Serialize SectionRules back to km.key:: value format for heading reconstruction.
+ * Returns the space-separated string (empty string if no rules).
+ */
+export function serializeRules(rules: SectionRules): string {
+  const parts: string[] = []
+  if (rules.add) {
+    const adds = Array.isArray(rules.add) ? rules.add : [rules.add]
+    for (const a of adds) parts.push(`km.add:: ${a}`)
+  }
+  if (rules.sync) parts.push(`km.sync:: ${rules.sync}`)
+  if (rules.collapse) parts.push(`km.collapse:: true`)
+  if (rules.hidden) parts.push(`km.hidden:: true`)
+  if (rules.limit !== undefined) parts.push(`km.limit:: ${rules.limit}`)
+  if (rules.default) parts.push(`km.default:: true`)
+  if (rules.removed) parts.push(`km.removed:: true`)
+  if (rules.color) parts.push(`km.color:: ${rules.color}`)
+  return parts.join(" ")
 }
 
 /**
@@ -377,14 +423,14 @@ export function tableToMarkdown(node: RootContent): string {
   const colWidths: number[] = Array.from({ length: colCount }, () => 3)
   for (const cells of allCells) {
     for (let c = 0; c < cells.length; c++) {
-      colWidths[c] = Math.max(colWidths[c]!, cells[c]!.length)
+      colWidths[c] = Math.max(colWidths[c] ?? 3, (cells[c] ?? "").length)
     }
   }
 
   // Second pass: render with padding
   const lines: string[] = []
   for (let i = 0; i < allCells.length; i++) {
-    const cells = allCells[i]!
+    const cells = allCells[i] ?? []
     const padded = colWidths.map((w, c) => (cells[c] ?? "").padEnd(w))
     lines.push("| " + padded.join(" | ") + " |")
 
@@ -493,36 +539,20 @@ export interface ParsedProperties {
  * // }
  */
 export function parseInlineProperties(text: string): ParsedProperties {
+  const { entries, cleanText } = extractKVProperties(text)
   const props: Record<string, PropertyValue> = {}
   const propsRaw: Record<string, string> = {}
 
-  // Match property:: value patterns
-  // Property name: lowercase letter followed by alphanumeric, underscore, or hyphen
-  // Value: everything until next property or end of string
-  const propPattern = /([a-z][a-z0-9_-]*)::[ ]*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi
+  for (const { key, value } of entries) {
+    // Skip km.* system properties (those are heading rules)
+    if (key.startsWith("km.")) continue
 
-  let cleanText = text
-  let match
-
-  while ((match = propPattern.exec(text)) !== null) {
-    const [fullMatch, name, rawValue] = match
-    if (!name || rawValue === undefined) continue
-
-    const propName = name.toLowerCase()
-    const trimmedValue = rawValue.trim()
-
-    propsRaw[propName] = trimmedValue
-    props[propName] = parsePropertyValue(trimmedValue)
-
-    // Remove the property from clean text
-    cleanText = cleanText.replace(fullMatch, "")
+    const propName = key.toLowerCase()
+    propsRaw[propName] = value
+    props[propName] = parsePropertyValue(value)
   }
 
-  return {
-    props,
-    propsRaw,
-    cleanText: cleanText.trim(),
-  }
+  return { props, propsRaw, cleanText }
 }
 
 /**

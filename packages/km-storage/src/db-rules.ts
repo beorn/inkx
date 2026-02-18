@@ -1,7 +1,7 @@
 /**
  * Database Rules - Evaluate and store computed rule results
  *
- * Node rules (like `add=`) define dynamic relationships.
+ * Node rules (like `km.add::`) define dynamic relationships.
  * This module evaluates those rules and stores results in the links table,
  * ensuring a single source of truth at the storage layer.
  *
@@ -28,7 +28,7 @@ import { parseQuery, type KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
-/** Relationship type for add= rule results */
+/** Relationship type for km.add:: rule results */
 const ADD_RULE_RELATIONSHIP = "query:add"
 
 // =============================================================================
@@ -96,20 +96,20 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
   const rules = node.rules
   if (!rules) return
 
-  // Evaluate add= rule(s) — may be a single string or array of queries
+  // Evaluate km.add:: rule(s) — may be a single string or array of queries
   if (rules.add) {
     const queries = Array.isArray(rules.add) ? rules.add : [rules.add]
     evaluateAddRule(db, node.id, queries, ctx)
   }
 
-  // Future: evaluate sync= rule
+  // Future: evaluate km.sync:: rule
   // if (rules.sync) {
   //   evaluateSyncRule(db, node.id, rules.sync, ctx);
   // }
 }
 
 /**
- * Evaluate add= rule(s) and materialize results as embed nodes.
+ * Evaluate km.add:: rule(s) and materialize results as embed nodes.
  * Creates embed nodes as children of the section, which get written back to markdown.
  * Removes embeds that no longer match any query (e.g., after status change).
  * Multiple queries are unioned — a node matching any query is included.
@@ -130,7 +130,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       const p = pathFilter.pattern
       if (p.startsWith("../") || p === ".." || p.includes("/../")) {
         log.warn?.(
-          `add= rule path "${query}" resolves outside the repo root — it will match no nodes. Section: ${section.content ?? sectionId}`,
+          `km.add:: rule path "${query}" resolves outside the repo root — it will match no nodes. Section: ${section.content ?? sectionId}`,
         )
       }
     }
@@ -445,7 +445,7 @@ export function onNodeChanged(
 ): void {
   log.debug?.(`onNodeChanged: ${changedNodeId} changes=${JSON.stringify(changes)}`)
 
-  // For simplicity, re-evaluate all add= rules when any node changes.
+  // For simplicity, re-evaluate all km.add:: rules when any node changes.
   // This is O(rules * matches) but rules count is typically small (<20).
   //
   // Future optimization: index queries by terms and only re-evaluate

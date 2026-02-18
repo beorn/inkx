@@ -6,6 +6,7 @@
  */
 
 import type { KNode } from "@km/core"
+import { PROP_REGEX } from "@km/markdown"
 
 /**
  * Lookup function types for dependency injection.
@@ -15,20 +16,12 @@ export type GetChildrenFn = (nodeId: string) => KNode[]
 export type GetNodeFn = (nodeId: string) => KNode | null | undefined
 
 /**
- * Strip inline section rules from a string
- * Handles both plain and backtick-wrapped syntax:
- *   - "Work default=true" → "Work"
- *   - "Done `collapse=true`" → "Done"
+ * Strip all key:: value properties from a string (both km.* and bare).
+ * Used to produce clean display names from headings.
  */
 function stripInlineRules(text: string): string {
-  return (
-    text
-      // Plain syntax: collapse=true, default=true, etc.
-      .replace(/\s+(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|\S+)/gi, "")
-      // Backtick-wrapped: `collapse=true`, `default=true`, etc.
-      .replace(/\s*`(add|sync|collapse|limit|default)=("[^"]*"|'[^']*'|[^`]+)`/gi, "")
-      .trim()
-  )
+  PROP_REGEX.lastIndex = 0
+  return text.replace(PROP_REGEX, "").replace(/\s+/g, " ").trim()
 }
 
 /**

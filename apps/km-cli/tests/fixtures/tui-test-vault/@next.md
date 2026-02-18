@@ -2,7 +2,7 @@
 
 Tasks ready to work on now.
 
-## Work `default=true`
+## Work km.default:: true
 
 - [ ] Code review for PR #123 @alice
 - [/] Write unit tests for auth module
@@ -56,7 +56,7 @@ Tasks ready to work on now.
 - [ ] Add examples for error handling
 - [/] Write authentication flow docs @docs-team
 
-## Done `collapse=true`
+## Done km.collapse:: true
 
 - [x] Morning standup
 - [x] Review overnight alerts
@@ -73,7 +73,7 @@ Tasks ready to work on now.
 - [x] Exercise 🏃
 - [x] Meditate 🧘
 
-## Dropped `collapse=true`
+## Dropped km.collapse:: true
 
 - [-] Use WordPress (decided against)
 - [-] Third-party chat widget (too expensive)

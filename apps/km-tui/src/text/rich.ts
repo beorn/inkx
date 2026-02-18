@@ -13,6 +13,7 @@
 
 import { createTerm, stripAnsi, type StyleChain } from "inkx"
 import { dashedUnderline } from "chalkx"
+import { PROP_REGEX } from "@km/markdown"
 import stringWidth from "string-width"
 import { getTermColor } from "./colors.ts"
 
@@ -92,12 +93,7 @@ export function displayLength(text: string): number {
  */
 const INLINE_FIELD_BRACKET_REGEX = /\[(\w+)::\s*([^\]]*)\]/g
 
-/**
- * Regex to match bare inline properties: key:: value
- * Compatible with Logseq, Obsidian Dataview, Tana, Roam.
- * Value runs until next property or end of string.
- */
-const INLINE_PROP_REGEX = /([a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+[a-z][a-z0-9_-]*::|$)/gi
+// PROP_REGEX imported from @km/markdown — handles both km.key:: and bare key:: value
 
 /**
  * Regex to match wiki links: [[note]] or [[path/to/note|alias]]
@@ -210,11 +206,16 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
     return style.dim.cyan(key) + style.dim(":: ") + styledVal
   }
 
-  // Style bracketed inline fields [key:: value] and bare key:: value
+  // Style bracketed inline fields [key:: value]
   let result = text.replace(INLINE_FIELD_BRACKET_REGEX, (_m, k: string, v: string) =>
     styleInlineProp(_m, k, v),
   )
-  result = result.replace(INLINE_PROP_REGEX, styleInlineProp)
+  // Handle all key:: value props in one pass: strip km.* system props, style bare user props
+  PROP_REGEX.lastIndex = 0
+  result = result.replace(PROP_REGEX, (match, key: string, value: string) => {
+    if (key.startsWith("km.")) return "" // strip system props
+    return styleInlineProp(match, key, value)
+  })
   result = result.replace(HTML_TAG_REGEX, "")
 
   // Style markdown links [text](url) → underlined text
@@ -308,9 +309,11 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
  * // Returns: "bold and italic text"
  */
 export function renderPlain(text: string): string {
-  // Strip inline fields (bracketed and bare) and HTML tags
+  // Strip all properties (km.* system props and bare inline props), bracketed fields, and HTML tags
+  // Strip bracketed fields first (before PROP_REGEX which would partially match inside brackets)
   let result = text.replace(INLINE_FIELD_BRACKET_REGEX, "")
-  result = result.replace(INLINE_PROP_REGEX, "")
+  PROP_REGEX.lastIndex = 0
+  result = result.replace(PROP_REGEX, "")
   result = result.replace(HTML_TAG_REGEX, "")
 
   // Strip markdown links [text](url) → text

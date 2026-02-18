@@ -48,7 +48,8 @@ function computeOrdinals(nodes: KNode[]): Map<string, number> {
   for (const [, siblings] of byParent) {
     siblings.sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
     for (let i = 0; i < siblings.length; i++) {
-      ordinals.set(siblings[i]!.id, i)
+      const sibling = siblings[i]
+      if (sibling) ordinals.set(sibling.id, i)
     }
   }
   return ordinals

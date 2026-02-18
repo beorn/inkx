@@ -846,15 +846,15 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
   test("should preserve section rules in headings", () => {
     const nodes = parse(`# Board
 
-## Ready add="status:todo"
+## Ready km.add:: status:todo
 
 - [ ] Task 1
 
-## In Progress sync=status:wip limit=3
+## In Progress km.sync:: status:wip km.limit:: 3
 
 - [/] Task 2
 
-## Done collapse=true
+## Done km.collapse:: true
 
 - [x] Task 3`)
     const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
@@ -870,22 +870,22 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
 
     // Round-trip preserves rules in content
     const output = nodesToMarkdown(nodes)
-    expect(output).toContain('add="status:todo"')
-    expect(output).toContain("sync=status:wip")
-    expect(output).toContain("limit=3")
-    expect(output).toContain("collapse=true")
+    expect(output).toContain("km.add:: status:todo")
+    expect(output).toContain("km.sync:: status:wip")
+    expect(output).toContain("km.limit:: 3")
+    expect(output).toContain("km.collapse:: true")
   })
 
   test("should preserve color rule", () => {
-    const nodes = parse(`## Section color=cyan`)
+    const nodes = parse(`## Section km.color:: cyan`)
     expect(nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")?.rules?.color).toBe("cyan")
-    expect(nodesToMarkdown(nodes)).toContain("color=cyan")
+    expect(nodesToMarkdown(nodes)).toContain("km.color:: cyan")
   })
 
   test("should preserve default=true rule", () => {
-    const nodes = parse(`## Inbox default=true`)
+    const nodes = parse(`## Inbox km.default:: true`)
     expect(nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")?.rules?.default).toBe(true)
-    expect(nodesToMarkdown(nodes)).toContain("default=true")
+    expect(nodesToMarkdown(nodes)).toContain("km.default:: true")
   })
 })
 
@@ -956,7 +956,7 @@ type: inbox
 
 describe("Round-trip: H1 Merging Edge Cases", () => {
   test("should merge H1 rules into file node", () => {
-    const nodes = parse(`# Board default=true color=blue
+    const nodes = parse(`# Board km.default:: true km.color:: blue
 
 ## Column 1`)
     const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")

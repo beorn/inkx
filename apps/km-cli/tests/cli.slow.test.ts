@@ -522,13 +522,13 @@ describe("km init", () => {
       const { dir } = await initInDir("gtd-next")
       const content = readFileSync(join(dir, "@next.md"), "utf-8")
       expect(content).toContain("# Next Actions")
-      expect(content).toContain('## Inbox add="./inbox/**"')
-      expect(content).toContain('add="due:past -status:done -status:dropped"')
-      expect(content).toContain("default=true")
+      expect(content).toContain("## Inbox km.add:: ./inbox/**")
+      expect(content).toContain("km.add:: due:past -status:done -status:dropped")
+      expect(content).toContain("km.default:: true")
       expect(content).toContain("## Next")
       expect(content).toContain("## Waiting")
-      expect(content).toContain("## Done collapse=true")
-      expect(content).toContain("## Removed collapse=true removed=true")
+      expect(content).toContain("## Done km.collapse:: true")
+      expect(content).toContain("## Removed km.collapse:: true km.removed:: true")
     })
 
     test("should create @someday.md with columns", async () => {
@@ -1050,7 +1050,7 @@ describe("km view - state initialization", () => {
   })
 
   test("km view should find board after km sync and km add in sequence", async () => {
-    createFile("@next.md", '# Next Actions\n\n## Inbox add="./inbox/**"\n\n## Processing\n')
+    createFile("@next.md", "# Next Actions\n\n## Inbox km.add:: ./inbox/**\n\n## Processing\n")
     createFile("inbox/new.md", "# New Items\n\n- [ ] Review email\n- [ ] Check calendar\n")
 
     await km(["sync"])

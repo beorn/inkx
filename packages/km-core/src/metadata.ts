@@ -82,8 +82,8 @@ export function extractMetadata(text: string): ExtractedMetadata {
   METADATA_REGEX.lastIndex = 0
   let match
   while ((match = METADATA_REGEX.exec(text)) !== null) {
-    const key = match[1]!
-    let value = match[2]!
+    const key = match[1] ?? ""
+    let value = match[2] ?? ""
 
     // Strip quotes from quoted values
     if (value.startsWith('"') && value.endsWith('"')) {
@@ -161,7 +161,7 @@ export function splitMultiValue(value: string): string[] {
   let inQuote = false
 
   for (let i = 0; i < value.length; i++) {
-    const ch = value[i]!
+    const ch = value[i] ?? ""
     if (ch === '"') {
       inQuote = !inQuote
     } else if (ch === "," && !inQuote) {

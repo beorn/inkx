@@ -633,7 +633,7 @@ interface LoadOptions {
 | **parse**       | Parse files → generate events | (skipped - events already parsed) |
 | **apply**       | Insert nodes into SQLite      | Apply events to SQLite            |
 | **resolve**     | Resolve wikilinks             | (skipped - resolved during apply) |
-| **materialize** | Evaluate add= rules           | Evaluate add= rules               |
+| **materialize** | Evaluate km.add:: rules        | Evaluate km.add:: rules            |
 
 ### Return Value
 

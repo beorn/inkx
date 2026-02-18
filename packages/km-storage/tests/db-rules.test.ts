@@ -1,7 +1,7 @@
 /**
  * Database Rules Tests
  *
- * Tests for computed rule evaluation (add=, sync=, etc.)
+ * Tests for computed rule evaluation (km.add::, km.sync::, etc.)
  * Rules are evaluated at sync time and results stored in the links table.
  *
  * Uses withMemoryStore helper for parallel test isolation - creates files,
@@ -55,16 +55,16 @@ function withMemoryStore<T>(setup: (repoDir: string) => void, fn: (env: TestEnv)
 
 describe("Database Rules", () => {
   describe("getNodesWithRules", () => {
-    test("should find nodes with add= rules", () =>
+    test("should find nodes with km.add:: rules", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
             join(repoDir, "board.md"),
             `# Board
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 
-## Done add="@issue status:done"
+## Done km.add:: @issue status:done
 `,
           )
         },
@@ -111,11 +111,11 @@ describe("Database Rules", () => {
             join(repoDir, "mixed.md"),
             `# Mixed Rules
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 
-## Collapsed collapse=true
+## Collapsed km.collapse:: true
 
-## Limited limit=3
+## Limited km.limit:: 3
 `,
           )
         },
@@ -149,7 +149,7 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 `,
           )
         },
@@ -175,7 +175,7 @@ describe("Database Rules", () => {
             join(repoDir, "mixed.md"),
             `# Mixed
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 
 - [ ] Direct child @issue
 
@@ -222,9 +222,9 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Todo add="@project status:todo"
+## Todo km.add:: @project status:todo
 
-## Done add="@project status:done"
+## Done km.add:: @project status:done
 `,
           )
         },
@@ -250,7 +250,7 @@ describe("Database Rules", () => {
   })
 
   describe("getChildren with computed links", () => {
-    test("should include embed children from add= rule", () =>
+    test("should include embed children from km.add:: rule", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -266,7 +266,7 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 `,
           )
         },
@@ -292,7 +292,7 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Open add="status:todo"
+## Open km.add:: status:todo
 
 - [ ] Direct task
 `,
@@ -328,9 +328,9 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Todo add="@tag status:todo"
+## Todo km.add:: @tag status:todo
 
-## Done add="@tag status:done"
+## Done km.add:: @tag status:done
 `,
           )
         },
@@ -388,7 +388,7 @@ describe("Database Rules", () => {
             join(repoDir, "board.md"),
             `# Board
 
-## Open add="@issue status:todo"
+## Open km.add:: @issue status:todo
 `,
           )
         },
@@ -408,7 +408,7 @@ describe("Database Rules", () => {
   })
 
   describe("path escape warnings", () => {
-    test("should warn when add= rule path escapes repo root with ../", async () => {
+    test("should warn when km.add:: rule path escapes repo root with ../", async () => {
       const { addWriter } = await import("@beorn/logger")
       const logOutput: string[] = []
       const unsubscribe = addWriter((formatted) => {
@@ -424,7 +424,7 @@ describe("Database Rules", () => {
               join(repoDir, "board.md"),
               `# Board
 
-## Outside add="../other-repo/**"
+## Outside km.add:: ../other-repo/**
 `,
             )
           },
@@ -466,7 +466,7 @@ describe("Database Rules", () => {
               join(repoDir, "board.md"),
               `# Board
 
-## Inbox add="./inbox/**"
+## Inbox km.add:: ./inbox/**
 `,
             )
           },

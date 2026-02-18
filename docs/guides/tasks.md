@@ -116,67 +116,67 @@ Boards organize tasks into columns. Any markdown file with H2 sections and wikil
 ```markdown
 # @next.md
 
-## today add="due:past status:todo" add="start:past status:todo"
+## today km.add:: due:past status:todo km.add:: start:past status:todo
 
 - ![[tasks/review-budget]]
 
-## this-week add="due:week status:todo -due:past"
+## this-week km.add:: due:week status:todo -due:past
 
 - ![[tasks/send-invoice]]
 
-## waiting sync=status:blocked
+## waiting km.sync:: status:blocked
 
 - ![[tasks/get-approval]]
 
-## done sync=status:done collapse=true
+## done km.sync:: status:done km.collapse:: true
 ```
 
 ### Column Rules
 
 Columns can have rules that control task membership:
 
-| Attribute | Syntax             | Effect                               |
-| --------- | ------------------ | ------------------------------------ |
-| `add`     | `add="query"`      | Pull in tasks matching query         |
-| `sync`    | `sync=field:value` | Bidirectional: move here ↔ set field |
+| Attribute    | Syntax                  | Effect                               |
+| ------------ | ----------------------- | ------------------------------------ |
+| `km.add`     | `km.add:: query`        | Pull in tasks matching query         |
+| `km.sync`    | `km.sync:: field:value` | Bidirectional: move here ↔ set field |
 
-> **Note:** `sync=` parsing is supported (stored in `node.rules.sync`), but automatic sync evaluation is planned for a future release. Currently, `sync=` rules serve as documentation of intended column behavior.
+> **Note:** `km.sync::` parsing is supported (stored in `node.rules.sync`), but automatic sync evaluation is planned for a future release. Currently, `km.sync::` rules serve as documentation of intended column behavior.
 
-**`add="query"`** — Continuously pulls in matching tasks:
+**`km.add:: query`** — Continuously pulls in matching tasks:
 
 ```markdown
-## today add="due:past status:todo" # Overdue open tasks appear here
+## today km.add:: due:past status:todo # Overdue open tasks appear here
 
-## inbox add="./inbox/\*\*" # Files in inbox/ folder
+## inbox km.add:: ./inbox/\*\* # Files in inbox/ folder
 ```
 
-**`sync=field:value`** — Bidirectional synchronization:
+**`km.sync:: field:value`** — Bidirectional synchronization:
 
 ```markdown
-## waiting sync=status:blocked # Move here → set blocked
+## waiting km.sync:: status:blocked # Move here → set blocked
 
-                                 # Become blocked → move here
+                                     # Become blocked → move here
 
-## done sync=status:done # Move here → set done
+## done km.sync:: status:done # Move here → set done
 
-                                 # Become done → move here
+                                     # Become done → move here
 ```
 
 ### Display Attributes
 
 ```markdown
-## done sync=status:done collapse=true
+## done km.sync:: status:done km.collapse:: true
 
-## wip limit=3
+## wip km.limit:: 3
 
-## review default=true
+## review km.default:: true
 ```
 
-| Attribute       | Effect                     |
-| --------------- | -------------------------- |
-| `collapse=true` | Collapsed in UI            |
-| `limit=N`       | WIP limit (visual warning) |
-| `default=true`  | New items go here          |
+| Attribute          | Effect                     |
+| ------------------ | -------------------------- |
+| `km.collapse:: true` | Collapsed in UI            |
+| `km.limit:: N`       | WIP limit (visual warning) |
+| `km.default:: true`  | New items go here          |
 
 ### Embeddings (Symlinks)
 
@@ -198,7 +198,7 @@ Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax create
 
 | Board      | Purpose           | Populated By                                             |
 | ---------- | ----------------- | -------------------------------------------------------- |
-| `@next`    | Next actions      | Inbox column (`add="./inbox/**"`), overdue/starting rules |
+| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox/**`), overdue/starting rules |
 | `@someday` | Maybe/later       | Manual curation only                                     |
 
 ---
@@ -310,7 +310,7 @@ recur:FREQ=WEEKLY;INTERVAL=2
 
 ### Inbox Folder
 
-Items in `inbox/` are unprocessed. The `add="./inbox/**"` column rule on `@next/inbox` adds them automatically.
+Items in `inbox/` are unprocessed. The `km.add:: ./inbox/**` column rule on `@next/inbox` adds them automatically.
 
 ### Archive Folder
 
@@ -387,11 +387,11 @@ km init gtd --dry-run      # Preview what would be created
 ```markdown
 # @next.md
 
-## Overdue add="due:past status:todo" add="due:past status:wip" color=red
+## Overdue km.add:: due:past status:todo km.add:: due:past status:wip km.color:: red
 
-## Today add="due:today status:todo" add="start:past status:todo" color=yellow
+## Today km.add:: due:today status:todo km.add:: start:past status:todo km.color:: yellow
 
-## inbox add="./inbox/\*\*" default=true
+## inbox km.add:: ./inbox/\*\* km.default:: true
 
 ## processing
 
@@ -399,11 +399,11 @@ km init gtd --dry-run      # Preview what would be created
 
 ## doing
 
-## waiting color=yellow
+## waiting km.color:: yellow
 
-## done collapse=true color=green
+## done km.collapse:: true km.color:: green
 
-## removed collapse=true removed=true
+## removed km.collapse:: true km.removed:: true
 ```
 
 ```markdown

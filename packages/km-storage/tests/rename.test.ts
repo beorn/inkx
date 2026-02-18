@@ -291,7 +291,7 @@ describe("getRenameImpact", () => {
     // Create a section with a rule referencing the folder
     repo.addNode(null, {
       type: "oi",
-      content: 'Open add="./inbox/**"',
+      content: "Open km.add:: ./inbox/**",
       name: "Open",
       rules: { add: "./inbox/**" },
       data: { rules: { add: "./inbox/**" } },
@@ -315,7 +315,7 @@ describe("getRenameImpact", () => {
 })
 
 describe("renameNode - rule path references", () => {
-  test("updates add= rule path when folder is renamed", () => {
+  test("updates km.add:: rule path when folder is renamed", () => {
     const repo = createTestRepo()
 
     // Create a folder node that we'll rename
@@ -326,10 +326,10 @@ describe("renameNode - rule path references", () => {
       fs_path: "inbox",
     })
 
-    // Create a section with an add= rule referencing the folder
+    // Create a section with a km.add:: rule referencing the folder
     const sectionId = repo.addNode(null, {
       type: "oi",
-      content: 'Open add="./inbox/**"',
+      content: "Open km.add:: ./inbox/**",
       name: "Open",
       rules: { add: "./inbox/**" },
       data: { rules: { add: "./inbox/**" } },
@@ -344,7 +344,7 @@ describe("renameNode - rule path references", () => {
     expect(section?.content).toContain("./tasks/**")
   })
 
-  test("updates multiple add= rule queries when path matches", () => {
+  test("updates multiple km.add:: rule queries when path matches", () => {
     const repo = createTestRepo()
 
     const folderId = repo.addNode(null, {
@@ -356,7 +356,7 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "oi",
-      content: 'Work add="./projects/** status:todo"',
+      content: "Work km.add:: ./projects/** status:todo",
       name: "Work",
       rules: { add: "./projects/** status:todo" },
       data: { rules: { add: "./projects/** status:todo" } },
@@ -368,7 +368,7 @@ describe("renameNode - rule path references", () => {
     expect(section?.rules?.add).toBe("./workstreams/** status:todo")
   })
 
-  test("updates array add= rules when path matches", () => {
+  test("updates array km.add:: rules when path matches", () => {
     const repo = createTestRepo()
 
     const folderId = repo.addNode(null, {
@@ -380,7 +380,7 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "oi",
-      content: 'Mixed add="./inbox/**" add="status:open"',
+      content: "Mixed km.add:: ./inbox/** km.add:: status:open",
       name: "Mixed",
       rules: { add: ["./inbox/**", "status:open"] },
       data: { rules: { add: ["./inbox/**", "status:open"] } },
@@ -404,7 +404,7 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "oi",
-      content: 'Tags add="#important"',
+      content: "Tags km.add:: #important",
       name: "Tags",
       rules: { add: "#important" },
       data: { rules: { add: "#important" } },

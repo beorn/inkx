@@ -9,6 +9,7 @@ import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
 import { getMarkerForStatus, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
+import { serializeRules } from "./parser.ts"
 
 const log = createLogger("km:markdown:nodes2md")
 
@@ -212,7 +213,10 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
 function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext): string {
   const depth = (node.data?.depth as number) ?? 2
   const prefix = "#".repeat(depth)
-  let headingLine = `${prefix} ${node.content ?? ""}`
+  // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
+  const title = node.title ?? node.content ?? ""
+  const ruleStr = node.rules ? serializeRules(node.rules) : ""
+  let headingLine = ruleStr ? `${prefix} ${title} ${ruleStr}` : `${prefix} ${title}`
   if (node.block_id) headingLine += ` ^${node.block_id}`
   let md = headingLine + "\n\n"
 
@@ -385,10 +389,20 @@ function serializeLi(
   if (node.block_id) line += ` ^${node.block_id}`
   let md = line + "\n"
 
-  // Nested items
+  // Child nodes: list items nested, block content (quote, p) indented under this item
   for (const child of children) {
     if (child.type === "li") {
       md += serializeNode(child, ctx, indent + 1)
+    } else if (child.type === "quote") {
+      const content = child.content ?? ""
+      for (const ql of content.split("\n")) {
+        md += ql ? `${indentStr}  > ${ql}\n` : `${indentStr}  >\n`
+      }
+    } else if (child.type === "p") {
+      const content = child.content ?? ""
+      for (const pl of content.split("\n")) {
+        md += `${indentStr}  ${pl}\n`
+      }
     }
   }
 

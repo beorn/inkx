@@ -128,12 +128,12 @@ describe("E2E Round-Trip Features", () => {
           data.database,
           repoDir,
           "rules.md",
-          '# Board\n\n## Todo add="status:todo" limit=5\n\n- [ ] First task\n',
+          "# Board\n\n## Todo km.add:: status:todo km.limit:: 5\n\n- [ ] First task\n",
         )
 
         // Rules should be in file content
-        expect(fileContent).toContain('add="status:todo"')
-        expect(fileContent).toContain("limit=5")
+        expect(fileContent).toContain("km.add:: status:todo")
+        expect(fileContent).toContain("km.limit:: 5")
 
         // Section node should have rules in data
         const section = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")

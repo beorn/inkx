@@ -4,7 +4,7 @@
  * Covers:
  * - Basic collapse/uncollapse toggle via 'c' key
  * - Different column types (file, folder, mixed, body, empty)
- * - Pre-collapsed columns (collapse=true rule)
+ * - Pre-collapsed columns (km.collapse:: true rule)
  * - Navigation between collapsed/uncollapsed columns
  * - Cursor preservation on collapse/uncollapse
  * - Multiple collapsed columns
@@ -177,11 +177,11 @@ describe("collapse/uncollapse columns", () => {
   // Pre-collapsed columns (via rules)
   // =========================================================================
 
-  test("column with collapse=true starts collapsed", () => {
+  test("column with km.collapse:: true starts collapsed", () => {
     const { board } = testEnv(() =>
       item.root(
         "board",
-        item("col1 collapse=true", item("task-a"), item("task-b")),
+        item("col1 km.collapse:: true", item("task-a"), item("task-b")),
         item("col2", item("task-c")),
       ),
     )
@@ -195,11 +195,11 @@ describe("collapse/uncollapse columns", () => {
     expect(cursor.textContent()).toContain("task-c")
   })
 
-  test("uncollapsing a collapse=true column works", () => {
+  test("uncollapsing a km.collapse:: true column works", () => {
     const { board } = testEnv(() =>
       item.root(
         "board",
-        item("col1 collapse=true", item("task-a"), item("task-b")),
+        item("col1 km.collapse:: true", item("task-a"), item("task-b")),
         item("col2", item("task-c")),
       ),
     )
@@ -457,13 +457,13 @@ describe("collapsed column width", () => {
     expect(bbox!.width).toBeLessThanOrEqual(5)
   })
 
-  it("collapsed column via collapse=true rule should be narrow (<=5 chars wide)", () => {
+  it("collapsed column via km.collapse:: true rule should be narrow (<=5 chars wide)", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
           item("col1", item("task-a"), item("task-b")),
-          item("col2 collapse=true", item("task-c"), item("task-d")),
+          item("col2 km.collapse:: true", item("task-c"), item("task-d")),
           item("col3", item("task-e")),
         ),
       { columns: 80, rows: 24 },

@@ -85,14 +85,14 @@ describe("getNodeDisplayName", () => {
 
     it("strips inline rules from title", () => {
       const node = createNode("abc123", {
-        title: "Work default=true",
+        title: "Work km.default:: true",
       })
       expect(getNodeDisplayName(node)).toBe("Work")
     })
 
-    it("strips backtick-wrapped rules", () => {
+    it("strips km.collapse rule from title", () => {
       const node = createNode("abc123", {
-        title: "Done `collapse=true`",
+        title: "Done km.collapse:: true",
       })
       expect(getNodeDisplayName(node)).toBe("Done")
     })
@@ -157,7 +157,7 @@ describe("getNodeDisplayName", () => {
       const sectionNode = createNode("section123", {
         type: "oi",
         fstype: "mdsection",
-        content: "Work default=true\nMore content",
+        content: "Work km.default:: true\nMore content",
       })
 
       const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])

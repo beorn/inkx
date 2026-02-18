@@ -42,11 +42,11 @@ km @next/waiting            # show waiting only
 
 | Rule                         | Trigger         | Result                 |
 | ---------------------------- | --------------- | ---------------------- |
-| `add="due:past status:todo"` | task overdue    | appears on @next/today |
-| `add="./inbox/**"`           | file in inbox/  | appears in @next/inbox |
-| `sync=status:blocked`        | drag to waiting | status=blocked         |
-| `sync=status:blocked`        | status→blocked  | moves to waiting       |
-| `sync=status:done`           | press `x`       | moves to done column   |
+| `km.add:: due:past status:todo` | task overdue    | appears on @next/today |
+| `km.add:: ./inbox/**`           | file in inbox/  | appears in @next/inbox |
+| `km.sync:: status:blocked`      | drag to waiting | status=blocked         |
+| `km.sync:: status:blocked`      | status→blocked  | moves to waiting       |
+| `km.sync:: status:done`         | press `x`       | moves to done column   |
 
 ---
 

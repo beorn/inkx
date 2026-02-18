@@ -272,7 +272,7 @@ const nodes = item(
 )
 
 // With rules (WIP limits, etc.)
-const nodes = item("board", item("col1 limit=3", item("1a"), item("1b")))
+const nodes = item("board", item("col1 km.limit:: 3", item("1a"), item("1b")))
 ```
 
 **When to use**: TUI tests where you want minimal boilerplate and self-documenting IDs.

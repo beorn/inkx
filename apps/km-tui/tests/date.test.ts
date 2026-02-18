@@ -58,7 +58,7 @@ function yesterday(): string {
   return formatDate(d)
 }
 
-/** Helper to find the Inbox section (the one with add= rules containing "due:past") */
+/** Helper to find the Inbox section (the one with km.add:: rules containing "due:past") */
 function findInboxSection(db: Database): { id: string } | undefined {
   const rows = db
     .query("SELECT * FROM nodes WHERE json_extract(data, '$.rules.add') IS NOT NULL")
@@ -704,7 +704,7 @@ describe("due date queries for @next board", () => {
     )
   })
 
-  test("add= rule materializes embeds for dated tasks after evaluateAllRules", () => {
+  test("km.add:: rule materializes embeds for dated tasks after evaluateAllRules", () => {
     withTestRepo(
       (dir) => {
         writeFileSync(
@@ -721,7 +721,7 @@ describe("due date queries for @next board", () => {
           join(dir, "@next.md"),
           `# Next Actions
 
-## Inbox add="due:past -status:done -status:dropped" add="due:today -status:done -status:dropped" add="due:week -status:done -status:dropped" add="start:past -status:done -status:dropped"
+## Inbox km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped km.add:: due:week -status:done -status:dropped km.add:: start:past -status:done -status:dropped
 
 ## Next
 `,
@@ -761,7 +761,7 @@ describe("due date queries for @next board", () => {
           join(dir, "@next.md"),
           `# Next Actions
 
-## Inbox add="due:past -status:done -status:dropped" add="due:today -status:done -status:dropped"
+## Inbox km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped
 
 ## Next
 `,
@@ -814,7 +814,7 @@ describe("due date queries for @next board", () => {
 
   test("without evaluateAllRules, inbox has no dated items (demonstrates bug)", () => {
     // This test demonstrates the root cause: MemoryStore (like discoverOnly mode)
-    // does not call evaluateAllRules. Without it, the Inbox's add= rules never
+    // does not call evaluateAllRules. Without it, the Inbox's km.add:: rules never
     // materialize embed nodes, so dated tasks don't appear.
     withTestRepo(
       (dir) => {
@@ -832,7 +832,7 @@ describe("due date queries for @next board", () => {
           join(dir, "@next.md"),
           `# Next Actions
 
-## Inbox add="due:past -status:done -status:dropped" add="due:today -status:done -status:dropped" add="due:week -status:done -status:dropped" add="start:past -status:done -status:dropped"
+## Inbox km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped km.add:: due:week -status:done -status:dropped km.add:: start:past -status:done -status:dropped
 
 ## Next
 `,

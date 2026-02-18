@@ -64,6 +64,7 @@ import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
 import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km/core"
+import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
@@ -157,7 +158,7 @@ function computeInitialCursor(initialState: TUIBoardState) {
  *
  * // With WIP limits
  * const nodes = item("board",
- *   item("col1 limit=3",
+ *   item("col1 km.limit:: 3",
  *     item("1a"),
  *     item("1b")
  *   )
@@ -167,51 +168,15 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   // Nodes with children become folders (columns), leaf nodes become tasks (cards)
   const hasChildren = childArrays.length > 0
 
-  // Parse rules from content (e.g., "col1 limit=3" -> name="col1", rules={limit:3})
+  // Parse rules from content using km.key:: value syntax (e.g., "col1 km.limit:: 3")
   let cleanContent = content
   let rules: NodeRules | undefined
 
   if (hasChildren) {
-    // Generic key=value extraction from column name
-    const regex = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
-    const addValues: string[] = []
-    let match
-    while ((match = regex.exec(content)) !== null) {
-      const key = match[1]!
-      const value = match[2] ?? match[3] ?? match[4]!
-      if (!rules) rules = {}
-      switch (key) {
-        case "add":
-          addValues.push(value)
-          break
-        case "sync":
-          rules.sync = value
-          break
-        case "collapse":
-          if (value === "true") rules.collapse = true
-          break
-        case "limit":
-          rules.limit = Number.parseInt(value, 10)
-          break
-        case "default":
-          if (value === "true") rules.default = true
-          break
-        case "color":
-          rules.color = value
-          break
-      }
-    }
-    if (addValues.length === 1) {
-      if (!rules) rules = {}
-      rules.add = addValues[0]
-    } else if (addValues.length > 1) {
-      if (!rules) rules = {}
-      rules.add = addValues
-    }
-
-    if (rules) {
-      // Remove key=value patterns from content to get clean name
-      cleanContent = content.replace(/`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi, "").trim()
+    const parsed = parseHeadingRules(content)
+    if (Object.keys(parsed.rules).length > 0) {
+      rules = parsed.rules
+      cleanContent = parsed.title
     }
   }
 

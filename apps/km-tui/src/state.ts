@@ -8,7 +8,8 @@ import type { KNode } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { TUIBoardState, ColumnState, CardState, ColumnRules } from "./types.ts"
+import type { TUIBoardState, ColumnState, CardState } from "./types.ts"
+import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 import {
   getNodeDisplayName as getNodeDisplayNameBase,
@@ -206,7 +207,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     if (!colNode) continue
 
     const cardNodes = columnCardNodes[colIdx] ?? []
-    const rules = colNode.rules ?? parseColumnRules(colNode.content || "")
+    const rules = colNode.rules ?? parseHeadingRules(colNode.content || "").rules
 
     // Skip hidden columns entirely
     if (rules.hidden) continue
@@ -296,50 +297,6 @@ function normalizeColumnName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "_")
 }
 
-/**
- * Parse column rules from heading content using generic key=value matching.
- * Format: "## Column Name add=\"query\" sync=field:value collapse=true limit=3"
- */
-export function parseColumnRules(content: string): ColumnRules {
-  const rules: ColumnRules = {}
-  const addValues: string[] = []
-
-  const regex = /`?(\w[\w-]*)=(?:"([^"]+)"|'([^']+)'|([^\s"'`]+))`?/gi
-  let match
-  while ((match = regex.exec(content)) !== null) {
-    const key = match[1]!
-    const value = match[2] ?? match[3] ?? match[4]!
-
-    switch (key) {
-      case "add":
-        addValues.push(value)
-        break
-      case "sync":
-        rules.sync = value
-        break
-      case "collapse":
-        if (value === "true") rules.collapse = true
-        break
-      case "hidden":
-        if (value === "true") rules.hidden = true
-        break
-      case "limit":
-        rules.limit = parseInt(value, 10)
-        break
-      case "default":
-        if (value === "true") rules.default = true
-        break
-    }
-  }
-
-  if (addValues.length === 1) {
-    rules.add = addValues[0]
-  } else if (addValues.length > 1) {
-    rules.add = addValues
-  }
-
-  return rules
-}
 
 /**
  * Build board state from a specific root ID (synchronous).

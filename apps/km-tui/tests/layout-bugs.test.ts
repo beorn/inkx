@@ -425,12 +425,12 @@ describe("uncollapse header edge cases", () => {
     board.expectScreen("c1")
   })
 
-  test("uncollapse column with collapse=true rule shows header", () => {
+  test("uncollapse column with km.collapse:: true rule shows header", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("PreCollapsed collapse=true", item("p1"), item("p2")),
+          item("PreCollapsed km.collapse:: true", item("p1"), item("p2")),
           item("Normal", item("n1")),
         ),
       { columns: 80, rows: 20 },

@@ -698,47 +698,42 @@ describe("parseHeadingRules", () => {
   test.each([
     // Single rules with various formats
     {
-      heading: 'Today add="due:past status:open"',
+      heading: "Today km.add:: due:past status:open",
       title: "Today",
       rules: { add: "due:past status:open" },
     },
     {
-      heading: "Today add='due:past status:open'",
-      title: "Today",
-      rules: { add: "due:past status:open" },
-    },
-    {
-      heading: "Blocked sync=status:blocked",
+      heading: "Blocked km.sync:: status:blocked",
       title: "Blocked",
       rules: { sync: "status:blocked" },
     },
-    { heading: "Done collapse=true", title: "Done", rules: { collapse: true } },
+    { heading: "Done km.collapse:: true", title: "Done", rules: { collapse: true } },
     {
-      heading: "In Progress limit=5",
+      heading: "In Progress km.limit:: 5",
       title: "In Progress",
       rules: { limit: 5 },
     },
-    { heading: "Inbox default=true", title: "Inbox", rules: { default: true } },
+    { heading: "Inbox km.default:: true", title: "Inbox", rules: { default: true } },
     // Color rules
     {
-      heading: "Next Actions color=cyan",
+      heading: "Next Actions km.color:: cyan",
       title: "Next Actions",
       rules: { color: "cyan" },
     },
     {
-      heading: 'Waiting For color="yellow"',
+      heading: "Waiting For km.color:: yellow",
       title: "Waiting For",
       rules: { color: "yellow" },
     },
     {
-      heading: "My Board `color=magenta`",
+      heading: "My Board km.color:: magenta",
       title: "My Board",
       rules: { color: "magenta" },
     },
     // Edge cases
     { heading: "Simple Heading", title: "Simple Heading", rules: {} },
     {
-      heading: '2025 Taxes - Q1 add="project:taxes"',
+      heading: "2025 Taxes - Q1 km.add:: project:taxes",
       title: "2025 Taxes - Q1",
       rules: { add: "project:taxes" },
     },
@@ -754,7 +749,7 @@ describe("parseHeadingRules", () => {
   })
 
   test("should extract multiple rules", () => {
-    const result = parseHeadingRules('Today add="due:past" sync=status:open limit=10 collapse=true')
+    const result = parseHeadingRules("Today km.add:: due:past km.sync:: status:open km.limit:: 10 km.collapse:: true")
     expect(result.title).toBe("Today")
     expect(result.rules.add).toBe("due:past")
     expect(result.rules.sync).toBe("status:open")
@@ -762,29 +757,29 @@ describe("parseHeadingRules", () => {
     expect(result.rules.collapse).toBe(true)
   })
 
-  test("should accumulate multiple add= into array", () => {
-    const result = parseHeadingRules('Inbox add="./inbox/**" add="/some/external/path/**" default=true')
+  test("should accumulate multiple km.add:: into array", () => {
+    const result = parseHeadingRules("Inbox km.add:: ./inbox/** km.add:: /some/external/path/** km.default:: true")
     expect(result.title).toBe("Inbox")
     expect(result.rules.add).toEqual(["./inbox/**", "/some/external/path/**"])
     expect(result.rules.default).toBe(true)
   })
 
-  test("single add= stays string (backward compat)", () => {
-    const result = parseHeadingRules('Ready add="status:todo"')
+  test("single km.add:: stays string (backward compat)", () => {
+    const result = parseHeadingRules("Ready km.add:: status:todo")
     expect(result.title).toBe("Ready")
     expect(result.rules.add).toBe("status:todo")
     expect(typeof result.rules.add).toBe("string")
   })
 
   test("should warn on duplicate singleton keys", () => {
-    const result = parseHeadingRules("Title color=cyan color=magenta")
+    const result = parseHeadingRules("Title km.color:: cyan km.color:: magenta")
     expect(result.title).toBe("Title")
     expect(result.rules.color).toBe("magenta") // last value wins
     expect(result.warnings).toEqual(['duplicate key "color" — last value wins'])
   })
 
-  test("should handle unknown key=value (stripped from title)", () => {
-    const result = parseHeadingRules("Title custom=hello color=cyan")
+  test("should handle unknown km.key:: value (stripped from title)", () => {
+    const result = parseHeadingRules("Title km.custom:: hello km.color:: cyan")
     expect(result.title).toBe("Title")
     expect(result.rules.color).toBe("cyan")
     // unknown key "custom" is stripped from title but otherwise ignored
@@ -795,11 +790,11 @@ describe("Section title and rules parsing", () => {
   test("should populate title and rules on section nodes", () => {
     const md = `# Document Title
 
-## Today add="due:past status:open"
+## Today km.add:: due:past status:open
 
 - [ ] Task 1
 
-## Done sync=status:done collapse=true
+## Done km.sync:: status:done km.collapse:: true
 
 - [x] Completed task
 `
@@ -814,7 +809,7 @@ describe("Section title and rules parsing", () => {
     const today = sections.find((s) => s.title === "Today")
     expect(today).toBeDefined()
     expect(today?.rules?.add).toBe("due:past status:open")
-    expect(today?.content).toBe('Today add="due:past status:open"') // Original content preserved
+    expect(today?.content).toBe("Today km.add:: due:past status:open") // Original content preserved
 
     // Done column
     const done = sections.find((s) => s.title === "Done")
@@ -880,7 +875,7 @@ Content B
   })
 
   test("should preserve H1 rules when merging into file node", () => {
-    const md = `# Board default=true collapse=true
+    const md = `# Board km.default:: true km.collapse:: true
 
 ## Column One
 

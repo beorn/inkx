@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core"
+import type { SectionRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 
 /**
@@ -30,7 +31,7 @@ export interface ColumnState {
   node: KNode
   cards: CardState[]
   wipLimit?: number // Optional WIP limit from frontmatter
-  rules?: ColumnRules // Optional column rules parsed from heading
+  rules?: SectionRules // Optional column rules parsed from heading
   /** True for virtual body column (displays leading non-section content) */
   isVirtual?: boolean
 }
@@ -44,17 +45,6 @@ export interface CardState {
   isVirtual?: boolean
 }
 
-/**
- * Column rule configuration parsed from heading attributes
- */
-export interface ColumnRules {
-  add?: string | string[] // Query to auto-pull matching tasks (multiple allowed)
-  sync?: string // Bidirectional field sync (e.g., "status:blocked")
-  collapse?: boolean // Start collapsed
-  hidden?: boolean // Hide column from view entirely
-  limit?: number // WIP limit
-  default?: boolean // Default column for new items
-}
 
 export type BoardAction = "quit" | "refresh" | null
 

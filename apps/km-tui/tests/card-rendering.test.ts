@@ -317,7 +317,7 @@ describe("card border: edge cases", () => {
       () =>
         item(
           "board",
-          item("col1 collapse=true", item.section("1a", item("1a-c"))),
+          item("col1 km.collapse:: true", item.section("1a", item("1a-c"))),
           item("col2", item.section("2a", item("2a-c")), item.section("2b", item("2b-c"))),
         ),
       { columns: cols },

@@ -70,7 +70,7 @@ function getNodeByIdPrefixWithOptions(db: Database, idPrefix: string, options?: 
     .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause} LIMIT 2`)
     .all(`${idPrefix}%`, ...filterParams) as Record<string, unknown>[]
 
-  if (prefixRows.length === 1) return rowToNode(prefixRows[0]!)
+  if (prefixRows.length === 1 && prefixRows[0]) return rowToNode(prefixRows[0])
 
   // Try suffix match (ID ends with input) — return null if ambiguous
   // Used for short IDs displayed as last 8 chars
@@ -78,7 +78,7 @@ function getNodeByIdPrefixWithOptions(db: Database, idPrefix: string, options?: 
     .query(`SELECT * FROM nodes WHERE id LIKE ?${filterClause} LIMIT 2`)
     .all(`%${idPrefix}`, ...filterParams) as Record<string, unknown>[]
 
-  if (suffixRows.length === 1) return rowToNode(suffixRows[0]!)
+  if (suffixRows.length === 1 && suffixRows[0]) return rowToNode(suffixRows[0])
 
   return null
 }

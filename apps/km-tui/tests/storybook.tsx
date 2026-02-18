@@ -325,14 +325,14 @@ function Layer1TagPills(): React.ReactElement {
       })}
       <Text> </Text>
 
-      <SubsectionHeader title="Custom Tag Colors (via color= attribute)" />
-      <Text dimColor> Custom colors override presets using color=value in headings</Text>
-      <Text dimColor> Example: ## Sprint `color=magenta`</Text>
+      <SubsectionHeader title="Custom Tag Colors (via km.color:: attribute)" />
+      <Text dimColor> Custom colors override presets using km.color:: value in headings</Text>
+      <Text dimColor> Example: ## Sprint km.color:: magenta</Text>
       <Text> </Text>
       {customTags.map(({ name, color }) => (
         <Text key={name}>
           {" "}
-          {colorize(`@${name}`, color)} <Text dimColor>← color={color}</Text>
+          {colorize(`@${name}`, color)} <Text dimColor>← km.color:: {color}</Text>
         </Text>
       ))}
       <Text> </Text>
@@ -572,7 +572,7 @@ function Layer1FoldMarkers(): React.ReactElement {
             <Text color={folded.color}>{folded.char}</Text> <Text color={unfolded.color}>{unfolded.char}</Text>{" "}
             <Text color={empty.color}>{empty.char}</Text>
             {"  "}
-            <Text dimColor>color={color}</Text>
+            <Text dimColor>km.color:: {color}</Text>
           </Text>
         )
       })}

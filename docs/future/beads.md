@@ -43,7 +43,7 @@ km provides beads-compatible issue tracking by treating issues as **tasks with l
 | Benefit                | Description                                                 |
 | ---------------------- | ----------------------------------------------------------- |
 | **No special storage** | Issues are regular km tasks with `@issue` link              |
-| **Backlink-based**     | Board shows backlinks automatically, no `add=` rules needed |
+| **Backlink-based**     | Board shows backlinks automatically, no `km.add::` rules needed |
 | **Unified model**      | Same fields: `task_status`, `priority`, `assigned_to`       |
 | **Flexible workflow**  | Add `@issue` to any task to track it                        |
 | **Links for deps**     | Use existing link system for dependencies                   |
@@ -106,24 +106,24 @@ Because tasks link to `@issue`, the board automatically shows them as backlinks:
 
 The issue tracker board.
 
-## Ready `sync=status:todo`
+## Ready `km.sync:: status:todo`
 
 Issues ready to work on.
 
-## In Progress `sync=status:wip` `limit=3`
+## In Progress `km.sync:: status:wip` `km.limit:: 3`
 
 Currently being worked on.
 
-## Blocked `sync=status:blocked`
+## Blocked `km.sync:: status:blocked`
 
 Waiting on dependencies.
 
-## Done `sync=status:done` `collapse=true`
+## Done `km.sync:: status:done` `km.collapse:: true`
 
 Recently completed.
 ```
 
-**No `add=` rules needed** — backlinks handle aggregation.
+**No `km.add::` rules needed** — backlinks handle aggregation.
 
 ### Issue Type Tags
 

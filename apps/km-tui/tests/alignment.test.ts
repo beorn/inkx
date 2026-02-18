@@ -497,7 +497,7 @@ describe("alignment: collapsed columns", () => {
         () =>
           item(
             "board",
-            item("col1 collapse=true", item("1a")),
+            item("col1 km.collapse:: true", item("1a")),
             item("col2", item("2a")),
           ),
         WIDE,
@@ -555,7 +555,7 @@ describe("alignment: collapsed columns", () => {
         item(
           "board",
           item("col1", item("1a")),
-          item("col2 collapse=true", item("2a")),
+          item("col2 km.collapse:: true", item("2a")),
         ),
       WIDE,
     )
@@ -576,8 +576,8 @@ describe("alignment: collapsed columns", () => {
         item(
           "board",
           item("col1", item("1a")),
-          item("col2 collapse=true", item("2a")),
-          item("col3 collapse=true", item("3a")),
+          item("col2 km.collapse:: true", item("2a")),
+          item("col3 km.collapse:: true", item("3a")),
           item("col4", item("4a")),
         ),
       // Use extra-wide terminal to ensure all 4 columns fit

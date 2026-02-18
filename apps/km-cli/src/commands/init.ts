@@ -202,26 +202,26 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  * GTD template content
  *
  * Boards are just .md files - the @ prefix is a naming convention.
- * Column rules (add=, sync=) are inline in the section heading.
+ * Column rules (km.add::, km.sync::) are inline in the section heading.
  */
-const GTD_NEXT_MD = `# Next Actions color=cyan
+const GTD_NEXT_MD = `# Next Actions km.color:: cyan
 
-## Inbox add="./inbox/**" add="due:past -status:done -status:dropped" add="due:today -status:done -status:dropped" add="due:week -status:done -status:dropped" add="start:past -status:done -status:dropped" default=true
+## Inbox km.add:: ./inbox/** km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped km.add:: due:week -status:done -status:dropped km.add:: start:past -status:done -status:dropped km.default:: true
 
 ## Next
 
-## Waiting color=yellow
+## Waiting km.color:: yellow
 
-## Done collapse=true color=green
+## Done km.collapse:: true km.color:: green
 
-## Removed collapse=true removed=true
+## Removed km.collapse:: true km.removed:: true
 `
 
-const GTD_SOMEDAY_MD = `# Someday/Maybe color=gray
+const GTD_SOMEDAY_MD = `# Someday/Maybe km.color:: gray
 
 ## Ideas
 
 ## Projects
 
-## Removed collapse=true removed=true
+## Removed km.collapse:: true km.removed:: true
 `

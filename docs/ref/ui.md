@@ -151,7 +151,7 @@ The TUI targets **256-color terminals** as the baseline. All core features work 
 
 ### Tag/Board Colors (User-Assignable)
 
-Users can assign colors to boards and tags using the `color=` attribute:
+Users can assign colors to boards and tags using the `km.color::` attribute:
 
 | Color     | ANSI | Suggested Use                                  |
 | --------- | ---- | ---------------------------------------------- |

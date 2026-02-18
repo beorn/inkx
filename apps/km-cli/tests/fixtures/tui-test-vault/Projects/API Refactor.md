@@ -32,17 +32,17 @@ Tasks for migrating from REST to GraphQL:
 
 ## Column Rules Example
 
-### Backlog add="status:open priority:>2"
+### Backlog km.add:: status:open priority:>2
 
 - [ ] Low priority cleanup tasks
 - [ ] Documentation updates
 
-### In Progress sync=status:blocked limit=3
+### In Progress km.sync:: status:blocked km.limit:: 3
 
 - [/] Current sprint items
 - [!] Items waiting on dependencies
 
-### Done collapse=true
+### Done km.collapse:: true
 
 - [x] Completed items (collapsed by default)
 

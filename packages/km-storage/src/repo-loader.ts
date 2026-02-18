@@ -623,7 +623,7 @@ function* reconcileFilesystem(
       if (parentRow) {
         parentId = parentRow.id
       } else if (newPathToId.has(parentRelPath)) {
-        parentId = newPathToId.get(parentRelPath)!
+        parentId = newPathToId.get(parentRelPath) ?? parentId
       }
     }
 

@@ -348,7 +348,7 @@ describe("diffNodes", () => {
     })
 
     test("detects data replacement when properties are removed", () => {
-      // Regression: When a section heading changes from "Waiting color=yellow"
+      // Regression: When a section heading changes from "Waiting km.color:: yellow"
       // to empty, the new data should NOT retain the old title/rules properties.
       const existing = [
         makeNode({ id: "file-1", type: "oi", fstype: "mdfile" }),
@@ -358,7 +358,7 @@ describe("diffNodes", () => {
           parent_id: "file-1",
           parent_idx: 0,
           title: "Waiting",
-          content: "Waiting color=yellow",
+          content: "Waiting km.color:: yellow",
           data: { depth: 2, rules: { color: "yellow" }, title: "Waiting" },
         }),
       ]

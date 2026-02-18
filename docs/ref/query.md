@@ -216,7 +216,7 @@ In automation rules, queries appear in `match:`, `was:`, and `now:` fields:
   field: path
   was: "./inbox/**"
   now: "-./inbox/**"
-  # No action needed: @next/inbox column uses add="./inbox/**"
+  # No action needed: @next/inbox column uses km.add:: ./inbox/**
   # which auto-populates from the inbox/ folder. When a file
   # leaves inbox/, it naturally drops out of the column query.
 ```

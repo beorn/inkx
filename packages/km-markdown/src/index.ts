@@ -11,6 +11,10 @@ export {
   extractAllRefs,
   parseTaskMetadata,
   parseHeadingRules,
+  parseInlineProperties,
+  serializeRules,
+  extractKVProperties,
+  PROP_REGEX,
   nodeToText,
   listItemToText,
   slugify,
@@ -27,6 +31,7 @@ export type {
   WikiLink,
   SectionRules,
   ParsedHeading,
+  ExtractedProp,
 } from "./parser.ts"
 
 // AST to nodes

@@ -11,8 +11,9 @@ import { useMemo, useRef, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { extractBody } from "@km/tree"
-import type { ColumnState, CardState, ColumnRules } from "../types.ts"
-import { parseColumnRules } from "../state.ts"
+import type { ColumnState, CardState } from "../types.ts"
+import type { SectionRules } from "@km/markdown"
+import { parseHeadingRules } from "@km/markdown"
 
 // =============================================================================
 // Hook
@@ -162,7 +163,7 @@ function kNodeToColumnState(
   foldedNodes: Set<string>,
 ): ColumnState {
   // Use node.rules if available, otherwise parse from title
-  const rules: ColumnRules = node.rules ?? parseColumnRules(node.title || "")
+  const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || "").rules
 
   // Look up WIP limit
   const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
