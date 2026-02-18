@@ -39,8 +39,8 @@ const TASK_MARK_REGEX = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\
 
 // TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMarker)
 
-/** Wikilinks: [[target]], [[target|alias]], ![[embed]], ![[target#^blockid]] */
-const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
+/** Wikilinks: [[target]], [[target|alias]], ![[embed]], [[target#^blockid]], [[#^blockid]], [[^blockid]] */
+const WIKILINK_REGEX = /(!?)\[\[([^\]|#^]*)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]/g
 
 /** Combined refs: #tag, @mention, +project in single pass */
 const COMBINED_REFS_REGEX = /#([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+)|\+([a-zA-Z0-9_-]+)/g

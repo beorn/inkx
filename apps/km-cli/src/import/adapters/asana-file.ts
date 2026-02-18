@@ -1,0 +1,147 @@
+/**
+ * Asana File Adapter
+ *
+ * Parses an Asana JSON export file into ImportData.
+ * Handles the format from Asana's "Export to JSON" feature.
+ */
+
+import type { ImportData, ImportItem, ImportProject, ImportSection } from "../types.ts"
+
+/** Asana task shape (subset of fields we care about) */
+interface AsanaTask {
+  gid: string
+  name: string
+  notes?: string
+  completed?: boolean
+  due_on?: string
+  due_at?: string
+  start_on?: string
+  assignee?: { name?: string; gid?: string } | null
+  tags?: Array<{ name: string }>
+  custom_fields?: Array<{ name: string; display_value?: string | null; number_value?: number | null }>
+  subtasks?: AsanaTask[]
+  memberships?: Array<{
+    project?: { gid: string; name: string }
+    section?: { gid: string; name: string }
+  }>
+}
+
+/** Asana JSON export top-level shape */
+interface AsanaExport {
+  data: AsanaTask[]
+}
+
+/** Convert an Asana task to an ImportItem */
+function convertTask(task: AsanaTask): ImportItem {
+  const item: ImportItem = {
+    sourceId: task.gid,
+    title: task.name,
+    status: task.completed ? "done" : "todo",
+  }
+
+  if (task.notes?.trim()) {
+    item.body = task.notes.trim()
+  }
+
+  // Due date: prefer due_on (date only), fall back to due_at (datetime)
+  if (task.due_on) {
+    item.dueAt = task.due_on
+  } else if (task.due_at) {
+    item.dueAt = task.due_at
+  }
+
+  if (task.start_on) {
+    item.startAt = task.start_on
+  }
+
+  if (task.assignee?.name) {
+    item.assignee = task.assignee.name.replace(/\s+/g, "-").toLowerCase()
+  }
+
+  if (task.tags?.length) {
+    item.tags = task.tags.map((t) => t.name.replace(/\s+/g, "-").toLowerCase())
+  }
+
+  // Priority from custom fields
+  const priorityField = task.custom_fields?.find(
+    (f) => f.name.toLowerCase() === "priority" && f.number_value != null,
+  )
+  if (priorityField?.number_value) {
+    item.priority = Math.max(1, Math.min(4, priorityField.number_value))
+  }
+
+  // Subtasks
+  if (task.subtasks?.length) {
+    item.children = task.subtasks.map(convertTask)
+  }
+
+  return item
+}
+
+/** Parse Asana JSON export into ImportData */
+export function parseAsanaFile(jsonContent: string): ImportData {
+  const asana: AsanaExport = JSON.parse(jsonContent)
+  const tasks = asana.data
+
+  // Group tasks by project → section
+  const projectMap = new Map<string, { name: string; sections: Map<string, AsanaTask[]>; loose: AsanaTask[] }>()
+
+  for (const task of tasks) {
+    const membership = task.memberships?.[0]
+    const projectGid = membership?.project?.gid ?? "ungrouped"
+    const projectName = membership?.project?.name ?? "Ungrouped"
+    const sectionGid = membership?.section?.gid
+    const sectionName = membership?.section?.name
+
+    if (!projectMap.has(projectGid)) {
+      projectMap.set(projectGid, { name: projectName, sections: new Map(), loose: [] })
+    }
+    const project = projectMap.get(projectGid)!
+
+    if (sectionGid && sectionName) {
+      if (!project.sections.has(sectionGid)) {
+        project.sections.set(sectionGid, [])
+      }
+      // Store section name on first task (we need it later)
+      const sectionTasks = project.sections.get(sectionGid)!
+      // Attach section name as metadata on the array
+      if (sectionTasks.length === 0) {
+        ;(sectionTasks as unknown as { _name: string })._name = sectionName
+      }
+      sectionTasks.push(task)
+    } else {
+      project.loose.push(task)
+    }
+  }
+
+  // Build ImportProject array
+  const projects: ImportProject[] = []
+
+  for (const [projectGid, projectData] of projectMap) {
+    const sections: ImportSection[] = []
+
+    for (const [sectionGid, sectionTasks] of projectData.sections) {
+      const sectionName = (sectionTasks as unknown as { _name: string })._name ?? "Untitled Section"
+      sections.push({
+        sourceId: sectionGid,
+        title: sectionName,
+        items: sectionTasks.map(convertTask),
+      })
+    }
+
+    const project: ImportProject = {
+      sourceId: projectGid,
+      title: projectData.name,
+    }
+    if (sections.length > 0) project.sections = sections
+    if (projectData.loose.length > 0) project.items = projectData.loose.map(convertTask)
+
+    projects.push(project)
+  }
+
+  return {
+    source: "asana",
+    fetchedAt: new Date().toISOString(),
+    projects,
+  }
+}

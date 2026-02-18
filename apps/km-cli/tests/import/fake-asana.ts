@@ -1,0 +1,322 @@
+/**
+ * FakeAsana — Mock Asana API for testing
+ *
+ * Intercepts fetch calls to app.asana.com and returns fixture data.
+ * Matches requests by path (ignoring GID differences for subtask/story/attachment routes).
+ *
+ * Usage:
+ *   const fake = createFakeAsana({ recordings })
+ *   const restore = fake.install()
+ *   // ... run import code that calls fetch() ...
+ *   restore()
+ *   expect(fake.calls).toHaveLength(5)
+ */
+
+import type { RecordedCall } from "../../src/import/adapters/asana-api.ts"
+
+export interface FakeAsanaOptions {
+  /** Recorded API calls to replay (from --record) */
+  recordings?: RecordedCall[]
+  /** Static route handlers: path → response data */
+  routes?: Record<string, unknown>
+}
+
+interface FakeCall {
+  path: string
+  params: Record<string, string>
+}
+
+export interface FakeAsana {
+  /** All calls made to the fake */
+  calls: FakeCall[]
+  /** Install fake fetch globally, returns restore function */
+  install: () => () => void
+}
+
+/**
+ * Create a FakeAsana that intercepts fetch calls to app.asana.com
+ */
+export function createFakeAsana(options: FakeAsanaOptions = {}): FakeAsana {
+  const { recordings = [], routes = {} } = options
+  const calls: FakeCall[] = []
+
+  // Build lookup: exact "path|sorted-params" → response
+  // Plus path-only fallback for routes
+  const exactIndex = new Map<string, unknown>()
+  for (const rec of recordings) {
+    const key = makeKey(rec.path, rec.params)
+    exactIndex.set(key, rec.response)
+  }
+
+  // For pattern matching (e.g. /tasks/123/subtasks → /tasks/:id/subtasks)
+  // Group recordings by normalized path pattern
+  const patternIndex = new Map<string, unknown[]>()
+  for (const rec of recordings) {
+    const pattern = rec.path.replace(/\/\d+\//g, "/:id/").replace(/\/\d+$/, "/:id")
+    if (!patternIndex.has(pattern)) patternIndex.set(pattern, [])
+    patternIndex.get(pattern)!.push(rec.response)
+  }
+  // Track consumption index per pattern
+  const patternCursors = new Map<string, number>()
+
+  // Infrastructure params that don't affect which resource is returned
+  const INFRA_PARAMS = new Set(["opt_fields", "limit", "offset", "completed_since"])
+
+  function resolve(path: string, params: Record<string, string>): unknown {
+    // 1. Exact match from recordings (path + params)
+    const key = makeKey(path, params)
+    if (exactIndex.has(key)) return exactIndex.get(key)
+
+    // 2. Path + key params match (ignore opt_fields/limit/offset/completed_since)
+    for (const rec of recordings) {
+      if (rec.path !== path) continue
+      const recKeyParams = Object.entries(rec.params ?? {}).filter(([k]) => !INFRA_PARAMS.has(k))
+      if (recKeyParams.length === 0) return rec.response // no key params = wildcard
+      if (recKeyParams.every(([k, v]) => params[k] === v)) return rec.response
+    }
+
+    // 3. Static routes
+    if (routes[path] !== undefined) return routes[path]
+
+    // 4. Pattern match for GID-based paths (e.g. /tasks/123/stories)
+    const pattern = path.replace(/\/\d+\//g, "/:id/").replace(/\/\d+$/, "/:id")
+    const responses = patternIndex.get(pattern)
+    if (responses && responses.length > 0) {
+      const cursor = patternCursors.get(pattern) ?? 0
+      const response = responses[cursor % responses.length]
+      patternCursors.set(pattern, cursor + 1)
+      return response
+    }
+
+    // 5. Default: return empty array (safe for list endpoints)
+    return []
+  }
+
+  function install(): () => void {
+    const originalFetch = globalThis.fetch
+
+    globalThis.fetch = (async (input: string | URL | Request, _init?: RequestInit) => {
+      const url = typeof input === "string" ? new URL(input) : input instanceof URL ? input : new URL(input.url)
+
+      // Only intercept Asana API calls
+      if (!url.hostname.includes("asana.com")) {
+        return originalFetch(input, _init)
+      }
+
+      const path = url.pathname.replace("/api/1.0", "")
+      const params: Record<string, string> = {}
+      url.searchParams.forEach((v, k) => {
+        params[k] = v
+      })
+
+      calls.push({ path, params })
+
+      const data = resolve(path, params)
+      return new Response(JSON.stringify({ data }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    }) as typeof fetch
+
+    return () => {
+      globalThis.fetch = originalFetch
+    }
+  }
+
+  return { calls, install }
+}
+
+function makeKey(path: string, params?: Record<string, string>): string {
+  if (!params || Object.keys(params).length === 0) return path
+  const sorted = Object.entries(params)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&")
+  return `${path}|${sorted}`
+}
+
+// ============================================================================
+// Minimal fixture for unit tests (no real data dependency)
+// ============================================================================
+
+/** Synthetic Asana workspace with 2 projects, comments, attachments, multi-project tasks */
+export function minimalFixtures(): FakeAsanaOptions {
+  return {
+    routes: {
+      "/users/me": {
+        gid: "user-1",
+        name: "Test User",
+        email: "test@example.com",
+        workspaces: [{ gid: "ws-1", name: "Test Workspace" }],
+      },
+      "/projects": [
+        { gid: "proj-1", name: "Sprint 4", created_at: "2026-01-01T00:00:00Z", modified_at: "2026-02-15T10:00:00Z", owner: { name: "Test User" }, team: { name: "Engineering" } },
+        { gid: "proj-2", name: "Product Backlog", created_at: "2025-12-01T00:00:00Z" },
+      ],
+      "/workspaces/ws-1/teams": [
+        { gid: "team-1", name: "Engineering", description: "The engineering team" },
+      ],
+      "/workspaces/ws-1/users": [
+        { gid: "user-1", name: "Test User", email: "test@example.com" },
+        { gid: "user-2", name: "Alice Smith", email: "alice@example.com" },
+      ],
+    },
+    recordings: [
+      // --- proj-1: Sprint 4 ---
+      {
+        path: "/projects/proj-1/sections",
+        params: { opt_fields: "name" },
+        response: [
+          { gid: "sec-todo", name: "To Do" },
+          { gid: "sec-done", name: "Done" },
+        ],
+      },
+      {
+        path: "/tasks",
+        params: { project: "proj-1" },
+        response: [
+          {
+            gid: "task-1",
+            name: "Design login page",
+            notes: "Create wireframes\nReview with team",
+            completed: false,
+            created_at: "2026-02-10T08:00:00Z",
+            completed_at: null,
+            due_on: "2026-03-01",
+            due_at: null,
+            start_on: "2026-02-15",
+            assignee: { name: "Alice Smith" },
+            tags: [{ name: "design" }, { name: "frontend" }],
+            custom_fields: [{ name: "Priority", number_value: 1 }],
+            num_subtasks: 2,
+            memberships: [
+              { project: { gid: "proj-1", name: "Sprint 4" }, section: { gid: "sec-todo", name: "To Do" } },
+              { project: { gid: "proj-2", name: "Product Backlog" }, section: { gid: "sec-bl", name: "Backlog" } },
+            ],
+          },
+          {
+            gid: "task-2",
+            name: "Write tests",
+            notes: "",
+            completed: true,
+            created_at: "2026-02-05T10:00:00Z",
+            completed_at: "2026-02-09T16:30:00Z",
+            due_on: "2026-02-10",
+            due_at: null,
+            start_on: null,
+            assignee: null,
+            tags: [],
+            custom_fields: [{ name: "Priority", number_value: 2 }],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-1", name: "Sprint 4" }, section: { gid: "sec-done", name: "Done" } },
+            ],
+          },
+        ],
+      },
+      // Subtasks for task-1
+      {
+        path: "/tasks/task-1/subtasks",
+        response: [
+          {
+            gid: "sub-1",
+            name: "Create wireframes",
+            notes: "",
+            completed: false,
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0, memberships: [],
+          },
+          {
+            gid: "sub-2",
+            name: "Review with team",
+            notes: "",
+            completed: true,
+            due_on: null, due_at: null, start_on: null,
+            assignee: null, tags: [], custom_fields: [],
+            num_subtasks: 0, memberships: [],
+          },
+        ],
+      },
+      // Stories (comments) for task-1
+      {
+        path: "/tasks/task-1/stories",
+        response: [
+          {
+            gid: "story-1", type: "comment",
+            text: "Looks great, minor tweaks needed",
+            created_at: "2026-02-16T10:30:00Z",
+            created_by: { name: "Bob Jones" },
+          },
+          {
+            gid: "story-2", type: "system",
+            text: "Alice Smith moved this task to To Do",
+            created_at: "2026-02-15T09:00:00Z",
+            created_by: { name: "Alice Smith" },
+          },
+          {
+            // Old system-log comment (pre-2020, type=comment — legacy Asana)
+            gid: "story-3", type: "comment",
+            text: "moved this Task from Backlog to To Do",
+            created_at: "2019-06-15T14:00:00Z",
+            created_by: { name: "Alice Smith" },
+          },
+          {
+            // Consolidated pre-2020 comment with system + real actions separated by dashes
+            gid: "story-4", type: "comment",
+            text: "Bjorn Stabell on Sunday Oct 08, 2017 05:29 AM:\nchanged the due date to Oct 15, 2017\n----------------------\nBjorn Stabell on Saturday Oct 14, 2017 04:00 PM:\nThis is a real comment about the task\n----------------------\nBjorn Stabell on Monday Oct 16, 2017 01:57 AM:\nmarked this task complete",
+            created_at: "2018-05-28T00:00:00Z",
+            created_by: { name: "Bjorn Stabell" },
+          },
+        ],
+      },
+      // Attachments for task-1
+      {
+        path: "/tasks/task-1/attachments",
+        response: [
+          {
+            gid: "att-1001", name: "wireframe.png",
+            download_url: "https://asana.com/files/wireframe.png",
+            host: "asana",
+          },
+        ],
+      },
+      // Empty stories/attachments for remaining tasks
+      { path: "/tasks/task-2/stories", response: [] },
+      { path: "/tasks/task-2/attachments", response: [] },
+      { path: "/tasks/sub-1/stories", response: [] },
+      { path: "/tasks/sub-1/attachments", response: [] },
+      { path: "/tasks/sub-2/stories", response: [] },
+      { path: "/tasks/sub-2/attachments", response: [] },
+
+      // --- proj-2: Product Backlog ---
+      {
+        path: "/projects/proj-2/sections",
+        params: { opt_fields: "name" },
+        response: [{ gid: "sec-bl", name: "Backlog" }],
+      },
+      {
+        path: "/tasks",
+        params: { project: "proj-2" },
+        response: [
+          {
+            gid: "task-3",
+            name: "API spec review",
+            notes: "Review the OpenAPI spec for v2",
+            completed: false,
+            due_on: null, due_at: null, start_on: null,
+            assignee: null,
+            tags: [{ name: "API" }],
+            custom_fields: [],
+            num_subtasks: 0,
+            memberships: [
+              { project: { gid: "proj-2", name: "Product Backlog" }, section: { gid: "sec-bl", name: "Backlog" } },
+            ],
+          },
+        ],
+      },
+      { path: "/tasks/task-3/stories", response: [] },
+      { path: "/tasks/task-3/attachments", response: [] },
+    ],
+  }
+}

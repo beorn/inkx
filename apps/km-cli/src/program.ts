@@ -49,6 +49,7 @@ import { statsCommand } from "./commands/stats.ts"
 import { screenshotCommand } from "./commands/screenshot.ts"
 import { worktreeCommand } from "./commands/worktree.ts"
 import { perfCommand } from "./commands/perf.ts"
+import { importCommand } from "./commands/import.ts"
 
 // Global state for resolved root path (set in preAction, used by commands)
 let resolvedRootPath: string | undefined
@@ -259,6 +260,7 @@ Verbosity:
   program.addCommand(screenshotCommand) // km screenshot [root] - capture TUI as text
   program.addCommand(worktreeCommand) // km worktree {create,remove,list} - git worktree management
   program.addCommand(perfCommand) // km perf analyze <file> - performance trace analysis
+  program.addCommand(importCommand) // km import asana <file> | --fetch - import from external tools
 
   // Handle unknown commands with helpful error message
   program.action((_options, command) => {
