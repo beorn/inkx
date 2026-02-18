@@ -22,9 +22,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("DatePromptDialog lifecycle", () => {
   test("td opens dialog — store.datePrompt is set and screenshot shows title", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"), item.task("Task2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
     board.press("j") // move to card level
     board.press("t").press("d")
@@ -37,9 +35,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> type date -> Enter confirms and closes dialog", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
     board.press("t").press("d")
@@ -62,9 +58,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> Escape cancels without setting date", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
     board.press("t").press("d")
@@ -86,9 +80,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("td -> type date -> Escape cancels without applying typed date", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
     board.press("t").press("d")
@@ -108,9 +100,7 @@ describe("DatePromptDialog lifecycle", () => {
   })
 
   test("ts opens start date dialog and Escape cancels", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
     board.press("t").press("s")
@@ -131,9 +121,7 @@ describe("DatePromptDialog lifecycle", () => {
 
 describe("SearchDialog lifecycle", () => {
   test("/ opens search dialog — store flag is set and screenshot shows title", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Alpha"), item.task("Beta"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     board.press("/")
 
@@ -142,9 +130,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("/ -> Escape cancels search dialog", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Alpha"), item.task("Beta"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     board.press("/")
     expect(store.getState().ui.showSearchDialog).toBe(true)
@@ -156,9 +142,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("/ -> type query -> Escape cancels without navigating", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Alpha"), item.task("Beta"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
     board.press("/")
 
@@ -178,9 +162,7 @@ describe("SearchDialog lifecycle", () => {
   })
 
   test("/ -> type query -> Enter confirms search (closes dialog)", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
 
     board.press("/")
     expect(store.getState().ui.showSearchDialog).toBe(true)
@@ -202,9 +184,7 @@ describe("SearchDialog lifecycle", () => {
 
 describe("NewItemDialog lifecycle", () => {
   test("gn opens new item dialog — store flag is set and screenshot shows title", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"), item.task("Task2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
     board.press("j") // move to card level
     board.press("g").press("n")
@@ -214,9 +194,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("gn -> Escape cancels new item dialog without creating nodes", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
@@ -237,9 +215,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("gn -> type name -> Escape cancels without creating nodes", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
@@ -260,9 +236,7 @@ describe("NewItemDialog lifecycle", () => {
   })
 
   test("gn -> type name -> Enter creates the new item", () => {
-    const { board, store, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
@@ -297,9 +271,7 @@ describe("NewItemDialog lifecycle", () => {
 
 describe("dialog state isolation", () => {
   test("opening one dialog does not set other dialog flags", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     // Open date dialog
     board.press("j")
@@ -333,9 +305,7 @@ describe("dialog state isolation", () => {
   })
 
   test("sequential open/cancel cycles leave store clean", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
 
@@ -359,9 +329,7 @@ describe("dialog state isolation", () => {
   })
 
   test("confirm in one dialog, then open another — no interference", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.task("Task1"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.press("j")
 
