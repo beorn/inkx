@@ -1,6 +1,7 @@
-import { readCredential } from "./credentials.ts"
+import { readCredential, writeCredential } from "./credentials.ts"
 import { writeKeychainCredential } from "./keychain.ts"
 import { getAccount, setActiveAccount } from "./config.ts"
+import { ensureFreshOAuth } from "./providers/claude-oauth.ts"
 
 export interface SwitchResult {
   success: boolean
@@ -8,8 +9,8 @@ export interface SwitchResult {
   error?: string
 }
 
-/** Switch the active Claude Code account by writing to Keychain */
-export function switchAccount(name: string): SwitchResult {
+/** Switch the active Claude Code account by writing to Keychain. Auto-refreshes expired tokens. */
+export async function switchAccount(name: string): Promise<SwitchResult> {
   const account = getAccount(name)
   if (!account) {
     return { success: false, accountName: name, error: "Account not found" }
@@ -23,7 +24,7 @@ export function switchAccount(name: string): SwitchResult {
     }
   }
 
-  const credential = readCredential(name)
+  let credential = readCredential(name)
   if (!credential) {
     return {
       success: false,
@@ -31,6 +32,12 @@ export function switchAccount(name: string): SwitchResult {
       error: "No credentials found for this account",
     }
   }
+
+  // Auto-refresh expired tokens before switching
+  const fresh = await ensureFreshOAuth(credential, (updated) => {
+    writeCredential(name, updated)
+  })
+  if (fresh) credential = fresh
 
   try {
     writeKeychainCredential(credential)

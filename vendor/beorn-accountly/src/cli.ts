@@ -80,7 +80,7 @@ program
       process.exit(1)
     }
 
-    // Fetch profile — email becomes the account name
+    // Fetch profile — email becomes the account name (auto-refreshes if expired)
     const profile = await fetchClaudeProfile(credential)
     if (!profile?.email) {
       console.error(pc.red("Could not fetch account profile. Is the token still valid?"))
@@ -112,8 +112,8 @@ program
 program
   .command("switch <name>")
   .description("Switch active Claude Code account")
-  .action((name: string) => {
-    const result = switchAccount(name)
+  .action(async (name: string) => {
+    const result = await switchAccount(name)
     if (result.success) {
       console.log(pc.green(`Switched to "${name}". New Claude Code sessions will use this account.`))
     } else {
@@ -157,7 +157,7 @@ program
       return
     }
 
-    const result = switchAccount(best.accountName)
+    const result = await switchAccount(best.accountName)
     if (result.success) {
       console.log(pc.green(`Switched to "${best.accountName}" (lowest utilization)`))
     } else {

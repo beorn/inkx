@@ -2,7 +2,12 @@ import type { Credential, QuotaInfo, QuotaProvider, QuotaWindow } from "../types
 
 const USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 const PROFILE_URL = "https://api.anthropic.com/api/oauth/profile"
+const TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
+const CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 const BETA_HEADER = "oauth-2025-04-20"
+
+/** Margin before expiry to trigger refresh (5 minutes) */
+const REFRESH_MARGIN_MS = 5 * 60 * 1000
 
 /** API response: flat object with named windows */
 interface UsageWindowData {
@@ -40,18 +45,114 @@ function isExtraUsage(v: unknown): v is ExtraUsageData {
   return typeof v === "object" && v !== null && "is_enabled" in v && "monthly_limit" in v
 }
 
+/** Full OAuth token data */
+interface OAuthData {
+  accessToken: string
+  refreshToken?: string
+  expiresAt?: number
+}
+
 /** Extract OAuth data from credential (handles Keychain's claudeAiOauth wrapper) */
-function extractOAuth(credential: Credential): { accessToken: string } | undefined {
-  // Direct format: { accessToken: "..." }
+function extractOAuth(credential: Credential): OAuthData | undefined {
+  // Direct format: { accessToken: "...", refreshToken: "...", expiresAt: ... }
   if (typeof credential.accessToken === "string" && credential.accessToken.length > 0) {
-    return { accessToken: credential.accessToken as string }
+    return {
+      accessToken: credential.accessToken as string,
+      refreshToken: credential.refreshToken as string | undefined,
+      expiresAt: credential.expiresAt as number | undefined,
+    }
   }
   // Keychain wrapper format: { claudeAiOauth: { accessToken: "..." } }
   const wrapped = credential.claudeAiOauth as Credential | undefined
   if (wrapped && typeof wrapped.accessToken === "string" && (wrapped.accessToken as string).length > 0) {
-    return { accessToken: wrapped.accessToken as string }
+    return {
+      accessToken: wrapped.accessToken as string,
+      refreshToken: wrapped.refreshToken as string | undefined,
+      expiresAt: wrapped.expiresAt as number | undefined,
+    }
   }
   return undefined
+}
+
+/** Check if an OAuth token needs refresh */
+function isExpired(oauth: OAuthData): boolean {
+  if (!oauth.expiresAt) return false
+  return Date.now() + REFRESH_MARGIN_MS >= oauth.expiresAt
+}
+
+/** Token refresh response */
+interface TokenResponse {
+  access_token: string
+  refresh_token: string
+  expires_in: number // seconds
+  token_type: string
+}
+
+/** Refresh an expired OAuth token. Returns updated credential or undefined on failure. */
+export async function refreshOAuthToken(credential: Credential): Promise<Credential | undefined> {
+  const oauth = extractOAuth(credential)
+  if (!oauth?.refreshToken) return undefined
+
+  try {
+    const resp = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        refresh_token: oauth.refreshToken,
+        client_id: CLIENT_ID,
+      }),
+    })
+
+    if (!resp.ok) return undefined
+
+    const data = (await resp.json()) as TokenResponse
+    if (!data.access_token) return undefined
+
+    // Update credential in-place, preserving other fields
+    const updated = { ...credential }
+    const expiresAt = Date.now() + data.expires_in * 1000
+
+    if (credential.claudeAiOauth) {
+      // Keychain wrapper format
+      updated.claudeAiOauth = {
+        ...(credential.claudeAiOauth as Record<string, unknown>),
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt,
+      }
+    } else {
+      // Direct format
+      updated.accessToken = data.access_token
+      updated.refreshToken = data.refresh_token
+      updated.expiresAt = expiresAt
+    }
+
+    return updated
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Ensure credential has a valid access token, refreshing if needed.
+ * Returns the (possibly refreshed) credential, or undefined if refresh failed.
+ * The `onRefresh` callback is called when a refresh happens so callers can persist.
+ */
+export async function ensureFreshOAuth(
+  credential: Credential,
+  onRefresh?: (updated: Credential) => void,
+): Promise<Credential | undefined> {
+  const oauth = extractOAuth(credential)
+  if (!oauth) return undefined
+
+  if (!isExpired(oauth)) return credential
+
+  const updated = await refreshOAuthToken(credential)
+  if (!updated) return undefined
+
+  onRefresh?.(updated)
+  return updated
 }
 
 /** Profile info from /api/oauth/profile */
@@ -63,9 +164,13 @@ export interface ClaudeProfile {
   plan: string // "claude_max", "claude_pro", etc.
 }
 
-/** Fetch account profile (email, name, org) */
-export async function fetchClaudeProfile(credential: Credential): Promise<ClaudeProfile | undefined> {
-  const oauth = extractOAuth(credential)
+/** Fetch account profile (email, name, org). Auto-refreshes expired tokens. */
+export async function fetchClaudeProfile(
+  credential: Credential,
+  onRefresh?: (updated: Credential) => void,
+): Promise<ClaudeProfile | undefined> {
+  const fresh = await ensureFreshOAuth(credential, onRefresh)
+  const oauth = fresh ? extractOAuth(fresh) : extractOAuth(credential)
   if (!oauth) return undefined
 
   try {

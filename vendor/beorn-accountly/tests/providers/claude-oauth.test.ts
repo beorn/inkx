@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest"
-import { createClaudeOAuthProvider } from "../../src/providers/claude-oauth.ts"
+import { createClaudeOAuthProvider, refreshOAuthToken, ensureFreshOAuth } from "../../src/providers/claude-oauth.ts"
 
 describe("claude-oauth provider", () => {
   const provider = createClaudeOAuthProvider()
@@ -191,5 +191,149 @@ describe("claude-oauth provider", () => {
     const result = await provider.checkQuota({})
     expect(result.available).toBe(false)
     expect(result.error).toBe("No access token found")
+  })
+})
+
+describe("token refresh", () => {
+  test("refreshOAuthToken returns undefined without refreshToken", async () => {
+    const result = await refreshOAuthToken({ accessToken: "test" })
+    expect(result).toBeUndefined()
+  })
+
+  test("refreshOAuthToken returns undefined for empty credential", async () => {
+    const result = await refreshOAuthToken({})
+    expect(result).toBeUndefined()
+  })
+
+  test("refreshOAuthToken updates direct format credential", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          token_type: "Bearer",
+          access_token: "new-access-token",
+          refresh_token: "new-refresh-token",
+          expires_in: 28800,
+        }),
+    })
+
+    try {
+      const result = await refreshOAuthToken({
+        accessToken: "old-access",
+        refreshToken: "old-refresh",
+        expiresAt: Date.now() - 1000,
+      })
+      expect(result).toBeDefined()
+      expect(result!.accessToken).toBe("new-access-token")
+      expect(result!.refreshToken).toBe("new-refresh-token")
+      expect(result!.expiresAt).toBeGreaterThan(Date.now())
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test("refreshOAuthToken updates claudeAiOauth wrapper format", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          token_type: "Bearer",
+          access_token: "new-access-token",
+          refresh_token: "new-refresh-token",
+          expires_in: 28800,
+        }),
+    })
+
+    try {
+      const result = await refreshOAuthToken({
+        claudeAiOauth: {
+          accessToken: "old-access",
+          refreshToken: "old-refresh",
+          expiresAt: Date.now() - 1000,
+          scopes: ["user:inference"],
+        },
+      })
+      expect(result).toBeDefined()
+      const oauth = result!.claudeAiOauth as Record<string, unknown>
+      expect(oauth.accessToken).toBe("new-access-token")
+      expect(oauth.refreshToken).toBe("new-refresh-token")
+      expect(oauth.expiresAt).toBeGreaterThan(Date.now())
+      expect(oauth.scopes).toEqual(["user:inference"]) // preserved
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test("refreshOAuthToken returns undefined on HTTP error", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+    })
+
+    try {
+      const result = await refreshOAuthToken({
+        accessToken: "old",
+        refreshToken: "invalid",
+        expiresAt: Date.now() - 1000,
+      })
+      expect(result).toBeUndefined()
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test("ensureFreshOAuth skips refresh for non-expired token", async () => {
+    const fetchSpy = vi.fn()
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = fetchSpy
+
+    try {
+      const cred = {
+        accessToken: "valid",
+        refreshToken: "refresh",
+        expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour from now
+      }
+      const result = await ensureFreshOAuth(cred)
+      expect(result).toBe(cred) // same object, no refresh
+      expect(fetchSpy).not.toHaveBeenCalled()
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  test("ensureFreshOAuth refreshes expired token and calls onRefresh", async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          token_type: "Bearer",
+          access_token: "fresh-token",
+          refresh_token: "fresh-refresh",
+          expires_in: 28800,
+        }),
+    })
+
+    try {
+      const onRefresh = vi.fn()
+      const result = await ensureFreshOAuth(
+        {
+          accessToken: "stale",
+          refreshToken: "old-refresh",
+          expiresAt: Date.now() - 1000,
+        },
+        onRefresh,
+      )
+      expect(result).toBeDefined()
+      expect(result!.accessToken).toBe("fresh-token")
+      expect(onRefresh).toHaveBeenCalledOnce()
+      expect(onRefresh.mock.calls[0][0].accessToken).toBe("fresh-token")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 })

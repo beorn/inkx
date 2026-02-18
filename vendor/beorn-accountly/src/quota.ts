@@ -1,11 +1,24 @@
 import type { QuotaInfo } from "./types.ts"
 import type { DiscoveredAccount } from "./discover.ts"
 import { getProvider } from "./providers/index.ts"
+import { ensureFreshOAuth } from "./providers/claude-oauth.ts"
+import { writeCredential } from "./credentials.ts"
 
-/** Check quota for a single discovered account */
+/** Check quota for a single discovered account, auto-refreshing expired OAuth tokens */
 export async function checkAccountQuota(discovered: DiscoveredAccount): Promise<QuotaInfo> {
   const provider = getProvider(discovered.config.provider)
-  const result = await provider.checkQuota(discovered.credential)
+  let credential = discovered.credential
+
+  // Auto-refresh expired Claude OAuth tokens
+  if (discovered.config.provider === "claude-oauth") {
+    const fresh = await ensureFreshOAuth(credential, (updated) => {
+      writeCredential(discovered.config.name, updated)
+      discovered.credential = updated
+    })
+    if (fresh) credential = fresh
+  }
+
+  const result = await provider.checkQuota(credential)
   result.accountName = discovered.config.name
   return result
 }

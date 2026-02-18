@@ -26,7 +26,12 @@ export { readKeychainCredential, writeKeychainCredential, keychainCredentialExis
 
 export { getProvider, getAllProviders } from "./providers/index.ts"
 
-export { fetchClaudeProfile, type ClaudeProfile } from "./providers/claude-oauth.ts"
+export {
+  fetchClaudeProfile,
+  refreshOAuthToken,
+  ensureFreshOAuth,
+  type ClaudeProfile,
+} from "./providers/claude-oauth.ts"
 
 export { checkAccountQuota, checkAllQuotas, findBestAccount } from "./quota.ts"
 
