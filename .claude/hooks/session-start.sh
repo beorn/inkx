@@ -25,18 +25,28 @@ if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
   fi
 
   if [ "$SKIP_INDEX" -eq 0 ]; then
-    (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") &
+    (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") </dev/null &>/dev/null &
     disown
   fi
 
-  # Daily summarization (background, atomic via lock file)
+  # Daily summarization (background, atomic via lock file, skip if <1h old)
+  STAMP="/tmp/recall-summarize-last"
   LOCK="/tmp/recall-summarize.lock"
-  (
-    if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
-    trap 'rmdir "$LOCK" 2>/dev/null' EXIT
-    cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
-  ) &
-  disown
+  SKIP_SUMMARIZE=0
+  if [ -f "$STAMP" ] && find "$STAMP" -mmin -60 -print -quit 2>/dev/null | grep -q .; then
+    SKIP_SUMMARIZE=1
+    echo "$(date '+%H:%M:%S') summarize skipped (<1h old)" >> "$LOG"
+  fi
+
+  if [ "$SKIP_SUMMARIZE" -eq 0 ]; then
+    (
+      if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
+      trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+      cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
+      touch "$STAMP"
+    ) </dev/null &>/dev/null &
+    disown
+  fi
 fi
 
 exit 0
