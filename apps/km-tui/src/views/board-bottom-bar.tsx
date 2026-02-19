@@ -114,7 +114,7 @@ export function BottomBar({
 
   // Determine if we need spinner animation
   const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
-  const isLoading = ui.isLoading || isSyncing
+  const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
   // Only run spinner animation when actually displaying it
   const spinnerFrame = useSpinnerFrame(isLoading)
 

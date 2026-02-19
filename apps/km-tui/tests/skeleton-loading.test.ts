@@ -95,7 +95,14 @@ describe("Skeleton loading", () => {
       return [boardNode, colA, colB]
     })
 
-    // Without loading, empty columns show "(empty)"
+    // Without loading (watcher idle, no background parse), empty columns show "(empty)"
+    act(() => {
+      store.setState((s) => ({
+        ...s,
+        ui: { ...s.ui, watcherStatus: { state: "idle", pendingPaths: 0 } },
+      }))
+    })
+    board.press("F20")
     expect(store.getState().ui.isLoading).toBe(false)
     expect(board.screenshot()).toContain("(empty)")
 
@@ -110,6 +117,154 @@ describe("Skeleton loading", () => {
     expect(text).toContain("░")
     // "(empty)" text is replaced by skeleton
     expect(text).not.toContain("(empty)")
+  })
+
+  test("empty columns show skeleton during initial load (watcherStatus null)", () => {
+    // Before any watcher events arrive, watcherStatus is null.
+    // Empty columns should show skeleton, not "(empty)".
+    const { board, store } = testEnv(() => {
+      const colA = emptyColumn("col-empty-a")
+      const boardNode: KNode = {
+        id: "board",
+        type: "oi",
+        fstype: "folder",
+        content: undefined,
+        data: { name: "board", is_repo_root: true },
+        parent_id: null,
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      }
+      colA.parent_id = "board"
+      colA.parent_idx = 0
+      return [boardNode, colA]
+    })
+
+    // watcherStatus starts as null (no events received yet)
+    expect(store.getState().ui.watcherStatus).toBeNull()
+    expect(store.getState().ui.isLoading).toBe(false)
+
+    const text = board.screenshot()
+    // Should show skeleton, not "(empty)", during initial load
+    expect(text).toContain("░")
+    expect(text).not.toContain("(empty)")
+  })
+
+  test("empty columns show skeleton when backgroundParsing is true", () => {
+    const { board, store } = testEnv(() => {
+      const colA = emptyColumn("col-empty-a")
+      const boardNode: KNode = {
+        id: "board",
+        type: "oi",
+        fstype: "folder",
+        content: undefined,
+        data: { name: "board", is_repo_root: true },
+        parent_id: null,
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      }
+      colA.parent_id = "board"
+      colA.parent_idx = 0
+      return [boardNode, colA]
+    })
+
+    // Simulate: watcher has gone idle but background parsing is still running
+    act(() => {
+      store.setState((s) => ({
+        ...s,
+        ui: {
+          ...s.ui,
+          isLoading: false,
+          backgroundParsing: true,
+          watcherStatus: { state: "idle", pendingPaths: 0 },
+        },
+      }))
+    })
+    board.press("F20")
+
+    const text = board.screenshot()
+    // backgroundParsing keeps skeleton visible even though watcher is idle
+    expect(text).toContain("░")
+    expect(text).not.toContain("(empty)")
+  })
+
+  test("skeleton persists during background parse even when watcher goes idle", () => {
+    // Simulates the race condition: watcher completes its initial scan (idle)
+    // while background deferred-file parsing is still running.
+    const { board, store } = testEnv(() => {
+      const colA = emptyColumn("col-empty-a")
+      const colB = emptyColumn("col-empty-b")
+      const boardNode: KNode = {
+        id: "board",
+        type: "oi",
+        fstype: "folder",
+        content: undefined,
+        data: { name: "board", is_repo_root: true },
+        parent_id: null,
+        parent_idx: 0,
+        link_to: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      }
+      colA.parent_id = "board"
+      colA.parent_idx = 0
+      colB.parent_id = "board"
+      colB.parent_idx = 1
+      return [boardNode, colA, colB]
+    })
+
+    // Step 1: Background parse starts
+    act(() => {
+      store.setState((s) => ({
+        ...s,
+        ui: {
+          ...s.ui,
+          isLoading: true,
+          backgroundParsing: true,
+          loadingStartTime: Date.now(),
+          watcherStatus: { state: "syncing", pendingPaths: 5 },
+        },
+      }))
+    })
+    board.press("F20")
+    expect(board.screenshot()).toContain("░")
+
+    // Step 2: Watcher completes initial scan, goes idle — but background parse continues
+    act(() => {
+      store.setState((s) => ({
+        ...s,
+        ui: {
+          ...s.ui,
+          isLoading: false, // watcher handler would set this to false
+          // backgroundParsing remains true
+          watcherStatus: { state: "idle", pendingPaths: 0 },
+        },
+      }))
+    })
+    board.press("F20")
+
+    // Skeleton should STILL show because backgroundParsing is true
+    const text = board.screenshot()
+    expect(text).toContain("░")
+    expect(text).not.toContain("(empty)")
+
+    // Step 3: Background parse finishes
+    act(() => {
+      store.setState((s) => ({
+        ...s,
+        ui: { ...s.ui, backgroundParsing: false },
+      }))
+    })
+    board.press("F20")
+
+    // Now (empty) should show since everything is done and columns have no content
+    expect(board.screenshot()).toContain("(empty)")
   })
 
   test("skeleton clears from empty column when isLoading is cleared", () => {

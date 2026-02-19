@@ -58,6 +58,7 @@ import { SyncPane } from "./SyncPane.tsx"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
+  createBackgroundParseHandler,
   createErrorWarningHandler,
   createSyncEventCollector,
 } from "./board-effects.ts"
@@ -850,6 +851,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Subscribe to external events
   useEffect(() => createFileDropHandler(setUI), [setUI])
   useEffect(() => createWatcherStatusHandler(setUI, toastQueue), [setUI, toastQueue])
+  useEffect(() => createBackgroundParseHandler(setUI), [setUI])
   useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
   useEffect(() => createSyncEventCollector(setUI), [setUI])
 

@@ -94,6 +94,8 @@ export interface UIState {
   // Loading state (for large repos)
   isLoading: boolean
   loadingStartTime: number | null
+  /** True while background deferred-file parsing is in progress (discoverOnly mode). */
+  backgroundParsing: boolean
 
   // Watcher status (for bottom bar display)
   watcherStatus: WatcherStatus | null
@@ -276,6 +278,7 @@ export function createInitialUIState(
 
     isLoading: false,
     loadingStartTime: null,
+    backgroundParsing: false,
 
     watcherStatus: null,
     syncEvents: [],

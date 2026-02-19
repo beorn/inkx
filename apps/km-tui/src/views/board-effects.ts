@@ -60,6 +60,22 @@ export function createWatcherStatusHandler(setUI: SetUI, toastQueue?: ToastQueue
   }
 }
 
+/**
+ * Creates the background parse state handler effect.
+ * Subscribes to "background-parse" events emitted by the CLI layer during
+ * discoverOnly deferred-file parsing. Sets `backgroundParsing` in UI state
+ * so columns can show skeleton cards even if the watcher reports idle.
+ */
+export function createBackgroundParseHandler(setUI: SetUI): () => void {
+  const handler = (parsing: boolean) => {
+    setUI({ backgroundParsing: parsing })
+  }
+  tuiEvents.on("background-parse", handler)
+  return () => {
+    tuiEvents.off("background-parse", handler)
+  }
+}
+
 const MAX_SYNC_EVENTS = 100
 
 /**

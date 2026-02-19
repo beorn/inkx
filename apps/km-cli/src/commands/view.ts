@@ -145,7 +145,10 @@ export const viewCommand = new Command("view")
         })
         if (aborted) return
 
-        // Signal TUI to show skeleton loading while background parsing runs
+        // Signal TUI to show skeleton loading while background parsing runs.
+        // Uses dedicated "background-parse" event so the file watcher's status
+        // transitions (starting → idle → ready) don't prematurely clear loading.
+        tuiModule.tuiEvents.emit("background-parse", true)
         tuiModule.tuiEvents.emit("watcher-status", {
           state: "syncing",
           pendingPaths: deferredFiles.length,
@@ -195,6 +198,7 @@ export const viewCommand = new Command("view")
         } finally {
           // Clear skeleton loading state regardless of success or failure
           if (!aborted) {
+            tuiModule.tuiEvents.emit("background-parse", false)
             tuiModule.tuiEvents.emit("watcher-status", {
               state: "ready",
               pendingPaths: 0,
