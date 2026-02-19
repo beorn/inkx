@@ -139,6 +139,48 @@ describe("vbody-nav: left into virtual body column", () => {
     expect(bodyTarget).toMatch(/^bp/)
   })
 
+  test("h from scrolled structural column to unscrolled body: Y-mismatch from scroll offset", () => {
+    // When the structural column has been scrolled down to show card N,
+    // its card N has screen Y near the top of the column. But the body
+    // column hasn't scrolled — its card N is still at its natural (further down)
+    // position, possibly off-screen.
+    //
+    // stickyY captures from the structural card's screen position (scrolled up),
+    // so findItemAtY in body column finds the WRONG card (one at the top
+    // that happens to be at that low Y value).
+    const bodyCards = Array.from({ length: 10 }, (_, i) => item.paragraph(`bp-${i + 1}`))
+    const structCards = Array.from({ length: 10 }, (_, i) => item(`t-${i + 1}`))
+
+    const { board } = testEnv(() => item("board", ...bodyCards, item("col1", ...structCards)), {
+      rows: 12,
+      columns: 80,
+    })
+
+    // Cursor starts on bp-1
+    board.expect("#bp-1[data-cursor]").toExist()
+
+    // Navigate to structural column
+    board.press("l")
+    expect(board.q("[data-cursor]").getAttribute("id")).toBe("t-1")
+
+    // Navigate down to t-5 (structural column scrolls)
+    board.press("j") // t-2
+    board.press("j") // t-3
+    board.press("j") // t-4
+    board.press("j") // t-5
+    board.expect("#t-5[data-cursor]").toExist()
+
+    // h to body column — should land near bp-5, not bp-1 or bp-2
+    board.press("h")
+    const bodyTarget = board.q("[data-cursor]").getAttribute("id")
+    expect(bodyTarget).toMatch(/^bp-/)
+    const bodyIdx = parseInt(bodyTarget!.replace("bp-", ""))
+    // The visually adjacent body card should be approximately bp-5
+    // (same position in the column, not same screen Y)
+    expect(bodyIdx, `expected body card ~5, got ${bodyIdx}`).toBeGreaterThanOrEqual(4)
+    expect(bodyIdx).toBeLessThanOrEqual(6)
+  })
+
   test("scrolled structural col with unscrolled body: h should not overshoot", () => {
     // The structural column has many cards; user scrolls deep into it.
     // The body column has few cards at the top.

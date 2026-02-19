@@ -156,7 +156,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     initialValue: initialInput ?? "",
     onChange: () => setSelectedIndex(0),
     navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-    navDown: () => setSelectedIndex((i) => i + 1),
+    navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
     onConfirm: () => {
       const selected = resultsRef.current[selectedIndexRef.current]
       if (selected) {

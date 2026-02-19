@@ -82,7 +82,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
       backgroundColor="black"
       paddingX={1}
     >
-      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
+      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
         {/* Title */}
         <Box width={innerWidth}>
           <Text bold wrap="wrap">
@@ -209,7 +209,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       backgroundColor="black"
       paddingX={1}
     >
-      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>}>
+      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
         {/* Title - rich rendered, stripped of refs shown separately below */}
         <Box width={innerWidth}>
           <Text bold color="white" wrap="wrap">

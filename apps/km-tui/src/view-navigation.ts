@@ -335,7 +335,20 @@ function navigateHorizontal(
     if (colIdx === 0) {
       // First structural column → navigate left to body (if it exists)
       if (!hasBody) return null
-      return navigateToBody(bodyNodes, navigator)
+      // Compute source card index for scroll-aware body navigation.
+      // When the structural column is scrolled but the body column isn't,
+      // stickyY (screen-relative) gives the wrong body card. Pass the
+      // source card index so navigateToBody can use it as a hint.
+      let sourceCardIdx: number | undefined
+      if (!isAtColumnLevel) {
+        const cardInCol = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
+        if (cardInCol) {
+          const colChildren = repo.getChildren(cursorColId)
+          sourceCardIdx = indexOfChild(colChildren, cardInCol)
+          if (sourceCardIdx < 0) sourceCardIdx = undefined
+        }
+      }
+      return navigateToBody(bodyNodes, navigator, sourceCardIdx)
     }
     // Navigate to previous structural column
     return navigateToStructuralCol(
@@ -436,8 +449,19 @@ function navigateToStructuralCol(
 /**
  * Navigate to the virtual body column, selecting the appropriate body card.
  * Body cards are at view column index 0.
+ *
+ * When sourceCardIdx is provided (from the structural column), it's used as
+ * the initial target. This handles the scroll-offset mismatch: when the source
+ * column has scrolled but the body column hasn't, stickyY (screen-relative)
+ * would pick the wrong body card. The source card index gives the correct
+ * logical position. After SELECT, the body column scrolls to show the target,
+ * and deferred Y-correction (from handleHorizontalNav) fine-tunes the result.
  */
-function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator): string | null {
+function navigateToBody(
+  bodyNodes: { id: string }[],
+  navigator: GridNavigator,
+  sourceCardIdx?: number,
+): string | null {
   if (bodyNodes.length === 0) return null
 
   const stickyY = navigator.stickyY
@@ -445,7 +469,19 @@ function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator): 
     return bodyNodes[0]?.id ?? null
   }
 
-  // Body is always view column 0
+  // Body is always view column 0.
+  // When source card index is available, use it as the primary hint
+  // to handle scroll-offset mismatches between columns. The stickyY
+  // (screen-relative) only works when both columns have similar scroll
+  // positions. The source card index gives a scroll-invariant position.
+  if (sourceCardIdx !== undefined) {
+    const clampedIdx = Math.min(sourceCardIdx, bodyNodes.length - 1)
+    // Set up deferred navigation so handleHorizontalNav's deferred resolve
+    // can fine-tune via Y-matching after the body column scrolls.
+    navigator.setDeferredNavigation(0, stickyY)
+    return bodyNodes[clampedIdx]?.id ?? null
+  }
+
   if (navigator.hasSection(0)) {
     const targetCardIdx = navigator.findItemAtY(0, stickyY)
     const clampedIdx = Math.min(Math.max(0, targetCardIdx), bodyNodes.length - 1)

@@ -6,6 +6,8 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
+import { isOutline } from "@km/core"
+import { extractBody } from "@km/tree"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
@@ -98,12 +100,24 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
       // In cards view, attach deferred resolve for off-screen Y-correction.
       // register() will fire it during inkx's Phase 2.7.
       if (ui.viewMode === "cards") {
-        // Find the column that contains targetId for deferred resolution
+        // Find the column that contains targetId for deferred resolution.
+        // Body cards need special handling: their parent_id is the root,
+        // but repo.getChildren(root) includes both body nodes and structural
+        // columns. We must filter to meaningful body nodes only so the
+        // itemIndex from findItemAtY maps to the correct node.
         const targetNode = ctx.repo.getNode(targetId)
         const columnId = targetNode?.parent_id
+        const isBodyCard = columnId === ctx.rootId && targetNode && !isOutline(targetNode.type)
         navigator.setDeferredResolve((itemIndex) => {
           if (columnId) {
-            const children = ctx.repo.getChildren(columnId)
+            let children: { id: string; type: string; content?: string }[]
+            if (isBodyCard) {
+              const allChildren = ctx.repo.getChildren(columnId)
+              const { body } = extractBody(allChildren)
+              children = body.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+            } else {
+              children = ctx.repo.getChildren(columnId)
+            }
             const child = children[itemIndex]
             if (child) {
               dispatchBoard({ type: "SELECT", nodeId: child.id })

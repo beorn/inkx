@@ -684,3 +684,373 @@ describe("navigateToNode", () => {
     })
   })
 })
+
+// =============================================================================
+// Full search flow (key presses): / → type → Enter → cursor lands on match
+// =============================================================================
+
+describe("search flow via key presses", () => {
+  test("search + Enter navigates cursor to the matched card (deep tree)", () => {
+    // Structure: root > projects > project-a > taskA1, taskA2, taskA3
+    //                            > project-b > taskB1
+    // User searches for "taskA2" and expects cursor to land on it.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "root",
+          item(
+            "projects",
+            item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
+            item("project-b", item("taskB1")),
+          ),
+        ),
+      { checkIncremental: false },
+    )
+
+    // Open search dialog
+    board.press("/")
+    expect(store.getState().ui.showSearchDialog).toBe(true)
+
+    // Type search query
+    for (const ch of "taskA2") board.press(ch)
+
+    // Confirm search result
+    board.press("Enter")
+
+    // Dialog should be closed
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+
+    // Cursor should be on the matched card
+    expect(store.getState().cursorNodeId).toBe("taskA2")
+    expect(store.getState().selectionLevel).toBe("card")
+    board.expect("#taskA2[data-cursor]").toExist()
+  })
+
+  test("search + Enter for already-visible card uses SELECT (no zoom)", () => {
+    // Structure: root > col1 > taskA, taskB > col2 > taskC
+    // User is at root, taskB is already visible (grandchild of root).
+    const { board, store } = testEnv(
+      () => item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))),
+      { checkIncremental: false },
+    )
+
+    // Open search dialog
+    board.press("/")
+    expect(store.getState().ui.showSearchDialog).toBe(true)
+
+    // Type search query
+    for (const ch of "taskB") board.press(ch)
+
+    // Confirm search result
+    board.press("Enter")
+
+    // Cursor should be on the matched card, root unchanged
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    expect(store.getState().rootId).toBe("root")
+    expect(store.getState().cursorNodeId).toBe("taskB")
+    board.expect("#taskB[data-cursor]").toExist()
+  })
+
+  test("search + Enter for deeply nested node zooms to make it a card", () => {
+    // Structure: root > projects > project-a > task1 > subtask1
+    // subtask1 is depth 4 from root. After search, board should zoom so that
+    // subtask1 (or its parent task1) is a visible card, not just a descendant.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "root",
+          item(
+            "projects",
+            item("project-a", item("task1", item("subtask-xyz"))),
+          ),
+        ),
+      { checkIncremental: false },
+    )
+
+    // Search for the deeply nested subtask
+    board.press("/")
+    for (const ch of "subtask-xyz") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+
+    // The cursor should be on a visible card — either the subtask itself
+    // (if the board zoomed deep enough) or its nearest card ancestor.
+    // Most importantly, j/k should work from here.
+    const cursorId = store.getState().cursorNodeId
+    expect(cursorId).not.toBeNull()
+    expect(store.getState().selectionLevel).toBe("card")
+
+    // The cursor should be navigable with j/k
+    const cursorBefore = store.getState().cursorNodeId
+    board.press("j")
+    // If j works, cursor moved (or hit boundary). Either way, it didn't break.
+    // The key assertion is that selectionLevel stayed at "card".
+    expect(store.getState().selectionLevel).toBe("card")
+  })
+
+  test("search for depth-3 node zooms and places cursor on exact card", () => {
+    // Structure: vault > section > project > my-task, other-task
+    // my-task is at depth 3 from vault. Search should zoom to section
+    // and place cursor on my-task (now a card under project column).
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "vault",
+          item(
+            "section",
+            item("project", item("my-task"), item("other-task")),
+          ),
+        ),
+      { checkIncremental: false },
+    )
+
+    // Search for the depth-3 node
+    board.press("/")
+    for (const ch of "my-task") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    // Should have zoomed to section (grandparent of my-task)
+    expect(store.getState().rootId).toBe("section")
+    // Cursor should be on the exact matched card
+    expect(store.getState().cursorNodeId).toBe("my-task")
+    expect(store.getState().selectionLevel).toBe("card")
+    board.expect("#my-task[data-cursor]").toExist()
+  })
+
+  test("search from zoomed-in view navigates to correct card", () => {
+    // User is zoomed into "projects" and searches for a task in a sub-project.
+    // Structure: root > projects > project-a > taskA1, taskA2
+    //                             > project-b > taskB1
+    // User zooms to "projects" first, then searches for "taskA2".
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "root",
+          item(
+            "projects",
+            item("project-a", item("taskA1"), item("taskA2")),
+            item("project-b", item("taskB1")),
+          ),
+        ),
+      { checkIncremental: false },
+    )
+
+    // Zoom into "projects" first
+    dispatchAndFlush(store, { type: "ZOOM_IN", nodeId: "projects" })
+    expect(store.getState().rootId).toBe("projects")
+
+    // Now search for taskA2
+    board.press("/")
+    for (const ch of "taskA2") board.press(ch)
+    board.press("Enter")
+
+    // Should select taskA2 in the current view (it's a grandchild of "projects")
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    expect(store.getState().rootId).toBe("projects") // No zoom needed
+    expect(store.getState().cursorNodeId).toBe("taskA2")
+    expect(store.getState().selectionLevel).toBe("card")
+    board.expect("#taskA2[data-cursor]").toExist()
+  })
+
+  test("search with multiple results selects the first match", () => {
+    // When search returns multiple results, pressing Enter selects the first one.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "root",
+          item("col1", item("alpha-task"), item("beta-task")),
+          item("col2", item("alpha-note")),
+        ),
+      { checkIncremental: false },
+    )
+
+    board.press("/")
+    for (const ch of "alpha") board.press(ch)
+    board.press("Enter")
+
+    // First result should be selected (order depends on repo.search)
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    const cursorId = store.getState().cursorNodeId
+    // Either alpha-task or alpha-note — both are valid first matches
+    expect(cursorId === "alpha-task" || cursorId === "alpha-note").toBe(true)
+    expect(store.getState().selectionLevel).toBe("card")
+  })
+
+  test("search for oi file node (non-folder) selects it correctly", () => {
+    // oi nodes with fstype="file" are NOT skipped by search.
+    // When selected, they may be at column level or card level.
+    const fileNode: KNode = {
+      id: "readme-file",
+      type: "oi",
+      fstype: "file",
+      content: "README",
+      data: { name: "README" },
+      parent_id: "docs",
+      parent_idx: 0,
+      link_to: null,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const { board, store } = testEnv(
+      () => {
+        const nodes = item("root", item("docs", item("other-file")))
+        // Insert the file node as child of docs
+        nodes.push(fileNode)
+        return nodes
+      },
+      { checkIncremental: false },
+    )
+
+    board.press("/")
+    for (const ch of "README") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    // README file is a grandchild of root → SELECT
+    expect(store.getState().cursorNodeId).toBe("readme-file")
+  })
+
+  test("search SELECT within same column updates selectedNode correctly", () => {
+    // When cursor is already on a card in col1 and search selects a different
+    // card in the same column, selectedNode should update to the new card.
+    // This tests the cursorPosition memo dependency chain.
+    const { board, store } = testEnv(
+      () => item("root", item("col1", item("taskA"), item("taskB"), item("taskC")), item("col2", item("taskD"))),
+      { checkIncremental: false },
+    )
+
+    // Initial cursor is on taskA (first card of first column)
+    expect(store.getState().cursorNodeId).toBe("taskA")
+
+    // Search for taskC (different card in the same column)
+    board.press("/")
+    for (const ch of "taskC") board.press(ch)
+    board.press("Enter")
+
+    // Cursor should be on taskC
+    expect(store.getState().cursorNodeId).toBe("taskC")
+    board.expect("#taskC[data-cursor]").toExist()
+    // Previous cursor should NOT have data-cursor
+    board.expect("#taskA[data-cursor]").not.toExist()
+
+    // selectedNode should be taskC (tests the Board's derived state)
+    expect(store.getState().selectedNode?.id).toBe("taskC")
+  })
+
+  test("search + Enter + j/k navigation works after search", () => {
+    // Structure: root > projects > project-a > taskA1, taskA2, taskA3
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "root",
+          item(
+            "projects",
+            item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
+            item("project-b", item("taskB1")),
+          ),
+        ),
+      { checkIncremental: false },
+    )
+
+    // Search and select taskA2
+    board.press("/")
+    for (const ch of "taskA2") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().cursorNodeId).toBe("taskA2")
+
+    // j/k should work from the search result position
+    board.press("j")
+    expect(store.getState().cursorNodeId).toBe("taskA3")
+
+    board.press("k")
+    expect(store.getState().cursorNodeId).toBe("taskA2")
+
+    board.press("k")
+    expect(store.getState().cursorNodeId).toBe("taskA1")
+  })
+
+  test("search selects correct card when target is oi task under oi section (Asana-like)", () => {
+    // Asana import structure: all nodes are oi
+    // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
+    // User views Project, searches for Task B — cursor should land on Task B card
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "project",
+          item("section", item("task-alpha"), item("task-beta"), item("task-gamma")),
+        ),
+      { checkIncremental: false },
+    )
+
+    expect(store.getState().rootId).toBe("project")
+
+    board.press("/")
+    for (const ch of "task-beta") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    expect(store.getState().cursorNodeId).toBe("task-beta")
+    expect(store.getState().selectionLevel).toBe("card")
+    board.expect("#task-beta[data-cursor]").toExist()
+    // selectedNode should be the searched card, not the section/column
+    expect(store.getState().selectedNode?.id).toBe("task-beta")
+  })
+
+  test("search for oi subtask zooms correctly and lands cursor on subtask", () => {
+    // Asana-like: Project > Section > Task > Subtask
+    // User views Project, searches for Subtask — should zoom to Section,
+    // making Task a column and Subtask a card.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "project",
+          item("section", item("parent-task", item("my-subtask"), item("other-subtask"))),
+        ),
+      { checkIncremental: false },
+    )
+
+    expect(store.getState().rootId).toBe("project")
+
+    board.press("/")
+    for (const ch of "my-subtask") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+    // Should zoom to section (grandparent of my-subtask)
+    expect(store.getState().rootId).toBe("section")
+    // Cursor should be on the subtask itself
+    expect(store.getState().cursorNodeId).toBe("my-subtask")
+    expect(store.getState().selectionLevel).toBe("card")
+    board.expect("#my-subtask[data-cursor]").toExist()
+    // selectedNode should be the subtask, not the parent task
+    expect(store.getState().selectedNode?.id).toBe("my-subtask")
+  })
+
+  test("search selectedNode matches cursorNodeId after same-column SELECT", () => {
+    // Regression: when search SELECTs a card in the same column,
+    // selectedNode should update to the new card (not stay on the old one).
+    // This verifies the store's selectedNode is consistent with cursorNodeId.
+    const { board, store } = testEnv(
+      () => item("root", item("col", item("first"), item("second"), item("third"))),
+      { checkIncremental: false },
+    )
+
+    // Initial cursor on first
+    expect(store.getState().cursorNodeId).toBe("first")
+    expect(store.getState().selectedNode?.id).toBe("first")
+
+    // Search for third (same column, different card)
+    board.press("/")
+    for (const ch of "third") board.press(ch)
+    board.press("Enter")
+
+    expect(store.getState().cursorNodeId).toBe("third")
+    // Key assertion: selectedNode must match cursorNodeId
+    expect(store.getState().selectedNode?.id).toBe("third")
+    board.expect("#third[data-cursor]").toExist()
+  })
+})

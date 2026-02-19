@@ -833,6 +833,7 @@ function TreeNodeImpl({
               [error]
             </Text>
           }
+          resetKey={`${node.id}-${depth}`}
         >
           <NodeChildren
             children={isInlineEditing ? structuralChildren : visibleChildren}

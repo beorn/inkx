@@ -260,6 +260,7 @@ function itemToNodes(
           type: "li",
           parent_id: item.sourceId,
           content: "Comments",
+          data: { detailOnly: true },
         }),
       )
       for (const c of filtered) {
@@ -286,6 +287,7 @@ function itemToNodes(
         type: "li",
         parent_id: item.sourceId,
         content: "Attachments",
+        data: { detailOnly: true },
       }),
     )
     for (const att of item.attachments) {
@@ -310,6 +312,7 @@ function itemToNodes(
         type: "li",
         parent_id: item.sourceId,
         content: "Activity",
+        data: { detailOnly: true },
       }),
     )
     for (const a of item.activityLog) {

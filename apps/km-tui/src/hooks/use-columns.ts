@@ -16,6 +16,16 @@ import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
 
 // =============================================================================
+// Helpers — detail-only filtering
+// =============================================================================
+
+/** Nodes marked detailOnly (e.g., imported comments/attachments/activity) are
+ *  shown only in the detail pane, never as cards in columns. */
+function isDetailOnly(node: KNode): boolean {
+  return (node.data as Record<string, unknown>)?.detailOnly === true
+}
+
+// =============================================================================
 // Hook
 // =============================================================================
 
@@ -111,7 +121,10 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 
   // Add virtual body column for meaningful leading content
   // (paragraphs, tasks, embeds that appear before the first section/file/folder)
-  const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+  // Exclude detailOnly nodes (imported comments, attachments, activity) — they show in detail pane only.
+  const meaningfulBody = bodyNodes.filter(
+    (n) => !isDetailOnly(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
   if (meaningfulBody.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
@@ -193,7 +206,9 @@ function kNodeToColumnState(
   // Embed links (link_to) are discrete items — not virtual.
   // Children are fetched so buildNodeIndex can map descendants for cursor resolution
   // (e.g., after indent, a child may be reparented under a body node).
+  // Exclude detailOnly nodes (imported comments, attachments, activity).
   for (const child of bodyNodes) {
+    if (isDetailOnly(child)) continue
     const childChildren = repo.getChildren(child.id)
     const isFolded = foldedNodes.has(child.id)
     cards.push({
