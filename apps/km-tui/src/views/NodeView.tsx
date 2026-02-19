@@ -29,6 +29,7 @@ import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../s
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "chalkx"
+import { extractBody } from "@km/tree"
 
 // =============================================================================
 // Types
@@ -73,6 +74,8 @@ export interface ColumnHeaderProps {
   showSeparator?: boolean
   /** Whether to show a blank line above the header */
   showTopSpacer?: boolean
+  /** Whether the column node has body content (non-structural children) */
+  hasBody?: boolean
   /** Override content (for inline editing) */
   children?: React.ReactNode
 }
@@ -104,6 +107,7 @@ export function ColumnHeader({
   typeSuffix,
   showSeparator = true,
   showTopSpacer = false,
+  hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
   const iconColor = isColumnSelected ? "black" : icon.color
@@ -157,6 +161,7 @@ export function ColumnHeader({
                       </>
                     )}
                   </Text>
+                  {hasBody && !isVirtual && <Text dimColor>{" ···"}</Text>}
                   {typeSuffix ? (
                     <Text
                       color={isColumnSelected ? "gray" : undefined}
@@ -228,6 +233,7 @@ export function deriveColumnHeaderProps(
   headerStyle: ColumnHeaderStyle
   icon: StatusIcon
   typeSuffix: string | undefined
+  hasBody: boolean
 } {
   const isVirtual = opts.isVirtual ?? false
   const displayName = renderPlain(getNodeDisplayName(repo, node))
@@ -248,5 +254,8 @@ export function deriveColumnHeaderProps(
 
   const icon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
 
-  return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix }
+  // Check if the column node has body content (non-structural children like p, quote, etc.)
+  const hasBody = !isVirtual && extractBody(repo.getChildren(node.id)).body.length > 0
+
+  return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix, hasBody }
 }

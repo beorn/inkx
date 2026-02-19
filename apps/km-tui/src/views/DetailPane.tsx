@@ -48,7 +48,9 @@ export function DetailPane({ node, width, height }: DetailPaneProps): React.Reac
 
 function FolderDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
-  const innerWidth = Math.max(10, width - 6)
+  // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
+  const fullWidth = Math.max(10, width - 2) // subtract border only
+  const contentWidth = Math.max(8, fullWidth - 2) // 1-space padding each side for text content
   const title = getNodeDisplayName(repo, node)
   const children = repo.getChildren(node.id)
 
@@ -80,23 +82,20 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
       borderStyle="round"
       borderColor="yellow"
       backgroundColor="black"
-      paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title — yellow bg, black text */}
-        <Box width={innerWidth} backgroundColor="yellow">
-          <Text bold color="black" backgroundColor="yellow" wrap="wrap">
+        {/* Title — yellow bg spans full width, text padded */}
+        <Box width={fullWidth} backgroundColor="yellow" paddingX={1}>
+          <Text bold color="black" wrap="wrap">
             {renderRich(title)}
           </Text>
         </Box>
 
-        {/* Separator */}
-        <Box>
-          <Text dimColor>{"─".repeat(innerWidth)}</Text>
-        </Box>
+        {/* Separator — full width with 1-space padding */}
+        <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="hidden" flexGrow={1}>
+        <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
           {/* Counts */}
           <Box>
             <Text>
@@ -127,7 +126,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         </Box>
 
         {/* Footer: keybindings + debug info — always visible */}
-        <Box flexDirection="row" justifyContent="space-between" flexShrink={0}>
+        <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
             h/Esc:close Enter:open
           </Text>
@@ -146,7 +145,9 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
 function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
-  const innerWidth = Math.max(10, width - 6)
+  // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
+  const fullWidth = Math.max(10, width - 2) // subtract border only
+  const contentWidth = Math.max(8, fullWidth - 2) // 1-space padding each side for text content
   const title = getNodeDisplayName(repo, node)
 
   const statusInfo = getStatusDisplay(node.task_status)
@@ -209,38 +210,31 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       borderStyle="round"
       borderColor="yellow"
       backgroundColor="black"
-      paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title header — yellow bg, black text */}
-        <Box flexDirection="column" width={innerWidth} backgroundColor="yellow">
+        {/* Title header — yellow bg spans full width, text padded */}
+        <Box flexDirection="column" width={fullWidth} backgroundColor="yellow" paddingX={1}>
           {/* Location breadcrumb */}
           {projectPath.length > 0 && (
-            <Box width={innerWidth}>
-              <Text color="black" wrap="truncate">
-                {projectPath.join(" / ")}
-              </Text>
-            </Box>
+            <Text color="black" wrap="truncate">
+              {projectPath.join(" / ")}
+            </Text>
           )}
 
           {/* Title */}
-          <Box width={innerWidth}>
-            <Text bold color="black" backgroundColor="yellow" wrap="wrap">
-              {node.task_status && (
-                <Text color={getStatusIcon(node.task_status).color}>{getStatusIcon(node.task_status).char} </Text>
-              )}
-              {renderRich(stripInlineRefs(title))}
-            </Text>
-          </Box>
+          <Text bold color="black" wrap="wrap">
+            {node.task_status && (
+              <Text>{getStatusIcon(node.task_status).char} </Text>
+            )}
+            {renderRich(stripInlineRefs(title))}
+          </Text>
         </Box>
 
-        {/* Separator below title */}
-        <Box>
-          <Text dimColor>{"─".repeat(innerWidth)}</Text>
-        </Box>
+        {/* Separator below title — full width with 1-space padding */}
+        <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="hidden" flexGrow={1}>
+        <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
           {/* Metadata fields — aligned key:value table */}
           <MetadataTable
             node={node}
@@ -253,9 +247,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           />
 
           {/* Content area — separator then body + children */}
-          <Box>
-            <Text dimColor>{"─".repeat(innerWidth)}</Text>
-          </Box>
+          <Text dimColor>{"─".repeat(contentWidth)}</Text>
 
           {bodyChildren.length === 0 && structuralChildren.length === 0 && (
             <Text dimColor>(empty)</Text>
@@ -265,20 +257,20 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           {bodyChildren.map((child, i) => (
             <React.Fragment key={`${child.id}-${i}`}>
               {i > 0 && <Text>{" "}</Text>}
-              <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
+              <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} />
             </React.Fragment>
           ))}
 
           {/* Children rendered as subitems with separators */}
           {structuralChildren.length > 0 && (
-            <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
-              <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
+            <Box flexDirection="column" width={contentWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
+              <DetailSubitems repo={repo} items={structuralChildren} innerWidth={contentWidth} />
             </Box>
           )}
 
           {/* Backlinks */}
           {backlinkNodes.length > 0 && (
-            <Box flexDirection="column" marginTop={1} width={innerWidth}>
+            <Box flexDirection="column" marginTop={1} width={contentWidth}>
               <Text bold dimColor>
                 Backlinks ({backlinkNodes.length})
               </Text>
@@ -291,7 +283,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         </Box>
 
         {/* Footer: keybindings + debug info — always visible */}
-        <Box flexDirection="row" justifyContent="space-between" flexShrink={0}>
+        <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
             h/Esc:close Space:status
           </Text>
@@ -649,8 +641,16 @@ function OutlineTree({
 /** Regex to detect markdown links: [text](url) and image embeds: ![alt](url) */
 const MD_LINK_LINE_RE = /^!?\[([^\]]+)\]\(([^)]+)\)$/
 
+/** Regex to detect list items: `- text`, `* text`, or indented variants */
+const LIST_ITEM_RE = /^(\s*[-*] )(.*)/
+
+/** Regex to detect blockquotes: `> text` */
+const BLOCKQUOTE_RE = /^(> ?)(.*)/
+
 /** Render a body content block line-by-line.
  * Attachment links ([name](url)) are shown with both name and readable URL.
+ * List items (- or *) render the bullet prefix dimmed.
+ * Blockquotes (>) render the > prefix dimmed.
  * Other lines are rendered with standard rich text formatting. */
 function BodyBlock({ content, innerWidth }: { content: string; innerWidth: number }): React.ReactElement {
   const lines = content.split("\n")
@@ -674,6 +674,26 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
                 <Text dimColor> ({url})</Text>
               </Text>
             </Box>
+          )
+        }
+        const listMatch = line.match(LIST_ITEM_RE)
+        if (listMatch) {
+          const [, prefix, rest] = listMatch
+          return (
+            <Text key={`line-${i}`} wrap="wrap">
+              <Text dimColor>{prefix}</Text>
+              {renderRich(rest)}
+            </Text>
+          )
+        }
+        const quoteMatch = line.match(BLOCKQUOTE_RE)
+        if (quoteMatch) {
+          const [, prefix, rest] = quoteMatch
+          return (
+            <Text key={`line-${i}`} wrap="wrap">
+              <Text dimColor>{prefix}</Text>
+              {renderRich(rest)}
+            </Text>
           )
         }
         return (

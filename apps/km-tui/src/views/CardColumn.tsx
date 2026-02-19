@@ -534,7 +534,7 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && selectionLevel === "column"
 
   // Derive column header presentation props (icon, colors, style)
-  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, column.node, {
+  const { ownColor, headerStyle, icon, typeSuffix, hasBody } = deriveColumnHeaderProps(repo, column.node, {
     iconStyle,
     isSelected,
     isColumnSelected,
@@ -667,6 +667,7 @@ export const Column = React.memo(function Column({
         isSelected={isSelected}
         isVirtual={isVirtual}
         wipLimit={wipLimit}
+        hasBody={hasBody}
         typeSuffix={typeSuffix}
         showSeparator
       >

@@ -84,7 +84,7 @@ const ColumnTree = React.memo(function ColumnTree({
   const isColumnHeaderSelected = isSelected && selectionLevel === "column"
 
   // Derive column header presentation props (icon, colors, style)
-  const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {
+  const { displayName, untitled, ownColor, headerStyle, icon, hasBody } = deriveColumnHeaderProps(repo, column.node, {
     iconStyle,
     isSelected,
     isColumnSelected: isColumnHeaderSelected,
@@ -145,6 +145,7 @@ const ColumnTree = React.memo(function ColumnTree({
         isColumnSelected={isColumnHeaderSelected}
         isSelected={isSelected}
         wipLimit={column.wipLimit}
+        hasBody={hasBody}
         showSeparator
       />
 
