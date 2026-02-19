@@ -831,16 +831,20 @@ export function Board({ patchedConsole }: BoardProps) {
     ensureCommandSystemInitialized()
   }, [])
 
-  // Auto-dismiss bell (150ms flash) and status (3s).
+  // Auto-dismiss bell (150ms flash) and status (7s for bell messages, 3s otherwise).
   // Bell is also cleared at the start of the next keypress (board-app.ts line 104).
   useEffect(() => {
     if (!ui.bellState && !ui.status) return
-    const delay = ui.bellState ? 150 : 3000
-    const timer = setTimeout(() => {
-      if (ui.bellState) setUI({ bellState: null })
-      if (ui.status) setUI({ status: null })
-    }, delay)
-    return () => clearTimeout(timer)
+    const timers: ReturnType<typeof setTimeout>[] = []
+    if (ui.bellState) {
+      timers.push(setTimeout(() => setUI({ bellState: null }), 150))
+    }
+    if (ui.status) {
+      // Unmapped key messages (bell) stay visible longer so users can read them
+      const statusDelay = ui.bellState ? 7000 : 3000
+      timers.push(setTimeout(() => setUI({ status: null }), statusDelay))
+    }
+    return () => timers.forEach(clearTimeout)
   }, [ui.bellState, ui.status, setUI])
 
   // Subscribe to external events
