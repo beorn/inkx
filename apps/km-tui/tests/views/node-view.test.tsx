@@ -24,7 +24,7 @@ import { testEnv, item } from "../helpers/board-test.ts"
 // =============================================================================
 
 describe("ColumnHeader (cards view)", () => {
-  test("column header shows name and card count", () => {
+  test("column header shows name without count (no WIP limit)", () => {
     const { board } = testEnv(
       () => item("board", item("Todo", item("task1"), item("task2"), item("task3"))),
       { columns: 60, rows: 20 },
@@ -33,8 +33,18 @@ describe("ColumnHeader (cards view)", () => {
     const output = board.screenshot()
     // Column name should be visible
     expect(output).toContain("Todo")
-    // Card count should be visible
-    expect(output).toContain(" 3")
+    // Count is hidden without WIP limit — only shown as count/wip
+  })
+
+  test("column header shows count/wip when WIP limit set", () => {
+    const { board } = testEnv(
+      () => item("board", item("Todo km.limit:: 5", item("task1"), item("task2"), item("task3"))),
+      { columns: 60, rows: 20 },
+    )
+
+    const output = board.screenshot()
+    expect(output).toContain("Todo")
+    expect(output).toContain("3/5")
   })
 
   test("column header shows separator line", () => {
@@ -72,21 +82,21 @@ describe("ColumnHeader (cards view)", () => {
     expect(headerLine).toBeDefined()
   })
 
-  test("column header counts update with card count", () => {
+  test("column header counts update with WIP limit", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("few", item("a")),
-          item("many", item("b"), item("c"), item("d"), item("e"), item("f")),
+          item("few km.limit:: 3", item("a")),
+          item("many km.limit:: 10", item("b"), item("c"), item("d"), item("e"), item("f")),
         ),
       { columns: 80, rows: 20 },
     )
 
     const output = board.screenshot()
-    // First column has 1 card, second has 5
-    expect(output).toContain(" 1")
-    expect(output).toContain(" 5")
+    // First column has 1 card with WIP 3, second has 5 with WIP 10
+    expect(output).toContain("1/3")
+    expect(output).toContain("5/10")
   })
 })
 

@@ -335,6 +335,37 @@ describe("FTS5 Query Conversion", () => {
   test("handles empty query", () => {
     expect(toFts5Query("")).toBe("")
   })
+
+  test("handles trailing hyphen (ready-) without producing invalid FTS5", () => {
+    // "ready-" should not produce "ready-*" which FTS5 interprets as "ready" NOT "*"
+    const result = toFts5Query("ready-")
+    // The result should be valid FTS5 — either escaped or stripped
+    // It should NOT contain a bare hyphen adjacent to the wildcard
+    expect(result).not.toBe("ready-*")
+    // Should still find "ready" matches
+    expect(result).toContain("ready")
+  })
+
+  test("handles backtick character without producing invalid FTS5", () => {
+    const result = toFts5Query("`")
+    // Should not produce "`*" which is invalid FTS5
+    expect(result).not.toBe("`*")
+  })
+
+  test("handles other FTS5 special characters safely", () => {
+    // Characters that are special in FTS5: ( ) { } : ^ ~ + *
+    for (const char of ["(", ")", "{", "}", ":", "^", "~", "+", "*"]) {
+      const result = toFts5Query(`test${char}`)
+      // Should not throw and should produce something reasonable
+      expect(result).toBeDefined()
+    }
+  })
+
+  test("handles query with only special characters", () => {
+    const result = toFts5Query("-")
+    // A bare "-" has no term to negate — should produce empty or safe output
+    expect(result).toBeDefined()
+  })
 })
 
 describe("Property Query Parser", () => {

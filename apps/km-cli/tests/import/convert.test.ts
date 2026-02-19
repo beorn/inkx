@@ -1353,3 +1353,92 @@ describe("Dependency mapping", () => {
     expect(taskNode.data).not.toHaveProperty("blocks")
   })
 })
+
+// ============================================================================
+// HTML headings in Asana descriptions (km-tui.import-mangled)
+// ============================================================================
+
+describe("HTML headings converted to bold (not ATX headings)", () => {
+  test("turndown converts <h1> to bold text, not # heading", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<h1>Important Section</h1><p>Some details here.</p>"
+    const md = turndown.turndown(html)
+    expect(md).toContain("**Important Section**")
+    expect(md).not.toMatch(/^#\s/m)
+    expect(md).toContain("Some details here.")
+  })
+
+  test("turndown converts <h2> and <h3> to bold text", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<h2>Sub heading</h2><h3>Sub sub heading</h3>"
+    const md = turndown.turndown(html)
+    expect(md).toContain("**Sub heading**")
+    expect(md).toContain("**Sub sub heading**")
+    expect(md).not.toMatch(/^#{1,6}\s/m)
+  })
+
+  test("empty heading tags produce no output", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<h1></h1><p>After empty heading.</p>"
+    const md = turndown.turndown(html)
+    expect(md).not.toContain("****")
+    expect(md).toContain("After empty heading.")
+  })
+
+  test("body with HTML headings does not create new sections on re-parse", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<h1>Requirements</h1><p>Must support X and Y.</p><h2>Notes</h2><p>Additional info.</p>"
+    const body = turndown.turndown(html).trim()
+
+    // Build an ImportItem with this body and convert to markdown
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with HTML headings in body",
+          body,
+        },
+      ]),
+    )
+
+    // The task heading should appear exactly once
+    const taskHeadings = md.match(/## Task with HTML headings in body/g)
+    expect(taskHeadings).toHaveLength(1)
+
+    // Body content should NOT produce additional H1/H2 headings
+    expect(md).not.toMatch(/^# Requirements$/m)
+    expect(md).not.toMatch(/^## Requirements$/m)
+    expect(md).not.toMatch(/^## Notes$/m)
+
+    // Body should contain bold text instead
+    expect(md).toContain("**Requirements**")
+    expect(md).toContain("**Notes**")
+  })
+
+  test("roundtrip: task with heading-body does not split into multiple items", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<h1>Overview</h1><p>Details about the task.</p><h2>Steps</h2><ul><li>Step 1</li><li>Step 2</li></ul>"
+    const body = turndown.turndown(html).trim()
+
+    const data = makeData([
+      {
+        sourceId: "roundtrip-heading",
+        title: "Roundtrip heading task",
+        body,
+      },
+    ])
+
+    const files = convert(data)
+    const md = [...files.values()][0]!
+    const { body: parsedBody } = extractFrontmatter(md)
+    const tree = parseMarkdown(parsedBody)
+
+    // Should have only 1 H2 heading (the task itself), not additional ones from body
+    const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
+    const headingTexts = h2s.map((h) => h.children.map((c: any) => c.value ?? "").join(""))
+    expect(headingTexts.filter((t) => t.includes("Roundtrip heading task"))).toHaveLength(1)
+    // No headings from the body content
+    expect(headingTexts.some((t) => t.includes("Overview"))).toBe(false)
+    expect(headingTexts.some((t) => t.includes("Steps"))).toBe(false)
+  })
+})

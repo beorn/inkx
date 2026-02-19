@@ -210,6 +210,15 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
+        {/* Location breadcrumb above title (when path exists) */}
+        {projectPath.length > 0 && (
+          <Box width={innerWidth}>
+            <Text dimColor wrap="truncate">
+              {projectPath.join(" / ")}
+            </Text>
+          </Box>
+        )}
+
         {/* Title - rich rendered, stripped of refs shown separately below */}
         <Box width={innerWidth}>
           <Text bold color="white" wrap="wrap">
@@ -233,7 +242,6 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           dueDate={dueDate}
           dueParts={dueParts}
           startParts={startParts}
-          projectPath={projectPath}
           refs={refs}
         />
 
@@ -333,7 +341,6 @@ interface MetadataTableProps {
   dueDate: { text: string; urgency: string }
   dueParts: { date?: string; time?: string } | undefined
   startParts: { date?: string; time?: string } | undefined
-  projectPath: string[]
   refs: { mentions: string[]; tags: string[]; projects: string[] }
 }
 
@@ -344,15 +351,10 @@ function MetadataTable({
   dueDate,
   dueParts,
   startParts,
-  projectPath,
   refs,
 }: MetadataTableProps): React.ReactElement | null {
   const repo = useRepo()
   const rows: MetadataRow[] = []
-
-  // Node identity — always show ID, type, fstype for debugging
-  rows.push({ key: "ID", value: node.id, valueColor: "gray" })
-  rows.push({ key: "Type", value: node.fstype ? `${node.type} (${node.fstype})` : node.type, valueColor: "gray" })
 
   // Status
   if (node.task_status) {
@@ -396,11 +398,6 @@ function MetadataTable({
   // Assigned
   if (node.assigned_to) {
     rows.push({ key: "Assigned", value: node.assigned_to })
-  }
-
-  // Location — filesystem path (e.g., "board/col1"), shown separately from project tags
-  if (projectPath.length > 0) {
-    rows.push({ key: "Location", value: projectPath.join("/") })
   }
 
   // Projects — prefer data.projectMemberships (rich: project + section) over inline +project refs
@@ -515,10 +512,6 @@ function ColumnItems({
         const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
-            {/* Dot separator between top-level items */}
-            {depth === 0 && idx > 0 && (
-              <Text dimColor>{"· ".repeat(Math.min(3, Math.floor((innerWidth - 2) / 2)))}</Text>
-            )}
             <Text wrap="wrap" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
@@ -558,10 +551,13 @@ const MD_LINK_LINE_RE = /^!?\[([^\]]+)\]\(([^)]+)\)$/
  * Attachment links ([name](url)) are shown with both name and readable URL.
  * Other lines are rendered with standard rich text formatting. */
 function BodyBlock({ content, innerWidth }: { content: string; innerWidth: number }): React.ReactElement {
-  const lines = content.split("\n").filter((l) => l.trim() !== "")
+  const lines = content.split("\n")
   return (
     <Box flexDirection="column" width={innerWidth}>
       {lines.map((line, i) => {
+        if (line.trim() === "") {
+          return <Text key={`blank-${i}`}>{" "}</Text>
+        }
         const linkMatch = line.match(MD_LINK_LINE_RE)
         if (linkMatch) {
           const [, name, url] = linkMatch

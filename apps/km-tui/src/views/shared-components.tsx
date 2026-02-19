@@ -230,6 +230,7 @@ export const MemoizedColumnHeader = React.memo(
           width={width}
           isColumnSelected={isColSelected}
           isSelected={isSelected}
+          wipLimit={column.wipLimit}
           showTopSpacer={showTopSpacer}
           showSeparator={showSeparator}
         />

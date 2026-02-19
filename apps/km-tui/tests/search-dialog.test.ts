@@ -409,3 +409,58 @@ describe("Search scope: scope node capture", () => {
     expect(text).not.toContain("Gamma")
   })
 })
+
+// ---------------------------------------------------------------------------
+// km-tui.search-blank: Special characters crash search dialog
+// ---------------------------------------------------------------------------
+
+describe("Bug: special characters in search cause blank screen (km-tui.search-blank)", () => {
+  function makeSearchBoard() {
+    return testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("ready-made task"), item("Alpha testing"), item("Beta project")),
+          item("col2", item("Gamma ray"), item("Delta force")),
+        ),
+      { columns: 100, rows: 30 },
+    )
+  }
+
+  test("typing 'ready-' does not blank the screen", () => {
+    const { board } = makeSearchBoard()
+
+    board.press("/")
+    // Type "ready-" character by character
+    for (const c of "ready-") board.press(c)
+
+    const output = board.screenshot()
+
+    // The search dialog must still be visible — not blank
+    expect(output).toContain("Search")
+    // Should show input text
+    expect(output).toContain("ready-")
+  })
+
+  test("typing backtick does not blank the screen", () => {
+    const { board } = makeSearchBoard()
+
+    board.press("/")
+    board.press("`")
+
+    const output = board.screenshot()
+
+    // The search dialog must still be visible — not blank
+    expect(output).toContain("Search")
+  })
+
+  test("typing parentheses in search does not crash", () => {
+    const { board } = makeSearchBoard()
+
+    board.press("/")
+    board.press("(").press("t").press("e").press("s").press("t").press(")")
+
+    const output = board.screenshot()
+    expect(output).toContain("Search")
+  })
+})

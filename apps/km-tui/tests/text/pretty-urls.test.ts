@@ -232,4 +232,64 @@ describe("board: URL prettification in cards", () => {
     expect(text).toContain("Google")
     expect(text).not.toContain("google.com")
   })
+
+  it("card body with URL does not show raw escape sequences when truncated", () => {
+    // Use a narrow terminal so the URL text gets truncated by wrap="truncate"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("Task with https://www.example.com/very/long/path/that/will/be/truncated")),
+        ),
+      { rows: 20, columns: 40 },
+    )
+
+    // Check the rendered buffer for escape sequence artifacts
+    const screenText = board.screen.text
+    // OSC 8 escape sequences should never appear as visible text in the buffer.
+    // If slice-ansi misparses OSC 8, you get visible garbage like "]8;;" or raw URL fragments.
+    expect(screenText).not.toContain("]8;;")
+    expect(screenText).not.toContain("\x1b]")
+    expect(screenText).not.toContain("\x1b\\")
+    // The prettified URL should be visible (or truncated with ellipsis), not raw escape codes
+    expect(screenText).not.toContain("https://")
+    expect(screenText).not.toContain("www.")
+  })
+
+  it("card body with URL in child node does not show escape sequences", () => {
+    // A card with a child that has a URL — child gets wrap="truncate" as isCardChild
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item.file(
+              "Parent",
+              item("Child text with https://www.example.com/some/very/long/path/here"),
+            ),
+          ),
+        ),
+      { rows: 20, columns: 40 },
+    )
+
+    const screenText = board.screen.text
+    expect(screenText).not.toContain("]8;;")
+    expect(screenText).not.toContain("\x1b]")
+    expect(screenText).not.toContain("\x1b\\")
+  })
+
+  it("slice-ansi does not corrupt OSC 8 hyperlink text", () => {
+    // Direct test: renderRich produces OSC 8 sequences, verify they don't
+    // produce visible garbage when stripped by stripAnsi
+    const rich = renderRich("Task with https://www.example.com/very/long/path/that/will/truncate")
+    // Should contain OSC 8
+    expect(rich).toContain("\x1b]8;;")
+
+    // stripAnsi should cleanly remove all escape sequences
+    const plain = stripAnsi(rich)
+    expect(plain).not.toContain("\x1b")
+    expect(plain).not.toContain("]8;;")
+    expect(plain).toContain("example.com")
+  })
 })

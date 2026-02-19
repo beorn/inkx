@@ -493,6 +493,42 @@ describe("date badge display", () => {
     expect(screen).toContain("P2")
   })
 
+  it("child count appears before date badge in columns view (km-tui.oneliner-order)", () => {
+    // A card with children AND a due date should show: Title ... COUNT ... date
+    // COUNT (right-aligned) should come before date badge (rightmost)
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item("Parent task", item("child-a"), item("child-b"), item("child-c")),
+      ),
+    )
+    // Set due_at on the parent task (the card that has children)
+    const parentNode = nodes.find((n) => n.data?.name === "Parent task")!
+    parentNode.due_at = "2026-09-15"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24, viewMode: "columns" })
+
+    // Find the row containing "Parent task"
+    const nodeBox = board.screen.nodeBox("Parent task")
+    expect(nodeBox, "Parent task node should exist").not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+
+    // Both child count (3) and date (Sep 15) should appear
+    const countIdx = row.indexOf(" 3")
+    const dateIdx = row.indexOf("Sep 15")
+    expect(countIdx, "child count '3' should be visible in the row").toBeGreaterThan(-1)
+    expect(dateIdx, "date badge 'Sep 15' should be visible in the row").toBeGreaterThan(-1)
+
+    // COUNT must appear before date
+    expect(
+      countIdx,
+      `child count (at ${countIdx}) should appear before date badge (at ${dateIdx}): "${row}"`,
+    ).toBeLessThan(dateIdx)
+  })
+
   it("date badge appears after 'td' key simulation (full workflow)", async () => {
     // Simulate the full workflow: user presses 'td', types a date, presses Enter
     const nodes = item("board", item("col1", item.task("My task")))

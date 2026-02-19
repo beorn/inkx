@@ -555,8 +555,9 @@ function TreeNodeImpl({
     [displayNode.id, displayNode.assigned_to, displayNode.task_status, isOneliner, rootBoardId, getBoardPills],
   )
 
-  // Compact child count: shown in cards view (hideChildCount) as a dimmed inline indicator
-  const showInlineChildCount = hideChildCount && hasChildren && childCount > 0
+  // Inline child count on card titles — removed in favor of +N overflow indicator.
+  // Only column headers show count (and only when WIP limit is configured).
+  const showInlineChildCount = false
 
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
   const dateBadge = useMemo(
@@ -742,22 +743,24 @@ function TreeNodeImpl({
               </Text>
             )}
           </Box>
+          {/* Right-aligned: child count — always gray (black when selected) */}
+          {/* Never bold: bold gray renders as bright/white on terminals */}
+          {/* Hidden in card views where overflow indicator shows the count */}
+          {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
+          {hasChildren && !hideChildCount && (
+            <Box flexShrink={0}>
+              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
+            </Box>
+          )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
           {/* Hidden during inline editing — metadata is shown in the editable text */}
+          {/* Rightmost element in the row — dates are the last thing on the line */}
           {dateBadge && !isInlineEditing && !style.isDoneOrDropped && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
                 {" "}
                 {shouldStripColor ? stripFgColor(dateBadge) : dateBadge}
               </Text>
-            </Box>
-          )}
-          {/* Right-aligned: child count — always gray (black when selected) */}
-          {/* Never bold: bold gray renders as bright/white on terminals */}
-          {/* Hidden in card views where overflow indicator shows the count */}
-          {hasChildren && !hideChildCount && (
-            <Box flexShrink={0}>
-              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
             </Box>
           )}
         </Box>

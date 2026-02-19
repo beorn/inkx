@@ -994,3 +994,40 @@ More content
     expect(result.warnings[0]?.type).toBe("multiple_h1")
   })
 })
+
+// =============================================================================
+// nodeToText — image node handling (km-tui.import-mangled)
+// =============================================================================
+
+describe("nodeToText handles image nodes", () => {
+  // Import nodeToText from the parser
+  const { nodeToText } = require("../src/parser.ts") as { nodeToText: (node: any) => string }
+
+  test("returns alt text for image node", () => {
+    const imageNode = { type: "image", url: "https://example.com/photo.png", alt: "A photo" }
+    expect(nodeToText(imageNode)).toBe("A photo")
+  })
+
+  test("returns empty string for image node without alt text", () => {
+    const imageNode = { type: "image", url: "https://example.com/photo.png" }
+    expect(nodeToText(imageNode)).toBe("")
+  })
+
+  test("returns empty string for image node with empty alt text", () => {
+    const imageNode = { type: "image", url: "https://example.com/photo.png", alt: "" }
+    expect(nodeToText(imageNode)).toBe("")
+  })
+
+  test("extracts image alt text within paragraph children", () => {
+    // Simulates a paragraph containing text + image: "See ![diagram](url) for details"
+    const paragraphNode = {
+      type: "paragraph",
+      children: [
+        { type: "text", value: "See " },
+        { type: "image", url: "https://example.com/diagram.png", alt: "diagram" },
+        { type: "text", value: " for details" },
+      ],
+    }
+    expect(nodeToText(paragraphNode)).toBe("See diagram for details")
+  })
+})

@@ -168,15 +168,17 @@ export function ColumnHeader({
                   {collapsedIndicator}
                 </Text>
               </Box>
-              <Box flexShrink={0}>
-                <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
-                  {wipExceeded ? (
-                    <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
-                  ) : (
-                    <Text color={isColumnSelected ? headerStyle.color : "gray"}>{` ${countDisplay}`}</Text>
-                  )}
-                </Text>
-              </Box>
+              {wipLimit !== undefined && (
+                <Box flexShrink={0}>
+                  <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
+                    {wipExceeded ? (
+                      <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
+                    ) : (
+                      <Text color={isColumnSelected ? headerStyle.color : "gray"}>{` ${countDisplay}`}</Text>
+                    )}
+                  </Text>
+                </Box>
+              )}
             </>
           )}
         </Box>

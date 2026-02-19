@@ -51,11 +51,24 @@ describe("Columns View", () => {
       board.expect("#1b").toExist()
     })
 
-    test("shows column headers with count", () => {
+    test("column header hides count without WIP limit", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
       const output = board.screenshot()
       expect(output).toContain("col1")
-      expect(output).toContain(" 3")
+      // Count is hidden when no WIP limit — +N overflow indicator is sufficient
+      const lines = output.split("\n")
+      const headerLine = lines.find((l) => l.includes("col1") && !l.includes(">"))
+      expect(headerLine).toBeDefined()
+      expect(headerLine).not.toMatch(/\b3\b/)
+    })
+
+    test("column header shows count/wip with WIP limit", () => {
+      const { board } = columnsBoard(() =>
+        item("board", item("col1 km.limit:: 5", item("1a"), item("1b"), item("1c"))),
+      )
+      const output = board.screenshot()
+      expect(output).toContain("col1")
+      expect(output).toContain("3/5")
     })
 
     test("displays multiple columns side by side", () => {
@@ -72,7 +85,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("task")), item("col2")))
       const output = board.screenshot()
       expect(output).toContain("col2")
-      expect(output).toContain(" 0")
+      // Count is hidden without WIP limit — no "0" shown
     })
 
     test("empty board shows helpful message", () => {

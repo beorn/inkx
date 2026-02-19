@@ -449,6 +449,11 @@ export function nodeToText(node: RootContent | Root): string {
     return node.value
   }
 
+  // Image nodes have no children or value — use alt text
+  if (node.type === "image") {
+    return (node as { alt?: string }).alt || ""
+  }
+
   if ("children" in node && Array.isArray(node.children)) {
     return node.children.map((child) => nodeToText(child as RootContent)).join("")
   }

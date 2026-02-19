@@ -44,10 +44,23 @@ describe("Display", () => {
     expect(headerLine).toBeDefined()
   })
 
-  test("column headers show card count", () => {
+  test("column headers hide card count without WIP limit", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
     const output = board.screenshot()
-    expect(output).toContain(" 3")
+    // Count is hidden when no WIP limit is set — the +N overflow indicator is sufficient
+    // Check that the column header "col" does not show the count "3"
+    const lines = output.split("\n")
+    const headerLine = lines.find((l) => l.includes("col") && !l.includes(">"))
+    expect(headerLine).toBeDefined()
+    expect(headerLine).not.toMatch(/\b3\b/)
+  })
+
+  test("column headers show count/wip with WIP limit", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col km.limit:: 5", item("task1"), item("task2"), item("task3"))),
+    )
+    const output = board.screenshot()
+    expect(output).toContain("3/5")
   })
 })
 

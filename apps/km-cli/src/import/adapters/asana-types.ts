@@ -10,6 +10,20 @@ export const turndown = new TurndownService({
   codeBlockStyle: "fenced",
 })
 
+// Asana html_notes uses <h1>/<h2>/etc. tags. Turndown's default ATX conversion
+// produces `# Heading` markdown, which km's parser interprets as new sections —
+// splitting one task's description into multiple items on re-parse.
+// Convert heading tags to **bold text** instead to preserve the visual emphasis
+// without creating structural headings.
+turndown.addRule("headings-to-bold", {
+  filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
+  replacement: (content) => {
+    const trimmed = content.trim()
+    if (!trimmed) return ""
+    return `\n\n**${trimmed}**\n\n`
+  },
+})
+
 /** Asana task shape from API */
 export interface AsanaApiTask {
   gid: string

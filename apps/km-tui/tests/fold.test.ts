@@ -1151,15 +1151,16 @@ describe("fold count color", () => {
 
   describe("column header count with ownColor", () => {
     function createColorBoard() {
-      // Two columns: col-colored (cyan) and col-other.
+      // Two columns: col-colored (cyan, WIP limit 5) and col-other.
       // Navigate cursor to col-other so col-colored is unselected.
+      // WIP limit is required for count to be visible.
       const nodes = item(
         "board",
-        item("col-colored", item("c1"), item("c2"), item("c3")),
+        item("col-colored km.limit:: 5", item("c1"), item("c2"), item("c3")),
         item("col-other", item("other-task")),
       )
       // Set color on the column node
-      nodes.find((n) => n.id === "col-colored")!.rules = { color: "cyan" } as any
+      nodes.find((n) => n.id === "col-colored km.limit:: 5")!.rules = { color: "cyan", limit: 5 } as any
       return testEnv(() => nodes, { columns: 80, rows: 24 })
     }
 
@@ -1173,13 +1174,13 @@ describe("fold count color", () => {
       const headerRow = board.screen.findRow("col-colored")
       expect(headerRow, "header row found").toBeGreaterThanOrEqual(0)
 
-      // Find the "3" count in the first column (left half of screen).
+      // Find the "3/5" count in the first column (left half of screen).
       // With 80 cols and 2 columns, col-colored is in the first ~40 chars.
       const rowText = board.screen.row(headerRow)
       const halfWidth = Math.floor(80 / 2)
       const leftHalf = rowText.slice(0, halfWidth)
-      const countMatch = leftHalf.match(/(\d+)\s*$/)
-      expect(countMatch, "count digit found in col-colored header").not.toBeNull()
+      const countMatch = leftHalf.match(/(\d+\/\d+)\s*$/)
+      expect(countMatch, "count/wip found in col-colored header").not.toBeNull()
       const countX = countMatch!.index!
 
       const cell = board.screen.cell(countX, headerRow)

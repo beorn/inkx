@@ -46,14 +46,34 @@ export function toFts5Query(query: string): string {
       }
     } else if (token.startsWith("-")) {
       // Negation: NOT term
-      parts.push(`NOT ${token.slice(1)}*`)
+      const term = token.slice(1)
+      const escaped = escapeFts5Token(term)
+      if (escaped) parts.push(`NOT ${escaped}`)
     } else {
       // Regular term with prefix matching
-      parts.push(`${token}*`)
+      const escaped = escapeFts5Token(token)
+      if (escaped) parts.push(escaped)
     }
   }
 
   return parts.join(" ")
+}
+
+/**
+ * Escape a token for safe use in FTS5 queries.
+ *
+ * FTS5 has many special characters (-, `, ^, :, (, ), etc.) that cause
+ * query parse errors when used raw. Strategy:
+ * - Strip non-alphanumeric characters from the token
+ * - If anything remains, use prefix matching (term*)
+ * - Returns null for tokens that are entirely special characters
+ */
+function escapeFts5Token(token: string): string | null {
+  // Strip characters that are special in FTS5 syntax: - ` ^ : ( ) { } ~ + * " and other punctuation.
+  // Keep only word characters (letters, digits, underscore) which are safe for FTS5.
+  const cleaned = token.replace(/[^\p{L}\p{N}_]/gu, "")
+  if (cleaned.length === 0) return null
+  return `${cleaned}*`
 }
 
 /**
@@ -62,22 +82,31 @@ export function toFts5Query(query: string): string {
 export function search(db: Database, query: string, limit = 50): KNode[] {
   const ftsQuery = toFts5Query(query)
 
+  // Empty FTS query (e.g., user typed only special characters) — return no results
+  if (!ftsQuery) return []
+
   log.debug?.(`search: ${query} → fts5: ${ftsQuery}`)
 
-  const rows = db
-    .query(
-      `
+  try {
+    const rows = db
+      .query(
+        `
     SELECT n.* FROM nodes n
     JOIN nodes_fts f ON n.id = f.id
     WHERE nodes_fts MATCH ?
     ORDER BY rank
     LIMIT ?
   `,
-    )
-    .all(ftsQuery, limit) as Record<string, unknown>[]
+      )
+      .all(ftsQuery, limit) as Record<string, unknown>[]
 
-  log.debug?.(`search: found ${rows.length} results`)
-  return rows.map(rowToNode)
+    log.debug?.(`search: found ${rows.length} results`)
+    return rows.map(rowToNode)
+  } catch (err) {
+    // FTS5 can reject queries that slip past our escaping — return empty rather than crash
+    log.debug?.(`search: FTS5 error for "${ftsQuery}": ${err}`)
+    return []
+  }
 }
 
 /**
@@ -113,14 +142,18 @@ export function searchWithSnippet(
 ): SearchResult[] {
   const ftsQuery = toFts5Query(query)
 
+  // Empty FTS query (e.g., user typed only special characters) — return no results
+  if (!ftsQuery) return []
+
   const { startMark = "<<", endMark = ">>", ellipsis = "...", maxTokens = 32 } = snippetOptions
 
-  // Use snippet() function for highlighting
-  // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)
-  // column_idx 1 = content column
-  const rows = db
-    .query(
-      `
+  try {
+    // Use snippet() function for highlighting
+    // snippet(fts_table, column_idx, start_mark, end_mark, ellipsis, max_tokens)
+    // column_idx 1 = content column
+    const rows = db
+      .query(
+        `
     SELECT n.*, snippet(nodes_fts, 1, ?, ?, ?, ?) as snippet
     FROM nodes n
     JOIN nodes_fts f ON n.id = f.id
@@ -128,13 +161,17 @@ export function searchWithSnippet(
     ORDER BY rank
     LIMIT ?
   `,
-    )
-    .all(startMark, endMark, ellipsis, maxTokens, ftsQuery, limit) as Array<
-    Record<string, unknown> & { snippet: string }
-  >
+      )
+      .all(startMark, endMark, ellipsis, maxTokens, ftsQuery, limit) as Array<
+      Record<string, unknown> & { snippet: string }
+    >
 
-  return rows.map((row) => ({
-    node: rowToNode(row),
-    snippet: row.snippet ?? "",
-  }))
+    return rows.map((row) => ({
+      node: rowToNode(row),
+      snippet: row.snippet ?? "",
+    }))
+  } catch (err) {
+    log.debug?.(`searchWithSnippet: FTS5 error for "${ftsQuery}": ${err}`)
+    return []
+  }
 }

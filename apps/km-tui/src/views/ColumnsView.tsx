@@ -144,6 +144,7 @@ const ColumnTree = React.memo(function ColumnTree({
         width={width}
         isColumnSelected={isColumnHeaderSelected}
         isSelected={isSelected}
+        wipLimit={column.wipLimit}
         showSeparator
       />
 

@@ -1,94 +1,122 @@
 /**
- * Card count indicator tests.
+ * Card/column count display tests.
  *
- * Feature: km-tui.card-counts
- * Cards with children (subtasks) show a compact dimmed count indicator
- * after the card title in cards view. This helps users see at a glance
- * how many subtasks a card has, similar to Asana/Trello.
+ * Feature: km-tui.card-count-wip
  *
- * The count is rendered as a separate dimmed Text element in the title line,
- * only visible in cards view where the right-aligned child count is hidden.
- * In columns/list view, the traditional right-aligned count is shown instead.
+ * Column headers only show a count when a WIP limit is configured.
+ * When shown, the count is formatted as "count/wip" (e.g., "3/5").
+ * Without a WIP limit, no count is shown — the +N overflow indicator
+ * is sufficient.
+ *
+ * Card titles (in cards view) never show an inline child count —
+ * the +N overflow indicator replaces that behavior.
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
+/**
+ * Find the column header row by looking for a row that contains the column name
+ * but is NOT the breadcrumb row (which contains ">").
+ * The separator line (───) appears right after the column header.
+ */
+function findColumnHeaderRow(screenText: string, columnName: string): number {
+  const rows = screenText.split("\n")
+  // Find the separator row (all dashes), then the header is the row before it
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].includes("─") && rows[i - 1].includes(columnName) && !rows[i - 1].includes(">")) {
+      return i - 1
+    }
+  }
+  return -1
+}
+
 // =============================================================================
-// Integration: card count display in cards view
+// Column header count display
 // =============================================================================
 
-describe("card count in cards view", () => {
-  test("card with children shows dimmed count indicator", () => {
+describe("column header count", () => {
+  test("column header hides count when no WIP limit", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("col", item("parent", item("child1"), item("child2"), item("child3"))),
+          item("nocap", item("task-a"), item("task-b"), item("task-c")),
         ),
       { columns: 60, rows: 24 },
     )
 
-    // The card title "parent" should have a count indicator showing "3"
-    // (3 children). It appears as a dimmed number after the title.
+    const headerRow = findColumnHeaderRow(board.screen.text, "nocap")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should NOT contain any digits (no card count)
+    // because there is no WIP limit configured
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("nocap")
+    expect(rowText).not.toMatch(/\d/)
+  })
+
+  test("column header shows count/wip when WIP limit configured", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("capped km.limit:: 5", item("task-a"), item("task-b"), item("task-c")),
+        ),
+      { columns: 60, rows: 24 },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "capped")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should show "3/5" (3 cards, WIP limit 5)
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("capped")
+    expect(rowText).toContain("3/5")
+  })
+
+  test("column header shows warning when WIP limit exceeded", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("overflow km.limit:: 2", item("task-a"), item("task-b"), item("task-c")),
+        ),
+      { columns: 60, rows: 24 },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "overflow")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should show "3/2" (3 cards, WIP limit 2) with warning
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("overflow")
+    expect(rowText).toContain("3/2")
+  })
+})
+
+// =============================================================================
+// Card title inline count (removed)
+// =============================================================================
+
+describe("card title inline count (removed)", () => {
+  test("card title does NOT show inline child count", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("parent", item("child-a"), item("child-b"), item("child-c"))),
+        ),
+      { columns: 60, rows: 24 },
+    )
+
+    // The card title "parent" should NOT have a count indicator
+    // The inline child count was removed in favor of the +N overflow indicator
     const box = board.screen.nodeBox("parent")
     expect(box, "parent card should exist").not.toBeNull()
     if (!box) return
 
-    // Scan the title line for the count "3"
-    let found3 = false
-    for (let x = box.x; x < box.x + box.width; x++) {
-      const cell = board.screen.cell(x, box.y)
-      if (cell.char === "3") {
-        found3 = true
-        // The count should be dimmed
-        expect(
-          (cell.attrs as Record<string, unknown>).dim,
-          `count "3" at (${x},${box.y}) should be dimmed`,
-        ).toBe(true)
-        break
-      }
-    }
-    expect(found3, 'count "3" should appear on the card title line').toBe(true)
-  })
-
-  test("card with single child shows count 1", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item("solo-parent", item("only-child")))),
-      { columns: 60, rows: 24 },
-    )
-
-    const box = board.screen.nodeBox("solo-parent")
-    expect(box, "solo-parent should exist").not.toBeNull()
-    if (!box) return
-
-    let found1 = false
-    for (let x = box.x; x < box.x + box.width; x++) {
-      const cell = board.screen.cell(x, box.y)
-      if (cell.char === "1") {
-        found1 = true
-        expect(
-          (cell.attrs as Record<string, unknown>).dim,
-          `count "1" at (${x},${box.y}) should be dimmed`,
-        ).toBe(true)
-        break
-      }
-    }
-    expect(found1, 'count "1" should appear on the card title line').toBe(true)
-  })
-
-  test("leaf card (no children) does not show count", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item("leaf-task"))),
-      { columns: 60, rows: 24 },
-    )
-
-    const box = board.screen.nodeBox("leaf-task")
-    expect(box, "leaf-task should exist").not.toBeNull()
-    if (!box) return
-
-    // "leaf-task" contains no digits, so any digit on the title line
-    // would be a count indicator (which should not exist for leaf nodes)
+    // Scan the title line — no digit should appear (parent has no digits in name)
     let foundDigit = false
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = board.screen.cell(x, box.y)
@@ -97,12 +125,10 @@ describe("card count in cards view", () => {
         break
       }
     }
-    expect(foundDigit, "leaf node should not have a count indicator").toBe(false)
+    expect(foundDigit, "card title should not have an inline count indicator").toBe(false)
   })
 
-  test("count reflects total children, not just visible ones", () => {
-    // Create a card with many children (more than maxContentLines)
-    // The count should show total, not just visible
+  test("card title does NOT show count even with many children", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -111,13 +137,13 @@ describe("card count in cards view", () => {
             "col",
             item(
               "big-parent",
-              item("c1"),
-              item("c2"),
-              item("c3"),
-              item("c4"),
-              item("c5"),
-              item("c6"),
-              item("c7"),
+              item("ca"),
+              item("cb"),
+              item("cc"),
+              item("cd"),
+              item("ce"),
+              item("cf"),
+              item("cg"),
             ),
           ),
         ),
@@ -128,36 +154,59 @@ describe("card count in cards view", () => {
     expect(box, "big-parent should exist").not.toBeNull()
     if (!box) return
 
-    // Should show "7" on the title line
-    let found7 = false
+    // No digit should appear on the card title line
+    let foundDigit = false
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = board.screen.cell(x, box.y)
-      if (cell.char === "7") {
-        found7 = true
+      if (/\d/.test(cell.char)) {
+        foundDigit = true
         break
       }
     }
-    expect(found7, 'count "7" should appear on the card title line').toBe(true)
+    expect(foundDigit, "card title should not have an inline count indicator").toBe(false)
   })
 })
 
 // =============================================================================
-// Integration: columns view uses right-aligned count (not inline)
+// Columns view: count behavior matches cards view
 // =============================================================================
 
-describe("columns view child count", () => {
-  test("columns view shows right-aligned count, not inline", () => {
+describe("columns view column header count", () => {
+  test("columns view hides count when no WIP limit", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
-          item("col", item("parent", item("child1"), item("child2"))),
+          item("nocol", item("parent", item("child-a"), item("child-b"))),
         ),
       { columns: 60, rows: 24, viewMode: "columns" },
     )
 
-    // In columns view, hideChildCount is false, so the right-aligned count
-    // is shown. The "2" should be visible somewhere on screen.
-    board.expectScreen("2")
+    const headerRow = findColumnHeaderRow(board.screen.text, "nocol")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // No count should appear on the header row
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("nocol")
+    expect(rowText).not.toMatch(/\d/)
+  })
+
+  test("columns view shows count/wip when WIP limit configured", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("limited km.limit:: 5", item("parent", item("child-a"), item("child-b"))),
+        ),
+      { columns: 60, rows: 24, viewMode: "columns" },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "limited")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // Should show "1/5" (1 card, WIP limit 5)
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("limited")
+    expect(rowText).toContain("1/5")
   })
 })

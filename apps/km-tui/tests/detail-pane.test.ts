@@ -336,8 +336,8 @@ describe("DetailPane", () => {
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
-    expect(app.text).toContain("Location")
-    expect(app.text).toContain("Work/Finance")
+    // Location shown as breadcrumb above title, not as a metadata row
+    expect(app.text).toContain("Work / Finance")
   })
 
   test("shows keybindings hint", () => {
@@ -646,5 +646,131 @@ describe("DetailPane", () => {
     const app = renderDetailPane(repo, target, 50, 24)
     expect(app.text).toContain("Backlinks")
     expect(app.text).toContain("Meeting Notes")
+  })
+
+  test("does not show Depth, Type, or ID as metadata rows", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "li",
+          content: "Clean task",
+          task_status: "todo",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // These should NOT appear as metadata property labels in the rendered output
+    // The rendered lines have border chars (│) and padding, so check for the label patterns
+    expect(app.text).not.toMatch(/\bID\s{2,}/)
+    expect(app.text).not.toMatch(/\bType\s{2,}/)
+    expect(app.text).not.toMatch(/\bDepth\s{2,}/)
+  })
+
+  test("shows location on the title line, not as a metadata row", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
+        {
+          id: "folder2",
+          type: "oi",
+          fstype: "folder" as const,
+          content: "Finance",
+          parent_id: "folder1",
+        },
+        {
+          id: "task1",
+          type: "li",
+          content: "Review budget",
+          parent_id: "folder2",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Location path should appear as breadcrumb (with " / " separators)
+    expect(app.text).toContain("Work / Finance")
+    // But NOT as a metadata row with "Location" label followed by padding
+    expect(app.text).not.toMatch(/\bLocation\s{2,}/)
+    // Location should be on the same line as the title or immediately above it as breadcrumb
+    const lines = app.text.split("\n")
+    const titleLine = lines.find((l: string) => l.includes("Review budget"))
+    const locationLine = lines.find((l: string) => l.includes("Work / Finance"))
+    // Location should be on the title line or immediately above it
+    expect(locationLine).toBeDefined()
+    if (titleLine && locationLine) {
+      const titleIdx = lines.indexOf(titleLine)
+      const locIdx = lines.indexOf(locationLine)
+      // Location should be on the same line as title or at most 1 line above
+      expect(locIdx).toBeLessThanOrEqual(titleIdx)
+      expect(titleIdx - locIdx).toBeLessThanOrEqual(1)
+    }
+  })
+
+  test("no dot separators between top-level subitems", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "parent1", type: "oi", content: "Parent task" },
+        {
+          id: "sub1",
+          type: "li",
+          content: "First subtask",
+          parent_id: "parent1",
+          task_marker: "[ ]",
+        },
+        {
+          id: "sub2",
+          type: "li",
+          content: "Second subtask",
+          parent_id: "parent1",
+          parent_idx: 1,
+          task_marker: "[ ]",
+        },
+        {
+          id: "sub3",
+          type: "li",
+          content: "Third subtask",
+          parent_id: "parent1",
+          parent_idx: 2,
+          task_marker: "[ ]",
+        },
+      ]),
+    })
+    const parent = repo.getNode("parent1")!
+    const app = renderDetailPane(repo, parent, 60, 30)
+    // All subtasks should be present
+    expect(app.text).toContain("First subtask")
+    expect(app.text).toContain("Second subtask")
+    expect(app.text).toContain("Third subtask")
+    // No dot separators (· · ·) should appear between items
+    expect(app.text).not.toContain("·")
+  })
+
+  test("body text preserves paragraph breaks as blank lines", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "task1", type: "li", content: "Task with paragraphs" },
+        {
+          id: "body1",
+          type: "p",
+          content: "First paragraph line one.\nFirst paragraph line two.\n\nSecond paragraph starts here.\nSecond paragraph line two.",
+          parent_id: "task1",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 30)
+    // Both paragraphs should be present
+    expect(app.text).toContain("First paragraph line one.")
+    expect(app.text).toContain("Second paragraph starts here.")
+    // Find the lines in the rendered output
+    const lines = app.text.split("\n")
+    const firstParaIdx = lines.findIndex((l: string) => l.includes("First paragraph line two."))
+    const secondParaIdx = lines.findIndex((l: string) => l.includes("Second paragraph starts here."))
+    // There should be at least one blank/spacer line between the two paragraphs
+    expect(firstParaIdx).toBeGreaterThan(-1)
+    expect(secondParaIdx).toBeGreaterThan(-1)
+    expect(secondParaIdx - firstParaIdx).toBeGreaterThanOrEqual(2)
   })
 })
