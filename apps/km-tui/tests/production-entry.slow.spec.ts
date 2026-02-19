@@ -75,6 +75,8 @@ function buildStoreParams(
     navigator: createGridNavigator(),
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      cursorCardNodeId: selectedCard?.node.id ?? null,
+      cursorColumnNodeId: selectedCol?.node.id ?? null,
       colIndex: 0,
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,

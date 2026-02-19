@@ -14,13 +14,11 @@ import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:columns")
 import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
-import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
-import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from "../ui-context.tsx"
-import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
+import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useIsColumnSelected, useCursorColIndex } from "../cursor-context.tsx"
+import { useIsColumnSelectedByNode, useCursorColIndex } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
@@ -72,30 +70,30 @@ const ColumnTree = React.memo(function ColumnTree({
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
-  const columnSelected = useIsColumnSelected(colIndex)
+  // NODE MODEL V2: Self-select by nodeId instead of positional index.
+  const columnSelected = useIsColumnSelectedByNode(column.node.id)
   const isSelected = columnSelected.isSelected
   const selectionLevel = columnSelected.selectionLevel
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
 
-  // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(repo, column.node))
-  const untitled = isNodeUntitled(repo, column.node)
   const count = column.cards.length
-  const ownColor = getOwnColor(column.node)
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column"
-  const headerStyle = getHeaderStyle(ownColor, isSelected, isColumnHeaderSelected)
 
-  const icon = getColumnHeaderIcon(column.node, iconStyle, false, ownColor)
-  const iconColor = isColumnHeaderSelected ? "black" : icon.color
+  // Derive column header presentation props (icon, colors, style)
+  const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {
+    iconStyle,
+    isSelected,
+    isColumnSelected: isColumnHeaderSelected,
+  })
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const columnExcludedSigils = useMemo(
-    () => deriveColumnExcludedSigils(name, column.node.id, column.node.fs_path),
-    [name, column.node.id, column.node.fs_path],
+    () => deriveColumnExcludedSigils(displayName, column.node.id, column.node.fs_path),
+    [displayName, column.node.id, column.node.fs_path],
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
@@ -134,46 +132,20 @@ const ColumnTree = React.memo(function ColumnTree({
       height={height}
       overflow="hidden"
     >
-      {/* Header section */}
-      <Box flexDirection="column" height={2} flexShrink={0}>
-        {/* Header row - spacer boxes simulate card border for matching inverse width */}
-        <Box flexDirection="row">
-          <Box width={1} flexShrink={0} />
-          <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
-            <Box flexGrow={1} flexShrink={1} overflow="hidden">
-              <Text bold color={headerStyle.color} wrap="truncate">
-                <Text color={iconColor}>{icon.char}</Text>{" "}
-                <Text color={isColumnHeaderSelected ? undefined : ownColor}>
-                  {untitled ? (
-                    <Text dimColor color="gray">
-                      {name}
-                    </Text>
-                  ) : (
-                    name
-                  )}
-                  {isSigilName(column.node.name) && column.node.name !== name && (
-                    <>
-                      {" "}
-                      <Text dimColor>{column.node.name}</Text>
-                    </>
-                  )}
-                </Text>
-              </Text>
-            </Box>
-            <Box flexShrink={0}>
-              <Text bold color={headerStyle.color}>
-                <Text color={isColumnHeaderSelected ? "gray" : ownColor} dimColor>
-                  {` ${count}`}
-                </Text>
-              </Text>
-            </Box>
-          </Box>
-          <Box width={1} flexShrink={0} />
-        </Box>
-        <Text dimColor wrap="truncate">
-          {"─".repeat(100)}
-        </Text>
-      </Box>
+      {/* Column header — unified NodeView component */}
+      <ColumnHeader
+        node={column.node}
+        displayName={displayName}
+        untitled={untitled}
+        ownColor={ownColor}
+        headerStyle={headerStyle}
+        icon={icon}
+        cardCount={count}
+        width={width}
+        isColumnSelected={isColumnHeaderSelected}
+        isSelected={isSelected}
+        showSeparator
+      />
 
       {/* Cards with ScrollTrackingVirtualList */}
       {column.cards.length > 0 ? (

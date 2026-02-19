@@ -206,6 +206,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     navigator,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      cursorCardNodeId: selectedCard?.node.id ?? null,
+      cursorColumnNodeId: selectedCol?.node.id ?? null,
       colIndex: 0,
       cardIndex: 0,
       selectionLevel: initialSelectionLevel,
@@ -296,8 +298,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const driverPress = async (key: string): Promise<App> => {
     // Parse the key and route through the board-app key handler.
     // Must run inside act() so that Zustand → useApp → setState updates are
-    // processed synchronously by React, triggering Board L3 re-render +
-    // useEffect(updateLayout) within the same act() boundary.
+    // processed synchronously by React, triggering Board L3 re-render.
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
@@ -310,8 +311,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       store.setState((s) => s)
     })
 
-    // Trigger a second act() to flush any remaining effects (e.g. updateLayout
-    // writing back to store → further useApp subscriptions → re-renders).
+    // Trigger a second act() to flush any remaining effects (e.g. CursorStore
+    // sync → further useApp subscriptions → re-renders).
     // originalPress sends the raw key through stdin which Board L3 ignores,
     // but the act() boundary inside sendInput flushes pending React work.
     return originalPress(key)

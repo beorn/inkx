@@ -608,7 +608,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const navigator = useAppStore<BoardAppStore, GridNavigator>((s) => s.navigator)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
-  const updateLayout = useAppStore<BoardAppStore, BoardAppStore["updateLayout"]>((s) => s.updateLayout)
+  // NODE MODEL V2: updateLayout action eliminated. Instead, the store provides
+  // syncLayout() which silently updates layout fields without triggering subscribers.
+  const syncLayout = useAppStore<BoardAppStore, BoardAppStore["syncLayout"]>((s) => s.syncLayout)
 
   // Console stats via direct subscription
   const [consoleStats, setConsoleStats] = useState<{ total: number; errors: number; warnings: number } | undefined>()
@@ -773,49 +775,13 @@ export function Board({ patchedConsole }: BoardProps) {
   const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
   const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
-  // Push derived layout back to store so term:key handler has fresh data.
-  // IMPORTANT: Store gets the full (unfiltered) columnsLayout so key handler
-  // navigates across all columns. Visible layout is only for rendering.
-  // Gated: only call updateLayout when something actually changed (by using
-  // a ref to track what was last pushed). This avoids the re-render feedback loop
-  // where updateLayout → set() → subscription → re-render → updateLayout → ...
-  const lastLayoutRef = useRef<{
-    columnsLayout: ColumnsLayout
-    selectedNode: KNode | null
-    selectionLevel: string
-  } | null>(null)
+  // NODE MODEL V2: Simplified layout sync. The old updateLayout action is replaced
+  // by syncLayout() which silently updates layout + cursor state without triggering
+  // Zustand subscribers. This keeps the key handler's layout fresh while avoiding
+  // the React→Store→React feedback loop.
   useEffect(() => {
-    const last = lastLayoutRef.current
-    if (
-      last &&
-      last.columnsLayout === columnsLayout &&
-      last.selectedNode === selectedNode &&
-      last.selectionLevel === derivedSelectionLevel
-    ) {
-      return // Nothing changed, skip the store update
-    }
-    lastLayoutRef.current = {
-      columnsLayout,
-      selectedNode,
-      selectionLevel: derivedSelectionLevel,
-    }
-    updateLayout(columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState)
-    // Sync cursor position to CursorStore so Card/Column self-subscriptions
-    // pick up the correct position after column changes (e.g., card shift)
-    const cs = cursorStore.getState()
-    if (
-      cs.colIndex !== columnsLayout.colIndex ||
-      cs.cardIndex !== columnsLayout.cardIndex ||
-      cs.selectionLevel !== derivedSelectionLevel
-    ) {
-      cursorStore.setState({
-        cursorNodeId: cs.cursorNodeId,
-        colIndex: columnsLayout.colIndex,
-        cardIndex: columnsLayout.cardIndex,
-        selectionLevel: derivedSelectionLevel,
-      })
-    }
-  }, [columnsLayout, selectedNode, derivedSelectionLevel, tuiBoardState, updateLayout, cursorStore])
+    syncLayout(columnsLayout, selectedNode, derivedSelectionLevel)
+  }, [columnsLayout, selectedNode, derivedSelectionLevel, syncLayout])
 
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)

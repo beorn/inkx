@@ -3,7 +3,8 @@
  *
  * Separate from Zustand to allow cursor changes without triggering
  * Board re-renders. Only components that subscribe via useSyncExternalStore
- * (useIsCursorAtCard, useIsCursorInColumn) re-render on cursor moves.
+ * (useIsCursorAtCard, useIsCursorInColumn, useIsCursorAtNode) re-render on
+ * cursor moves.
  *
  * This enables ~3ms j/k presses: only 2 Cards re-render instead of the
  * entire Board → Column → Card cascade.
@@ -12,10 +13,18 @@
  * view model (derived from cursorNodeId + columns). selectionLevel is view
  * model (derived from node type via isItem()). Target: CursorState = just
  * { cursorNodeId: string | null }, with position derived on demand.
+ *
+ * Phase 1 additions: cursorCardNodeId and cursorColumnNodeId allow cards and
+ * columns to self-select by nodeId (useIsCursorAtNode) instead of positional
+ * indices (useIsCursorAtCard). This decouples rendering from layout derivation.
  */
 
 export interface CursorState {
   cursorNodeId: string | null
+  /** The node ID of the card the cursor is in (null if at column/board level) */
+  cursorCardNodeId: string | null
+  /** The node ID of the column the cursor is in (null if at board level) */
+  cursorColumnNodeId: string | null
   colIndex: number
   cardIndex: number
   selectionLevel: "board" | "column" | "card"

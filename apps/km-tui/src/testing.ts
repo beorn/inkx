@@ -191,6 +191,8 @@ export async function createBoardTest(
 
   const cursorStore = createCursorStore({
     cursorNodeId: null,
+    cursorCardNodeId: null,
+    cursorColumnNodeId: null,
     colIndex: 0,
     cardIndex: 0,
     selectionLevel: "card",

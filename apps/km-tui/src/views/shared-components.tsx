@@ -12,13 +12,13 @@ const log = createLogger("km:tui:layout")
 import type { CardState, ColumnState } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
-import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
-import { getOwnColor, getHeaderStyle, type BoardPill } from "../board-pills.ts"
-import { getNodeIcon, getColumnHeaderIcon, isSigilName, renderPlain, renderRich } from "../text/index.ts"
+import type { BoardPill } from "../board-pills.ts"
+import { getNodeIcon, renderRich } from "../text/index.ts"
+import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../ui-context.tsx"
-import { useIsCursorAtCard } from "../cursor-context.tsx"
+import { useIsCursorAtNode } from "../cursor-context.tsx"
 import { useUISelector } from "../ui-context.tsx"
 
 // =============================================================================
@@ -57,8 +57,9 @@ export const MemoizedTreeCard = React.memo(
     getBoardPills,
     extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
-    // Self-subscribe to CursorStore for selection state
-    const cursorIsSelected = useIsCursorAtCard(colIndex, cardIndex)
+    // Self-subscribe to CursorStore for selection state (by nodeId)
+    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
+    const cursorIsSelected = useIsCursorAtNode(card.node.id)
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.node.id)
 
@@ -182,7 +183,8 @@ interface MemoizedColumnHeaderProps {
 }
 
 /**
- * Memoized column header - used by ListView and ColumnsView.
+ * Memoized column header - used by ListView.
+ * Wraps ColumnHeader with data attributes for cursor tracking.
  */
 export const MemoizedColumnHeader = React.memo(
   function MemoizedColumnHeader({
@@ -198,15 +200,14 @@ export const MemoizedColumnHeader = React.memo(
     const {
       treeConfig: { iconStyle },
     } = useTreeRenderContext()
-    const ownColor = getOwnColor(column.node)
-    const headerStyle = getHeaderStyle(ownColor, isSelected, isColSelected)
 
-    const icon = getColumnHeaderIcon(column.node, iconStyle, false, ownColor)
-    const iconColor = isColSelected ? "black" : icon.color
+    // Derive column header presentation props (icon, colors, style)
+    const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {
+      iconStyle,
+      isSelected,
+      isColumnSelected: isColSelected,
+    })
 
-    // Render header with wiki links stripped: [[target|alias]] → "alias"
-    const headerText = renderPlain(getNodeDisplayName(repo, column.node))
-    const untitled = isNodeUntitled(repo, column.node)
     return (
       <Box
         flexDirection="column"
@@ -218,50 +219,20 @@ export const MemoizedColumnHeader = React.memo(
           "data-card-index": -1,
         })}
       >
-        {/* Blank line above (except first header in list view) */}
-        {showTopSpacer && (
-          <Box height={1}>
-            <Text> </Text>
-          </Box>
-        )}
-        <Box width={width} flexDirection="row">
-          <Box width={1} flexShrink={0} />
-          <Box flexGrow={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
-            <Box flexGrow={1} flexShrink={1} overflow="hidden">
-              <Text bold color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
-                <Text color={iconColor}>{icon.char}</Text>{" "}
-                <Text color={isColSelected ? undefined : ownColor}>
-                  {untitled ? (
-                    <Text dimColor color="gray">
-                      {headerText}
-                    </Text>
-                  ) : (
-                    headerText
-                  )}
-                  {isSigilName(column.node.name) && column.node.name !== headerText ? (
-                    <>
-                      {" "}
-                      <Text dimColor>{column.node.name}</Text>
-                    </>
-                  ) : null}
-                </Text>
-              </Text>
-            </Box>
-            <Box flexShrink={0}>
-              <Text bold color={headerStyle.color} dimColor={headerStyle.dimColor}>
-                <Text color={isColSelected ? "gray" : ownColor} dimColor>
-                  {` ${column.cards.length}`}
-                </Text>
-              </Text>
-            </Box>
-          </Box>
-          <Box width={1} flexShrink={0} />
-        </Box>
-        {showSeparator && (
-          <Box width={width}>
-            <Text dimColor>{"─".repeat(width)}</Text>
-          </Box>
-        )}
+        <ColumnHeader
+          node={column.node}
+          displayName={displayName}
+          untitled={untitled}
+          ownColor={ownColor}
+          headerStyle={headerStyle}
+          icon={icon}
+          cardCount={column.cards.length}
+          width={width}
+          isColumnSelected={isColSelected}
+          isSelected={isSelected}
+          showTopSpacer={showTopSpacer}
+          showSeparator={showSeparator}
+        />
       </Box>
     )
   },

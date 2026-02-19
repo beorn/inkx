@@ -60,6 +60,58 @@ export function useIsCursorAtCard(colIndex: number, cardIndex: number): boolean 
 }
 
 /**
+ * Subscribe to whether a specific card node is the cursor target (by nodeId).
+ * NODE MODEL V2: Self-selecting cards — no positional indices needed.
+ * Only re-renders when this card's selection status changes.
+ */
+export function useIsCursorAtNode(nodeId: string): boolean {
+  const store = useContext(CursorStoreContext)
+  const cacheRef = useRef(false)
+
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return false
+    const s = store.getState()
+    const isSelected = s.cursorCardNodeId === nodeId && s.selectionLevel === "card"
+    if (isSelected === cacheRef.current) return cacheRef.current
+    cacheRef.current = isSelected
+    return isSelected
+  })
+}
+
+/**
+ * Subscribe to whether a specific column node is the cursor's active column (by nodeId).
+ * NODE MODEL V2: Self-selecting columns — no positional indices needed.
+ * Returns selection state and level. Does NOT include cardIndex.
+ */
+export function useIsColumnSelectedByNode(nodeId: string): {
+  isSelected: boolean
+  selectionLevel: "board" | "column" | "card"
+} {
+  const store = useContext(CursorStoreContext)
+  const cacheRef = useRef(falseColumnSelectedResult)
+
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return falseColumnSelectedResult
+    const s = store.getState()
+    if (s.cursorColumnNodeId !== nodeId) {
+      if (!cacheRef.current.isSelected) return cacheRef.current
+      cacheRef.current = falseColumnSelectedResult
+      return falseColumnSelectedResult
+    }
+    const prev = cacheRef.current
+    if (prev.isSelected && prev.selectionLevel === s.selectionLevel) {
+      return prev
+    }
+    const next = {
+      isSelected: true as const,
+      selectionLevel: s.selectionLevel,
+    }
+    cacheRef.current = next
+    return next
+  })
+}
+
+/**
  * Subscribe to whether a specific column is the active column.
  * Returns cached result object to satisfy useSyncExternalStore's caching requirement.
  */

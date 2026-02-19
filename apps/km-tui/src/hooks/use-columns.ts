@@ -4,11 +4,15 @@
  * Derives ColumnState[] from Repo. This is the main view model construction point:
  * it reads data model (KNode tree via Repo) and produces view model (ColumnState/CardState).
  *
- * NODE MODEL V2 TARGET: Replace with useChildren(repo, rootId) → KNode[].
- * Components split children by isItem(type) themselves. The 379 lines here collapse to ~20:
- * subscription (useChildren) + body/items split (children.filter). ColumnState/CardState
- * wrappers, structural sharing, and WIP limit parsing are eliminated.
- * Virtual body nodes become a view pattern (render blocks above items), not synthetic KNodes.
+ * Structure:
+ * 1. useColumns() — React hook with repo subscription + structural sharing
+ * 2. deriveColumnsFromRepo() — Pure function: repo → ColumnState[]
+ * 3. buildNodeIndex() — O(1) cursor position lookup map
+ * 4. applyStructuralSharing() — Reuse unchanged CardState refs for React.memo
+ *
+ * The structural sharing ensures that cursor moves (j/k) only re-render 2 cards
+ * (old + new selection), not the entire column. Cards that didn't change keep
+ * their previous object reference, passing React.memo's === check.
  */
 
 import { useMemo, useRef, useSyncExternalStore } from "react"
@@ -125,23 +129,15 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 
   // Add virtual body column for meaningful leading content
   // (paragraphs, tasks, embeds that appear before the first section/file/folder)
-  // Exclude detailOnly nodes (imported comments, attachments, activity) — they show in detail pane only.
-  const meaningfulBody = bodyNodes.filter(
-    (n) => !isDetailOnly(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
-  if (meaningfulBody.length > 0) {
+  const bodyCards = bodyNodes
+    .filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
+    .map((n) => buildCardState(repo, n, foldedNodes, true))
+    .filter((c): c is CardState => c !== null)
+
+  if (bodyCards.length > 0) {
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: meaningfulBody.map((n) => {
-        const childChildren = repo.getChildren(n.id)
-        const isFolded = foldedNodes.has(n.id)
-        return {
-          node: n,
-          children: isFolded ? [] : childChildren,
-          childCount: childChildren.length,
-          ...(n.link_to ? {} : { isVirtual: true }),
-        }
-      }),
+      cards: bodyCards,
       isVirtual: true,
     })
   }
@@ -180,6 +176,25 @@ function extractWipLimits(nodes: KNode[]): Map<string, number> {
 }
 
 /**
+ * Build a CardState from a KNode. Shared by virtual body columns and structural columns.
+ * - Body nodes (non-link_to) are marked isVirtual for borderless rendering.
+ * - Embed links (link_to) are discrete items — not virtual.
+ * - Children are fetched for buildNodeIndex cursor resolution.
+ * - detailOnly nodes are excluded.
+ */
+function buildCardState(repo: Repo, node: KNode, foldedNodes: Set<string>, isBody: boolean): CardState | null {
+  if (isDetailOnly(node)) return null
+  const children = repo.getChildren(node.id)
+  const isFolded = foldedNodes.has(node.id)
+  return {
+    node,
+    children: isFolded ? [] : children,
+    childCount: children.length,
+    ...(isBody && !node.link_to ? { isVirtual: true } : {}),
+  }
+}
+
+/**
  * Convert a KNode to ColumnState.
  */
 function kNodeToColumnState(
@@ -195,51 +210,21 @@ function kNodeToColumnState(
   const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
-  // Get cards (children of column)
+  // Split children into body (paragraphs) and structural (oi) cards
   const cardNodes = repo.getChildren(node.id)
-
-  // Extract body content (paragraphs before first section/file/folder)
   const { body: bodyNodes, items: structuralNodes } = extractBody(cardNodes)
 
-  // Build cards from body + structural children.
-  // Each body node is its own navigable card (isVirtual for styling).
-  // Structural (oi) nodes are regular cards.
   const cards: CardState[] = []
-
-  // Body nodes: each becomes its own navigable card.
-  // Embed links (link_to) are discrete items — not virtual.
-  // Children are fetched so buildNodeIndex can map descendants for cursor resolution
-  // (e.g., after indent, a child may be reparented under a body node).
-  // Exclude detailOnly nodes (imported comments, attachments, activity).
   for (const child of bodyNodes) {
-    if (isDetailOnly(child)) continue
-    const childChildren = repo.getChildren(child.id)
-    const isFolded = foldedNodes.has(child.id)
-    cards.push({
-      node: child,
-      children: isFolded ? [] : childChildren,
-      childCount: childChildren.length,
-      ...(child.link_to ? {} : { isVirtual: true }),
-    })
+    const card = buildCardState(repo, child, foldedNodes, true)
+    if (card) cards.push(card)
   }
-
-  // Structural (oi) nodes are regular cards
   for (const child of structuralNodes) {
-    const childChildren = repo.getChildren(child.id)
-    const isFolded = foldedNodes.has(child.id)
-    cards.push({
-      node: child,
-      children: isFolded ? [] : childChildren,
-      childCount: childChildren.length,
-    })
+    const card = buildCardState(repo, child, foldedNodes, false)
+    if (card) cards.push(card)
   }
 
-  return {
-    node,
-    cards,
-    wipLimit,
-    rules,
-  }
+  return { node, cards, wipLimit, rules }
 }
 
 /**

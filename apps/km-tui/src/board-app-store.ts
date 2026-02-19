@@ -111,13 +111,14 @@ export interface BoardAppActions {
   setTextEditTarget(target: EditTarget | null): void
   setDimensions(dims: { columns: number; rows: number }): void
 
-  // Layout update (VIEW MODEL — called after columns/cursor recompute)
-  // TARGET: eliminate this action. View model is derived by hooks, not pushed into store.
-  updateLayout(
+  // Silent layout sync — called by Board effect when columns change.
+  // Silently updates layout/selectedNode/selectionLevel without triggering
+  // Zustand subscribers, then syncs CursorStore for self-selecting components.
+  // NODE MODEL V2: Replaces updateLayout (which also included tuiBoardState).
+  syncLayout(
     layout: ColumnsLayout,
     selectedNode: KNode | null,
     selectionLevel: "board" | "column" | "card",
-    tuiBoardState: TUIBoardState,
   ): void
 }
 
@@ -174,6 +175,8 @@ function recomputeLayout(get: () => BoardAppStore): void {
   // Sync cursor position to CursorStore so cursor-aware components update
   s.cursorStore.setState({
     cursorNodeId: s.cursorNodeId,
+    cursorCardNodeId: selectedCard?.node.id ?? null,
+    cursorColumnNodeId: selectedCol?.node.id ?? null,
     colIndex: cursor.colIndex,
     cardIndex: cursor.cardIndex,
     selectionLevel: cursor.selectionLevel,
@@ -319,6 +322,8 @@ export function createBoardAppStoreState(
           // Notify CursorStore subscribers (only cursor-aware components re-render)
           s.cursorStore.setState({
             cursorNodeId: action.nodeId,
+            cursorCardNodeId: selectedCard?.node.id ?? null,
+            cursorColumnNodeId: selectedCol?.node.id ?? null,
             colIndex,
             cardIndex,
             selectionLevel,
@@ -504,21 +509,35 @@ export function createBoardAppStoreState(
         }))
       },
 
-      updateLayout(layout, selectedNode, selectionLevel, tuiBoardState) {
-        // Silent mutation: update derived fields WITHOUT triggering Zustand
-        // subscribers. This prevents the double-render-per-keypress issue:
-        //   1. Key handler sets cursorNodeId → doRender() → React renders Board
-        //   2. Board effect computes new layout → calls updateLayout
-        //   3. If updateLayout calls set(), Zustand fires subscriber → pendingRerender → 2nd doRender()
-        //   4. The 2nd render is WASTED — React already has the correct state
-        //
-        // By mutating getState() directly, the key handler sees fresh layout
-        // (via get().layout) without triggering a re-render cycle.
+      syncLayout(layout, selectedNode, selectionLevel) {
+        // Silent mutation — no Zustand notification. Keeps key handler's layout
+        // fresh without triggering re-render cycles.
         const state = _get()
         state.layout = layout
         state.selectedNode = selectedNode
         state.selectionLevel = selectionLevel
-        state.tuiBoardState = tuiBoardState
+        _layoutRepoVersion = state.repo.getSnapshot()
+
+        // Sync CursorStore so self-selecting components update
+        const selectedCol = layout.columns[layout.colIndex]
+        const selectedCard = selectedCol?.cards[layout.cardIndex]
+        const cs = state.cursorStore.getState()
+        if (
+          cs.colIndex !== layout.colIndex ||
+          cs.cardIndex !== layout.cardIndex ||
+          cs.selectionLevel !== selectionLevel ||
+          cs.cursorCardNodeId !== (selectedCard?.node.id ?? null) ||
+          cs.cursorColumnNodeId !== (selectedCol?.node.id ?? null)
+        ) {
+          state.cursorStore.setState({
+            cursorNodeId: cs.cursorNodeId,
+            cursorCardNodeId: selectedCard?.node.id ?? null,
+            cursorColumnNodeId: selectedCol?.node.id ?? null,
+            colIndex: layout.colIndex,
+            cardIndex: layout.cardIndex,
+            selectionLevel,
+          })
+        }
       },
     }
   }

@@ -13,21 +13,20 @@ import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
-import { styledUnderline } from "chalkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { CardState, ColumnState } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
-import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
-import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
+import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
-import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
+import { renderPlain } from "../text/index.ts"
 import { displayLength } from "../text/rich.ts"
+import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
-import { useIsColumnSelected, useIsCursorAtCard } from "../cursor-context.tsx"
+import { useIsCursorAtCard, useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.ts"
 
@@ -141,9 +140,10 @@ const Card = React.memo(
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
-    // Get selection state exclusively from CursorStore (self-subscription).
+    // Get selection state exclusively from CursorStore (self-subscription via nodeId).
+    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
-    const isSelected = useIsCursorAtCard(colIndex, cardIndex)
+    const isSelected = useIsCursorAtNode(nodeId)
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
@@ -455,8 +455,9 @@ export const Column = React.memo(function Column({
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
+  // NODE MODEL V2: Self-select by nodeId instead of positional index.
   // ScrollTrackingVirtualList handles cardIndex subscription.
-  const columnSelected = useIsColumnSelected(colIndex)
+  const columnSelected = useIsColumnSelectedByNode(nodeId)
   const isSelected = columnSelected.isSelected
   const selectionLevel = columnSelected.selectionLevel
 
@@ -481,7 +482,6 @@ export const Column = React.memo(function Column({
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
   const untitled = isNodeUntitled(repo, column.node)
-  const typeSuffix = getCollapsedTypeSuffix(repo, column.node)
   const count = column.cards.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
@@ -531,26 +531,16 @@ export const Column = React.memo(function Column({
     setUI({ inlineEditBlock: null })
   }, [setUI])
 
-  // Get column's own color (not inherited) for background
-  // Virtual body columns use dimmed gray styling
-  const ownColor = isVirtual ? undefined : getOwnColor(column.node)
-  const wipExceeded = wipLimit !== undefined && count > wipLimit
-
-  // Build count display
-  const countDisplay = wipLimit !== undefined ? `${count}/${wipLimit}` : `${count}`
-  const warningIndicator = wipExceeded ? " \u26A0" : ""
-  const collapsedIndicator = isCollapsed ? " \u25B8" : ""
-
   const isColumnSelected = isSelected && selectionLevel === "column"
-  const headerStyle = isInlineEditing
-    ? {
-        color: "cyan",
-        backgroundColor: undefined as string | undefined,
-        dimColor: false,
-      }
-    : getHeaderStyle(ownColor, isSelected, isColumnSelected)
-  // Virtual body columns: dim header unless cursor is on column header
-  if (isVirtual && !isColumnSelected) headerStyle.dimColor = true
+
+  // Derive column header presentation props (icon, colors, style)
+  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, column.node, {
+    iconStyle,
+    isSelected,
+    isColumnSelected,
+    isVirtual,
+    isInlineEditing,
+  })
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const columnExcludedSigils = useMemo(
@@ -595,10 +585,6 @@ export const Column = React.memo(function Column({
   )
 
   const keyExtractor = useCallback((card: CardState) => card.node.id, [])
-
-  // Get icon based on style
-  const icon = getColumnHeaderIcon(column.node, iconStyle, isVirtual, ownColor)
-  const iconColor = isColumnSelected ? "black" : icon.color
 
   // Collapsed: bordered card-like strip spanning full column height with vertical title
   if (isCollapsed) {
@@ -667,76 +653,31 @@ export const Column = React.memo(function Column({
       height={height}
       overflow="hidden"
     >
-      {/* Column header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
-      <Box height={1} flexShrink={0} width={width - 1} flexDirection="row">
-        <Box
-          flexGrow={1}
-          flexShrink={1}
-          flexDirection="row"
-          paddingLeft={1}
-          paddingRight={1}
-          backgroundColor={headerStyle.backgroundColor}
-        >
-          {isInlineEditing ? (
-            <Text bold color={headerStyle.color} wrap="truncate">
-              <Text color={iconColor}>{icon.char}</Text>{" "}
-              <InlineEditField
-                initialValue={name}
-                onConfirm={handleInlineEditConfirm}
-                onCancel={handleInlineEditCancel}
-              />
-            </Text>
-          ) : (
-            <>
-              <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                <Text bold={!isVirtual} color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
-                  <Text color={iconColor}>{icon.char}</Text>{" "}
-                  <Text color={isColumnSelected ? undefined : ownColor}>
-                    {untitled ? (
-                      <Text dimColor color="gray">
-                        {name}
-                      </Text>
-                    ) : (
-                      name
-                    )}
-                    {!isVirtual && isSigilName(column.node.name) && column.node.name !== name && (
-                      <>
-                        {" "}
-                        <Text dimColor>{column.node.name}</Text>
-                      </>
-                    )}
-                  </Text>
-                  {typeSuffix ? (
-                    <Text
-                      color={isColumnSelected ? "gray" : undefined}
-                      dimColor={!isColumnSelected}
-                    >{` ${typeSuffix}`}</Text>
-                  ) : (
-                    ""
-                  )}
-                  {collapsedIndicator}
-                </Text>
-              </Box>
-              <Box flexShrink={0}>
-                <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
-                  {wipExceeded ? (
-                    <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
-                  ) : (
-                    <Text color={isColumnSelected ? headerStyle.color : "gray"}>{` ${countDisplay}`}</Text>
-                  )}
-                </Text>
-              </Box>
-            </>
-          )}
-        </Box>
-      </Box>
-
-      {/* Separator line between header and cards */}
-      <Box height={1} flexShrink={0} width={width - 1}>
-        <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
-          {"\u2500".repeat(Math.max(0, width - 1))}
-        </Text>
-      </Box>
+      {/* Column header — unified NodeView component */}
+      <ColumnHeader
+        node={column.node}
+        displayName={name}
+        untitled={untitled}
+        ownColor={ownColor}
+        headerStyle={headerStyle}
+        icon={icon}
+        cardCount={count}
+        width={width - 1}
+        isColumnSelected={isColumnSelected}
+        isSelected={isSelected}
+        isVirtual={isVirtual}
+        wipLimit={wipLimit}
+        typeSuffix={typeSuffix}
+        showSeparator
+      >
+        {isInlineEditing ? (
+          <InlineEditField
+            initialValue={name}
+            onConfirm={handleInlineEditConfirm}
+            onCancel={handleInlineEditCancel}
+          />
+        ) : undefined}
+      </ColumnHeader>
 
       {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList

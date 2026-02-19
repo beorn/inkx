@@ -384,6 +384,8 @@ export function testEnv(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      cursorCardNodeId: selectedCard?.node.id ?? null,
+      cursorColumnNodeId: selectedCol?.node.id ?? null,
       colIndex: initialColIndex,
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
@@ -1439,6 +1441,8 @@ export function testEnvWithRepo(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      cursorCardNodeId: selectedCard?.node.id ?? null,
+      cursorColumnNodeId: selectedCol?.node.id ?? null,
       colIndex: initialColIndex,
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
@@ -2256,6 +2260,8 @@ export function renderBoardWithStore(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      cursorCardNodeId: selectedCard?.node.id ?? null,
+      cursorColumnNodeId: selectedCol?.node.id ?? null,
       colIndex: initialColIndex,
       cardIndex: selectedCard ? 0 : -1,
       selectionLevel: initialSelectionLevel,
