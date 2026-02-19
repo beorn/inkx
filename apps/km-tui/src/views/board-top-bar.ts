@@ -68,6 +68,8 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
   }
 
   // Build segments with separators
+  // Filesystem segments use / and # separators; within-board segments use >
+  // for clear hierarchy indication (e.g., "Project > Category > Task")
   const segments: PathSegment[] = []
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]
@@ -78,15 +80,11 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
     if (node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      })
+      const sep = segments.length === 0 ? "" : isWithinBoard ? ">" : "/"
+      segments.push({ id: node.id, name, sep, isWithinBoard, node })
     } else if (node.type === "oi" && node.fstype === "mdsection") {
-      segments.push({ id: node.id, name, sep: "#", isWithinBoard, node })
+      const sep = isWithinBoard ? ">" : "#"
+      segments.push({ id: node.id, name, sep, isWithinBoard, node })
     } else if (isOutline(node.type)) {
       if (segments.length === 0) {
         segments.push({
@@ -99,13 +97,8 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
       }
     } else {
       // Other types (paragraph, task, etc.)
-      segments.push({
-        id: node.id,
-        name,
-        sep: segments.length > 0 ? "/" : "",
-        isWithinBoard,
-        node,
-      })
+      const sep = segments.length === 0 ? "" : isWithinBoard ? ">" : "/"
+      segments.push({ id: node.id, name, sep, isWithinBoard, node })
     }
   }
 

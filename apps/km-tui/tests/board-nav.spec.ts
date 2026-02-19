@@ -405,8 +405,8 @@ describe("Cursoring", () => {
       // At column header level - verify via path (tabs don't have id attrs)
       board.press("k")
       const output = board.screenshot()
-      expect(output).toContain("board / col1")
-      expect(output).not.toContain("col1 / 1a")
+      expect(output).toContain("board > col1")
+      expect(output).not.toContain("col1 > 1a")
       // Move to board level
       board.press("k")
       board.expect("#board[data-cursor]").toExist()
@@ -486,12 +486,12 @@ describe("Cursoring", () => {
       // k to tab header level
       board.press("k")
       let output = board.screenshot()
-      expect(output).toContain("board / col1")
+      expect(output).toContain("board > col1")
 
       // l switches tabs at header level
       board.press("l")
       output = board.screenshot()
-      expect(output).toContain("board / col2")
+      expect(output).toContain("board > col2")
 
       // j returns to card level in active tab
       board.press("j")

@@ -5,7 +5,7 @@
  * Handles project picker and new item dialog interactions.
  */
 import { useCallback } from "react"
-import { type KNode, resolveRelativeDate, isOutline } from "@km/core"
+import { type KNode, resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
@@ -14,70 +14,23 @@ import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
+import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
 
 const log = createLogger("km:tui:dialogs")
 
 /**
- * Find appropriate zoom and cursor targets for a search result node.
- * Walks up the ancestor chain to find the grandparent that makes the target
- * visible as a card (depth 2 from the new root).
- *
- * Board model: root -> children = columns -> their children = cards.
- * So for target to be a card, its grandparent must be the board root.
+ * Legacy adapter: wraps resolveZoomTarget() to return KNode objects.
+ * Existing tests import this — preserved for backward compatibility.
+ * @deprecated Use navigateToNode() or resolveZoomTarget() directly for new code.
  */
 export function findZoomTarget(
   target: KNode,
-  repo: { getNode(id: string): KNode | null; getChildren(id: string | null): KNode[] },
+  repo: NavigateRepo,
 ): { zoomTarget: KNode; cursorTarget: KNode } {
-  // Build ancestor chain: [target, parent, grandparent, ...]
-  const ancestors: KNode[] = [target]
-  let ancestor: KNode | null = target
-  while (ancestor?.parent_id) {
-    const parent = repo.getNode(ancestor.parent_id)
-    if (parent) ancestors.push(parent)
-    ancestor = parent
-  }
-  log.debug?.(`search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`)
-
-  const [, parent, grandparent, greatGrandparent] = ancestors
-
-  // Best case: zoom to grandparent so target is a card (depth 2)
-  // root=grandparent -> parent is column -> target is card
-  if (grandparent) {
-    let cursorTarget = target
-
-    // If the zoom target has no oi children, it will produce a body-only board.
-    const zoomChildren = repo.getChildren(grandparent.id)
-    const hasOiChildren = zoomChildren.some((c) => isOutline(c.type))
-    if (!hasOiChildren && parent && parent.parent_id === grandparent.id) {
-      // Grandparent is a body-only board (no oi children).
-      // If there's a great-grandparent, zoom there instead so grandparent
-      // becomes a column and parent becomes a visible card — avoids landing
-      // on a single-column flat list with many cards.
-      if (greatGrandparent) {
-        log.debug?.(
-          `search: body-only grandparent, zooming to great-grandparent=${greatGrandparent.id.slice(-8)}, cursor on ${parent.id.slice(-8)}`,
-        )
-        return { zoomTarget: greatGrandparent, cursorTarget: parent }
-      }
-      // No great-grandparent available — walk cursor up to the body card level
-      log.debug?.(`search: body-only board, walking cursor from ${target.id.slice(-8)} up to ${parent.id.slice(-8)}`)
-      cursorTarget = parent
-    }
-
-    log.debug?.(`search: ZOOM to grandparent=${grandparent.id.slice(-8)}, cursor on ${cursorTarget.id.slice(-8)}`)
-    return { zoomTarget: grandparent, cursorTarget }
-  }
-
-  // Only parent exists: zoom to parent, target becomes a column (depth 1)
-  if (parent) {
-    log.debug?.(`search: ZOOM to parent=${parent.id.slice(-8)}, cursor on target=${target.id.slice(-8)}`)
-    return { zoomTarget: parent, cursorTarget: target }
-  }
-
-  // Target is a root node — zoom to it directly
-  log.debug?.(`search: ZOOM to target itself`)
-  return { zoomTarget: target, cursorTarget: target }
+  const { zoomTarget: zoomId, cursorTarget: cursorId } = resolveZoomTarget(target, repo)
+  const zoomTarget = repo.getNode(zoomId) ?? target
+  const cursorTarget = repo.getNode(cursorId) ?? target
+  return { zoomTarget, cursorTarget }
 }
 
 // =============================================================================
@@ -209,46 +162,27 @@ export function useBoardDialogs({
         searchScopeNodeIds: [] as string[],
       }
 
-      // If target IS the current root, just close dialog (already viewing it)
-      if (target.id === rootId) {
+      const nav = navigateToNode(target.id, rootId, repo)
+      if (!nav) {
         setUI(closeDialog)
         return
       }
-
-      // Check if target is already visible in the current view.
-      // Board model: root > columns (depth 1) > cards (depth 2).
-      const targetParentId = target.parent_id
-      const targetParent = targetParentId ? repo.getNode(targetParentId) : null
-      const targetGrandparentId = targetParent?.parent_id ?? null
-
-      // Case 1: Target is a direct child of root (column level) — select it
-      if (targetParentId === rootId) {
-        log.debug?.(`search: SELECT target column=${target.id.slice(-8)} (child of root)`)
-        dispatchBoard({ type: "SELECT", nodeId: target.id })
-        setUI(closeDialog)
-        return
-      }
-
-      // Case 2: Target is a grandchild of root (card level) — select it
-      if (targetGrandparentId === rootId) {
-        log.debug?.(`search: SELECT target card=${target.id.slice(-8)} (grandchild of root)`)
-        dispatchBoard({ type: "SELECT", nodeId: target.id })
-        setUI(closeDialog)
-        return
-      }
-
-      // Case 3: Target is deeper — zoom to make it a visible card.
-      // Close dialog and dispatch zoom synchronously so both state changes
-      // batch into a single render (avoids the freeze from two separate renders).
-      const { zoomTarget, cursorTarget } = findZoomTarget(target, repo)
-      log.debug?.(`search: ZOOM to ${zoomTarget.id.slice(-8)}, cursor on ${cursorTarget.id.slice(-8)}`)
 
       setUI(closeDialog)
-      dispatchBoard({
-        type: "ZOOM_IN",
-        nodeId: zoomTarget.id,
-        cursorNodeId: cursorTarget.id,
-      })
+
+      if (nav.action === "SELECT") {
+        // Target is already visible (child/grandchild of root, or IS the root)
+        dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
+      } else {
+        // Target is deeper — zoom to make it a visible card.
+        // Dispatch zoom synchronously with dialog close so both state changes
+        // batch into a single render (avoids the freeze from two separate renders).
+        dispatchBoard({
+          type: "ZOOM_IN",
+          nodeId: nav.zoomTarget!,
+          cursorNodeId: nav.cursorTarget,
+        })
+      }
     },
     [repo, setUI, dispatchBoard, rootId],
   )

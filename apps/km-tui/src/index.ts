@@ -24,6 +24,15 @@ export { createInitialUIState } from "./ui-reducer.ts"
 export { createGridNavigator } from "@km/board"
 export type { GridNavigator } from "@km/board"
 
+// Export navigation utilities
+export {
+  navigateToNode,
+  resolveZoomTarget,
+  type NavigateResult,
+  type NavigateAction,
+  type NavigateRepo,
+} from "./navigate-to-node.ts"
+
 // Export text utilities
 export * from "./text/index.ts"
 

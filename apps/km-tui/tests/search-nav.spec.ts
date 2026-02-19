@@ -16,11 +16,12 @@
  *   j/k navigates at the descendant level instead of the body card level.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
+import { navigateToNode } from "../src/navigate-to-node.ts"
 import type { KNode } from "@km/core"
 import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
 import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
@@ -400,5 +401,286 @@ describe("full search flow integration", () => {
 
     expect(store.getState().cursorNodeId).toBe("taskB")
     board.expect("#taskB[data-cursor]").toExist()
+  })
+})
+
+describe("scroll to selection after zoom", () => {
+  test("ZOOM_IN scrolls to cursor card when it would be off-screen", () => {
+    // Create a board with many items in a column — enough to require scrolling
+    // on a small terminal (rows=15). With header + breadcrumb + separator,
+    // only ~3 cards are visible (card height=4). Card at index 12 is off-screen.
+    const tasks = Array.from({ length: 15 }, (_, i) => item(`task${i}`))
+    const { board, store } = testEnv(
+      () => item("root", item("big-col", ...tasks), item("small-col", item("other"))),
+      { rows: 15, checkIncremental: false },
+    )
+
+    // Zoom to root with cursor on task12 (deep in the list, off-screen)
+    dispatchAndFlush(store, {
+      type: "ZOOM_IN",
+      nodeId: "root",
+      cursorNodeId: "task12",
+    })
+
+    expect(store.getState().cursorNodeId).toBe("task12")
+
+    // Press j to trigger a render cycle (dispatchAndFlush doesn't run doRender).
+    // j moves cursor to task13, which should also be in the scrolled view.
+    board.press("j")
+    expect(store.getState().cursorNodeId).toBe("task13")
+
+    // After navigating from task12 to task13, both should be in the scrolled view
+    board.expectScreen("task13")
+  })
+
+  test("search navigate to off-screen card scrolls it into view", () => {
+    // Simulate the search flow: deep tree where target is a grandchild of root,
+    // but far enough down the column to be off-screen
+    const tasks = Array.from({ length: 20 }, (_, i) => item(`deep${i}`))
+    const { board, store } = testEnv(
+      () => item("root", item("section", ...tasks)),
+      { rows: 15, checkIncremental: false },
+    )
+
+    const repo = store.getState().repo
+    const deep15 = repo.getNode("deep15")!
+    const { zoomTarget, cursorTarget } = findZoomTarget(deep15, repo)
+
+    dispatchAndFlush(store, {
+      type: "ZOOM_IN",
+      nodeId: zoomTarget.id,
+      cursorNodeId: cursorTarget.id,
+    })
+
+    // Press j to trigger render and move cursor
+    board.press("j")
+
+    // deep15 or its neighbor should be visible
+    board.expectScreen("deep16")
+  })
+
+  test("SELECT on off-screen card in current view scrolls it into view", () => {
+    // Target is already a grandchild of root (visible in layout model),
+    // but far enough down the column to be off-screen. SELECT should scroll.
+    const tasks = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
+    const { board, store } = testEnv(
+      () => item("root", item("col1", ...tasks), item("col2", item("x"))),
+      { rows: 15, checkIncremental: false },
+    )
+
+    // SELECT a card deep in col1 — should scroll to make it visible
+    dispatchAndFlush(store, { type: "SELECT", nodeId: "card15" })
+
+    // Press j to trigger render and move cursor
+    board.press("j")
+    expect(store.getState().cursorNodeId).toBe("card16")
+
+    board.expectScreen("card16")
+  })
+
+  test("ZOOM_IN scrolls to cursor in columns view", () => {
+    // Columns view uses single-row items, so more items fit. Still need to scroll
+    // when target is deep enough. 30 items in a column with 15-row terminal.
+    const tasks = Array.from({ length: 30 }, (_, i) => item(`ctask${i}`))
+    const { board, store } = testEnv(
+      () => item("root", item("big-col", ...tasks), item("small-col", item("other"))),
+      { rows: 15, viewMode: "columns", checkIncremental: false },
+    )
+
+    // Zoom with cursor on ctask25 (far off-screen in columns view)
+    dispatchAndFlush(store, {
+      type: "ZOOM_IN",
+      nodeId: "root",
+      cursorNodeId: "ctask25",
+    })
+
+    expect(store.getState().cursorNodeId).toBe("ctask25")
+
+    // Press j to trigger render and move cursor
+    board.press("j")
+    expect(store.getState().cursorNodeId).toBe("ctask26")
+
+    board.expectScreen("ctask26")
+  })
+
+  test("cursor state is correct in DOM after ZOOM_IN (no render needed)", () => {
+    // Verify that the cursor DOM element is correct after ZOOM_IN,
+    // even before a render cycle runs (DOM is updated by React, not inkx pipeline)
+    const tasks = Array.from({ length: 15 }, (_, i) => item(`dtask${i}`))
+    const { board, store } = testEnv(
+      () => item("root", item("col", ...tasks)),
+      { rows: 15, checkIncremental: false },
+    )
+
+    dispatchAndFlush(store, {
+      type: "ZOOM_IN",
+      nodeId: "root",
+      cursorNodeId: "dtask12",
+    })
+
+    // DOM should have cursor on dtask12
+    board.expect("#dtask12[data-cursor]").toExist()
+    expect(store.getState().cursorNodeId).toBe("dtask12")
+    expect(store.getState().layout.cardIndex).toBe(12)
+  })
+})
+
+// =============================================================================
+// navigateToNode() — unified navigate function
+// =============================================================================
+
+describe("navigateToNode", () => {
+  test("target is current root → SELECT on itself", () => {
+    const nodes = item("root", item("col1", item("task1")))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("root", "root", repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "root" })
+  })
+
+  test("target not found → returns null", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+    const nodes = item("root", item("col1"))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("nonexistent", "root", repo)
+    expect(result).toBeNull()
+    spy.mockRestore()
+  })
+
+  test("target is direct child of root (column level) → SELECT", () => {
+    const nodes = item("root", item("col1", item("task1")), item("col2", item("task2")))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("col1", "root", repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "col1" })
+  })
+
+  test("target is grandchild of root (card level) → SELECT", () => {
+    const nodes = item("root", item("col1", item("task1"), item("task2")), item("col2"))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("task2", "root", repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "task2" })
+  })
+
+  test("target is one level deep → ZOOM_IN to parent", () => {
+    // Structure: root > projects > project-a > taskA1
+    // Current root = root, target = taskA1
+    // taskA1's parent = project-a (child of projects), grandparent = projects
+    // projects is not a child/grandchild of root → need ZOOM_IN
+    // resolveZoomTarget: grandparent = projects → zoom to projects, cursor on taskA1
+    const nodes = item("root", item("projects", item("project-a", item("taskA1"), item("taskA2"))))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("taskA1", "root", repo)
+    expect(result).toEqual({
+      action: "ZOOM_IN",
+      zoomTarget: "projects",
+      cursorTarget: "taskA1",
+    })
+  })
+
+  test("target is deeply nested → ZOOM_IN to appropriate ancestor", () => {
+    // Structure: root > area > projects > project-a > task > subtask
+    // Current root = root, target = subtask
+    // subtask's grandparent = project-a, which has oi children
+    // → zoom to project-a (grandparent), cursor on subtask
+    const nodes = item(
+      "root",
+      item("area", item("projects", item("project-a", item("task", item("subtask"))))),
+    )
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("subtask", "root", repo)
+    expect(result).toEqual({
+      action: "ZOOM_IN",
+      zoomTarget: "project-a",
+      cursorTarget: "subtask",
+    })
+  })
+
+  test("target with body-only grandparent → zooms to great-grandparent", () => {
+    // Structure: vault(oi) > flatList(oi, no oi children) > task1(li) > subtask1(li)
+    // flatList has only li children (body-only board).
+    // great-grandparent = vault → zoom there so flatList becomes a column
+    const vaultNode = makeOiNode("vault", null, 0)
+    const flatListNode = makeOiNode("flatList", "vault", 0)
+    const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
+    const task2Nodes = makeLiNode("task2", "flatList", 1)
+    const allNodes: KNode[] = [vaultNode, flatListNode, ...task1Nodes, ...task2Nodes]
+    const repo = createFakeRepo({ nodes: allNodes })
+
+    const result = navigateToNode("subtask1", null, repo)
+    expect(result).toEqual({
+      action: "ZOOM_IN",
+      zoomTarget: "vault",
+      cursorTarget: "task1",
+    })
+  })
+
+  test("body-only grandparent without great-grandparent → walks cursor to parent", () => {
+    // Structure: flatList(oi, no oi children) > task1(li) > subtask1(li)
+    // No great-grandparent → zoom to flatList, cursor on task1 (parent)
+    const flatListNode = makeOiNode("flatList", null, 0)
+    const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
+    const task2Nodes = makeLiNode("task2", "flatList", 1)
+    const allNodes: KNode[] = [flatListNode, ...task1Nodes, ...task2Nodes]
+    const repo = createFakeRepo({ nodes: allNodes })
+
+    const result = navigateToNode("subtask1", null, repo)
+    expect(result).toEqual({
+      action: "ZOOM_IN",
+      zoomTarget: "flatList",
+      cursorTarget: "task1",
+    })
+  })
+
+  test("target already visible after zoom → SELECT without re-zoom", () => {
+    // Structure: root > col1 > task1, task2
+    // If we're already zoomed to root, and target is task1 (grandchild) → just SELECT
+    const nodes = item("root", item("col1", item("task1"), item("task2")))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("task1", "root", repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "task1" })
+  })
+
+  test("target visible at zoomed-in level → SELECT", () => {
+    // Structure: root > projects > project-a > taskA1, taskA2
+    // Current root = projects (already zoomed in)
+    // target = taskA1 → grandchild of projects → SELECT
+    const nodes = item("root", item("projects", item("project-a", item("taskA1"), item("taskA2"))))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("taskA1", "projects", repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "taskA1" })
+  })
+
+  test("rootId is null (top-level) with depth-2 target → SELECT", () => {
+    // When rootId is null, the board shows root nodes as columns
+    // and their children as cards. A grandchild of null (i.e., child of
+    // a root node) is visible at card level → SELECT.
+    const nodes = item("root", item("child"))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("child", null, repo)
+    expect(result).toEqual({ action: "SELECT", cursorTarget: "child" })
+  })
+
+  test("rootId is null with deeply nested target → ZOOM_IN", () => {
+    // When rootId is null and target is deep, ZOOM_IN is needed.
+    // Structure: root > col > task > subtask
+    // subtask's grandparent = col, col's parent = root, root's parent = null
+    // subtask is NOT a child or grandchild of null → ZOOM_IN
+    const nodes = item("root", item("col", item("task", item("subtask"))))
+    const repo = createFakeRepo({ nodes })
+
+    const result = navigateToNode("subtask", null, repo)
+    expect(result).toEqual({
+      action: "ZOOM_IN",
+      zoomTarget: "col",
+      cursorTarget: "subtask",
+    })
   })
 })

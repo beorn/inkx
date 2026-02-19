@@ -227,7 +227,7 @@ describe("Search and Filter", () => {
     board.press("/")
     const output = board.screenshot()
     expect(output).toContain("Search")
-    expect(output).toContain("/ ")
+    expect(output).toContain("All")
     expect(output).toContain("Enter go")
     expect(output).toContain("Esc cancel")
   })
