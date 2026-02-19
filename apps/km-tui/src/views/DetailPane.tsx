@@ -92,7 +92,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 
         {/* Separator */}
         <Box>
-          <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+          <Text dimColor>{"─".repeat(innerWidth)}</Text>
         </Box>
 
         {/* Counts */}
@@ -231,7 +231,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
         {/* Separator - full width */}
         <Box>
-          <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+          <Text dimColor>{"─".repeat(innerWidth)}</Text>
         </Box>
 
         {/* Metadata fields — aligned key:value table */}
@@ -249,7 +249,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         {(bodyChildren.length > 0 || structuralChildren.length > 0) && (
           <>
             <Box>
-              <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
+              <Text dimColor>{"─".repeat(innerWidth)}</Text>
             </Box>
 
             {/* Body content — rendered line-by-line with attachment links shown as readable URLs */}
@@ -259,7 +259,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
             {/* Children rendered as outline items (column cards) */}
             {structuralChildren.length > 0 && (
-              <Box flexDirection="column" width={innerWidth}>
+              <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
                 <ColumnItems repo={repo} items={structuralChildren} depth={0} innerWidth={innerWidth} />
               </Box>
             )}
@@ -512,8 +512,8 @@ function ColumnItems({
         // Metadata badges for top-level items (like cards show)
         const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
         const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
-        return (
-          <React.Fragment key={`${item.id}-${idx}`}>
+        const itemContent = (
+          <>
             <Text wrap="wrap" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
@@ -535,6 +535,22 @@ function ColumnItems({
             ))}
             {kidItems.length > 0 && (
               <ColumnItems repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
+            )}
+          </>
+        )
+        return (
+          <React.Fragment key={`${item.id}-${idx}`}>
+            {depth === 0 ? (
+              <Box
+                flexDirection="column"
+                width={innerWidth}
+                borderStyle="single"
+                borderColor={isDone ? "gray" : "white"}
+              >
+                {itemContent}
+              </Box>
+            ) : (
+              itemContent
             )}
           </React.Fragment>
         )
