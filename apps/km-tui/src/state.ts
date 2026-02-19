@@ -8,7 +8,7 @@ import type { KNode } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { TUIBoardState, ColumnState, CardState } from "./types.ts"
+import type { InitialBoardData, ColumnState, CardState } from "./types.ts"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 import {
@@ -78,21 +78,15 @@ export const getParentContextEx = (
 ) => getParentContextExBase(node, skipParentId, (id) => repo.getNode(id))
 
 /**
- * Create an empty board state
+ * Create an empty board data result.
  */
-export function createEmptyState(): TUIBoardState {
+export function createEmptyState(): InitialBoardData {
   return {
     rootId: null,
     rootPath: null,
     columns: [],
-    selectedNodes: new Set(),
-    visualMode: false,
-    foldedNodes: new Set(),
     collapsedColumns: new Set(),
     collapsedNodeIds: new Set(),
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
   }
 }
 
@@ -100,7 +94,7 @@ export function createEmptyState(): TUIBoardState {
  * Initialize board state from a root node ID, path, or filename
  * Returns null if no suitable board found
  */
-export function initBoardState(repo: Repo, rootId?: string): TUIBoardState | null {
+export function initBoardState(repo: Repo, rootId?: string): InitialBoardData | null {
   // rootId is required - no longer support root-level view
   // Callers should resolve repo root folder node if needed
   if (!rootId) {
@@ -122,7 +116,7 @@ export function initBoardState(repo: Repo, rootId?: string): TUIBoardState | nul
 export function* initBoardStateGenerator(
   repo: Repo,
   rootId?: string,
-): Generator<StepYield, TUIBoardState | null, unknown> {
+): Generator<StepYield, InitialBoardData | null, unknown> {
   // rootId is required - no longer support root-level view
   // Callers should resolve repo root folder node if needed
   if (!rootId) {
@@ -142,7 +136,7 @@ export function* initBoardStateGenerator(
  * Generator version of buildBoardState that yields progress
  */
 // oxlint-disable-next-line complexity/complexity -- Async generator with batched queries
-export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, TUIBoardState, unknown> {
+export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, InitialBoardData, unknown> {
   const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
@@ -247,14 +241,8 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     rootId,
     rootPath: null,
     columns,
-    selectedNodes: new Set(),
-    visualMode: false,
-    foldedNodes: new Set(),
     collapsedColumns,
     collapsedNodeIds,
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
   }
 }
 
@@ -312,7 +300,7 @@ function normalizeColumnName(name: string): string {
  * Build board state from a specific root ID (synchronous).
  * Delegates to the generator version, exhausting all yields.
  */
-export function buildBoardState(repo: Repo, rootId: string): TUIBoardState {
+export function buildBoardState(repo: Repo, rootId: string): InitialBoardData {
   const gen = buildBoardStateGenerator(repo, rootId)
   let result = gen.next()
   while (!result.done) result = gen.next()

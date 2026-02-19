@@ -12,7 +12,7 @@ import { createRenderer } from "inkx/testing"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { UIState } from "../src/ui-reducer.ts"
-import type { TUIBoardState } from "../src/types.ts"
+import type { ColumnState } from "../src/types.ts"
 
 const render = createRenderer({ cols: 80, rows: 1 })
 
@@ -50,37 +50,26 @@ const baseUI: UIState = {
   status: null,
 }
 
-const boardState: TUIBoardState = {
-  rootPath: "/tmp/test",
-  rootId: "root-1",
-  columns: [
-    {
-      node: {
-        id: "col-1",
-        type: "oi" as const,
-        fstype: "mdsection" as const,
-        parent_id: "root-1",
-        parent_idx: 0,
-        link_to: null,
-        title: "Col",
-        content: "",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      cards: [],
+const testRootPath = "/tmp/test"
+const testColumns: ColumnState[] = [
+  {
+    node: {
+      id: "col-1",
+      type: "oi" as const,
+      fstype: "mdsection" as const,
+      parent_id: "root-1",
+      parent_idx: 0,
+      link_to: null,
+      title: "Col",
+      content: "",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
     },
-  ],
-  selectedNodes: new Set(),
-  visualMode: false,
-  foldedNodes: new Set(),
-  collapsedColumns: new Set(),
-  collapsedNodeIds: new Set(),
-  searchQuery: "",
-  searchMode: false,
-  helpMode: false,
-}
+    cards: [],
+  },
+]
 
 describe("Status bar corruption: view name bleeds into sync count", () => {
   // Unit tests for BottomBar component
@@ -89,7 +78,8 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const app = render(
         <BottomBar
           ui={baseUI}
-          state={boardState}
+          rootPath={testRootPath}
+          columns={testColumns}
           layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
@@ -117,7 +107,8 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const app = render(
         <BottomBar
           ui={uiWithWatcher}
-          state={boardState}
+          rootPath={testRootPath}
+          columns={testColumns}
           layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
@@ -150,7 +141,8 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const app = render(
         <BottomBar
           ui={uiWithWatcher}
-          state={boardState}
+          rootPath={testRootPath}
+          columns={testColumns}
           layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
@@ -175,7 +167,8 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const app = render(
         <BottomBar
           ui={{ ...baseUI, viewMode: "cards" }}
-          state={boardState}
+          rootPath={testRootPath}
+          columns={testColumns}
           layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
@@ -189,7 +182,8 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       app.rerender(
         <BottomBar
           ui={{ ...baseUI, viewMode: "columns" }}
-          state={boardState}
+          rootPath={testRootPath}
+          columns={testColumns}
           layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"

@@ -7,17 +7,13 @@
  * 3. BoardApp - Production entry wrapper (gets dimensions/exit from context)
  *
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
- * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
- *
- * NODE MODEL V2: Board currently reads TUIBoardState (view model) from the store.
- * Target: Board reads data model (rootId, cursorNodeId, foldedNodes) from store
- * and derives view concerns (columns, cursor position) via hooks like
- * useChildren(repo, rootId). TUIBoardState wrapper is eliminated.
+ * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldedNodes)
+ * from store and derives view concerns (columns, cursor position) via hooks.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
-import type { TUIBoardState, ViewMode } from "../types.ts"
+import type { ColumnState, ColumnsLayout, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
@@ -48,7 +44,6 @@ import {
   useCursorPosition,
 } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
-import type { ColumnsLayout } from "../types.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 
 // Extracted modules
@@ -82,8 +77,12 @@ export { makeSelectionKey } from "../types.ts"
 // =============================================================================
 
 export interface BoardCoreProps {
-  /** Legacy column-based state for rendering */
-  state: TUIBoardState
+  /** Root node ID */
+  rootId: string | null
+  /** Filesystem path to the board root (for display in bottom bar) */
+  rootPath: string | null
+  /** Derived columns for rendering */
+  columns: ColumnState[]
   /** Derived columns layout (includes colIndex/cardIndex derived from cursorNodeId) */
   layout: ColumnsLayout
   /** UI state (dialogs, view mode, etc.) */
@@ -157,12 +156,14 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
  * Also shows compact filter indicator in the right side when filters are active.
  */
 function BoardTopBar({
-  state,
+  columns,
+  rootId,
   termWidth,
   filterProperties,
   filterText,
 }: {
-  state: TUIBoardState
+  columns: ColumnState[]
+  rootId: string | null
   termWidth: number
   filterProperties: FilterProperties
   filterText: string
@@ -171,12 +172,12 @@ function BoardTopBar({
   const cursorPos = useCursorPosition()
   const isBoardSelected = cursorPos.selectionLevel === "board"
 
-  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCol = columns[cursorPos.colIndex]
   const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
 
   const pathNodeId =
     isBoardSelected || !selectedCol
-      ? state.rootId
+      ? rootId
       : cursorPos.selectionLevel === "column" || !selectedCard
         ? selectedCol.node.id
         : selectedCard.node.id
@@ -184,11 +185,11 @@ function BoardTopBar({
   const filterIndicator = formatFilterIndicator(filterProperties, filterText)
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
   const selectedPathSegments = renderPath(
-    getPathSegments(repo, pathNodeId, state.rootId),
+    getPathSegments(repo, pathNodeId, rootId),
     termWidth - 4 - reservedWidth,
   )
 
-  const rootNode = state.rootId ? repo.getNode(state.rootId) : null
+  const rootNode = rootId ? repo.getNode(rootId) : null
   const boardColor = rootNode
     ? (getOwnColor(rootNode) ?? getBoardColorByName(normalizeBoardName(getNodeDisplayName(repo, rootNode))))
     : undefined
@@ -225,16 +226,16 @@ function BoardTopBar({
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
 function CursorAwareDetailPane({
-  state,
+  columns,
   width,
   height,
 }: {
-  state: TUIBoardState
+  columns: ColumnState[]
   width: number
   height: number
 }): React.ReactElement | null {
   const cursorPos = useCursorPosition()
-  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCol = columns[cursorPos.colIndex]
   const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
   if (!selectedCard) return null
   return <DetailPane node={selectedCard.node} width={width} height={height} />
@@ -244,20 +245,20 @@ function CursorAwareDetailPane({
  * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
  */
 function CursorAwareNewItemDialog({
-  state,
+  columns,
   onCreate,
   onCancel,
   width,
   height,
 }: {
-  state: TUIBoardState
+  columns: ColumnState[]
   onCreate: (newNodeId: string) => void
   onCancel: () => void
   width: number
   height: number
 }): React.ReactElement {
   const cursorPos = useCursorPosition()
-  const selectedCol = state.columns[cursorPos.colIndex]
+  const selectedCol = columns[cursorPos.colIndex]
   const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
   return (
     <NewItemDialog
@@ -277,7 +278,9 @@ function CursorAwareNewItemDialog({
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
 export function BoardCore({
-  state,
+  rootId,
+  rootPath,
+  columns,
   layout,
   ui,
   derivedSelectionLevel,
@@ -309,7 +312,7 @@ export function BoardCore({
   // (e.g., during zoom transitions or detail pane open/close).
   // Includes rootId (zoom), viewMode, detailPane, colIndex (h/l nav),
   // and column count (structural changes) to maximize recovery opportunities.
-  const errorBoundaryResetKey = `${state.rootId ?? "null"}-${ui.viewMode}-${ui.showDetailPane}-${layout.colIndex}-${state.columns.length}`
+  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${ui.showDetailPane}-${layout.colIndex}-${columns.length}`
 
   // Silent error handler — ErrorBoundary resetKey auto-recovers on next state change (km-tui.error-loading-cards)
   const handleRenderError = useCallback((_error: Error, _errorInfo: React.ErrorInfo) => {
@@ -320,10 +323,10 @@ export function BoardCore({
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = 3
   // Count collapsed columns — they take much less space, so more total columns can fit
-  const totalCollapsed = state.columns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
+  const totalCollapsed = columns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
   // Max expanded columns that fit at ~35 char minimum width, accounting for collapsed columns' space
   const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
-  const effectiveColCount = Math.min(state.columns.length, maxExpandedCols + totalCollapsed)
+  const effectiveColCount = Math.min(columns.length, maxExpandedCols + totalCollapsed)
   const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
   const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
   const collapsedSpace = visibleCollapsed * COLLAPSED_WIDTH
@@ -340,7 +343,7 @@ export function BoardCore({
   return (
     <ConstraintRoot>
       <Box
-        id={state.rootId ?? undefined}
+        id={rootId ?? undefined}
         data-view="board"
         data-board={true}
         data-col-index={layout.colIndex}
@@ -355,7 +358,8 @@ export function BoardCore({
       >
         {/* Top bar — subscribes to cursor position independently */}
         <BoardTopBar
-          state={state}
+          columns={columns}
+          rootId={rootId}
           termWidth={termWidth}
           filterProperties={ui.filterProperties}
           filterText={ui.filterText}
@@ -365,13 +369,13 @@ export function BoardCore({
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading cards view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
-              {state.columns.length === 0 ? (
+              {columns.length === 0 ? (
                 <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
                   <Text dimColor>Empty board</Text>
                 </Box>
               ) : (
                 <HorizontalVirtualList
-                  items={state.columns}
+                  items={columns}
                   width={boardWidth}
                   height={contentHeight}
                   itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
@@ -398,12 +402,12 @@ export function BoardCore({
             </ErrorBoundary>
           ) : ui.viewMode === "columns" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading columns view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
-              <ColumnsView state={state} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
+              <ColumnsView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
             <ErrorBoundary fallback={<Text color="red">Error loading list view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
               <ListView
-                state={state}
+                columns={columns}
                 width={boardWidth}
                 height={contentHeight}
                 colIndex={layout.colIndex}
@@ -415,7 +419,7 @@ export function BoardCore({
           ) : (
             <ErrorBoundary fallback={<Text color="red">Error loading tabs view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
               <TabsView
-                state={state}
+                columns={columns}
                 width={boardWidth}
                 height={contentHeight}
                 colIndex={layout.colIndex}
@@ -426,7 +430,7 @@ export function BoardCore({
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && <CursorAwareDetailPane state={state} width={detailPaneWidth} height={contentHeight} />}
+          {ui.showDetailPane && <CursorAwareDetailPane columns={columns} width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox
@@ -455,7 +459,7 @@ export function BoardCore({
               data-dialog="new-item"
             >
               <CursorAwareNewItemDialog
-                state={state}
+                columns={columns}
                 onCreate={dialogHandlers.handleNewItemCreate}
                 onCancel={dialogHandlers.handleNewItemCancel}
                 width={Math.min(70, Math.floor(termWidth / 2))}
@@ -540,7 +544,8 @@ export function BoardCore({
         {/* Bottom bar (includes status messages) */}
         <BottomBar
           ui={ui}
-          state={state}
+          rootPath={rootPath}
+          columns={columns}
           layout={layout}
           termWidth={termWidth}
           storageMode={repo.mode}
@@ -561,8 +566,6 @@ export function BoardCore({
 // =============================================================================
 
 export interface BoardProps {
-  /** Initial board state */
-  initialState: TUIBoardState
   /** Initial view mode (default: "cards") */
   initialViewMode?: ViewMode
   /** Terminal dimensions */
@@ -733,27 +736,6 @@ export function Board({ patchedConsole }: BoardProps) {
     }))
   }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
 
-  // Assemble TUIBoardState for rendering.
-  // Uses individual fields as deps for stable memoization.
-  const emptyStringSet = useMemo(() => new Set<string>(), [])
-  const emptyNumberSet = useMemo(() => new Set<number>(), [])
-  const tuiBoardState: TUIBoardState = useMemo(
-    () => ({
-      rootId,
-      rootPath,
-      columns: filteredColumns,
-      selectedNodes: emptyStringSet,
-      visualMode: false,
-      foldedNodes,
-      collapsedColumns: emptyNumberSet,
-      collapsedNodeIds: collapsedNodes,
-      searchQuery: "",
-      searchMode: false,
-      helpMode: false,
-    }),
-    [rootId, rootPath, filteredColumns, foldedNodes, emptyStringSet, emptyNumberSet, collapsedNodes],
-  )
-
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -761,7 +743,6 @@ export function Board({ patchedConsole }: BoardProps) {
   )
   const dialogHandlers = useBoardDialogs({
     repo,
-    state: tuiBoardState,
     setUI,
     dispatchBoard,
     cursorNodeId: dialogCursorNodeId,
@@ -833,7 +814,9 @@ export function Board({ patchedConsole }: BoardProps) {
     <CursorStoreProvider store={cursorStore} layout={columnsLayout}>
       <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
-          state={tuiBoardState}
+          rootId={rootId}
+          rootPath={rootPath}
+          columns={filteredColumns}
           layout={
             visibleColIndex === columnsLayout.colIndex
               ? columnsLayout
@@ -860,8 +843,6 @@ export function Board({ patchedConsole }: BoardProps) {
 // =============================================================================
 
 export interface BoardAppProps {
-  /** Initial board state */
-  initialState: TUIBoardState
   /** Initial view mode (default: "cards") */
   initialViewMode?: ViewMode
   /** Toast queue instance (injected from runBoard) */
@@ -877,7 +858,6 @@ export interface BoardAppProps {
  * Gets repo, dimensions, exit from context/hooks.
  */
 export function BoardApp({
-  initialState,
   initialViewMode = "cards",
   toastQueue,
   navigator,
@@ -892,7 +872,6 @@ export function BoardApp({
   return (
     <Box flexDirection="column" height={storeDimensions.rows}>
       <Board
-        initialState={initialState}
         initialViewMode={initialViewMode}
         dimensions={storeDimensions}
         onExit={exit}

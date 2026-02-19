@@ -8,16 +8,15 @@
  *
  * Board nav fields are flat at store root. UI fields are grouped under `ui`.
  *
- * Layout (columns, cursor position, selectedNode, selectionLevel) is derived
- * on demand — never stored. The key handler derives layout fresh each keypress
- * via buildActionCtx(). React derives layout via useColumns + useCursorPosition.
+ * Layout (columns, cursor position) is derived on demand — never stored.
+ * The key handler derives layout fresh each keypress via buildActionCtx().
+ * React derives layout via useColumns + useCursorPosition.
  */
 
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
-import type { TUIBoardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
@@ -57,11 +56,6 @@ export interface BoardAppState {
 
   // --- UI state ---
   ui: UIState
-
-  // --- Derived rendering state (VIEW MODEL — pre-packaged for Board.tsx) ---
-  // TARGET: eliminate TUIBoardState. Board.tsx reads data model fields directly
-  // from store + derives view concerns via hooks.
-  tuiBoardState: TUIBoardState
 
   // --- Injected services (set once at init) ---
   repo: Repo
@@ -114,7 +108,6 @@ export interface CreateBoardAppStoreParams {
   cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
-  initialTUIBoardState: TUIBoardState
   dimensions: { columns: number; rows: number }
 }
 
@@ -153,9 +146,6 @@ export function createBoardAppStoreState(
 
       // UI state
       ui: params.initialUIState,
-
-      // Derived rendering state
-      tuiBoardState: params.initialTUIBoardState,
 
       // Injected — use the undoable-wrapped repo so mutations auto-record
       repo: undoableRepo,

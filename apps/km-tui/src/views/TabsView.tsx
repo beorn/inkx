@@ -8,7 +8,7 @@
  */
 import React, { useMemo } from "react"
 import { Box, Text, VirtualList } from "inkx"
-import type { TUIBoardState, CardState } from "../types.ts"
+import type { ColumnState, CardState } from "../types.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -22,7 +22,7 @@ const OVERSCAN = 10
 const MAX_RENDERED_ITEMS = 100
 
 interface TabsViewProps {
-  state: TUIBoardState
+  columns: ColumnState[]
   width: number
   height: number
   colIndex: number
@@ -32,7 +32,7 @@ interface TabsViewProps {
 }
 
 export function TabsView({
-  state,
+  columns: columnsProp,
   width,
   height,
   colIndex: _colIndexProp,
@@ -55,7 +55,7 @@ export function TabsView({
   const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
 
   // Get current column
-  const currentColumn = state.columns[colIndex]
+  const currentColumn = columnsProp[colIndex]
   const count = currentColumn?.cards.length ?? 0
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
@@ -77,7 +77,7 @@ export function TabsView({
       {/* Tab bar - horizontal tabs with content-based widths */}
       {/* Each tab width = max(10, content length) + padding, extra space goes to right */}
       <Box flexDirection="row" width={width} height={1} flexShrink={0}>
-        {state.columns.map((column, cIdx) => {
+        {columnsProp.map((column, cIdx) => {
           const isActive = cIdx === colIndex
           const colName = getNodeDisplayName(repo, column.node)
           const untitled = isNodeUntitled(repo, column.node)
@@ -119,7 +119,7 @@ export function TabsView({
                 </Text>
               </Box>
               {/* Separator with space padding */}
-              {cIdx < state.columns.length - 1 && <Text dimColor> │ </Text>}
+              {cIdx < columnsProp.length - 1 && <Text dimColor> │ </Text>}
             </React.Fragment>
           )
         })}

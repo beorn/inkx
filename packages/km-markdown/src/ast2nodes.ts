@@ -361,6 +361,9 @@ function convertListItem(
     }
   }
 
+  // Use inline created:: metadata to populate created_at if present
+  const inlineCreatedAt = parseFrontmatterTimestamp(metadataFromProps.created)
+
   const node: KNode = {
     id: ulid(),
     type: "li",
@@ -388,7 +391,7 @@ function convertListItem(
       ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
       ...(Object.keys(metadataFromProps).length > 0 ? { metadata: metadataFromProps } : {}),
     },
-    created_at: now,
+    created_at: inlineCreatedAt ?? now,
     updated_at: now,
     version: "",
   }
@@ -554,6 +557,11 @@ function createFileNode(
 ): KNode {
   const filename = fsPath.split("/").pop() || ""
   const name = filename.replace(/\.md$/i, "")
+  const data = frontmatter ? parseFrontmatter(frontmatter) : {}
+
+  // Extract timestamps from frontmatter (created_at, modified_at, or created/modified date strings)
+  const createdAt = parseFrontmatterTimestamp(data.created_at ?? data.created) ?? now
+  const updatedAt = parseFrontmatterTimestamp(data.modified_at ?? data.modified) ?? now
 
   return {
     id: ulid(),
@@ -568,11 +576,27 @@ function createFileNode(
     name, // Slug/identifier derived from filename
     content: undefined,
     content_hash: undefined,
-    data: frontmatter ? parseFrontmatter(frontmatter) : {},
-    created_at: now,
-    updated_at: now,
+    data,
+    created_at: createdAt,
+    updated_at: updatedAt,
     version: "",
   }
+}
+
+/** Parse a frontmatter value (ISO date string, Date object, or epoch ms) into a Unix timestamp in ms.
+ *  Returns undefined if the value is missing or unparseable. */
+function parseFrontmatterTimestamp(value: unknown): number | undefined {
+  if (value == null) return undefined
+  if (typeof value === "number") return value
+  if (value instanceof Date) {
+    const t = value.getTime()
+    return Number.isNaN(t) ? undefined : t
+  }
+  if (typeof value === "string") {
+    const t = new Date(value).getTime()
+    return Number.isNaN(t) ? undefined : t
+  }
+  return undefined
 }
 
 /**

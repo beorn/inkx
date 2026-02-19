@@ -80,7 +80,7 @@ import {
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
 import { handleKey } from "../../src/board-app.ts"
-import type { TUIBoardState } from "../../src/types.ts"
+import type { InitialBoardData, ColumnState } from "../../src/types.ts"
 import { createCursorStore } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
@@ -99,7 +99,7 @@ import {
  * Compute initial cursor placement for a board state.
  * Skips collapsed columns to avoid placing cursor on invisible cards.
  */
-function computeInitialCursor(initialState: TUIBoardState) {
+function computeInitialCursor(initialState: InitialBoardData) {
   let cursorNodeId: string | null = null
   let colIndex = 0
   let cardIndex = -1
@@ -384,7 +384,7 @@ export function testEnv(
       { columns, rows },
       initialState.rootId,
     ),
-    initialTUIBoardState: initialState,
+
     dimensions: { columns, rows },
   }
 
@@ -394,7 +394,6 @@ export function testEnv(
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
-    initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
@@ -1420,7 +1419,7 @@ export function testEnvWithRepo(
       { columns, rows },
       initialState.rootId,
     ),
-    initialTUIBoardState: initialState,
+
     dimensions: { columns, rows },
   }
 
@@ -1430,7 +1429,6 @@ export function testEnvWithRepo(
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
-    initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
@@ -2109,7 +2107,7 @@ class BoardTestImpl implements BoardTest {
 /**
  * Render a board with the given state and return a test helper
  */
-export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}): BoardTest {
+export function renderBoard(state: InitialBoardData, options: BoardTestOptions = {}): BoardTest {
   const { columns = 80, rows = 24 } = options
 
   // Create a fake repo for static rendering tests
@@ -2118,7 +2116,9 @@ export function renderBoard(state: TUIBoardState, options: BoardTestOptions = {}
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardCoreElement = React.createElement(BoardCore, {
-    state,
+    rootId: state.rootId,
+    rootPath: state.rootPath,
+    columns: state.columns,
     layout: {
       columns: state.columns,
       colIndex: 0,
@@ -2218,7 +2218,7 @@ export function renderBoardWithStore(
       { columns, rows },
       initialState.rootId,
     ),
-    initialTUIBoardState: initialState,
+
     dimensions: { columns, rows },
   }
 
@@ -2227,7 +2227,6 @@ export function renderBoardWithStore(
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const renderFn = options.render ?? createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
-    initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},
@@ -2288,8 +2287,7 @@ export function column(title: string, cards: (string | { title: string; children
  * });
  * ```
  */
-export function board(config: { columns: ReturnType<typeof column>[] }): TUIBoardState {
-  // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
+export function board(config: { columns: ReturnType<typeof column>[] }): InitialBoardData {
   return createBoardStateFixture(config.columns)
 }
 

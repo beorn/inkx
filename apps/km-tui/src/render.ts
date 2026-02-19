@@ -16,7 +16,7 @@ import { createTerm, type StyleChain } from "inkx"
 import type { TaskStatus } from "@km/core"
 import { stripForDisplay } from "@km/tree"
 import type { Repo } from "./repo-context.tsx"
-import type { TUIBoardState, CardState, RenderOptions } from "./types.ts"
+import type { InitialBoardData, CardState, RenderOptions } from "./types.ts"
 import { getNodeDisplayName } from "./state.ts"
 import { getStatusIcon as getStatusIconBase, renderRich, colorize } from "./text/index.ts"
 
@@ -47,7 +47,7 @@ export function defaultRenderOptions(): RenderOptions {
  */
 export function renderBoard(
   repo: Repo,
-  state: TUIBoardState,
+  state: InitialBoardData,
   opts: RenderOptions,
   colIndex = 0,
   cardIndex = 0,
@@ -55,11 +55,6 @@ export function renderBoard(
   const style = createTermStyle()
   const lines: string[] = []
   const { width, height } = opts
-
-  // Help overlay
-  if (state.helpMode) {
-    return renderHelp(width)
-  }
 
   // Get root node for title
   const root = state.rootId ? repo.getNode(state.rootId) : null
@@ -102,8 +97,8 @@ export function renderBoard(
       }
 
       const isCurrentCard = ci === colIndex && row === cardIndex
-      const isSelected = state.selectedNodes.has(card.node.id)
-      const isFolded = state.foldedNodes.has(card.node.id)
+      const isSelected = false
+      const isFolded = false
 
       return renderCard(repo, card, colWidth - 1, isCurrentCard, isSelected, isFolded)
     })
@@ -129,11 +124,6 @@ export function renderBoard(
 
   // Status bar
   lines.push(renderStatusBar(state, width))
-
-  // Search bar
-  if (state.searchMode) {
-    lines.push(style.inverse(` /${state.searchQuery}█ `.padEnd(width)))
-  }
 
   return lines.join("\n")
 }
@@ -208,19 +198,10 @@ export function renderCard(
 /**
  * Render status bar
  */
-export function renderStatusBar(state: TUIBoardState, width: number): string {
+export function renderStatusBar(_state: InitialBoardData, width: number): string {
   const style = createTermStyle()
-  const parts: string[] = []
 
-  if (state.visualMode) {
-    parts.push(style.bgYellow.black(" VISUAL "))
-  }
-
-  if (state.selectedNodes.size > 0) {
-    parts.push(style.yellow(`${state.selectedNodes.size} selected`))
-  }
-
-  const left = parts.join(" ")
+  const left = ""
   const right = "h/l:cols j/k:cards x:status Tab:fold ?:help q:quit"
 
   const padding = width - left.length - right.length - 2

@@ -65,7 +65,6 @@ function buildStoreParams(
       { columns: cols, rows },
       rootId,
     ),
-    initialTUIBoardState: initialState,
     dimensions: { columns: cols, rows },
   }
 

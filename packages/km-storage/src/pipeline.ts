@@ -431,8 +431,8 @@ function insertFileNodes(
       node.content ?? null,
       node.content_hash ?? null,
       JSON.stringify(data),
-      now,
-      now,
+      node.created_at ?? now,
+      node.updated_at ?? now,
       node.version || "",
     )
 

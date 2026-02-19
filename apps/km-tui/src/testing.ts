@@ -35,7 +35,7 @@ import type { AutoLocator, FilterOptions } from "inkx/testing"
 import type { InkxNode } from "inkx"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
-import type { TUIBoardState } from "./types.ts"
+import type { InitialBoardData, ColumnState } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -78,7 +78,7 @@ export interface BoardTestHarness extends AutoLocator {
 
   // State access
   /** Get the current board state */
-  getState(): TUIBoardState
+  getState(): { rootId: string | null; columns: ColumnState[] }
   /** Get the current cursor position [colIndex, cardIndex] */
   getCursor(): [number, number]
   /** Get the currently selected node, if any */
@@ -166,7 +166,9 @@ export async function createBoardTest(
 
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
-    state,
+    rootId: state.rootId,
+    rootPath: state.rootPath,
+    columns: state.columns,
     layout: {
       columns: state.columns,
       colIndex: 0,
@@ -211,8 +213,8 @@ export async function createBoardTest(
     ),
   )
 
-  // Current state - updated after each input
-  const currentState = state
+  // Current data - updated after each input
+  const currentState = state as InitialBoardData
 
   // Build harness object that extends InkxLocator
   const harness: BoardTestHarness = {
@@ -295,9 +297,8 @@ export async function createBoardTest(
 
     // State access
     getState() {
-      // TODO: We need a way to get the current state from the rendered component
-      // For now return the initial state - this is a limitation
-      return currentState
+      // Returns initial state — this harness doesn't track state changes
+      return { rootId: currentState.rootId, columns: currentState.columns }
     },
 
     getCursor() {

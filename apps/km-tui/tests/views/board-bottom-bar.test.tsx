@@ -9,7 +9,7 @@ import React from "react"
 import { createRenderer } from "inkx/testing"
 import { BottomBar } from "../../src/views/board-bottom-bar.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
-import type { TUIBoardState } from "../../src/types.ts"
+import type { ColumnState } from "../../src/types.ts"
 
 const render = createRenderer()
 
@@ -79,55 +79,43 @@ describe("BottomBar", () => {
     status: null,
   }
 
-  // Note: colIndex/cardIndex are now in layout, not TUIBoardState
-  const mockBoardState: TUIBoardState = {
-    rootPath: "/tmp/test-repo",
-    rootId: "root-123",
-    columns: [
-      {
-        node: {
-          id: "section-1",
-          type: "oi",
-          fstype: "mdsection",
-          parent_id: "root-123",
-          parent_idx: 0,
-          link_to: null,
-          title: "Todo",
-          content: "",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-        cards: [],
+  const mockRootPath = "/tmp/test-repo"
+  const mockColumns: ColumnState[] = [
+    {
+      node: {
+        id: "section-1",
+        type: "oi",
+        fstype: "mdsection",
+        parent_id: "root-123",
+        parent_idx: 0,
+        link_to: null,
+        title: "Todo",
+        content: "",
+        data: {},
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
       },
-      {
-        node: {
-          id: "section-2",
-          type: "oi",
-          fstype: "mdsection",
-          parent_id: "root-123",
-          parent_idx: 1,
-          link_to: null,
-          title: "Done",
-          content: "",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-        cards: [],
+      cards: [],
+    },
+    {
+      node: {
+        id: "section-2",
+        type: "oi",
+        fstype: "mdsection",
+        parent_id: "root-123",
+        parent_idx: 1,
+        link_to: null,
+        title: "Done",
+        content: "",
+        data: {},
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
       },
-    ],
-    selectedNodes: new Set(),
-    visualMode: false,
-    foldedNodes: new Set(),
-    collapsedColumns: new Set(),
-    collapsedNodeIds: new Set(),
-    searchQuery: "",
-    searchMode: false,
-    helpMode: false,
-  }
+      cards: [],
+    },
+  ]
 
   const mockLayout = { colIndex: 0, cardIndex: 0 }
 
@@ -135,7 +123,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -150,14 +139,11 @@ describe("BottomBar", () => {
 
   it("shows home directory as tilde", () => {
     const homeDir = process.env.HOME || "/Users/test"
-    const boardStateWithHome: TUIBoardState = {
-      ...mockBoardState,
-      rootPath: `${homeDir}/Documents/repo`,
-    }
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={boardStateWithHome}
+        rootPath={`${homeDir}/Documents/repo`}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -173,7 +159,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -189,7 +176,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -205,7 +193,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -218,14 +207,11 @@ describe("BottomBar", () => {
   })
 
   it("does not show column position in single column view", () => {
-    const singleColState: TUIBoardState = {
-      ...mockBoardState,
-      columns: [mockBoardState.columns[0]!],
-    }
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={singleColState}
+        rootPath={mockRootPath}
+        columns={[mockColumns[0]!]}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -241,7 +227,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -268,7 +255,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={uiWithWatcher}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -284,7 +272,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="memory"
@@ -300,7 +289,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -316,7 +306,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={mockUIState}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -336,7 +327,8 @@ describe("BottomBar", () => {
     const app = render(
       <BottomBar
         ui={uiWithStatus}
-        state={mockBoardState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
         layout={mockLayout}
         termWidth={80}
         storageMode="disk"
@@ -363,7 +355,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -381,7 +374,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -393,7 +387,8 @@ describe("BottomBar", () => {
       app.rerender(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -410,7 +405,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -423,7 +419,8 @@ describe("BottomBar", () => {
       app.rerender(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -449,7 +446,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={uiWithWatcher}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -469,7 +467,8 @@ describe("BottomBar", () => {
       app.rerender(
         <BottomBar
           ui={uiWithMoreFiles}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -486,7 +485,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -498,7 +498,8 @@ describe("BottomBar", () => {
       app.rerender(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -515,7 +516,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -533,7 +535,8 @@ describe("BottomBar", () => {
       const app = render(
         <BottomBar
           ui={mockUIState}
-          state={mockBoardState}
+          rootPath={mockRootPath}
+        columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"

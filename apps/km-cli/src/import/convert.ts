@@ -187,6 +187,7 @@ function itemToNodes(
 
   const metadata: Record<string, string> = {}
   if (item.createdAt) metadata.created = item.createdAt.slice(0, 10)
+  if (item.modifiedAt) metadata.modified = item.modifiedAt.slice(0, 10)
   if (item.completedAt) metadata.completed = item.completedAt.slice(0, 10) // inline metadata for markdown
 
   // Build data object with metadata and project memberships

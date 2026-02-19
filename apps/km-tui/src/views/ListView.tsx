@@ -11,7 +11,7 @@
  */
 import React, { useMemo, useCallback } from "react"
 import { Box, Text, VirtualList } from "inkx"
-import type { TUIBoardState, CardState } from "../types.ts"
+import type { ColumnState, CardState } from "../types.ts"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -32,14 +32,14 @@ type FlatItem =
       type: "header"
       colIdx: number
       cardIdx: -1
-      column: TUIBoardState["columns"][0]
+      column: ColumnState
       card?: undefined
     }
   | {
       type: "card"
       colIdx: number
       cardIdx: number
-      column: TUIBoardState["columns"][0]
+      column: ColumnState
       card: CardState
     }
 
@@ -47,7 +47,7 @@ type FlatItem =
 const EMPTY_CHILDREN: KNode[] = []
 
 interface ListViewProps {
-  state: TUIBoardState
+  columns: ColumnState[]
   width: number
   height: number
   colIndex: number
@@ -57,7 +57,7 @@ interface ListViewProps {
 }
 
 export function ListView({
-  state,
+  columns: columnsProp,
   width,
   height,
   colIndex: _colIndexProp,
@@ -83,7 +83,7 @@ export function ListView({
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
 
-    state.columns.forEach((column, cIdx) => {
+    columnsProp.forEach((column, cIdx) => {
       items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column })
       column.cards.forEach((card, idx) => {
         items.push({ type: "card", colIdx: cIdx, cardIdx: idx, column, card })
@@ -91,18 +91,18 @@ export function ListView({
     })
 
     return items
-  }, [state.columns])
+  }, [columnsProp])
 
   // Pre-cache column-level excluded sigils per column index
   const columnExcludedSigilsByCol = useMemo(() => {
     const map = new Map<number, string[] | undefined>()
-    state.columns.forEach((col, cIdx) => {
+    columnsProp.forEach((col, cIdx) => {
       const name = renderPlain(getNodeDisplayName(repo, col.node))
       const sigils = deriveColumnExcludedSigils(name, col.node.id, col.node.fs_path)
       map.set(cIdx, sigils.length > 0 ? sigils : undefined)
     })
     return map
-  }, [state.columns, repo])
+  }, [columnsProp, repo])
 
   // Pre-cache board pills for ALL cards to avoid O(n) DB queries during render
   // This batches the lookups into a single pass through all cards
@@ -131,10 +131,10 @@ export function ListView({
   const selectedFlatIndex = useMemo(() => {
     let idx = 0
     for (let c = 0; c < colIndex; c++) {
-      idx += 1 + (state.columns[c]?.cards.length ?? 0)
+      idx += 1 + (columnsProp[c]?.cards.length ?? 0)
     }
     return selectionLevel === "column" ? idx : idx + 1 + cardIndex
-  }, [colIndex, cardIndex, selectionLevel, state.columns])
+  }, [colIndex, cardIndex, selectionLevel, columnsProp])
 
   // Render item callback for VirtualList
   const renderItem = useCallback(
@@ -190,7 +190,7 @@ export function ListView({
   )
 
   // Empty state
-  if (state.columns.length === 0) {
+  if (columnsProp.length === 0) {
     return (
       <Box flexDirection="column" width={width} height={height}>
         <Text> </Text>

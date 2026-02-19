@@ -4,14 +4,11 @@
  * These types describe how nodes are presented in the TUI, not how they're stored.
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
- * NODE MODEL V2 MIGRATION:
- * ColumnState/CardState/ColumnsLayout are view model types that wrap KNode with
- * positional info (colIndex, cardIndex) and pre-fetched children. They exist because
- * the board view needs columns/cards, but the underlying model is just nodes.
+ * ColumnState/CardState are view model types that wrap KNode with
+ * pre-fetched children. They exist because the board view needs columns/cards,
+ * but the underlying model is just nodes.
  *
- * Target: eliminate these wrappers. Components receive KNode and derive view
- * concerns (body vs items split, selection, fold state) from repo + hooks.
- * See km-all.node-model-v2 bead for the full generalization plan.
+ * ColumnsLayout is a derived layout type that includes cursor position.
  */
 
 import type { KNode } from "@km/core"
@@ -19,22 +16,15 @@ import type { SectionRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 
 /**
- * TUI-specific board rendering state.
- * Contains columns/cards structure for rendering the board view.
- * Separate from @km/board's BoardState which is the navigation state.
+ * Initial board data returned by buildBoardState/initBoardState.
+ * Contains the minimum data needed to initialize the TUI.
  */
-export interface TUIBoardState {
+export interface InitialBoardData {
   rootId: string | null
-  rootPath: string | null // Filesystem path to the board root (for display)
+  rootPath: string | null
   columns: ColumnState[]
-  selectedNodes: Set<string>
-  visualMode: boolean
-  foldedNodes: Set<string>
-  collapsedColumns: Set<number> // Column indices that are collapsed (show count only)
-  collapsedNodeIds: Set<string> // Node IDs of collapsed columns (for initializing BoardState.collapsedNodes)
-  searchQuery: string
-  searchMode: boolean
-  helpMode: boolean
+  collapsedColumns: Set<number>
+  collapsedNodeIds: Set<string>
 }
 
 // VIEW MODEL: A "column" is just a parent KNode whose children render as cards.
@@ -80,9 +70,8 @@ export function isAtColumnHeader(cardIndex: number): boolean {
 }
 
 /**
- * VIEW MODEL: Derived columns layout with cursor position.
- * Target: eliminate — cursor is just cursorNodeId, columns derived by hooks.
- * The nodeIndex map stays as an on-demand helper for key handler lookups.
+ * Derived columns layout with cursor position.
+ * Used by cursor-context and Board to pass derived layout data.
  */
 export interface ColumnsLayout {
   columns: ColumnState[]

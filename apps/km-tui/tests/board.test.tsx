@@ -13,19 +13,20 @@ import { renderCard } from "../src/render.ts"
 import { renderStatic } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { createStore, type StoreApi } from "zustand"
-import type { CardState } from "../src/types.ts"
+import type { CardState, InitialBoardData } from "../src/types.ts"
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
-import type { TUIBoardState } from "../src/types.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-function renderBoardCore(state: TUIBoardState, repo: Repo, options: { width?: number; height?: number } = {}) {
+function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?: number; height?: number } = {}) {
   const { width = 80, height = 24 } = options
   const boardCoreElement = React.createElement(BoardCore, {
-    state,
+    rootId: state.rootId,
+    rootPath: state.rootPath,
+    columns: state.columns,
     layout: {
       columns: state.columns,
       colIndex: 0,

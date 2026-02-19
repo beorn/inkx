@@ -173,11 +173,11 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   ensureCommandSystemInitialized()
   resetModeStack()
 
-  // Build initial board state for computing initial store params
-  const initialTUIState = buildBoardState(repo, rootId)
+  // Build initial board data for computing initial store params
+  const initialData = buildBoardState(repo, rootId)
 
   // Compute initial cursor node from columns
-  const firstCol = initialTUIState.columns[0]
+  const firstCol = initialData.columns[0]
   const initialCursorNodeId = firstCol?.cards[0]?.node.id ?? firstCol?.node.id ?? null
 
   // Create layout registry for position tracking
@@ -193,18 +193,17 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       cursorNodeId: initialCursorNodeId,
     }),
     initialBoardState: createBoardState(
-      initialTUIState.rootId,
-      initialTUIState.rootPath,
+      initialData.rootId,
+      initialData.rootPath,
       initialCursorNodeId,
-      initialTUIState.collapsedNodeIds,
+      initialData.collapsedNodeIds,
     ),
     initialUIState: createInitialUIState(
       viewMode,
-      [...(initialTUIState.collapsedColumns ?? [])],
+      [...(initialData.collapsedColumns ?? [])],
       { columns, rows },
-      initialTUIState.rootId,
+      initialData.rootId,
     ),
-    initialTUIBoardState: initialTUIState,
     dimensions: { columns, rows },
   }
 
@@ -218,7 +217,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardElement = React.createElement(Board, {
-    initialState: initialTUIState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},

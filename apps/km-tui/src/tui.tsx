@@ -11,7 +11,7 @@ import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerPro
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { createBoardState } from "./board-types.ts"
-import type { TUIBoardState, TuiOptions } from "./types.ts"
+import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
@@ -62,10 +62,10 @@ function restoreTerminal(): void {
 }
 
 /**
- * Compute initial cursor node from board state.
+ * Compute initial cursor node from board data.
  * First card of first column, or first column if no cards.
  */
-function computeInitialCursor(state: TUIBoardState): string | null {
+function computeInitialCursor(state: InitialBoardData): string | null {
   if (state.columns.length === 0) return null
   const firstCol = state.columns[0]
   if (!firstCol) return null
@@ -87,7 +87,7 @@ function computeInitialCursor(state: TUIBoardState): string | null {
  * - hasInput() = false → static mode, render once and exit
  */
 // oxlint-disable-next-line complexity/complexity -- 31/30: async setup with nested callbacks, not worth extracting
-export async function runBoard(state: TUIBoardState | null, options?: TuiOptions): Promise<void> {
+export async function runBoard(state: InitialBoardData | null, options?: TuiOptions): Promise<void> {
   using run = spanLog.span("run-board")
   log.debug?.("runBoard start")
 
@@ -220,7 +220,6 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
         { columns: cols, rows },
         state.rootId,
       ),
-      initialTUIBoardState: state,
       dimensions: { columns: cols, rows },
     }
 
@@ -233,7 +232,6 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
         <RepoProvider repo={options.repo}>
           <InputLayerProvider>
             <BoardApp
-              initialState={state}
               initialViewMode={viewMode}
               patchedConsole={patched}
               toastQueue={toastQueue}

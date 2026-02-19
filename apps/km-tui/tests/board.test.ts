@@ -19,10 +19,8 @@ describe("createEmptyState", () => {
     const state = createEmptyState()
     expect(state.rootId).toBeNull()
     expect(state.columns).toHaveLength(0)
-    expect(state.selectedNodes.size).toBe(0)
-    expect(state.visualMode).toBe(false)
-    expect(state.searchMode).toBe(false)
-    expect(state.helpMode).toBe(false)
+    expect(state.collapsedColumns.size).toBe(0)
+    expect(state.collapsedNodeIds.size).toBe(0)
   })
 })
 

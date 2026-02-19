@@ -10,7 +10,6 @@ import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
-import type { TUIBoardState } from "../types.ts"
 import type { UIState } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
@@ -41,7 +40,6 @@ type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>))
 
 interface UseBoardDialogsParams {
   repo: Repo
-  state: TUIBoardState
   setUI: SetUI
   dispatchBoard: (action: BoardAction) => void
   /** Current cursor node ID (from board state) */
@@ -75,7 +73,6 @@ interface BoardDialogHandlers {
  */
 export function useBoardDialogs({
   repo,
-  state: _state,
   setUI,
   dispatchBoard,
   cursorNodeId,

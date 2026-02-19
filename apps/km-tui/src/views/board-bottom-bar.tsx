@@ -8,7 +8,7 @@ import { Box, Text } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import type { UIState } from "../ui-reducer.ts"
-import type { TUIBoardState } from "../types.ts"
+import type { ColumnState } from "../types.ts"
 import { useCursorPosition } from "../cursor-context.tsx"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
@@ -75,7 +75,8 @@ function useSpinnerFrame(enabled: boolean): string {
 
 interface BottomBarProps {
   ui: UIState
-  state: TUIBoardState
+  rootPath: string | null
+  columns: ColumnState[]
   layout: { colIndex: number; cardIndex: number }
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
@@ -95,7 +96,8 @@ interface BottomBarProps {
  */
 export function BottomBar({
   ui,
-  state,
+  rootPath,
+  columns,
   layout: _layoutProp,
   termWidth,
   storageMode,
@@ -129,7 +131,7 @@ export function BottomBar({
   useLogToast(logTotal, toastQueue)
 
   // Shorten path: replace home directory with ~/
-  let displayPath = state.rootPath || ""
+  let displayPath = rootPath || ""
   if (homeDir && displayPath.startsWith(homeDir)) {
     displayPath = "~" + displayPath.slice(homeDir.length)
   }
@@ -172,7 +174,7 @@ export function BottomBar({
     ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
     : ""
   const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW"
-  const showColPosition = ui.viewMode === "columns" && state.columns.length > 1
+  const showColPosition = ui.viewMode === "columns" && columns.length > 1
 
   // Left side info
   const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
@@ -228,7 +230,7 @@ export function BottomBar({
         )}
         {showColPosition && (
           <Text dimColor id="column-position">
-            {"   "}col {layout.colIndex + 1}/{state.columns.length}
+            {"   "}col {layout.colIndex + 1}/{columns.length}
           </Text>
         )}
         {/* Filter indicator moved to top bar */}

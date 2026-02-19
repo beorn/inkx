@@ -21,21 +21,11 @@ function createMockRepo(): Repo {
 }
 
 describe("Board Pure Rendering", () => {
-  test("renderStatusBar shows visual mode", () => {
+  test("renderStatusBar shows keybinding hints", () => {
     const state = createEmptyState()
-    state.visualMode = true
-
     const output = renderStatusBar(state, 80)
-    expect(output).toContain("VISUAL")
-  })
-
-  test("renderStatusBar shows selection count", () => {
-    const state = createEmptyState()
-    state.selectedNodes.add("card-1")
-    state.selectedNodes.add("card-2")
-
-    const output = renderStatusBar(state, 80)
-    expect(output).toContain("2 selected")
+    expect(output).toContain("h/l:cols")
+    expect(output).toContain("j/k:cards")
   })
 
   test("renderHelp contains keybindings", () => {

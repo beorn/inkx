@@ -7,7 +7,7 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { TUIBoardState, CardState, ColumnState } from "../../src/types.ts"
+import type { InitialBoardData, CardState, ColumnState } from "../../src/types.ts"
 import { createEmptyState } from "../../src/state.ts"
 
 /**
@@ -53,9 +53,9 @@ export function createColumnState(nodeOverrides: Partial<KNode> = {}, cards: Car
 }
 
 /**
- * Create a TUIBoardState with columns
+ * Create a InitialBoardData with columns
  */
-export function createBoardState(columns: ColumnState[] = [], overrides: Partial<TUIBoardState> = {}): TUIBoardState {
+export function createBoardState(columns: ColumnState[] = [], overrides: Partial<InitialBoardData> = {}): InitialBoardData {
   const base = createEmptyState()
   return {
     ...base,
@@ -70,7 +70,7 @@ export function createBoardState(columns: ColumnState[] = [], overrides: Partial
  * Useful for testing navigation, rendering, etc.
  */
 function createSimpleTestBoard(): {
-  state: TUIBoardState
+  state: InitialBoardData
   nodeIds: {
     root: string
     col1: string
@@ -130,7 +130,7 @@ function createSimpleTestBoard(): {
  * Create a nested board for zoom testing
  */
 function createNestedTestBoard(): {
-  state: TUIBoardState
+  state: InitialBoardData
   nodeIds: {
     root: string
     col: string
@@ -204,7 +204,7 @@ function createNestedTestBoard(): {
 /**
  * Create a board state with task statuses for status icon testing
  */
-function createStatusTestBoard(): TUIBoardState {
+function createStatusTestBoard(): InitialBoardData {
   const col = createColumnState({ content: "Tasks" }, [
     createCardState({
       content: "Todo task",

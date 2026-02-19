@@ -148,7 +148,6 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       { columns, rows },
       initialState.rootId,
     ),
-    initialTUIBoardState: initialState,
     dimensions: { columns, rows },
   }
 
@@ -157,7 +156,6 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
-    initialState,
     initialViewMode: viewMode,
     dimensions: { columns, rows },
     onExit: () => {},

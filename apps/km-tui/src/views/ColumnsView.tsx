@@ -13,7 +13,7 @@ import { Box, Text, HorizontalVirtualList } from "inkx"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:columns")
-import type { TUIBoardState, ColumnState, CardState } from "../types.ts"
+import type { ColumnState, CardState } from "../types.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
@@ -175,7 +175,7 @@ const ColumnTree = React.memo(function ColumnTree({
 // =============================================================================
 
 interface ColumnsViewProps {
-  state: TUIBoardState
+  columns: ColumnState[]
   width: number
   height: number
   subIndex: number
@@ -184,13 +184,13 @@ interface ColumnsViewProps {
 // Maximum column width for columns view (tighter than cards view)
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
-export function ColumnsView({ state, width, height, subIndex }: ColumnsViewProps): React.ReactElement {
+export function ColumnsView({ columns, width, height, subIndex }: ColumnsViewProps): React.ReactElement {
   // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
   const colIndex = useCursorColIndex()
 
   // Column width — uniform width capped at COLUMNS_VIEW_MAX_WIDTH
   const maxCols = Math.max(1, Math.floor(width / 35))
-  const effectiveColCount = Math.min(state.columns.length, maxCols)
+  const effectiveColCount = Math.min(columns.length, maxCols)
   const separators = Math.max(0, effectiveColCount - 1)
   const expandedWidth = Math.min(
     COLUMNS_VIEW_MAX_WIDTH,
@@ -204,13 +204,13 @@ export function ColumnsView({ state, width, height, subIndex }: ColumnsViewProps
       <Box height={1} flexShrink={0} />
 
       {/* Columns row — HVL handles horizontal windowing and scroll indicators */}
-      {state.columns.length === 0 ? (
+      {columns.length === 0 ? (
         <Box flexDirection="row" flexGrow={1}>
           <Text dimColor>Empty board</Text>
         </Box>
       ) : (
         <HorizontalVirtualList
-          items={state.columns}
+          items={columns}
           width={width}
           height={columnHeight}
           itemWidth={expandedWidth}

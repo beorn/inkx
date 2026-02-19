@@ -522,7 +522,7 @@ describe("date badge display", () => {
   })
 
   it("structural sharing preserves date badge after unrelated mutation", () => {
-    // Regression: applyStructuralSharing must detect date/priority changes
+    // Regression: date/priority changes must be reflected after unrelated mutations
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
