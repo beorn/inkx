@@ -18,6 +18,7 @@ export {
   processText,
   extractRefs,
   extractLinkParts,
+  prettifyUrl,
   stripInlineRefsFromText,
   shortenInlineRefsInText,
   SIGIL_PATTERN,

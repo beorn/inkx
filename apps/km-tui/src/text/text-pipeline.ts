@@ -9,7 +9,7 @@
  */
 
 import { createTerm, stripAnsi, type StyleChain } from "inkx"
-import { dashedUnderline } from "chalkx"
+import { dashedUnderline, hyperlink } from "chalkx"
 import { PROP_REGEX } from "@km/markdown"
 import { getTermColor } from "./colors.ts"
 
@@ -44,6 +44,13 @@ const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g
 const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g
 const CODE_REGEX = /`([^`]+)`/g
 const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g
+
+/**
+ * Bare URLs: https://example.com/path?q=1#frag
+ * Matches http:// and https:// URLs not already consumed by markdown link syntax.
+ * Trailing punctuation (.,:;!?) followed by whitespace/end is excluded from the match.
+ */
+const BARE_URL_REGEX = /https?:\/\/[^\s<>\[\]()]+[^\s<>\[\]().,;:!?'")\]]/g
 
 /** HTML tags */
 const HTML_TAG_REGEX = /<[^>]+>/g
@@ -247,15 +254,28 @@ export function processText(text: string, options: TextPipelineOptions): string 
     })
   }
 
-  // ── Step 6: Handle sigils (@mention, #tag, +project) ──
+  // ── Step 6: Prettify bare URLs ──
+  // Bare URLs (not already consumed by markdown link syntax) get
+  // protocol/www stripped and styled with underline + dim in rich mode.
+  // OSC 8 hyperlink wrapping makes them clickable in supporting terminals.
+  if (isRich && style) {
+    result = result.replace(BARE_URL_REGEX, (url) => {
+      const display = prettifyUrl(url)
+      return hyperlink(style.dim.underline(display), url)
+    })
+  } else {
+    result = result.replace(BARE_URL_REGEX, (url) => prettifyUrl(url))
+  }
+
+  // ── Step 7: Handle sigils (@mention, #tag, +project) ──
   result = processSigils(result, options, style)
 
-  // ── Step 7: Strip residual key:: value metadata ──
+  // ── Step 8: Strip residual key:: value metadata ──
   if (options.stripRefs) {
     result = result.replace(/\s*\b\w[\w-]*:: (?:"(?:[^"\\]|\\.)*"|[^\s]+)/g, "")
   }
 
-  // ── Step 8: Handle markdown formatting ──
+  // ── Step 9: Handle markdown formatting ──
   if (isRich && style) {
     result = result.replace(BOLD_REGEX, (_m, c: string) => style.bold(c))
     result = result.replace(ITALIC_ASTERISK_REGEX, (_m, c: string) => style.italic(c))
@@ -270,13 +290,13 @@ export function processText(text: string, options: TextPipelineOptions): string 
     result = result.replace(STRIKETHROUGH_REGEX, (_m, c: string) => c)
   }
 
-  // ── Step 9: Clean whitespace ──
+  // ── Step 10: Clean whitespace ──
   result = result
     .replace(/\n{2,}/g, "\n")
     .replace(/  +/g, " ")
     .trim()
 
-  // ── Step 10: Draft styling ──
+  // ── Step 11: Draft styling ──
   if (isDraft) {
     result = dashedUnderline(result)
   }
@@ -287,6 +307,21 @@ export function processText(text: string, options: TextPipelineOptions): string 
 // =============================================================================
 // Internal Helpers
 // =============================================================================
+
+/**
+ * Strip protocol and www prefix from a URL for display.
+ * "https://www.example.com/path" → "example.com/path"
+ * "http://example.com" → "example.com"
+ * Trailing slash on bare domains is also stripped: "example.com/" → "example.com"
+ */
+export function prettifyUrl(url: string): string {
+  let display = url.replace(/^https?:\/\//, "").replace(/^www\./, "")
+  // Strip trailing slash on bare domain (no path)
+  if (display.endsWith("/") && !display.slice(0, -1).includes("/")) {
+    display = display.slice(0, -1)
+  }
+  return display
+}
 
 /** Style an inline property for rich mode: key in dim cyan, :: in dim, value colored by type */
 function styleInlineProp(style: StyleChain, key: string, value: string): string {

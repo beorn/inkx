@@ -44,7 +44,8 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
     const text = card.textContent()
     expect(text).not.toContain("^1209904823302245")
     expect(text).toContain("Beautiful places")
-    expect(text).toContain("https://example.com")
+    // URL is prettified (protocol stripped) by the text pipeline
+    expect(text).toContain("example.com")
   })
 
   test("multiple ^refs in same title are all stripped", () => {
