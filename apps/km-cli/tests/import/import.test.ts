@@ -351,6 +351,100 @@ describe("Stage 1: Fetch from Asana API", () => {
     const sectionNames = edge.sections!.map((s) => s.title)
     expect(sectionNames).toContain("------------------")
   })
+
+  test("dependencies and dependents are preserved in metadata", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    expect(full.metadata?.dependencies).toEqual([{ gid: "task-1", name: "Design login page" }])
+    expect(full.metadata?.dependents).toEqual([{ gid: "task-3", name: "API spec review" }])
+  })
+
+  test("is_rendered_as_separator flag is preserved in metadata", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const sep = edge.sections![0]!.items.find((i) => i.sourceId === "task-separator")!
+    expect(sep).toBeDefined()
+    expect(sep.metadata?.isSeparator).toBe(true)
+  })
+
+  test("parent field is preserved on subtasks", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    // Subtasks of task-1
+    const sprint = data.projects[0]!
+    const task1 = sprint.sections![0]!.items[0]!
+    expect(task1.children![0]!.metadata?.parentGid).toBe("task-1")
+    expect(task1.children![0]!.metadata?.parentName).toBe("Design login page")
+
+    // Subtasks of task-full
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    expect(full.children![0]!.metadata?.parentGid).toBe("task-full")
+    expect(full.children![0]!.metadata?.parentName).toBe("Comprehensive task")
+  })
+
+  test("external field is preserved in metadata", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    expect(full.metadata?.external).toEqual({ gid: "EXT-123", data: '{"jira_key":"PROJ-456"}' })
+  })
+
+  test("varied custom_fields types are all captured in metadata", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    const cf = full.metadata?.customFields as Record<string, string | number>
+    expect(cf).toBeDefined()
+    expect(cf.Priority).toBe(2)
+    // display_value takes precedence over enum_value for Stage
+    expect(cf.Stage).toBe("In Progress")
+    expect(cf["Sprint Goal"]).toBe("Ship v2.0 beta")
+    expect(cf.Labels).toBe("Backend, API")
+  })
+
+  test("recurring task name with ^ref is cleaned and parent stored", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const recur = edge.sections![0]!.items.find((i) => i.sourceId === "task-recur")!
+    // The → ^numericId suffix should be stripped from the title
+    expect(recur.title).toBe("Weekly standup")
+    // Parent task GID stored in metadata
+    expect(recur.metadata?.parentTaskGid).toBe("1234567890123")
+    // Also has parent field from the API
+    expect(recur.metadata?.parentGid).toBe("1234567890123")
+    expect(recur.metadata?.parentName).toBe("Weekly standup")
+  })
+
+  test("html headings in notes are converted to bold", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    const edge = data.projects[2]!
+    const htmlH = edge.sections![0]!.items.find((i) => i.sourceId === "task-html-headings")!
+    expect(htmlH.body).toBeDefined()
+    // h1/h2 should be converted to **bold** by the turndown rule
+    expect(htmlH.body).toContain("**Requirements**")
+    expect(htmlH.body).toContain("**Notes**")
+    // Should NOT contain markdown headings (# or ##)
+    expect(htmlH.body).not.toMatch(/^#{1,6}\s/m)
+    expect(htmlH.body).toContain("Must support X.")
+    expect(htmlH.body).toContain("Extra info.")
+  })
+
+  test("modified_at timestamps are preserved on tasks", async () => {
+    const data = await fetchFromAsana({ token: "fake-token", downloadDir })
+    // task-1 in Sprint 4
+    const task1 = data.projects[0]!.sections![0]!.items[0]!
+    expect(task1.modifiedAt).toBe("2026-02-18T16:00:00Z")
+
+    // task-full in Edge Cases
+    const edge = data.projects[2]!
+    const full = edge.sections![0]!.items.find((i) => i.sourceId === "task-full")!
+    expect(full.modifiedAt).toBe("2026-02-10T17:30:00Z")
+
+    // Subtasks also have modified_at
+    const sub1 = data.projects[0]!.sections![0]!.items[0]!.children![0]!
+    expect(sub1.modifiedAt).toBe("2026-02-17T12:00:00Z")
+  })
 })
 
 // ============================================================================

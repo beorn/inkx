@@ -7,9 +7,11 @@
 
 import { describe, test, expect } from "vitest"
 import { convert, itemToNodes } from "../../src/import/convert.ts"
+import { toImportItem } from "../../src/import/adapters/task-transform.ts"
 import { parseMarkdown, extractFrontmatter, parseTaskMetadata, extractTags, extractMentions } from "@km/markdown"
 import type { List, ListItem, Heading } from "@km/markdown"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
+import type { AsanaApiTask } from "../../src/import/adapters/asana-types.ts"
 import type { KNode } from "@km/core"
 
 // ============================================================================
@@ -1440,5 +1442,148 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
     // No headings from the body content
     expect(headingTexts.some((t) => t.includes("Overview"))).toBe(false)
     expect(headingTexts.some((t) => t.includes("Steps"))).toBe(false)
+  })
+})
+
+// ============================================================================
+// Block reference stripping (→ ^numericId from Asana recurring tasks)
+// ============================================================================
+
+/** Helper: create a minimal AsanaApiTask with defaults */
+function makeAsanaTask(overrides: Partial<AsanaApiTask> & { gid: string; name: string }): AsanaApiTask {
+  return {
+    notes: "",
+    completed: false,
+    ...overrides,
+  }
+}
+
+describe("Block reference stripping (→ ^numericId)", () => {
+  test("toImportItem strips → ^numericId from task name", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Fitted shirts (Bonobos.com) SF & Santana Row → ^688222992104100",
+    })
+    const item = toImportItem(task)
+    expect(item.title).toBe("Fitted shirts (Bonobos.com) SF & Santana Row")
+    expect(item.title).not.toContain("→")
+    expect(item.title).not.toContain("^688222992104100")
+  })
+
+  test("toImportItem stores parentTaskGid in metadata", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Buy groceries → ^9999",
+    })
+    const item = toImportItem(task)
+    expect(item.metadata?.parentTaskGid).toBe("9999")
+  })
+
+  test("toImportItem does not strip when no → ^numericId pattern", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Normal task title",
+    })
+    const item = toImportItem(task)
+    expect(item.title).toBe("Normal task title")
+    expect(item.metadata?.parentTaskGid).toBeUndefined()
+  })
+
+  test("toImportItem strips → ^numericId from body content (plain notes)", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Task",
+      notes: "See parent → ^688222992104100 for details",
+    })
+    const item = toImportItem(task)
+    expect(item.body).toBe("See parent for details")
+    expect(item.body).not.toContain("→")
+  })
+
+  test("toImportItem strips → ^numericId from body content (html_notes)", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Task",
+      html_notes: "<body><p>Reference → ^12345 here</p></body>",
+    })
+    const item = toImportItem(task)
+    expect(item.body).not.toContain("→")
+    expect(item.body).not.toContain("^12345")
+  })
+
+  test("convert resolves parentTaskGid to link_to when target exists", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-19T00:00:00Z",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Test",
+          items: [
+            { sourceId: "688222992104100", title: "Parent recurring task" },
+            {
+              sourceId: "child-1",
+              title: "Fitted shirts (Bonobos.com)",
+              metadata: { parentTaskGid: "688222992104100" },
+            },
+          ],
+        },
+      ],
+    }
+    const files = convert(data)
+    const md = [...files.values()][0]!
+    // The child task title should not contain the block ref
+    expect(md).toContain("Fitted shirts (Bonobos.com)")
+    expect(md).not.toContain("→ ^688222992104100")
+  })
+
+  test("convert sets link_to on node when parentTaskGid target exists", () => {
+    const nodes: KNode[] = []
+    const counter = { value: 0 }
+    const primaryMap = new Map([["99999", "test.md"]])
+    itemToNodes(
+      counter,
+      {
+        sourceId: "child-1",
+        title: "Child task",
+        metadata: { parentTaskGid: "99999" },
+      },
+      "root",
+      nodes,
+      undefined,
+      primaryMap,
+    )
+    const taskNode = nodes.find((n) => n.id === "child-1")!
+    expect(taskNode.link_to).toBe("^99999")
+  })
+
+  test("convert omits link_to when parentTaskGid target does not exist", () => {
+    const nodes: KNode[] = []
+    const counter = { value: 0 }
+    const primaryMap = new Map<string, string>()
+    itemToNodes(
+      counter,
+      {
+        sourceId: "child-1",
+        title: "Child task",
+        metadata: { parentTaskGid: "nonexistent" },
+      },
+      "root",
+      nodes,
+      undefined,
+      primaryMap,
+    )
+    const taskNode = nodes.find((n) => n.id === "child-1")!
+    expect(taskNode.link_to).toBeNull()
+  })
+
+  test("handles multiple spaces around arrow in → ^numericId", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Task with spaces  →  ^12345",
+    })
+    const item = toImportItem(task)
+    expect(item.title).toBe("Task with spaces")
+    expect(item.metadata?.parentTaskGid).toBe("12345")
   })
 })

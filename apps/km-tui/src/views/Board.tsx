@@ -237,8 +237,10 @@ function CursorAwareDetailPane({
   const cursorPos = useCursorPosition()
   const selectedCol = columns[cursorPos.colIndex]
   const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
-  if (!selectedCard) return null
-  return <DetailPane node={selectedCard.node} width={width} height={height} />
+  // Show detail for card, column, or board node (whichever cursor level)
+  const node = selectedCard?.node ?? selectedCol?.node
+  if (!node) return null
+  return <DetailPane node={node} width={width} height={height} />
 }
 
 /**

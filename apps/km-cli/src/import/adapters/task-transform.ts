@@ -5,20 +5,35 @@ import { fetchComments } from "./comment-filter.ts"
 import type { FetchCommentsResult } from "./comment-filter.ts"
 import type { ImportItem, ImportAttachment } from "../types.ts"
 
+/** Pattern matching `→ ^numericId` at end of string (Asana recurring task parent ref) */
+const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/
+
+/** Strip `→ ^numericId` pattern from text (can appear anywhere in body content) */
+const BLOCKREF_INLINE_RE = /\s*→\s*\^\d+/g
+
 /** Convert Asana task to ImportItem */
 export function toImportItem(task: AsanaApiTask): ImportItem {
+  // Strip → ^numericId suffix from task name (Asana recurring task parent reference)
+  const blockRefMatch = task.name.match(BLOCKREF_SUFFIX_RE)
+  const cleanName = blockRefMatch ? task.name.replace(BLOCKREF_SUFFIX_RE, "") : task.name
+
   const item: ImportItem = {
     sourceId: task.gid,
-    title: task.name,
+    title: cleanName,
     status: task.completed ? "done" : "todo",
+  }
+
+  // Store the referenced parent task GID if found
+  if (blockRefMatch) {
+    item.metadata = { ...item.metadata, parentTaskGid: blockRefMatch[1] }
   }
 
   // Prefer html_notes (rich text) over plain notes
   if (task.html_notes?.trim()) {
     const md = turndown.turndown(preprocessAsanaHtml(task.html_notes)).trim()
-    if (md) item.body = md
+    if (md) item.body = md.replace(BLOCKREF_INLINE_RE, "")
   } else if (task.notes?.trim()) {
-    item.body = task.notes.trim()
+    item.body = task.notes.trim().replace(BLOCKREF_INLINE_RE, "")
   }
   if (task.created_at) item.createdAt = task.created_at
   if (task.modified_at) item.modifiedAt = task.modified_at

@@ -217,6 +217,10 @@ function itemToNodes(
   if (item.metadata?.parentName) nodeData.asana_parent_name = item.metadata.parentName
   if (item.metadata?.customFields) nodeData.custom_fields = item.metadata.customFields
 
+  // Resolve parentTaskGid (from → ^numericId in title) to link_to if target exists
+  const parentTaskGid = item.metadata?.parentTaskGid as string | undefined
+  const linkTo = parentTaskGid && primaryMap?.has(parentTaskGid) ? `^${parentTaskGid}` : null
+
   const taskNode = mkNode(counter, {
     id: item.sourceId,
     type: "oi",
@@ -232,6 +236,7 @@ function itemToNodes(
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
     created_at: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
     updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now(),
+    ...(linkTo && { link_to: linkTo }),
     ...(Object.keys(nodeData).length > 0 && { data: nodeData }),
   })
   nodes.push(taskNode)
