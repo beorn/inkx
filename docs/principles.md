@@ -31,6 +31,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principle: Plain Objects from Factories](#principle-plain-objects)
   - [Principle: Compose Objects as Lego Blocks](#principle-lego-blocks)
   - [Principle: Organize Objects Into Layers](#principle-organize-objects-into-layers)
+  - [Principle: Structural, Not Physical](#principle-structural-not-physical)
   - [Principle: Compose Flows using Generators](#principle-compose-flows-using-generators)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
@@ -336,6 +337,42 @@ async function watchRepo(path: string) {
 **Guidelines:**
 - [ ] Call down only — Board→Storage→Parser / not Board→Parser
 - [ ] UI through storage — `repo.save()` / not `fs.writeFile()`
+
+---
+
+### Principle: Structural, Not Physical
+
+**The insight**: Nodes have three independent aspects — **structural** (what it is), **visual** (how it looks), and **physical** (where it came from). The visual layer must never branch on physical properties.
+
+**The properties**:
+
+| Concern | Properties | Used by |
+|---------|------------|---------|
+| Structural | `type`, `content`, `children`, `task_marker`, `rules` | Core, Tree, Views |
+| Visual | depth, isSelected, cursor position, column width | Views only |
+| Physical | `fstype`, `fs_path`, `fs_ino` | Storage, Parser only |
+
+**The rule**: View code decides what to render based on structural properties (has body? has subitems? has task marker?) — never on `fstype` (is it a folder? a file? a section?).
+
+```typescript
+// 🚩 Physical branching in views — inconsistent across node sources
+if (node.fstype === "folder") return <FolderPane />
+
+// ✅ Structural branching — works for any node regardless of origin
+if (extractBody(children).body.length > 0) renderBody()
+if (node.task_marker) renderTaskStatus()
+```
+
+**Exception**: Cosmetic hints (icons, breadcrumb separators) may use `fstype` for display, but never for behavioral branching.
+
+**Why**: Nodes can come from markdown files, Asana imports, inline creation, or any future source. If the visual layer branches on `fstype`, nodes from different sources render inconsistently. Structural properties are universal.
+
+**Guidelines:**
+- [ ] Views branch on structure — `type`, `content`, `children` / not `fstype`
+- [ ] Physical in storage only — `fstype` checks in `@km/storage` and `@km/markdown` / not in views
+- [ ] Predicates from tree — `isOutline()`, `extractBody()` / not `fstype === "mdsection"`
+
+> **Lessons learned**: [docs/lessons/structural-visual-physical.md](lessons/structural-visual-physical.md)
 
 ---
 
