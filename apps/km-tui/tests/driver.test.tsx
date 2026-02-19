@@ -644,10 +644,11 @@ describe("createBoardDriver", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    const storeState = driver.store.getState()
-    expect(storeState.layout.colIndex).toBe(0)
-    expect(storeState.layout.cardIndex).toBe(0)
-    expect(storeState.selectionLevel).toBe("card")
+    // Layout is derived on demand via driver.getState()
+    const state = driver.getState()
+    expect(state.layout.colIndex).toBe(0)
+    expect(state.layout.cardIndex).toBe(0)
+    expect(state.cursor.level).toBe("card")
   })
 
   test("store tracks dialog state", async () => {

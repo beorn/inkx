@@ -204,20 +204,6 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
     const cols = term.cols ?? process.stdout.columns ?? 80
     const rows = term.rows ?? process.stdout.rows ?? 24
 
-    const initialLayout = {
-      columns: state.columns,
-      colIndex: 0,
-      cardIndex: 0,
-      isAtCardLevel:
-        initialCursorNodeId !== null && state.columns.length > 0 && (state.columns[0]?.cards.length ?? 0) > 0,
-    }
-
-    const selectedCol = state.columns[0]
-    const selectedCard = selectedCol?.cards[0]
-    const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-    const initialSelectionLevel: "board" | "column" | "card" =
-      initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
-
     const viewMode = options?.initialViewMode ?? "cards"
 
     const storeParams: CreateBoardAppStoreParams = {
@@ -226,11 +212,6 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
       navigator: createGridNavigator(),
       cursorStore: createCursorStore({
         cursorNodeId: initialCursorNodeId,
-        cursorCardNodeId: selectedCard?.node.id ?? null,
-        cursorColumnNodeId: selectedCol?.node.id ?? null,
-        colIndex: 0,
-        cardIndex: 0,
-        selectionLevel: initialSelectionLevel,
       }),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState(
@@ -239,10 +220,7 @@ export async function runBoard(state: TUIBoardState | null, options?: TuiOptions
         { columns: cols, rows },
         state.rootId,
       ),
-      initialLayout,
       initialTUIBoardState: state,
-      initialSelectedNode,
-      initialSelectionLevel,
       dimensions: { columns: cols, rows },
     }
 

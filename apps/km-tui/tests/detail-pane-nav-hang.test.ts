@@ -12,6 +12,19 @@
  */
 import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import type { StoreApi } from "zustand"
+import type { BoardAppStore } from "../src/board-app-store.ts"
+import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
+import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
+
+/** Derive colIndex from store state on demand. */
+function getColIndex(store: StoreApi<BoardAppStore>): number {
+  const s = store.getState()
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const nodeIndex = buildNodeIndex(columns)
+  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
+  return cursor.colIndex
+}
 
 describe("detail pane + column navigation (regression: infinite render loop)", () => {
   test("l navigates right while detail pane is open", { timeout: 5000 }, () => {
@@ -22,11 +35,11 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
 
     board.press(" ") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().cursorStore.getState().colIndex).toBe(0)
+    expect(getColIndex(store)).toBe(0)
 
     board.press("l") // navigate right — previously hung
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().cursorStore.getState().colIndex).toBe(1)
+    expect(getColIndex(store)).toBe(1)
   })
 
   test("h navigates left while detail pane is open", { timeout: 5000 }, () => {
@@ -38,11 +51,11 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     board.press("l") // go to col2 first
     board.press(" ") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().cursorStore.getState().colIndex).toBe(1)
+    expect(getColIndex(store)).toBe(1)
 
     board.press("h") // navigate left — previously hung
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().cursorStore.getState().colIndex).toBe(0)
+    expect(getColIndex(store)).toBe(0)
   })
 
   test("j/k navigation still works with detail pane open", { timeout: 5000 }, () => {
@@ -70,15 +83,15 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     board.press(" ") // open detail pane
 
     board.press("l") // col1 → col2
-    expect(store.getState().cursorStore.getState().colIndex).toBe(1)
+    expect(getColIndex(store)).toBe(1)
 
     board.press("l") // col2 → col3
-    expect(store.getState().cursorStore.getState().colIndex).toBe(2)
+    expect(getColIndex(store)).toBe(2)
 
     board.press("h") // col3 → col2
-    expect(store.getState().cursorStore.getState().colIndex).toBe(1)
+    expect(getColIndex(store)).toBe(1)
 
     board.press("h") // col2 → col1
-    expect(store.getState().cursorStore.getState().colIndex).toBe(0)
+    expect(getColIndex(store)).toBe(0)
   })
 })

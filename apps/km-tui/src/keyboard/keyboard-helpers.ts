@@ -224,8 +224,7 @@ export function refreshBoardState(
 
   // Fast path: no positional options — just re-SELECT the current cursor node.
   // The node hasn't moved (only properties changed), so cursorNodeId is still valid.
-  // dispatchBoard(SELECT) triggers recomputeLayout which re-derives columns from
-  // repo and resolves the correct position via nodeIndex.
+  // Layout is derived on demand by buildActionCtx and React hooks.
   if (!options || (options.colIndex === undefined && options.cardIndex === undefined)) {
     ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
     return

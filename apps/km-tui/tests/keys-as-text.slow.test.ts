@@ -15,6 +15,8 @@ import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helper
 import { activeEditTargetRef } from "inkx"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
+import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
+import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
 
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", () => {
@@ -253,8 +255,14 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // Dialog should be closed
     expect(store.getState().ui.showSearchDialog).toBe(false)
 
-    // Verify cursor is on the selected node
-    const selectedNode = store.getState().selectedNode
+    // Verify cursor is on the selected node (derive layout on demand)
+    const s = store.getState()
+    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+    const ni = buildNodeIndex(cols)
+    const cursor = deriveCursorPosition(cols, s.cursorNodeId, ni)
+    const col = cols[cursor.colIndex]
+    const card = col?.cards[cursor.cardIndex]
+    const selectedNode = card?.node ?? col?.node ?? null
     expect(selectedNode?.content).toBe("Delta task")
 
     // CRITICAL: Must NOT be in inline edit mode

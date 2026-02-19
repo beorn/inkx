@@ -46,8 +46,6 @@ import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
 import {
   CursorStoreProvider,
   useCursorPosition,
-  useCursorColIndex,
-  useCursorSelectionLevel,
 } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { ColumnsLayout } from "../types.ts"
@@ -608,9 +606,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const navigator = useAppStore<BoardAppStore, GridNavigator>((s) => s.navigator)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
-  // NODE MODEL V2: updateLayout action eliminated. Instead, the store provides
-  // syncLayout() which silently updates layout fields without triggering subscribers.
-  const syncLayout = useAppStore<BoardAppStore, BoardAppStore["syncLayout"]>((s) => s.syncLayout)
+  // Layout is derived on demand — no store sync needed
 
   // Console stats via direct subscription
   const [consoleStats, setConsoleStats] = useState<{ total: number; errors: number; warnings: number } | undefined>()
@@ -659,32 +655,22 @@ export function Board({ patchedConsole }: BoardProps) {
   const columns = useColumns(repo, rootId, foldedNodes)
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
 
-  // Subscribe to cursor colIndex + selectionLevel from CursorStore.
-  // Board re-renders on column change (h/l) or level change (K/J),
-  // but NOT on j/k within the same column at the same level.
-  const cursorColIndexRef = useRef(0)
-  const cursorColIndex = useSyncExternalStore(cursorStore.subscribe, () => {
-    const colIndex = cursorStore.getState().colIndex
-    if (colIndex === cursorColIndexRef.current) return cursorColIndexRef.current
-    cursorColIndexRef.current = colIndex
-    return colIndex
-  })
-  const cursorSelectionLevelRef = useRef<"board" | "column" | "card">("board")
-  const cursorSelectionLevel = useSyncExternalStore(cursorStore.subscribe, () => {
-    const level = cursorStore.getState().selectionLevel
-    if (level === cursorSelectionLevelRef.current) {
-      return cursorSelectionLevelRef.current
-    }
-    cursorSelectionLevelRef.current = level
-    return level
+  // Subscribe to cursorNodeId from CursorStore.
+  // Board re-renders on every cursor change — the cursor-context hooks
+  // handle fine-grained subscriptions for individual components.
+  const cursorNodeIdRef = useRef<string | null>(null)
+  const cursorNodeId = useSyncExternalStore(cursorStore.subscribe, () => {
+    const id = cursorStore.getState().cursorNodeId
+    if (id === cursorNodeIdRef.current) return cursorNodeIdRef.current
+    cursorNodeIdRef.current = id
+    return id
   })
 
-  // Compute cursor position only when columns change, column index changes,
-  // or selection level changes (NOT on j/k within the same column).
-  const cursorPosition = useMemo(() => {
-    const cs = cursorStore.getState()
-    return deriveCursorPosition(columns, cs.cursorNodeId, nodeIndex)
-  }, [columns, cursorStore, nodeIndex, cursorColIndex, cursorSelectionLevel])
+  // Derive cursor position from cursorNodeId + columns
+  const cursorPosition = useMemo(
+    () => deriveCursorPosition(columns, cursorNodeId, nodeIndex),
+    [columns, cursorNodeId, nodeIndex],
+  )
 
   const columnsLayout: ColumnsLayout = useMemo(
     () => ({
@@ -768,21 +754,6 @@ export function Board({ patchedConsole }: BoardProps) {
     [rootId, rootPath, filteredColumns, foldedNodes, emptyStringSet, emptyNumberSet, collapsedNodes],
   )
 
-  // Get selected node — use columnsLayout indices (for store consistency)
-  // Note: when ignored filtering is active, this may be null (cursor on ignored column),
-  // but the store and key handler use the full columns layout.
-  const selectedCol = columnsLayout.columns[columnsLayout.colIndex]
-  const selectedCard = selectedCol?.cards[columnsLayout.cardIndex]
-  const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-
-  // NODE MODEL V2: Simplified layout sync. The old updateLayout action is replaced
-  // by syncLayout() which silently updates layout + cursor state without triggering
-  // Zustand subscribers. This keeps the key handler's layout fresh while avoiding
-  // the React→Store→React feedback loop.
-  useEffect(() => {
-    syncLayout(columnsLayout, selectedNode, derivedSelectionLevel)
-  }, [columnsLayout, selectedNode, derivedSelectionLevel, syncLayout])
-
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -859,7 +830,7 @@ export function Board({ patchedConsole }: BoardProps) {
   )
 
   return (
-    <CursorStoreProvider store={cursorStore}>
+    <CursorStoreProvider store={cursorStore} layout={columnsLayout}>
       <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
           state={tuiBoardState}

@@ -64,6 +64,8 @@ import { Board } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
+import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
+import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -174,30 +176,13 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // Build initial board state for computing initial store params
   const initialTUIState = buildBoardState(repo, rootId)
 
-  // Compute initial cursor node
+  // Compute initial cursor node from columns
   const firstCol = initialTUIState.columns[0]
   const initialCursorNodeId = firstCol?.cards[0]?.node.id ?? firstCol?.node.id ?? null
 
   // Create layout registry for position tracking
   const navigator = createGridNavigator()
   const toastQueue = createToastQueue()
-
-  // Compute initial layout from TUI state
-  const initialLayout = {
-    columns: initialTUIState.columns,
-    colIndex: 0,
-    cardIndex: 0,
-    isAtCardLevel:
-      initialCursorNodeId !== null &&
-      initialTUIState.columns.length > 0 &&
-      (initialTUIState.columns[0]?.cards.length ?? 0) > 0,
-  }
-
-  const selectedCol = initialTUIState.columns[0]
-  const selectedCard = selectedCol?.cards[0]
-  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-  const initialSelectionLevel: "board" | "column" | "card" =
-    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
 
   // Create the BoardAppStore (same type as production createBoardApp)
   const storeParams: CreateBoardAppStoreParams = {
@@ -206,11 +191,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     navigator,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      cursorCardNodeId: selectedCard?.node.id ?? null,
-      cursorColumnNodeId: selectedCol?.node.id ?? null,
-      colIndex: 0,
-      cardIndex: 0,
-      selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(
       initialTUIState.rootId,
@@ -224,10 +204,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       { columns, rows },
       initialTUIState.rootId,
     ),
-    initialLayout,
     initialTUIBoardState: initialTUIState,
-    initialSelectedNode,
-    initialSelectionLevel,
     dimensions: { columns, rows },
   }
 
@@ -260,20 +237,25 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     incremental === false ? { incremental: false } : undefined,
   )
 
-  // Build command context from store state
+  // Build command context from store state — derive layout on demand
   const getContext = (): CommandContext => {
     const s = store.getState()
-    const column = s.layout.columns[s.layout.colIndex]
+    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+    const ni = buildNodeIndex(cols)
+    const cursor = deriveCursorPosition(cols, s.cursorNodeId, ni)
+    const column = cols[cursor.colIndex]
+    const card = column?.cards[cursor.cardIndex]
+    const selectedNode = card?.node ?? column?.node ?? null
 
     return {
-      currentNode: s.selectedNode as CommandContext["currentNode"],
-      currentNodeId: s.selectedNode?.id ?? null,
+      currentNode: selectedNode as CommandContext["currentNode"],
+      currentNodeId: selectedNode?.id ?? null,
       selectedNodes: Array.from(s.selectedNodes),
       viewMode: s.ui.viewMode,
-      siblingIndex: s.layout.cardIndex,
+      siblingIndex: cursor.cardIndex,
       siblingCount: column?.cards.length ?? 0,
-      columnIndex: s.layout.colIndex,
-      columnCount: s.layout.columns.length,
+      columnIndex: cursor.colIndex,
+      columnCount: cols.length,
       moveMode: s.moveMode,
       foldedNodes: s.foldedNodes,
     }
@@ -325,14 +307,29 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const baseState = baseGetState()
     const s = store.getState()
 
+    // Derive layout on demand
+    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+    const ni = buildNodeIndex(cols)
+    const cursor = deriveCursorPosition(cols, s.cursorNodeId, ni)
+    const derivedLayout = {
+      columns: cols,
+      colIndex: cursor.colIndex,
+      cardIndex: cursor.cardIndex,
+      isAtCardLevel: cursor.isAtCardLevel,
+      nodeIndex: ni,
+    }
+    const col = cols[cursor.colIndex]
+    const card = col?.cards[cursor.cardIndex]
+    const selectedNode = card?.node ?? col?.node ?? null
+
     return {
       ...baseState,
       cursor: {
-        col: s.layout.colIndex,
-        card: s.layout.cardIndex,
-        level: s.selectionLevel,
+        col: cursor.colIndex,
+        card: cursor.cardIndex,
+        level: cursor.selectionLevel,
       },
-      selectedNodeId: s.selectedNode?.id ?? null,
+      selectedNodeId: selectedNode?.id ?? null,
       viewMode: s.ui.viewMode,
       dialogs: {
         search: s.ui.showSearchDialog,
@@ -343,7 +340,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       detailPaneOpen: s.ui.showDetailPane,
       moveMode: s.moveMode,
       scrollOffset: 0,
-      layout: s.layout,
+      layout: derivedLayout,
       ui: s.ui,
     }
   }

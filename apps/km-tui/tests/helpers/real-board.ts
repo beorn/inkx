@@ -129,35 +129,12 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const initialLayout = {
-    columns: initialState.columns,
-    colIndex: 0,
-    cardIndex: 0,
-    subPath: [] as string[],
-    isAtCardLevel:
-      initialCursorNodeId !== null &&
-      initialState.columns.length > 0 &&
-      (initialState.columns[0]?.cards.length ?? 0) > 0,
-    isInOutlineMode: false,
-  }
-
-  const selectedCol = initialState.columns[0]
-  const selectedCard = selectedCol?.cards[0]
-  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-  const initialSelectionLevel: "board" | "column" | "card" =
-    initialCursorNodeId === null ? "board" : selectedCard ? "card" : "column"
-
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      cursorCardNodeId: selectedCard?.node.id ?? null,
-      cursorColumnNodeId: selectedCol?.node.id ?? null,
-      colIndex: 0,
-      cardIndex: 0,
-      selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -171,10 +148,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       { columns, rows },
       initialState.rootId,
     ),
-    initialLayout,
     initialTUIBoardState: initialState,
-    initialSelectedNode,
-    initialSelectionLevel,
     dimensions: { columns, rows },
   }
 

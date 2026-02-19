@@ -363,20 +363,7 @@ export function testEnv(
 
   const {
     cursorNodeId: initialCursorNodeId,
-    colIndex: initialColIndex,
-    selectedCard,
-    selectedCol,
-    selectionLevel: initialSelectionLevel,
   } = computeInitialCursor(initialState)
-
-  const initialLayout = {
-    columns: initialState.columns,
-    colIndex: initialColIndex,
-    cardIndex: selectedCard ? 0 : -1,
-    isAtCardLevel: selectedCard != null,
-  }
-
-  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -384,11 +371,6 @@ export function testEnv(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      cursorCardNodeId: selectedCard?.node.id ?? null,
-      cursorColumnNodeId: selectedCol?.node.id ?? null,
-      colIndex: initialColIndex,
-      cardIndex: selectedCard ? 0 : -1,
-      selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -402,10 +384,7 @@ export function testEnv(
       { columns, rows },
       initialState.rootId,
     ),
-    initialLayout,
     initialTUIBoardState: initialState,
-    initialSelectedNode,
-    initialSelectionLevel,
     dimensions: { columns, rows },
   }
 
@@ -1420,20 +1399,7 @@ export function testEnvWithRepo(
 
   const {
     cursorNodeId: initialCursorNodeId,
-    colIndex: initialColIndex,
-    selectedCard,
-    selectedCol,
-    selectionLevel: initialSelectionLevel,
   } = computeInitialCursor(initialState)
-
-  const initialLayout = {
-    columns: initialState.columns,
-    colIndex: initialColIndex,
-    cardIndex: selectedCard ? 0 : -1,
-    isAtCardLevel: selectedCard != null,
-  }
-
-  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -1441,11 +1407,6 @@ export function testEnvWithRepo(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      cursorCardNodeId: selectedCard?.node.id ?? null,
-      cursorColumnNodeId: selectedCol?.node.id ?? null,
-      colIndex: initialColIndex,
-      cardIndex: selectedCard ? 0 : -1,
-      selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -1459,10 +1420,7 @@ export function testEnvWithRepo(
       { columns, rows },
       initialState.rootId,
     ),
-    initialLayout,
     initialTUIBoardState: initialState,
-    initialSelectedNode,
-    initialSelectionLevel,
     dimensions: { columns, rows },
   }
 
@@ -2239,20 +2197,7 @@ export function renderBoardWithStore(
 
   const {
     cursorNodeId: initialCursorNodeId,
-    colIndex: initialColIndex,
-    selectedCard,
-    selectedCol,
-    selectionLevel: initialSelectionLevel,
   } = computeInitialCursor(initialState)
-
-  const initialLayout = {
-    columns: initialState.columns,
-    colIndex: initialColIndex,
-    cardIndex: selectedCard ? 0 : -1,
-    isAtCardLevel: selectedCard != null,
-  }
-
-  const initialSelectedNode = selectedCard?.node ?? selectedCol?.node ?? null
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -2260,11 +2205,6 @@ export function renderBoardWithStore(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
-      cursorCardNodeId: selectedCard?.node.id ?? null,
-      cursorColumnNodeId: selectedCol?.node.id ?? null,
-      colIndex: initialColIndex,
-      cardIndex: selectedCard ? 0 : -1,
-      selectionLevel: initialSelectionLevel,
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -2278,10 +2218,7 @@ export function renderBoardWithStore(
       { columns, rows },
       initialState.rootId,
     ),
-    initialLayout,
     initialTUIBoardState: initialState,
-    initialSelectedNode,
-    initialSelectionLevel,
     dimensions: { columns, rows },
   }
 

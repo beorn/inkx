@@ -8,23 +8,20 @@
  *
  * Board nav fields are flat at store root. UI fields are grouped under `ui`.
  *
- * NODE MODEL V2: This store mixes data model state (rootId, cursorNodeId,
- * foldedNodes, selectedNodes) with view model derivations (layout, tuiBoardState,
- * selectionLevel). Target: keep only data model fields + UI ephemeral state.
- * View model (columns, cards, cursor position) derived on-demand by hooks.
+ * Layout (columns, cursor position, selectedNode, selectionLevel) is derived
+ * on demand — never stored. The key handler derives layout fresh each keypress
+ * via buildActionCtx(). React derives layout via useColumns + useCursorPosition.
  */
 
-import type { KNode, ToastQueue, JobRunner } from "@km/core"
+import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
-import type { TUIBoardState, ColumnsLayout } from "./types.ts"
+import type { TUIBoardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
 import type { CursorStore } from "./cursor-store.ts"
-import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
-import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
@@ -38,6 +35,9 @@ import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-rep
  * Board navigation fields are flat at store root.
  * foldedNodes is the single source of truth (removed from UIState).
  * maxOutlineDepth/maxContentLines live in ui only.
+ *
+ * Layout (columns, cursor position) is NOT stored here — it's derived on
+ * demand by the key handler (buildActionCtx) and by React (useColumns hook).
  */
 export interface BoardAppState {
   // --- Board navigation (flat — source of truth) ---
@@ -58,21 +58,10 @@ export interface BoardAppState {
   // --- UI state ---
   ui: UIState
 
-  // --- Derived layout (VIEW MODEL — recomputed on state changes) ---
-  // TARGET: eliminate ColumnsLayout. Components derive columns via useChildren(repo, rootId).
-  // Cursor position is just cursorNodeId — no colIndex/cardIndex needed.
-  layout: ColumnsLayout
-
   // --- Derived rendering state (VIEW MODEL — pre-packaged for Board.tsx) ---
   // TARGET: eliminate TUIBoardState. Board.tsx reads data model fields directly
   // from store + derives view concerns via hooks.
   tuiBoardState: TUIBoardState
-
-  // --- Derived selections (VIEW MODEL — convenience for key handlers) ---
-  // TARGET: selectedNode = repo.getNode(cursorNodeId). selectionLevel derived
-  // from node type (isItem → "card", else "column") or navigation context.
-  selectedNode: KNode | null
-  selectionLevel: "board" | "column" | "card"
 
   // --- Injected services (set once at init) ---
   repo: Repo
@@ -110,78 +99,9 @@ export interface BoardAppActions {
   // Direct setters
   setTextEditTarget(target: EditTarget | null): void
   setDimensions(dims: { columns: number; rows: number }): void
-
-  // Silent layout sync — called by Board effect when columns change.
-  // Silently updates layout/selectedNode/selectionLevel without triggering
-  // Zustand subscribers, then syncs CursorStore for self-selecting components.
-  // NODE MODEL V2: Replaces updateLayout (which also included tuiBoardState).
-  syncLayout(
-    layout: ColumnsLayout,
-    selectedNode: KNode | null,
-    selectionLevel: "board" | "column" | "card",
-  ): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * Synchronously derive layout from state and silently update the store.
- * Called after dispatchBoard() and setFoldedNodes() to ensure the store
- * has fresh layout data immediately — no React effect round-trip needed.
- *
- * Uses silent mutation (direct property assignment on getState()) so Zustand
- * subscribers are NOT notified. This is safe because:
- * - React already has the correct layout from useColumns/useCursorPosition hooks
- * - The key handler just needs fresh layout data for the NEXT keypress
- *
- * @param cursorOnly - When true, skip column derivation and only re-derive
- *   cursor position using existing columns. Used for SELECT and SET_CURSWANT
- *   actions where only cursorNodeId changes.
- */
-// Repo version at the time layout was last computed. When repo is mutated
-// (moveNode/addNode/deleteNode), this becomes stale. The SELECT fast path
-// checks this to decide whether it can use the existing nodeIndex or must
-// fall through to a full recompute.
-let _layoutRepoVersion = -1
-
-function recomputeLayout(get: () => BoardAppStore): void {
-  const s = get()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-  const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
-
-  const layout: ColumnsLayout = {
-    columns,
-    colIndex: cursor.colIndex,
-    cardIndex: cursor.cardIndex,
-    isAtCardLevel: cursor.isAtCardLevel,
-    nodeIndex,
-  }
-
-  const selectedCol = columns[cursor.colIndex]
-  const selectedCard = selectedCol?.cards[cursor.cardIndex]
-  const selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-
-  // Silent mutation — no Zustand notification
-  s.layout = layout
-  s.selectedNode = selectedNode
-  s.selectionLevel = cursor.selectionLevel
-  _layoutRepoVersion = s.repo.getSnapshot()
-
-  // Sync cursor position to CursorStore so cursor-aware components update
-  s.cursorStore.setState({
-    cursorNodeId: s.cursorNodeId,
-    cursorCardNodeId: selectedCard?.node.id ?? null,
-    cursorColumnNodeId: selectedCol?.node.id ?? null,
-    colIndex: cursor.colIndex,
-    cardIndex: cursor.cardIndex,
-    selectionLevel: cursor.selectionLevel,
-  })
-}
 
 // =============================================================================
 // Store Factory
@@ -194,10 +114,7 @@ export interface CreateBoardAppStoreParams {
   cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
-  initialLayout: ColumnsLayout
   initialTUIBoardState: TUIBoardState
-  initialSelectedNode: KNode | null
-  initialSelectionLevel: "board" | "column" | "card"
   dimensions: { columns: number; rows: number }
 }
 
@@ -237,13 +154,8 @@ export function createBoardAppStoreState(
       // UI state
       ui: params.initialUIState,
 
-      // Derived layout
-      layout: params.initialLayout,
+      // Derived rendering state
       tuiBoardState: params.initialTUIBoardState,
-
-      // Derived
-      selectedNode: params.initialSelectedNode,
-      selectionLevel: params.initialSelectionLevel,
 
       // Injected — use the undoable-wrapped repo so mutations auto-record
       repo: undoableRepo,
@@ -268,9 +180,6 @@ export function createBoardAppStoreState(
 
       // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
       dispatchBoard(action: BoardAction) {
-        // Track whether this action only changes cursor position (no column changes)
-        let cursorOnly = false
-
         // --- Fast path: SELECT bypasses Zustand set() entirely ---
         if (action.type === "SELECT") {
           const s = _get()
@@ -278,56 +187,8 @@ export function createBoardAppStoreState(
           s.cursorNodeId = action.nodeId
           s.curswantX = null
           s.curswantY = null
-
-          // If repo has been mutated since last layout computation, the nodeIndex
-          // and columns are stale. Fall through to full recompute which re-derives
-          // columns, builds a fresh nodeIndex, and resolves cursor position.
-          if (s.repo.getSnapshot() !== _layoutRepoVersion) {
-            recomputeLayout(_get)
-            return
-          }
-
-          // Use position hints if provided (from refreshBoardState's fresh repo query),
-          // otherwise fall back to O(1) nodeIndex lookup
-          let colIndex: number, cardIndex: number, hasPosition: boolean
-          if (action.colIndex !== undefined && action.cardIndex !== undefined) {
-            colIndex = action.colIndex
-            cardIndex = action.cardIndex
-            hasPosition = true
-          } else {
-            const pos = s.layout.nodeIndex?.get(action.nodeId)
-            colIndex = pos?.colIndex ?? -1
-            cardIndex = pos?.cardIndex ?? -1
-            hasPosition = !!pos
-          }
-          const isColumnHeader = cardIndex === -1
-          const selectionLevel = !hasPosition
-            ? ("board" as const)
-            : isColumnHeader
-              ? ("column" as const)
-              : ("card" as const)
-
-          // Update layout silently
-          s.layout = {
-            ...s.layout,
-            colIndex,
-            cardIndex,
-            isAtCardLevel: !isColumnHeader && hasPosition,
-          }
-          const selectedCol = s.layout.columns[colIndex]
-          const selectedCard = selectedCol?.cards[cardIndex]
-          s.selectedNode = selectedCard?.node ?? selectedCol?.node ?? null
-          s.selectionLevel = selectionLevel
-
           // Notify CursorStore subscribers (only cursor-aware components re-render)
-          s.cursorStore.setState({
-            cursorNodeId: action.nodeId,
-            cursorCardNodeId: selectedCard?.node.id ?? null,
-            cursorColumnNodeId: selectedCol?.node.id ?? null,
-            colIndex,
-            cardIndex,
-            selectionLevel,
-          })
+          s.cursorStore.setState({ cursorNodeId: action.nodeId })
           return
         }
 
@@ -479,9 +340,11 @@ export function createBoardAppStoreState(
 
           return flatUpdate
         })
-        // Synchronously derive layout so key handler has fresh data immediately
-        // SELECT and SET_CURSWANT use the fast path above (no set(), no recomputeLayout)
-        recomputeLayout(_get)
+
+        // After state mutation, notify CursorStore so cursor-aware components update
+        // (e.g., ZOOM_IN changes cursorNodeId, CANCEL_MOVE restores it)
+        const s = _get()
+        s.cursorStore.setState({ cursorNodeId: s.cursorNodeId })
       },
 
       // --- Direct setters ---
@@ -495,7 +358,6 @@ export function createBoardAppStoreState(
 
       setFoldedNodes(nodes: Set<string>) {
         set({ foldedNodes: nodes })
-        recomputeLayout(_get)
       },
 
       setTextEditTarget(target: EditTarget | null) {
@@ -507,37 +369,6 @@ export function createBoardAppStoreState(
           dimensions: dims,
           ui: { ...state.ui, dimensions: dims },
         }))
-      },
-
-      syncLayout(layout, selectedNode, selectionLevel) {
-        // Silent mutation — no Zustand notification. Keeps key handler's layout
-        // fresh without triggering re-render cycles.
-        const state = _get()
-        state.layout = layout
-        state.selectedNode = selectedNode
-        state.selectionLevel = selectionLevel
-        _layoutRepoVersion = state.repo.getSnapshot()
-
-        // Sync CursorStore so self-selecting components update
-        const selectedCol = layout.columns[layout.colIndex]
-        const selectedCard = selectedCol?.cards[layout.cardIndex]
-        const cs = state.cursorStore.getState()
-        if (
-          cs.colIndex !== layout.colIndex ||
-          cs.cardIndex !== layout.cardIndex ||
-          cs.selectionLevel !== selectionLevel ||
-          cs.cursorCardNodeId !== (selectedCard?.node.id ?? null) ||
-          cs.cursorColumnNodeId !== (selectedCol?.node.id ?? null)
-        ) {
-          state.cursorStore.setState({
-            cursorNodeId: cs.cursorNodeId,
-            cursorCardNodeId: selectedCard?.node.id ?? null,
-            cursorColumnNodeId: selectedCol?.node.id ?? null,
-            colIndex: layout.colIndex,
-            cardIndex: layout.cardIndex,
-            selectionLevel,
-          })
-        }
       },
     }
   }
