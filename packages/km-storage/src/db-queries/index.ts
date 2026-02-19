@@ -19,11 +19,14 @@ export {
   getNodeContentHash,
 } from "./core-lookup.ts"
 
-// Tree Traversal (getChildren, getSubtree, getAncestors)
+// Tree Traversal (getChildren, getSubtree, getAncestors, filtered queries)
 export {
   getChildCount,
   getChildCountsBatch,
   getChildren,
+  getChildrenByType,
+  getBodyChildren,
+  getSubitems,
   getSubtree,
   getEmbedTargetsOnBoard,
   getAncestors,

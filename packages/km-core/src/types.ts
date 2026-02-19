@@ -3,7 +3,7 @@
  *
  * 11 node types in 3 categories:
  * - Block (8): p, h, code, quote, table, hr, html, math — content leaves
- * - Item (2): oi, li — structural nodes with .blocks[] and .subitems[]
+ * - Item (2): oi, li — structural nodes with children
  * - Link (1): link — references to other nodes
  *
  * See docs/design/km-ast/model.md for the full specification.
@@ -52,7 +52,7 @@ export function isListItem(type: string): boolean {
   return type === "li"
 }
 
-/** oi or li — structural item with .blocks[] and .subitems[] */
+/** oi or li — structural item with children */
 export function isItem(type: string): boolean {
   return type === "oi" || type === "li"
 }
@@ -270,7 +270,7 @@ export interface NodeRules {
  * ## Node Categories
  *
  * - **Blocks** (p, h, code, quote, table, hr, html, math): content leaves
- * - **Items** (oi, li): structural nodes with blocks[] and subitems[]
+ * - **Items** (oi, li): structural nodes with children
  * - **Links** (link): references to other nodes
  *
  * ## Task Definition

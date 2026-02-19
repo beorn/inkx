@@ -46,7 +46,7 @@ export {
 } from "./display.ts"
 
 // Body content utilities
-export { extractBody, type BodyExtraction } from "./body.ts"
+export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body.ts"
 
 // Block operations (split/merge for outline editing)
 export {

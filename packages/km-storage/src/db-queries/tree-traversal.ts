@@ -142,3 +142,50 @@ export function getAncestors(db: Database, nodeId: string): KNode[] {
   // Results come in child-to-root order, reverse to get root-to-parent
   return rows.map(rowToNode).reverse()
 }
+
+// =============================================================================
+// Filtered Child Queries
+// =============================================================================
+
+/** Block types: content leaf nodes */
+const BLOCK_TYPES: ReadonlySet<string> = new Set(["p", "h", "code", "quote", "table", "hr", "html", "math"])
+
+/** Item types: structural nodes */
+const ITEM_TYPES: ReadonlySet<string> = new Set(["oi", "li"])
+
+/**
+ * Get children of a node filtered by type.
+ * Returns only children whose type is in the given set.
+ */
+export function getChildrenByType(db: Database, parentId: string | null, types: string[]): KNode[] {
+  if (types.length === 0) return []
+  const pid = parentId ?? "."
+  const placeholders = types.map(() => "?").join(",")
+  const rows = db
+    .query(
+      `
+      SELECT * FROM nodes
+      WHERE parent_id = ? AND type IN (${placeholders})
+      ORDER BY parent_idx, created_at
+    `,
+    )
+    .all(pid, ...types) as Record<string, unknown>[]
+
+  return rows.map(rowToNode)
+}
+
+/**
+ * Get body children of a node (block-type nodes: p, h, code, quote, table, hr, html, math).
+ * Convenience wrapper around getChildrenByType for the common "get body content" pattern.
+ */
+export function getBodyChildren(db: Database, parentId: string | null): KNode[] {
+  return getChildrenByType(db, parentId, [...BLOCK_TYPES])
+}
+
+/**
+ * Get subitem children of a node (item-type nodes: oi, li).
+ * Convenience wrapper around getChildrenByType for the common "get structural items" pattern.
+ */
+export function getSubitems(db: Database, parentId: string | null): KNode[] {
+  return getChildrenByType(db, parentId, [...ITEM_TYPES])
+}
