@@ -22,7 +22,12 @@ import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
-import { markDialogConfirmed, isDialogConfirmGracePeriod } from "../dialog-guard.ts"
+import {
+  markDialogConfirmed,
+  isDialogConfirmGracePeriod,
+  pushDialogMode,
+  popDialogMode,
+} from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -104,6 +109,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       exit()
       return ok()
     case "SHOW_NEW_ITEM_DIALOG":
+      pushDialogMode("dialog:newItem")
       ctx.setUI({
         showNewItemDialog: true,
         inOutlineMode: false,
@@ -114,6 +120,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
+        pushDialogMode("dialog:projectPicker")
         ctx.setUI({
           showProjectPicker: true,
           inOutlineMode: false,
@@ -124,6 +131,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       return ok()
     case "SHOW_SEARCH_DIALOG":
+      pushDialogMode("dialog:search")
       ctx.setUI({
         showSearchDialog: true,
         searchDialogInitialInput: "",
@@ -481,6 +489,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Filter ===
     case "SHOW_FILTER_DIALOG":
+      if (ctx.ui.showFilterDialog) {
+        popDialogMode()
+      } else {
+        pushDialogMode("dialog:filter")
+      }
       ctx.setUI({
         showFilterDialog: !ctx.ui.showFilterDialog,
         inlineEditBlock: null,
@@ -488,12 +501,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       })
       return ok()
     case "SET_FILTER":
+      popDialogMode()
       ctx.setUI({
         filterText: action.text,
         showFilterDialog: false,
       })
       return ok()
     case "CLEAR_FILTER":
+      popDialogMode()
       ctx.setUI({
         filterText: "",
         filterProperties: createEmptyFilterProperties(),
@@ -557,6 +572,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DATE_PROMPT_CONFIRM":
       return handleDatePromptConfirm(ctx)
     case "DATE_PROMPT_CANCEL":
+      popDialogMode()
       ctx.setUI({ datePrompt: null })
       return ok()
 
@@ -905,6 +921,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // This prevents the Enter key from propagating to trigger ENTER_INLINE_EDIT
       // on the newly-focused card within the same event batch or rapid double-tap.
       markDialogConfirmed()
+      popDialogMode()
       if (dialogTargetRef.current) {
         dialogTargetRef.current.confirm()
       } else if (activeEditTargetRef.current) {
@@ -921,9 +938,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
     case "DIALOG_CANCEL":
       if (ctx.ui.showFilterDialog) {
+        popDialogMode()
         ctx.setUI({ showFilterDialog: false })
         return ok()
       }
+      popDialogMode()
       if (dialogTargetRef.current) {
         dialogTargetRef.current.cancel()
       } else if (activeEditTargetRef.current) {
@@ -1154,22 +1173,27 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
   if (ui.showSearchDialog) {
+    popDialogMode()
     dialogTargetRef.current?.cancel()
     return ok()
   }
   if (ui.showFilterDialog) {
+    popDialogMode()
     ctx.setUI({ showFilterDialog: false })
     return ok()
   }
   if (ui.showProjectPicker) {
+    popDialogMode()
     ctx.setUI({ showProjectPicker: false })
     return ok()
   }
   if (ui.showNewItemDialog) {
+    popDialogMode()
     ctx.setUI({ showNewItemDialog: false })
     return ok()
   }
   if (ui.datePrompt) {
+    popDialogMode()
     ctx.setUI({ datePrompt: null })
     return ok()
   }
@@ -1321,6 +1345,7 @@ function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "rec
   const firstNode = ctx.repo.getNode(firstNodeId)
   const currentValue = firstNode?.[field] ?? ""
 
+  pushDialogMode("dialog:datePrompt")
   ctx.setUI({
     datePrompt: { field, nodeIds, currentValue },
   })
@@ -1469,6 +1494,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
     ctx.repo.touch()
   }
 
+  popDialogMode()
   ctx.setUI({ datePrompt: null })
   refreshBoardState(ctx)
   return ok()

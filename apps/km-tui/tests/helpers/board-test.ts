@@ -72,6 +72,7 @@ import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import { resetModeStack } from "../../src/dialog-guard.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
 import {
   createBoardAppStoreState,
@@ -351,6 +352,7 @@ export function testEnv(
 
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
+  resetModeStack()
 
   // Set up store (same pattern as driver)
   const columns = options?.columns ?? 80
@@ -1405,6 +1407,7 @@ export function testEnvWithRepo(
 
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
+  resetModeStack()
 
   // Set up store (same pattern as driver/testEnv)
   const columns = options?.columns ?? 80
@@ -2228,6 +2231,7 @@ export function renderBoardWithStore(
   const initialState = buildBoardState(repo, rootId)
 
   ensureCommandSystemInitialized()
+  resetModeStack()
 
   const {
     cursorNodeId: initialCursorNodeId,

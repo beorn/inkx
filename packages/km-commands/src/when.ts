@@ -79,3 +79,39 @@ export const deleteConfirmOpen = when("deleteConfirmOpen", (ctx) => ctx.deleteCo
 export const consoleOpen = when("consoleOpen", (ctx) => ctx.consoleOpen)
 
 export const hasActiveToast = when("hasActiveToast", (ctx) => ctx.hasActiveToast)
+
+// === Mode stack predicates ===
+// These check the inputMode field populated from the ModeStack.
+
+/** True when in command mode (no dialog, no insert — the default). */
+export const inCommandMode = when("inCommandMode", (ctx) => (ctx.inputMode ?? "command") === "command")
+
+/** True when in insert/text editing mode. */
+export const inInsertMode = when("inInsertMode", (ctx) => ctx.inputMode === "insert")
+
+/** True when any dialog:* mode is active. */
+export const inDialog = when("inDialog", (ctx) => (ctx.inputMode ?? "command").startsWith("dialog:"))
+
+/** True when the search dialog mode is active. */
+export const inDialogSearch = when("inDialogSearch", (ctx) => ctx.inputMode === "dialog:search")
+
+/** True when the rename dialog mode is active. */
+export const inDialogRename = when("inDialogRename", (ctx) => ctx.inputMode === "dialog:rename")
+
+/** True when the confirm dialog mode is active. */
+export const inDialogConfirm = when("inDialogConfirm", (ctx) => ctx.inputMode === "dialog:confirm")
+
+/** True when the new item dialog mode is active. */
+export const inDialogNewItem = when("inDialogNewItem", (ctx) => ctx.inputMode === "dialog:newItem")
+
+/** True when the project picker dialog mode is active. */
+export const inDialogProjectPicker = when(
+  "inDialogProjectPicker",
+  (ctx) => ctx.inputMode === "dialog:projectPicker",
+)
+
+/** True when the date prompt dialog mode is active. */
+export const inDialogDatePrompt = when("inDialogDatePrompt", (ctx) => ctx.inputMode === "dialog:datePrompt")
+
+/** True when the filter dialog mode is active. */
+export const inDialogFilter = when("inDialogFilter", (ctx) => ctx.inputMode === "dialog:filter")

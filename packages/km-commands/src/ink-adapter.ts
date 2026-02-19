@@ -240,6 +240,8 @@ export function buildKeybindingContext(options: {
   deleteConfirmOpen?: boolean
   consoleOpen?: boolean
   hasActiveToast?: boolean
+  /** Current input mode from the mode stack (e.g., "command", "dialog:search"). */
+  inputMode?: string
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -263,6 +265,7 @@ export function buildKeybindingContext(options: {
     deleteConfirmOpen: options.deleteConfirmOpen ?? false,
     consoleOpen: options.consoleOpen ?? false,
     hasActiveToast: options.hasActiveToast ?? false,
+    inputMode: options.inputMode,
   }
 }
 

@@ -65,6 +65,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
+import { resetModeStack } from "./dialog-guard.ts"
 import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { handleKey } from "./board-app.ts"
@@ -166,8 +167,9 @@ export interface CreateBoardDriverOptions {
 export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoardDriverOptions = {}): BoardDriver {
   const { columns = 80, rows = 24, viewMode = "cards", incremental = false } = options
 
-  // Initialize command system
+  // Initialize command system and reset mode stack for clean state
   ensureCommandSystemInitialized()
+  resetModeStack()
 
   // Build initial board state for computing initial store params
   const initialTUIState = buildBoardState(repo, rootId)

@@ -17,6 +17,7 @@ import {
   type TNode,
 } from "@km/commands"
 import type { ActionCtx } from "./tui-context.ts"
+import { getModeStack } from "./dialog-guard.ts"
 
 let commandSystemInitialized = false
 export function ensureCommandSystemInitialized(): void {
@@ -66,6 +67,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     deleteConfirmOpen: !!ui.deleteConfirm,
     consoleOpen: ui.showConsole,
     hasActiveToast: !!ctx.toastQueue.getLatest(),
+    inputMode: getModeStack().current(),
   })
 
   const { colIndex, cardIndex, columns } = layout

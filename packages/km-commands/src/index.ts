@@ -136,6 +136,17 @@ export {
   deleteConfirmOpen,
   consoleOpen,
   hasActiveToast,
+  // Mode stack predicates
+  inCommandMode,
+  inInsertMode,
+  inDialog,
+  inDialogSearch,
+  inDialogRename,
+  inDialogConfirm,
+  inDialogNewItem,
+  inDialogProjectPicker,
+  inDialogDatePrompt,
+  inDialogFilter,
 } from "./when.ts"
 
 // Ink Adapter (for TUI integration)

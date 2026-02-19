@@ -50,6 +50,8 @@ export interface KeybindingContext {
   deleteConfirmOpen: boolean
   consoleOpen: boolean
   hasActiveToast: boolean
+  /** Current input mode from the mode stack (e.g., "command", "insert", "dialog:search"). */
+  inputMode?: string
 }
 
 // Internal binding with registration order for priority interleaving

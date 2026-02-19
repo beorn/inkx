@@ -13,6 +13,7 @@ import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
+import { getModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
@@ -200,13 +201,9 @@ function routeThroughCommandSystem(
     if (result.commandId) parentSpan.spanData.command = result.commandId
   }
 
-  // When a dialog is open, unhandled keys are expected (limited key set)
-  const dialogOpen =
-    ctx.ui.showSearchDialog ||
-    ctx.ui.showNewItemDialog ||
-    ctx.ui.showProjectPicker ||
-    !!ctx.ui.datePrompt ||
-    ctx.ui.showFilterDialog
+  // When a dialog is open, unhandled keys are expected (limited key set).
+  // Uses the mode stack instead of checking individual UI booleans.
+  const dialogOpen = getModeStack().isDialog()
   // Chord pending: show status indicator and start timeout
   if (result.pending) {
     parentSpan.spanData.outcome = "chord"
