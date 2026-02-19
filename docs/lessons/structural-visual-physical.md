@@ -2,9 +2,11 @@
 
 > Emerged from detail pane, breadcrumb, and card rendering refactoring (Feb 2026).
 
-## The Three Concerns
+## The Layering Philosophy
 
-km's node tree conflates three independent concerns. Bugs happen when code in one layer branches on properties from another.
+The structural layer (the universal tree) is where we do as much work as possible. We *materialize* down to the physical layer (filesystem) and *visualize* up to the visual/spatial layer (cards, columns, cursor). The structural tree is the canonical, source-agnostic representation — everything that can work at this level should.
+
+Bugs happen when code in one layer branches on properties from another.
 
 | Concern | Question | Properties | Lives in |
 |---------|----------|------------|----------|

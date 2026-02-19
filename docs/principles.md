@@ -342,7 +342,7 @@ async function watchRepo(path: string) {
 
 ### Principle: Structural, Not Physical
 
-**The insight**: Nodes have three independent aspects — **structural** (what it is), **visual** (how it looks), and **physical** (where it came from). The visual layer must never branch on physical properties.
+**The insight**: The structural layer (the universal tree) is where we do as much work as possible. We *materialize* down to the physical layer (filesystem) and *visualize* up to the visual/spatial layer (cards, columns, cursor). The structural tree is the canonical, source-agnostic representation — everything that can work at this level should. The visual layer must never branch on physical properties.
 
 **The properties**:
 
