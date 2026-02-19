@@ -245,28 +245,28 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           refs={refs}
         />
 
-        {/* Column-style content area — separator then body + children like a column */}
-        {(bodyChildren.length > 0 || structuralChildren.length > 0) && (
-          <>
-            <Box>
-              <Text dimColor>{"─".repeat(innerWidth)}</Text>
-            </Box>
+        {/* Content area — separator then body + children */}
+        <Box>
+          <Text dimColor>{"─".repeat(innerWidth)}</Text>
+        </Box>
 
-            {/* Body content — rendered line-by-line with blank lines between blocks */}
-            {bodyChildren.map((child, i) => (
-              <React.Fragment key={`${child.id}-${i}`}>
-                {i > 0 && <Text>{" "}</Text>}
-                <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
-              </React.Fragment>
-            ))}
+        {bodyChildren.length === 0 && structuralChildren.length === 0 && (
+          <Text dimColor>(empty)</Text>
+        )}
 
-            {/* Children rendered as outline items (column cards) */}
-            {structuralChildren.length > 0 && (
-              <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
-                <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
-              </Box>
-            )}
-          </>
+        {/* Body content — rendered line-by-line with blank lines between blocks */}
+        {bodyChildren.map((child, i) => (
+          <React.Fragment key={`${child.id}-${i}`}>
+            {i > 0 && <Text>{" "}</Text>}
+            <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
+          </React.Fragment>
+        ))}
+
+        {/* Children rendered as subitems with separators */}
+        {structuralChildren.length > 0 && (
+          <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
+            <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
+          </Box>
         )}
 
         {/* Backlinks */}
@@ -530,10 +530,12 @@ function DetailSubitems({
         const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
-            {/* Line separator above each subitem */}
+            {/* Blank line + separator + blank line above each subitem */}
+            <Text>{" "}</Text>
             <Box>
               <Text dimColor>{"─".repeat(innerWidth)}</Text>
             </Box>
+            <Text>{" "}</Text>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
             <Box flexDirection="row" width={innerWidth}>
