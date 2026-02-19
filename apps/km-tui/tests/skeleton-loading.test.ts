@@ -130,10 +130,14 @@ describe("Skeleton loading", () => {
       const col1 = emptyColumn("col1")
       col1.parent_id = "board"
       col1.parent_idx = 0
-      return [boardNode, col1, ...item("col2", item("Task Beta")).map((n, i) => {
-        if (i === 0) n.parent_id = "board", n.parent_idx = 1
-        return n
-      })]
+      return [
+        boardNode,
+        col1,
+        ...item("col2", item("Task Beta")).map((n, i) => {
+          if (i === 0) ((n.parent_id = "board"), (n.parent_idx = 1))
+          return n
+        }),
+      ]
     })
 
     // col1 is empty — with isLoading true, shows skeleton

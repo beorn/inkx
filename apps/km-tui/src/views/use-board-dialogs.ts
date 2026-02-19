@@ -235,9 +235,7 @@ export function useBoardDialogs({
       // Close dialog and dispatch zoom synchronously so both state changes
       // batch into a single render (avoids the freeze from two separate renders).
       const { zoomTarget, cursorTarget } = findZoomTarget(target, repo)
-      log.debug?.(
-        `search: ZOOM to ${zoomTarget.id.slice(-8)}, cursor on ${cursorTarget.id.slice(-8)}`,
-      )
+      log.debug?.(`search: ZOOM to ${zoomTarget.id.slice(-8)}, cursor on ${cursorTarget.id.slice(-8)}`)
 
       setUI(closeDialog)
       dispatchBoard({

@@ -707,11 +707,7 @@ function TreeNodeImpl({
                 />
               </Text>
             ) : isHR ? (
-              <Text
-                color={style.textColor}
-                dimColor={style.shouldDim}
-                wrap="truncate"
-              >
+              <Text color={style.textColor} dimColor={style.shouldDim} wrap="truncate">
                 {cleanContent.trim()}
               </Text>
             ) : (

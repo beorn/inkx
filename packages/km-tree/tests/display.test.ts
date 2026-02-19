@@ -803,8 +803,6 @@ describe("stripForDisplay", () => {
   })
 
   it("strips ^numeric-id outside wikilinks but preserves inside", () => {
-    expect(stripForDisplay("ref ^1202466275397380 and [[^1203128650780856]]")).toBe(
-      "ref and [[^1203128650780856]]",
-    )
+    expect(stripForDisplay("ref ^1202466275397380 and [[^1203128650780856]]")).toBe("ref and [[^1203128650780856]]")
   })
 })

@@ -202,12 +202,7 @@ const Card = React.memo(
           ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: false }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
-        <Box
-          flexDirection="column"
-          flexShrink={0}
-          width={width}
-          {...hrLayoutProps}
-        >
+        <Box flexDirection="column" flexShrink={0} width={width} {...hrLayoutProps}>
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
             id={nodeId}

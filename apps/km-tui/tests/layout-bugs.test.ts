@@ -251,11 +251,7 @@ describe("km-tui.card-border-missing", () => {
 
   test("structural cards always have borders regardless of selection", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Work", item.file("File A", item("task-a")), item.file("File B", item("task-b"))),
-        ),
+      () => item("board", item("Work", item.file("File A", item("task-a")), item.file("File B", item("task-b")))),
       { columns: 80, rows: 20 },
     )
 

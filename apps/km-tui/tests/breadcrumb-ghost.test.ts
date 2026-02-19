@@ -111,13 +111,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     // leaks into the new breadcrumb. Test rapid h/l cycles with names that
     // start with different chars.
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Calendar", item("c1")),
-          item("inbox", item("i1")),
-          item("TaskNotes", item("t1")),
-        ),
+      () => item("board", item("Calendar", item("c1")), item("inbox", item("i1")), item("TaskNotes", item("t1"))),
       { columns: 100, rows: 24 },
     )
 

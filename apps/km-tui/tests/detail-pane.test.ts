@@ -236,9 +236,7 @@ describe("resolveProjectDisplayNames", () => {
 
   test("handles mixed resolved and unresolved slugs", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([
-        { id: "p1", type: "oi", fstype: "mdfile" as const, content: "My Project" },
-      ]),
+      nodes: createTestNodes([{ id: "p1", type: "oi", fstype: "mdfile" as const, content: "My Project" }]),
     })
     const resolved = resolveProjectDisplayNames(repo, ["my-project", "missing-one"])
     expect(resolved).toEqual(["My Project", "missing-one"])
@@ -405,9 +403,7 @@ describe("DetailPane", () => {
           content: "Simple task",
           task_status: "todo",
           data: {
-            projectMemberships: [
-              { project: "My Project", section: "To Do" },
-            ],
+            projectMemberships: [{ project: "My Project", section: "To Do" }],
           },
         },
       ]),

@@ -106,13 +106,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
       () =>
         item.root(
           "Main",
-          item.folder(
-            "Work",
-            item.file(
-              "Tasks",
-              item.section("Sprint1", item("task-alpha"), item("task-beta")),
-            ),
-          ),
+          item.folder("Work", item.file("Tasks", item.section("Sprint1", item("task-alpha"), item("task-beta")))),
           item.folder("Personal", item.file("Todo", item.section("Home", item("clean")))),
         ),
       { columns: 120, rows: 40 },

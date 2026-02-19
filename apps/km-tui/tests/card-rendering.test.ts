@@ -193,11 +193,7 @@ describe("card border: terminal widths", () => {
   test("narrow terminal with two columns (80 cols)", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item("col1", item.file("1a", item("1a-child"))),
-          item("col2", item.file("2a", item("2a-child"))),
-        ),
+        item("board", item("col1", item.file("1a", item("1a-child"))), item("col2", item.file("2a", item("2a-child")))),
       { columns: 80 },
     )
     expectCardBorder(board, "1a", 80)
@@ -738,10 +734,7 @@ describe("card border: date badge overflow", () => {
       taskNodes[0].due_at = "2026-09-30T00:00:00Z"
     }
 
-    const { board } = testEnv(
-      () => item("board", item("col", taskNodes)),
-      { columns: 40, rows: 12 },
-    )
+    const { board } = testEnv(() => item("board", item("col", taskNodes)), { columns: 40, rows: 12 })
 
     // Find the task's box
     const taskId = taskNodes[0]!.id
@@ -769,10 +762,7 @@ describe("card border: date badge overflow", () => {
         taskNodes[0].due_at = "2026-09-30T00:00:00Z"
       }
 
-      const { board } = testEnv(
-        () => item("board", item("col", taskNodes)),
-        { columns: termWidth, rows: 12 },
-      )
+      const { board } = testEnv(() => item("board", item("col", taskNodes)), { columns: termWidth, rows: 12 })
 
       const taskId = taskNodes[0]!.id
       const box = board.screen.nodeBox(taskId)

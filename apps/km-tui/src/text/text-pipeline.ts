@@ -383,10 +383,7 @@ export function stripInlineRefsFromText(text: string): string {
  *
  * Replaces the old `shortenInlineRefs()` from detail-pane-helpers.ts.
  */
-export function shortenInlineRefsInText(
-  text: string,
-  personShortNames?: Record<string, string>,
-): string {
+export function shortenInlineRefsInText(text: string, personShortNames?: Record<string, string>): string {
   return processText(text, {
     mode: "plain",
     shortenMentions: true,

@@ -23,7 +23,7 @@ describe("col-header-last-char", () => {
     // inkx's graphemeWidth should return 2 for these characters.
     const folderIcon = "\uF114"
     const fileIcon = "\uF0F6"
-    const sectionIcon = "\u00A7"  // § - not PUA, always 1
+    const sectionIcon = "\u00A7" // § - not PUA, always 1
 
     // PUA characters should be 2-wide to match terminal rendering
     expect(
@@ -50,10 +50,10 @@ describe("col-header-last-char", () => {
   })
 
   test("single column header shows full name", () => {
-    const { board } = testEnv(
-      () => item.root("board", item("FAMILY SCHEDULE", item("task-a"))),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item.root("board", item("FAMILY SCHEDULE", item("task-a"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     const text = board.screenshot()
     expect(text).toContain("FAMILY SCHEDULE")
@@ -61,12 +61,7 @@ describe("col-header-last-char", () => {
 
   test("two-column board shows full column names", () => {
     const { board } = testEnv(
-      () =>
-        item.root(
-          "board",
-          item("FAMILY SCHEDULE", item("task-a")),
-          item("PORTFOLIO", item("task-b")),
-        ),
+      () => item.root("board", item("FAMILY SCHEDULE", item("task-a")), item("PORTFOLIO", item("task-b"))),
       { columns: 80, rows: 20 },
     )
 
@@ -78,10 +73,7 @@ describe("col-header-last-char", () => {
   test("column header last char not eaten by off-by-one", () => {
     const names = ["SPRINT", "BACKLOG", "SCHEDULE", "PORTFOLIO", "PRODUCTIVITY"]
     for (const name of names) {
-      const { board } = testEnv(
-        () => item.root("board", item(name, item("task"))),
-        { columns: 80, rows: 15 },
-      )
+      const { board } = testEnv(() => item.root("board", item(name, item("task"))), { columns: 80, rows: 15 })
       const text = board.screenshot()
       expect(text, `Column "${name}" should be fully visible`).toContain(name)
     }

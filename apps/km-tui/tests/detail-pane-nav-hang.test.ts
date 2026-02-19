@@ -15,10 +15,10 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("detail pane + column navigation (regression: infinite render loop)", () => {
   test("l navigates right while detail pane is open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1")), item("col2", item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
@@ -30,10 +30,10 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("h navigates left while detail pane is open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1")), item("col2", item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("l") // go to col2 first
     board.press(" ") // open detail pane
@@ -63,13 +63,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
 
   test("multiple l/h with detail pane open", { timeout: 5000 }, () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("card1")),
-          item("col2", item("card2")),
-          item("col3", item("card3")),
-        ),
+      () => item("board", item("col1", item("card1")), item("col2", item("card2")), item("col3", item("card3"))),
       { checkIncremental: false, incremental: false },
     )
 

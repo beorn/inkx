@@ -60,17 +60,10 @@ describe("section card rendering", () => {
   })
 
   test("section cards display text as bold", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item.section("Finance & Taxes", item("Pay rent")),
-          ),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item.section("Finance & Taxes", item("Pay rent")))), {
+      columns: 80,
+      rows: 24,
+    })
 
     // The section text (not the § icon prefix) should be bold.
     // The § icon is at the first non-space position; the actual text starts after "§ ".
@@ -83,10 +76,9 @@ describe("section card rendering", () => {
     for (let x = box.x; x < box.x + box.width; x++) {
       const cell = board.screen.cell(x, box.y)
       if (cell.char === "F") {
-        expect(
-          (cell.attrs as Record<string, unknown>).bold,
-          `text char 'F' at (${x},${box.y}) should be bold`,
-        ).toBe(true)
+        expect((cell.attrs as Record<string, unknown>).bold, `text char 'F' at (${x},${box.y}) should be bold`).toBe(
+          true,
+        )
         foundBold = true
         break
       }
@@ -133,17 +125,10 @@ describe("section card rendering", () => {
   })
 
   test("section card selection uses yellow background (like other cards)", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item.section("My Section", item("task-1")),
-          ),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item.section("My Section", item("task-1")))), {
+      columns: 80,
+      rows: 24,
+    })
 
     // First card should be the section, and it should be selected
     board.expectNodeColor("My Section", { bg: 3 }) // 3 = yellow
@@ -151,14 +136,7 @@ describe("section card rendering", () => {
 
   test("section cards with children show fold marker and child count", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item.section("Has Children", item("child-a"), item("child-b"), item("child-c")),
-          ),
-        ),
+      () => item("board", item("col", item.section("Has Children", item("child-a"), item("child-b"), item("child-c")))),
       { columns: 80, rows: 24 },
     )
 

@@ -79,10 +79,7 @@ function dispatchAndFlush(store: StoreApi<BoardAppStore>, action: Parameters<Boa
 
 describe("findZoomTarget", () => {
   test("returns grandparent for depth-2 target", () => {
-    const nodes = item(
-      "root",
-      item("parent", item("child1"), item("child2")),
-    )
+    const nodes = item("root", item("parent", item("child1"), item("child2")))
     const repo = createFakeRepo({ nodes })
     const child1 = repo.getNode("child1")!
 
@@ -141,11 +138,7 @@ describe("findZoomTarget", () => {
 describe("ZOOM_IN to body-only board: cursor + navigation", () => {
   test("cursor lands on card level after zoom to body-only board", () => {
     const { store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col", item("flatNode", item("task1"), item("task2"), item("task3"))),
-        ),
+      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
@@ -163,11 +156,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
   test("j/k navigation works after zoom to body-only board", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col", item("flatNode", item("task1"), item("task2"), item("task3"))),
-        ),
+      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
@@ -191,11 +180,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
   test("cursor + DOM visible after zoom to body-only board", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col", item("flatNode", item("task1"), item("task2"), item("task3"))),
-        ),
+      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
@@ -211,11 +196,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
   test("j/k with DOM assertions after zoom to body-only board", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col", item("flatNode", item("task1"), item("task2"), item("task3"))),
-        ),
+      () => item("root", item("col", item("flatNode", item("task1"), item("task2"), item("task3")))),
       { checkIncremental: false },
     )
 
@@ -290,10 +271,7 @@ describe("paragraph-only board: cursor + navigation", () => {
       () =>
         item(
           "root",
-          item(
-            "docs",
-            item("readme", item.paragraph("intro"), item.paragraph("setup"), item.paragraph("usage")),
-          ),
+          item("docs", item("readme", item.paragraph("intro"), item.paragraph("setup"), item.paragraph("usage"))),
         ),
       { checkIncremental: false },
     )
@@ -362,12 +340,7 @@ describe("full search flow integration", () => {
 
   test("SELECT on already-visible card", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col1", item("taskA"), item("taskB")),
-          item("col2", item("taskC")),
-        ),
+      () => item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))),
       { checkIncremental: false },
     )
 

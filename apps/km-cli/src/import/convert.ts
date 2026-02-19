@@ -5,9 +5,9 @@
  * Builds KNode trees (typed intermediate) and serializes via nodesToMarkdown().
  */
 
-import type { KNode, TaskMarker, TaskStatus } from "@km/core";
-import { getMarkerForStatus } from "@km/core";
-import { nodesToMarkdown } from "@km/markdown";
+import type { KNode, TaskMarker, TaskStatus } from "@km/core"
+import { getMarkerForStatus } from "@km/core"
+import { nodesToMarkdown } from "@km/markdown"
 import type {
   ImportData,
   ImportItem,
@@ -16,15 +16,15 @@ import type {
   ImportStatusUpdate,
   ImportCustomFieldDef,
   FileMap,
-} from "./types.ts";
-import { filterSystemComment } from "./adapters/comment-filter.ts";
+} from "./types.ts"
+import { filterSystemComment } from "./adapters/comment-filter.ts"
 
 /** Slugify a title for use as filename */
 export function slugify(title: string): string {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
 }
 
 /**
@@ -46,30 +46,30 @@ const ASANA_URL_PATTERNS = [
   /https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/,
   /https?:\/\/app\.asana\.com\/1\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
   /https?:\/\/app\.asana\.com\/1\/\d+\/project\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
-];
+]
 
 function convertAsanaLinks(text: string): string {
   // First pass: convert markdown links [text](asana-url)
   // Preserve link text as alias [[^GID|text]] when appropriate
   for (const pattern of ASANA_URL_PATTERNS) {
-    const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g");
+    const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
     text = text.replace(mdLinkRe, (_match, linkText: string, gid: string) => {
       // Include alias only when link text is meaningful:
       // - non-empty, non-whitespace
       // - not equal to the GID itself (filters auto-numbered refs)
       // - not a URL (filters copy-paste errors)
       if (linkText && linkText !== gid && !linkText.startsWith("http")) {
-        return `[[^${gid}|${linkText}]]`;
+        return `[[^${gid}|${linkText}]]`
       }
       // Fallback: bare GID reference (km will resolve title from target)
-      return `[[^${gid}]]`;
-    });
+      return `[[^${gid}]]`
+    })
   }
   // Second pass: convert bare Asana URLs (not in markdown link syntax)
   for (const pattern of ASANA_URL_PATTERNS) {
-    text = text.replace(new RegExp(pattern.source, "g"), "[[^$1]]");
+    text = text.replace(new RegExp(pattern.source, "g"), "[[^$1]]")
   }
-  return text;
+  return text
 }
 
 // =============================================================================
@@ -80,26 +80,23 @@ function convertAsanaLinks(text: string): string {
 function toTaskStatus(status?: string): TaskStatus {
   switch (status) {
     case "done":
-      return "done";
+      return "done"
     case "wip":
-      return "doing";
+      return "doing"
     case "blocked":
-      return "blocked";
+      return "blocked"
     case "dropped":
-      return "dropped";
+      return "dropped"
     default:
-      return "todo";
+      return "todo"
   }
 }
 
 /** Mutable counter scoped to each conversion pass (avoids module-level state) */
-type IdxCounter = { value: number };
+type IdxCounter = { value: number }
 
 /** Create a KNode with required fields */
-function mkNode(
-  counter: IdxCounter,
-  fields: Partial<KNode> & Pick<KNode, "id" | "type">,
-): KNode {
+function mkNode(counter: IdxCounter, fields: Partial<KNode> & Pick<KNode, "id" | "type">): KNode {
   return {
     parent_id: null,
     parent_idx: counter.value++,
@@ -109,7 +106,7 @@ function mkNode(
     updated_at: Date.now(),
     version: "",
     ...fields,
-  };
+  }
 }
 
 /**
@@ -118,25 +115,25 @@ function mkNode(
  * Metadata (created::, completed::) is set on data.metadata — the serializer handles formatting.
  */
 function buildTaskContent(item: ImportItem, currentProject?: string): string {
-  const title = item.milestone ? `◆ ${item.title}` : item.title;
-  const parts: string[] = [title];
-  if (item.assignee) parts.push(`@${item.assignee}`);
-  if (item.tags?.length) parts.push(...item.tags.map((t) => `#${t}`));
+  const title = item.milestone ? `◆ ${item.title}` : item.title
+  const parts: string[] = [title]
+  if (item.assignee) parts.push(`@${item.assignee}`)
+  if (item.tags?.length) parts.push(...item.tags.map((t) => `#${t}`))
   if (item.projects && item.projects.length > 1) {
     const otherProjects = currentProject
       ? item.projects.filter((p) => slugify(p) !== slugify(currentProject))
-      : item.projects;
+      : item.projects
     if (otherProjects.length > 0) {
-      parts.push(...otherProjects.map((p) => `+${slugify(p)}`));
+      parts.push(...otherProjects.map((p) => `+${slugify(p)}`))
     }
   }
-  return parts.join(" ");
+  return parts.join(" ")
 }
 
 /** Build body content string (paragraph body text, not blockquote) */
 function buildBodyContent(item: ImportItem): string | null {
-  if (!item.body?.trim()) return null;
-  return convertAsanaLinks(item.body.trim());
+  if (!item.body?.trim()) return null
+  return convertAsanaLinks(item.body.trim())
 }
 
 /** Convert an ImportItem to KNode(s) and append to the nodes array */
@@ -152,12 +149,12 @@ function itemToNodes(
 ): void {
   // Within-file dedup: skip entirely if already rendered in this project
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
-    return;
+    return
   }
   // Cross-project dedup: if already rendered in another project, emit embed reference
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
-    const status = toTaskStatus(item.status);
-    const marker = status === "done" ? "[x]" : "[ ]";
+    const status = toTaskStatus(item.status)
+    const marker = status === "done" ? "[x]" : "[ ]"
     nodes.push(
       mkNode(counter, {
         id: `ref-${item.sourceId}`,
@@ -167,11 +164,11 @@ function itemToNodes(
         task_status: status,
         content: `![[^${item.sourceId}]]`,
       }),
-    );
-    return;
+    )
+    return
   }
-  if (localRendered && item.sourceId) localRendered.add(item.sourceId);
-  if (rendered && item.sourceId) rendered.add(item.sourceId);
+  if (localRendered && item.sourceId) localRendered.add(item.sourceId)
+  if (rendered && item.sourceId) rendered.add(item.sourceId)
 
   // Separator items become HR nodes instead of regular tasks
   if (item.metadata?.isSeparator) {
@@ -182,46 +179,42 @@ function itemToNodes(
         parent_id: parentId,
         block_id: item.sourceId,
       }),
-    );
-    return;
+    )
+    return
   }
 
-  const status = toTaskStatus(item.status);
+  const status = toTaskStatus(item.status)
 
-  const metadata: Record<string, string> = {};
-  if (item.createdAt) metadata.created = item.createdAt.slice(0, 10);
-  if (item.completedAt) metadata.completed = item.completedAt.slice(0, 10); // inline metadata for markdown
+  const metadata: Record<string, string> = {}
+  if (item.createdAt) metadata.created = item.createdAt.slice(0, 10)
+  if (item.completedAt) metadata.completed = item.completedAt.slice(0, 10) // inline metadata for markdown
 
   // Build data object with metadata and project memberships
-  const nodeData: Record<string, unknown> = {};
-  if (Object.keys(metadata).length > 0) nodeData.metadata = metadata;
+  const nodeData: Record<string, unknown> = {}
+  if (Object.keys(metadata).length > 0) nodeData.metadata = metadata
   if (item.projectMemberships && item.projectMemberships.length > 0) {
-    nodeData.projectMemberships = item.projectMemberships;
+    nodeData.projectMemberships = item.projectMemberships
   }
 
   // Dependencies: tasks this item depends on (deps) and tasks blocked by this item (blocks)
-  const deps = item.metadata?.dependencies as
-    | Array<{ gid: string }>
-    | undefined;
-  const dependents = item.metadata?.dependents as
-    | Array<{ gid: string }>
-    | undefined;
+  const deps = item.metadata?.dependencies as Array<{ gid: string }> | undefined
+  const dependents = item.metadata?.dependents as Array<{ gid: string }> | undefined
   if (deps?.length) {
-    nodeData.deps = deps.map((d) => `^${d.gid}`).join(",");
+    nodeData.deps = deps.map((d) => `^${d.gid}`).join(",")
   }
   if (dependents?.length) {
-    nodeData.blocks = dependents.map((d) => `^${d.gid}`).join(",");
+    nodeData.blocks = dependents.map((d) => `^${d.gid}`).join(",")
   }
 
   // Permalink — always store if present
-  if (item.permalink) nodeData.asana_permalink = item.permalink;
+  if (item.permalink) nodeData.asana_permalink = item.permalink
 
   // External and other Asana-specific metadata
-  if (item.metadata?.external) nodeData.asana_external = item.metadata.external;
-  if (item.metadata?.assigneeSectionName) nodeData.asana_assignee_section = item.metadata.assigneeSectionName;
-  if (item.metadata?.parentGid) nodeData.asana_parent_gid = item.metadata.parentGid;
-  if (item.metadata?.parentName) nodeData.asana_parent_name = item.metadata.parentName;
-  if (item.metadata?.customFields) nodeData.custom_fields = item.metadata.customFields;
+  if (item.metadata?.external) nodeData.asana_external = item.metadata.external
+  if (item.metadata?.assigneeSectionName) nodeData.asana_assignee_section = item.metadata.assigneeSectionName
+  if (item.metadata?.parentGid) nodeData.asana_parent_gid = item.metadata.parentGid
+  if (item.metadata?.parentName) nodeData.asana_parent_name = item.metadata.parentName
+  if (item.metadata?.customFields) nodeData.custom_fields = item.metadata.customFields
 
   const taskNode = mkNode(counter, {
     id: item.sourceId,
@@ -235,21 +228,15 @@ function itemToNodes(
     due_at: item.dueAt?.slice(0, 10),
     start_at: item.startAt?.slice(0, 10),
     priority: item.priority,
-    completed_at: item.completedAt
-      ? new Date(item.completedAt).getTime()
-      : undefined,
-    created_at: item.createdAt
-      ? new Date(item.createdAt).getTime()
-      : Date.now(),
-    updated_at: item.modifiedAt
-      ? new Date(item.modifiedAt).getTime()
-      : Date.now(),
+    completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
+    created_at: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
+    updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now(),
     ...(Object.keys(nodeData).length > 0 && { data: nodeData }),
-  });
-  nodes.push(taskNode);
+  })
+  nodes.push(taskNode)
 
   // Body as paragraph child node (.body content, not blockquote)
-  const bodyContent = buildBodyContent(item);
+  const bodyContent = buildBodyContent(item)
   if (bodyContent) {
     nodes.push(
       mkNode(counter, {
@@ -258,14 +245,14 @@ function itemToNodes(
         parent_id: item.sourceId,
         content: bodyContent,
       }),
-    );
+    )
   }
 
   // Comments as child list nodes under a "Comments" parent
   if (item.comments?.length) {
     const filtered = item.comments
       .map((c) => ({ ...c, text: filterSystemComment(c.text, c.createdAt) }))
-      .filter((c) => c.text.trim());
+      .filter((c) => c.text.trim())
     if (filtered.length) {
       nodes.push(
         mkNode(counter, {
@@ -274,11 +261,11 @@ function itemToNodes(
           parent_id: item.sourceId,
           content: "Comments",
         }),
-      );
+      )
       for (const c of filtered) {
-        const date = c.createdAt.slice(0, 10);
-        const author = c.author ? `@${c.author}` : "";
-        const fullText = c.text.trim();
+        const date = c.createdAt.slice(0, 10)
+        const author = c.author ? `@${c.author}` : ""
+        const fullText = c.text.trim()
         nodes.push(
           mkNode(counter, {
             id: `comment-${item.sourceId}-${counter.value}`,
@@ -286,7 +273,7 @@ function itemToNodes(
             parent_id: `comments-${item.sourceId}`,
             content: `${date} ${author}: ${fullText}`.trim(),
           }),
-        );
+        )
       }
     }
   }
@@ -300,13 +287,10 @@ function itemToNodes(
         parent_id: item.sourceId,
         content: "Attachments",
       }),
-    );
+    )
     for (const att of item.attachments) {
-      const href = att.localPath ?? att.url;
-      const linkMd =
-        att.type === "image"
-          ? `![${att.name}](${href})`
-          : `[${att.name}](${href})`;
+      const href = att.localPath ?? att.url
+      const linkMd = att.type === "image" ? `![${att.name}](${href})` : `[${att.name}](${href})`
       nodes.push(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
@@ -314,7 +298,7 @@ function itemToNodes(
           parent_id: `attachments-${item.sourceId}`,
           content: linkMd,
         }),
-      );
+      )
     }
   }
 
@@ -327,10 +311,10 @@ function itemToNodes(
         parent_id: item.sourceId,
         content: "Activity",
       }),
-    );
+    )
     for (const a of item.activityLog) {
-      const date = a.createdAt.slice(0, 10);
-      const author = a.author ? `@${a.author}` : "";
+      const date = a.createdAt.slice(0, 10)
+      const author = a.author ? `@${a.author}` : ""
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
@@ -338,23 +322,14 @@ function itemToNodes(
           parent_id: `activity-${item.sourceId}`,
           content: `${date} ${author}: ${a.text}`.trim(),
         }),
-      );
+      )
     }
   }
 
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(
-        counter,
-        child,
-        item.sourceId,
-        nodes,
-        rendered,
-        primaryMap,
-        currentProject,
-        localRendered,
-      );
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered)
     }
   }
 }
@@ -370,7 +345,7 @@ function sectionToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
 ): void {
-  const sectionId = `section-${section.sourceId}`;
+  const sectionId = `section-${section.sourceId}`
   nodes.push(
     mkNode(counter, {
       id: sectionId,
@@ -381,19 +356,10 @@ function sectionToNodes(
       title: section.title,
       data: { depth: 2 },
     }),
-  );
+  )
 
   for (const item of section.items) {
-    itemToNodes(
-      counter,
-      item,
-      sectionId,
-      nodes,
-      rendered,
-      primaryMap,
-      currentProject,
-      localRendered,
-    );
+    itemToNodes(counter, item, sectionId, nodes, rendered, primaryMap, currentProject, localRendered)
   }
 }
 
@@ -405,23 +371,23 @@ function projectToNodes(
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
 ): KNode[] {
-  const counter: IdxCounter = { value: 0 };
-  const nodes: KNode[] = [];
+  const counter: IdxCounter = { value: 0 }
+  const nodes: KNode[] = []
   // Track sourceIds within this project to skip within-file duplicates
-  const localRendered = new Set<string>();
+  const localRendered = new Set<string>()
 
   // File root node — data becomes frontmatter, content becomes H1
-  const fileId = `file-${project.sourceId}`;
+  const fileId = `file-${project.sourceId}`
   const frontmatter: Record<string, unknown> = {
     imported_from: source,
     imported_at: fetchedAt,
     [`${source}_project_id`]: project.sourceId,
-  };
-  if (project.workspace) frontmatter.workspace = project.workspace;
-  if (project.owner) frontmatter.owner = project.owner;
-  if (project.team) frontmatter.team = project.team;
-  if (project.createdAt) frontmatter.created_at = project.createdAt;
-  if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt;
+  }
+  if (project.workspace) frontmatter.workspace = project.workspace
+  if (project.owner) frontmatter.owner = project.owner
+  if (project.team) frontmatter.team = project.team
+  if (project.createdAt) frontmatter.created_at = project.createdAt
+  if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt
 
   nodes.push(
     mkNode(counter, {
@@ -431,43 +397,25 @@ function projectToNodes(
       content: project.title,
       data: frontmatter,
     }),
-  );
+  )
 
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(
-        counter,
-        section,
-        fileId,
-        nodes,
-        rendered,
-        primaryMap,
-        project.title,
-        localRendered,
-      );
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(
-        counter,
-        item,
-        fileId,
-        nodes,
-        rendered,
-        primaryMap,
-        project.title,
-        localRendered,
-      );
+      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered)
     }
   }
 
   // Status Updates section
   if (project.statusUpdates?.length) {
-    const statusSectionId = `status-updates-${project.sourceId}`;
+    const statusSectionId = `status-updates-${project.sourceId}`
     nodes.push(
       mkNode(counter, {
         id: statusSectionId,
@@ -478,18 +426,18 @@ function projectToNodes(
         title: "Status Updates",
         data: { depth: 2 },
       }),
-    );
+    )
     for (const [i, su] of project.statusUpdates.entries()) {
-      const statusId = `status-${project.sourceId}-${i}`;
-      const statusLines: string[] = [];
-      if (su.text) statusLines.push(su.text);
-      const metaParts: string[] = [];
-      if (su.color) metaParts.push(`Status: ${su.color}`);
-      if (su.author) metaParts.push(`Author: ${su.author}`);
-      if (su.createdAt) metaParts.push(`Date: ${su.createdAt.slice(0, 10)}`);
+      const statusId = `status-${project.sourceId}-${i}`
+      const statusLines: string[] = []
+      if (su.text) statusLines.push(su.text)
+      const metaParts: string[] = []
+      if (su.color) metaParts.push(`Status: ${su.color}`)
+      if (su.author) metaParts.push(`Author: ${su.author}`)
+      if (su.createdAt) metaParts.push(`Date: ${su.createdAt.slice(0, 10)}`)
       if (metaParts.length) {
-        if (statusLines.length) statusLines.push("");
-        statusLines.push(metaParts.join(" | "));
+        if (statusLines.length) statusLines.push("")
+        statusLines.push(metaParts.join(" | "))
       }
       nodes.push(
         mkNode(counter, {
@@ -498,7 +446,7 @@ function projectToNodes(
           parent_id: statusSectionId,
           content: su.title || "Status update",
         }),
-      );
+      )
       if (statusLines.length) {
         nodes.push(
           mkNode(counter, {
@@ -507,14 +455,14 @@ function projectToNodes(
             parent_id: statusId,
             content: statusLines.join("\n"),
           }),
-        );
+        )
       }
     }
   }
 
   // Custom Fields section
   if (project.customFieldSettings?.length) {
-    const cfSectionId = `custom-fields-${project.sourceId}`;
+    const cfSectionId = `custom-fields-${project.sourceId}`
     nodes.push(
       mkNode(counter, {
         id: cfSectionId,
@@ -525,14 +473,15 @@ function projectToNodes(
         title: "Custom Fields",
         data: { depth: 2 },
       }),
-    );
+    )
     for (const [i, cf] of project.customFieldSettings.entries()) {
-      const cfId = `cf-${project.sourceId}-${i}`;
-      const detailParts: string[] = [`Type: ${cf.type}`];
-      if (cf.description) detailParts.push(cf.description);
-      if (cf.precision != null) detailParts.push(`Precision: ${cf.precision}`);
-      if (cf.enumOptions?.length)
-        {detailParts.push(`Options: ${cf.enumOptions.join(", ")}`);}
+      const cfId = `cf-${project.sourceId}-${i}`
+      const detailParts: string[] = [`Type: ${cf.type}`]
+      if (cf.description) detailParts.push(cf.description)
+      if (cf.precision != null) detailParts.push(`Precision: ${cf.precision}`)
+      if (cf.enumOptions?.length) {
+        detailParts.push(`Options: ${cf.enumOptions.join(", ")}`)
+      }
       nodes.push(
         mkNode(counter, {
           id: cfId,
@@ -540,7 +489,7 @@ function projectToNodes(
           parent_id: cfSectionId,
           content: cf.name,
         }),
-      );
+      )
       nodes.push(
         mkNode(counter, {
           id: `bq-${cfId}`,
@@ -548,11 +497,11 @@ function projectToNodes(
           parent_id: cfId,
           content: detailParts.join("\n"),
         }),
-      );
+      )
     }
   }
 
-  return nodes;
+  return nodes
 }
 
 // =============================================================================
@@ -562,48 +511,49 @@ function projectToNodes(
 /** Collect all task sourceIds from a project, recursively including children */
 function collectTaskIds(items: ImportItem[], out: string[]): void {
   for (const item of items) {
-    if (item.sourceId) out.push(item.sourceId);
-    if (item.children?.length) collectTaskIds(item.children, out);
+    if (item.sourceId) out.push(item.sourceId)
+    if (item.children?.length) collectTaskIds(item.children, out)
   }
 }
 
 /** Export for testing: convert a single ImportItem to KNode */
-export { itemToNodes, buildTaskContent, buildBodyContent };
+export { itemToNodes, buildTaskContent, buildBodyContent }
 
 /**
  * Build the primaryMap (task sourceId → filename) and filename list.
  * Pass 1 of the two-pass convert: lightweight ID scan only.
  */
 function buildPrimaryMap(data: ImportData): {
-  primaryMap: Map<string, string>;
-  filenames: string[];
+  primaryMap: Map<string, string>
+  filenames: string[]
 } {
-  const primaryMap = new Map<string, string>();
-  const filenames: string[] = [];
+  const primaryMap = new Map<string, string>()
+  const filenames: string[] = []
   for (const project of data.projects) {
-    const slug = slugify(project.title);
-    const filename = `${project.sourceId}-${slug}.md`;
-    filenames.push(filename);
-    const ids: string[] = [];
+    const slug = slugify(project.title)
+    const filename = `${project.sourceId}-${slug}.md`
+    filenames.push(filename)
+    const ids: string[] = []
     if (project.sections?.length) {
-      for (const section of project.sections)
-        {collectTaskIds(section.items, ids);}
+      for (const section of project.sections) {
+        collectTaskIds(section.items, ids)
+      }
     }
-    if (project.items?.length) collectTaskIds(project.items, ids);
+    if (project.items?.length) collectTaskIds(project.items, ids)
     for (const id of ids) {
-      if (!primaryMap.has(id)) primaryMap.set(id, filename);
+      if (!primaryMap.has(id)) primaryMap.set(id, filename)
     }
   }
-  return { primaryMap, filenames };
+  return { primaryMap, filenames }
 }
 
 /** Convert ImportData to a map of relative file paths → markdown content */
 export function convert(data: ImportData): FileMap {
-  const files: FileMap = new Map();
+  const files: FileMap = new Map()
   for (const [filename, markdown] of convertBatch(data)) {
-    files.set(filename, markdown);
+    files.set(filename, markdown)
   }
-  return files;
+  return files
 }
 
 /**
@@ -611,25 +561,19 @@ export function convert(data: ImportData): FileMap {
  * Memory-efficient for large imports — each project's KNode tree is GC'd after yield.
  */
 export function* convertBatch(data: ImportData): Generator<[string, string]> {
-  const { primaryMap, filenames } = buildPrimaryMap(data);
-  const rendered = new Set<string>();
+  const { primaryMap, filenames } = buildPrimaryMap(data)
+  const rendered = new Set<string>()
 
   for (const [i, project] of data.projects.entries()) {
-    const filename = filenames[i];
-    if (!filename) continue;
-    const nodes = projectToNodes(
-      project,
-      data.source,
-      data.fetchedAt,
-      rendered,
-      primaryMap,
-    );
-    const markdown = nodesToMarkdown(nodes);
-    yield [filename, markdown];
+    const filename = filenames[i]
+    if (!filename) continue
+    const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap)
+    const markdown = nodesToMarkdown(nodes)
+    yield [filename, markdown]
   }
 
   // Tag aggregate files: collect items by tag across all projects
-  yield* generateTagFiles(data, rendered, primaryMap);
+  yield* generateTagFiles(data, rendered, primaryMap)
 }
 
 /**
@@ -642,41 +586,41 @@ function* generateTagFiles(
   primaryMap: Map<string, string>,
 ): Generator<[string, string]> {
   // Collect items by tag
-  const tagItems = new Map<string, ImportItem[]>();
+  const tagItems = new Map<string, ImportItem[]>()
   const collectByTag = (items: ImportItem[]): void => {
     for (const item of items) {
       if (item.tags?.length) {
         for (const tag of item.tags) {
-          let list = tagItems.get(tag);
+          let list = tagItems.get(tag)
           if (!list) {
-            list = [];
-            tagItems.set(tag, list);
+            list = []
+            tagItems.set(tag, list)
           }
-          list.push(item);
+          list.push(item)
         }
       }
-      if (item.children?.length) collectByTag(item.children);
+      if (item.children?.length) collectByTag(item.children)
     }
-  };
+  }
 
   for (const proj of data.projects) {
-    for (const item of proj.items ?? []) collectByTag([item]);
-    for (const sec of proj.sections ?? []) collectByTag(sec.items);
+    for (const item of proj.items ?? []) collectByTag([item])
+    for (const sec of proj.sections ?? []) collectByTag(sec.items)
   }
 
   // Generate a file per tag (only for tags with 2+ unique items)
   for (const [tag, rawItems] of tagItems) {
     // Deduplicate: same task may appear in multiple sections
-    const seen = new Set<string>();
+    const seen = new Set<string>()
     const items = rawItems.filter((item) => {
-      if (seen.has(item.sourceId)) return false;
-      seen.add(item.sourceId);
-      return true;
-    });
-    if (items.length < 2) continue;
-    const counter: IdxCounter = { value: 0 };
-    const nodes: KNode[] = [];
-    const fileId = `tag-${tag}`;
+      if (seen.has(item.sourceId)) return false
+      seen.add(item.sourceId)
+      return true
+    })
+    if (items.length < 2) continue
+    const counter: IdxCounter = { value: 0 }
+    const nodes: KNode[] = []
+    const fileId = `tag-${tag}`
     nodes.push(
       mkNode(counter, {
         id: fileId,
@@ -690,13 +634,13 @@ function* generateTagFiles(
           item_count: items.length,
         },
       }),
-    );
+    )
 
     for (const item of items) {
       // Use embed reference for items already rendered in project files
       if (rendered.has(item.sourceId)) {
-        const status = toTaskStatus(item.status);
-        const marker = status === "done" ? "[x]" : "[ ]";
+        const status = toTaskStatus(item.status)
+        const marker = status === "done" ? "[x]" : "[ ]"
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
@@ -706,13 +650,13 @@ function* generateTagFiles(
             task_status: status,
             content: `![[^${item.sourceId}]]`,
           }),
-        );
+        )
       } else {
-        itemToNodes(counter, item, fileId, nodes, rendered, primaryMap);
+        itemToNodes(counter, item, fileId, nodes, rendered, primaryMap)
       }
     }
 
-    const markdown = nodesToMarkdown(nodes);
-    yield [`#${slugify(tag)}.md`, markdown];
+    const markdown = nodesToMarkdown(nodes)
+    yield [`#${slugify(tag)}.md`, markdown]
   }
 }

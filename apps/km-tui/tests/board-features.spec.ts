@@ -463,9 +463,7 @@ describe("Search and Filter", () => {
 
   test("search navigation: depth-2 target selected in place (no zoom needed)", () => {
     // Target is already a card in the current view (grandchild of root)
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("visible-card"), item("another-card"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("visible-card"), item("another-card"))))
 
     board.press("/")
     for (const c of "another-card") board.press(c)
@@ -482,9 +480,7 @@ describe("Search and Filter", () => {
     // Tree: root > A > B > C > target
     // Target at depth 4 from root. Should zoom to C's grandparent (B)
     // making C a column and target a card.
-    const { board, store } = testEnv(() =>
-      item("root", item("A", item("B", item("C", item("deep-target"))))),
-    )
+    const { board, store } = testEnv(() => item("root", item("A", item("B", item("C", item("deep-target"))))))
 
     board.press("/")
     for (const c of "deep-target") board.press(c)
@@ -683,9 +679,7 @@ describe("Content Lines (+/-)", () => {
 
 describe("Detail Pane Navigation", () => {
   test("detail pane stays open when navigating with j/k", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("card1"), item("card2"), item("card3"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
     board.press(" ")
@@ -701,9 +695,7 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("detail pane updates to show new card when navigating with j/k", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("card1"), item("card2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
     board.press(" ")
@@ -720,9 +712,7 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("Space closes detail pane", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("card1"), item("card2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
     board.press(" ")
@@ -734,9 +724,7 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("Escape closes detail pane", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("card1"), item("card2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
     board.press(" ")
@@ -748,9 +736,7 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("card1")), item("col2", item("card2"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))))
 
     // Open detail pane on card1
     board.press(" ")

@@ -126,8 +126,12 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
         <Box flexDirection="row" justifyContent="space-between">
-          <Text dimColor wrap="truncate">h/Esc:close Enter:open</Text>
-          <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
+          <Text dimColor wrap="truncate">
+            h/Esc:close Enter:open
+          </Text>
+          <Text dimColor wrap="truncate">
+            {node.type} {node.id}
+          </Text>
         </Box>
       </ErrorBoundary>
     </Box>
@@ -270,8 +274,12 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         {/* Footer: keybindings + debug info */}
         <Box flexGrow={1} />
         <Box flexDirection="row" justifyContent="space-between">
-          <Text dimColor wrap="truncate">h/Esc:close Space:status</Text>
-          <Text dimColor wrap="truncate">{node.type} {node.id}</Text>
+          <Text dimColor wrap="truncate">
+            h/Esc:close Space:status
+          </Text>
+          <Text dimColor wrap="truncate">
+            {node.type} {node.id}
+          </Text>
         </Box>
       </ErrorBoundary>
     </Box>
@@ -412,9 +420,7 @@ function MetadataTable({
 
   // Mentions (preserve @ prefix) — exclude assignee to avoid duplication
   // Compare via shortName() to handle Unicode vs ASCII mismatches (e.g., "bjørn" vs "bjorn")
-  const nonAssigneeMentions = refs.mentions.filter(
-    (m) => shortName(m) !== shortName(node.assigned_to ?? ""),
-  )
+  const nonAssigneeMentions = refs.mentions.filter((m) => shortName(m) !== shortName(node.assigned_to ?? ""))
   if (nonAssigneeMentions.length > 0) {
     rows.push({ key: "Mentions", value: nonAssigneeMentions.map((m) => `@${m}`).join(", ") })
   }
@@ -564,7 +570,9 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
             <Box key={`line-${i}`} flexDirection="row">
               <Text wrap="truncate">
                 <Text dimColor>{isImage ? "[img] " : "[link] "}</Text>
-                <Text bold underline>{name}</Text>
+                <Text bold underline>
+                  {name}
+                </Text>
                 <Text dimColor> ({url})</Text>
               </Text>
             </Box>

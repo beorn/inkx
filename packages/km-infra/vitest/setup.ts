@@ -27,9 +27,9 @@ process.stderr.isTTY = false
 // channel closes (parent died), so we exit immediately to prevent orphan processes.
 // No-op for pool:'threads' (no IPC channel, no process.connected).
 if (typeof process.connected === "boolean") {
-	process.on("disconnect", () => {
-		process.exit(1)
-	})
+  process.on("disconnect", () => {
+    process.exit(1)
+  })
 }
 
 // Suppress logger output during tests (info would trip console detection)

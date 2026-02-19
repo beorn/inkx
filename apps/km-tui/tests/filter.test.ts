@@ -393,8 +393,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
 
     // Apply 'todo' status filter
     board.press("ctrl+/") // open filter
-    board.press(" ")       // toggle todo
-    board.press("Escape")  // close filter
+    board.press(" ") // toggle todo
+    board.press("Escape") // close filter
 
     screen = board.screenshot()
     // embed1 links to src1 which is task_status=todo → should be visible
@@ -417,8 +417,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
     board.press("l").press("l").press("l") // move to 'done'
-    board.press(" ")       // toggle done
-    board.press("Escape")  // close filter
+    board.press(" ") // toggle done
+    board.press("Escape") // close filter
 
     const screen = board.screenshot()
     // embed2 links to src2 which is task_status=done → should be visible

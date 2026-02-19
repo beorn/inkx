@@ -618,12 +618,7 @@ describe("Permalink and external metadata", () => {
   test("stores permalink in node data as asana_permalink", () => {
     const nodes: import("@km/core").KNode[] = []
     const counter = { value: 0 }
-    itemToNodes(
-      counter,
-      { sourceId: "t1", title: "Task", permalink: "https://app.asana.com/0/p1/t1" },
-      "parent",
-      nodes,
-    )
+    itemToNodes(counter, { sourceId: "t1", title: "Task", permalink: "https://app.asana.com/0/p1/t1" }, "parent", nodes)
     const taskNode = nodes.find((n) => n.id === "t1")!
     expect(taskNode.data?.asana_permalink).toBe("https://app.asana.com/0/p1/t1")
   })
@@ -725,12 +720,7 @@ describe("Child node structure", () => {
   test("body-only task has paragraph body, no Comments/Attachments child nodes", () => {
     const nodes: import("@km/core").KNode[] = []
     const counter = { value: 0 }
-    itemToNodes(
-      counter,
-      { sourceId: "t1", title: "Task", body: "Just a description" },
-      "parent",
-      nodes,
-    )
+    itemToNodes(counter, { sourceId: "t1", title: "Task", body: "Just a description" }, "parent", nodes)
     const bodyNode = nodes.find((n) => n.type === "p")!
     expect(bodyNode).toBeDefined()
     expect(bodyNode.content).toBe("Just a description")
@@ -797,7 +787,12 @@ describe("Custom field definitions rendering", () => {
           items: [{ sourceId: "t1", title: "A task" }],
           customFieldSettings: [
             { name: "Priority", type: "number", description: "Task priority level", precision: 0 },
-            { name: "Stage", type: "enum", description: "Development stage", enumOptions: ["Planning", "In Progress", "Review", "Done"] },
+            {
+              name: "Stage",
+              type: "enum",
+              description: "Development stage",
+              enumOptions: ["Planning", "In Progress", "Review", "Done"],
+            },
           ],
         },
       ],

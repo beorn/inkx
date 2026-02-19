@@ -10,10 +10,10 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("inline-refs: ^numeric-id stripped from card display", () => {
   test("inline ^ref mid-text is stripped from card title", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("See previous ^1202466275397380 notes"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("See previous ^1202466275397380 notes"))), {
+      rows: 20,
+      columns: 60,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -23,10 +23,10 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
   })
 
   test("^ref at end of title is stripped", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Talk to Fidelity^1212075048027297"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Talk to Fidelity^1212075048027297"))), {
+      rows: 20,
+      columns: 60,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -62,10 +62,7 @@ describe("inline-refs: ^numeric-id stripped from card display", () => {
   })
 
   test("short ^refs (not Asana IDs) are preserved", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("value ^42 is good"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("value ^42 is good"))), { rows: 20, columns: 60 })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
