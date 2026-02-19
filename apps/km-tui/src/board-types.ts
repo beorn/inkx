@@ -79,6 +79,9 @@ export interface BoardState {
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
+  // NODE MODEL V2: colIndex/cardIndex are view model artifacts — they leak grid
+  // position into what should be a pure data model action. Target: SELECT takes
+  // only nodeId; grid position derived from nodeId by the cursor store.
   | {
       type: "SELECT"
       nodeId: string | null

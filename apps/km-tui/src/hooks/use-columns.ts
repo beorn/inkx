@@ -1,10 +1,14 @@
 /**
- * useColumns Hook
+ * useColumns Hook — VIEW MODEL DERIVATION
  *
- * Derives ColumnState[] directly from Repo.
- * Replaces the old pattern of storing nodes in BoardState and deriving columns from there.
+ * Derives ColumnState[] from Repo. This is the main view model construction point:
+ * it reads data model (KNode tree via Repo) and produces view model (ColumnState/CardState).
  *
- * See plan hazy-forging-crayon.md for design rationale.
+ * NODE MODEL V2 TARGET: Replace with useChildren(repo, rootId) → KNode[].
+ * Components split children by isItem(type) themselves. The 379 lines here collapse to ~20:
+ * subscription (useChildren) + body/items split (children.filter). ColumnState/CardState
+ * wrappers, structural sharing, and WIP limit parsing are eliminated.
+ * Virtual body nodes become a view pattern (render blocks above items), not synthetic KNodes.
  */
 
 import { useMemo, useRef, useSyncExternalStore } from "react"

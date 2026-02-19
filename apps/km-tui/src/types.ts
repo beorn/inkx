@@ -1,7 +1,17 @@
 /**
- * Board Types
+ * Board Types — VIEW MODEL (not data model)
  *
- * Shared types for the boardliner TUI
+ * These types describe how nodes are presented in the TUI, not how they're stored.
+ * The data model is KNode (from @km/core) — a single tree of nodes.
+ *
+ * NODE MODEL V2 MIGRATION:
+ * ColumnState/CardState/ColumnsLayout are view model types that wrap KNode with
+ * positional info (colIndex, cardIndex) and pre-fetched children. They exist because
+ * the board view needs columns/cards, but the underlying model is just nodes.
+ *
+ * Target: eliminate these wrappers. Components receive KNode and derive view
+ * concerns (body vs items split, selection, fold state) from repo + hooks.
+ * See km-all.node-model-v2 bead for the full generalization plan.
  */
 
 import type { KNode } from "@km/core"
@@ -27,6 +37,10 @@ export interface TUIBoardState {
   helpMode: boolean
 }
 
+// VIEW MODEL: A "column" is just a parent KNode whose children render as cards.
+// Target: eliminate this wrapper — components call repo.getChildren(node.id) directly.
+// wipLimit/rules should move to node.rules (data model, parsed at storage layer).
+// isVirtual body columns → view splits children by isItem(type), no synthetic nodes.
 export interface ColumnState {
   node: KNode
   cards: CardState[]
@@ -36,6 +50,8 @@ export interface ColumnState {
   isVirtual?: boolean
 }
 
+// VIEW MODEL: A "card" is just a child KNode rendered in card style.
+// Target: eliminate this wrapper — children/childCount derived from repo on demand.
 export interface CardState {
   node: KNode
   children: KNode[]
@@ -50,11 +66,9 @@ export type BoardAction = "quit" | "refresh" | null
 /**
  * Special cardIndex value indicating cursor is at column header level.
  *
- * When cardIndex === COLUMN_HEADER_INDEX, the cursor is on the column header
- * (not on any card within the column). This is used for:
- * - Navigating up from first card in column
- * - Direct column selection via h/l from another column header
- * - Visual distinction between column-level and card-level selection
+ * VIEW MODEL ARTIFACT: In the new node model, the column header IS a node —
+ * navigating "above the first card" just means cursorNodeId points to the
+ * parent node. No sentinel index needed. Target: eliminate.
  */
 export const COLUMN_HEADER_INDEX = -1
 
@@ -66,8 +80,9 @@ export function isAtColumnHeader(cardIndex: number): boolean {
 }
 
 /**
- * Derived columns layout with cursor position.
- * Built from Repo + cursor state for rendering.
+ * VIEW MODEL: Derived columns layout with cursor position.
+ * Target: eliminate — cursor is just cursorNodeId, columns derived by hooks.
+ * The nodeIndex map stays as an on-demand helper for key handler lookups.
  */
 export interface ColumnsLayout {
   columns: ColumnState[]

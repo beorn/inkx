@@ -7,6 +7,11 @@
  *
  * This enables ~3ms j/k presses: only 2 Cards re-render instead of the
  * entire Board → Column → Card cascade.
+ *
+ * NODE MODEL V2: cursorNodeId is data model (keeps). colIndex/cardIndex are
+ * view model (derived from cursorNodeId + columns). selectionLevel is view
+ * model (derived from node type via isItem()). Target: CursorState = just
+ * { cursorNodeId: string | null }, with position derived on demand.
  */
 
 export interface CursorState {

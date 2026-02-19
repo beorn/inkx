@@ -7,6 +7,11 @@
  * - driver reads via handle.store.getState()
  *
  * Board nav fields are flat at store root. UI fields are grouped under `ui`.
+ *
+ * NODE MODEL V2: This store mixes data model state (rootId, cursorNodeId,
+ * foldedNodes, selectedNodes) with view model derivations (layout, tuiBoardState,
+ * selectionLevel). Target: keep only data model fields + UI ephemeral state.
+ * View model (columns, cards, cursor position) derived on-demand by hooks.
  */
 
 import type { KNode, ToastQueue, JobRunner } from "@km/core"
@@ -53,13 +58,19 @@ export interface BoardAppState {
   // --- UI state ---
   ui: UIState
 
-  // --- Derived layout (recomputed on state changes) ---
+  // --- Derived layout (VIEW MODEL — recomputed on state changes) ---
+  // TARGET: eliminate ColumnsLayout. Components derive columns via useChildren(repo, rootId).
+  // Cursor position is just cursorNodeId — no colIndex/cardIndex needed.
   layout: ColumnsLayout
 
-  // --- Derived rendering state ---
+  // --- Derived rendering state (VIEW MODEL — pre-packaged for Board.tsx) ---
+  // TARGET: eliminate TUIBoardState. Board.tsx reads data model fields directly
+  // from store + derives view concerns via hooks.
   tuiBoardState: TUIBoardState
 
-  // --- Derived selections ---
+  // --- Derived selections (VIEW MODEL — convenience for key handlers) ---
+  // TARGET: selectedNode = repo.getNode(cursorNodeId). selectionLevel derived
+  // from node type (isItem → "card", else "column") or navigation context.
   selectedNode: KNode | null
   selectionLevel: "board" | "column" | "card"
 
@@ -100,7 +111,8 @@ export interface BoardAppActions {
   setTextEditTarget(target: EditTarget | null): void
   setDimensions(dims: { columns: number; rows: number }): void
 
-  // Layout update (called after columns/cursor recompute)
+  // Layout update (VIEW MODEL — called after columns/cursor recompute)
+  // TARGET: eliminate this action. View model is derived by hooks, not pushed into store.
   updateLayout(
     layout: ColumnsLayout,
     selectedNode: KNode | null,

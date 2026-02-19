@@ -2,6 +2,11 @@
  * Card and Column components for the Board view
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
+ *
+ * NODE MODEL V2: Currently receives ColumnState/CardState (view model wrappers).
+ * Target: receives KNode directly, calls repo.getChildren(node.id) for cards,
+ * and derives isSelected/isFolded from data model hooks. ColumnState/CardState
+ * wrappers are eliminated — "column" is just a parent KNode, "card" is a child.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"

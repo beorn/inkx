@@ -1,8 +1,13 @@
 /**
- * useCursorPosition Hook
+ * useCursorPosition Hook — VIEW MODEL DERIVATION
  *
  * Derives visual cursor position (colIndex, cardIndex) from cursorNodeId.
  * This replaces storing indices in state - they're now computed at render time.
+ *
+ * NODE MODEL V2: colIndex/cardIndex are view model concepts — they exist because
+ * the grid layout needs integer positions. Target: replace with spatial lookup
+ * via GridNavigator that translates cursorNodeId → screen position on demand.
+ * The hook itself may survive but ColumnState[] input becomes KNode[] from repo.
  *
  * See plan hazy-forging-crayon.md for design rationale.
  */

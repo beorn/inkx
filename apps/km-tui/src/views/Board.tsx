@@ -8,6 +8,11 @@
  *
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
  * in board-app.ts. Board is a pure view that reads state and pushes derived layout.
+ *
+ * NODE MODEL V2: Board currently reads TUIBoardState (view model) from the store.
+ * Target: Board reads data model (rootId, cursorNodeId, foldedNodes) from store
+ * and derives view concerns (columns, cursor position) via hooks like
+ * useChildren(repo, rootId). TUIBoardState wrapper is eliminated.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
