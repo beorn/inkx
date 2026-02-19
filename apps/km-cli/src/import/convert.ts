@@ -118,7 +118,7 @@ function buildTaskContent(item: ImportItem, currentProject?: string): string {
   const title = item.milestone ? `◆ ${item.title}` : item.title
   const parts: string[] = [title]
   if (item.assignee) parts.push(`@${item.assignee}`)
-  if (item.tags?.length) parts.push(...item.tags.map((t) => `#${t}`))
+  if (item.tags?.length) parts.push(...new Set(item.tags.map((t) => `#${t}`)))
   if (item.projects && item.projects.length > 1) {
     const otherProjects = currentProject
       ? item.projects.filter((p) => slugify(p) !== slugify(currentProject))

@@ -63,7 +63,7 @@ function convertTask(task: AsanaTask): ImportItem {
   }
 
   if (task.tags?.length) {
-    item.tags = task.tags.map((t) => t.name.replace(/\s+/g, "-").toLowerCase())
+    item.tags = [...new Set(task.tags.map((t) => t.name.replace(/\s+/g, "-").toLowerCase()))]
   }
 
   // Multi-project membership -> projects list + rich memberships with section context

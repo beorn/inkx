@@ -32,10 +32,14 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
     item.assignee = task.assignee.name.replace(/\s+/g, "-").toLowerCase()
   }
   if (task.tags?.length) {
-    item.tags = task.tags
-      .map((t) => t.name)
-      .filter((name): name is string => !!name)
-      .map((name) => name.replace(/\s+/g, "-").toLowerCase())
+    item.tags = [
+      ...new Set(
+        task.tags
+          .map((t) => t.name)
+          .filter((name): name is string => !!name)
+          .map((name) => name.replace(/\s+/g, "-").toLowerCase()),
+      ),
+    ]
     if (item.tags.length === 0) delete item.tags
   }
 

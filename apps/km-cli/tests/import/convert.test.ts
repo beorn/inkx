@@ -1197,6 +1197,70 @@ describe("Tag file dedup", () => {
 })
 
 // ============================================================================
+// Tag dedup on individual tasks (duplicate tag entries)
+// ============================================================================
+
+describe("Tag dedup on individual tasks", () => {
+  test("duplicate tags on a single task are deduplicated in output", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Double tagged task",
+          tags: ["health", "health", "fitness"],
+        },
+      ]),
+    )
+    // Each tag should appear exactly once in the task heading
+    const taskLine = md.split("\n").find((l) => l.includes("Double tagged task"))!
+    expect(taskLine).toBeDefined()
+    const healthMatches = taskLine.match(/#health/g)
+    expect(healthMatches).toHaveLength(1)
+    expect(taskLine).toContain("#fitness")
+  })
+
+  test("duplicate tags from subtasks do not create duplicate tag file entries", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-18T00:00:00Z",
+      projects: [
+        {
+          sourceId: "proj1",
+          title: "Project One",
+          items: [
+            {
+              sourceId: "parent-1",
+              title: "Parent task",
+              tags: ["backend"],
+              children: [
+                { sourceId: "child-1", title: "Child A", tags: ["backend"] },
+                { sourceId: "child-2", title: "Child B", tags: ["backend"] },
+              ],
+            },
+          ],
+        },
+        {
+          sourceId: "proj2",
+          title: "Project Two",
+          items: [{ sourceId: "other-1", title: "Other task", tags: ["backend"] }],
+        },
+      ],
+    }
+    const files = convert(data)
+    const tagFile = files.get("#backend.md")!
+    expect(tagFile).toBeDefined()
+
+    // Each task should appear at most once in the tag file
+    const parentRefs = tagFile.match(/parent-1/g)
+    expect(parentRefs).toHaveLength(1)
+    const childARefs = tagFile.match(/child-1/g)
+    expect(childARefs).toHaveLength(1)
+    const childBRefs = tagFile.match(/child-2/g)
+    expect(childBRefs).toHaveLength(1)
+  })
+})
+
+// ============================================================================
 // Dependency mapping (Asana dependencies/dependents → deps/blocks)
 // ============================================================================
 
