@@ -78,14 +78,14 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
       width={width}
       height={height}
       borderStyle="single"
-      borderColor="white"
+      borderColor="yellow"
       backgroundColor="black"
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title */}
-        <Box width={innerWidth}>
-          <Text bold wrap="wrap">
+        {/* Title — yellow bg */}
+        <Box width={innerWidth} backgroundColor="yellow">
+          <Text bold color="white" backgroundColor="yellow" wrap="wrap">
             {renderRich(title)}
           </Text>
         </Box>
@@ -205,31 +205,34 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       width={width}
       height={height}
       borderStyle="single"
-      borderColor="white"
+      borderColor="yellow"
       backgroundColor="black"
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Location breadcrumb above title (when path exists) */}
-        {projectPath.length > 0 && (
+        {/* Title header — yellow bg, white fg */}
+        <Box flexDirection="column" width={innerWidth} backgroundColor="yellow">
+          {/* Location breadcrumb */}
+          {projectPath.length > 0 && (
+            <Box width={innerWidth}>
+              <Text color="black" wrap="truncate">
+                {projectPath.join(" / ")}
+              </Text>
+            </Box>
+          )}
+
+          {/* Title */}
           <Box width={innerWidth}>
-            <Text dimColor wrap="truncate">
-              {projectPath.join(" / ")}
+            <Text bold color="white" backgroundColor="yellow" wrap="wrap">
+              {node.task_status && (
+                <Text color={getStatusIcon(node.task_status).color}>{getStatusIcon(node.task_status).char} </Text>
+              )}
+              {renderRich(stripInlineRefs(title))}
             </Text>
           </Box>
-        )}
-
-        {/* Title - rich rendered, stripped of refs shown separately below */}
-        <Box width={innerWidth}>
-          <Text bold color="white" wrap="wrap">
-            {node.task_status && (
-              <Text color={getStatusIcon(node.task_status).color}>{getStatusIcon(node.task_status).char} </Text>
-            )}
-            {renderRich(stripInlineRefs(title))}
-          </Text>
         </Box>
 
-        {/* Separator - full width */}
+        {/* Separator below title */}
         <Box>
           <Text dimColor>{"─".repeat(innerWidth)}</Text>
         </Box>
