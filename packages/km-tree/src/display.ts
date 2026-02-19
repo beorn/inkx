@@ -14,8 +14,8 @@ export function stripForDisplay(text: string): string {
   const { clean } = extractMetadata(text)
   return (
     clean
-      // Strip "→ ^numericId" references (Asana recurring task parent refs)
-      .replace(/\s*→\s*\^\d+/g, "")
+      // Strip "→ ^numericId" and "→ [[^numericId]]" references (Asana recurring task parent refs)
+      .replace(/\s*→\s*(?:\[\[)?\^\d+(?:\]\])?/g, "")
       // Strip inline ^numeric-id references (Asana-style 10+ digit IDs) that are NOT inside [[...]]
       .replace(/\^\d{10,}/g, (match, offset: number, str: string) => {
         // Check if this ^ is inside a wikilink by looking for preceding [[ without intervening ]]

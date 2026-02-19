@@ -252,15 +252,18 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
               <Text dimColor>{"─".repeat(innerWidth)}</Text>
             </Box>
 
-            {/* Body content — rendered line-by-line with attachment links shown as readable URLs */}
+            {/* Body content — rendered line-by-line with blank lines between blocks */}
             {bodyChildren.map((child, i) => (
-              <BodyBlock key={`${child.id}-${i}`} content={child.content ?? ""} innerWidth={innerWidth} />
+              <React.Fragment key={`${child.id}-${i}`}>
+                {i > 0 && <Text>{" "}</Text>}
+                <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
+              </React.Fragment>
             ))}
 
             {/* Children rendered as outline items (column cards) */}
             {structuralChildren.length > 0 && (
               <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
-                <ColumnItems repo={repo} items={structuralChildren} depth={0} innerWidth={innerWidth} />
+                <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
               </Box>
             )}
           </>
@@ -497,10 +500,91 @@ function MetadataTable({
 }
 
 // =============================================================================
-// Column Items — children rendered like cards in a column
+// Detail Subitems — line-separated items with outline tree for nested children
 // =============================================================================
 
-function ColumnItems({
+function DetailSubitems({
+  repo,
+  items,
+  innerWidth,
+}: {
+  repo: Repo
+  items: KNode[]
+  innerWidth: number
+}): React.ReactElement {
+  return (
+    <>
+      {items.map((item, idx) => {
+        const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
+        const isDone = item.task_status === "done" || item.task_status === "dropped"
+        const allKids = repo.getChildren(item.id)
+        const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
+        const kidBody: KNode[] = []
+        const kidLiItems: KNode[] = []
+        for (const k of rawKidBody) {
+          if (k.type === "li") kidLiItems.push(k)
+          else kidBody.push(k)
+        }
+        const kidItems = [...kidLiItems, ...kidOiItems]
+        const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
+        const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
+        return (
+          <React.Fragment key={`${item.id}-${idx}`}>
+            {/* Line separator above each subitem */}
+            <Box>
+              <Text dimColor>{"─".repeat(innerWidth)}</Text>
+            </Box>
+
+            {/* Title line: hanging checkmark (checkmark col + title col) */}
+            <Box flexDirection="row" width={innerWidth}>
+              <Box width={2} flexShrink={0}>
+                <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
+                  {icon.char}
+                </Text>
+              </Box>
+              <Box flexGrow={1} flexShrink={1}>
+                <Text bold wrap="wrap" dimColor={isDone}>
+                  {renderRich(stripInlineRefs(getNodeDisplayName(repo, item)))}
+                  {(dueBadge || assigneeBadge) && (
+                    <Text dimColor bold={false}>
+                      {dueBadge}
+                      {assigneeBadge}
+                    </Text>
+                  )}
+                </Text>
+              </Box>
+            </Box>
+
+            {/* Body content — left-aligned with title (indented past checkmark) */}
+            {kidBody.map((b, bi) => (
+              <React.Fragment key={`${b.id}-${bi}`}>
+                {bi > 0 && <Text>{" "}</Text>}
+                <Box flexDirection="row" width={innerWidth}>
+                  <Box width={2} flexShrink={0} />
+                  <Box flexGrow={1} flexShrink={1}>
+                    <Text wrap="wrap" dimColor>
+                      {renderRich(b.content ?? "")}
+                    </Text>
+                  </Box>
+                </Box>
+              </React.Fragment>
+            ))}
+
+            {/* Sub-subitems — outline tree, single line each */}
+            {kidItems.length > 0 && (
+              <Box flexDirection="column" marginTop={kidBody.length > 0 ? 1 : 0}>
+                <OutlineTree repo={repo} items={kidItems} depth={1} innerWidth={innerWidth} />
+              </Box>
+            )}
+          </React.Fragment>
+        )
+      })}
+    </>
+  )
+}
+
+/** Outline tree for nested sub-subitems. One line per item, truncated body preview. */
+function OutlineTree({
   repo,
   items,
   depth,
@@ -511,66 +595,37 @@ function ColumnItems({
   depth: number
   innerWidth: number
 }): React.ReactElement {
+  const indent = "  ".repeat(depth)
   return (
     <>
       {items.map((item, idx) => {
         const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
-        const indent = "  ".repeat(depth)
         const isDone = item.task_status === "done" || item.task_status === "dropped"
+        const title = stripInlineRefs(getNodeDisplayName(repo, item))
         const allKids = depth < 3 ? repo.getChildren(item.id) : []
-        // Split kids into body/structural, treating li as structural
-        const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
-        const kidBody: KNode[] = []
-        const kidLiItems: KNode[] = []
-        for (const k of rawKidBody) {
-          if (k.type === "li") kidLiItems.push(k)
-          else kidBody.push(k)
-        }
+        const { body: kidBody, items: kidOiItems } = extractBody(allKids)
+        const kidLiItems = kidBody.filter((k) => k.type === "li")
+        const bodyNodes = kidBody.filter((k) => k.type !== "li")
         const kidItems = [...kidLiItems, ...kidOiItems]
-        // Count hidden children at depth limit
-        const hiddenChildCount = depth >= 3 ? repo.getChildren(item.id).length : 0
-        // Metadata badges for top-level items (like cards show)
-        const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
-        const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
-        const itemContent = (
-          <>
-            <Text wrap="wrap" dimColor={isDone}>
-              {indent}
-              <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
-              {renderRich(stripInlineRefs(getNodeDisplayName(repo, item)))}
-              {depth === 0 && (dueBadge || assigneeBadge) && (
-                <Text dimColor>
-                  {dueBadge}
-                  {assigneeBadge}
-                </Text>
-              )}
-              {hiddenChildCount > 0 && <Text dimColor>{` +${hiddenChildCount}`}</Text>}
-            </Text>
-            {kidBody.map((b, bi) => (
-              <Text key={`${b.id}-${bi}`} wrap="wrap" dimColor>
-                {indent}
-                {"  "}
-                {renderRich(b.content ?? "")}
-              </Text>
-            ))}
-            {kidItems.length > 0 && (
-              <ColumnItems repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
-            )}
-          </>
-        )
+        const hiddenCount = depth >= 3 ? repo.getChildren(item.id).length : 0
+
+        // Single-line body preview: first non-empty line, truncated
+        const bodyPreview = bodyNodes
+          .map((b) => (b.content ?? "").split("\n")[0]?.trim())
+          .filter(Boolean)
+          .join(" ")
+
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
-            {depth === 0 ? (
-              <Box
-                flexDirection="column"
-                width={innerWidth}
-                borderStyle="single"
-                borderColor={isDone ? "gray" : "white"}
-              >
-                {itemContent}
-              </Box>
-            ) : (
-              itemContent
+            <Text wrap="truncate" dimColor={isDone}>
+              {indent}
+              <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
+              {renderRich(title)}
+              {bodyPreview && <Text dimColor> \u2025 {bodyPreview}</Text>}
+              {hiddenCount > 0 && <Text dimColor>{` +${hiddenCount}`}</Text>}
+            </Text>
+            {kidItems.length > 0 && (
+              <OutlineTree repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
             )}
           </React.Fragment>
         )
