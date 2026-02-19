@@ -99,7 +99,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("includes frontmatter", () => {
     const md = convertToMd(fixture)
     expect(md).toContain("imported_from: asana")
-    expect(md).toContain("asana_project_id: p1")
+    expect(md).not.toContain("asana_project_id:")
   })
 
   test("renders sections as H2", () => {
@@ -1059,12 +1059,12 @@ describe("roundtrip: convert → parse", () => {
 
     expect(frontmatter).toContain("imported_from: asana")
     expect(frontmatter).toContain("imported_at: 2026-01-15T10:30:00Z")
-    expect(frontmatter).toContain("asana_project_id: proj-fm")
-    expect(frontmatter).toContain("workspace: My Workspace")
     expect(frontmatter).toContain("owner: Bjorn")
-    expect(frontmatter).toContain("team: Engineering")
-    expect(frontmatter).toContain("created_at: 2025-12-01T00:00:00Z")
-    expect(frontmatter).toContain("modified_at: 2026-01-10T12:00:00Z")
+    expect(frontmatter).not.toContain("asana_project_id:")
+    expect(frontmatter).not.toContain("workspace:")
+    expect(frontmatter).not.toContain("team:")
+    expect(frontmatter).not.toContain("created_at:")
+    expect(frontmatter).not.toContain("modified_at:")
 
     const tree = parseMarkdown(body)
     const heading = tree.children.find((n): n is Heading => n.type === "heading" && n.depth === 1)

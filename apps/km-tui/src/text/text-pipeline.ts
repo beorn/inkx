@@ -270,9 +270,12 @@ export function processText(text: string, options: TextPipelineOptions): string 
   // ── Step 7: Handle sigils (@mention, #tag, +project) ──
   result = processSigils(result, options, style)
 
-  // ── Step 8: Strip residual key:: value metadata ──
+  // ── Step 8: Strip residual key:: value metadata + block refs ──
   if (options.stripRefs) {
     result = result.replace(/\s*\b\w[\w-]*:: (?:"(?:[^"\\]|\\.)*"|[^\s]+)/g, "")
+    // Strip Asana-style block references: "→ ^numericId" and standalone "^numericId" (10+ digit GIDs)
+    result = result.replace(/\s*→\s*\^\d+/g, "")
+    result = result.replace(/\s*\^\d{10,}\b/g, "")
   }
 
   // ── Step 9: Handle markdown formatting ──

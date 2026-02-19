@@ -811,7 +811,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).not.toContain("app.asana.com")
   })
 
-  test("includes workspace in frontmatter", async () => {
+  test("does not include workspace in frontmatter", async () => {
     const data = await fetchFromAsana({
       token: "fake-token",
       downloadDir: e2eDownloadDir,
@@ -819,7 +819,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
 
     const files = convert(data)
     const sprint = files.get("proj-1-sprint-4.md")!
-    expect(sprint).toContain("workspace: Test Workspace")
+    expect(sprint).not.toContain("workspace:")
   })
 
   test("multi-project tasks show +project tags for other projects", async () => {

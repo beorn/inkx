@@ -904,14 +904,10 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 /** Strip metadata/block IDs from content, preserving multi-line structure. */
 function stripContentForDisplay(content: string | undefined): string {
   if (!content) return ""
-  // Strip Asana block references: "→ ^numericId" and standalone "^numericId" (15+ digit GIDs)
-  const cleaned = content
-    .replace(/\s*→\s*\^\d+/g, "")
-    .replace(/\s*\^\d{10,}\b/g, "")
-  const nlIdx = cleaned.indexOf("\n")
-  if (nlIdx === -1) return stripForDisplay(cleaned)
+  const nlIdx = content.indexOf("\n")
+  if (nlIdx === -1) return stripForDisplay(content)
   // Only strip metadata from first line; keep rest intact
-  return stripForDisplay(cleaned.slice(0, nlIdx)) + cleaned.slice(nlIdx)
+  return stripForDisplay(content.slice(0, nlIdx)) + content.slice(nlIdx)
 }
 
 /** Resolve what text to display for a node, handling embeds and section types. */

@@ -314,6 +314,7 @@ function formatDataValue(v: unknown): string {
 }
 
 const KNOWN_DATA_KEYS = new Set([
+  // Parser-generated
   "tags",
   "mentions",
   "projects",
@@ -328,6 +329,25 @@ const KNOWN_DATA_KEYS = new Set([
   "recurrence",
   "depth",
   "fstype",
+  "tag",
+  "item_count",
+  "is_repo_root",
+  "embeddingTarget",
+  // Internal aggregation (parser)
+  "_h1Title",
+  "_allMentions",
+  "_allTags",
+  "_allProjects",
+  // Import provenance (shown in footer instead)
+  "imported_from",
+  "imported_at",
+  "asana_project_id",
+  // Containment tree (shown via breadcrumb)
+  "workspace",
+  "team",
+  // Timestamps (mapped to native fields)
+  "created_at",
+  "modified_at",
 ])
 
 interface MetadataRow {

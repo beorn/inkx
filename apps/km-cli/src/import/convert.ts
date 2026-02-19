@@ -390,13 +390,8 @@ function projectToNodes(
   const frontmatter: Record<string, unknown> = {
     imported_from: source,
     imported_at: fetchedAt,
-    [`${source}_project_id`]: project.sourceId,
   }
-  if (project.workspace) frontmatter.workspace = project.workspace
   if (project.owner) frontmatter.owner = project.owner
-  if (project.team) frontmatter.team = project.team
-  if (project.createdAt) frontmatter.created_at = project.createdAt
-  if (project.modifiedAt) frontmatter.modified_at = project.modifiedAt
 
   nodes.push(
     mkNode(counter, {
@@ -405,6 +400,8 @@ function projectToNodes(
       fstype: "mdfile",
       content: project.title,
       data: frontmatter,
+      created_at: project.createdAt ? new Date(project.createdAt).getTime() : Date.now(),
+      updated_at: project.modifiedAt ? new Date(project.modifiedAt).getTime() : Date.now(),
     }),
   )
 
@@ -640,7 +637,6 @@ function* generateTagFiles(
           imported_from: data.source,
           imported_at: data.fetchedAt,
           tag,
-          item_count: items.length,
         },
       }),
     )
