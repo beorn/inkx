@@ -5,7 +5,7 @@
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { extractRefs, stripInlineRefsFromText, shortenInlineRefsInText } from "../text/text-pipeline.ts"
+import { extractRefs, stripInlineRefsFromText, shortenInlineRefsInText, stripKnownMentionsInText } from "../text/text-pipeline.ts"
 
 // =============================================================================
 // Date formatting
@@ -189,6 +189,13 @@ export const PERSON_SHORT_NAMES: Record<string, string> = {
  * Delegates to the unified text pipeline. */
 export function shortenInlineRefs(text: string): string {
   return shortenInlineRefsInText(text, PERSON_SHORT_NAMES)
+}
+
+/** Strip known person @mentions entirely, strip #tags and +projects.
+ * Unknown @mentions (sigils like @next, @urgent) are preserved.
+ * Used for card titles where the info suffix already shows @BS. */
+export function stripKnownMentions(text: string): string {
+  return stripKnownMentionsInText(text, PERSON_SHORT_NAMES)
 }
 
 /** Capitalize the first character of a string */

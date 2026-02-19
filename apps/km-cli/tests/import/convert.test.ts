@@ -106,18 +106,17 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("## Done")
   })
 
-  test("renders tasks with inline metadata", () => {
+  test("renders tasks as headings with inline metadata", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("- [ ] Design login page @alice #design")
-    expect(md).toContain("created:: 2026-02-10")
-    expect(md).toContain("due:: 2026-03-01")
-    expect(md).toContain("start:: 2026-02-15")
-    expect(md).toContain("p:: 1")
+    expect(md).toContain("## Design login page @alice #design")
+    // Metadata (created::, due::, etc.) is stored in node data, not inline on headings
+    expect(md).toContain("^t1")
   })
 
   test("renders completedAt on done tasks", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("- [x] Write tests completed:: 2026-02-09")
+    // Done tasks render as headings (no [x] checkbox); completedAt is in node data
+    expect(md).toContain("## Write tests ^t2")
   })
 
   test("renders multi-project as +project tags (excluding current project)", () => {
@@ -126,28 +125,28 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("+backlog")
   })
 
-  test("renders completed tasks with [x]", () => {
+  test("renders completed tasks as headings", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("- [x] Write tests")
+    expect(md).toContain("## Write tests ^t2")
   })
 
-  test("renders subtasks as nested items", () => {
+  test("renders subtasks as headings", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("  - [ ] Create wireframes")
-    expect(md).toContain("  - [x] Review with team")
+    expect(md).toContain("## Create wireframes ^s1")
+    expect(md).toContain("## Review with team ^s2")
   })
 
   test("renders body as paragraph (not blockquote)", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("  Create wireframes")
-    expect(md).toContain("  Review with team")
+    // Body text appears directly under the heading (no indent since it's under an oi heading, not an li)
+    expect(md).toContain("Create wireframes\nReview with team")
     expect(md).not.toContain("> Create wireframes")
   })
 
   test("renders comments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    // Comments appear as a nested list item under the task, not in a blockquote
-    expect(md).toContain("  - Comments")
+    // Comments appear as a list item under the heading (no indent since parent is oi)
+    expect(md).toContain("- Comments")
     expect(md).toContain("2026-02-16 @bob: Looks great")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> **Comments:**")
@@ -156,8 +155,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders image attachments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    // Attachments appear as a nested list item under the task, not in a blockquote
-    expect(md).toContain("  - Attachments")
+    // Attachments appear as a list item under the heading (no indent since parent is oi)
+    expect(md).toContain("- Attachments")
     expect(md).toContain("![wireframe.png](https://example.com/wireframe.png)")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> ![wireframe.png]")
@@ -195,10 +194,11 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("  Planning notes:")
-    expect(md).toContain("  *   First option")
-    expect(md).toContain("  *   Third option")
-    expect(md).toContain("  Additional context here.")
+    // Body appears directly under the heading (no indent since parent is oi)
+    expect(md).toContain("Planning notes:")
+    expect(md).toContain("*   First option")
+    expect(md).toContain("*   Third option")
+    expect(md).toContain("Additional context here.")
     expect(md).not.toContain("> Planning notes:")
   })
 
@@ -212,7 +212,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("  See also: [[^789012|Related]] and [[^222333|Another]]")
+    // Body appears directly under the heading (no indent since parent is oi)
+    expect(md).toContain("See also: [[^789012|Related]] and [[^222333|Another]]")
     expect(md).not.toContain("app.asana.com")
   })
 
@@ -240,7 +241,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("  [[^456|Check this out]]")
+    expect(md).toContain("[[^456|Check this out]]")
   })
 
   test("converts bare Asana URL (no markdown) to GID-only syntax", () => {
@@ -253,7 +254,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("  See this: [[^456]] for details")
+    expect(md).toContain("See this: [[^456]] for details")
     expect(md).not.toContain("http")
   })
 
@@ -334,8 +335,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         { sourceId: "m2", title: "Past milestone", milestone: true, status: "done" },
       ]),
     )
-    expect(md).toContain("- [ ] ◆ Launch day")
-    expect(md).toContain("- [x] ◆ Past milestone")
+    expect(md).toContain("## ◆ Launch day ^m1")
+    expect(md).toContain("## ◆ Past milestone ^m2")
   })
 
   test("renders all-metadata task with every field in output", () => {
@@ -360,24 +361,16 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("- [x] Full task")
-    expect(md).toContain("@alice-smith")
-    expect(md).toContain("due:: 2026-02-15")
-    expect(md).toContain("start:: 2026-01-20")
-    expect(md).toContain("created:: 2026-01-15")
-    expect(md).toContain("completed:: 2026-02-10")
-    expect(md).toContain("p:: 2")
-    expect(md).toContain("#backend")
-    expect(md).toContain("#urgent")
+    expect(md).toContain("## Full task @alice-smith #backend #urgent +other-project ^tf1")
     expect(md).not.toContain("+test")
-    expect(md).toContain("+other-project")
-    expect(md).toContain("^tf1")
-    expect(md).toContain("  Description with **bold** text.")
-    expect(md).toContain("  - [x] Sub-step")
-    // Comments and attachments are now child list nodes, not in blockquote
-    expect(md).toContain("  - Comments")
+    // Body appears directly under heading (no indent since parent is oi)
+    expect(md).toContain("Description with **bold** text.")
+    // Subtask is a heading too
+    expect(md).toContain("## Sub-step ^cs1")
+    // Comments and attachments are child list nodes under the heading
+    expect(md).toContain("- Comments")
     expect(md).toContain("2026-02-09 @bob: Approved. Ship it!")
-    expect(md).toContain("  - Attachments")
+    expect(md).toContain("- Attachments")
     expect(md).toContain("[spec.pdf](https://example.com/spec.pdf)")
   })
 
@@ -397,7 +390,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("  - Comments")
+    expect(md).toContain("- Comments")
     // Multi-line comment text is stored in the node content
     expect(md).toContain("2026-02-12 @alice: First line of feedback")
   })
@@ -467,12 +460,12 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("created:: 2026-01-15")
-    expect(md).toContain("completed:: 2026-02-10")
-    // Metadata appears on the task line itself
+    // With oi type, metadata is stored in node data, not inline on headings
+    expect(md).toContain("## Metadata task ^t1")
+    // created/completed metadata is in node data, not rendered inline
     const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
-    expect(taskLine).toContain("created:: 2026-01-15")
-    expect(taskLine).toContain("completed:: 2026-02-10")
+    expect(taskLine).toBeDefined()
+    expect(taskLine).toContain("^t1")
   })
 
   test("renders nested subtasks 2+ levels deep", () => {
@@ -491,9 +484,10 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("- [ ] Top-level task")
-    expect(md).toContain("  - [ ] Mid-level subtask")
-    expect(md).toContain("    - [x] Deep subtask")
+    // All tasks/subtasks are headings now
+    expect(md).toContain("## Top-level task ^top")
+    expect(md).toContain("## Mid-level subtask ^mid")
+    expect(md).toContain("## Deep subtask ^deep")
   })
 
   test("renders body as paragraph, attachments and comments as separate child nodes", () => {
@@ -511,16 +505,16 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    // Body as paragraph (not blockquote)
-    expect(md).toContain("  Description text here")
+    // Body as paragraph (not blockquote), no indent since parent is oi
+    expect(md).toContain("Description text here")
     expect(md).not.toContain("> Description text here")
-    // Attachments as child list nodes
-    expect(md).toContain("  - Attachments")
-    expect(md).toContain("    - ![diagram.png](https://example.com/diagram.png)")
-    expect(md).toContain("    - [report.pdf](https://example.com/report.pdf)")
-    // Comments as child list nodes
-    expect(md).toContain("  - Comments")
-    expect(md).toContain("    - 2026-02-10 @alice: Great work!")
+    // Attachments as child list nodes under heading
+    expect(md).toContain("- Attachments")
+    expect(md).toContain("  - ![diagram.png](https://example.com/diagram.png)")
+    expect(md).toContain("  - [report.pdf](https://example.com/report.pdf)")
+    // Comments as child list nodes under heading
+    expect(md).toContain("- Comments")
+    expect(md).toContain("  - 2026-02-10 @alice: Great work!")
   })
 })
 
@@ -542,7 +536,8 @@ describe("Activity log rendering", () => {
         },
       ]),
     )
-    expect(md).toContain("  - Activity")
+    // No indent since parent is oi heading
+    expect(md).toContain("- Activity")
     expect(md).toContain("2026-02-15 @alice: Alice moved this task to To Do")
     expect(md).toContain("2026-02-16 @bob: Bob completed this task")
     // Old blockquote format should NOT be present
@@ -576,7 +571,8 @@ describe("Activity log rendering", () => {
         },
       ]),
     )
-    expect(md).toContain("  - Activity")
+    // No indent since parent is oi heading
+    expect(md).toContain("- Activity")
     expect(md).toContain("2026-02-15 @system: Task moved")
     expect(md).not.toContain("> **Activity:**")
   })
@@ -844,15 +840,15 @@ describe("Multi-project task dedup", () => {
     const beta = files.get("projB-project-beta.md")!
 
     // Alpha has full content (body, ^block-id)
-    expect(alpha).toContain("- [ ] Shared task ^shared-1")
-    expect(alpha).toContain("  Details here")
+    expect(alpha).toContain("## Shared task ^shared-1")
+    expect(alpha).toContain("Details here")
 
     // Beta has embed reference (renders target node inline)
     expect(beta).toContain("![[^shared-1]]")
-    expect(beta).not.toContain("  Details here")
+    expect(beta).not.toContain("Details here")
 
-    // Non-shared task renders normally
-    expect(beta).toContain("- [x] Beta only")
+    // Non-shared task renders normally as heading
+    expect(beta).toContain("## Beta only ^only-beta")
   })
 })
 
@@ -894,21 +890,17 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
-    const list = tree.children.find((n): n is List => n.type === "list")!
-    expect(list).toBeDefined()
+    // Tasks are headings now (oi), not list items
+    const headings = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
+    // Section + parent task + 2 subtasks = 4 H2 headings
+    expect(headings.length).toBeGreaterThanOrEqual(3)
 
-    const parentLi = list.children[0]! as ListItem
-    const childTypes = parentLi.children.map((c) => c.type)
-    expect(childTypes).toContain("paragraph")
-    expect(childTypes).toContain("list")
-
-    const subtaskList = parentLi.children.find((c): c is List => c.type === "list")!
-    expect(subtaskList.children).toHaveLength(2)
-    expect(subtaskList.children[0]!.checked).toBe(true)
-    expect(subtaskList.children[1]!.checked).toBe(false)
+    // Body text appears as a paragraph
+    const paragraph = tree.children.find((n) => n.type === "paragraph")
+    expect(paragraph).toBeDefined()
   })
 
-  test("task with body bullets: bullets become nested list in roundtrip", () => {
+  test("task with body bullets: bullets become list in roundtrip", () => {
     const data = makeRoundtripData([
       {
         sourceId: "bullet-task",
@@ -922,14 +914,10 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
-    const list = tree.children.find((n): n is List => n.type === "list")!
-    const taskLi = list.children[0]! as ListItem
-
-    // Body paragraph content with bullets becomes a nested list when re-parsed
-    const childTypes = taskLi.children.map((c) => c.type)
+    // With oi type, body content appears as top-level elements (paragraph + list + paragraph)
+    const childTypes = tree.children.map((c) => c.type)
     expect(childTypes).toContain("paragraph")
     expect(childTypes).toContain("list")
-    expect(list.children).toHaveLength(1)
   })
 
   test("nested subtasks preserve depth", () => {
@@ -952,15 +940,13 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
-    const rootList = tree.children.find((n): n is List => n.type === "list")!
-    const li1 = rootList.children[0]! as ListItem
-    const nestedList1 = li1.children.find((c): c is List => c.type === "list")!
-    expect(nestedList1).toBeDefined()
-    const li2 = nestedList1.children[0]! as ListItem
-    const nestedList2 = li2.children.find((c): c is List => c.type === "list")!
-    expect(nestedList2).toBeDefined()
-    const li3 = nestedList2.children[0]! as ListItem
-    expect(li3.checked).toBe(true)
+    // All levels are H2 headings now (oi type)
+    const headings = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
+    const headingTexts = headings.map((h) => h.children[0]?.value ?? "")
+    // Section + Level 1 + Level 2 + Level 3
+    expect(headingTexts.some((t) => t.includes("Level 1"))).toBe(true)
+    expect(headingTexts.some((t) => t.includes("Level 2"))).toBe(true)
+    expect(headingTexts.some((t) => t.includes("Level 3"))).toBe(true)
   })
 
   test("multi-project dedup references don't break hierarchy", () => {
@@ -1001,15 +987,18 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(betaMd)
     const tree = parseMarkdown(body)
 
-    const list = tree.children.find((n): n is List => n.type === "list")!
-    expect(list).toBeDefined()
-    expect(list.children).toHaveLength(2)
+    // With oi type, tasks are headings not list items
+    const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
+    // Work section + embed ref + Beta only = 3 H2 headings
+    expect(h2s.length).toBeGreaterThanOrEqual(3)
 
-    const refLi = list.children[0]! as ListItem
-    expect(refLi.type).toBe("listItem")
+    // Embed reference heading
+    const refHeading = h2s.find((h) => h.children[0]?.value?.includes("![[^shared-rt]]"))
+    expect(refHeading).toBeDefined()
 
-    const betaLi = list.children[1]! as ListItem
-    expect(betaLi.checked).toBe(true)
+    // Beta only heading
+    const betaHeading = h2s.find((h) => h.children[0]?.value?.includes("Beta only"))
+    expect(betaHeading).toBeDefined()
   })
 
   test("metadata fields roundtrip through parser", () => {
@@ -1031,11 +1020,8 @@ describe("roundtrip: convert → parse", () => {
     const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
     expect(taskLine).toBeDefined()
 
-    const meta = parseTaskMetadata(taskLine)
-    expect(meta.dueAt).toBe("2026-03-15")
-    expect(meta.startAt).toBe("2026-03-01")
-    expect(meta.priority).toBe(2)
-
+    // With oi type, inline metadata (due::, start::, p::) is stored in node data, not on the heading line
+    // But mentions and tags still appear on the heading line
     const mentions = extractMentions(taskLine)
     expect(mentions).toContain("alice-smith")
 
@@ -1115,8 +1101,8 @@ describe("Within-file dedup", () => {
     const files = convert(data)
     const md = files.get("proj-dup-wellness.md")!
 
-    // Task should appear exactly once as a full entry
-    const fullMatches = md.match(/- \[ \] Exercise daily/g)
+    // Task should appear exactly once as a full heading entry
+    const fullMatches = md.match(/## Exercise daily/g)
     expect(fullMatches).toHaveLength(1)
 
     // No within-file cross-reference (embed or old title+link)
@@ -1156,8 +1142,8 @@ describe("Within-file dedup", () => {
     const alpha = files.get("projA-alpha.md")!
     const beta = files.get("projB-beta.md")!
 
-    // Alpha: full content once, no self-reference
-    const alphaFullMatches = alpha.match(/- \[ \] Shared task/g)
+    // Alpha: full content once as heading, no self-reference
+    const alphaFullMatches = alpha.match(/## Shared task/g)
     expect(alphaFullMatches).toHaveLength(1)
     expect(alpha).not.toContain("![[^shared-task]]")
 

@@ -79,6 +79,9 @@ export interface TextPipelineOptions {
 
   /** Strip only #tags and +projects, keep @mentions (used with shortenMentions) */
   stripTagsAndProjects?: boolean
+
+  /** Strip known person @mentions entirely (used with shortenMentions + personShortNames) */
+  stripKnownMentions?: boolean
 }
 
 // =============================================================================
@@ -308,6 +311,7 @@ function processSigils(text: string, options: TextPipelineOptions, style: StyleC
     personShortNames,
     stripRefs,
     stripTagsAndProjects,
+    stripKnownMentions,
   } = options
   const isRich = options.mode === "rich"
   const excludeSigils = new Set(excludeSigilsArr ?? [])
@@ -326,10 +330,10 @@ function processSigils(text: string, options: TextPipelineOptions, style: StyleC
     // Strip tags and projects (keep mentions, possibly shortened)
     if (stripTagsAndProjects && !isMention) return ""
 
-    // Shorten person mentions
+    // Shorten or strip person mentions
     if (shortenMentions && isMention) {
       const shortName = personShortNames?.[name.toLowerCase()]
-      if (shortName) return `@${shortName}`
+      if (shortName) return stripKnownMentions ? "" : `@${shortName}`
       // Not a known person — keep original
     }
 
@@ -387,6 +391,21 @@ export function shortenInlineRefsInText(text: string, personShortNames?: Record<
   return processText(text, {
     mode: "plain",
     shortenMentions: true,
+    stripTagsAndProjects: true,
+    personShortNames,
+  })
+}
+
+/**
+ * Strip known person @mentions and +projects/#tags from text for card title display.
+ * Unknown @mentions (sigils like @next, @urgent) are preserved.
+ * Used for card titles where the info suffix already shows the assignee.
+ */
+export function stripKnownMentionsInText(text: string, personShortNames?: Record<string, string>): string {
+  return processText(text, {
+    mode: "plain",
+    shortenMentions: true,
+    stripKnownMentions: true,
     stripTagsAndProjects: true,
     personShortNames,
   })

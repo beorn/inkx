@@ -158,7 +158,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `ref-${item.sourceId}`,
-        type: "li",
+        type: "oi",
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
@@ -218,7 +218,7 @@ function itemToNodes(
 
   const taskNode = mkNode(counter, {
     id: item.sourceId,
-    type: "li",
+    type: "oi",
     parent_id: parentId,
     task_marker: getMarkerForStatus(status),
     task_status: status,
@@ -644,7 +644,7 @@ function* generateTagFiles(
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
-            type: "li",
+            type: "oi",
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,

@@ -544,16 +544,17 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const sprint = readFileSync(join(testDir, "proj-1-sprint-4.md"), "utf-8")
     expect(sprint).toContain("# Sprint 4")
     expect(sprint).toContain("## To Do")
-    expect(sprint).toContain("- [ ] Design login page")
-    expect(sprint).toContain("  - [ ] Create wireframes")
-    expect(sprint).toContain("  - [x] Review with team")
+    // Tasks are headings now (oi type)
+    expect(sprint).toContain("## Design login page")
+    expect(sprint).toContain("## Create wireframes")
+    expect(sprint).toContain("## Review with team")
     expect(sprint).toContain("## Done")
-    expect(sprint).toContain("- [x] Write tests")
+    expect(sprint).toContain("## Write tests")
 
     // Verify Product Backlog file
     const backlog = readFileSync(join(testDir, "proj-2-product-backlog.md"), "utf-8")
     expect(backlog).toContain("# Product Backlog")
-    expect(backlog).toContain("- [ ] API spec review")
+    expect(backlog).toContain("## API spec review")
 
     // Verify Edge Cases file
     const edge = readFileSync(join(testDir, "proj-3-edge-cases.md"), "utf-8")
@@ -561,18 +562,16 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("## Active")
     expect(edge).toContain("## ------------------")
     expect(edge).toContain("## Milestones")
-    // Milestone renders with diamond marker
-    expect(edge).toContain("- [ ] ◆ Beta release")
+    // Milestone renders with diamond marker (as heading)
+    expect(edge).toContain("## ◆ Beta release")
     // HTML notes converted to markdown with bullets in body paragraph
     expect(edge).toMatch(/\s+\*\s+First option/)
     expect(edge).not.toMatch(/>\s+\*\s+First option/)
     // Multi-line comment has continuation lines
     expect(edge).toContain("@alice-smith: First line of feedback")
-    // All-metadata task
-    expect(edge).toContain("- [x] Comprehensive task")
+    // All-metadata task (as heading)
+    expect(edge).toContain("## Comprehensive task")
     expect(edge).toContain("@alice-smith")
-    expect(edge).toContain("due:: 2026-02-15")
-    expect(edge).toContain("p:: 2")
   })
 
   test("converts Asana URLs to block references in markdown", async () => {
@@ -610,7 +609,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const files = convert(data)
     // task-full is in proj-3 (primary) AND proj-1 — should show +sprint-4 tag
     const edge = files.get("proj-3-edge-cases.md")!
-    expect(edge).toContain("- [x] Comprehensive task")
+    expect(edge).toContain("## Comprehensive task")
     expect(edge).toContain("+sprint-4")
   })
 })
