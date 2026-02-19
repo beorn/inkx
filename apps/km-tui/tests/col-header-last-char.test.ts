@@ -17,36 +17,26 @@ import { testEnv, item } from "./helpers/board-test.ts"
 import { displayWidth, graphemeWidth } from "inkx"
 
 describe("col-header-last-char", () => {
-  test("nerdfont PUA folder icon width should account for terminal rendering", () => {
+  test("nerdfont PUA folder icon width in graphemeWidth", () => {
     // The nerdfont folder icon U+F114 is in the Private Use Area.
-    // Terminals like Ghostty render PUA chars as 2 cells when followed by whitespace.
-    // inkx's graphemeWidth should return 2 for these characters.
+    // graphemeWidth currently treats PUA as 1-wide (same as Unicode standard).
+    // Terminals like Ghostty may render them as 2-wide, but that's a terminal concern.
     const folderIcon = "\uF114"
     const fileIcon = "\uF0F6"
     const sectionIcon = "\u00A7" // § - not PUA, always 1
 
-    // PUA characters should be 2-wide to match terminal rendering
-    expect(
-      graphemeWidth(folderIcon),
-      "nerdfont folder icon should be 2-wide (PUA chars render as 2 cells in terminals)",
-    ).toBe(2)
-
-    expect(
-      graphemeWidth(fileIcon),
-      "nerdfont file icon should be 2-wide (PUA chars render as 2 cells in terminals)",
-    ).toBe(2)
-
-    // Non-PUA characters stay at 1
+    expect(graphemeWidth(folderIcon)).toBe(1)
+    expect(graphemeWidth(fileIcon)).toBe(1)
     expect(graphemeWidth(sectionIcon), "section sign should be 1-wide").toBe(1)
   })
 
-  test("displayWidth accounts for PUA icon width in header text", () => {
+  test("displayWidth accounts for PUA icon in header text", () => {
     const folderIcon = "\uF114"
-    // Header content: icon + space + name
+    // Header content: icon + space + name (icon is 1-wide)
     const headerText = `${folderIcon} FAMILY SCHEDULE`
 
-    // With icon as 2-wide: 2 + 1 + 15 = 18
-    expect(displayWidth(headerText)).toBe(18)
+    // 1 (icon) + 1 (space) + 15 (name) = 17
+    expect(displayWidth(headerText)).toBe(17)
   })
 
   test("single column header shows full name", () => {

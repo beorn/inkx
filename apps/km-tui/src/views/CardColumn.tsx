@@ -18,6 +18,7 @@ import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../s
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { getColumnHeaderIcon, isSigilName, renderPlain } from "../text/index.ts"
+import { displayLength } from "../text/rich.ts"
 import { useNavigator } from "../layout-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
@@ -153,6 +154,7 @@ const Card = React.memo(
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
+    // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
@@ -166,8 +168,16 @@ const Card = React.memo(
           total += grandchildren.length - maxChildren
         }
       }
+      // Title wrap: TreeNode constrainText() allows titles up to 2 lines.
+      // When the title wraps, it consumes an extra visual line in the card.
+      // Include extra title lines in the overflow count.
+      const titleText = getNodeDisplayName(repo, card.node) ?? card.node.content ?? ""
+      const textWidth = Math.max(10, treeConfig.cardInnerWidth - 2) // matches TreeNode prefix width
+      const titleDisplayWidth = displayLength(renderPlain(titleText))
+      const titleExtraLines = Math.min(1, Math.max(0, Math.ceil(titleDisplayWidth / textWidth) - 1))
+      total += titleExtraLines
       return { hasOverflow: total > 0, hiddenCount: total }
-    }, [directHidden, card.children, maxChildren, repo])
+    }, [directHidden, card.children, maxChildren, repo, card.node, treeConfig.cardInnerWidth])
 
     // HR nodes render as borderless centered content (unless being edited,
     // in which case they fall through to normal bordered card with InlineEditField).

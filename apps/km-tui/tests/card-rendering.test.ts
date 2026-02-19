@@ -781,3 +781,29 @@ describe("card border: date badge overflow", () => {
     }
   })
 })
+
+// ─── Card Overflow: Title Wrap Lines ──────────────────────────────────────────
+
+describe("card overflow: title wrap lines", () => {
+  test("overflow count includes extra lines from a wrapping title", () => {
+    // Title longer than card inner width (~76 chars for 80-col terminal) wraps to 2 lines.
+    // With maxContentLines=3 and 5 children: hidden = (5-3) + (2-1 title lines) = 3
+    const longTitle =
+      "This is a very long card title that should definitely wrap to two lines in the card view because it exceeds width"
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(longTitle, item("child1"), item("child2"), item("child3"), item("child4"), item("child5")),
+          ),
+        ),
+      { rows: 30, columns: 80, viewMode: "cards" },
+    )
+
+    const text = board.screenshot()
+    // Should show +3 (2 hidden children + 1 extra title wrap line), not +2
+    expect(text).toMatch(/\+3/)
+  })
+})

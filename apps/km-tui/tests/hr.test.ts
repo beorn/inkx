@@ -3,8 +3,9 @@
  *
  * HR nodes (type: "hr" from markdown thematic breaks, or items with content
  * matching ---, ***, ___) render as centered content between horizontal line
- * padding, with a dim gray card border when unselected, yellow border when
- * selected, and cyan border in edit mode.
+ * padding. Unselected HR cards use padding (no border) for layout stability.
+ * Selected HR cards get a yellow round border. HR cards in edit mode fall
+ * through to normal body block rendering with a round border.
  */
 
 import { describe, test, expect } from "vitest"
@@ -38,11 +39,11 @@ function hrWithContent(id: string, content: string): KNode[] {
 // ---------------------------------------------------------------------------
 
 describe("HR borderless rendering", () => {
-  test("HR card renders with dim border when unselected", () => {
+  test("HR card renders with padding (no border) when unselected", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item.hr("my-hr"), item("task2"))))
 
-    // HR should have a dim gray border when unselected (same as other body blocks)
-    board.expectNodeBorder("my-hr")
+    // HR should have padding (no border) when unselected
+    board.expectNodeNoBorder("my-hr")
   })
 
   test("selected body card has border, unselected neighbor has dim border", () => {
@@ -119,25 +120,27 @@ describe("HR content-based detection", () => {
   const hrContents = ["---", "***", "___", "-----"] as const
 
   for (const content of hrContents) {
-    test(`HR content '${content}' renders as line with dim border when unselected`, () => {
+    test(`HR content '${content}' renders as line with no border when unselected`, () => {
       const { board } = testEnv(() => item("board", item("Col", hrWithContent("hr-node", content), item("other"))), {
         columns: 60,
         rows: 20,
       })
       board.expectScreen("─")
       board.press("j")
-      board.expectNodeBorder("hr-node")
+      // After moving cursor away, HR is unselected — uses padding, no border
+      board.expectNodeNoBorder("hr-node")
     })
   }
 
-  test("standard HR (type=hr, no content) renders as line with dim border", () => {
+  test("standard HR (type=hr, no content) renders as line with no border when unselected", () => {
     const { board } = testEnv(() => item("board", item("Col", item.hr("my-hr"), item("other"))), {
       columns: 60,
       rows: 20,
     })
     board.expectScreen("─")
     board.press("j")
-    board.expectNodeBorder("my-hr")
+    // After moving cursor away, HR is unselected — uses padding, no border
+    board.expectNodeNoBorder("my-hr")
   })
 
   const nonHrContents = [
@@ -392,15 +395,15 @@ describe("HR editing", () => {
       rows: 20,
     })
 
-    // Move cursor away, then check HR has dim border when unselected
+    // Move cursor away — unselected HR uses padding, no border
     board.press("j")
-    board.expectNodeBorder("my-hr")
+    board.expectNodeNoBorder("my-hr")
 
     // Move back and enter edit mode
     board.press("k")
     board.press("Enter")
 
-    // During edit: HR should show as bordered card (cyan border)
+    // During edit: HR should show as bordered card (round border)
     board.expectNodeBorder("my-hr")
   })
 

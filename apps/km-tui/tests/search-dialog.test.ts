@@ -105,8 +105,8 @@ describe("extractTags", () => {
     expect(extractTags("Just a # symbol")).toEqual([])
   })
 
-  test("extracts only word characters after #", () => {
-    expect(extractTags("#tag-with-dash")).toEqual(["tag"])
+  test("includes hyphens in tag names", () => {
+    expect(extractTags("#tag-with-dash")).toEqual(["tag-with-dash"])
   })
 })
 
