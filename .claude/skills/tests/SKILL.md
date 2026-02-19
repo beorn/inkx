@@ -58,7 +58,7 @@ Still run `test:all` before commit.
 
 Dot reporter is the default (configured in vitest.config.ts) — one dot per test, details only on failure.
 
-**test:fast** runs non-vendor tests only. **test:all** runs everything except `.fuzz.ts` files (use `test:fuzz` for those).
+**test:fast** runs the default project (non-slow, non-vendor). **test:all** runs all 3 projects. Fuzz files need `test:fuzz`.
 
 **When iterating on a package**, run vitest directly on that directory:
 ```bash
@@ -87,11 +87,11 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Command            | What it runs                                                  | Notes                |
 | ------------------ | ------------------------------------------------------------- | -------------------- |
-| `test:fast`        | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Fast feedback        |
-| `test:slow`        | `*.slow.{test,spec}.{ts,tsx}` only                            | Integration tests    |
-| `test:all`         | All `*.{test,spec}.*` (`.fuzz.ts` excluded by convention)     | Before commit        |
-| `test:fuzz`        | `*.fuzz.ts` files only                                        | Exploratory testing  |
-| `test:vendor`      | Vendor tests only (`--project vendor`)                        | Vendor isolation     |
+| `test:fast`        | Default project (excludes `*.slow.*` and `vendor/**`)         | Fast feedback        |
+| `test:slow`        | `--project slow` — `*.slow.{test,spec}.*` only                | Integration tests    |
+| `test:all`         | `--project default --project slow --project vendor`           | Before commit        |
+| `test:fuzz`        | `FUZZ=1` — `*.fuzz.ts` files only                             | Exploratory testing  |
+| `test:vendor`      | `--project vendor` — vendor tests only                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
 | `test:changed`     | Changed files only (via vitest --changed)                     | Fastest iteration    |
@@ -199,11 +199,13 @@ Use `:html` commands for performance tracking and HTML reports:
 
 ## Vitest Config
 
-Single unified config at `vitest.config.ts`:
-- Reporter: `dot` (built-in, minimal output)
-- setupFiles for console enforcement
-- All test imports use `vitest` (not `bun:test`), all run with `bunx --bun`
-- Vanilla `vitest run` works — scripts are thin wrappers with exclude patterns
+Single config at `vitest.config.ts` with 3 named projects:
+- **`default`** — excludes `*.slow.*` and `vendor/**` (= fast tests)
+- **`slow`** — only `*.slow.{test,spec}.*` files
+- **`vendor`** — only `vendor/**`
+
+Bare `vitest run` = default project only (fast). Use `--project` for others.
+Reporter: `dot` (minimal). All imports use `vitest` (not `bun:test`), run with `bunx --bun`.
 
 ## Output Rules
 

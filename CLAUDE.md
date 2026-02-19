@@ -28,11 +28,11 @@ Correctness > maintainability > simplicity > performance. Write the minimal corr
 bun fix              # Lint + format - must pass
 bun km view <path>   # Run TUI
 
-# TEST - DO NOT GREP OR RE-RUN - they use reporter=dot and ONLY include errors:
-bun run test:fast | head -400   # Non-vendor tests (~124 files, ~8s)
-bun run test:vendor | head -400 # Vendor tests (~116 files)
-bun run test:all | head -400    # All tests (~240 files)
-bun vitest run <dir> # Run tests in a specific directory
+# TEST - vitest projects: bare run = fast (default project), --project for others
+bun run test:fast | head -400   # Default project: non-slow, non-vendor (~190 files)
+bun run test:vendor | head -400 # Vendor tests only (~182 files)
+bun run test:all | head -400    # All 3 projects (~393 files)
+bun vitest run <dir> # Tests in directory (excludes .slow. and vendor automatically)
 bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
 

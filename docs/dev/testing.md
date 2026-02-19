@@ -755,12 +755,13 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### Test Commands
 
-| Command     | What it runs                                                  | Use case          |
-| ----------- | ------------------------------------------------------------- | ----------------- |
-| `test:fast` | `*.test.ts` + `*.spec.ts` + `*.test.md` (excludes `*.slow.*`) | Default iteration |
-| `test:slow` | `*.slow.{test,spec}.{ts,tsx}` only                            | Slow tests only   |
-| `test:all`  | All `*.{test,spec}.*` files (`.fuzz.ts` excluded by convention) | Before commit     |
-| `test:fuzz` | `*.fuzz.ts` files only                                        | Exploratory testing |
+| Command       | What it runs                                          | Use case          |
+| ------------- | ----------------------------------------------------- | ----------------- |
+| `test:fast`   | Default project (excludes `*.slow.*` and `vendor/**`) | Default iteration |
+| `test:slow`   | `--project slow` — `*.slow.{test,spec}.*` only        | Slow tests only   |
+| `test:vendor`  | `--project vendor` — vendor tests only               | Vendor isolation  |
+| `test:all`    | All 3 projects (default + slow + vendor)              | Before commit     |
+| `test:fuzz`   | `FUZZ=1` — `*.fuzz.ts` files only                     | Exploratory testing |
 
 **Primary workflow**: `test:fast` (iterate) → `test:all` (commit)
 
