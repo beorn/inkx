@@ -445,6 +445,11 @@ export function tableToMarkdown(node: RootContent): string {
  * Convert mdast node to plain text
  */
 export function nodeToText(node: RootContent | Root): string {
+  // Hard line break (markdown `  \n` or `<br>`) → preserve as newline
+  if (node.type === "break") {
+    return "\n"
+  }
+
   if ("value" in node && typeof node.value === "string") {
     return node.value
   }

@@ -716,7 +716,7 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                bold={depth === 0 && hasChildren}
+                bold={depth === 0}
                 color={dimUntitled ? "gray" : (style.textColor ?? style.ownColor)}
                 dimColor={style.shouldDim || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
