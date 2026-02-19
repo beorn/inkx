@@ -649,7 +649,7 @@ function* generateTagFiles(
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
-            type: "li",
+            type: "oi",
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,
