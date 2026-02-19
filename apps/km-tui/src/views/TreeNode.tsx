@@ -555,6 +555,9 @@ function TreeNodeImpl({
     [displayNode.id, displayNode.assigned_to, displayNode.task_status, isOneliner, rootBoardId, getBoardPills],
   )
 
+  // Compact child count: shown in cards view (hideChildCount) as a dimmed inline indicator
+  const showInlineChildCount = hideChildCount && hasChildren && childCount > 0
+
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
   const dateBadge = useMemo(
     () => formatDateBadge(displayNode),
@@ -727,6 +730,9 @@ function TreeNodeImpl({
                 )}
                 {!childrenHidden && infoSuffix && (
                   <Text dimColor={style.shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
+                )}
+                {showInlineChildCount && (
+                  <Text dimColor> {childCount}</Text>
                 )}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={style.shouldDim} italic>
