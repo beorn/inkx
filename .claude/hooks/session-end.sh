@@ -8,10 +8,11 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # Must read stdin synchronously (pipe closes when hook exits)
 STDIN_DATA=$(cat)
 
-# Kill orphaned vitest fork workers (PPID=1 means parent died, reparented to init)
-ORPHANS=$(ps -eo pid,ppid,command 2>/dev/null | grep 'vitest.*forks\.js' | grep -v grep | awk '$2 == 1 {print $1}')
-if [ -n "$ORPHANS" ]; then
-  echo "$ORPHANS" | xargs kill -9 2>/dev/null
+# Kill ALL vitest fork workers — session is ending, no legitimate workers should remain.
+# This is more aggressive than SubagentStop (which spares active workers).
+ALL_VITEST=$(ps -eo pid,command 2>/dev/null | grep 'vitest.*forks\.js' | grep -v grep | awk '{print $1}')
+if [ -n "$ALL_VITEST" ]; then
+  echo "$ALL_VITEST" | xargs kill -9 2>/dev/null
 fi
 
 # Fork the actual work to background
