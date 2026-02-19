@@ -111,10 +111,10 @@ export function getProjectPath(repo: Repo, node: KNode): string[] {
     const parent = repo.getNode(currentId)
     if (!parent) break
 
-    // Only include folders and files (not sections or the board root)
+    // Include folders, files, and sections in the containment path
     if (
       parent.type === "oi" &&
-      (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile")
+      (parent.fstype === "folder" || parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "mdsection")
     ) {
       path.unshift(getNodeDisplayName(repo, parent))
     }
