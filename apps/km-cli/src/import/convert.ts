@@ -632,7 +632,7 @@ function* generateTagFiles(
         id: fileId,
         type: "oi",
         fstype: "mdfile",
-        content: `#${tag}`,
+        content: tag,
         data: {
           imported_from: data.source,
           imported_at: data.fetchedAt,
@@ -649,7 +649,7 @@ function* generateTagFiles(
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
-            type: "oi",
+            type: "li",
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,
