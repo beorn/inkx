@@ -363,7 +363,7 @@ function sectionToNodes(
       fstype: "mdsection",
       content: section.title,
       title: section.title,
-      data: { depth: 2 },
+      data: {},
     }),
   )
 
@@ -433,7 +433,7 @@ function projectToNodes(
         fstype: "mdsection",
         content: "Status Updates",
         title: "Status Updates",
-        data: { depth: 2 },
+        data: {},
       }),
     )
     for (const [i, su] of project.statusUpdates.entries()) {
@@ -480,7 +480,7 @@ function projectToNodes(
         fstype: "mdsection",
         content: "Custom Fields",
         title: "Custom Fields",
-        data: { depth: 2 },
+        data: {},
       }),
     )
     for (const [i, cf] of project.customFieldSettings.entries()) {

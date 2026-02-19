@@ -1587,3 +1587,160 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(item.metadata?.parentTaskGid).toBe("12345")
   })
 })
+
+// ============================================================================
+// HTML content escaping (roundtrip: HTML → turndown → markdown → parser)
+// ============================================================================
+
+describe("HTML content escaping", () => {
+  const { turndown } = require("../../src/import/adapters/asana-types.ts")
+
+  /** Helper: roundtrip HTML through turndown → markdown parser, return parsed AST */
+  function roundtrip(html: string) {
+    const md = turndown.turndown(html)
+    const tree = parseMarkdown(md)
+    return { md, tree }
+  }
+
+  /** Helper: extract all text from a parsed tree (concatenate all text nodes) */
+  function allText(tree: ReturnType<typeof parseMarkdown>): string {
+    const { nodeToText } = require("@km/markdown")
+    return tree.children.map((n: any) => nodeToText(n)).join("\n")
+  }
+
+  /** Helper: check if any node in the tree has a given type (recursive) */
+  function hasNodeType(node: any, type: string): boolean {
+    if (node.type === type) return true
+    if ("children" in node && Array.isArray(node.children)) {
+      return node.children.some((c: any) => hasNodeType(c, type))
+    }
+    return false
+  }
+
+  test("asterisks in plain text are not interpreted as italic", () => {
+    const { tree } = roundtrip("<body><p>Buy * brand shirts from * store</p></body>")
+    expect(hasNodeType(tree, "emphasis")).toBe(false)
+    expect(allText(tree)).toContain("* brand")
+    expect(allText(tree)).toContain("* store")
+  })
+
+  test("brackets in plain text are not interpreted as link start", () => {
+    const { tree } = roundtrip("<body><p>See [roadmap outline] for details</p></body>")
+    expect(hasNodeType(tree, "link")).toBe(false)
+    expect(allText(tree)).toContain("[roadmap outline]")
+  })
+
+  test("[text] followed by (url-like) is not interpreted as a link", () => {
+    const { tree } = roundtrip("<body><p>See [project plan](notes section) for details</p></body>")
+    expect(hasNodeType(tree, "link")).toBe(false)
+    expect(allText(tree)).toContain("[project plan]")
+  })
+
+  test("real HTML link is preserved as a markdown link", () => {
+    const { tree } = roundtrip('<body><p>Visit <a href="http://example.com">the site</a> now</p></body>')
+    expect(hasNodeType(tree, "link")).toBe(true)
+    const link = tree.children
+      .flatMap((n: any) => ("children" in n ? n.children : []))
+      .find((c: any) => c.type === "link")
+    expect(link.url).toBe("http://example.com")
+  })
+
+  test("text starting with # is not interpreted as a heading", () => {
+    const { tree } = roundtrip("<body><p># Not a heading</p></body>")
+    expect(hasNodeType(tree, "heading")).toBe(false)
+    expect(allText(tree)).toContain("# Not a heading")
+  })
+
+  test("text starting with > is not interpreted as a blockquote", () => {
+    const { tree } = roundtrip("<body><p>> Not a blockquote</p></body>")
+    expect(hasNodeType(tree, "blockquote")).toBe(false)
+    expect(allText(tree)).toContain("> Not a blockquote")
+  })
+
+  test("backticks in plain text are not interpreted as code spans", () => {
+    const { tree } = roundtrip("<body><p>Use `backticks` carefully</p></body>")
+    expect(hasNodeType(tree, "inlineCode")).toBe(false)
+    expect(allText(tree)).toContain("`backticks`")
+  })
+
+  test("underscores in plain text are not interpreted as italic", () => {
+    const { tree } = roundtrip("<body><p>Text with _underscores_ here</p></body>")
+    expect(hasNodeType(tree, "emphasis")).toBe(false)
+    expect(allText(tree)).toContain("_underscores_")
+  })
+
+  test("tildes in plain text are not interpreted as strikethrough", () => {
+    const { tree } = roundtrip("<body><p>Text with ~~tildes~~ here</p></body>")
+    expect(hasNodeType(tree, "delete")).toBe(false)
+    expect(allText(tree)).toContain("~~tildes~~")
+  })
+
+  test("mixed special chars in one paragraph survive roundtrip", () => {
+    const { tree } = roundtrip(
+      "<body><p>Buy * brand, see [plan], use `code`, _emphasis_, ~~strike~~, > quote, # hash</p></body>",
+    )
+    const text = allText(tree)
+    expect(hasNodeType(tree, "emphasis")).toBe(false)
+    expect(hasNodeType(tree, "link")).toBe(false)
+    expect(hasNodeType(tree, "inlineCode")).toBe(false)
+    expect(hasNodeType(tree, "delete")).toBe(false)
+    expect(text).toContain("* brand")
+    expect(text).toContain("[plan]")
+    expect(text).toContain("`code`")
+    expect(text).toContain("_emphasis_")
+    expect(text).toContain("~~strike~~")
+  })
+
+  test("real Asana example: asterisks in product description", () => {
+    const { tree } = roundtrip("<body><p>Buy * brand from store</p></body>")
+    expect(hasNodeType(tree, "emphasis")).toBe(false)
+    expect(allText(tree)).toContain("Buy * brand from store")
+  })
+
+  test("real Asana example: brackets in reference text", () => {
+    const { tree } = roundtrip("<body><p>See [roadmap outline] for details</p></body>")
+    expect(hasNodeType(tree, "link")).toBe(false)
+    expect(allText(tree)).toContain("See [roadmap outline] for details")
+  })
+
+  test("backslashes in text are preserved", () => {
+    const { tree } = roundtrip("<body><p>Path is C:\\Users\\docs</p></body>")
+    const text = allText(tree)
+    // Backslashes should survive (may be escaped in md but parser should restore them)
+    expect(text).toContain("C:")
+    expect(text).toContain("Users")
+  })
+
+  // Verify real HTML elements still convert properly (no over-escaping)
+
+  test("strong tags still produce bold markdown", () => {
+    const { md, tree } = roundtrip("<body><p><strong>bold text</strong></p></body>")
+    expect(md).toContain("**bold text**")
+    expect(hasNodeType(tree, "strong")).toBe(true)
+  })
+
+  test("em tags still produce italic markdown", () => {
+    const { md, tree } = roundtrip("<body><p><em>italic text</em></p></body>")
+    // Turndown uses _ for emphasis by default (emDelimiter: '_')
+    expect(md).toContain("_italic text_")
+    expect(hasNodeType(tree, "emphasis")).toBe(true)
+  })
+
+  test("anchor tags still produce link markdown", () => {
+    const { md, tree } = roundtrip('<body><p><a href="http://example.com">link text</a></p></body>')
+    expect(md).toContain("[link text](http://example.com)")
+    expect(hasNodeType(tree, "link")).toBe(true)
+  })
+
+  test("code tags still produce code markdown", () => {
+    const { md, tree } = roundtrip("<body><p><code>code text</code></p></body>")
+    expect(md).toContain("`code text`")
+    expect(hasNodeType(tree, "inlineCode")).toBe(true)
+  })
+
+  test("del/s tags are preserved as text (no GFM plugin installed)", () => {
+    // Turndown without turndown-plugin-gfm strips <del> tags to plain text
+    const { tree } = roundtrip("<body><p><del>deleted text</del></p></body>")
+    expect(allText(tree)).toContain("deleted text")
+  })
+})

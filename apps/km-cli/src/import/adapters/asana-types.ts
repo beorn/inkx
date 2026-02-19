@@ -10,6 +10,17 @@ export const turndown = new TurndownService({
   codeBlockStyle: "fenced",
 })
 
+// Turndown's built-in escape handles CommonMark special chars (*, [, ], _, `, #, >, \)
+// but NOT GFM strikethrough (~~). Since km's parser uses GFM extensions, we need to
+// also escape tildes so `~~text~~` in plain HTML text doesn't become strikethrough.
+const originalEscape = turndown.escape.bind(turndown)
+turndown.escape = function (str: string): string {
+  // First apply Turndown's built-in CommonMark escaping
+  const escaped = originalEscape(str)
+  // Then escape GFM strikethrough: ~~ → \~\~
+  return escaped.replace(/~~/g, "\\~\\~")
+}
+
 // Asana html_notes uses <h1>/<h2>/etc. tags. Turndown's default ATX conversion
 // produces `# Heading` markdown, which km's parser interprets as new sections —
 // splitting one task's description into multiple items on re-parse.

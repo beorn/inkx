@@ -904,8 +904,10 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 /** Strip metadata/block IDs from content, preserving multi-line structure. */
 function stripContentForDisplay(content: string | undefined): string {
   if (!content) return ""
-  // Strip trailing block references (e.g., "→ ^688222992104100" from Asana recurring tasks)
-  const cleaned = content.replace(/\s*→\s*\^\d+\s*$/, "")
+  // Strip Asana block references: "→ ^numericId" and standalone "^numericId" (15+ digit GIDs)
+  const cleaned = content
+    .replace(/\s*→\s*\^\d+/g, "")
+    .replace(/\s*\^\d{10,}\b/g, "")
   const nlIdx = cleaned.indexOf("\n")
   if (nlIdx === -1) return stripForDisplay(cleaned)
   // Only strip metadata from first line; keep rest intact
