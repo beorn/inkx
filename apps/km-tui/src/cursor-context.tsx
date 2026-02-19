@@ -171,37 +171,6 @@ export function useIsColumnSelectedByNode(nodeId: string): {
 }
 
 /**
- * Subscribe to whether a specific column is the active column.
- * Returns cached result object to satisfy useSyncExternalStore's caching requirement.
- */
-export function useIsCursorInColumn(colIndex: number): {
-  isSelected: boolean
-  cardIndex: number
-  selectionLevel: "board" | "column" | "card"
-} {
-  const store = useContext(CursorStoreContext)
-  const derived = useDerivedPosition(store)
-  const cacheRef = useRef(falseColumnResult)
-
-  if (derived.colIndex !== colIndex) {
-    if (!cacheRef.current.isSelected) return cacheRef.current
-    cacheRef.current = falseColumnResult
-    return falseColumnResult
-  }
-  const prev = cacheRef.current
-  if (prev.isSelected && prev.cardIndex === derived.cardIndex && prev.selectionLevel === derived.selectionLevel) {
-    return prev
-  }
-  const next = {
-    isSelected: true as const,
-    cardIndex: derived.cardIndex,
-    selectionLevel: derived.selectionLevel,
-  }
-  cacheRef.current = next
-  return next
-}
-
-/**
  * Subscribe to whether a column is selected + its selection level.
  * DOES NOT include cardIndex — stable on j/k within the same column.
  * Use this when you need to know IF a column is selected but don't
@@ -282,26 +251,10 @@ export function useCursorColIndex(): number {
   return derived.colIndex
 }
 
-/**
- * Subscribe to cursor selection level only.
- * Re-renders only when selection level changes (K/J level nav).
- * Does NOT re-render on j/k or h/l within the same level.
- */
-export function useCursorSelectionLevel(): "board" | "column" | "card" {
-  const store = useContext(CursorStoreContext)
-  const derived = useDerivedPosition(store)
-  return derived.selectionLevel
-}
-
 // Stable references
 const defaultCursorPosition = {
   colIndex: 0,
   cardIndex: 0,
-  selectionLevel: "board" as const,
-}
-const falseColumnResult = {
-  isSelected: false as const,
-  cardIndex: -1,
   selectionLevel: "board" as const,
 }
 const falseColumnSelectedResult = {

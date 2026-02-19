@@ -13,8 +13,6 @@
  * - when.ts: mode predicates for keybinding conditions
  */
 
-import { createContext, useContext } from "react"
-
 export type InputMode =
   | "command"
   | "insert"
@@ -69,19 +67,3 @@ export function createModeStack() {
 }
 
 export type ModeStack = ReturnType<typeof createModeStack>
-
-// --- React integration ---
-
-const ModeStackContext = createContext<ModeStack | null>(null)
-
-/** Provider component for the mode stack context. */
-export const ModeStackProvider = ModeStackContext.Provider
-
-/** Read the mode stack from React context. Throws if used outside a provider. */
-export function useInputMode(): ModeStack {
-  const stack = useContext(ModeStackContext)
-  if (!stack) {
-    throw new Error("useInputMode must be used within a ModeStackProvider")
-  }
-  return stack
-}

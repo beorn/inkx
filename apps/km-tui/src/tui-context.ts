@@ -10,7 +10,7 @@
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, NavHistoryEntry } from "./board-types.ts"
+import type { BoardAction } from "./board-types.ts"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
@@ -38,12 +38,6 @@ export interface ActionCtx {
   moveMode: boolean
   moveSourceNodes: string[]
   moveSourceCursorNodeId: string | null
-  maxOutlineDepth: number
-  maxContentLines: number
-  curswantX: number | null
-  curswantY: number | null
-  navHistory: NavHistoryEntry[]
-  navHistoryIndex: number
 
   // === State (from store) ===
   ui: UIState

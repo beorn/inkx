@@ -51,8 +51,6 @@ export interface CardState {
   isVirtual?: boolean
 }
 
-export type BoardAction = "quit" | "refresh" | null
-
 /**
  * Special cardIndex value indicating cursor is at column header level.
  *

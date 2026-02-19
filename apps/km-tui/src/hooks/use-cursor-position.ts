@@ -1,5 +1,5 @@
 /**
- * useCursorPosition Hook — VIEW MODEL DERIVATION
+ * Cursor Position Derivation — VIEW MODEL
  *
  * Derives visual cursor position (colIndex, cardIndex) from cursorNodeId.
  * This replaces storing indices in state - they're now computed at render time.
@@ -9,12 +9,10 @@
  * NODE MODEL V2: colIndex/cardIndex are view model concepts — they exist because
  * the grid layout needs integer positions. Target: replace with spatial lookup
  * via GridNavigator that translates cursorNodeId → screen position on demand.
- * The hook itself may survive but ColumnState[] input becomes KNode[] from repo.
  *
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { useMemo } from "react"
 import { createLogger } from "@beorn/logger"
 import { type ColumnState, COLUMN_HEADER_INDEX } from "../types.ts"
 
@@ -33,28 +31,6 @@ export interface CursorPosition {
   isAtCardLevel: boolean
   /** Selection level for styling */
   selectionLevel: "board" | "column" | "card"
-}
-
-// =============================================================================
-// Hook
-// =============================================================================
-
-/**
- * Derive cursor position from cursorNodeId.
- *
- * @param columns - Current column layout
- * @param cursorNodeId - Currently selected node ID
- * @param nodeIndex - O(1) lookup map for fast position resolution
- * @returns CursorPosition with indices and selection level
- */
-export function useCursorPosition(
-  columns: ColumnState[],
-  cursorNodeId: string | null,
-  nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
-): CursorPosition {
-  return useMemo(() => {
-    return deriveCursorPosition(columns, cursorNodeId, nodeIndex)
-  }, [columns, cursorNodeId, nodeIndex])
 }
 
 /**
