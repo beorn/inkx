@@ -77,15 +77,15 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
       flexDirection="column"
       width={width}
       height={height}
-      borderStyle="single"
+      borderStyle="round"
       borderColor="yellow"
       backgroundColor="black"
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title — yellow bg */}
+        {/* Title — yellow bg, black text */}
         <Box width={innerWidth} backgroundColor="yellow">
-          <Text bold color="white" backgroundColor="yellow" wrap="wrap">
+          <Text bold color="black" backgroundColor="yellow" wrap="wrap">
             {renderRich(title)}
           </Text>
         </Box>
@@ -95,37 +95,39 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
           <Text dimColor>{"─".repeat(innerWidth)}</Text>
         </Box>
 
-        {/* Counts */}
-        <Box>
-          <Text>
-            <Text dimColor>Contents: </Text>
+        {/* Scrollable content area */}
+        <Box flexDirection="column" overflow="hidden" flexGrow={1}>
+          {/* Counts */}
+          <Box>
             <Text>
-              {totalChildren} item{totalChildren !== 1 ? "s" : ""}
+              <Text dimColor>Contents: </Text>
+              <Text>
+                {totalChildren} item{totalChildren !== 1 ? "s" : ""}
+              </Text>
             </Text>
-          </Text>
+          </Box>
+
+          {/* Outline */}
+          <Box flexDirection="column" marginTop={1}>
+            {entries.map((entry, i) => {
+              const indent = "  ".repeat(entry.depth)
+              const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.task_marker !== undefined)
+              const entryTitle = getNodeDisplayName(repo, entry.node)
+              return (
+                <Box key={`${entry.node.id}-${i}`} height={1}>
+                  <Text wrap="truncate">
+                    {indent}
+                    <Text color={icon.color}>{icon.char}</Text> {renderRich(entryTitle)}
+                  </Text>
+                </Box>
+              )
+            })}
+            {hasMore && <Text dimColor> ...and more</Text>}
+          </Box>
         </Box>
 
-        {/* Outline */}
-        <Box flexDirection="column" marginTop={1} overflow="hidden" flexGrow={1}>
-          {entries.map((entry, i) => {
-            const indent = "  ".repeat(entry.depth)
-            const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.task_marker !== undefined)
-            const entryTitle = getNodeDisplayName(repo, entry.node)
-            return (
-              <Box key={`${entry.node.id}-${i}`} height={1}>
-                <Text wrap="truncate">
-                  {indent}
-                  <Text color={icon.color}>{icon.char}</Text> {renderRich(entryTitle)}
-                </Text>
-              </Box>
-            )
-          })}
-          {hasMore && <Text dimColor> ...and more</Text>}
-        </Box>
-
-        {/* Footer: keybindings + debug info */}
-        <Box flexGrow={1} />
-        <Box flexDirection="row" justifyContent="space-between">
+        {/* Footer: keybindings + debug info — always visible */}
+        <Box flexDirection="row" justifyContent="space-between" flexShrink={0}>
           <Text dimColor wrap="truncate">
             h/Esc:close Enter:open
           </Text>
@@ -204,13 +206,13 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
       flexDirection="column"
       width={width}
       height={height}
-      borderStyle="single"
+      borderStyle="round"
       borderColor="yellow"
       backgroundColor="black"
       paddingX={1}
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title header — yellow bg, white fg */}
+        {/* Title header — yellow bg, black text */}
         <Box flexDirection="column" width={innerWidth} backgroundColor="yellow">
           {/* Location breadcrumb */}
           {projectPath.length > 0 && (
@@ -223,7 +225,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
 
           {/* Title */}
           <Box width={innerWidth}>
-            <Text bold color="white" backgroundColor="yellow" wrap="wrap">
+            <Text bold color="black" backgroundColor="yellow" wrap="wrap">
               {node.task_status && (
                 <Text color={getStatusIcon(node.task_status).color}>{getStatusIcon(node.task_status).char} </Text>
               )}
@@ -237,57 +239,59 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
           <Text dimColor>{"─".repeat(innerWidth)}</Text>
         </Box>
 
-        {/* Metadata fields — aligned key:value table */}
-        <MetadataTable
-          node={node}
-          isDone={isDone}
-          statusInfo={statusInfo}
-          dueDate={dueDate}
-          dueParts={dueParts}
-          startParts={startParts}
-          refs={refs}
-        />
+        {/* Scrollable content area */}
+        <Box flexDirection="column" overflow="hidden" flexGrow={1}>
+          {/* Metadata fields — aligned key:value table */}
+          <MetadataTable
+            node={node}
+            isDone={isDone}
+            statusInfo={statusInfo}
+            dueDate={dueDate}
+            dueParts={dueParts}
+            startParts={startParts}
+            refs={refs}
+          />
 
-        {/* Content area — separator then body + children */}
-        <Box>
-          <Text dimColor>{"─".repeat(innerWidth)}</Text>
+          {/* Content area — separator then body + children */}
+          <Box>
+            <Text dimColor>{"─".repeat(innerWidth)}</Text>
+          </Box>
+
+          {bodyChildren.length === 0 && structuralChildren.length === 0 && (
+            <Text dimColor>(empty)</Text>
+          )}
+
+          {/* Body content — rendered line-by-line with blank lines between blocks */}
+          {bodyChildren.map((child, i) => (
+            <React.Fragment key={`${child.id}-${i}`}>
+              {i > 0 && <Text>{" "}</Text>}
+              <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
+            </React.Fragment>
+          ))}
+
+          {/* Children rendered as subitems with separators */}
+          {structuralChildren.length > 0 && (
+            <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
+              <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
+            </Box>
+          )}
+
+          {/* Backlinks */}
+          {backlinkNodes.length > 0 && (
+            <Box flexDirection="column" marginTop={1} width={innerWidth}>
+              <Text bold dimColor>
+                Backlinks ({backlinkNodes.length})
+              </Text>
+              {backlinkNodes.slice(0, maxBacklinks).map((bl, i) => (
+                <NodeLine key={`${bl.id}-${i}`} node={bl} title={getNodeDisplayName(repo, bl)} />
+              ))}
+              {backlinkNodes.length > maxBacklinks && <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>}
+            </Box>
+          )}
         </Box>
 
-        {bodyChildren.length === 0 && structuralChildren.length === 0 && (
-          <Text dimColor>(empty)</Text>
-        )}
-
-        {/* Body content — rendered line-by-line with blank lines between blocks */}
-        {bodyChildren.map((child, i) => (
-          <React.Fragment key={`${child.id}-${i}`}>
-            {i > 0 && <Text>{" "}</Text>}
-            <BodyBlock content={child.content ?? ""} innerWidth={innerWidth} />
-          </React.Fragment>
-        ))}
-
-        {/* Children rendered as subitems with separators */}
-        {structuralChildren.length > 0 && (
-          <Box flexDirection="column" width={innerWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
-            <DetailSubitems repo={repo} items={structuralChildren} innerWidth={innerWidth} />
-          </Box>
-        )}
-
-        {/* Backlinks */}
-        {backlinkNodes.length > 0 && (
-          <Box flexDirection="column" marginTop={1} width={innerWidth}>
-            <Text bold dimColor>
-              Backlinks ({backlinkNodes.length})
-            </Text>
-            {backlinkNodes.slice(0, maxBacklinks).map((bl, i) => (
-              <NodeLine key={`${bl.id}-${i}`} node={bl} title={getNodeDisplayName(repo, bl)} />
-            ))}
-            {backlinkNodes.length > maxBacklinks && <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>}
-          </Box>
-        )}
-
-        {/* Footer: keybindings + debug info */}
-        <Box flexGrow={1} />
-        <Box flexDirection="row" justifyContent="space-between">
+        {/* Footer: keybindings + debug info — always visible */}
+        <Box flexDirection="row" justifyContent="space-between" flexShrink={0}>
           <Text dimColor wrap="truncate">
             h/Esc:close Space:status
           </Text>
