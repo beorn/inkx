@@ -108,14 +108,11 @@ describe("findZoomTarget", () => {
     expect(result.cursorTarget.id).toBe("root")
   })
 
-  test("walks cursorTarget up to direct card when target is body-card descendant", () => {
-    // BUG: findZoomTarget returns the raw target (subtask1) as cursorTarget,
-    // but after zoom, subtask1 is a descendant of a body card. The navigation
-    // layer then breaks because it resolves the card at the wrong depth.
-    //
-    // FIX: findZoomTarget should detect when the zoom target (grandparent)
-    // has no oi children and walk cursorTarget up to a direct child that
-    // would be visible as a card.
+  test("body-only grandparent with great-grandparent: zooms to great-grandparent", () => {
+    // When grandparent (flatList) has no oi children → body-only board.
+    // If a great-grandparent exists, zoom there instead so flatList becomes
+    // a column and task1 becomes a visible card. Cursor lands on task1
+    // (the parent of subtask1, which is the navigable card).
     const vaultNode = makeOiNode("vault", null, 0)
     const flatListNode = makeOiNode("flatList", "vault", 0)
     const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1", "subtask2"])
@@ -126,11 +123,66 @@ describe("findZoomTarget", () => {
     const subtask1 = repo.getNode("subtask1")!
 
     const result = findZoomTarget(subtask1, repo)
-    expect(result.zoomTarget.id).toBe("flatList")
+    // Zoom to vault (great-grandparent) so flatList is a column, task1 is a card
+    expect(result.zoomTarget.id).toBe("vault")
+    expect(result.cursorTarget.id).toBe("task1")
+  })
 
-    // After the fix, cursorTarget should be walked up to task1 (the body card
-    // that contains subtask1), because flatList has no oi children and subtask1
-    // would be a descendant of a body card, not a direct card.
+  test("body-only grandparent without great-grandparent: walks cursor up to parent", () => {
+    // When grandparent has no oi children and there's NO great-grandparent,
+    // we must zoom to grandparent (only option) and walk cursor to parent.
+    const flatListNode = makeOiNode("flatList", null, 0)
+    const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
+    const task2Nodes = makeLiNode("task2", "flatList", 1)
+    const allNodes: KNode[] = [flatListNode, ...task1Nodes, ...task2Nodes]
+
+    const repo = createFakeRepo({ nodes: allNodes })
+    const subtask1 = repo.getNode("subtask1")!
+
+    // ancestors: [subtask1, task1, flatList] (length 3)
+    // grandparent = flatList (no oi children), no great-grandparent
+    const result = findZoomTarget(subtask1, repo)
+    expect(result.zoomTarget.id).toBe("flatList")
+    expect(result.cursorTarget.id).toBe("task1")
+  })
+
+  test("deep target (ancestors >= 4): zooms to grandparent with cursor on target", () => {
+    // Structure: root > section1 > section2 > deep-task
+    // ancestors: [deep-task, section2, section1, root] (length 4)
+    // grandparent = section1, which has oi children (section2) → normal multi-column board
+    // Expected: zoom to grandparent (section1), cursor on target (deep-task)
+    const nodes = item("root", item("section1", item("section2", item("deep-task"), item("other-task"))))
+    const repo = createFakeRepo({ nodes })
+    const deepTask = repo.getNode("deep-task")!
+
+    const result = findZoomTarget(deepTask, repo)
+    expect(result.zoomTarget.id).toBe("section1")
+    expect(result.cursorTarget.id).toBe("deep-task")
+  })
+
+  test("deep target in body-only grandparent: zooms to great-grandparent", () => {
+    // Structure: root > section1 > flatList(li-only) > task1 > subtask1
+    // Bug scenario: flatList has no oi children, only li. Zooming to flatList
+    // produces a single-column board with many flat cards.
+    // For ancestors.length >= 4 with body-only grandparent, zoom to great-grandparent
+    // so flatList becomes a column and task1 is a card.
+    const rootNode = makeOiNode("root", null, 0)
+    const section1Node = makeOiNode("section1", "root", 0)
+    const flatListNode = makeOiNode("flatList", "section1", 0)
+    const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
+    const task2Nodes = makeLiNode("task2", "flatList", 1)
+    const allNodes: KNode[] = [rootNode, section1Node, flatListNode, ...task1Nodes, ...task2Nodes]
+
+    const repo = createFakeRepo({ nodes: allNodes })
+    const subtask1 = repo.getNode("subtask1")!
+
+    // ancestors: [subtask1, task1, flatList, section1, root] (length 5)
+    // grandparent = flatList (no oi children → body-only)
+    // great-grandparent = section1
+    // Should zoom to section1 (great-grandparent) so flatList is a column
+    // and task1 is a visible card
+    const result = findZoomTarget(subtask1, repo)
+    expect(result.zoomTarget.id).toBe("section1")
     expect(result.cursorTarget.id).toBe("task1")
   })
 })

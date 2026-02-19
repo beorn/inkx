@@ -56,6 +56,27 @@ function yesterday(): string {
   return formatDate(d)
 }
 
+function today(): string {
+  return formatDate(new Date())
+}
+
+function tomorrow(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 1)
+  return formatDate(d)
+}
+
+function daysFromNow(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return formatDate(d)
+}
+
+/** Strip ANSI escape codes from a string */
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, "")
+}
+
 /** Helper to find the Inbox section (the one with km.add:: rules containing "due:past") */
 function findInboxSection(db: Database): { id: string } | undefined {
   const rows = db.query("SELECT * FROM nodes WHERE json_extract(data, '$.rules.add') IS NOT NULL").all() as Record<
@@ -88,6 +109,105 @@ describe("date badge display", () => {
   it("formatDateBadge returns empty for node without dates", () => {
     const badge = formatDateBadge({} as KNode)
     expect(badge).toBe("")
+  })
+
+  // ---------------------------------------------------------------------------
+  // Date colorization (km-tui.date-render)
+  // ---------------------------------------------------------------------------
+
+  it("formatDateBadge shows 'Yesterday' for yesterday's due date", () => {
+    const badge = formatDateBadge({ due_at: yesterday() } as KNode)
+    expect(stripAnsi(badge)).toContain("Yesterday")
+  })
+
+  it("formatDateBadge shows 'Today' for today's due date", () => {
+    const badge = formatDateBadge({ due_at: today() } as KNode)
+    expect(stripAnsi(badge)).toContain("Today")
+  })
+
+  it("formatDateBadge shows 'Tomorrow' for tomorrow's due date", () => {
+    const badge = formatDateBadge({ due_at: tomorrow() } as KNode)
+    expect(stripAnsi(badge)).toContain("Tomorrow")
+  })
+
+  it("formatDateBadge uses year suffix for different year", () => {
+    const badge = formatDateBadge({ due_at: "2025-09-30" } as KNode)
+    expect(stripAnsi(badge)).toContain("Sep 30 '25")
+  })
+
+  it("formatDateBadge omits year suffix for current year", () => {
+    const badge = formatDateBadge({ due_at: "2026-07-15" } as KNode)
+    const text = stripAnsi(badge)
+    expect(text).toContain("Jul 15")
+    expect(text).not.toContain("'26")
+  })
+
+  it("overdue due date is red+bold", () => {
+    // 30 days ago — overdue
+    const badge = formatDateBadge({ due_at: daysFromNow(-30) } as KNode)
+    // Red bold ANSI: \x1b[1;31m
+    expect(badge).toContain("\x1b[1;31m")
+  })
+
+  it("future due date is dim+cyan", () => {
+    // 30 days out — future
+    const badge = formatDateBadge({ due_at: daysFromNow(30) } as KNode)
+    // Dim cyan ANSI: \x1b[2;36m
+    expect(badge).toContain("\x1b[2;36m")
+  })
+
+  it("today's due date is green", () => {
+    const badge = formatDateBadge({ due_at: today() } as KNode)
+    // Green ANSI: \x1b[32m
+    expect(badge).toContain("\x1b[32m")
+  })
+
+  it("start_at shown when no due_at", () => {
+    const badge = formatDateBadge({ start_at: daysFromNow(10) } as KNode)
+    const text = stripAnsi(badge)
+    expect(text).not.toBe("")
+    // Start-only shows as "date →"
+    expect(text).toContain("→")
+  })
+
+  it("due_at preferred over start_at for display", () => {
+    const badge = formatDateBadge({
+      due_at: "2026-07-15",
+      start_at: "2026-06-01",
+    } as KNode)
+    const text = stripAnsi(badge)
+    expect(text).toContain("Jul 15")
+    expect(text).toContain("Jun 1")
+  })
+
+  it("card renders overdue date text in card (testEnv)", () => {
+    const nodes = item("board", item("col1", item.task("Overdue task")))
+    const taskNode = nodes.find((n) => n.content === "Overdue task")!
+    taskNode.due_at = daysFromNow(-5)
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    const screen = board.screenshot()
+    // Overdue date text should appear in the card
+    expect(screen).toContain("Overdue task")
+    // The date should be rendered (some short date format)
+    const badge = formatDateBadge(taskNode as KNode)
+    const badgeText = stripAnsi(badge)
+    // The date text from the badge should appear in the rendered card
+    expect(screen).toContain(badgeText)
+  })
+
+  it("card renders future date text in card (testEnv)", () => {
+    const nodes = item("board", item("col1", item.task("Future task")))
+    const taskNode = nodes.find((n) => n.content === "Future task")!
+    taskNode.due_at = daysFromNow(30)
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    const screen = board.screenshot()
+    // Future date text should appear in the card
+    expect(screen).toContain("Future task")
+    const badge = formatDateBadge(taskNode as KNode)
+    const badgeText = stripAnsi(badge)
+    expect(screen).toContain(badgeText)
   })
 
   it("date badge appears in card after repo.updateNode", async () => {

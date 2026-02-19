@@ -244,6 +244,7 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(task1.attachments).toHaveLength(1)
     expect(task1.attachments![0]!.name).toBe("wireframe.png")
     expect(task1.attachments![0]!.type).toBe("image")
+    expect(task1.attachments![0]!.createdAt).toBe("2025-06-15T10:30:00.000Z")
   })
 
   test("records API calls when record is true", async () => {
@@ -442,6 +443,133 @@ describe("Stage 1: Parse Asana JSON export", () => {
     expect(parent.children![0]!.children).toHaveLength(1)
     expect(parent.children![0]!.children![0]!.title).toBe("Grandchild")
     expect(parent.children![0]!.children![0]!.status).toBe("done")
+  })
+})
+
+// ============================================================================
+// Stage 2: Download Attachments
+// ============================================================================
+
+describe("Stage 2: Download Attachments", () => {
+  const testDir = "/tmp/km-download-att-test-" + Date.now()
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    if (existsSync(testDir)) rmSync(testDir, { recursive: true })
+  })
+
+  test("sets file mtime to attachment createdAt timestamp", async () => {
+    const { downloadAttachments } = await import("../../src/import/download-attachments.ts")
+    const { statSync } = await import("fs")
+
+    // Create a tiny HTTP server to serve a fake file
+    const server = Bun.serve({
+      port: 0,
+      fetch() {
+        return new Response("fake-file-content")
+      },
+    })
+
+    const createdAt = "2025-06-15T10:30:00.000Z"
+    const data: import("../../src/import/types.ts").ImportData = {
+      source: "test",
+      projects: [
+        {
+          sourceId: "proj-1",
+          title: "Test Project",
+          sections: [
+            {
+              title: "Section 1",
+              items: [
+                {
+                  sourceId: "task-1",
+                  title: "Task with attachment",
+                  attachments: [
+                    {
+                      sourceId: "att-1",
+                      name: "photo.png",
+                      url: `http://localhost:${server.port}/photo.png`,
+                      type: "image",
+                      createdAt,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    await downloadAttachments(data, { dir: testDir })
+
+    const filePath = join(testDir, "att-1.png")
+    expect(existsSync(filePath)).toBe(true)
+
+    const stat = statSync(filePath)
+    const expectedTime = new Date(createdAt).getTime()
+    // mtime should match the createdAt timestamp (within 1 second tolerance)
+    expect(Math.abs(stat.mtimeMs - expectedTime)).toBeLessThan(1000)
+
+    server.stop()
+  })
+
+  test("leaves default mtime when createdAt is absent", async () => {
+    const { downloadAttachments } = await import("../../src/import/download-attachments.ts")
+    const { statSync } = await import("fs")
+
+    const server = Bun.serve({
+      port: 0,
+      fetch() {
+        return new Response("fake-file-content")
+      },
+    })
+
+    const beforeMs = Date.now()
+    const data: import("../../src/import/types.ts").ImportData = {
+      source: "test",
+      projects: [
+        {
+          sourceId: "proj-1",
+          title: "Test Project",
+          sections: [
+            {
+              title: "Section 1",
+              items: [
+                {
+                  sourceId: "task-1",
+                  title: "Task with attachment",
+                  attachments: [
+                    {
+                      sourceId: "att-2",
+                      name: "doc.pdf",
+                      url: `http://localhost:${server.port}/doc.pdf`,
+                      type: "file",
+                      // no createdAt
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    await downloadAttachments(data, { dir: testDir })
+
+    const filePath = join(testDir, "att-2.pdf")
+    expect(existsSync(filePath)).toBe(true)
+
+    const stat = statSync(filePath)
+    // mtime should be close to "now" (within 5 seconds)
+    expect(stat.mtimeMs).toBeGreaterThanOrEqual(beforeMs - 1000)
+
+    server.stop()
   })
 })
 

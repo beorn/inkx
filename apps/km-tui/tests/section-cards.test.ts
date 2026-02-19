@@ -5,9 +5,9 @@
  * should render with a visually distinct style from regular task cards.
  * They serve as section dividers/groupers, not as actionable items.
  *
- * Visual distinction:
- * - Section cards: no round border, bold text, underline separator
- * - Regular cards: round border (structural) or dim round border (body)
+ * Visual distinction (all cards have round borders):
+ * - Section cards: bold text, underline separator
+ * - Regular cards: normal text, round border (structural) or dim round border (body)
  */
 
 import { describe, test, expect } from "vitest"
@@ -24,9 +24,11 @@ function isHorizontalLine(c: string): boolean {
 }
 
 describe("section card rendering", () => {
-  test("section cards render without round borders (visually distinct from task cards)", () => {
+  test("section cards render with round borders like all other cards", () => {
     // A column with a mix of section headers and regular tasks.
     // Sections come from Asana-style section headers in markdown (## Section Name).
+    // All cards have borders regardless of fstype — section cards are visually
+    // distinct via bold text and separator lines, not by removing borders.
     const { board } = testEnv(
       () =>
         item(
@@ -40,21 +42,20 @@ describe("section card rendering", () => {
       { columns: 80, rows: 24 },
     )
 
-    // The section cards should NOT have round borders like regular structural cards
-    // Check for absence of round corner characters adjacent to section card content
+    // Section cards SHOULD have round borders like all other structural cards
     for (const sectionId of ["Finance & Taxes", "Waiting"]) {
       const box = board.screen.nodeBox(sectionId)
       expect(box, `section "${sectionId}" should exist`).not.toBeNull()
       if (!box) continue
 
-      // Check left side: should NOT have round border chars at box.x - 1
+      // Check left side: SHOULD have round border chars at box.x - 1
       const leftX = box.x - 1
       if (leftX >= 0) {
         const leftCell = board.screen.cell(leftX, box.y)
         expect(
           isRoundBorderChar(leftCell.char),
-          `section "${sectionId}" should NOT have round left border at (${leftX},${box.y}), got '${leftCell.char}'`,
-        ).toBe(false)
+          `section "${sectionId}" should have round left border at (${leftX},${box.y}), got '${leftCell.char}'`,
+        ).toBe(true)
       }
     }
   })
@@ -100,7 +101,8 @@ describe("section card rendering", () => {
       { columns: 80, rows: 24 },
     )
 
-    // Section header cards should NOT have round borders
+    // Section header cards have round borders like all cards, but are
+    // visually distinct via bold text and horizontal separators
     const sectionBox = board.screen.nodeBox("Section Header")
     expect(sectionBox).not.toBeNull()
     if (!sectionBox) return

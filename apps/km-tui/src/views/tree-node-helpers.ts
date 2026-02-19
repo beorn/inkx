@@ -176,13 +176,22 @@ export function buildPrefix(bulletIcon: StatusIcon): PrefixResult {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 const RED = "\x1b[31m"
+const RED_BOLD = "\x1b[1;31m"
 const GREEN = "\x1b[32m"
+const DIM_CYAN = "\x1b[2;36m"
 const RESET = "\x1b[0m"
 
-/** Format a date as "Feb 11" */
+/** Format a date as "Feb 11" (same year) or "Feb 11 '25" (different year) */
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr)
-  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`
+  const now = new Date()
+  const month = MONTHS[d.getUTCMonth()]
+  const day = d.getUTCDate()
+  if (d.getUTCFullYear() !== now.getFullYear()) {
+    const yr = String(d.getUTCFullYear()).slice(-2)
+    return `${month} ${day} '${yr}`
+  }
+  return `${month} ${day}`
 }
 
 /** Compute days from today (negative = past, 0 = today, positive = future) */
@@ -196,14 +205,15 @@ function daysFromToday(dateStr: string): number {
 
 /**
  * Format a date as a relative string:
- * - Past: "Feb 12"
+ * - Yesterday: "Yesterday"
  * - Today: "Today"
  * - Tomorrow: "Tomorrow"
- * - 2-6 days: day name ("Sunday", "Monday", ...)
- * - 7+ days: "Feb 20"
+ * - 2-6 days ahead: day name ("Sunday", "Monday", ...)
+ * - All other: "Feb 20" (same year) or "Feb 20 '25" (different year)
  */
 function formatRelativeDate(dateStr: string): string {
   const diff = daysFromToday(dateStr)
+  if (diff === -1) return "Yesterday"
   if (diff < 0) return formatShortDate(dateStr)
   if (diff === 0) return "Today"
   if (diff === 1) return "Tomorrow"
@@ -213,28 +223,29 @@ function formatRelativeDate(dateStr: string): string {
 
 /**
  * Format a due date with urgency coloring:
- * - Overdue: red
+ * - Overdue: red bold
  * - Today/Tomorrow: green
- * - Future: no color
+ * - Future: dim cyan
  */
 function formatDueDisplay(dateStr: string): string {
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
-  if (diff < 0) return `${RED}${text}${RESET}`
+  if (diff < 0) return `${RED_BOLD}${text}${RESET}`
   if (diff <= 1) return `${GREEN}${text}${RESET}`
-  return text
+  return `${DIM_CYAN}${text}${RESET}`
 }
 
 /**
  * Format a scheduled/start date with coloring:
  * - Today/Tomorrow: green (actionable now)
- * - Future: no color
+ * - Future: dim cyan
  * - Past: no color (past start dates are already hidden for WIP)
  */
 function formatScheduledDisplay(dateStr: string): string {
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
   if (diff >= 0 && diff <= 1) return `${GREEN}${text}${RESET}`
+  if (diff > 1) return `${DIM_CYAN}${text}${RESET}`
   return text
 }
 

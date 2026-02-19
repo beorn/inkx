@@ -39,7 +39,7 @@ export function findZoomTarget(
   }
   log.debug?.(`search: ancestor chain has ${ancestors.length} nodes: ${ancestors.map((n) => n.type).join(" > ")}`)
 
-  const [, parent, grandparent] = ancestors
+  const [, parent, grandparent, greatGrandparent] = ancestors
 
   // Best case: zoom to grandparent so target is a card (depth 2)
   // root=grandparent -> parent is column -> target is card
@@ -47,14 +47,20 @@ export function findZoomTarget(
     let cursorTarget = target
 
     // If the zoom target has no oi children, it will produce a body-only board.
-    // In that case, the target's parent (a body card) is the navigable unit —
-    // walk cursorTarget up to the direct child of zoomTarget so the cursor
-    // lands on a visible card rather than a buried descendant.
     const zoomChildren = repo.getChildren(grandparent.id)
     const hasOiChildren = zoomChildren.some((c) => isOutline(c.type))
     if (!hasOiChildren && parent && parent.parent_id === grandparent.id) {
-      // parent is a direct child of grandparent (body card level)
-      // target is a child of parent — walk cursor up to parent
+      // Grandparent is a body-only board (no oi children).
+      // If there's a great-grandparent, zoom there instead so grandparent
+      // becomes a column and parent becomes a visible card — avoids landing
+      // on a single-column flat list with many cards.
+      if (greatGrandparent) {
+        log.debug?.(
+          `search: body-only grandparent, zooming to great-grandparent=${greatGrandparent.id.slice(-8)}, cursor on ${parent.id.slice(-8)}`,
+        )
+        return { zoomTarget: greatGrandparent, cursorTarget: parent }
+      }
+      // No great-grandparent available — walk cursor up to the body card level
       log.debug?.(`search: body-only board, walking cursor from ${target.id.slice(-8)} up to ${parent.id.slice(-8)}`)
       cursorTarget = parent
     }

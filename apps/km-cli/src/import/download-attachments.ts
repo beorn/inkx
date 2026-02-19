@@ -5,7 +5,7 @@
  * Skips files that already exist (idempotent). Updates ImportData with local paths.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, writeFileSync, utimesSync } from "fs"
 import { join, extname } from "path"
 import { createTerm } from "inkx"
 import { ProgressBar } from "@beorn/inkx-ui/cli"
@@ -145,6 +145,10 @@ export async function downloadAttachments(
           }
           const buffer = Buffer.from(await res.arrayBuffer())
           writeFileSync(localPath, buffer)
+          if (att.createdAt) {
+            const ts = new Date(att.createdAt)
+            utimesSync(localPath, ts, ts)
+          }
           att.localPath = relativePath
           result.downloaded++
         } catch (err) {

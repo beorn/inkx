@@ -22,6 +22,7 @@ import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
+import { markDialogConfirmed, isDialogConfirmGracePeriod } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"
@@ -140,6 +141,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "ENTER_INLINE_EDIT":
+      // P1 fix (km-tui.keys-as-text): Suppress edit mode entry if a dialog was
+      // just confirmed. When the user presses Enter to select a search result,
+      // the Enter can propagate (in the same event batch or via rapid double-tap)
+      // to the newly-focused card, triggering edit mode. Subsequent navigation
+      // keys then corrupt the card title instead of navigating.
+      if (isDialogConfirmGracePeriod()) {
+        log.debug?.("ENTER_INLINE_EDIT suppressed: dialog confirm grace period")
+        return ok()
+      }
       ctx.setUI({
         inlineEditBlock: {
           nodeId: action.nodeId,
@@ -891,6 +901,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
         return ok()
       }
+      // P1 fix (km-tui.keys-as-text): Mark that a dialog was just confirmed.
+      // This prevents the Enter key from propagating to trigger ENTER_INLINE_EDIT
+      // on the newly-focused card within the same event batch or rapid double-tap.
+      markDialogConfirmed()
       if (dialogTargetRef.current) {
         dialogTargetRef.current.confirm()
       } else if (activeEditTargetRef.current) {

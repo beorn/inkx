@@ -12,6 +12,9 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
+import { activeEditTargetRef } from "inkx"
+import { dialogTargetRef } from "../src/dialog-target.ts"
+import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
 
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", () => {
@@ -213,6 +216,105 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // Content must remain unchanged
     expect(repo.getNode("Search target task")?.content).toBe("Search target task")
     expect(repo.getNode("Another task here")?.content).toBe("Another task here")
+  })
+
+  test("search select via Enter does not enter edit mode or corrupt text", () => {
+    // P1 Bug: km-tui.keys-as-text — After selecting a search result with Enter,
+    // the Enter propagates and triggers inline edit mode on the target card.
+    // Subsequent j/k/h/l keys then insert into the title instead of navigating.
+    const { board, repo, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("Alpha task"), item("Beta task")),
+          item("col2", item("Gamma task"), item("Delta task")),
+        ),
+      { columns: 120, rows: 40 },
+    )
+
+    // Verify starting state
+    expect(store.getState().ui.inlineEditBlock).toBeNull()
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+
+    // Open search
+    board.press("/")
+    expect(store.getState().ui.showSearchDialog).toBe(true)
+
+    // Type a query that matches "Delta task"
+    for (const ch of "Delta") board.press(ch)
+
+    // Verify search found something (dialog still open, results showing)
+    const screenDuringSearch = board.screenshot()
+    expect(screenDuringSearch).toContain("Delta")
+
+    // Select the result with Enter
+    board.press("Enter")
+
+    // Dialog should be closed
+    expect(store.getState().ui.showSearchDialog).toBe(false)
+
+    // Verify cursor is on the selected node
+    const selectedNode = store.getState().selectedNode
+    expect(selectedNode?.content).toBe("Delta task")
+
+    // CRITICAL: Must NOT be in inline edit mode
+    expect(store.getState().ui.inlineEditBlock).toBeNull()
+
+    // CRITICAL: activeEditTargetRef must be null (no text editing target)
+    // If this is non-null, keystrokes would go to a text editor
+    expect(activeEditTargetRef.current).toBeNull()
+
+    // CRITICAL: dialogTargetRef must be null (dialog fully unmounted)
+    expect(dialogTargetRef.current).toBeNull()
+
+    // Navigate with j — should move cursor, not insert 'j' into title
+    board.press("j")
+
+    // Verify NO content corruption — all titles must be unchanged
+    expect(repo.getNode("Alpha task")?.content).toBe("Alpha task")
+    expect(repo.getNode("Beta task")?.content).toBe("Beta task")
+    expect(repo.getNode("Gamma task")?.content).toBe("Gamma task")
+    expect(repo.getNode("Delta task")?.content).toBe("Delta task")
+
+    // Also verify we're still not in edit mode after navigation
+    expect(store.getState().ui.inlineEditBlock).toBeNull()
+  })
+
+  test("rapid Enter after search confirm does not trigger inline edit (grace period)", () => {
+    // P1 Bug: If Enter propagates or user double-taps Enter, the second Enter
+    // would trigger ENTER_INLINE_EDIT on the card selected by search.
+    // The dialog confirm grace period should suppress this.
+    const { board, repo, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("Alpha task"), item("Beta task")),
+          item("col2", item("Gamma task"), item("Delta task")),
+        ),
+      { columns: 120, rows: 40 },
+    )
+
+    // Open search, type query, select result
+    board.press("/")
+    for (const ch of "Delta") board.press(ch)
+    board.press("Enter") // Confirms search, closes dialog
+
+    // Verify grace period is active after dialog confirm
+    expect(isDialogConfirmGracePeriod()).toBe(true)
+
+    // Immediately press Enter again (simulating double-tap or propagation)
+    board.press("Enter")
+
+    // CRITICAL: Should NOT be in inline edit mode despite the second Enter
+    expect(store.getState().ui.inlineEditBlock).toBeNull()
+
+    // Navigate to confirm we're in normal mode
+    board.press("j")
+    board.press("k")
+
+    // Content must remain unchanged
+    expect(repo.getNode("Alpha task")?.content).toBe("Alpha task")
+    expect(repo.getNode("Delta task")?.content).toBe("Delta task")
   })
 
   test("Enter to edit then Escape preserves content on navigation", () => {

@@ -24,6 +24,8 @@ export interface ImportAttachment {
   localPath?: string
   /** "image", "file", "link" */
   type?: string
+  /** Original creation timestamp (ISO 8601) from the source system */
+  createdAt?: string
 }
 
 /** A single importable item (task, note, etc.) */

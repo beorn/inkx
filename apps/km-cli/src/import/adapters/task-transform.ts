@@ -135,9 +135,10 @@ export async function fetchAttachments(client: AsanaClient, taskGid: string): Pr
       permanent_url?: string
       view_url?: string
       host?: string
+      created_at?: string
     }>
   >(`/tasks/${taskGid}/attachments`, {
-    opt_fields: "name,download_url,permanent_url,view_url,host",
+    opt_fields: "name,download_url,permanent_url,view_url,host,created_at",
   })
 
   return attachments.map((a) => ({
@@ -145,6 +146,7 @@ export async function fetchAttachments(client: AsanaClient, taskGid: string): Pr
     name: a.name,
     url: a.download_url ?? a.permanent_url ?? a.view_url ?? "",
     type: isImageName(a.name) ? "image" : a.host === "asana" ? "file" : "link",
+    createdAt: a.created_at,
   }))
 }
 
