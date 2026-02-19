@@ -104,4 +104,55 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     // Also check for ghost prefix
     expect(topLineShort).not.toContain("VShort")
   })
+
+  test("no ghost prefix after rapid h/l/h/l navigation (ainbox/CTaskNotes regression)", () => {
+    // km-tui.breadcrumb-ghost: user saw "ainbox" instead of "inbox",
+    // "CTaskNotes" instead of "TaskNotes" — first char of previous column
+    // leaks into the new breadcrumb. Test rapid h/l cycles with names that
+    // start with different chars.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Calendar", item("c1")),
+          item("inbox", item("i1")),
+          item("TaskNotes", item("t1")),
+        ),
+      { columns: 100, rows: 24 },
+    )
+
+    // Rapid navigation: Calendar -> inbox -> TaskNotes -> inbox -> Calendar
+    board.press("l") // to inbox
+    let topLine = board.screenshot().split("\n")[0] ?? ""
+    expect(topLine).toContain("inbox")
+    expect(topLine).not.toContain("Cinbox")
+    expect(topLine).not.toContain("ainbox")
+
+    board.press("l") // to TaskNotes
+    topLine = board.screenshot().split("\n")[0] ?? ""
+    expect(topLine).toContain("TaskNotes")
+    expect(topLine).not.toContain("iTaskNotes")
+    expect(topLine).not.toContain("CTaskNotes")
+
+    board.press("h") // back to inbox
+    topLine = board.screenshot().split("\n")[0] ?? ""
+    expect(topLine).toContain("inbox")
+    expect(topLine).not.toContain("Tinbox")
+    expect(topLine).not.toContain("ainbox")
+
+    board.press("h") // back to Calendar
+    topLine = board.screenshot().split("\n")[0] ?? ""
+    expect(topLine).toContain("Calendar")
+    expect(topLine).not.toContain("iCalendar")
+
+    // Second round: rapid back-and-forth
+    board.press("l").press("l").press("h").press("h")
+    topLine = board.screenshot().split("\n")[0] ?? ""
+    expect(topLine).toContain("Calendar")
+    expect(topLine).not.toContain("iCalendar")
+    expect(topLine).not.toContain("TCalendar")
+
+    // Buffer-level check: no ghost chars in the top bar region
+    board.expectNoGhostChars({ x: 0, y: 0, width: 100, height: 1 })
+  })
 })

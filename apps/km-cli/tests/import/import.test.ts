@@ -95,6 +95,19 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(task1.projects).toEqual(["Sprint 4", "Product Backlog"])
   })
 
+  test("captures project memberships with section context", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    const task1 = data.projects[0]!.sections![0]!.items[0]!
+    expect(task1.projectMemberships).toEqual([
+      { project: "Sprint 4", section: "To Do" },
+      { project: "Product Backlog", section: "Backlog" },
+    ])
+  })
+
   test("extracts assignee, dates, priority, tags", async () => {
     const data = await fetchFromAsana({
       token: "fake-token",
@@ -140,6 +153,69 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(task1.comments).toHaveLength(3)
     expect(task1.comments![1]!.text).toBe("moved this Task from Backlog to To Do")
     expect(task1.comments![2]!.text).toContain("changed the due date")
+  })
+
+  test("captures system activity log separately from comments", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+      includeComments: true,
+    })
+
+    const task1 = data.projects[0]!.sections![0]!.items[0]!
+    // System story (type: "system") captured in activityLog
+    expect(task1.activityLog).toBeDefined()
+    expect(task1.activityLog).toHaveLength(1)
+    expect(task1.activityLog![0]!.text).toBe("Alice Smith moved this task to To Do")
+    expect(task1.activityLog![0]!.author).toBe("alice-smith")
+    expect(task1.activityLog![0]!.createdAt).toBe("2026-02-15T09:00:00Z")
+  })
+
+  test("fetches project status updates", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    const sprint = data.projects[0]!
+    expect(sprint.statusUpdates).toBeDefined()
+    expect(sprint.statusUpdates).toHaveLength(2)
+    expect(sprint.statusUpdates![0]!.title).toBe("Sprint 4 on track")
+    expect(sprint.statusUpdates![0]!.color).toBe("green")
+    expect(sprint.statusUpdates![0]!.author).toBe("Test User")
+    expect(sprint.statusUpdates![0]!.text).toContain("Design review completed")
+    expect(sprint.statusUpdates![1]!.title).toBe("Sprint 4 at risk")
+    expect(sprint.statusUpdates![1]!.color).toBe("yellow")
+  })
+
+  test("fetches custom field definitions", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    const sprint = data.projects[0]!
+    expect(sprint.customFieldSettings).toBeDefined()
+    expect(sprint.customFieldSettings).toHaveLength(2)
+    expect(sprint.customFieldSettings![0]!.name).toBe("Priority")
+    expect(sprint.customFieldSettings![0]!.type).toBe("number")
+    expect(sprint.customFieldSettings![0]!.description).toBe("Task priority level")
+    expect(sprint.customFieldSettings![0]!.precision).toBe(0)
+    expect(sprint.customFieldSettings![1]!.name).toBe("Stage")
+    expect(sprint.customFieldSettings![1]!.type).toBe("enum")
+    expect(sprint.customFieldSettings![1]!.enumOptions).toEqual(["Planning", "In Progress", "Review", "Done"])
+  })
+
+  test("omits statusUpdates/customFieldSettings when empty", async () => {
+    const data = await fetchFromAsana({
+      token: "fake-token",
+      downloadDir,
+    })
+
+    // proj-2 and proj-3 have empty status/custom field responses
+    const backlog = data.projects.find((p) => p.sourceId === "proj-2")!
+    expect(backlog.statusUpdates).toBeUndefined()
+    expect(backlog.customFieldSettings).toBeUndefined()
   })
 
   test("extracts createdAt and completedAt dates", async () => {
@@ -487,11 +563,11 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("## Milestones")
     // Milestone renders with diamond marker
     expect(edge).toContain("- [ ] ◆ Beta release")
-    // HTML notes converted to markdown with bullets in blockquote
-    expect(edge).toMatch(/>\s+\*\s+First option/)
+    // HTML notes converted to markdown with bullets in body paragraph
+    expect(edge).toMatch(/\s+\*\s+First option/)
+    expect(edge).not.toMatch(/>\s+\*\s+First option/)
     // Multi-line comment has continuation lines
     expect(edge).toContain("@alice-smith: First line of feedback")
-    expect(edge).toMatch(/>\s+Second line with details/)
     // All-metadata task
     expect(edge).toContain("- [x] Comprehensive task")
     expect(edge).toContain("@alice-smith")
@@ -508,9 +584,9 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const files = convert(data)
     const edge = files.get("proj-3-edge-cases.md")!
     // The html_notes for task-links contain Asana URLs that should be converted
-    // to [[^GID]] references in the final markdown
-    expect(edge).toContain("[[^789012]]")
-    expect(edge).toContain("[[^222333]]")
+    // to [[^GID|text]] references in the final markdown, preserving link text as alias
+    expect(edge).toContain("[[^789012|Related task]]")
+    expect(edge).toContain("[[^222333|Another task]]")
     expect(edge).not.toContain("app.asana.com")
   })
 
@@ -651,6 +727,14 @@ describe("User task lists and tag task lists", () => {
     const allItems = [...(userProj!.items ?? []), ...(userProj!.sections ?? []).flatMap((s) => s.items)]
     expect(allItems).toHaveLength(1)
     expect(allItems[0]!.title).toBe("Personal reminder")
+
+    // Orphan task should be grouped under its assignee_section ("Recently assigned")
+    expect(userProj!.sections).toHaveLength(1)
+    expect(userProj!.sections![0]!.title).toBe("Recently assigned")
+    expect(userProj!.sections![0]!.items).toHaveLength(1)
+    expect(userProj!.sections![0]!.items[0]!.title).toBe("Personal reminder")
+    // No loose items — all tasks should be in sections
+    expect(userProj!.items ?? []).toHaveLength(0)
   })
 
   test("fetches orphan tasks from tag task lists", async () => {

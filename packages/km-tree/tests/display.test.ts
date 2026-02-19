@@ -16,6 +16,7 @@ import {
   collapseRedundantAncestors,
   collapseAncestorsWithTypes,
   getParentContext,
+  stripForDisplay,
 } from "../src/display.ts"
 
 // Helper to create test nodes with minimal required properties
@@ -741,5 +742,69 @@ describe("getParentContext", () => {
     }
 
     expect(getParentContext(taskNode, null, getNode)).toBeNull()
+  })
+})
+
+// =============================================================================
+// stripForDisplay — inline ^caret references
+// =============================================================================
+
+describe("stripForDisplay", () => {
+  it("strips ^block-id at end of text (existing behavior)", () => {
+    expect(stripForDisplay("Task title ^abc123")).toBe("Task title")
+  })
+
+  it("strips inline ^numeric-id mid-text", () => {
+    expect(stripForDisplay("See previous ^1202466275397380")).toBe("See previous")
+  })
+
+  it("strips ^numeric-id with no space before caret", () => {
+    expect(stripForDisplay("talk to Fidelity^1212075048027297")).toBe("talk to Fidelity")
+  })
+
+  it("strips ^numeric-id followed by URL (no space)", () => {
+    expect(stripForDisplay("44 most beautiful places ^1209904823302245https://example.com")).toBe(
+      "44 most beautiful places https://example.com",
+    )
+  })
+
+  it("strips ^numeric-id followed by text (no space)", () => {
+    expect(stripForDisplay("First long card ^99365004304232more text")).toBe("First long card more text")
+  })
+
+  it("strips multiple inline ^numeric-ids", () => {
+    expect(stripForDisplay("ref ^1202466275397380 and ^1212075048027297 done")).toBe("ref and done")
+  })
+
+  it("does not strip short ^ids inline (only 10+ digits)", () => {
+    // Short numeric refs mid-text are not Asana IDs — should be preserved
+    expect(stripForDisplay("value ^12345 is good")).toBe("value ^12345 is good")
+  })
+
+  it("preserves caret in non-ID contexts mid-text", () => {
+    // Regex or math usage of ^ — digits too short to match inline stripping
+    expect(stripForDisplay("x^2 + y^2 equals r^2 total")).toBe("x^2 + y^2 equals r^2 total")
+  })
+
+  it("handles text with only a ^numeric-id", () => {
+    expect(stripForDisplay("^1202466275397380")).toBe("")
+  })
+
+  it("preserves ^numeric-id inside wikilink brackets ![[^id]]", () => {
+    expect(stripForDisplay("![[^1203128650780856]]")).toBe("![[^1203128650780856]]")
+  })
+
+  it("preserves ^numeric-id inside inline wikilink [[^id]]", () => {
+    expect(stripForDisplay("See [[^1203128650780856]]")).toBe("See [[^1203128650780856]]")
+  })
+
+  it("preserves ^numeric-id inside wikilink with alias [[^id|text]]", () => {
+    expect(stripForDisplay("See [[^1203128650780856|Related task]]")).toBe("See [[^1203128650780856|Related task]]")
+  })
+
+  it("strips ^numeric-id outside wikilinks but preserves inside", () => {
+    expect(stripForDisplay("ref ^1202466275397380 and [[^1203128650780856]]")).toBe(
+      "ref and [[^1203128650780856]]",
+    )
   })
 })

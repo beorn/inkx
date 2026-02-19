@@ -12,6 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import type { KNode } from "@km/core"
 
 describe("P2: Filter feature", () => {
   test("Ctrl+/ toggles filter panel", () => {
@@ -231,5 +232,200 @@ describe("P2: Filter feature", () => {
     board.press("ctrl+/")
     screen = board.screenshot()
     expect(screen).not.toContain("Status")
+  })
+})
+
+// =============================================================================
+// Deep filter: embedded tasks use source node properties (km-tui.filter-embedded-source)
+// =============================================================================
+
+describe("deep filter: embedded tasks use source node properties (km-tui.filter-embedded-source)", () => {
+  /**
+   * Build a board with embedded tasks. The embed nodes have link_to pointing
+   * to source nodes. The source nodes have task properties (status, priority,
+   * due_at). The embed nodes themselves have minimal properties.
+   *
+   * Board structure:
+   *   board > Tasks > [embed1(link_to=src1), embed2(link_to=src2), normalTask]
+   *   src1: task_status=todo, priority=1
+   *   src2: task_status=done, priority=2
+   *   normalTask: task_status=todo (no link_to)
+   */
+  function buildEmbedBoard(): KNode[] {
+    const now = Date.now()
+
+    // Source nodes (exist elsewhere in the tree -- under a different parent)
+    const srcParent: KNode = {
+      id: "src-parent",
+      type: "oi",
+      fstype: "folder",
+      content: undefined,
+      data: { name: "Sources" },
+      parent_id: "board",
+      parent_idx: 1,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+    const src1: KNode = {
+      id: "src1",
+      type: "li",
+      list_marker: "-",
+      task_marker: "[ ]",
+      task_status: "todo",
+      priority: 1,
+      content: "Source task 1 (todo P1)",
+      data: {},
+      parent_id: "src-parent",
+      parent_idx: 0,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+    const src2: KNode = {
+      id: "src2",
+      type: "li",
+      list_marker: "-",
+      task_marker: "[x]",
+      task_status: "done",
+      priority: 2,
+      content: "Source task 2 (done P2)",
+      data: {},
+      parent_id: "src-parent",
+      parent_idx: 1,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+
+    // Tasks column
+    const tasksCol: KNode = {
+      id: "Tasks",
+      type: "oi",
+      fstype: "folder",
+      content: undefined,
+      data: { name: "Tasks" },
+      parent_id: "board",
+      parent_idx: 0,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+
+    // Embed nodes (point to source nodes via link_to)
+    // Embeds have no task_status/priority themselves — they inherit from source
+    const embed1: KNode = {
+      id: "embed1",
+      type: "li",
+      list_marker: "-",
+      content: "![[src1]]",
+      data: {},
+      parent_id: "Tasks",
+      parent_idx: 0,
+      link_to: "src1",
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+    const embed2: KNode = {
+      id: "embed2",
+      type: "li",
+      list_marker: "-",
+      content: "![[src2]]",
+      data: {},
+      parent_id: "Tasks",
+      parent_idx: 1,
+      link_to: "src2",
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+    // A normal (non-embed) task for comparison
+    const normalTask: KNode = {
+      id: "normalTask",
+      type: "li",
+      list_marker: "-",
+      task_marker: "[ ]",
+      task_status: "todo",
+      content: "Normal task (todo)",
+      data: {},
+      parent_id: "Tasks",
+      parent_idx: 2,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+
+    // Board root
+    const board: KNode = {
+      id: "board",
+      type: "oi",
+      fstype: "folder",
+      content: undefined,
+      data: { name: "board" },
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      created_at: now,
+      updated_at: now,
+      version: "v1",
+    }
+
+    return [board, tasksCol, embed1, embed2, normalTask, srcParent, src1, src2]
+  }
+
+  test("filtering by 'todo' status includes embed whose source is todo", () => {
+    const { board, store } = testEnv(() => buildEmbedBoard(), {
+      columns: 120,
+      rows: 24,
+      checkIncremental: false,
+    })
+
+    // Verify all cards are visible initially
+    let screen = board.screenshot()
+    expect(screen).toContain("Source task 1") // embed1 resolves to src1's display
+    expect(screen).toContain("Normal task")
+
+    // Apply 'todo' status filter
+    board.press("ctrl+/") // open filter
+    board.press(" ")       // toggle todo
+    board.press("Escape")  // close filter
+
+    screen = board.screenshot()
+    // embed1 links to src1 which is task_status=todo → should be visible
+    // embed2 links to src2 which is task_status=done → should be hidden
+    // normalTask is task_status=todo → should be visible
+    expect(screen).toContain("Source task 1")
+    expect(screen).toContain("Normal task")
+    expect(screen).not.toContain("Source task 2")
+  })
+
+  test("filtering by 'done' status includes embed whose source is done", () => {
+    const { board } = testEnv(() => buildEmbedBoard(), {
+      columns: 120,
+      rows: 24,
+      checkIncremental: false,
+    })
+
+    // Apply 'done' status filter
+    board.press("ctrl+/") // open filter
+    // Navigate to 'done' value: h/l through values
+    // Status row values: todo, wip, blocked, done, dropped
+    board.press("l").press("l").press("l") // move to 'done'
+    board.press(" ")       // toggle done
+    board.press("Escape")  // close filter
+
+    const screen = board.screenshot()
+    // embed2 links to src2 which is task_status=done → should be visible
+    // embed1 links to src1 which is task_status=todo → should be hidden
+    // normalTask is task_status=todo → should be hidden
+    expect(screen).toContain("Source task 2")
+    expect(screen).not.toContain("Source task 1")
+    expect(screen).not.toContain("Normal task")
   })
 })

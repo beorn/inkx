@@ -11,6 +11,7 @@ import {
   getStatusDisplay,
   getProjectPath,
 } from "../src/views/DetailPane.tsx"
+import { resolveProjectDisplayNames } from "../src/views/detail-pane-helpers.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 
 // --- Test Helpers ---
@@ -209,6 +210,41 @@ describe("getProjectPath", () => {
   })
 })
 
+describe("resolveProjectDisplayNames", () => {
+  test("resolves slugs to node display names", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "p1", type: "oi", fstype: "mdfile" as const, content: "FAMILY SPRINT" },
+        { id: "p2", type: "oi", fstype: "mdfile" as const, content: "[Fam] Estate" },
+      ]),
+    })
+    const resolved = resolveProjectDisplayNames(repo, ["family-sprint", "fam-estate"])
+    expect(resolved).toEqual(["FAMILY SPRINT", "[Fam] Estate"])
+  })
+
+  test("falls back to raw slug when no match", () => {
+    const repo = createFakeRepo({ nodes: [] })
+    const resolved = resolveProjectDisplayNames(repo, ["unknown-project"])
+    expect(resolved).toEqual(["unknown-project"])
+  })
+
+  test("handles empty slug list", () => {
+    const repo = createFakeRepo({ nodes: [] })
+    const resolved = resolveProjectDisplayNames(repo, [])
+    expect(resolved).toEqual([])
+  })
+
+  test("handles mixed resolved and unresolved slugs", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "p1", type: "oi", fstype: "mdfile" as const, content: "My Project" },
+      ]),
+    })
+    const resolved = resolveProjectDisplayNames(repo, ["my-project", "missing-one"])
+    expect(resolved).toEqual(["My Project", "missing-one"])
+  })
+})
+
 describe("DetailPane", () => {
   test("renders with all task fields", () => {
     const repo = createFakeRepo({
@@ -331,6 +367,257 @@ describe("DetailPane", () => {
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 40, 24)
     expect(app.text).toContain("done")
+  })
+
+  test("shows all projects with section context from data.projectMemberships", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "li",
+          content: "Immigration paperwork",
+          task_status: "todo",
+          data: {
+            projectMemberships: [
+              { project: "FAMILY SPRINT", section: "Waiting" },
+              { project: "[Fam] Estate", section: "Immigration" },
+            ],
+          },
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Should show "Projects" row with all project memberships and section context
+    expect(app.text).toContain("Projects")
+    expect(app.text).toContain("FAMILY SPRINT")
+    expect(app.text).toContain("Waiting")
+    expect(app.text).toContain("[Fam] Estate")
+    expect(app.text).toContain("Immigration")
+  })
+
+  test("shows projects from data.projectMemberships even with single project", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "li",
+          content: "Simple task",
+          task_status: "todo",
+          data: {
+            projectMemberships: [
+              { project: "My Project", section: "To Do" },
+            ],
+          },
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    expect(app.text).toContain("Projects")
+    expect(app.text).toContain("My Project")
+    expect(app.text).toContain("To Do")
+  })
+
+  test("resolves +project slugs to display names when no projectMemberships", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        // Project file nodes (as created by import) — their content is the project title
+        {
+          id: "proj1",
+          type: "oi",
+          fstype: "mdfile" as const,
+          content: "FAMILY SPRINT",
+        },
+        {
+          id: "proj2",
+          type: "oi",
+          fstype: "mdfile" as const,
+          content: "[Fam] Estate",
+        },
+        // Task with +slug references but NO data.projectMemberships
+        // (simulates post-parse state where projectMemberships was lost)
+        {
+          id: "task1",
+          type: "li",
+          content: "Review docs +family-sprint +fam-estate",
+          task_status: "todo",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Should resolve slugs to display names from matching repo nodes
+    expect(app.text).toContain("FAMILY SPRINT")
+    expect(app.text).toContain("[Fam] Estate")
+    // Should NOT show the raw slugs in the Projects row
+    expect(app.text).not.toContain("family-sprint")
+    expect(app.text).not.toContain("fam-estate")
+  })
+
+  test("falls back to slug when no matching project node exists", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "li",
+          content: "Review docs +unknown-project",
+          task_status: "todo",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Should show the raw slug as fallback
+    expect(app.text).toContain("unknown-project")
+  })
+
+  test("renders subtask children recursively in detail pane", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "parent1", type: "oi", content: "Parent task" },
+        {
+          id: "sub1",
+          type: "li",
+          content: "Subtask with kids",
+          parent_id: "parent1",
+          task_status: "todo",
+          task_marker: "[ ]",
+        },
+        {
+          id: "grandchild1",
+          type: "li",
+          content: "Grandchild 1",
+          parent_id: "sub1",
+          task_marker: "[ ]",
+        },
+        {
+          id: "grandchild2",
+          type: "li",
+          content: "Grandchild 2",
+          parent_id: "sub1",
+          parent_idx: 1,
+          task_marker: "[ ]",
+        },
+        {
+          id: "sub2",
+          type: "li",
+          content: "Subtask no kids",
+          parent_id: "parent1",
+          parent_idx: 1,
+          task_status: "todo",
+          task_marker: "[ ]",
+        },
+      ]),
+    })
+    const parent = repo.getNode("parent1")!
+    const app = renderDetailPane(repo, parent, 60, 30)
+    // All items should be rendered as structural items with recursive children
+    expect(app.text).toContain("Subtask with kids")
+    expect(app.text).toContain("Grandchild 1")
+    expect(app.text).toContain("Grandchild 2")
+    expect(app.text).toContain("Subtask no kids")
+  })
+
+  test("shows child count for items at max depth with hidden children", () => {
+    // ColumnItems recursion: depth 0 → 1 → 2. At depth >= 3, children are hidden.
+    // Structure: parent1 > d1(depth0) > d2(depth1) > d3(depth2) > d4(depth3) > d5a,d5b(hidden)
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "parent1", type: "oi", content: "Root task" },
+        { id: "d1", type: "li", content: "Depth 1", parent_id: "parent1", task_marker: "[ ]" },
+        { id: "d2", type: "li", content: "Depth 2", parent_id: "d1", task_marker: "[ ]" },
+        { id: "d3", type: "li", content: "Depth 3", parent_id: "d2", task_marker: "[ ]" },
+        { id: "d4", type: "li", content: "Depth 4", parent_id: "d3", task_marker: "[ ]" },
+        // d4 is at depth 3, so its children are not fetched
+        { id: "d5a", type: "li", content: "Hidden child A", parent_id: "d4", task_marker: "[ ]" },
+        { id: "d5b", type: "li", content: "Hidden child B", parent_id: "d4", parent_idx: 1, task_marker: "[ ]" },
+      ]),
+    })
+    const parent = repo.getNode("parent1")!
+    const app = renderDetailPane(repo, parent, 60, 30)
+    expect(app.text).toContain("Depth 1")
+    expect(app.text).toContain("Depth 2")
+    expect(app.text).toContain("Depth 3")
+    expect(app.text).toContain("Depth 4")
+    // d4 at depth 3 has 2 hidden children — show count
+    expect(app.text).toMatch(/\+2/)
+    // The hidden children should NOT be rendered
+    expect(app.text).not.toContain("Hidden child A")
+    expect(app.text).not.toContain("Hidden child B")
+  })
+
+  test("renders body content with attachment links", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "task1", type: "li", content: "Task with attachments" },
+        // Body content (non-structural: p type)
+        {
+          id: "body1",
+          type: "p",
+          content: "Some description text",
+          parent_id: "task1",
+        },
+        {
+          id: "body2",
+          type: "p",
+          content: "[Report.pdf](https://example.com/report.pdf)",
+          parent_id: "task1",
+          parent_idx: 1,
+        },
+        {
+          id: "body3",
+          type: "p",
+          content: "![Screenshot](https://example.com/img.png)",
+          parent_id: "task1",
+          parent_idx: 2,
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    expect(app.text).toContain("Some description text")
+    // Attachment links should show [link] prefix and name
+    expect(app.text).toContain("[link]")
+    expect(app.text).toContain("Report.pdf")
+    // Image embeds should show [img] prefix
+    expect(app.text).toContain("[img]")
+    expect(app.text).toContain("Screenshot")
+  })
+
+  test("renders mixed body and subtask children", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        { id: "task1", type: "li", content: "Parent with body and subtasks" },
+        // Body content first
+        { id: "b1", type: "p", content: "Description paragraph", parent_id: "task1" },
+        // Then subtask items
+        {
+          id: "sub1",
+          type: "li",
+          content: "Subtask A",
+          parent_id: "task1",
+          parent_idx: 1,
+          task_marker: "[ ]",
+        },
+        {
+          id: "sub2",
+          type: "li",
+          content: "Subtask B",
+          parent_id: "task1",
+          parent_idx: 2,
+          task_marker: "[x]",
+          task_status: "done",
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Should show body paragraph
+    expect(app.text).toContain("Description paragraph")
+    // Should show both subtasks
+    expect(app.text).toContain("Subtask A")
+    expect(app.text).toContain("Subtask B")
   })
 
   test("shows backlinks when present", () => {

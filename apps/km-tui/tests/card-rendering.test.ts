@@ -97,10 +97,10 @@ function expectDimBorder(board: ReturnType<typeof testEnv>["board"], nodeId: str
 
 // ─── Card Border: Structural Cards ───────────────────────────────────────────
 
-describe("card border: structural cards (sections)", () => {
+describe("card border: structural cards (files)", () => {
   test("structural cards always have borders", () => {
     const { board } = testEnv(
-      () => item("board", item("col", item.section("1a", item("1a-child")), item.section("1b", item("1b-child")))),
+      () => item("board", item("col", item.file("1a", item("1a-child")), item.file("1b", item("1b-child")))),
       { columns: 80, rows: 24 },
     )
     expectCardBorder(board, "1a", 80)
@@ -114,9 +114,9 @@ describe("card border: structural cards (sections)", () => {
           "board",
           item(
             "col",
-            item.section("1a", item("1a-child")),
-            item.section("1b", item("1b-child")),
-            item.section("1c", item("1c-child")),
+            item.file("1a", item("1a-child")),
+            item.file("1b", item("1b-child")),
+            item.file("1c", item("1c-child")),
           ),
         ),
       { columns: 80, rows: 24 },
@@ -159,7 +159,7 @@ describe("card border: virtual body cards", () => {
 
 describe("card border: scrolling", () => {
   test("borders present after scrolling down (structural)", () => {
-    const cards = Array.from({ length: 15 }, (_, i) => item.section(`card-${i}`, item(`card-${i}-child`)))
+    const cards = Array.from({ length: 15 }, (_, i) => item.file(`card-${i}`, item(`card-${i}-child`)))
     const { board } = testEnv(() => item("board", item("col", ...cards)), { rows: 20 })
 
     for (let i = 0; i < 10; i++) board.press("j")
@@ -169,7 +169,7 @@ describe("card border: scrolling", () => {
   })
 
   test("borders present after scrolling back up (structural)", () => {
-    const cards = Array.from({ length: 20 }, (_, i) => item.section(`card-${i}`, item(`card-${i}-child`)))
+    const cards = Array.from({ length: 20 }, (_, i) => item.file(`card-${i}`, item(`card-${i}-child`)))
     const { board } = testEnv(() => item("board", item("col", ...cards)), { rows: 20 })
 
     for (let i = 0; i < 15; i++) board.press("j")
@@ -184,7 +184,7 @@ describe("card border: scrolling", () => {
 
 describe("card border: terminal widths", () => {
   test.each([30, 200])("single column borders intact at %d cols", (cols) => {
-    const { board } = testEnv(() => item("board", item("col1", item.section("1a", item("1a-child")))), {
+    const { board } = testEnv(() => item("board", item("col1", item.file("1a", item("1a-child")))), {
       columns: cols,
     })
     expectCardBorder(board, "1a", cols)
@@ -195,8 +195,8 @@ describe("card border: terminal widths", () => {
       () =>
         item(
           "board",
-          item("col1", item.section("1a", item("1a-child"))),
-          item("col2", item.section("2a", item("2a-child"))),
+          item("col1", item.file("1a", item("1a-child"))),
+          item("col2", item.file("2a", item("2a-child"))),
         ),
       { columns: 80 },
     )
@@ -211,7 +211,7 @@ describe("card border: terminal widths", () => {
 describe("card border: overflow indicator", () => {
   test("card with overflow still has left/right borders", () => {
     const children = Array.from({ length: 10 }, (_, i) => item(`c${i}`))
-    const { board } = testEnv(() => item("board", item("col", item.section("parent", ...children))), {
+    const { board } = testEnv(() => item("board", item("col", item.file("parent", ...children))), {
       columns: 80,
       rows: 30,
     })
@@ -240,9 +240,9 @@ describe("card border: multi-column", () => {
       () =>
         item(
           "board",
-          item("col1", item.section("1a", item("1a-c")), item.section("1b", item("1b-c"))),
-          item("col2", item.section("2a", item("2a-c")), item.section("2b", item("2b-c"))),
-          item("col3", item.section("3a", item("3a-c")), item.section("3b", item("3b-c"))),
+          item("col1", item.file("1a", item("1a-c")), item.file("1b", item("1b-c"))),
+          item("col2", item.file("2a", item("2a-c")), item.file("2b", item("2b-c"))),
+          item("col3", item.file("3a", item("3a-c")), item.file("3b", item("3b-c"))),
         ),
       { columns: cols },
     )
@@ -258,9 +258,9 @@ describe("card border: multi-column", () => {
       () =>
         item(
           "board",
-          item("col1", item.section("1a", item("1a-c"))),
-          item("col2", item.section("2a", item("2a-c"))),
-          item("col3", item.section("3a", item("3a-c"))),
+          item("col1", item.file("1a", item("1a-c"))),
+          item("col2", item.file("2a", item("2a-c"))),
+          item("col3", item.file("3a", item("3a-c"))),
         ),
       { columns: cols },
     )
@@ -283,11 +283,11 @@ describe("card border: edge cases", () => {
       () =>
         item(
           "board",
-          item("col1", item.section("1a", item("1a-c"))),
-          item("col2", item.section("2a", item("2a-c"))),
-          item("col3", item.section("3a", item("3a-c"))),
-          item("col4", item.section("4a", item("4a-c"))),
-          item("col5", item.section("5a", item("5a-c"))),
+          item("col1", item.file("1a", item("1a-c"))),
+          item("col2", item.file("2a", item("2a-c"))),
+          item("col3", item.file("3a", item("3a-c"))),
+          item("col4", item.file("4a", item("4a-c"))),
+          item("col5", item.file("5a", item("5a-c"))),
         ),
       { columns: cols },
     )
@@ -302,8 +302,8 @@ describe("card border: edge cases", () => {
       () =>
         item(
           "board",
-          item("col1 km.collapse:: true", item.section("1a", item("1a-c"))),
-          item("col2", item.section("2a", item("2a-c")), item.section("2b", item("2b-c"))),
+          item("col1 km.collapse:: true", item.file("1a", item("1a-c"))),
+          item("col2", item.file("2a", item("2a-c")), item.file("2b", item("2b-c"))),
         ),
       { columns: cols },
     )
@@ -312,7 +312,7 @@ describe("card border: edge cases", () => {
   })
 
   test("full border verification: corners and all sides (structural card)", () => {
-    const { board } = testEnv(() => item("board", item("col", item.section("task1", item("task1-c")))), {
+    const { board } = testEnv(() => item("board", item("col", item.file("task1", item("task1-c")))), {
       columns: 80,
       rows: 24,
     })
@@ -414,7 +414,7 @@ describe("layout stability invariant: body blocks", () => {
     // Body blocks come BEFORE structural (extractBody puts body first)
     const ids = ["a", "b", "c", "s1"]
     const { board } = testEnv(
-      () => item("board", item("col", item("a"), item("b"), item("c"), item.section("sec", item("s1")))),
+      () => item("board", item("col", item("a"), item("b"), item("c"), item.file("sec", item("s1")))),
       { columns: 80, rows: 40 },
     )
 
@@ -462,7 +462,7 @@ describe("layout stability invariant: body blocks", () => {
   test("total height stable: body blocks then structural", () => {
     // Realistic: body content (description, HR) followed by sections
     const { board } = testEnv(
-      () => item("board", item("col", item("b1"), item("b2"), item("b3"), item.section("sec", item("s1")))),
+      () => item("board", item("col", item("b1"), item("b2"), item("b3"), item.file("sec", item("s1")))),
       { columns: 80, rows: 50 },
     )
 
@@ -531,7 +531,7 @@ describe("layout stability invariant: body blocks", () => {
     // This test verifies body blocks + structural in the same column.
     const ids = ["a", "b", "s1"]
     const { board } = testEnv(
-      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.section("sec", item("s1")))),
+      () => item("board", item("col", item("a"), item.hr("hr1"), item("b"), item.file("sec", item("s1")))),
       { columns: 80, rows: 40 },
     )
 
@@ -725,5 +725,69 @@ describe("card child line truncation", () => {
 
     // Children should be on consecutive lines (not taking multiple lines each)
     expect(child2Rect.y).toBe(child1Rect.y + 1)
+  })
+})
+
+// ─── Card Border: Date Badge Overflow ─────────────────────────────────────────
+
+describe("card border: date badge overflow", () => {
+  test("right border intact when card has date badge", () => {
+    // Create a task with a due date that produces a date badge (e.g., "Sep 30")
+    const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
+    if (taskNodes[0]) {
+      taskNodes[0].due_at = "2026-09-30T00:00:00Z"
+    }
+
+    const { board } = testEnv(
+      () => item("board", item("col", taskNodes)),
+      { columns: 40, rows: 12 },
+    )
+
+    // Find the task's box
+    const taskId = taskNodes[0]!.id
+    const box = board.screen.nodeBox(taskId)
+    expect(box, "task should be visible").not.toBeNull()
+    if (!box) return
+
+    // Check border on the right side (1 cell past the content area)
+    const borderRight = box.x + box.width
+    if (borderRight < 40) {
+      for (let y = box.y; y < box.y + box.height; y++) {
+        const rightCell = board.screen.cell(borderRight, y)
+        expect(
+          isBorderChar(rightCell.char),
+          `Right border at (${borderRight},${y}): got '${rightCell.char}' (content area ends at x=${box.x + box.width - 1})`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  test("right border intact with long title and date badge at various widths", () => {
+    for (const termWidth of [30, 35, 40, 45, 50, 60, 80]) {
+      const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
+      if (taskNodes[0]) {
+        taskNodes[0].due_at = "2026-09-30T00:00:00Z"
+      }
+
+      const { board } = testEnv(
+        () => item("board", item("col", taskNodes)),
+        { columns: termWidth, rows: 12 },
+      )
+
+      const taskId = taskNodes[0]!.id
+      const box = board.screen.nodeBox(taskId)
+      if (!box) continue
+
+      const borderRight = box.x + box.width
+      if (borderRight < termWidth) {
+        for (let y = box.y; y < box.y + box.height; y++) {
+          const rightCell = board.screen.cell(borderRight, y)
+          expect(
+            isBorderChar(rightCell.char),
+            `termWidth=${termWidth} Right border at (${borderRight},${y}): got '${rightCell.char}'`,
+          ).toBe(true)
+        }
+      }
+    }
   })
 })

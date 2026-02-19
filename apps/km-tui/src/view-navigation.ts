@@ -111,10 +111,29 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   // Resolve sub-card descendants to their card-level ancestor.
   // After indent, cursorNodeId may point to a node nested inside a card.
   // j/k must navigate at card level (column children), not at the descendant's sibling level.
+  //
+  // Body-card descendants need special handling: body cards live at depth 1
+  // (direct children of root), not depth 2 (root→column→card). When cursor
+  // is inside a body card's subtree, resolve at depth 1 so j/k navigates
+  // between body cards rather than between subtasks.
   let cardNodeId = cursorNodeId
+  let isBodyCardDescendant = false
   if (isAtCardLevel && !isBodyContent) {
-    const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
-    if (cardAncestor) cardNodeId = cardAncestor
+    // Check if the direct-child-of-root ancestor is a body node (not outline).
+    // If so, cursor is inside a body card's subtree → resolve at depth 1.
+    const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
+    if (directChildOfRoot) {
+      const directChildNode = repo.getNode(directChildOfRoot)
+      if (directChildNode && !isOutline(directChildNode.type)) {
+        // Descendant of a body card — resolve to the body card itself
+        cardNodeId = directChildOfRoot
+        isBodyCardDescendant = true
+      } else {
+        // Standard multi-column card — resolve at depth 2
+        const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
+        if (cardAncestor) cardNodeId = cardAncestor
+      }
+    }
   }
 
   if (dir === "down") {
@@ -139,13 +158,15 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       return structuralCols[0]?.id ?? allChildren[0]?.id ?? null
     }
 
-    if (isBodyContent) {
-      // Body card → next meaningful body sibling.
+    if (isBodyContent || isBodyCardDescendant) {
+      // Body card (or descendant of body card) → next meaningful body sibling.
       // Use filterMeaningfulBody to skip HR/empty nodes that the view doesn't render.
+      // For body-card descendants, cardNodeId has been resolved to the body card.
+      const effectiveCursorId = isBodyCardDescendant ? cardNodeId : cursorNodeId
       const allChildren = repo.getChildren(rootId)
       const { body: rawBody } = extractBody(allChildren)
       const bodyNodes = filterMeaningfulBody(rawBody)
-      const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
+      const bodyIdx = bodyNodes.findIndex((n) => n.id === effectiveCursorId)
       if (bodyIdx >= 0 && bodyIdx < bodyNodes.length - 1) {
         return bodyNodes[bodyIdx + 1]?.id ?? null
       }
@@ -168,13 +189,15 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
     }
   } else {
     // k: move up
-    if (isBodyContent) {
-      // Body card → previous meaningful body sibling, or body column header if at first.
-      // Use filterMeaningfulBody to skip HR/empty nodes that the view doesn't render.
+    if (isBodyContent || isBodyCardDescendant) {
+      // Body card (or descendant of body card) → previous meaningful body sibling,
+      // or body column header if at first.
+      // For body-card descendants, cardNodeId has been resolved to the body card.
+      const effectiveCursorId = isBodyCardDescendant ? cardNodeId : cursorNodeId
       const allChildren = repo.getChildren(rootId)
       const { body: rawBody } = extractBody(allChildren)
       const bodyNodes = filterMeaningfulBody(rawBody)
-      const bodyIdx = bodyNodes.findIndex((n) => n.id === cursorNodeId)
+      const bodyIdx = bodyNodes.findIndex((n) => n.id === effectiveCursorId)
       if (bodyIdx > 0) {
         return bodyNodes[bodyIdx - 1]?.id ?? null
       }

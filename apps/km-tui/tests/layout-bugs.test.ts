@@ -254,14 +254,14 @@ describe("km-tui.card-border-missing", () => {
       () =>
         item(
           "board",
-          item("Work", item.section("Section A", item("task-a")), item.section("Section B", item("task-b"))),
+          item("Work", item.file("File A", item("task-a")), item.file("File B", item("task-b"))),
         ),
       { columns: 80, rows: 20 },
     )
 
-    // Structural cards (oi type, created with item.section()) always have borders
-    board.expectNodeBorder("Section A")
-    board.expectNodeBorder("Section B")
+    // Structural cards (oi type, file/folder) always have borders
+    board.expectNodeBorder("File A")
+    board.expectNodeBorder("File B")
   })
 
   test("unselected body cards have dim border after cursor movement", () => {

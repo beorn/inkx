@@ -26,6 +26,7 @@ if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
 
   if [ "$SKIP_INDEX" -eq 0 ]; then
     (cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") &
+    disown
   fi
 
   # Daily summarization (background, atomic via lock file)
@@ -35,6 +36,7 @@ if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
     trap 'rmdir "$LOCK" 2>/dev/null' EXIT
     cd "$REPO_ROOT" && bun vendor/beorn-tools/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
   ) &
+  disown
 fi
 
 exit 0

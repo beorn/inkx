@@ -185,6 +185,50 @@ export function minimalFixtures(): FakeAsanaOptions {
           { gid: "sec-done", name: "Done" },
         ],
       },
+      // Project status updates for proj-1
+      {
+        path: "/projects/proj-1/project_statuses",
+        response: [
+          {
+            title: "Sprint 4 on track",
+            text: "All tasks progressing well. Design review completed.",
+            color: "green",
+            author: { name: "Test User" },
+            created_at: "2026-02-14T10:00:00Z",
+            modified_at: "2026-02-14T10:00:00Z",
+          },
+          {
+            title: "Sprint 4 at risk",
+            text: "API integration delayed due to dependency.",
+            color: "yellow",
+            author: { name: "Alice Smith" },
+            created_at: "2026-02-10T09:00:00Z",
+            modified_at: "2026-02-10T09:00:00Z",
+          },
+        ],
+      },
+      // Custom field settings for proj-1
+      {
+        path: "/projects/proj-1/custom_field_settings",
+        response: [
+          {
+            custom_field: {
+              name: "Priority",
+              type: "number",
+              description: "Task priority level",
+              precision: 0,
+            },
+          },
+          {
+            custom_field: {
+              name: "Stage",
+              type: "enum",
+              description: "Development stage",
+              enum_options: [{ name: "Planning" }, { name: "In Progress" }, { name: "Review" }, { name: "Done" }],
+            },
+          },
+        ],
+      },
       {
         path: "/tasks",
         params: { project: "proj-1" },
@@ -322,6 +366,8 @@ export function minimalFixtures(): FakeAsanaOptions {
         params: { opt_fields: "name" },
         response: [{ gid: "sec-bl", name: "Backlog" }],
       },
+      { path: "/projects/proj-2/project_statuses", response: [] },
+      { path: "/projects/proj-2/custom_field_settings", response: [] },
       {
         path: "/tasks",
         params: { project: "proj-2" },
@@ -357,6 +403,8 @@ export function minimalFixtures(): FakeAsanaOptions {
           { gid: "sec-milestones", name: "Milestones" },
         ],
       },
+      { path: "/projects/proj-3/project_statuses", response: [] },
+      { path: "/projects/proj-3/custom_field_settings", response: [] },
       {
         path: "/tasks",
         params: { project: "proj-3" },
@@ -589,7 +637,7 @@ export function minimalFixtures(): FakeAsanaOptions {
             memberships: [],
             num_subtasks: 0,
           },
-          // Orphan task: not in any project
+          // Orphan task: not in any project, has My Tasks section via assignee_section
           {
             gid: "task-orphan-1",
             name: "Personal reminder",
@@ -600,6 +648,7 @@ export function minimalFixtures(): FakeAsanaOptions {
             num_subtasks: 0,
             tags: [],
             custom_fields: [],
+            assignee_section: { gid: "section-recently-assigned", name: "Recently assigned" },
           },
         ],
       },

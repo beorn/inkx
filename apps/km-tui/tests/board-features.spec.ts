@@ -498,6 +498,26 @@ describe("Search and Filter", () => {
     board.expect("#deep-target[data-cursor]").toExist()
   })
 
+  test("search navigation: depth-5 target lands on actual matched node, not parent", () => {
+    // km-tui.search-nav regression: deeply nested nodes must zoom to grandparent
+    // and cursor must land on target itself, not its parent section.
+    // Tree: root > A > B > C > D > very-deep-target
+    const { board, store } = testEnv(() =>
+      item("root", item("A", item("B", item("C", item("D", item("very-deep-target")))))),
+    )
+
+    board.press("/")
+    for (const c of "very-deep-target") board.press(c)
+    board.press("Enter")
+
+    // ancestors = [very-deep-target, D, C, B, A, root]
+    // grandparent (index 2) = C → zoom to C, D becomes column, very-deep-target becomes card
+    const state = store.getState()
+    expect(state.rootId).toBe("C")
+    expect(state.cursorNodeId).toBe("very-deep-target")
+    board.expect("#very-deep-target[data-cursor]").toExist()
+  })
+
   test("Enter on paragraph search result navigates correctly", () => {
     // Bug repro: search Enter on paragraph/section types doesn't work
     // Use real node types: file > section > paragraph
@@ -658,5 +678,91 @@ describe("Content Lines (+/-)", () => {
     const status = board.getStatus()
     expect(status).not.toBeNull()
     expect(status!.message).toContain("Content lines: 4")
+  })
+})
+
+describe("Detail Pane Navigation", () => {
+  test("detail pane stays open when navigating with j/k", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("card1"), item("card2"), item("card3"))),
+    )
+
+    // Open detail pane with Space
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // Navigate down with j — detail pane should stay open
+    board.press("j")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // Navigate up with k — detail pane should stay open
+    board.press("k")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+  })
+
+  test("detail pane updates to show new card when navigating with j/k", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("card1"), item("card2"))),
+    )
+
+    // Open detail pane with Space on card1
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    // Detail pane should contain card1 content
+    const screen1 = board.screenshot()
+    expect(screen1).toContain("card1")
+
+    // Navigate down to card2 — detail pane should update
+    board.press("j")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    const screen2 = board.screenshot()
+    expect(screen2).toContain("card2")
+  })
+
+  test("Space closes detail pane", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("card1"), item("card2"))),
+    )
+
+    // Open detail pane
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // Space again should close it
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(false)
+  })
+
+  test("Escape closes detail pane", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col", item("card1"), item("card2"))),
+    )
+
+    // Open detail pane
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // Escape should close it
+    board.press("Escape")
+    expect(store.getState().ui.showDetailPane).toBe(false)
+  })
+
+  test("h/l navigates columns while detail pane stays open", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item("card1")), item("col2", item("card2"))),
+    )
+
+    // Open detail pane on card1
+    board.press(" ")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // h/l should navigate columns — detail pane stays open
+    board.press("l")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    board.expect("#card2[data-cursor]").toExist()
+
+    board.press("h")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    board.expect("#card1[data-cursor]").toExist()
   })
 })

@@ -8,6 +8,12 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # Must read stdin synchronously (pipe closes when hook exits)
 STDIN_DATA=$(cat)
 
+# Kill orphaned vitest fork workers (PPID=1 means parent died, reparented to init)
+ORPHANS=$(ps -eo pid,ppid,command 2>/dev/null | grep 'vitest.*forks\.js' | grep -v grep | awk '$2 == 1 {print $1}')
+if [ -n "$ORPHANS" ]; then
+  echo "$ORPHANS" | xargs kill -9 2>/dev/null
+fi
+
 # Fork the actual work to background
 if [ -f "$REPO_ROOT/vendor/beorn-tools/tools/recall.ts" ]; then
   TMPFILE=$(mktemp /tmp/recall-remember.XXXXXX)

@@ -193,20 +193,20 @@ const Card = React.memo(
       const innerWidth = width - 2 // border or padding L+R both consume 2
       const padTotal = Math.max(0, innerWidth - hrContent.length)
       const padLeft = Math.floor(padTotal / 2)
+      // HR cards render borderless with padding (matching border width) for alignment.
+      // Padding on all 4 sides matches border dimensions for layout stability.
+      // When selected, they get a yellow border like other body blocks.
+      const hrLayoutProps = isSelected
+        ? { borderStyle: "round" as const, borderColor: "yellow" }
+        : isMultiSelected || isColSelected
+          ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: false }
+          : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
         <Box
           flexDirection="column"
           flexShrink={0}
           width={width}
-          {...bodyBlockLayoutProps(
-            isSelected,
-            "yellow",
-            yieldTop,
-            isLastBodyBlock,
-            isMultiSelected,
-            isColSelected,
-            bodyDefaultBorder,
-          )}
+          {...hrLayoutProps}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -267,7 +267,9 @@ const Card = React.memo(
     }
 
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
-    const defaultBorder = treeConfig.borderMode === "black" ? "black" : "blackBright"
+    // Done/dropped tasks get a darker border to visually de-emphasize them
+    const isDoneOrDropped = card.node.task_status === "done" || card.node.task_status === "dropped"
+    const defaultBorder = isDoneOrDropped ? "#333" : treeConfig.borderMode === "black" ? "black" : "blackBright"
     const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected || isColSelected ? "yellow" : defaultBorder
 
     // When overflow, suppress the bottom border and render a custom one with the count

@@ -12,8 +12,23 @@ import { PROP_REGEX } from "@km/markdown"
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
 export function stripForDisplay(text: string): string {
   const { clean } = extractMetadata(text)
-  // Also strip ^block-id at end of text
-  return clean.replace(/\s*\^[\w-]+$/, "")
+  return (
+    clean
+      // Strip inline ^numeric-id references (Asana-style 10+ digit IDs) that are NOT inside [[...]]
+      .replace(/\^\d{10,}/g, (match, offset: number, str: string) => {
+        // Check if this ^ is inside a wikilink by looking for preceding [[ without intervening ]]
+        const before = str.slice(0, offset)
+        const lastOpen = before.lastIndexOf("[[")
+        const lastClose = before.lastIndexOf("]]")
+        if (lastOpen > lastClose) return match // inside wikilink, keep it
+        return "" // outside wikilink, strip it
+      })
+      // Strip ^block-id at end of text (alphanumeric/dash block IDs)
+      .replace(/\s*\^[\w-]+$/, "")
+      // Collapse runs of whitespace to single space
+      .replace(/ {2,}/g, " ")
+      .trim()
+  )
 }
 
 /**

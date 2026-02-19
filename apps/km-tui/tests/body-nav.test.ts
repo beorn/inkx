@@ -881,6 +881,90 @@ describe("body h/l navigation Y-position matching", () => {
     board.press("l")
     board.expect("#b3[data-cursor]").toExist()
   })
+
+  test("h from structural column card into body column matches Y-position (km-tui.vbody-nav)", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("body-1"),
+          item.paragraph("body-2"),
+          item.paragraph("body-3"),
+          item.paragraph("body-4"),
+          item.paragraph("body-5"),
+          item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
+        ),
+      { rows: 40 },
+    )
+
+    // Navigate right to structural column
+    board.press("l")
+    board.expect("#task-a[data-cursor]").toExist()
+
+    // Navigate down to task-c (3rd card)
+    board.press("j").press("j")
+    board.expect("#task-c[data-cursor]").toExist()
+
+    // h should land on body-3 (same Y as task-c), not body-1 (first)
+    board.press("h")
+    board.expect("#body-3[data-cursor]").toExist()
+  })
+
+  test("h from structural column to body preserves Y across multiple hops (km-tui.vbody-nav)", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("bp-1"),
+          item.paragraph("bp-2"),
+          item.paragraph("bp-3"),
+          item.paragraph("bp-4"),
+          item.paragraph("bp-5"),
+          item("s1", item("t-1"), item("t-2"), item("t-3"), item("t-4"), item("t-5")),
+          item("s2", item("u-1"), item("u-2"), item("u-3"), item("u-4"), item("u-5")),
+        ),
+      { rows: 40 },
+    )
+
+    // Navigate to s2, go down to u-4
+    board.press("l").press("l")
+    board.expect("#u-1[data-cursor]").toExist()
+    board.press("j").press("j").press("j")
+    board.expect("#u-4[data-cursor]").toExist()
+
+    // h to s1 → should Y-match to t-4
+    board.press("h")
+    board.expect("#t-4[data-cursor]").toExist()
+
+    // h to body → should Y-match to bp-4
+    board.press("h")
+    board.expect("#bp-4[data-cursor]").toExist()
+  })
+
+  test("h from deep structural card clamps to last body card (km-tui.vbody-nav)", () => {
+    // Body has only 2 cards, structural column has 8. Navigating h from
+    // a card far down should clamp to last body card (body-2), not overshoot.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item.paragraph("body-1"),
+          item.paragraph("body-2"),
+          item("col1", item("t1"), item("t2"), item("t3"), item("t4"), item("t5"), item("t6"), item("t7"), item("t8")),
+        ),
+      { rows: 40 },
+    )
+
+    // Navigate right to structural column, then deep down
+    board.press("l")
+    board.expect("#t1[data-cursor]").toExist()
+    for (let i = 0; i < 7; i++) board.press("j")
+    board.expect("#t8[data-cursor]").toExist()
+
+    // h should clamp to last body card (body-2), not crash or go to body-1
+    board.press("h")
+    board.expect("#body-2[data-cursor]").toExist()
+  })
 })
 
 // =============================================================================

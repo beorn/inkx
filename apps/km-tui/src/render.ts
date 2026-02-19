@@ -155,12 +155,14 @@ export function renderCard(
   const { node, children } = card
 
   // Status icon and content - compact format: "○ Content"
-  const statusIcon = renderStatusIcon(node.task_status)
-  const contentFirstLine = node.content?.split("\n")[0] ?? ""
-  const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, node)).slice(0, width - 3)
+  // For embedded links (link_to), resolve the target node and show its content
+  const displayNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
+  const statusIcon = renderStatusIcon(displayNode.task_status)
+  const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
+  const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)
 
   // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
-  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
+  const isDoneOrDropped = displayNode.task_status === "done" || displayNode.task_status === "dropped"
   const styledContent = renderRich(rawContent)
   const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`

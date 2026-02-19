@@ -229,6 +229,40 @@ describe("embed display", () => {
     // Should NOT show the ! prefix
     expect(text).not.toContain("!SomeFile")
     expect(text).not.toContain("![[")
+    // Should show the file name, not the block ref
+    expect(text).toContain("SomeFile")
+    expect(text).not.toContain("^abc123")
+  })
+
+  test("unresolved embed with bare ^blockid shows short ID, not raw ref", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Bare block reference embed ![[^1203128650780856]] with link_to=null
+        nodes.push({
+          id: "bare-block-embed",
+          type: "p" as const,
+          content: "![[^1203128650780856]]",
+          link_to: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should NOT show the raw block reference with caret
+    expect(text).not.toMatch(/\^1203128650780856/)
+    // Should NOT show the embed syntax
+    expect(text).not.toContain("![[")
   })
 
   test("resolved embed shows target content without ! prefix", () => {
@@ -322,6 +356,145 @@ describe("embed display", () => {
       expect(line).not.toContain("!Insurance")
       expect(line).not.toContain("!Bank")
     }
+  })
+})
+
+// =============================================================================
+// Link title resolution (km-tui.link-title)
+// =============================================================================
+
+describe("link title resolution", () => {
+  test("resolved embed with block reference content shows target title, not ^blockid", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node: a task with content (like an Asana-imported task)
+        nodes.push({
+          id: "target-task-1",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Tax projects",
+          block_id: "1203128650780856",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed node: link_to is set, content has block reference format
+        // This simulates what the rules engine creates + markdown serialization round-trip
+        nodes.push({
+          id: "embed-1",
+          type: "link" as const,
+          content: "![[^1203128650780856]]",
+          link_to: "target-task-1",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's content "Tax projects"
+    expect(text).toContain("Tax projects")
+    // Should NOT show the raw block reference
+    expect(text).not.toMatch(/\^1203128650780856/)
+  })
+
+  test("resolved embed with file#^blockid content shows target title", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node
+        nodes.push({
+          id: "target-task-2",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Buy groceries",
+          block_id: "abc123",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed with file#^blockid path format
+        nodes.push({
+          id: "embed-2",
+          type: "link" as const,
+          content: "![[shopping#^abc123]]",
+          link_to: "target-task-2",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show target content
+    expect(text).toContain("Buy groceries")
+    // Should NOT show raw embed path
+    expect(text).not.toContain("shopping#^abc123")
+  })
+
+  test("unresolved embed with ^blockid content shows blockid without caret", () => {
+    // When link_to is set but target doesn't exist (stale reference),
+    // at minimum strip the ^ prefix from the display
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Embed with link_to pointing to nonexistent target
+        nodes.push({
+          id: "stale-embed",
+          type: "link" as const,
+          content: "![[^9999999999999999]]",
+          link_to: "nonexistent-target",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should NOT show the raw caret-prefixed block ID
+    expect(text).not.toMatch(/\^9999999999999999/)
   })
 })
 

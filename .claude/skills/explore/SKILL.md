@@ -19,6 +19,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 | `/explore --fuzz` | Run fuzz suite only (no team, no TTY) | `bun test:fuzz` |
 | `/explore --gui` or `/explore --gui <path>` | Visual TTY mode (manual, no team) | See [TTY section](#gui-mode) below |
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
+| `/explore --compare` | Asana vs km TUI comparison | See [compare.md](compare.md) |
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
 
 **Session tracking**: Team and solo modes create a session bead (`km-session.<MMDD><seq>`) for persistent tracking. Quick modes (`--fuzz`, `--path`) skip this. See [reporting.md](reporting.md) for conventions.
@@ -164,6 +165,7 @@ Create beads for any genuine regressions found. For test-only fixes (updating as
 | [random.md](random.md) | Setup, AI-driven exploration, fuzz testing |
 | [reporting.md](reporting.md) | Reports, issue templates, action workflow |
 | [peekaboo.md](peekaboo.md) | Live Ghostty terminal inspection via Peekaboo MCP |
+| [compare.md](compare.md) | **Asana vs km TUI comparison**: side-by-side data/rendering gap analysis |
 | [repro.md](repro.md) | Reproducing unreproducible bugs, debug logging |
 
 ## See Also

@@ -707,19 +707,21 @@ export function Board({ patchedConsole }: BoardProps) {
     return visibleColumns.map((col) => ({
       ...col,
       cards: col.cards.filter((card) => {
-        // Text filter: match card content
+        // For embeds (link_to), resolve to source node for filtering
+        const filterNode = card.node.link_to ? (repo.getNode(card.node.link_to) ?? card.node) : card.node
+        // Text filter: match card content (use source node content for embeds)
         if (hasTextFilter) {
-          const name = (card.node.content ?? "").toLowerCase()
+          const name = (filterNode.content ?? "").toLowerCase()
           if (!name.includes(lowerFilter)) return false
         }
         // Property filters (AND logic between categories)
         if (hasPropertyFilter) {
-          if (!matchesPropertyFilters(card.node, ui.filterProperties)) return false
+          if (!matchesPropertyFilters(filterNode, ui.filterProperties)) return false
         }
         return true
       }),
     }))
-  }, [visibleColumns, ui.filterText, ui.filterProperties])
+  }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
 
   // Assemble TUIBoardState for rendering.
   // Uses individual fields as deps for stable memoization.

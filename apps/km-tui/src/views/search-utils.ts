@@ -5,6 +5,7 @@
  * SearchDialog and ProjectPicker.
  */
 import type { KNode } from "@km/core"
+import { extractRefs } from "../text/text-pipeline.ts"
 
 /**
  * Simple fuzzy match - check if query chars appear in order in target
@@ -76,15 +77,10 @@ export function getParentName(
 }
 
 /**
- * Extract tags from content (words starting with #)
+ * Extract tags from content (words starting with #).
+ * Delegates to the canonical Unicode-aware extractRefs() from text pipeline.
  */
 export function extractTags(content: string | undefined): string[] {
   if (!content) return []
-  const tagRegex = /#(\w+)/g
-  const tags: string[] = []
-  let match
-  while ((match = tagRegex.exec(content)) !== null) {
-    if (match[1]) tags.push(match[1])
-  }
-  return tags
+  return extractRefs(content).tags
 }

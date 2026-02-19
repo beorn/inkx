@@ -10,7 +10,7 @@ import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
-import { extractBody, stripForDisplay } from "@km/tree"
+import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, getNodeIcon, getStatusIcon } from "../text/index.ts"
@@ -22,6 +22,7 @@ import {
   getProjectPath,
   stripInlineRefs,
   capitalize,
+  resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
 import { shortName } from "./tree-node-helpers.ts"
 
@@ -165,9 +166,22 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   mergeUnique(refs.tags, dataRefs?.tags)
   mergeUnique(refs.projects, dataRefs?.projects)
 
-  // Get children — split into body (content blocks) and structural (outline items)
+  // Get children — split into body (content blocks) and structural (outline/list items)
   const children = repo.getChildren(node.id)
-  const { body: bodyChildren, items: structuralChildren } = extractBody(children)
+  // extractBody only treats oi as structural. For the detail pane, list items (li)
+  // with task markers or children are also structural — they have subtasks.
+  const { body: rawBody, items: oiItems } = extractBody(children)
+  // Separate body nodes: li items that are task items go to structural, rest stays as body
+  const bodyChildren: KNode[] = []
+  const liItems: KNode[] = []
+  for (const child of rawBody) {
+    if (child.type === "li") {
+      liItems.push(child)
+    } else {
+      bodyChildren.push(child)
+    }
+  }
+  const structuralChildren = [...liItems, ...oiItems]
 
   // Get backlinks
   const backlinks = repo.getBacklinks(node.id)
@@ -226,11 +240,9 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
               <Text dimColor>{"─".repeat(innerWidth - 2)}</Text>
             </Box>
 
-            {/* Body content */}
+            {/* Body content — rendered line-by-line with attachment links shown as readable URLs */}
             {bodyChildren.map((child, i) => (
-              <Text key={`${child.id}-${i}`} wrap="wrap">
-                {renderRich(child.content ?? "")}
-              </Text>
+              <BodyBlock key={`${child.id}-${i}`} content={child.content ?? ""} innerWidth={innerWidth} />
             ))}
 
             {/* Children rendered as outline items (column cards) */}
@@ -289,6 +301,7 @@ const KNOWN_DATA_KEYS = new Set([
   "tags",
   "mentions",
   "projects",
+  "projectMemberships",
   "short_id",
   "props",
   "propsRaw",
@@ -326,6 +339,7 @@ function MetadataTable({
   projectPath,
   refs,
 }: MetadataTableProps): React.ReactElement | null {
+  const repo = useRepo()
   const rows: MetadataRow[] = []
 
   // Node identity — always show ID, type, fstype for debugging
@@ -381,9 +395,14 @@ function MetadataTable({
     rows.push({ key: "Location", value: projectPath.join("/") })
   }
 
-  // Projects — Asana/inline +project refs only, all with + prefix
-  if (refs.projects.length > 0) {
-    rows.push({ key: "Projects", value: refs.projects.map((p) => `+${p}`).join(", ") })
+  // Projects — prefer data.projectMemberships (rich: project + section) over inline +project refs
+  const projectMemberships = data?.projectMemberships as Array<{ project: string; section?: string }> | undefined
+  if (projectMemberships && projectMemberships.length > 0) {
+    const formatted = projectMemberships.map((pm) => (pm.section ? `${pm.project} (${pm.section})` : pm.project))
+    rows.push({ key: "Projects", value: formatted.join(", ") })
+  } else if (refs.projects.length > 0) {
+    const resolved = resolveProjectDisplayNames(repo, refs.projects)
+    rows.push({ key: "Projects", value: resolved.join(", ") })
   }
 
   // Tags (preserve # prefix)
@@ -473,8 +492,18 @@ function ColumnItems({
         const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
         const indent = "  ".repeat(depth)
         const isDone = item.task_status === "done" || item.task_status === "dropped"
-        const kids = depth < 3 ? repo.getChildren(item.id) : []
-        const { body: kidBody, items: kidItems } = extractBody(kids)
+        const allKids = depth < 3 ? repo.getChildren(item.id) : []
+        // Split kids into body/structural, treating li as structural
+        const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
+        const kidBody: KNode[] = []
+        const kidLiItems: KNode[] = []
+        for (const k of rawKidBody) {
+          if (k.type === "li") kidLiItems.push(k)
+          else kidBody.push(k)
+        }
+        const kidItems = [...kidLiItems, ...kidOiItems]
+        // Count hidden children at depth limit
+        const hiddenChildCount = depth >= 3 ? repo.getChildren(item.id).length : 0
         // Metadata badges for top-level items (like cards show)
         const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
         const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
@@ -494,12 +523,13 @@ function ColumnItems({
                   {assigneeBadge}
                 </Text>
               )}
+              {hiddenChildCount > 0 && <Text dimColor>{` +${hiddenChildCount}`}</Text>}
             </Text>
             {kidBody.map((b, bi) => (
               <Text key={`${b.id}-${bi}`} wrap="wrap" dimColor>
                 {indent}
                 {"  "}
-                {stripForDisplay(b.content ?? "")}
+                {renderRich(b.content ?? "")}
               </Text>
             ))}
             {kidItems.length > 0 && (
@@ -511,4 +541,43 @@ function ColumnItems({
     </>
   )
 }
+// =============================================================================
+// Body Block — rich body content with attachment link rendering
+// =============================================================================
+
+/** Regex to detect markdown links: [text](url) and image embeds: ![alt](url) */
+const MD_LINK_LINE_RE = /^!?\[([^\]]+)\]\(([^)]+)\)$/
+
+/** Render a body content block line-by-line.
+ * Attachment links ([name](url)) are shown with both name and readable URL.
+ * Other lines are rendered with standard rich text formatting. */
+function BodyBlock({ content, innerWidth }: { content: string; innerWidth: number }): React.ReactElement {
+  const lines = content.split("\n").filter((l) => l.trim() !== "")
+  return (
+    <Box flexDirection="column" width={innerWidth}>
+      {lines.map((line, i) => {
+        const linkMatch = line.match(MD_LINK_LINE_RE)
+        if (linkMatch) {
+          const [, name, url] = linkMatch
+          const isImage = line.startsWith("!")
+          return (
+            <Box key={`line-${i}`} flexDirection="row">
+              <Text wrap="truncate">
+                <Text dimColor>{isImage ? "[img] " : "[link] "}</Text>
+                <Text bold underline>{name}</Text>
+                <Text dimColor> ({url})</Text>
+              </Text>
+            </Box>
+          )
+        }
+        return (
+          <Text key={`line-${i}`} wrap="wrap">
+            {renderRich(line)}
+          </Text>
+        )
+      })}
+    </Box>
+  )
+}
+
 export { extractReferences, formatDate, getStatusDisplay, getProjectPath } from "./detail-pane-helpers.ts"

@@ -22,6 +22,16 @@ import "../../../apps/km-tui/tests/helpers/matchers.js"
 process.stdout.isTTY = false
 process.stderr.isTTY = false
 
+// Kill zombie forks: when vitest uses pool:'forks', child_process.fork() workers survive
+// if the parent is killed abruptly (SIGKILL). The 'disconnect' event fires when the IPC
+// channel closes (parent died), so we exit immediately to prevent orphan processes.
+// No-op for pool:'threads' (no IPC channel, no process.connected).
+if (typeof process.connected === "boolean") {
+	process.on("disconnect", () => {
+		process.exit(1)
+	})
+}
+
 // Suppress logger output during tests (info would trip console detection)
 process.env.LOG_LEVEL = "warn"
 

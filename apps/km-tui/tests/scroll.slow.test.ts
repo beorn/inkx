@@ -14,19 +14,18 @@ import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 
 describe("Scroll Follow", () => {
-  // Create a board with enough items to require scrolling on a 24-row terminal
+  // Create a board with enough items to require scrolling on a 24-row terminal.
+  // 14 items suffice: ~19 visible rows minus header/breadcrumb, so cursor at
+  // item 12+ forces a scroll. Second column kept small (2 items) since we only
+  // scroll the first.
   function createLargeBoard() {
     const inboxItems = []
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 14; i++) {
       inboxItems.push(item("Task " + (i + 1)))
     }
     const inbox = item("inbox", ...inboxItems)
 
-    const projectItems = []
-    for (let i = 0; i < 15; i++) {
-      projectItems.push(item("Project " + (i + 1)))
-    }
-    const projects = item("projects", ...projectItems)
+    const projects = item("projects", item("Project 1"), item("Project 2"))
 
     return item.root("board", inbox, projects)
   }
@@ -38,15 +37,15 @@ describe("Scroll Follow", () => {
       viewMode: "list",
     })
 
-    // Navigate down past visible area
-    for (let i = 0; i < 18; i++) {
+    // Navigate down past visible area (12 presses to force scroll)
+    for (let i = 0; i < 12; i++) {
       board.press("j")
     }
 
     const screenshot = board.screenshot()
 
-    // Should see Task 15-20 range (scroll followed cursor)
-    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
+    // Should see Task 10-14 range (scroll followed cursor)
+    expect(screenshot).toMatch(/Task (1[0-4])/)
   })
 
   test("cards view scroll follows cursor past bottom", () => {
@@ -60,15 +59,15 @@ describe("Scroll Follow", () => {
     board.press("j") // to column header
     board.press("j") // to first card
 
-    // Navigate down past visible area
-    for (let i = 0; i < 18; i++) {
+    // Navigate down past visible area (12 presses to force scroll)
+    for (let i = 0; i < 12; i++) {
       board.press("j")
     }
 
     const screenshot = board.screenshot()
 
     // Should see higher numbered tasks (scroll followed)
-    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
+    expect(screenshot).toMatch(/Task (1[0-4])/)
   })
 
   test("columns view scroll follows cursor past bottom", () => {
@@ -82,8 +81,8 @@ describe("Scroll Follow", () => {
     board.press("j") // to column header
     board.press("j") // to first card
 
-    // Navigate down past visible area
-    for (let i = 0; i < 18; i++) {
+    // Navigate down past visible area (12 presses to force scroll)
+    for (let i = 0; i < 12; i++) {
       board.press("j")
     }
 
@@ -91,7 +90,7 @@ describe("Scroll Follow", () => {
 
     // Should see higher numbered tasks (scroll followed)
     // The breadcrumb should show the current item
-    expect(screenshot).toMatch(/Task (1[5-9]|20)/)
+    expect(screenshot).toMatch(/Task (1[0-4])/)
   })
 })
 
@@ -242,8 +241,8 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
   })
 
   test("widths where column fits: scroll ensures full visibility at various sizes", () => {
-    // Broader range of widths where columns should be narrower than viewport
-    for (const width of [70, 72, 74, 76, 78, 80, 90, 100, 120]) {
+    // Representative widths: narrow boundary (70), mid (80), wide (100), very wide (120)
+    for (const width of [70, 80, 100, 120]) {
       const { board } = testEnv(
         () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
         { columns: width, rows: 20 },

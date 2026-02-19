@@ -62,6 +62,29 @@ import { shortenInlineRefs } from "./detail-pane-helpers.ts"
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
 
+/**
+ * Clean an embed reference path for display.
+ * Strips block-ID syntax (^blockid) and file#fragment separators to produce
+ * a human-readable label. For bare block references (^12345), returns empty
+ * string so the caller can fall through to getNodeDisplayName.
+ */
+function cleanEmbedRef(ref: string): string {
+  // Bare block reference: "^1203128650780856" → empty (use display name fallback)
+  if (/^\^[\w-]+$/.test(ref)) return ""
+  // File#^blockid: "shopping#^abc123" → "shopping"
+  // File#section: "shopping#Groceries" → "shopping > Groceries"
+  const hashIdx = ref.indexOf("#")
+  if (hashIdx >= 0) {
+    const file = ref.slice(0, hashIdx)
+    const fragment = ref.slice(hashIdx + 1)
+    // Block ref fragment (^abc) — just show the file name
+    if (fragment.startsWith("^")) return file || ""
+    // Section fragment — show file > section
+    return file && fragment ? `${file} > ${fragment}` : file || fragment || ""
+  }
+  return ref
+}
+
 interface TreeNodeProps {
   node: KNode
   depth: number
@@ -130,6 +153,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Node content that affects display (includes implicit task properties)
   if (
     prev.node.content !== next.node.content ||
+    prev.node.link_to !== next.node.link_to ||
     prev.node.task_status !== next.node.task_status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
@@ -899,18 +923,42 @@ function getDisplayContent(
   }
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
-    return node.content?.replace(EMBED_EXTRACT_RE, "$1") ?? getNodeDisplayName(repo, node)
+    // Clean block-ID references (^blockid) so they don't show raw IDs
+    const raw = node.content?.replace(EMBED_EXTRACT_RE, "$1")
+    const cleaned = raw ? cleanEmbedRef(raw) : ""
+    if (cleaned) return cleaned
+    // Bare block ref (^id) or no content — show short ID fallback
+    return `(${node.id.slice(0, 8)})`
   }
   // Content with embed syntax ![[target]] but link_to not set (unresolved embed)
   // Strip the ![[...]] wrapper so it doesn't render as "!Target" in the TUI
   const trimmed = displayNode.content?.trim()
   if (trimmed && EMBED_EXTRACT_RE.test(trimmed)) {
-    return trimmed.replace(EMBED_EXTRACT_RE, "$1")
+    const raw = trimmed.replace(EMBED_EXTRACT_RE, "$1")
+    // Clean block-ID references; bare block refs fall through to short ID
+    return cleanEmbedRef(raw) || `(${displayNode.id.slice(0, 8)})`
   }
   if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
     return getNodeDisplayName(repo, displayNode)
   }
-  return stripContentForDisplay(displayNode.content) || getNodeDisplayName(repo, displayNode)
+  // Bare block references (e.g., "^1153379636232754" — Asana recurring task instances).
+  // These are regular li nodes whose content is just a numeric block ref.
+  // Show a human-readable label instead of the raw ID.
+  const stripped = stripContentForDisplay(displayNode.content)
+  if (/^\^[\d]+$/.test(stripped.trim())) {
+    // If the node has a link_to, resolve to target's display name
+    if (node.link_to) {
+      const target = repo.getNode(node.link_to)
+      if (target) return getNodeDisplayName(repo, target)
+    }
+    // If Asana parent name is available in data, show that
+    const parentName = displayNode.data?.asana_parent_name
+    if (typeof parentName === "string" && parentName) return parentName
+    // Fallback: truncated reference
+    const refId = stripped.trim().slice(1) // remove ^
+    return `(ref:${refId.slice(0, 6)}...)`
+  }
+  return stripped || getNodeDisplayName(repo, displayNode)
 }
 
 // =============================================================================

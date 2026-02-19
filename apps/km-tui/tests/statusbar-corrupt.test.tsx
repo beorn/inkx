@@ -355,5 +355,30 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         expect(afterView.trim()).toBe("")
       }
     })
+
+    it("node count number does not bleed into view mode text (2ARDS VIEW W regression)", () => {
+      // km-tui.statusbar-corrupt: The original bug showed "2ARDS VIEW W" where
+      // the sync count "2" bled into "CARDS VIEW" and a trailing "W" from "VIEW"
+      // appeared. Test at narrow terminal width where crowding is most likely.
+      const { board } = testEnv(
+        () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
+        { columns: 60, rows: 24 },
+      )
+
+      const lastRow = board.screen.rows.length - 1
+      const bottomRow = board.screen.row(lastRow)
+
+      // The view mode text must be exactly "CARDS VIEW", not "2ARDS VIEW" or similar
+      const viewModeEl = board.q("#view-mode")
+      expect(viewModeEl.count()).toBeGreaterThan(0)
+      const viewModeText = viewModeEl.textContent().trim()
+      expect(viewModeText).toBe("CARDS VIEW")
+
+      // Buffer-level check: no digit immediately before "ARDS VIEW"
+      expect(bottomRow).not.toMatch(/\d+ARDS/)
+      // No trailing "W" after "VIEW " that doesn't belong
+      const viewIdx = bottomRow.indexOf("CARDS VIEW")
+      expect(viewIdx).toBeGreaterThan(-1)
+    })
   })
 })

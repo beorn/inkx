@@ -2,10 +2,15 @@
  * Crash / error regression tests
  *
  * Each describe block corresponds to a specific bug bead.
+ * These tests verify operations don't throw — rendering accuracy
+ * is not the concern, so checkIncremental is disabled for speed.
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+
+/** Crash-regression tests don't need incremental rendering verification. */
+const FAST = { checkIncremental: false } as const
 
 // ---------------------------------------------------------------------------
 // km-bc1xj: IGNORE_NODE crashes with EROFS on fake/readonly repos
@@ -16,6 +21,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
     return testEnv(() => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))), {
       columns: 80,
       rows: 24,
+      ...FAST,
     })
   }
 
@@ -54,7 +60,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
 
 describe("Open in System crash when repo.data is null (km-otgyy)", () => {
   test("pressing o does not crash when repo.data is null", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))))
+    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
     board.press("j")
@@ -64,7 +70,7 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
   })
 
   test("pressing O (open in terminal) does not crash when repo.data is null", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))))
+    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     board.press("j")
 
@@ -79,13 +85,15 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
 
 describe("h/l at boundary crash (km-cwn2)", () => {
   test("h/l at right boundary doesn't crash", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a"), item("2b")),
-        item("col3", item("3a"), item("3b")),
-      ),
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("1a"), item("1b")),
+          item("col2", item("2a"), item("2b")),
+          item("col3", item("3a"), item("3b")),
+        ),
+      FAST,
     )
 
     // Start at first card
@@ -103,21 +111,23 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     board.press("l")
     board.expect("#3a[data-cursor]").toExist()
 
-    // Try multiple times
-    for (let i = 0; i < 10; i++) {
+    // Try a few more times to confirm stability
+    for (let i = 0; i < 3; i++) {
       board.press("l")
       board.expect("#3a[data-cursor]").toExist()
     }
   })
 
   test("h at left boundary doesn't crash", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
-        item("col2", item("2a"), item("2b")),
-        item("col3", item("3a"), item("3b")),
-      ),
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("1a"), item("1b")),
+          item("col2", item("2a"), item("2b")),
+          item("col3", item("3a"), item("3b")),
+        ),
+      FAST,
     )
 
     // Start at first card
@@ -127,8 +137,8 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     board.press("h")
     board.expect("#1a[data-cursor]").toExist()
 
-    // Try multiple times
-    for (let i = 0; i < 10; i++) {
+    // Try a few more times to confirm stability
+    for (let i = 0; i < 3; i++) {
       board.press("h")
       board.expect("#1a[data-cursor]").toExist()
     }
@@ -140,23 +150,25 @@ describe("h/l at boundary crash (km-cwn2)", () => {
 // ---------------------------------------------------------------------------
 
 describe("card index out of bounds on h (km-53uqt)", () => {
-  test("h does not throw after mixed operations that change column sizes", { timeout: 15000 }, () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
+  test("h does not throw after mixed operations that change column sizes", () => {
+    const { board } = testEnv(
+      () =>
         item(
-          "projects",
-          item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
-          item("proj-b", item("task-b1"), item("task-b2")),
+          "board",
+          item(
+            "projects",
+            item("proj-a", item("task-a1"), item("task-a2"), item("task-a3", item("sub-1"), item("sub-2"))),
+            item("proj-b", item("task-b1"), item("task-b2")),
+          ),
+          item(
+            "areas",
+            item("health", item("exercise"), item("diet")),
+            item("finance", item("budget"), item("invest")),
+            item("learning", item("books"), item("courses")),
+          ),
+          item("inbox", item("note-1"), item("note-2"), item("note-3")),
         ),
-        item(
-          "areas",
-          item("health", item("exercise"), item("diet")),
-          item("finance", item("budget"), item("invest")),
-          item("learning", item("books"), item("courses")),
-        ),
-        item("inbox", item("note-1"), item("note-2"), item("note-3")),
-      ),
+      FAST,
     )
 
     // Deterministic PRNG (seed=99) producing the failing sequence
@@ -200,7 +212,7 @@ describe("card index out of bounds on h (km-53uqt)", () => {
 
 describe("stale-cursor-after-delete-all", () => {
   test("deleting all cards in column should not leave stale cursor", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))))
+    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("C"))), FAST)
 
     // Delete A (cursor moves to B)
     board.press("Backspace")

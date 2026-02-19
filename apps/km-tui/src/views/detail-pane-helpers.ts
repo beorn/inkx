@@ -5,6 +5,11 @@
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
+import {
+  extractRefs,
+  stripInlineRefsFromText,
+  shortenInlineRefsInText,
+} from "../text/text-pipeline.ts"
 
 // =============================================================================
 // Date formatting
@@ -86,26 +91,15 @@ export interface References {
   wikilinks: string[]
 }
 
-// Extract unique matches from content using a regex pattern
-export function extractMatches(content: string, pattern: RegExp): string[] {
-  const matches = new Set<string>()
-  let match
-  while ((match = pattern.exec(content)) !== null) {
-    if (match[1]) matches.add(match[1])
-  }
-  return [...matches]
-}
-
+/**
+ * Extract all references from content. Delegates to the canonical
+ * extractRefs() from the text pipeline (Unicode-aware patterns).
+ */
 export function extractReferences(content: string | undefined): References {
   if (!content) {
     return { mentions: [], tags: [], projects: [], wikilinks: [] }
   }
-  return {
-    mentions: extractMatches(content, /@([\p{L}\p{N}_-]+)/gu),
-    tags: extractMatches(content, /#([\p{L}\p{N}_-]+)/gu),
-    projects: extractMatches(content, /\+([\p{L}\p{N}_-]+)/gu),
-    wikilinks: extractMatches(content, /\[\[([^\]]+)\]\]/g),
-  }
+  return extractRefs(content)
 }
 
 // =============================================================================
@@ -135,20 +129,59 @@ export function getProjectPath(repo: Repo, node: KNode): string[] {
 }
 
 // =============================================================================
+// Project slug resolution
+// =============================================================================
+
+/** Slugify a string (same algorithm as import pipeline) */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+/**
+ * Resolve project slugs to display names by searching the repo for matching nodes.
+ * A slug like "family-sprint" matches a node whose content slugifies to "family-sprint"
+ * (e.g., a node with content "FAMILY SPRINT").
+ *
+ * Returns a new array with resolved names, preserving order. Falls back to the raw
+ * slug when no matching node is found.
+ */
+export function resolveProjectDisplayNames(repo: Repo, slugs: string[]): string[] {
+  if (slugs.length === 0) return slugs
+
+  return slugs.map((slug) => {
+    // Search by the first word of the slug to find candidates, then verify
+    // by full slugification. The search function does substring matching,
+    // so "family" will find "FAMILY SPRINT".
+    const firstWord = slug.split("-")[0]
+    if (!firstWord) return slug
+
+    const candidates = repo.search(firstWord)
+    for (const node of candidates) {
+      if (node.content && slugify(node.content) === slug) {
+        return getNodeDisplayName(repo, node)
+      }
+    }
+    // Fallback: return the raw slug
+    return slug
+  })
+}
+
+// =============================================================================
 // Text utilities
 // =============================================================================
 
-/** Strip @mentions, #tags, +projects from text (they're shown separately in props) */
+/** Strip @mentions, #tags, +projects, and residual key:: value metadata from text.
+ * Used for display titles where these fields are shown separately in the metadata table.
+ * Delegates to the unified text pipeline. */
 export function stripInlineRefs(text: string): string {
-  return text
-    .replace(/\s*@[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
-    .replace(/\s*#[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
-    .replace(/\s*\+[\p{L}\p{N}][\p{L}\p{N}_/.-]*/gu, "")
-    .trim()
+  return stripInlineRefsFromText(text)
 }
 
-/** Hardcoded person name → short name mapping. P4: replace with contact type system. */
-const PERSON_SHORT_NAMES: Record<string, string> = {
+/** Hardcoded person name -> short name mapping. P4: replace with contact type system. */
+export const PERSON_SHORT_NAMES: Record<string, string> = {
   "bjørn-stabell": "BS",
   "bjorn-stabell": "BS",
   "michael-welch": "MW",
@@ -156,17 +189,10 @@ const PERSON_SHORT_NAMES: Record<string, string> = {
 }
 
 /** Replace known person @mentions with @ShortName, strip #tags and +projects.
- * Unknown @mentions (sigils like @next, @urgent) are left untouched. */
+ * Unknown @mentions (sigils like @next, @urgent) are left untouched.
+ * Delegates to the unified text pipeline. */
 export function shortenInlineRefs(text: string): string {
-  return text
-    .replace(/@([\p{L}\p{N}][\p{L}\p{N}_-]*)/gu, (_match, name: string) => {
-      const short = PERSON_SHORT_NAMES[name.toLowerCase()]
-      if (short) return `@${short}`
-      return `@${name}`
-    })
-    .replace(/\s*#[\p{L}\p{N}][\p{L}\p{N}_-]*/gu, "")
-    .replace(/\s*\+[\p{L}\p{N}][\p{L}\p{N}_/.-]*/gu, "")
-    .trim()
+  return shortenInlineRefsInText(text, PERSON_SHORT_NAMES)
 }
 
 /** Capitalize the first character of a string */

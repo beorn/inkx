@@ -5,7 +5,7 @@
  * Handles project picker and new item dialog interactions.
  */
 import { useCallback } from "react"
-import { type KNode, resolveRelativeDate } from "@km/core"
+import { type KNode, resolveRelativeDate, isOutline } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
@@ -25,9 +25,9 @@ const log = createLogger("km:tui:dialogs")
  * Board model: root -> children = columns -> their children = cards.
  * So for target to be a card, its grandparent must be the board root.
  */
-function findZoomTarget(
+export function findZoomTarget(
   target: KNode,
-  repo: { getNode(id: string): KNode | null },
+  repo: { getNode(id: string): KNode | null; getChildren(id: string | null): KNode[] },
 ): { zoomTarget: KNode; cursorTarget: KNode } {
   // Build ancestor chain: [target, parent, grandparent, ...]
   const ancestors: KNode[] = [target]
@@ -44,8 +44,23 @@ function findZoomTarget(
   // Best case: zoom to grandparent so target is a card (depth 2)
   // root=grandparent -> parent is column -> target is card
   if (grandparent) {
-    log.debug?.(`search: ZOOM to grandparent=${grandparent.id.slice(-8)}, cursor on target=${target.id.slice(-8)}`)
-    return { zoomTarget: grandparent, cursorTarget: target }
+    let cursorTarget = target
+
+    // If the zoom target has no oi children, it will produce a body-only board.
+    // In that case, the target's parent (a body card) is the navigable unit —
+    // walk cursorTarget up to the direct child of zoomTarget so the cursor
+    // lands on a visible card rather than a buried descendant.
+    const zoomChildren = repo.getChildren(grandparent.id)
+    const hasOiChildren = zoomChildren.some((c) => isOutline(c.type))
+    if (!hasOiChildren && parent && parent.parent_id === grandparent.id) {
+      // parent is a direct child of grandparent (body card level)
+      // target is a child of parent — walk cursor up to parent
+      log.debug?.(`search: body-only board, walking cursor from ${target.id.slice(-8)} up to ${parent.id.slice(-8)}`)
+      cursorTarget = parent
+    }
+
+    log.debug?.(`search: ZOOM to grandparent=${grandparent.id.slice(-8)}, cursor on ${cursorTarget.id.slice(-8)}`)
+    return { zoomTarget: grandparent, cursorTarget }
   }
 
   // Only parent exists: zoom to parent, target becomes a column (depth 1)

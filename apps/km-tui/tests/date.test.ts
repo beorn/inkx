@@ -194,6 +194,173 @@ describe("date badge display", () => {
     expect(screen).toContain("Mar 15")
   })
 
+  it("card border intact with date badge in cards view", () => {
+    // Regression test: date badge (with ANSI color codes) must not overwrite
+    // the right border character of the card's bordered box.
+    // Bug: km-tui.card-border-bleed
+    const nodes = item(
+      "board",
+      item("col1", item.task("After Delei gets ring - change to d@delei.org")),
+      item("col2", item.task("Some other task")),
+    )
+    const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
+    taskNode.due_at = "2025-09-30" // Overdue date -> red badge
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    const screen = board.screenshot()
+
+    // Find the card with the date badge
+    expect(screen).toContain("Sep 30")
+
+    // Check card border integrity using screen.cell()
+    // Find top-left corners of cards in the rendered output
+    const lines = screen.split("\n")
+    for (let y = 0; y < lines.length; y++) {
+      const line = lines[y]!
+      for (let x = 0; x < line.length; x++) {
+        if (line[x] === "╭") {
+          // Found card top-left. Scan right for ╮ to find card width.
+          let cardWidth = -1
+          for (let xx = x + 1; xx < line.length; xx++) {
+            if (line[xx] === "╮") {
+              cardWidth = xx - x + 1
+              break
+            }
+          }
+          if (cardWidth > 0) {
+            const rightBorderCol = x + cardWidth - 1
+            // Check content rows below using screen.cell()
+            for (let yy = y + 1; yy < lines.length; yy++) {
+              const rowLine = lines[yy]!
+              const leftChar = rowLine[x]
+              if (leftChar === "╰") break // Bottom border
+              if (leftChar !== "│") break // Not a card row
+
+              // RIGHT BORDER must be │
+              const rightChar = rowLine[rightBorderCol]
+              expect(
+                rightChar,
+                `Card at (${x},${y}), row ${yy}: right border at col ${rightBorderCol} is "${rightChar}" instead of "│". Row: "${rowLine}"`,
+              ).toBe("│")
+
+              // Also check via cell API (buffer level)
+              const cellRight = board.screen.cell(rightBorderCol, yy)
+              expect(
+                cellRight.char,
+                `Card at (${x},${y}), row ${yy}: buffer cell at (${rightBorderCol},${yy}) is "${cellRight.char}" instead of "│"`,
+              ).toBe("│")
+            }
+          }
+        }
+      }
+    }
+  })
+
+  it("card border intact at various terminal widths with date badge", () => {
+    // Test across different terminal widths to check for rounding issues
+    for (const cols of [40, 50, 60, 70, 80, 100, 120]) {
+      const nodes = item(
+        "board",
+        item("col1", item.task("After Delei gets ring - change to d@delei.org")),
+        item("col2", item.task("Another task with content")),
+      )
+      const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
+      taskNode.due_at = "2025-09-30"
+
+      const { board } = testEnv(() => nodes, { columns: cols, rows: 24 })
+      const screen = board.screenshot()
+
+      // Verify Sep 30 appears (unless too narrow to fit)
+      if (cols >= 80) {
+        expect(screen, `cols=${cols}: date badge should appear`).toContain("Sep")
+      }
+
+      // Check all card borders
+      const lines = screen.split("\n")
+      for (let y = 0; y < lines.length; y++) {
+        const line = lines[y]!
+        for (let x = 0; x < line.length; x++) {
+          if (line[x] === "╭") {
+            let cardWidth = -1
+            for (let xx = x + 1; xx < line.length; xx++) {
+              if (line[xx] === "╮") {
+                cardWidth = xx - x + 1
+                break
+              }
+            }
+            if (cardWidth > 0) {
+              const rightBorderCol = x + cardWidth - 1
+              for (let yy = y + 1; yy < lines.length; yy++) {
+                const rowLine = lines[yy]!
+                const leftChar = rowLine[x]
+                if (leftChar === "╰") break
+                if (leftChar !== "│") break
+
+                const rightChar = rowLine[rightBorderCol]
+                expect(
+                  rightChar,
+                  `cols=${cols}: Card at (${x},${y}), row ${yy}: right border at col ${rightBorderCol} is "${rightChar}" instead of "│". Row: "${rowLine}"`,
+                ).toBe("│")
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  it("card border intact after navigation with date badge", () => {
+    // Test that incremental rendering after cursor movement preserves borders
+    const nodes = item(
+      "board",
+      item("col1", item.task("Task with due date"), item.task("Task two"), item.task("Task three")),
+      item("col2", item.task("Another task")),
+    )
+    const taskNode = nodes.find((n) => n.content === "Task with due date")!
+    taskNode.due_at = "2025-09-30"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // Navigate down (incremental render)
+    board.press("j")
+    board.press("j")
+
+    // Navigate back up
+    board.press("k")
+    board.press("k")
+
+    // Check borders after navigation
+    const screen = board.screenshot()
+    const lines = screen.split("\n")
+    for (let y = 0; y < lines.length; y++) {
+      const line = lines[y]!
+      for (let x = 0; x < line.length; x++) {
+        if (line[x] === "╭") {
+          let cardWidth = -1
+          for (let xx = x + 1; xx < line.length; xx++) {
+            if (line[xx] === "╮") {
+              cardWidth = xx - x + 1
+              break
+            }
+          }
+          if (cardWidth > 0) {
+            const rightBorderCol = x + cardWidth - 1
+            for (let yy = y + 1; yy < lines.length; yy++) {
+              const rowLine = lines[yy]!
+              if (rowLine[x] === "╰") break
+              if (rowLine[x] !== "│") break
+
+              expect(
+                rowLine[rightBorderCol],
+                `After nav: Card at (${x},${y}), row ${yy}: right border at col ${rightBorderCol} is "${rowLine[rightBorderCol]}" not "│". Row: "${rowLine}"`,
+              ).toBe("│")
+            }
+          }
+        }
+      }
+    }
+  })
+
   it("date badge visible in columns view (testEnv)", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!

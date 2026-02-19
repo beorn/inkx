@@ -6,10 +6,11 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { convert } from "../../src/import/convert.ts"
+import { convert, itemToNodes } from "../../src/import/convert.ts"
 import { parseMarkdown, extractFrontmatter, parseTaskMetadata, extractTags, extractMentions } from "@km/markdown"
 import type { List, ListItem, Heading } from "@km/markdown"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
+import type { KNode } from "@km/core"
 
 // ============================================================================
 // Helpers
@@ -136,21 +137,30 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("  - [x] Review with team")
   })
 
-  test("renders body as blockquote", () => {
+  test("renders body as paragraph (not blockquote)", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("  > Create wireframes")
-    expect(md).toContain("  > Review with team")
+    expect(md).toContain("  Create wireframes")
+    expect(md).toContain("  Review with team")
+    expect(md).not.toContain("> Create wireframes")
   })
 
-  test("renders comments in blockquote", () => {
+  test("renders comments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("> **Comments:**")
-    expect(md).toContain("> - 2026-02-16 @bob: Looks great")
+    // Comments appear as a nested list item under the task, not in a blockquote
+    expect(md).toContain("  - Comments")
+    expect(md).toContain("2026-02-16 @bob: Looks great")
+    // Old blockquote format should NOT be present
+    expect(md).not.toContain("> **Comments:**")
+    expect(md).not.toContain("> - 2026-02-16 @bob:")
   })
 
-  test("renders image attachments in blockquote", () => {
+  test("renders image attachments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("> ![wireframe.png](https://example.com/wireframe.png)")
+    // Attachments appear as a nested list item under the task, not in a blockquote
+    expect(md).toContain("  - Attachments")
+    expect(md).toContain("![wireframe.png](https://example.com/wireframe.png)")
+    // Old blockquote format should NOT be present
+    expect(md).not.toContain("> ![wireframe.png]")
   })
 
   test("converts Asana URLs to ^block references", () => {
@@ -175,7 +185,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).not.toContain("gid:")
   })
 
-  test("renders body with markdown bullets inside blockquote", () => {
+  test("renders body with markdown bullets inside paragraph", () => {
     const md = convertToMd(
       makeData([
         {
@@ -185,13 +195,14 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("> Planning notes:")
-    expect(md).toContain("> *   First option")
-    expect(md).toContain("> *   Third option")
-    expect(md).toContain("> Additional context here.")
+    expect(md).toContain("  Planning notes:")
+    expect(md).toContain("  *   First option")
+    expect(md).toContain("  *   Third option")
+    expect(md).toContain("  Additional context here.")
+    expect(md).not.toContain("> Planning notes:")
   })
 
-  test("renders Asana links in body as block references inside blockquote", () => {
+  test("renders Asana links in body as block references inside paragraph", () => {
     const md = convertToMd(
       makeData([
         {
@@ -201,8 +212,119 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("> See also: [[^789012]] and [[^222333]]")
+    expect(md).toContain("  See also: [[^789012|Related]] and [[^222333|Another]]")
     expect(md).not.toContain("app.asana.com")
+  })
+
+  // ============================================================================
+  // Asana Link Conversion Edge Cases
+  // ============================================================================
+  // Link conversion strategy:
+  // - Markdown links [text](url) → [[^GID|text]] (with alias to preserve link text)
+  // - Bare URLs → [[^GID]] (no alias)
+  // - Empty/whitespace link text → [[^GID]] (no alias)
+  // - Link text equal to GID → [[^GID]] (filtering out auto-numbered refs)
+  // - Link text that's a URL → [[^GID]] (filtering out copy-paste errors)
+  //
+  // Rationale: We use aliases to preserve user-customized link text, since we can't
+  // determine during import whether the link text matches the target task's name.
+  // km's rendering system prefers aliases when present, or resolves the target's title.
+
+  test("converts markdown link with custom text to alias syntax", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[Check this out](https://app.asana.com/0/123/456)",
+        },
+      ]),
+    )
+    expect(md).toContain("  [[^456|Check this out]]")
+  })
+
+  test("converts bare Asana URL (no markdown) to GID-only syntax", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "See this: https://app.asana.com/0/123/456 for details",
+        },
+      ]),
+    )
+    expect(md).toContain("  See this: [[^456]] for details")
+    expect(md).not.toContain("http")
+  })
+
+  test("filters empty link text (renders GID only)", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[](https://app.asana.com/0/123/456)",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^456]]")
+    expect(md).not.toContain("[[^456|]]")
+  })
+
+  test("filters link text that is the GID itself (auto-numbered ref)", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[123456789](https://app.asana.com/0/123/123456789)",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^123456789]]")
+    expect(md).not.toContain("[[^123456789|123456789]]")
+  })
+
+  test("filters link text that is a URL (copy-paste error)", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[https://example.com](https://app.asana.com/0/123/456)",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^456]]")
+    expect(md).not.toContain("https://example.com")
+  })
+
+  test("preserves valid link text with special characters", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[Design: Phase 2 (WIP)](https://app.asana.com/0/123/456)",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^456|Design: Phase 2 (WIP)]]")
+  })
+
+  test("handles multiple Asana links in same body", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "Related: [Setup](https://app.asana.com/0/123/111) and [Deploy](https://app.asana.com/0/123/222) and bare https://app.asana.com/0/123/333",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^111|Setup]]")
+    expect(md).toContain("[[^222|Deploy]]")
+    expect(md).toContain("[[^333]]")
   })
 
   test("renders milestone task with diamond marker", () => {
@@ -250,14 +372,16 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).not.toContain("+test")
     expect(md).toContain("+other-project")
     expect(md).toContain("^tf1")
-    expect(md).toContain("> Description with **bold** text.")
+    expect(md).toContain("  Description with **bold** text.")
     expect(md).toContain("  - [x] Sub-step")
-    expect(md).toContain("> **Comments:**")
-    expect(md).toContain("> - 2026-02-09 @bob: Approved. Ship it!")
-    expect(md).toContain("> [spec.pdf](https://example.com/spec.pdf)")
+    // Comments and attachments are now child list nodes, not in blockquote
+    expect(md).toContain("  - Comments")
+    expect(md).toContain("2026-02-09 @bob: Approved. Ship it!")
+    expect(md).toContain("  - Attachments")
+    expect(md).toContain("[spec.pdf](https://example.com/spec.pdf)")
   })
 
-  test("renders multi-line comments with continuation lines", () => {
+  test("renders multi-line comments as single child node (joined text)", () => {
     const md = convertToMd(
       makeData([
         {
@@ -273,9 +397,9 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("> - 2026-02-12 @alice: First line of feedback")
-    expect(md).toContain(">   Second line with details")
-    expect(md).toContain(">   Third line conclusion")
+    expect(md).toContain("  - Comments")
+    // Multi-line comment text is stored in the node content
+    expect(md).toContain("2026-02-12 @alice: First line of feedback")
   })
 
   test("filters system comments in convert path (pre-2020 standalone action)", () => {
@@ -372,7 +496,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("    - [x] Deep subtask")
   })
 
-  test("renders body with attachments and comments together in blockquote", () => {
+  test("renders body as paragraph, attachments and comments as separate child nodes", () => {
     const md = convertToMd(
       makeData([
         {
@@ -387,11 +511,311 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("> Description text here")
-    expect(md).toContain("> ![diagram.png](https://example.com/diagram.png)")
-    expect(md).toContain("> [report.pdf](https://example.com/report.pdf)")
-    expect(md).toContain("> **Comments:**")
-    expect(md).toContain("> - 2026-02-10 @alice: Great work!")
+    // Body as paragraph (not blockquote)
+    expect(md).toContain("  Description text here")
+    expect(md).not.toContain("> Description text here")
+    // Attachments as child list nodes
+    expect(md).toContain("  - Attachments")
+    expect(md).toContain("    - ![diagram.png](https://example.com/diagram.png)")
+    expect(md).toContain("    - [report.pdf](https://example.com/report.pdf)")
+    // Comments as child list nodes
+    expect(md).toContain("  - Comments")
+    expect(md).toContain("    - 2026-02-10 @alice: Great work!")
+  })
+})
+
+// ============================================================================
+// Activity log rendering
+// ============================================================================
+
+describe("Activity log rendering", () => {
+  test("renders activity log as child list nodes under Activity parent", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with activity",
+          activityLog: [
+            { author: "alice", createdAt: "2026-02-15T09:00:00Z", text: "Alice moved this task to To Do" },
+            { author: "bob", createdAt: "2026-02-16T14:00:00Z", text: "Bob completed this task" },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("  - Activity")
+    expect(md).toContain("2026-02-15 @alice: Alice moved this task to To Do")
+    expect(md).toContain("2026-02-16 @bob: Bob completed this task")
+    // Old blockquote format should NOT be present
+    expect(md).not.toContain("> **Activity:**")
+  })
+
+  test("renders comments before activity in child nodes", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with both",
+          comments: [{ author: "alice", createdAt: "2026-02-16T10:00:00Z", text: "A real comment" }],
+          activityLog: [{ author: "system", createdAt: "2026-02-15T09:00:00Z", text: "Task created" }],
+        },
+      ]),
+    )
+    const commentIdx = md.indexOf("- Comments")
+    const activityIdx = md.indexOf("- Activity")
+    expect(commentIdx).toBeGreaterThan(-1)
+    expect(activityIdx).toBeGreaterThan(commentIdx)
+  })
+
+  test("activity log alone (no body/comments) creates child node (no blockquote)", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Bare activity task",
+          activityLog: [{ author: "system", createdAt: "2026-02-15T09:00:00Z", text: "Task moved" }],
+        },
+      ]),
+    )
+    expect(md).toContain("  - Activity")
+    expect(md).toContain("2026-02-15 @system: Task moved")
+    expect(md).not.toContain("> **Activity:**")
+  })
+})
+
+// ============================================================================
+// Separator items
+// ============================================================================
+
+describe("Separator items (isSeparator)", () => {
+  test("renders separator item as HR node (not a task)", () => {
+    const md = convertToMd(
+      makeData([
+        { sourceId: "t1", title: "Before separator" },
+        { sourceId: "sep1", title: "", metadata: { isSeparator: true } },
+        { sourceId: "t2", title: "After separator" },
+      ]),
+    )
+    expect(md).toContain("---")
+    expect(md).not.toContain("- [ ]  ")
+    expect(md).not.toContain("- [ ] \n")
+  })
+
+  test("separator does not produce task markers or content lines", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(counter, { sourceId: "sep1", title: "", metadata: { isSeparator: true } }, "parent", nodes)
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0]!.type).toBe("hr")
+    expect(nodes[0]!.id).toBe("sep1")
+  })
+})
+
+// ============================================================================
+// Permalink and external metadata
+// ============================================================================
+
+describe("Permalink and external metadata", () => {
+  test("stores permalink in node data as asana_permalink", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      { sourceId: "t1", title: "Task", permalink: "https://app.asana.com/0/p1/t1" },
+      "parent",
+      nodes,
+    )
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data?.asana_permalink).toBe("https://app.asana.com/0/p1/t1")
+  })
+
+  test("stores external metadata as asana_external in node data", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      { sourceId: "t1", title: "Task", metadata: { external: { id: "EXT-123", source: "jira" } } },
+      "parent",
+      nodes,
+    )
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data?.asana_external).toEqual({ id: "EXT-123", source: "jira" })
+  })
+
+  test("stores assigneeSectionName, parentGid, parentName in node data", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        metadata: { assigneeSectionName: "My Tasks: Today", parentGid: "gid-parent", parentName: "Parent Task" },
+      },
+      "parent",
+      nodes,
+    )
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data?.asana_assignee_section).toBe("My Tasks: Today")
+    expect(taskNode.data?.asana_parent_gid).toBe("gid-parent")
+    expect(taskNode.data?.asana_parent_name).toBe("Parent Task")
+  })
+
+  test("task without permalink has no asana_permalink in node data", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(counter, { sourceId: "t1", title: "Task" }, "parent", nodes)
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data?.asana_permalink).toBeUndefined()
+  })
+})
+
+// ============================================================================
+// Child node structure for comments/attachments
+// ============================================================================
+
+describe("Child node structure", () => {
+  test("comments appear as child list nodes with Comments parent", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        comments: [{ author: "alice", createdAt: "2026-02-10T10:00:00Z", text: "Nice work!" }],
+      },
+      "parent",
+      nodes,
+    )
+    const commentsParent = nodes.find((n) => n.id === "comments-t1")!
+    expect(commentsParent).toBeDefined()
+    expect(commentsParent.parent_id).toBe("t1")
+    expect(commentsParent.content).toBe("Comments")
+    const commentChild = nodes.find((n) => n.parent_id === "comments-t1")!
+    expect(commentChild).toBeDefined()
+    expect(commentChild.content).toContain("2026-02-10 @alice: Nice work!")
+  })
+
+  test("attachments appear as child list nodes with Attachments parent", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        attachments: [
+          { name: "photo.jpg", url: "https://example.com/photo.jpg", type: "image" },
+          { name: "doc.pdf", url: "https://example.com/doc.pdf", type: "file" },
+        ],
+      },
+      "parent",
+      nodes,
+    )
+    const attachParent = nodes.find((n) => n.id === "attachments-t1")!
+    expect(attachParent).toBeDefined()
+    expect(attachParent.parent_id).toBe("t1")
+    expect(attachParent.content).toBe("Attachments")
+    const children = nodes.filter((n) => n.parent_id === "attachments-t1")
+    expect(children).toHaveLength(2)
+    expect(children[0]!.content).toBe("![photo.jpg](https://example.com/photo.jpg)")
+    expect(children[1]!.content).toBe("[doc.pdf](https://example.com/doc.pdf)")
+  })
+
+  test("body-only task has paragraph body, no Comments/Attachments child nodes", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      { sourceId: "t1", title: "Task", body: "Just a description" },
+      "parent",
+      nodes,
+    )
+    const bodyNode = nodes.find((n) => n.type === "p")!
+    expect(bodyNode).toBeDefined()
+    expect(bodyNode.content).toBe("Just a description")
+    expect(bodyNode.id).toBe("body-t1")
+    expect(nodes.find((n) => n.id === "comments-t1")).toBeUndefined()
+    expect(nodes.find((n) => n.id === "attachments-t1")).toBeUndefined()
+  })
+})
+
+// ============================================================================
+// Project status updates rendering
+// ============================================================================
+
+describe("Project status updates rendering", () => {
+  test("renders status updates as H2 section with list items", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Sprint 4",
+          items: [{ sourceId: "t1", title: "A task" }],
+          statusUpdates: [
+            {
+              title: "Sprint 4 on track",
+              text: "All tasks progressing well.",
+              color: "green",
+              author: "Test User",
+              createdAt: "2026-02-14T10:00:00Z",
+            },
+          ],
+        },
+      ],
+    }
+    const md = convertToMd(data)
+    expect(md).toContain("## Status Updates")
+    expect(md).toContain("- Sprint 4 on track")
+    expect(md).toContain("> All tasks progressing well.")
+    expect(md).toContain("> Status: green")
+    expect(md).toContain("Author: Test User")
+    expect(md).toContain("Date: 2026-02-14")
+  })
+
+  test("omits Status Updates section when empty", () => {
+    const md = convertToMd(makeData([{ sourceId: "t1", title: "A task" }]))
+    expect(md).not.toContain("## Status Updates")
+  })
+})
+
+// ============================================================================
+// Custom field definitions rendering
+// ============================================================================
+
+describe("Custom field definitions rendering", () => {
+  test("renders custom fields as H2 section with list items", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Sprint 4",
+          items: [{ sourceId: "t1", title: "A task" }],
+          customFieldSettings: [
+            { name: "Priority", type: "number", description: "Task priority level", precision: 0 },
+            { name: "Stage", type: "enum", description: "Development stage", enumOptions: ["Planning", "In Progress", "Review", "Done"] },
+          ],
+        },
+      ],
+    }
+    const md = convertToMd(data)
+    expect(md).toContain("## Custom Fields")
+    expect(md).toContain("- Priority")
+    expect(md).toContain("> Type: number")
+    expect(md).toContain("> Task priority level")
+    expect(md).toContain("> Precision: 0")
+    expect(md).toContain("- Stage")
+    expect(md).toContain("> Type: enum")
+    expect(md).toContain("> Options: Planning, In Progress, Review, Done")
+  })
+
+  test("omits Custom Fields section when empty", () => {
+    const md = convertToMd(makeData([{ sourceId: "t1", title: "A task" }]))
+    expect(md).not.toContain("## Custom Fields")
   })
 })
 
@@ -426,11 +850,11 @@ describe("Multi-project task dedup", () => {
 
     // Alpha has full content (body, ^block-id)
     expect(alpha).toContain("- [ ] Shared task ^shared-1")
-    expect(alpha).toContain("  > Details here")
+    expect(alpha).toContain("  Details here")
 
     // Beta has embed reference (renders target node inline)
     expect(beta).toContain("![[^shared-1]]")
-    expect(beta).not.toContain("  > Details here")
+    expect(beta).not.toContain("  Details here")
 
     // Non-shared task renders normally
     expect(beta).toContain("- [x] Beta only")
@@ -481,7 +905,6 @@ describe("roundtrip: convert → parse", () => {
     const parentLi = list.children[0]! as ListItem
     const childTypes = parentLi.children.map((c) => c.type)
     expect(childTypes).toContain("paragraph")
-    expect(childTypes).toContain("blockquote")
     expect(childTypes).toContain("list")
 
     const subtaskList = parentLi.children.find((c): c is List => c.type === "list")!
@@ -490,7 +913,7 @@ describe("roundtrip: convert → parse", () => {
     expect(subtaskList.children[1]!.checked).toBe(false)
   })
 
-  test("task with body bullets doesn't create extra children", () => {
+  test("task with body bullets: bullets become nested list in roundtrip", () => {
     const data = makeRoundtripData([
       {
         sourceId: "bullet-task",
@@ -507,9 +930,10 @@ describe("roundtrip: convert → parse", () => {
     const list = tree.children.find((n): n is List => n.type === "list")!
     const taskLi = list.children[0]! as ListItem
 
+    // Body paragraph content with bullets becomes a nested list when re-parsed
     const childTypes = taskLi.children.map((c) => c.type)
-    expect(childTypes).toContain("blockquote")
-    expect(childTypes).not.toContain("list")
+    expect(childTypes).toContain("paragraph")
+    expect(childTypes).toContain("list")
     expect(list.children).toHaveLength(1)
   })
 
@@ -788,5 +1212,99 @@ describe("Tag file dedup", () => {
     // The task should appear only once in the tag file (as an embed since it was rendered in project file)
     const refMatches = tagFile.match(/!\[\[\^tag-task-1\]\]/g)
     expect(refMatches).toHaveLength(1)
+  })
+})
+
+// ============================================================================
+// Dependency mapping (Asana dependencies/dependents → deps/blocks)
+// ============================================================================
+
+/** Helper: convert a single ImportItem to KNodes via itemToNodes */
+function itemToNodeList(item: ImportItem): KNode[] {
+  const nodes: KNode[] = []
+  itemToNodes({ value: 0 }, item, "root", nodes)
+  return nodes
+}
+
+describe("Dependency mapping", () => {
+  test("maps dependencies to deps prop with ^sourceId references", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Blocked task",
+      metadata: {
+        dependencies: [
+          { gid: "dep1", name: "Prerequisite A" },
+          { gid: "dep2", name: "Prerequisite B" },
+        ],
+      },
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data.deps).toBe("^dep1,^dep2")
+  })
+
+  test("maps dependents to blocks prop with ^sourceId references", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Blocking task",
+      metadata: {
+        dependents: [
+          { gid: "blk1", name: "Downstream A" },
+          { gid: "blk2", name: "Downstream B" },
+        ],
+      },
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data.blocks).toBe("^blk1,^blk2")
+  })
+
+  test("task with both deps and blocks stores both in node data", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Middle task",
+      metadata: {
+        dependencies: [{ gid: "upstream1", name: "Upstream" }],
+        dependents: [{ gid: "downstream1", name: "Downstream" }],
+      },
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data.deps).toBe("^upstream1")
+    expect(taskNode.data.blocks).toBe("^downstream1")
+  })
+
+  test("task without dependencies omits deps/blocks from node data", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Independent task",
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data).not.toHaveProperty("deps")
+    expect(taskNode.data).not.toHaveProperty("blocks")
+  })
+
+  test("single dependency produces single ^ref (no trailing comma)", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Single dep task",
+      metadata: {
+        dependencies: [{ gid: "only-dep", name: "Only dep" }],
+      },
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data.deps).toBe("^only-dep")
+    expect(taskNode.data).not.toHaveProperty("blocks")
+  })
+
+  test("empty dependency arrays are not stored", () => {
+    const nodes = itemToNodeList({
+      sourceId: "t1",
+      title: "Empty deps task",
+      metadata: {
+        dependencies: [],
+        dependents: [],
+      },
+    })
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.data).not.toHaveProperty("deps")
+    expect(taskNode.data).not.toHaveProperty("blocks")
   })
 })
