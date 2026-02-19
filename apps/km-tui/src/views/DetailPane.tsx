@@ -190,17 +190,20 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
   }
   const structuralChildren = [...liItems, ...oiItems]
 
-  // Get backlinks
+  // Get backlinks (deduplicated by node ID)
   const backlinks = repo.getBacklinks(node.id)
+  const seenBacklinkIds = new Set<string>()
   const backlinkNodes: KNode[] = []
   for (const link of backlinks) {
+    if (seenBacklinkIds.has(link.source_id)) continue
+    seenBacklinkIds.add(link.source_id)
     const sourceNode = repo.getNode(link.source_id)
     if (sourceNode) {
       backlinkNodes.push(sourceNode)
     }
   }
 
-  const maxBacklinks = 3
+  const maxBacklinks = 5
 
   return (
     <Box
@@ -268,16 +271,25 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             </Box>
           )}
 
-          {/* Backlinks */}
+          {/* Backlinks — show as breadcrumb path + bold title */}
           {backlinkNodes.length > 0 && (
             <Box flexDirection="column" marginTop={1} width={contentWidth}>
               <Text bold dimColor>
                 Backlinks ({backlinkNodes.length})
               </Text>
-              {backlinkNodes.slice(0, maxBacklinks).map((bl, i) => (
-                <NodeLine key={`${bl.id}-${i}`} node={bl} title={getNodeDisplayName(repo, bl)} />
-              ))}
-              {backlinkNodes.length > maxBacklinks && <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>}
+              {backlinkNodes.slice(0, maxBacklinks).map((bl) => {
+                const path = getProjectPath(repo, bl)
+                const title = getNodeDisplayName(repo, bl)
+                const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
+                return (
+                  <Text key={bl.id} wrap="truncate">
+                    {"  "}
+                    <Text dimColor>{breadcrumb}</Text>
+                    <Text bold>{renderRich(title)}</Text>
+                  </Text>
+                )
+              })}
+              {backlinkNodes.length > maxBacklinks && <Text dimColor>  +{backlinkNodes.length - maxBacklinks} more</Text>}
             </Box>
           )}
         </Box>
@@ -427,11 +439,13 @@ function MetadataTable({
   // Projects — prefer data.projectMemberships (rich: project + section) over inline +project refs
   const projectMemberships = data?.projectMemberships as Array<{ project: string; section?: string }> | undefined
   if (projectMemberships && projectMemberships.length > 0) {
-    const formatted = projectMemberships.map((pm) => (pm.section ? `${pm.project} (${pm.section})` : pm.project))
-    rows.push({ key: "Projects", value: formatted.join(", ") })
+    const formatted = projectMemberships
+      .map((pm) => (pm.section ? `${pm.project} (${pm.section})` : pm.project))
+      .filter(Boolean)
+    if (formatted.length > 0) rows.push({ key: "Projects", value: formatted.join(", ") })
   } else if (refs.projects.length > 0) {
-    const resolved = resolveProjectDisplayNames(repo, refs.projects)
-    rows.push({ key: "Projects", value: resolved.join(", ") })
+    const resolved = resolveProjectDisplayNames(repo, refs.projects).filter(Boolean)
+    if (resolved.length > 0) rows.push({ key: "Projects", value: resolved.join(", ") })
   }
 
   // Tags (preserve # prefix)
