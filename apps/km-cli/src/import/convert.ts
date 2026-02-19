@@ -263,7 +263,7 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `comments-${item.sourceId}`,
-          type: "li",
+          type: "oi",
           parent_id: item.sourceId,
           content: "Comments",
           data: { detailOnly: true },
@@ -290,7 +290,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `attachments-${item.sourceId}`,
-        type: "li",
+        type: "oi",
         parent_id: item.sourceId,
         content: "Attachments",
         data: { detailOnly: true },
@@ -315,7 +315,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `activity-${item.sourceId}`,
-        type: "li",
+        type: "oi",
         parent_id: item.sourceId,
         content: "Activity",
         data: { detailOnly: true },

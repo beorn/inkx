@@ -147,9 +147,9 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders comments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    // Comments appear as a list item under the heading (no indent since parent is oi)
-    expect(md).toContain("- Comments")
-    expect(md).toContain("2026-02-16 @bob: Looks great")
+    // Comments section is an oi node, rendered as a heading
+    expect(md).toContain("## Comments")
+    expect(md).toContain("- 2026-02-16 @bob: Looks great")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> **Comments:**")
     expect(md).not.toContain("> - 2026-02-16 @bob:")
@@ -157,9 +157,9 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders image attachments as child list nodes (not in blockquote)", () => {
     const md = convertToMd(fixture)
-    // Attachments appear as a list item under the heading (no indent since parent is oi)
-    expect(md).toContain("- Attachments")
-    expect(md).toContain("![wireframe.png](https://example.com/wireframe.png)")
+    // Attachments section is an oi node, rendered as a heading
+    expect(md).toContain("## Attachments")
+    expect(md).toContain("- ![wireframe.png](https://example.com/wireframe.png)")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> ![wireframe.png]")
   })
@@ -369,11 +369,11 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("Description with **bold** text.")
     // Subtask is a heading too
     expect(md).toContain("## Sub-step ^cs1")
-    // Comments and attachments are child list nodes under the heading
-    expect(md).toContain("- Comments")
-    expect(md).toContain("2026-02-09 @bob: Approved. Ship it!")
-    expect(md).toContain("- Attachments")
-    expect(md).toContain("[spec.pdf](https://example.com/spec.pdf)")
+    // Comments and attachments are oi sections rendered as headings
+    expect(md).toContain("## Comments")
+    expect(md).toContain("- 2026-02-09 @bob: Approved. Ship it!")
+    expect(md).toContain("## Attachments")
+    expect(md).toContain("- [spec.pdf](https://example.com/spec.pdf)")
   })
 
   test("renders multi-line comments as single child node (joined text)", () => {
@@ -392,9 +392,9 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("- Comments")
+    expect(md).toContain("## Comments")
     // Multi-line comment text is stored in the node content
-    expect(md).toContain("2026-02-12 @alice: First line of feedback")
+    expect(md).toContain("- 2026-02-12 @alice: First line of feedback")
   })
 
   test("filters system comments in convert path (pre-2020 standalone action)", () => {
@@ -510,13 +510,13 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     // Body as paragraph (not blockquote), no indent since parent is oi
     expect(md).toContain("Description text here")
     expect(md).not.toContain("> Description text here")
-    // Attachments as child list nodes under heading
-    expect(md).toContain("- Attachments")
-    expect(md).toContain("  - ![diagram.png](https://example.com/diagram.png)")
-    expect(md).toContain("  - [report.pdf](https://example.com/report.pdf)")
-    // Comments as child list nodes under heading
-    expect(md).toContain("- Comments")
-    expect(md).toContain("  - 2026-02-10 @alice: Great work!")
+    // Attachments as oi sections rendered as headings
+    expect(md).toContain("## Attachments")
+    expect(md).toContain("- ![diagram.png](https://example.com/diagram.png)")
+    expect(md).toContain("- [report.pdf](https://example.com/report.pdf)")
+    // Comments as oi sections rendered as headings
+    expect(md).toContain("## Comments")
+    expect(md).toContain("- 2026-02-10 @alice: Great work!")
   })
 })
 
@@ -538,10 +538,10 @@ describe("Activity log rendering", () => {
         },
       ]),
     )
-    // No indent since parent is oi heading
-    expect(md).toContain("- Activity")
-    expect(md).toContain("2026-02-15 @alice: Alice moved this task to To Do")
-    expect(md).toContain("2026-02-16 @bob: Bob completed this task")
+    // Activity section is an oi node, rendered as a heading
+    expect(md).toContain("## Activity")
+    expect(md).toContain("- 2026-02-15 @alice: Alice moved this task to To Do")
+    expect(md).toContain("- 2026-02-16 @bob: Bob completed this task")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> **Activity:**")
   })
@@ -557,8 +557,8 @@ describe("Activity log rendering", () => {
         },
       ]),
     )
-    const commentIdx = md.indexOf("- Comments")
-    const activityIdx = md.indexOf("- Activity")
+    const commentIdx = md.indexOf("## Comments")
+    const activityIdx = md.indexOf("## Activity")
     expect(commentIdx).toBeGreaterThan(-1)
     expect(activityIdx).toBeGreaterThan(commentIdx)
   })
@@ -573,9 +573,9 @@ describe("Activity log rendering", () => {
         },
       ]),
     )
-    // No indent since parent is oi heading
-    expect(md).toContain("- Activity")
-    expect(md).toContain("2026-02-15 @system: Task moved")
+    // Activity section is an oi node, rendered as a heading
+    expect(md).toContain("## Activity")
+    expect(md).toContain("- 2026-02-15 @system: Task moved")
     expect(md).not.toContain("> **Activity:**")
   })
 })
