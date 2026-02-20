@@ -571,13 +571,23 @@ export { itemToNodes, buildTaskContent, buildBodyContent }
  */
 function buildPrimaryMap(data: ImportData): {
   primaryMap: Map<string, string>
-  filenames: string[]
+  filenames: (string | undefined)[]
 } {
   const primaryMap = new Map<string, string>()
-  const filenames: string[] = []
+  const filenames: (string | undefined)[] = []
   for (const project of data.projects) {
     const slug = slugify(project.title.trim() || "untitled")
-    const filename = `${project.sourceId}-${slug}.md`
+    const isTag = project.sourceId.startsWith("tag-")
+    const isUser = project.sourceId.startsWith("user-")
+    let filename: string | undefined
+    if (isTag) {
+      // Tag projects don't get their own file — generateTagFiles() produces #slug.md instead
+      filename = undefined
+    } else if (isUser) {
+      filename = `@${slug}.md`
+    } else {
+      filename = `${project.sourceId}-${slug}.md`
+    }
     filenames.push(filename)
     const ids: string[] = []
     if (project.sections?.length) {
@@ -586,8 +596,10 @@ function buildPrimaryMap(data: ImportData): {
       }
     }
     if (project.items?.length) collectTaskIds(project.items, ids)
+    // For tag projects, point cross-references to the #slug.md file
+    const mapTarget = isTag ? `#${slugify(project.title.replace(/^#/, ""))}.md` : filename!
     for (const id of ids) {
-      if (!primaryMap.has(id)) primaryMap.set(id, filename)
+      if (!primaryMap.has(id)) primaryMap.set(id, mapTarget)
     }
   }
   return { primaryMap, filenames }
