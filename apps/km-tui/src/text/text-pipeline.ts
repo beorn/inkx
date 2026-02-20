@@ -48,9 +48,11 @@ const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g
 /**
  * Bare URLs: https://example.com/path?q=1#frag
  * Matches http:// and https:// URLs not already consumed by markdown link syntax.
+ * Negative lookbehind `(?<!;;)` prevents matching URLs inside OSC 8 hyperlink sequences
+ * (which use the format `\x1b]8;;<url>\x1b\\`).
  * Trailing punctuation (.,:;!?) followed by whitespace/end is excluded from the match.
  */
-const BARE_URL_REGEX = /https?:\/\/[^\s<>\[\]()]+[^\s<>\[\]().,;:!?'")\]]/g
+const BARE_URL_REGEX = /(?<!;;)https?:\/\/[^\s<>\[\]()]+[^\s<>\[\]().,;:!?'")\]]/g
 
 /** HTML tags */
 const HTML_TAG_REGEX = /<[^>]+>/g
@@ -240,9 +242,11 @@ export function processText(text: string, options: TextPipelineOptions): string 
   result = result.replace(HTML_TAG_REGEX, "")
 
   // ── Step 4: Handle markdown links [text](url) ──
-  // External links: cyan + underline to distinguish from internal wiki links
+  // External links: cyan + underline + OSC 8 hyperlink for clickable URLs
   if (isRich && style) {
-    result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => style.cyan.underline(linkText))
+    result = result.replace(MD_LINK_REGEX, (_match, linkText: string, url: string) =>
+      hyperlink(style.cyan.underline(linkText), url),
+    )
   } else {
     result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => linkText)
   }

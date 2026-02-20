@@ -182,6 +182,23 @@ describe("renderRich", () => {
       // The title is part of the URL portion, so it gets stripped
       expect(stripAnsi(result)).toBe("Check Example")
     })
+
+    it("wraps markdown links in OSC 8 hyperlink for terminal clickability", () => {
+      const result = renderRich("Click [Google](https://google.com) here")
+      // OSC 8 open with the URL
+      expect(result).toContain("\x1b]8;;https://google.com\x1b\\")
+      // OSC 8 close
+      expect(result).toContain("\x1b]8;;\x1b\\")
+      // Plain text should only show the link text, not the URL
+      expect(stripAnsi(result)).toBe("Click Google here")
+    })
+
+    it("wraps each markdown link in its own OSC 8 hyperlink", () => {
+      const result = renderRich("[one](https://one.com) and [two](https://two.com)")
+      expect(result).toContain("\x1b]8;;https://one.com\x1b\\")
+      expect(result).toContain("\x1b]8;;https://two.com\x1b\\")
+      expect(stripAnsi(result)).toBe("one and two")
+    })
   })
 
   describe("link type differentiation", () => {
