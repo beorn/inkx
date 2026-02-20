@@ -475,6 +475,9 @@ export const Column = React.memo(function Column({
   // Check if this column header is being inline-edited
   const isInlineEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
+  // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
+  const columnScrollAnchor = useUISelector((state) => state.columnScrollAnchor)
+
   // Check if the board is in a loading state (discoverOnly + background parse).
   // Used to show skeleton cards in empty columns instead of "(empty)".
   // Four conditions trigger loading:
@@ -700,6 +703,7 @@ export const Column = React.memo(function Column({
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           overflowIndicator
+          scrollAnchor={columnScrollAnchor}
         />
       ) : isLoading ? (
         <SkeletonCards width={width - 1} height={height - 2} colIndex={colIndex} />

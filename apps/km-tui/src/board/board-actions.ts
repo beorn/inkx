@@ -347,6 +347,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === BoardAction passthrough (forward to board reducer) ===
     case "SELECT":
+      // Reset scroll anchor so viewport snaps back to follow cursor
+      if (ctx.ui.columnScrollAnchor !== null) {
+        ctx.setUI({ columnScrollAnchor: null })
+      }
+      ctx.dispatchBoard(action)
+      return ok()
     case "SET_ROOT":
     case "SET_CURSWANT":
       ctx.dispatchBoard(action)
@@ -413,10 +419,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SHIFT_RIGHT":
       return handleShiftCard(ctx, "right")
 
-    // === Selection actions ===
+    // === Selection actions (passthrough to board reducer) ===
     case "SELECT_NODE_ADD":
     case "SELECT_NODE_REMOVE":
     case "SELECT_NODE_TOGGLE":
+      ctx.dispatchBoard(action)
+      return ok()
+
+    // === Selection actions (not yet implemented) ===
     case "SELECT_ALL_SIBLINGS":
     case "SELECT_ALL":
       return unimplemented("selection")

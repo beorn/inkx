@@ -20,6 +20,8 @@ interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "s
   isSelected: boolean
   /** Extract nodeId from items for cursor→index lookup. Falls back to (item as any).node.id */
   keyExtractor?: (item: T) => string
+  /** Explicit scroll anchor (from mouse wheel). Overrides cursor-derived scrollTo when set. */
+  scrollAnchor?: number | null
 }
 
 /**
@@ -29,6 +31,7 @@ interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "s
 export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtualList<T>({
   isSelected,
   keyExtractor,
+  scrollAnchor,
   ...virtualListProps
 }: ScrollTrackingVirtualListProps<T>): React.ReactElement {
   const cursorCardNodeId = useCursorCardNodeId()
@@ -44,7 +47,11 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
     return -1
   }, [cursorCardNodeId, isSelected, virtualListProps.items, keyExtractor])
 
-  const scrollTo = getScrollToIndex(isSelected, cardIndex, virtualListProps.items.length)
+  // When scrollAnchor is set (mouse wheel scrolling), use it instead of cursor-derived index.
+  // This allows the viewport to scroll independently of the cursor position.
+  const effectiveIndex =
+    scrollAnchor != null && isSelected ? scrollAnchor : cardIndex
+  const scrollTo = getScrollToIndex(isSelected, effectiveIndex, virtualListProps.items.length)
 
   return <VirtualList scrollTo={scrollTo} {...virtualListProps} />
 }) as <T>(props: ScrollTrackingVirtualListProps<T>) => React.ReactElement

@@ -3,7 +3,7 @@
  *
  * Defines the board application with Zustand store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
- * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=multi-CURSOR_MOVE, click=SELECT, dblclick=ENTER_INLINE_EDIT
+ * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=multi-CURSOR_MOVE, click=SELECT, ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
@@ -329,22 +329,27 @@ function resolveMouseToNode(
 /**
  * Handle term:mouse event — entry point for all mouse input.
  * - Scroll wheel: moves cursor by SCROLL_STEP items (feels like column scrolling)
- * - Left click: select the card under the cursor
+ * - Left click: select the card under the cursor (clears multi-selection)
+ * - Ctrl-click: move cursor to card and toggle it in multi-selection
  * - Double-click: enter inline edit mode on the clicked card
  */
 function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
 
   if (mouse.action === "wheel") {
-    // Scroll wheel → move cursor by multiple items for scroll-like feel
-    const dir = mouse.delta === -1 ? "prev" : "next"
+    // Scroll wheel → scroll column viewport WITHOUT moving cursor
     const actionCtx = buildActionCtx(get, () => {})
-    for (let i = 0; i < SCROLL_STEP; i++) {
-      const result = handleCommandAction(actionCtx, { type: "CURSOR_MOVE", dir })
-      if (isErr(result) && result.error.type === "boundary") {
-        break // Stop at boundary — don't overshoot
-      }
-    }
+    const col = actionCtx.column
+    if (!col || col.cardNodes.length === 0) return
+
+    const currentAnchor = actionCtx.ui.columnScrollAnchor
+    // If no explicit anchor, derive from cursor's card index
+    const baseIndex = currentAnchor ?? actionCtx.cardIndex
+    const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
+    const maxIndex = col.cardNodes.length - 1
+    const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
+
+    actionCtx.setUI({ columnScrollAnchor: newAnchor })
     return
   }
 
@@ -365,8 +370,13 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
       // Double-click → enter inline edit on the clicked card
       handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: 0 })
       lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
+    } else if (mouse.ctrl) {
+      // Ctrl-click → move cursor to clicked card and toggle its selection
+      actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+      actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
+      lastClick = { time: now, x: mouse.x, y: mouse.y }
     } else {
-      // Single click → select the card
+      // Single click → select the card (clears multi-selection)
       actionCtx.dispatchBoard({ type: "SELECT", nodeId })
       lastClick = { time: now, x: mouse.x, y: mouse.y }
     }

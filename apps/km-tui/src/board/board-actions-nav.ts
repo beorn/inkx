@@ -29,6 +29,11 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return handleOutlineNav(ctx, dir, ctx.card)
   }
 
+  // Reset scroll anchor so viewport snaps back to follow cursor
+  if (ui.columnScrollAnchor !== null) {
+    ctx.setUI({ columnScrollAnchor: null })
+  }
+
   // Non-shift cursor moves clear multi-selection (Shift+movement extends it
   // via separate extend_select_* commands that don't go through handleCursorMove)
   if (ui.multiSelected.size > 0) {
@@ -259,6 +264,11 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
   const col = ctx.column
 
   if (!col) return
+
+  // Reset scroll anchor so viewport snaps back to follow cursor
+  if (ui.columnScrollAnchor !== null) {
+    ctx.setUI({ columnScrollAnchor: null })
+  }
 
   // Page size is roughly half the visible cards
   const pageSize = Math.max(5, Math.floor((ui.dimensions.rows - 4) / 2))
