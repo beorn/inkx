@@ -21,7 +21,7 @@ describe("Move Mode UI", () => {
     board.press("J") // Shift+J to select current and next
 
     // Enter move mode with 'm'
-    board.press("m")
+    board.press("mm")
 
     // Should show [MOVE] indicator in status bar
     const afterMove = board.screenshot()
@@ -35,7 +35,7 @@ describe("Move Mode UI", () => {
 
     // Select and enter move mode
     board.press("J") // Shift+J to select
-    board.press("m") // Enter move mode
+    board.press("mm") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Cancel with Escape
@@ -53,7 +53,7 @@ describe("Move Mode UI", () => {
 
     // Select and enter move mode
     board.press("J") // Shift+J to select
-    board.press("m") // Enter move mode
+    board.press("mm") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Move to different column and confirm with Enter
@@ -76,7 +76,7 @@ describe("Move Mode UI", () => {
 
     // Select and enter move mode
     board.press("J") // Shift+J to select
-    board.press("m") // Enter move mode
+    board.press("mm") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate around - indicator should persist

@@ -510,7 +510,7 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m")
+    board.press("mm")
 
     const output = board.screenshot()
     expect(output).toContain("[MOVE]")
@@ -520,7 +520,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m")
+    board.press("mm")
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate to different column while in move mode
@@ -538,7 +538,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m")
+    board.press("mm")
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate to col2
@@ -563,7 +563,7 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m")
+    board.press("mm")
 
     // Can navigate while in move mode
     board.press("l")
@@ -578,7 +578,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("only"))))
     board.expect("#only[data-cursor]").toExist()
 
-    board.press("m")
+    board.press("mm")
     expect(board.screenshot()).toContain("[MOVE]")
 
     board.press("Escape")

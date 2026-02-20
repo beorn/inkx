@@ -437,8 +437,8 @@ describe("initDefaultKeybindings", () => {
   })
 
   it.each([
-    // TUI: 'v' cycles view mode, not select toggle
-    ["v", {}, "cycle_view_mode"],
+    // TUI: 'v' enters visual mode
+    ["v", {}, "visual_mode_enter"],
     // Shift+A for progressive select all
     ["A", {}, "select_all_progressive"],
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
@@ -710,7 +710,7 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("fold_all")
 
     // View
-    expect(commandIds).toContain("cycle_view_mode")
+    expect(commandIds).toContain("visual_mode_enter")
     expect(commandIds).toContain("show_help")
     expect(commandIds).toContain("increase_outline_depth")
 
@@ -829,7 +829,7 @@ describe("text mode keybinding separation", () => {
       ["Tab", { shift: true }, "outdent"],
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
-      ["v", {}, "cycle_view_mode"],
+      ["v", {}, "visual_mode_enter"],
       ["/", {}, "search"],
       ["?", {}, "show_help"],
       ["c", {}, "toggle_collapse"],
