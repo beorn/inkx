@@ -559,6 +559,13 @@ function TreeNodeImpl({
   // Only column headers show count (and only when WIP limit is configured).
   const showInlineChildCount = false
 
+  // Body content indicator: show ··· on card titles when node has body children
+  // (paragraphs, quotes, code blocks, etc. — not just structural oi items)
+  const hasBody = useMemo(() => {
+    if (depth !== 0 || isOneliner) return false
+    return extractBody(children).body.length > 0
+  }, [depth, isOneliner, children])
+
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
   const dateBadge = useMemo(
     () => formatDateBadge(displayNode),
@@ -740,6 +747,7 @@ function TreeNodeImpl({
                     {contextSuffix}
                   </Text>
                 )}
+                {hasBody && <Text dimColor>{" ···"}</Text>}
               </Text>
             )}
           </Box>

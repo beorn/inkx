@@ -322,6 +322,9 @@ export function NodeCardView({
   const bgColor = isSelected ? "yellow" : undefined
   const iconColor = isSelected ? "black" : (isDoneOrDropped ? undefined : icon.color)
 
+  // Body indicator: show ··· when node has body children (paragraphs, quotes, code blocks, etc.)
+  const hasBody = extractBody(children).body.length > 0
+
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
   const overflowCount = children.length - visibleChildren.length
@@ -338,6 +341,7 @@ export function NodeCardView({
         >
           <Text color={iconColor}>{icon.char}</Text>{" "}
           {title}
+          {hasBody && <Text dimColor>{" ···"}</Text>}
         </Text>
       </Box>
       {/* Subitems */}

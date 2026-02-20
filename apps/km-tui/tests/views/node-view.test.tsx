@@ -271,6 +271,41 @@ describe("NodeCardView (card style)", () => {
     )
     expect(output).toContain("Bold Title")
   })
+
+  test("shows body indicator when node has body children", async () => {
+    const parent = makeNode({ content: "Card with body" })
+    const children = [
+      makeNode({ id: "b1", type: "p", content: "A paragraph of body content" }),
+      makeNode({ id: "c1", type: "oi", content: "Structural child" }),
+    ]
+    const output = await renderString(
+      <NodeCardView node={parent} children={children} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).toContain("···")
+  })
+
+  test("no body indicator when node has only structural children", async () => {
+    const parent = makeNode({ content: "Card without body" })
+    const children = [
+      makeNode({ id: "c1", type: "oi", content: "Column 1" }),
+      makeNode({ id: "c2", type: "oi", content: "Column 2" }),
+    ]
+    const output = await renderString(
+      <NodeCardView node={parent} children={children} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).not.toContain("···")
+  })
+
+  test("no body indicator when node has no children", async () => {
+    const node = makeNode({ content: "Empty card" })
+    const output = await renderString(
+      <NodeCardView node={node} children={[]} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).not.toContain("···")
+  })
 })
 
 // =============================================================================
