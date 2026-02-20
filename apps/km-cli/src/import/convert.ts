@@ -707,7 +707,9 @@ function buildPrimaryMap(data: ImportData): {
         filename = `@${userSlug}.md`
       }
     } else {
-      const projectSlug = projectSlugOverrides.get(project.sourceId) ?? slugify(project.title.trim() || "untitled")
+      const rawTitle = project.title.trim() || "untitled"
+      const atPrefix = rawTitle.startsWith("@") ? "@" : ""
+      const projectSlug = atPrefix + (projectSlugOverrides.get(project.sourceId) ?? slugify(rawTitle))
       const teamSlug = project.team ? (teamSlugMap.get(project.team) ?? slugify(project.team)) : undefined
 
       if (wsSlug && teamSlug) {
