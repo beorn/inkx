@@ -135,4 +135,4 @@ export interface RecordedCall {
   response: unknown
 }
 
-import type { ImportData } from "../types.ts"
+import type { ImportData } from "../../types.ts"

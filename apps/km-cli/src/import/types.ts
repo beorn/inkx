@@ -108,6 +108,10 @@ export interface ImportData {
   fetchedAt: string
   workspace?: string
   projects: ImportProject[]
+  users?: Array<{ name: string; gid: string; email?: string }>
+  teams?: Array<{ name: string; gid: string }>
+  /** GID of the user who performed the Asana export (their My Tasks stays at top level) */
+  importingUserGid?: string
 }
 
 /** Map of relative file paths to markdown content */

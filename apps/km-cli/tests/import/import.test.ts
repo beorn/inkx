@@ -12,8 +12,8 @@ import { createFakeAsana, minimalFixtures } from "./fake-asana.ts"
 import type { FakeAsana } from "./fake-asana.ts"
 import { convert, convertBatch } from "../../src/import/convert.ts"
 import { writeFiles } from "../../src/import/write.ts"
-import { fetchFromAsana as _fetchFromAsana } from "../../src/import/adapters/asana-api.ts"
-import { parseAsanaFile } from "../../src/import/adapters/asana-file.ts"
+import { fetchFromAsana as _fetchFromAsana } from "../../src/import/adapters/asana/asana-api.ts"
+import { parseAsanaFile } from "../../src/import/adapters/asana/asana-file.ts"
 
 /** Wrapper that disables rate-limit delays for tests */
 const fetchFromAsana = (opts: Parameters<typeof _fetchFromAsana>[0]) =>
@@ -866,8 +866,8 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const { written } = writeFiles(files, { outDir: testDir })
     expect(written).toHaveLength(3)
 
-    // Verify Sprint 4 file (FakeAsana uses gid="proj-1")
-    const sprint = readFileSync(join(testDir, "proj-1-sprint-4.md"), "utf-8")
+    // Verify Sprint 4 file (FakeAsana uses gid="proj-1", team="Engineering", workspace="Test Workspace")
+    const sprint = readFileSync(join(testDir, "test-workspace", "engineering", "sprint-4.md"), "utf-8")
     expect(sprint).toContain("# Sprint 4")
     expect(sprint).toContain("## To Do")
     // Tasks are headings now (oi type)
@@ -877,13 +877,13 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(sprint).toContain("## Done")
     expect(sprint).toContain("## Write tests")
 
-    // Verify Product Backlog file
-    const backlog = readFileSync(join(testDir, "proj-2-product-backlog.md"), "utf-8")
+    // Verify Product Backlog file (no team)
+    const backlog = readFileSync(join(testDir, "test-workspace", "product-backlog.md"), "utf-8")
     expect(backlog).toContain("# Product Backlog")
     expect(backlog).toContain("## API spec review")
 
-    // Verify Edge Cases file
-    const edge = readFileSync(join(testDir, "proj-3-edge-cases.md"), "utf-8")
+    // Verify Edge Cases file (no team)
+    const edge = readFileSync(join(testDir, "test-workspace", "edge-cases.md"), "utf-8")
     expect(edge).toContain("# Edge Cases")
     expect(edge).toContain("## Active")
     expect(edge).toContain("## ------------------")
@@ -907,7 +907,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     })
 
     const files = convert(data)
-    const edge = files.get("proj-3-edge-cases.md")!
+    const edge = files.get("test-workspace/edge-cases.md")!
     // The html_notes for task-links contain Asana URLs that should be converted
     // to [[^GID|text]] references in the final markdown, preserving link text as alias
     expect(edge).toContain("[[^789012|Related task]]")
@@ -922,7 +922,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     })
 
     const files = convert(data)
-    const sprint = files.get("proj-1-sprint-4.md")!
+    const sprint = files.get("test-workspace/engineering/sprint-4.md")!
     expect(sprint).not.toContain("workspace:")
   })
 
@@ -934,7 +934,7 @@ describe("End-to-end: FakeAsana → markdown files", () => {
 
     const files = convert(data)
     // task-full is in proj-3 (primary) AND proj-1 — should show +sprint-4 tag
-    const edge = files.get("proj-3-edge-cases.md")!
+    const edge = files.get("test-workspace/edge-cases.md")!
     expect(edge).toContain("## Comprehensive task")
     expect(edge).toContain("+sprint-4")
   })

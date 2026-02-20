@@ -5,9 +5,9 @@
  * Both API fetch and JSON file parsing are supported.
  */
 
-import type { ImportAdapter, AdapterParseOptions, AdapterFetchOptions, AdapterFetchResult } from "../adapter.ts"
+import type { ImportAdapter, AdapterParseOptions, AdapterFetchOptions, AdapterFetchResult } from "../../adapter.ts"
 import { readFileSync } from "fs"
-import type { ImportData, ImportAttachment } from "../types.ts"
+import type { ImportData, ImportAttachment } from "../../types.ts"
 import { parseAsanaFile } from "./asana-file.ts"
 
 /**

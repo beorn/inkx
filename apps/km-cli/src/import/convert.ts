@@ -13,18 +13,59 @@ import type {
   ImportItem,
   ImportProject,
   ImportSection,
-  ImportStatusUpdate,
-  ImportCustomFieldDef,
   FileMap,
 } from "./types.ts"
-import { filterSystemComment } from "./adapters/comment-filter.ts"
+import { filterSystemComment } from "./adapters/asana/comment-filter.ts"
 
-/** Slugify a title for use as filename */
+/** Slugify a title for use as filename — preserves Unicode letters (ø, é, ñ) */
 export function slugify(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
+}
+
+/**
+ * Build a map of name → unique slug. If multiple entries produce the same slug,
+ * append the GID to disambiguate.
+ */
+export function buildUniqueSlugMap(
+  entries: Array<{ name: string; gid: string }>,
+): Map<string, string> {
+  const bySlug = new Map<string, Array<{ name: string; gid: string }>>()
+  for (const e of entries) {
+    const slug = slugify(e.name)
+    const list = bySlug.get(slug) ?? []
+    list.push(e)
+    bySlug.set(slug, list)
+  }
+  const map = new Map<string, string>()
+  for (const [slug, group] of bySlug) {
+    if (group.length === 1) {
+      map.set(group[0].name, slug)
+    } else {
+      for (const e of group) {
+        map.set(e.name, `${slug}-${e.gid}`)
+      }
+    }
+  }
+  return map
+}
+
+/** Resolve a user reference to its slug — handles both display names and pre-slugified values */
+export function resolveUserSlug(
+  ref: string,
+  userSlugMap: Map<string, string>,
+): string {
+  // Try display name first (e.g., "Bjørn Stabell")
+  const direct = userSlugMap.get(ref)
+  if (direct) return direct
+  // Try pre-slugified form (e.g., "bjørn-stabell" from task-transform)
+  for (const [, slug] of userSlugMap) {
+    if (slug === ref) return slug
+  }
+  // Fallback: slugify the raw reference
+  return slugify(ref)
 }
 
 /**
@@ -114,10 +155,19 @@ function mkNode(counter: IdxCounter, fields: Partial<KNode> & Pick<KNode, "id" |
  * Title + @assignee + #tags + +projects are inline text.
  * Metadata (created::, completed::) is set on data.metadata — the serializer handles formatting.
  */
-function buildTaskContent(item: ImportItem, currentProject?: string): string {
+function buildTaskContent(
+  item: ImportItem,
+  currentProject?: string,
+  userSlugMap?: Map<string, string>,
+): string {
   const title = item.milestone ? `◆ ${item.title}` : item.title
   const parts: string[] = [title]
-  if (item.assignee) parts.push(`@${item.assignee}`)
+  if (item.assignee) {
+    const slug = userSlugMap
+      ? resolveUserSlug(item.assignee, userSlugMap)
+      : slugify(item.assignee)
+    parts.push(`@${slug}`)
+  }
   if (item.tags?.length) parts.push(...new Set(item.tags.map((t) => `#${slugify(t)}`)))
   if (item.projects && item.projects.length > 1) {
     const otherProjects = currentProject
@@ -133,7 +183,10 @@ function buildTaskContent(item: ImportItem, currentProject?: string): string {
 /** Build body content string (paragraph body text, not blockquote) */
 function buildBodyContent(item: ImportItem): string | null {
   if (!item.body?.trim()) return null
-  return convertAsanaLinks(item.body.trim())
+  let text = convertAsanaLinks(item.body.trim())
+  // Clean up redundant [url](url) → <url> autolinks
+  text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
+  return text
 }
 
 /** Convert an ImportItem to KNode(s) and append to the nodes array */
@@ -146,6 +199,7 @@ function itemToNodes(
   primaryMap?: Map<string, string>,
   currentProject?: string,
   localRendered?: Set<string>,
+  userSlugMap?: Map<string, string>,
 ): void {
   // Within-file dedup: skip entirely if already rendered in this project
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
@@ -245,9 +299,11 @@ function itemToNodes(
     parent_id: parentId,
     task_marker: getMarkerForStatus(status),
     task_status: status,
-    content: buildTaskContent(item, currentProject),
+    content: buildTaskContent(item, currentProject, userSlugMap),
     block_id: item.sourceId,
-    assigned_to: item.assignee,
+    assigned_to: item.assignee
+      ? `@${userSlugMap ? resolveUserSlug(item.assignee, userSlugMap) : slugify(item.assignee)}`
+      : undefined,
     due_at: item.dueAt?.slice(0, 10),
     start_at: item.startAt?.slice(0, 10),
     priority: item.priority,
@@ -293,14 +349,16 @@ function itemToNodes(
       )
       for (const c of filtered) {
         const date = c.createdAt.slice(0, 10)
-        const author = c.author ? `@${c.author}` : ""
+        const authorSlug = c.author
+          ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
+          : ""
         const fullText = c.text.trim()
         nodes.push(
           mkNode(counter, {
             id: `comment-${item.sourceId}-${counter.value}`,
             type: "li",
             parent_id: `comments-${item.sourceId}`,
-            content: `${date} ${author}: ${fullText}`.trim(),
+            content: `${date} ${authorSlug}: ${fullText}`.trim(),
             created_at: new Date(c.createdAt).getTime(),
             updated_at: itemUpdatedAt,
           }),
@@ -353,13 +411,15 @@ function itemToNodes(
     )
     for (const a of item.activityLog) {
       const date = a.createdAt.slice(0, 10)
-      const author = a.author ? `@${a.author}` : ""
+      const authorSlug = a.author
+        ? `@${userSlugMap ? resolveUserSlug(a.author, userSlugMap) : slugify(a.author)}`
+        : ""
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
           type: "li",
           parent_id: `activity-${item.sourceId}`,
-          content: `${date} ${author}: ${a.text}`.trim(),
+          content: `${date} ${authorSlug}: ${a.text}`.trim(),
           created_at: new Date(a.createdAt).getTime(),
           updated_at: itemUpdatedAt,
         }),
@@ -370,7 +430,7 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered)
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
     }
   }
 }
@@ -388,6 +448,7 @@ function sectionToNodes(
   primaryMap?: Map<string, string>,
   currentProject?: string,
   localRendered?: Set<string>,
+  userSlugMap?: Map<string, string>,
 ): void {
   const isPlaceholder = NO_SECTION_TITLES.has(section.title.toLowerCase().trim())
   const itemParentId = isPlaceholder ? parentId : `section-${section.sourceId}`
@@ -407,7 +468,7 @@ function sectionToNodes(
   }
 
   for (const item of section.items) {
-    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered)
+    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
   }
 }
 
@@ -418,6 +479,7 @@ function projectToNodes(
   fetchedAt: string,
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
+  userSlugMap?: Map<string, string>,
 ): KNode[] {
   const counter: IdxCounter = { value: 0 }
   const nodes: KNode[] = []
@@ -430,7 +492,12 @@ function projectToNodes(
     imported_from: source,
     imported_at: fetchedAt,
   }
-  if (project.owner) frontmatter.owner = project.owner
+  if (project.owner) {
+    const ownerSlug = userSlugMap
+      ? resolveUserSlug(project.owner, userSlugMap)
+      : slugify(project.owner)
+    frontmatter.owner = `@${ownerSlug}`
+  }
 
   const projectTitle = project.title.trim() || "(untitled)"
   nodes.push(
@@ -448,14 +515,14 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered)
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered)
+      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
     }
   }
 
@@ -479,7 +546,12 @@ function projectToNodes(
       if (su.text) statusLines.push(su.text)
       const metaParts: string[] = []
       if (su.color) metaParts.push(`Status: ${su.color}`)
-      if (su.author) metaParts.push(`Author: ${su.author}`)
+      if (su.author) {
+        const authorSlug = userSlugMap
+          ? resolveUserSlug(su.author, userSlugMap)
+          : slugify(su.author)
+        metaParts.push(`Author: @${authorSlug}`)
+      }
       if (su.createdAt) metaParts.push(`Date: ${su.createdAt.slice(0, 10)}`)
       if (metaParts.length) {
         if (statusLines.length) statusLines.push("")
@@ -562,33 +634,106 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
   }
 }
 
-/** Export for testing: convert a single ImportItem to KNode */
+/** Export for testing: convert a single ImportItem to KNode, slug helpers */
 export { itemToNodes, buildTaskContent, buildBodyContent }
 
 /**
  * Build the primaryMap (task sourceId → filename) and filename list.
  * Pass 1 of the two-pass convert: lightweight ID scan only.
+ *
+ * Directory structure: {workspace}/{team}/{project}.md
+ * User task lists: {workspace}/users/@{user}.md (importing user stays at top level)
+ * Tag files: {workspace}/tags/#{tag}.md
  */
 function buildPrimaryMap(data: ImportData): {
   primaryMap: Map<string, string>
   filenames: (string | undefined)[]
+  userSlugMap: Map<string, string>
 } {
   const primaryMap = new Map<string, string>()
   const filenames: (string | undefined)[] = []
+
+  // Build slug maps for users and teams
+  const userSlugMap = buildUniqueSlugMap(
+    (data.users ?? []).map((u) => ({ name: u.name, gid: u.gid })),
+  )
+  const teamSlugMap = buildUniqueSlugMap(
+    (data.teams ?? []).map((t) => ({ name: t.name, gid: t.gid })),
+  )
+
+  const wsSlug = data.workspace ? slugify(data.workspace) : undefined
+
+  // Detect project slug collisions within each team
+  const projectsByTeam = new Map<string, Array<{ project: ImportProject; slug: string }>>()
   for (const project of data.projects) {
+    if (project.sourceId.startsWith("tag-") || project.sourceId.startsWith("user-")) continue
+    const teamKey = project.team ?? "(no-team)"
     const slug = slugify(project.title.trim() || "untitled")
+    const list = projectsByTeam.get(teamKey) ?? []
+    list.push({ project, slug })
+    projectsByTeam.set(teamKey, list)
+  }
+
+  // Find collisions per team
+  const projectSlugOverrides = new Map<string, string>() // sourceId → final slug
+  for (const [, projects] of projectsByTeam) {
+    const bySlug = new Map<string, Array<{ project: ImportProject; slug: string }>>()
+    for (const p of projects) {
+      const list = bySlug.get(p.slug) ?? []
+      list.push(p)
+      bySlug.set(p.slug, list)
+    }
+    for (const [slug, group] of bySlug) {
+      if (group.length === 1) {
+        projectSlugOverrides.set(group[0].project.sourceId, slug)
+      } else {
+        for (const p of group) {
+          projectSlugOverrides.set(p.project.sourceId, `${slug}-${p.project.sourceId}`)
+        }
+      }
+    }
+  }
+
+  for (const project of data.projects) {
     const isTag = project.sourceId.startsWith("tag-")
     const isUser = project.sourceId.startsWith("user-")
     let filename: string | undefined
+
     if (isTag) {
       // Tag projects don't get their own file — generateTagFiles() produces #slug.md instead
       filename = undefined
     } else if (isUser) {
-      filename = `@${slug}.md`
+      const userName = project.title.replace(/^@/, "").trim()
+      const userSlug = userSlugMap.get(userName) ?? slugify(userName)
+      const isImportingUser =
+        data.importingUserGid != null &&
+        project.sourceId === `user-${data.importingUserGid}`
+
+      if (isImportingUser) {
+        // Importing user's My Tasks at top level (spans workspaces)
+        filename = `@${userSlug}.md`
+      } else if (wsSlug) {
+        filename = `${wsSlug}/users/@${userSlug}.md`
+      } else {
+        filename = `@${userSlug}.md`
+      }
     } else {
-      filename = `${project.sourceId}-${slug}.md`
+      const projectSlug = projectSlugOverrides.get(project.sourceId) ?? slugify(project.title.trim() || "untitled")
+      const teamSlug = project.team ? (teamSlugMap.get(project.team) ?? slugify(project.team)) : undefined
+
+      if (wsSlug && teamSlug) {
+        filename = `${wsSlug}/${teamSlug}/${projectSlug}.md`
+      } else if (wsSlug) {
+        filename = `${wsSlug}/${projectSlug}.md`
+      } else if (teamSlug) {
+        filename = `${teamSlug}/${projectSlug}.md`
+      } else {
+        filename = `${projectSlug}.md`
+      }
     }
+
     filenames.push(filename)
+
     const ids: string[] = []
     if (project.sections?.length) {
       for (const section of project.sections) {
@@ -596,13 +741,18 @@ function buildPrimaryMap(data: ImportData): {
       }
     }
     if (project.items?.length) collectTaskIds(project.items, ids)
-    // For tag projects, point cross-references to the #slug.md file
-    const mapTarget = isTag ? `#${slugify(project.title.replace(/^#/, ""))}.md` : filename!
+
+    // For tag projects, point cross-references to the tag file path
+    const tagSlug = slugify(project.title.replace(/^#/, "").replace(/^@/, ""))
+    const mapTarget = isTag
+      ? (wsSlug ? `${wsSlug}/tags/#${tagSlug}.md` : `#${tagSlug}.md`)
+      : (filename ?? "")
     for (const id of ids) {
       if (!primaryMap.has(id)) primaryMap.set(id, mapTarget)
     }
   }
-  return { primaryMap, filenames }
+
+  return { primaryMap, filenames, userSlugMap }
 }
 
 /** Convert ImportData to a map of relative file paths → markdown content */
@@ -619,13 +769,13 @@ export function convert(data: ImportData): FileMap {
  * Memory-efficient for large imports — each project's KNode tree is GC'd after yield.
  */
 export function* convertBatch(data: ImportData): Generator<[string, string]> {
-  const { primaryMap, filenames } = buildPrimaryMap(data)
+  const { primaryMap, filenames, userSlugMap } = buildPrimaryMap(data)
   const rendered = new Set<string>()
 
   for (const [i, project] of data.projects.entries()) {
     const filename = filenames[i]
     if (!filename) continue
-    const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap)
+    const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap, userSlugMap)
     const markdown = nodesToMarkdown(nodes)
     yield [filename, markdown]
   }
@@ -727,6 +877,8 @@ function* generateTagFiles(
     }
 
     const markdown = nodesToMarkdown(nodes)
-    yield [`#${slugify(tag)}.md`, markdown]
+    const wsSlug = data.workspace ? slugify(data.workspace) : undefined
+    const tagPath = wsSlug ? `${wsSlug}/tags/#${slugify(tag)}.md` : `#${slugify(tag)}.md`
+    yield [tagPath, markdown]
   }
 }

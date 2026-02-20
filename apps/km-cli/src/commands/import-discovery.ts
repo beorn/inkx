@@ -9,7 +9,7 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 
-import type { AsanaProjectInfo } from "../import/adapters/asana-api.ts"
+import type { AsanaProjectInfo } from "../import/adapters/asana/asana-api.ts"
 import { ensureAsanaSetup } from "./import-auth.ts"
 
 /** Format a project line: "gid  Name  @owner @member ..." */
@@ -42,7 +42,7 @@ export async function printDiscovery(
   console.log()
 
   const { token, workspace } = await ensureAsanaSetup(authToken)
-  const { listAsanaStructure } = await import("../import/adapters/asana-api.ts")
+  const { listAsanaStructure } = await import("../import/adapters/asana/asana-api.ts")
   const structure = await listAsanaStructure(token, workspaceFilter ?? workspace)
 
   // Account -> Workspace -> Team -> Active/Archived

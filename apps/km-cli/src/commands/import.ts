@@ -20,7 +20,7 @@ const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"
 import { CURSOR_SHOW, write } from "@beorn/inkx-ui/cli"
 import type { ImportData, ImportProject } from "../import/types.ts"
-import type { AsanaWorkspace } from "../import/adapters/asana-api.ts"
+import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
 import { convertBatch, slugify } from "../import/convert.ts"
 import { writeFiles } from "../import/write.ts"
 import { getRootPath } from "../program.ts"
@@ -50,7 +50,19 @@ function loadDownloadDir(dirPath: string): ImportData {
     .sort()
   const projects = files.map((f) => JSON.parse(readFileSync(join(dirPath, f), "utf-8")) as ImportProject)
 
-  return { source, fetchedAt, projects }
+  const data: ImportData = { source, fetchedAt, projects }
+
+  // Load workspace metadata if available
+  const wsPath = join(dirPath, "_workspace.json")
+  if (existsSync(wsPath)) {
+    const ws = JSON.parse(readFileSync(wsPath, "utf-8"))
+    data.workspace = ws.name
+    data.users = ws.users
+    data.teams = ws.teams
+    data.importingUserGid = ws.user?.gid
+  }
+
+  return data
 }
 
 /** Find the most recent asana-* download directory, optionally scoped to a workspace */
@@ -200,7 +212,7 @@ Pipeline:
             }
             console.log(term.green("Loaded"), `1 project from ${options.from}: ${project.title}`)
           } else {
-            const { parseAsanaFile } = await import("../import/adapters/asana-file.ts")
+            const { parseAsanaFile } = await import("../import/adapters/asana/asana-file.ts")
             const result = await steps({
               parseExport: () => parseAsanaFile(json),
             }).run({ clear: true })
@@ -226,7 +238,7 @@ Pipeline:
 
         const { token, workspace: configWorkspace } = await ensureAsanaSetup(options.authToken)
         asanaToken = token
-        const { fetchFromAsana, resolveAsanaWorkspace } = await import("../import/adapters/asana-api.ts")
+        const { fetchFromAsana, resolveAsanaWorkspace } = await import("../import/adapters/asana/asana-api.ts")
 
         console.log(term.cyan("Fetching from Asana API..."))
 

@@ -1,5 +1,5 @@
 import type { AsanaClient } from "./asana-client.ts"
-import type { ImportComment } from "../types.ts"
+import type { ImportComment } from "../../types.ts"
 
 /** Patterns that match system/audit-log style actions from old Asana (pre-2020).
  * Asana switched to proper `type: "system"` around 2019, so older action-log

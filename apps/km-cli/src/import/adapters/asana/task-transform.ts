@@ -3,7 +3,7 @@ import type { AsanaApiTask } from "./asana-types.ts"
 import { TASK_FIELDS, turndown } from "./asana-types.ts"
 import { fetchComments } from "./comment-filter.ts"
 import type { FetchCommentsResult } from "./comment-filter.ts"
-import type { ImportItem, ImportAttachment } from "../types.ts"
+import type { ImportItem, ImportAttachment } from "../../types.ts"
 
 /** Pattern matching `→ ^numericId` at end of string (Asana recurring task parent ref) */
 const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/

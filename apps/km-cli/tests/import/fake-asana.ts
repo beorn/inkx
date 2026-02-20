@@ -12,7 +12,7 @@
  *   expect(fake.calls).toHaveLength(5)
  */
 
-import type { RecordedCall } from "../../src/import/adapters/asana-api.ts"
+import type { RecordedCall } from "../../src/import/adapters/asana/asana-api.ts"
 
 export interface FakeAsanaOptions {
   /** Recorded API calls to replay (from --record) */

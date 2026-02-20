@@ -16,7 +16,7 @@ import { AsanaClient } from "./asana-client.ts"
 import { TASK_FIELDS } from "./asana-types.ts"
 import type { AsanaApiTask, FetchOptions, FetchResult } from "./asana-types.ts"
 import { enrichItem, type EnrichOpts } from "./task-transform.ts"
-import { slugify } from "../convert.ts"
+import { slugify } from "../../convert.ts"
 import type {
   ImportData,
   ImportItem,
@@ -24,7 +24,7 @@ import type {
   ImportSection,
   ImportStatusUpdate,
   ImportCustomFieldDef,
-} from "../types.ts"
+} from "../../types.ts"
 
 // Re-export everything from sub-modules so existing imports still work
 export { AsanaClient } from "./asana-client.ts"

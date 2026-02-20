@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { filterSystemComment, isSystemAction } from "../../src/import/adapters/comment-filter.ts"
+import { filterSystemComment, isSystemAction } from "../../src/import/adapters/asana/comment-filter.ts"
 
 describe("filterSystemComment", () => {
   // ── Pattern 1: Single consolidated system block with soft hyphen prefix ──

@@ -5,7 +5,7 @@
  * Handles the format from Asana's "Export to JSON" feature.
  */
 
-import type { ImportData, ImportItem, ImportProject, ImportSection } from "../types.ts"
+import type { ImportData, ImportItem, ImportProject, ImportSection } from "../../types.ts"
 
 /** Asana task shape (subset of fields we care about) */
 interface AsanaTask {

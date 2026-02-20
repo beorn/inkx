@@ -9,8 +9,8 @@ import type { KNode } from "@km/core"
 import type { Heading, List, ListItem } from "@km/markdown"
 import { extractFrontmatter, extractMentions, extractTags, parseMarkdown, parseTaskMetadata } from "@km/markdown"
 import { describe, expect, test } from "vitest"
-import type { AsanaApiTask } from "../../src/import/adapters/asana-types.ts"
-import { toImportItem } from "../../src/import/adapters/task-transform.ts"
+import type { AsanaApiTask } from "../../src/import/adapters/asana/asana-types.ts"
+import { toImportItem } from "../../src/import/adapters/asana/task-transform.ts"
 import { convert, itemToNodes } from "../../src/import/convert.ts"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
@@ -116,7 +116,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("generates one file per project with correct slug", () => {
     const files = convert(fixture)
     expect(files.size).toBe(1)
-    expect(files.has("p1-sprint-4.md")).toBe(true)
+    expect(files.has("sprint-4.md")).toBe(true)
   })
 
   test("includes frontmatter", () => {
@@ -959,7 +959,7 @@ describe("Project status updates rendering", () => {
     expect(md).toContain("- Sprint 4 on track")
     expect(md).toContain("> All tasks progressing well.")
     expect(md).toContain("> Status: green")
-    expect(md).toContain("Author: Test User")
+    expect(md).toContain("Author: @test-user")
     expect(md).toContain("Date: 2026-02-14")
   })
 
@@ -1055,8 +1055,8 @@ describe("Multi-project task dedup", () => {
       ],
     }
     const files = convert(data)
-    const alpha = files.get("projA-project-alpha.md")!
-    const beta = files.get("projB-project-beta.md")!
+    const alpha = files.get("project-alpha.md")!
+    const beta = files.get("project-beta.md")!
 
     // Alpha has full content (body, ^block-id)
     expect(alpha).toContain("## Shared task ^shared-1")
@@ -1105,7 +1105,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("proj-rt-test-project.md")!
+    const md = files.get("test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1129,7 +1129,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("proj-rt-test-project.md")!
+    const md = files.get("test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1155,7 +1155,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("proj-rt-test-project.md")!
+    const md = files.get("test-project.md")!
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
@@ -1214,7 +1214,7 @@ describe("roundtrip: convert → parse", () => {
     }
 
     const files = convert(data)
-    const betaMd = files.get("projB-project-beta.md")!
+    const betaMd = files.get("project-beta.md")!
     const { body } = extractFrontmatter(betaMd)
     const tree = parseMarkdown(body)
 
@@ -1250,7 +1250,7 @@ describe("roundtrip: convert → parse", () => {
     ])
 
     const files = convert(data)
-    const md = files.get("proj-rt-test-project.md")!
+    const md = files.get("test-project.md")!
     const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
     expect(taskLine).toBeDefined()
 
@@ -1291,13 +1291,13 @@ describe("roundtrip: convert → parse", () => {
     }
 
     const files = convert(data)
-    const md = files.get("proj-fm-frontmatter-test.md")!
+    const md = files.get("engineering/frontmatter-test.md")!
     const { frontmatter, body } = extractFrontmatter(md)
     expect(frontmatter).not.toBeNull()
 
     expect(frontmatter).toContain("imported_from: asana")
     expect(frontmatter).toContain("imported_at: 2026-01-15T10:30:00Z")
-    expect(frontmatter).toContain("owner: Bjorn")
+    expect(frontmatter).toContain('owner: "@bjorn"')
     expect(frontmatter).not.toContain("asana_project_id:")
     expect(frontmatter).not.toContain("workspace:")
     expect(frontmatter).not.toContain("team:")
@@ -1339,7 +1339,7 @@ describe("Within-file dedup", () => {
       ],
     }
     const files = convert(data)
-    const md = files.get("proj-dup-wellness.md")!
+    const md = files.get("wellness.md")!
 
     // Task should appear exactly once as a full heading entry
     const fullMatches = md.match(/## Exercise daily/g)
@@ -1400,8 +1400,8 @@ describe("Within-file dedup", () => {
       ],
     }
     const files = convert(data)
-    const alpha = files.get("projA-alpha.md")!
-    const beta = files.get("projB-beta.md")!
+    const alpha = files.get("alpha.md")!
+    const beta = files.get("beta.md")!
 
     // Alpha: full content once as heading, no self-reference
     const alphaFullMatches = alpha.match(/## Shared task/g)
@@ -1642,7 +1642,7 @@ describe("Dependency mapping", () => {
 
 describe("HTML headings converted to bold (not ATX headings)", () => {
   test("turndown converts <h1> to bold text, not # heading", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<h1>Important Section</h1><p>Some details here.</p>"
     const md = turndown.turndown(html)
     expect(md).toContain("**Important Section**")
@@ -1651,7 +1651,7 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
   })
 
   test("turndown converts <h2> and <h3> to bold text", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<h2>Sub heading</h2><h3>Sub sub heading</h3>"
     const md = turndown.turndown(html)
     expect(md).toContain("**Sub heading**")
@@ -1660,7 +1660,7 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
   })
 
   test("empty heading tags produce no output", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<h1></h1><p>After empty heading.</p>"
     const md = turndown.turndown(html)
     expect(md).not.toContain("****")
@@ -1668,7 +1668,7 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
   })
 
   test("body with HTML headings does not create new sections on re-parse", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<h1>Requirements</h1><p>Must support X and Y.</p><h2>Notes</h2><p>Additional info.</p>"
     const body = turndown.turndown(html).trim()
 
@@ -1698,7 +1698,7 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
   })
 
   test("roundtrip: task with heading-body does not split into multiple items", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<h1>Overview</h1><p>Details about the task.</p><h2>Steps</h2><ul><li>Step 1</li><li>Step 2</li></ul>"
     const body = turndown.turndown(html).trim()
 
@@ -1873,7 +1873,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
 // ============================================================================
 
 describe("HTML content escaping", () => {
-  const { turndown } = require("../../src/import/adapters/asana-types.ts")
+  const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
 
   /** Helper: roundtrip HTML through turndown → markdown parser, return parsed AST */
   function roundtrip(html: string) {
@@ -2029,7 +2029,7 @@ describe("HTML content escaping", () => {
 
 describe("escaped checkboxes unescaped in turndown output", () => {
   test("turndown does not escape [x] checkbox syntax", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<body><ul><li>[x] done item</li><li>[ ] pending item</li></ul></body>"
     const md = turndown.turndown(html)
     expect(md).toContain("[x] done item")
@@ -2039,7 +2039,7 @@ describe("escaped checkboxes unescaped in turndown output", () => {
   })
 
   test("turndown does not escape [] empty checkbox syntax", () => {
-    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const { turndown } = require("../../src/import/adapters/asana/asana-types.ts")
     const html = "<body><ul><li>[] unchecked task</li></ul></body>"
     const md = turndown.turndown(html)
     expect(md).toContain("[] unchecked task")
