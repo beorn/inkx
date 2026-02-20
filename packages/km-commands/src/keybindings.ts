@@ -360,7 +360,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "inline-edit-barrier",
     bindings: [
       { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing },
+      { key: "z", super: true, commandId: "undo", when: isInlineEditing },
       { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
+      { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
       { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
     ],
@@ -462,6 +464,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Insert above/below (outliner-style)
       { key: "p", commandId: "insert_above" },
       { key: "n", commandId: "insert_below" },
+      { key: "Enter", super: true, commandId: "insert_below" },
+      { key: "Enter", super: true, shift: true, commandId: "new_item" },
       { key: "d", commandId: "duplicate_node" },
 
       // Shifting (Cmd/Super+direction) — move nodes in tree
@@ -491,6 +495,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) },
       { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) },
       { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) },
+      { key: "c", super: true, commandId: "clipboard_copy", when: not(textInputFocused) },
+      { key: "x", super: true, commandId: "clipboard_cut", when: not(textInputFocused) },
+      { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
     ],
   },
 
@@ -571,7 +578,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "history",
     bindings: [
       { key: "z", ctrl: true, commandId: "undo" },
+      { key: "z", super: true, commandId: "undo" },
       { key: "z", ctrl: true, shift: true, commandId: "redo" },
+      { key: "z", super: true, shift: true, commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
       { key: "y", ctrl: true, commandId: "redo", when: not(textInputFocused) },
@@ -584,6 +593,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "search" },
+      { key: "f", super: true, commandId: "search" },
 
       // Favorites (1-9) — jump to favorite boards
       { key: "1", commandId: "favorite_1" },
