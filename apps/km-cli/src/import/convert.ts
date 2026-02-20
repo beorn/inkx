@@ -832,7 +832,7 @@ function* generateTagFiles(
         id: fileId,
         type: "oi",
         fstype: "mdfile",
-        content: tagSlug,
+        content: `#${tagSlug}`,
       }),
     )
 
@@ -846,8 +846,6 @@ function* generateTagFiles(
             id: `tagref-${tag}-${item.sourceId}`,
             type: "oi",
             parent_id: fileId,
-            task_marker: marker as TaskMarker,
-            task_status: status,
             content: `![[^${item.sourceId}]]`,
             data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -944,8 +942,6 @@ function* generateUserFiles(
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "oi",
             parent_id: fileId,
-            task_marker: marker as TaskMarker,
-            task_status: status,
             content: `![[^${item.sourceId}]]`,
             data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
