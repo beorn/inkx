@@ -268,6 +268,42 @@ describe("DetailPane", () => {
     expect(app.text).toContain("bjorn")
   })
 
+  test("metadata values without explicit colors use white (not dim)", () => {
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "li",
+          content: "Test task",
+          task_status: "todo",
+          assigned_to: "bjorn",
+          data: {
+            metadata: { created: "2026-01-01" },
+          },
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // "Assigned" and "Created" values have no explicit valueColor
+    // They should get white (visible) not default (dim/grey)
+    expect(app.text).toContain("Assigned")
+    expect(app.text).toContain("bjorn")
+    expect(app.text).toContain("Created")
+    expect(app.text).toContain("2026-01-01")
+    // Check ANSI output: values should have white foreground (38;5;7 in 256-color)
+    // but keys should have dim styling (attr 2)
+    const ansi = app.ansi
+    // The key "Assigned" should be dim (attribute 2)
+    expect(ansi).toMatch(/2m[^]*?Assigned/)
+    // The value "bjorn" should have white color (38;5;7), not be dim
+    const bjornIdx = ansi.indexOf("bjorn")
+    expect(bjornIdx).toBeGreaterThan(-1)
+    // Look at the ANSI codes before "bjorn" — should include white fg (38;5;7)
+    const before = ansi.slice(Math.max(0, bjornIdx - 60), bjornIdx)
+    expect(before).toMatch(/38;5;7/)
+  })
+
   test("shows subtasks as outline items", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([

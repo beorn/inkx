@@ -349,6 +349,7 @@ const KNOWN_DATA_KEYS = new Set([
   "recurrence",
   "depth",
   "fstype",
+  "rules",
   "tag",
   "item_count",
   "is_repo_root",
@@ -509,7 +510,7 @@ function MetadataTable({
       {rows.map((row, i) => (
         <Box key={`${row.key}-${i}`} flexDirection="row">
           <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
-          <Text color={row.valueColor}>
+          <Text color={row.valueColor ?? "white"}>
             {row.value}
           </Text>
         </Box>

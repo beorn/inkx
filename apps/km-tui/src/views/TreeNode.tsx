@@ -904,10 +904,14 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 /** Strip metadata/block IDs from content, preserving multi-line structure. */
 function stripContentForDisplay(content: string | undefined): string {
   if (!content) return ""
-  const nlIdx = content.indexOf("\n")
-  if (nlIdx === -1) return stripForDisplay(content)
+  // Strip Asana-style "#@mention" tag syntax — the "#" is an orphan prefix
+  // that doesn't form a valid sigil with the following "@". Strip it before
+  // further processing so it doesn't leave trailing "#" characters.
+  let cleaned = content.replace(/#@/g, "@")
+  const nlIdx = cleaned.indexOf("\n")
+  if (nlIdx === -1) return stripForDisplay(cleaned)
   // Only strip metadata from first line; keep rest intact
-  return stripForDisplay(content.slice(0, nlIdx)) + content.slice(nlIdx)
+  return stripForDisplay(cleaned.slice(0, nlIdx)) + cleaned.slice(nlIdx)
 }
 
 /** Try to resolve an embed reference (block_id or filename) to a human-readable title.
@@ -985,7 +989,11 @@ function getDisplayContent(
     return cleanEmbedRef(raw) || `(${displayNode.id.slice(0, 8)})`
   }
   if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
-    return getNodeDisplayName(repo, displayNode)
+    const name = getNodeDisplayName(repo, displayNode)
+    // Untitled sections (empty Asana sections) show "(shortId)" fallback from getNodeDisplayName.
+    // Replace with a human-readable label instead of a raw GID like "(01KHW5W9)".
+    if (/^\([0-9A-Za-z]{8}\)$/.test(name)) return "(untitled section)"
+    return name
   }
   // Bare block references (e.g., "^1153379636232754" — Asana recurring task instances).
   // These are regular li nodes whose content is just a numeric block ref.

@@ -76,7 +76,8 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     if (!node) continue
     // Strip wiki link brackets and show alias for display
     const rawName = getNodeDisplayName(repo, node)
-    const name = renderPlain(rawName)
+    // Strip Asana "#@mention" tag syntax — orphan "#" before "@" isn't a valid sigil
+    const name = renderPlain(rawName.replace(/#@/g, "@"))
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
     if (node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
