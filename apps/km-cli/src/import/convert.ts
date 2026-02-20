@@ -773,6 +773,9 @@ export function* convertBatch(data: ImportData): Generator<[string, string]> {
 
   // Tag aggregate files: collect items by tag across all projects
   yield* generateTagFiles(data, rendered, primaryMap)
+
+  // User aggregate files: collect tasks assigned to each non-importing user
+  yield* generateUserFiles(data, rendered, primaryMap, userSlugMap)
 }
 
 /**
@@ -859,5 +862,97 @@ function* generateTagFiles(
     const wsSlug = data.workspace ? slugify(data.workspace) : undefined
     const tagPath = wsSlug ? `${wsSlug}/tags/#${slugify(tag)}.md` : `#${slugify(tag)}.md`
     yield [tagPath, markdown]
+  }
+}
+
+/**
+ * Generate @user.md aggregate files for non-importing users.
+ * Collects all tasks assigned to each user across projects as embed references.
+ */
+function* generateUserFiles(
+  data: ImportData,
+  rendered: Set<string>,
+  primaryMap: Map<string, string>,
+  userSlugMap: Map<string, string>,
+): Generator<[string, string]> {
+  if (!data.users?.length) return
+
+  // Find the importing user's name to exclude them (they already have a top-level file)
+  const importingUser = data.users.find((u) => u.gid === data.importingUserGid)
+  const importingUserName = importingUser?.name
+
+  // Collect items by assignee across all projects
+  const userItems = new Map<string, ImportItem[]>()
+  const collectByAssignee = (items: ImportItem[]): void => {
+    for (const item of items) {
+      if (item.assignee) {
+        let list = userItems.get(item.assignee)
+        if (!list) {
+          list = []
+          userItems.set(item.assignee, list)
+        }
+        list.push(item)
+      }
+      if (item.children?.length) collectByAssignee(item.children)
+    }
+  }
+
+  for (const proj of data.projects) {
+    for (const item of proj.items ?? []) collectByAssignee([item])
+    for (const sec of proj.sections ?? []) collectByAssignee(sec.items)
+  }
+
+  const wsSlug = data.workspace ? slugify(data.workspace) : undefined
+
+  for (const [assigneeName, rawItems] of userItems) {
+    // Skip the importing user (already has a dedicated file)
+    if (assigneeName === importingUserName) continue
+
+    // Deduplicate
+    const seen = new Set<string>()
+    const items = rawItems.filter((item) => {
+      if (seen.has(item.sourceId)) return false
+      seen.add(item.sourceId)
+      return true
+    })
+    if (items.length === 0) continue
+
+    const userSlug = userSlugMap.get(assigneeName) ?? slugify(assigneeName)
+    const counter: IdxCounter = { value: 0 }
+    const nodes: KNode[] = []
+    const fileId = `user-${userSlug}`
+    nodes.push(
+      mkNode(counter, {
+        id: fileId,
+        type: "oi",
+        fstype: "mdfile",
+        content: `@${userSlug}`,
+      }),
+    )
+
+    for (const item of items) {
+      if (rendered.has(item.sourceId)) {
+        const status = toTaskStatus(item.status)
+        const marker = status === "done" ? "[x]" : "[ ]"
+        nodes.push(
+          mkNode(counter, {
+            id: `userref-${userSlug}-${item.sourceId}`,
+            type: "oi",
+            parent_id: fileId,
+            task_marker: marker as TaskMarker,
+            task_status: status,
+            content: `![[^${item.sourceId}]]`,
+            created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
+            updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
+          }),
+        )
+      } else {
+        itemToNodes(counter, item, fileId, nodes, rendered, primaryMap)
+      }
+    }
+
+    const markdown = nodesToMarkdown(nodes)
+    const userPath = wsSlug ? `${wsSlug}/users/@${userSlug}.md` : `@${userSlug}.md`
+    yield [userPath, markdown]
   }
 }
