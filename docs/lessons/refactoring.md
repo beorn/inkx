@@ -229,6 +229,24 @@ Definition of Done (migration complete when ALL updated):
 
 ---
 
+## Case Study: ColumnState/CardState Elimination (visual-nav-migration)
+
+**Bead**: km-tui.visual-nav-migration → km-yedow
+
+**Problem**: The visual-nav migration (4 phases, multiple sessions) added `cursorNodeId` but never deleted the old wrapper types (`ColumnState`, `CardState`, `ColumnsLayout`). 249 occurrences of `colIndex/cardIndex` across 27 files, 99 occurrences of `ColumnState/CardState` across 19 files.
+
+**Why it survived**: Each session found "still has consumers" and deferred deletion to "the next phase." The wrappers were thin enough that nothing broke — they just created a parallel type system that confused every agent touching the code.
+
+**Fix**: One session, 47 files, delete first / fix breaks second. Used `tsc` and `grep` as guides. Key insight: don't just rename types — also delete the functions that only existed because of the old types (`refreshBoardState`, `deriveCursorPosition`).
+
+**Pitfall during migration**: Deleting `CardState` also removed pre-fetched `card.children`. The `buildNodeIndex` function relied on walking card children to map descendant nodeIds back to their parent card position. When children disappeared, cursor resolution after indent/outdent broke silently. Fix: add an optional `getChildren` callback to `buildNodeIndex` that fetches children from repo on demand.
+
+**Lesson**: When removing a wrapper type, audit every property it provides. If a consumer used `wrapper.children`, you can't just delete it — you need to provide the equivalent access path (`repo.getChildren(id)`). Map every property to its replacement before starting.
+
+**Anti-pattern that caused the delay**: "Phase N will handle deletion." No it won't. The session that creates new types must delete old types. If you ship a commit with both old and new types coexisting, the old types will survive indefinitely.
+
+---
+
 ## See Also
 
 ### Principles
