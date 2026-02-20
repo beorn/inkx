@@ -187,6 +187,13 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
       return paraContent + "\n\n"
     }
 
+    case "h": {
+      // Heading block (inside list items or blockquotes — not the oi title heading)
+      const hDepth = (node.data?.depth as number) ?? 2
+      const hPrefix = "#".repeat(hDepth)
+      return `${hPrefix} ${node.content ?? ""}\n\n`
+    }
+
     case "quote":
       return serializeQuote(node)
 
@@ -393,7 +400,7 @@ function serializeLi(
   if (node.block_id) line += ` ^${node.block_id}`
   let md = line + "\n"
 
-  // Child nodes: list items nested, block content (quote, p) indented under this item
+  // Child nodes: list items nested, block content indented under this item
   for (const child of children) {
     if (child.type === "li") {
       md += serializeNode(child, ctx, indent + 1)
@@ -406,6 +413,25 @@ function serializeLi(
       const content = child.content ?? ""
       for (const pl of content.split("\n")) {
         md += `${indentStr}  ${pl}\n`
+      }
+    } else if (child.type === "code") {
+      const lang = (child.data?.lang as string) ?? ""
+      const meta = (child.data?.meta as string) ?? ""
+      const fence = meta ? `\`\`\`${lang} ${meta}` : `\`\`\`${lang}`
+      md += `${indentStr}  ${fence}\n`
+      for (const cl of (child.content ?? "").split("\n")) {
+        md += `${indentStr}  ${cl}\n`
+      }
+      md += `${indentStr}  \`\`\`\n`
+    } else if (child.type === "h") {
+      const hDepth = (child.data?.depth as number) ?? 2
+      const hPrefix = "#".repeat(hDepth)
+      md += `${indentStr}  ${hPrefix} ${child.content ?? ""}\n`
+    } else {
+      // table, hr, html, math — indent each line
+      const content = child.content ?? (child.type === "hr" ? "---" : "")
+      for (const bl of content.split("\n")) {
+        md += `${indentStr}  ${bl}\n`
       }
     }
   }

@@ -398,7 +398,7 @@ function convertListItem(
 
   nodes.push(node)
 
-  // Handle nested lists and block content (blockquotes, code, extra paragraphs)
+  // Handle nested lists and block content (blockquotes, code, headings, extra paragraphs)
   let childSort = 0
   for (const child of item.children) {
     if (child.type === "list") {
@@ -407,7 +407,7 @@ function convertListItem(
         const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++, sourceText)
         nodes.push(...nestedNodes)
       }
-    } else if (child.type === "blockquote" || child.type === "code") {
+    } else if (child.type === "blockquote" || child.type === "code" || child.type === "heading") {
       const blockNode = convertBlock(child, node, childSort++, sourceText)
       if (blockNode) nodes.push(blockNode)
     }
@@ -496,6 +496,14 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, sour
       type = "html"
       content = block.value
       break
+
+    case "heading": {
+      // Headings inside list items or blockquotes stay as h blocks (not oi)
+      type = "h"
+      content = nodeToText(block as Heading)
+      data.depth = (block as Heading).depth
+      break
+    }
 
     default:
       // Skip unknown types
