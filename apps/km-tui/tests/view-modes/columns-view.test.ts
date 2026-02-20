@@ -63,9 +63,7 @@ describe("Columns View", () => {
     })
 
     test("column header shows count/wip with WIP limit", () => {
-      const { board } = columnsBoard(() =>
-        item("board", item("col1 km.limit:: 5", item("1a"), item("1b"), item("1c"))),
-      )
+      const { board } = columnsBoard(() => item("board", item("col1 km.limit:: 5", item("1a"), item("1b"), item("1c"))))
       const output = board.screenshot()
       expect(output).toContain("col1")
       expect(output).toContain("3/5")

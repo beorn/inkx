@@ -195,10 +195,10 @@ describe("renderPlain: bare URLs", () => {
 
 describe("board: URL prettification in cards", () => {
   it("card shows prettified URL (no protocol)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Check https://www.example.com/docs"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Check https://www.example.com/docs"))), {
+      rows: 20,
+      columns: 60,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -208,10 +208,10 @@ describe("board: URL prettification in cards", () => {
   })
 
   it("card with multiple URLs shows all prettified", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("See https://a.com and http://b.com/path"))),
-      { rows: 20, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("See https://a.com and http://b.com/path"))), {
+      rows: 20,
+      columns: 80,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -222,10 +222,10 @@ describe("board: URL prettification in cards", () => {
   })
 
   it("markdown link in card still shows link text only", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("Click [Google](https://google.com)"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Click [Google](https://google.com)"))), {
+      rows: 20,
+      columns: 60,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -237,10 +237,7 @@ describe("board: URL prettification in cards", () => {
     // Use a narrow terminal so the URL text gets truncated by wrap="truncate"
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item("col1", item("Task with https://www.example.com/very/long/path/that/will/be/truncated")),
-        ),
+        item("board", item("col1", item("Task with https://www.example.com/very/long/path/that/will/be/truncated"))),
       { rows: 20, columns: 40 },
     )
 
@@ -262,13 +259,7 @@ describe("board: URL prettification in cards", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.file(
-              "Parent",
-              item("Child text with https://www.example.com/some/very/long/path/here"),
-            ),
-          ),
+          item("col1", item.file("Parent", item("Child text with https://www.example.com/some/very/long/path/here"))),
         ),
       { rows: 20, columns: 40 },
     )

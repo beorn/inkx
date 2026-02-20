@@ -17,9 +17,7 @@ const nodeDefaults = {
   version: "test",
 } as const
 
-function createTestNode(
-  overrides: Partial<KNode> & { id: string; type: KNode["type"]; content: string },
-): KNode {
+function createTestNode(overrides: Partial<KNode> & { id: string; type: KNode["type"]; content: string }): KNode {
   return { parent_id: null, ...nodeDefaults, ...overrides } as KNode
 }
 
@@ -48,7 +46,8 @@ describe("DetailPane word wrapping", () => {
       createTestNode({
         id: "body1",
         type: "p",
-        content: "This is a long paragraph that should wrap at word boundaries and not split words in the middle of any word",
+        content:
+          "This is a long paragraph that should wrap at word boundaries and not split words in the middle of any word",
         parent_id: "task1",
       }),
     ]
@@ -135,7 +134,8 @@ describe("DetailPane word wrapping", () => {
       createTestNode({
         id: "body1",
         type: "p",
-        content: "We need to discuss the quarterly budget review and finalize the deployment schedule before the deadline",
+        content:
+          "We need to discuss the quarterly budget review and finalize the deployment schedule before the deadline",
         parent_id: "task1",
       }),
     ]

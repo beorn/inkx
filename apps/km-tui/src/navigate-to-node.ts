@@ -104,10 +104,7 @@ export function navigateToNode(targetId: string, rootId: string | null, repo: Na
  * This is the pure zoom computation — it does NOT check visibility at the
  * current root. Use navigateToNode() for the full navigate-or-zoom logic.
  */
-export function resolveZoomTarget(
-  target: KNode,
-  repo: NavigateRepo,
-): { zoomTarget: string; cursorTarget: string } {
+export function resolveZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarget: string; cursorTarget: string } {
   // Build ancestor chain: [target, parent, grandparent, ...]
   const ancestors: KNode[] = [target]
   let ancestor: KNode | null = target

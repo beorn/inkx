@@ -787,7 +787,8 @@ describe("DetailPane", () => {
         {
           id: "body1",
           type: "p",
-          content: "First paragraph line one.\nFirst paragraph line two.\n\nSecond paragraph starts here.\nSecond paragraph line two.",
+          content:
+            "First paragraph line one.\nFirst paragraph line two.\n\nSecond paragraph starts here.\nSecond paragraph line two.",
           parent_id: "task1",
         },
       ]),

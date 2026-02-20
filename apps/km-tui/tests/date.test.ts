@@ -496,13 +496,7 @@ describe("date badge display", () => {
   it("child count appears before date badge in columns view (km-tui.oneliner-order)", () => {
     // A card with children AND a due date should show: Title ... COUNT ... date
     // COUNT (right-aligned) should come before date badge (rightmost)
-    const nodes = item(
-      "board",
-      item(
-        "col1",
-        item("Parent task", item("child-a"), item("child-b"), item("child-c")),
-      ),
-    )
+    const nodes = item("board", item("col1", item("Parent task", item("child-a"), item("child-b"), item("child-c"))))
     // Set due_at on the parent task (the card that has children)
     const parentNode = nodes.find((n) => n.data?.name === "Parent task")!
     parentNode.due_at = "2026-09-15"

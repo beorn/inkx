@@ -22,10 +22,7 @@ const log = createLogger("km:tui:dialogs")
  * Existing tests import this — preserved for backward compatibility.
  * @deprecated Use navigateToNode() or resolveZoomTarget() directly for new code.
  */
-export function findZoomTarget(
-  target: KNode,
-  repo: NavigateRepo,
-): { zoomTarget: KNode; cursorTarget: KNode } {
+export function findZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarget: KNode; cursorTarget: KNode } {
   const { zoomTarget: zoomId, cursorTarget: cursorId } = resolveZoomTarget(target, repo)
   const zoomTarget = repo.getNode(zoomId) ?? target
   const cursorTarget = repo.getNode(cursorId) ?? target

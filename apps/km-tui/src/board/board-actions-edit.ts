@@ -532,11 +532,7 @@ function moveColumn(
  * disk writes and watcher events), only assign distinct indices to the two
  * columns being swapped.
  */
-function normalizeColumnSortOrders(
-  ctx: ActionCtx,
-  colIndexA: number,
-  colIndexB: number,
-): void {
+function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB: number): void {
   const { layout, repo } = ctx
   const colA = layout.columns[colIndexA]
   const colB = layout.columns[colIndexB]

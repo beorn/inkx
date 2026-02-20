@@ -457,11 +457,7 @@ function navigateToStructuralCol(
  * logical position. After SELECT, the body column scrolls to show the target,
  * and deferred Y-correction (from handleHorizontalNav) fine-tunes the result.
  */
-function navigateToBody(
-  bodyNodes: { id: string }[],
-  navigator: GridNavigator,
-  sourceCardIdx?: number,
-): string | null {
+function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, sourceCardIdx?: number): string | null {
   if (bodyNodes.length === 0) return null
 
   const stickyY = navigator.stickyY

@@ -240,11 +240,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       const handle = await boardApp.run(
         <RepoProvider repo={options.repo}>
           <InputLayerProvider>
-            <BoardApp
-              initialViewMode={viewMode}
-              patchedConsole={patched}
-              toastQueue={toastQueue}
-            />
+            <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
           </InputLayerProvider>
         </RepoProvider>,
         isInteractive ? { alternateScreen: true } : { cols, rows, stdout: process.stdout },

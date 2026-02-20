@@ -361,9 +361,7 @@ export function testEnv(
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const {
-    cursorNodeId: initialCursorNodeId,
-  } = computeInitialCursor(initialState)
+  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -1394,9 +1392,7 @@ export function testEnvWithRepo(
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const {
-    cursorNodeId: initialCursorNodeId,
-  } = computeInitialCursor(initialState)
+  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -2191,9 +2187,7 @@ export function renderBoardWithStore(
   ensureCommandSystemInitialized()
   resetModeStack()
 
-  const {
-    cursorNodeId: initialCursorNodeId,
-  } = computeInitialCursor(initialState)
+  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,

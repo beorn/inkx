@@ -12,10 +12,7 @@ describe("km-tui.raw-section-ids — untitled section shows label not raw ID", (
   test("empty mdsection shows '(untitled section)' instead of raw GID", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("col1", item("task-1"), item("task-2")),
-        )
+        const nodes = item("board", item("col1", item("task-1"), item("task-2")))
         // Mutate task-2 to be an empty mdsection with a long GID-like ID
         const emptySection = nodes.find((n) => n.id === "task-2")!
         emptySection.id = "01KHW5W9JJHE7ZS2DTDBN0X0YQ"
@@ -40,14 +37,10 @@ describe("km-tui.raw-section-ids — untitled section shows label not raw ID", (
 
 describe("km-tui.trailing-hash — strip orphan # from Asana tag syntax", () => {
   test("card title strips trailing # from #@mention pattern", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("Thermostat schedule #@home")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Thermostat schedule #@home"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     const text = board.screen.text
     // Should show "Thermostat schedule" without trailing "#"
@@ -56,14 +49,10 @@ describe("km-tui.trailing-hash — strip orphan # from Asana tag syntax", () => 
   })
 
   test("card title strips multiple #@mention patterns", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("BVI admin #@work #@home")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("BVI admin #@work #@home"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     const text = board.screen.text
     expect(text).toContain("BVI admin")
@@ -75,10 +64,7 @@ describe("km-tui.query-dsl-leaked — hide rules from detail pane", () => {
   test("section card does not show km.add:: query DSL", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item.section("Inbox", item("task-a"), item("task-b")),
-        )
+        const nodes = item("board", item.section("Inbox", item("task-a"), item("task-b")))
         // Simulate a section with query DSL in content
         const inboxNode = nodes.find((n) => n.id === "Inbox")!
         inboxNode.content = "Inbox km.add:: ./inbox/** km.default:: true"

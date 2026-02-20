@@ -17,13 +17,7 @@ import { getChildrenByType, getBodyChildren, getSubitems, getChildren } from "..
 let db: Database
 
 /** Insert a node with minimal required fields */
-function insertNode(
-  id: string,
-  type: string,
-  parentId: string | null,
-  parentIdx: number,
-  content?: string,
-): void {
+function insertNode(id: string, type: string, parentId: string | null, parentIdx: number, content?: string): void {
   const pid = parentId ?? "."
   const now = Date.now()
   db.run(

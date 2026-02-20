@@ -794,10 +794,7 @@ describe("card overflow: title wrap lines", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item(longTitle, item("child1"), item("child2"), item("child3"), item("child4"), item("child5")),
-          ),
+          item("col1", item(longTitle, item("child1"), item("child2"), item("child3"), item("child4"), item("child5"))),
         ),
       { rows: 30, columns: 80, viewMode: "cards" },
     )

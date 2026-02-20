@@ -14,17 +14,7 @@ describe("Breadcrumb path when zoomed deep", () => {
   test("top bar shows ancestor path after zooming into a card", () => {
     // hierarchy: board > col > section > subsection > items
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item(
-              "section",
-              item("subsection", item("task-a"), item("task-b")),
-            ),
-          ),
-        ),
+      () => item("board", item("col", item("section", item("subsection", item("task-a"), item("task-b"))))),
       { columns: 120, rows: 24 },
     )
 
@@ -49,11 +39,7 @@ describe("Breadcrumb path when zoomed deep", () => {
           "board",
           item(
             "Projects",
-            item(
-              "Frontend",
-              item("React", item("hooks"), item("components")),
-              item("Vue", item("composables")),
-            ),
+            item("Frontend", item("React", item("hooks"), item("components")), item("Vue", item("composables"))),
           ),
         ),
       { columns: 120, rows: 24 },
@@ -82,14 +68,7 @@ describe("Breadcrumb path when zoomed deep", () => {
           "VeryLongBoardNameThatEatsSpace",
           item(
             "VeryLongColumnNameForTesting",
-            item(
-              "VeryLongSectionNameHere",
-              item(
-                "VeryLongSubsectionName",
-                item("DeepAlpha"),
-                item("DeepBeta"),
-              ),
-            ),
+            item("VeryLongSectionNameHere", item("VeryLongSubsectionName", item("DeepAlpha"), item("DeepBeta"))),
           ),
         ),
       { columns: 60, rows: 24 },
@@ -108,14 +87,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 
   test("breadcrumb uses dim style for ancestors and bold for board root", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("parent", item("child", item("gc-a"), item("gc-b"))),
-          ),
-        ),
+      () => item("board", item("col", item("parent", item("child", item("gc-a"), item("gc-b"))))),
       { columns: 120, rows: 24 },
     )
 
@@ -130,14 +102,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 
   test("breadcrumb updates when zooming out with Escape", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("level1", item("level2", item("level3", item("deep")))),
-          ),
-        ),
+      () => item("board", item("col", item("level1", item("level2", item("level3", item("deep")))))),
       { columns: 120, rows: 24 },
     )
 
@@ -158,17 +123,10 @@ describe("Breadcrumb path when zoomed deep", () => {
   test("within-board segments use > separator for clear hierarchy", () => {
     // Within-board segments use > separator to distinguish hierarchy
     // from filesystem path (which uses / and #)
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("card", item("sub1"), item("sub2")),
-          ),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // Navigate into column to see card-level path
     board.press("j") // select card
@@ -190,14 +148,7 @@ describe("Breadcrumb path when zoomed deep", () => {
           "root",
           item(
             "Projects",
-            item(
-              "Work",
-              item(
-                "Immigration",
-                item("form-i130"),
-                item("form-i485"),
-              ),
-            ),
+            item("Work", item("Immigration", item("form-i130"), item("form-i485"))),
             item("Personal", item("taxes")),
           ),
         ),
@@ -222,15 +173,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 
   test("breadcrumb screen buffer shows clean path without ghost chars after zoom", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Alpha",
-            item("deep1", item("x1"), item("x2")),
-          ),
-          item("Beta", item("y1")),
-        ),
+      () => item("board", item("Alpha", item("deep1", item("x1"), item("x2"))), item("Beta", item("y1"))),
       { columns: 100, rows: 24 },
     )
 

@@ -426,10 +426,10 @@ describe("scroll to selection after zoom", () => {
     // on a small terminal (rows=15). With header + breadcrumb + separator,
     // only ~3 cards are visible (card height=4). Card at index 12 is off-screen.
     const tasks = Array.from({ length: 15 }, (_, i) => item(`task${i}`))
-    const { board, store } = testEnv(
-      () => item("root", item("big-col", ...tasks), item("small-col", item("other"))),
-      { rows: 15, checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
+      rows: 15,
+      checkIncremental: false,
+    })
 
     // Zoom to root with cursor on task12 (deep in the list, off-screen)
     dispatchAndFlush(store, {
@@ -453,10 +453,10 @@ describe("scroll to selection after zoom", () => {
     // Simulate the search flow: deep tree where target is a grandchild of root,
     // but far enough down the column to be off-screen
     const tasks = Array.from({ length: 20 }, (_, i) => item(`deep${i}`))
-    const { board, store } = testEnv(
-      () => item("root", item("section", ...tasks)),
-      { rows: 15, checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("section", ...tasks)), {
+      rows: 15,
+      checkIncremental: false,
+    })
 
     const repo = store.getState().repo
     const deep15 = repo.getNode("deep15")!
@@ -479,10 +479,10 @@ describe("scroll to selection after zoom", () => {
     // Target is already a grandchild of root (visible in layout model),
     // but far enough down the column to be off-screen. SELECT should scroll.
     const tasks = Array.from({ length: 20 }, (_, i) => item(`card${i}`))
-    const { board, store } = testEnv(
-      () => item("root", item("col1", ...tasks), item("col2", item("x"))),
-      { rows: 15, checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("col1", ...tasks), item("col2", item("x"))), {
+      rows: 15,
+      checkIncremental: false,
+    })
 
     // SELECT a card deep in col1 — should scroll to make it visible
     dispatchAndFlush(store, { type: "SELECT", nodeId: "card15" })
@@ -498,10 +498,11 @@ describe("scroll to selection after zoom", () => {
     // Columns view uses single-row items, so more items fit. Still need to scroll
     // when target is deep enough. 30 items in a column with 15-row terminal.
     const tasks = Array.from({ length: 30 }, (_, i) => item(`ctask${i}`))
-    const { board, store } = testEnv(
-      () => item("root", item("big-col", ...tasks), item("small-col", item("other"))),
-      { rows: 15, viewMode: "columns", checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("big-col", ...tasks), item("small-col", item("other"))), {
+      rows: 15,
+      viewMode: "columns",
+      checkIncremental: false,
+    })
 
     // Zoom with cursor on ctask25 (far off-screen in columns view)
     dispatchAndFlush(store, {
@@ -523,10 +524,7 @@ describe("scroll to selection after zoom", () => {
     // Verify that the cursor DOM element is correct after ZOOM_IN,
     // even before a render cycle runs (DOM is updated by React, not inkx pipeline)
     const tasks = Array.from({ length: 15 }, (_, i) => item(`dtask${i}`))
-    const { board, store } = testEnv(
-      () => item("root", item("col", ...tasks)),
-      { rows: 15, checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("col", ...tasks)), { rows: 15, checkIncremental: false })
 
     dispatchAndFlush(store, {
       type: "ZOOM_IN",
@@ -602,10 +600,7 @@ describe("navigateToNode", () => {
     // Current root = root, target = subtask
     // subtask's grandparent = project-a, which has oi children
     // → zoom to project-a (grandparent), cursor on subtask
-    const nodes = item(
-      "root",
-      item("area", item("projects", item("project-a", item("task", item("subtask"))))),
-    )
+    const nodes = item("root", item("area", item("projects", item("project-a", item("task", item("subtask"))))))
     const repo = createFakeRepo({ nodes })
 
     const result = navigateToNode("subtask", "root", repo)
@@ -772,14 +767,7 @@ describe("search flow via key presses", () => {
     // subtask1 is depth 4 from root. After search, board should zoom so that
     // subtask1 (or its parent task1) is a visible card, not just a descendant.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item(
-            "projects",
-            item("project-a", item("task1", item("subtask-xyz"))),
-          ),
-        ),
+      () => item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))),
       { checkIncremental: false },
     )
 
@@ -810,14 +798,7 @@ describe("search flow via key presses", () => {
     // my-task is at depth 3 from vault. Search should zoom to section
     // and place cursor on my-task (now a card under project column).
     const { board, store } = testEnv(
-      () =>
-        item(
-          "vault",
-          item(
-            "section",
-            item("project", item("my-task"), item("other-task")),
-          ),
-        ),
+      () => item("vault", item("section", item("project", item("my-task"), item("other-task")))),
       { checkIncremental: false },
     )
 
@@ -844,11 +825,7 @@ describe("search flow via key presses", () => {
       () =>
         item(
           "root",
-          item(
-            "projects",
-            item("project-a", item("taskA1"), item("taskA2")),
-            item("project-b", item("taskB1")),
-          ),
+          item("projects", item("project-a", item("taskA1"), item("taskA2")), item("project-b", item("taskB1"))),
         ),
       { checkIncremental: false },
     )
@@ -873,12 +850,7 @@ describe("search flow via key presses", () => {
   test("search with multiple results selects the first match", () => {
     // When search returns multiple results, pressing Enter selects the first one.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("col1", item("alpha-task"), item("beta-task")),
-          item("col2", item("alpha-note")),
-        ),
+      () => item("root", item("col1", item("alpha-task"), item("beta-task")), item("col2", item("alpha-note"))),
       { checkIncremental: false },
     )
 
@@ -994,11 +966,7 @@ describe("search flow via key presses", () => {
     // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
     // User views Project, searches for Task B — cursor should land on Task B card
     const { board, store } = testEnv(
-      () =>
-        item(
-          "project",
-          item("section", item("task-alpha"), item("task-beta"), item("task-gamma")),
-        ),
+      () => item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
       { checkIncremental: false },
     )
 
@@ -1021,11 +989,7 @@ describe("search flow via key presses", () => {
     // User views Project, searches for Subtask — should zoom to Section,
     // making Task a column and Subtask a card.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "project",
-          item("section", item("parent-task", item("my-subtask"), item("other-subtask"))),
-        ),
+      () => item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
       { checkIncremental: false },
     )
 
@@ -1050,10 +1014,9 @@ describe("search flow via key presses", () => {
     // Regression: when search SELECTs a card in the same column,
     // selectedNode should update to the new card (not stay on the old one).
     // This verifies the store's selectedNode is consistent with cursorNodeId.
-    const { board, store } = testEnv(
-      () => item("root", item("col", item("first"), item("second"), item("third"))),
-      { checkIncremental: false },
-    )
+    const { board, store } = testEnv(() => item("root", item("col", item("first"), item("second"), item("third"))), {
+      checkIncremental: false,
+    })
 
     // Initial cursor on first
     expect(store.getState().cursorNodeId).toBe("first")

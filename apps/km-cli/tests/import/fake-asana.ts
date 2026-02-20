@@ -600,8 +600,7 @@ export function minimalFixtures(): FakeAsanaOptions {
             gid: "task-html-headings",
             name: "Task with headings in description",
             notes: "",
-            html_notes:
-              "<body><h1>Requirements</h1><p>Must support X.</p><h2>Notes</h2><p>Extra info.</p></body>",
+            html_notes: "<body><h1>Requirements</h1><p>Must support X.</p><h2>Notes</h2><p>Extra info.</p></body>",
             completed: false,
             created_at: "2026-02-16T08:00:00Z",
             modified_at: "2026-02-16T08:00:00Z",

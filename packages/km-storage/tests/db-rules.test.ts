@@ -350,9 +350,7 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const inboxSection = allNodes.find(
-            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add,
-          )
+          const inboxSection = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add)
           expect(inboxSection).toBeDefined()
 
           const ctx = createRuleContext()

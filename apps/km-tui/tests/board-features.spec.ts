@@ -751,7 +751,9 @@ describe("Detail Pane Navigation", () => {
   test("h/l navigates columns while detail pane stays open", () => {
     // Detail pane takes 40% of width; need both columns visible alongside it.
     // At 120 cols: boardWidth = 72, which fits 2 × 35-char columns.
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), { columns: 120 })
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
+      columns: 120,
+    })
 
     // Open detail pane on card1
     board.press(" ")

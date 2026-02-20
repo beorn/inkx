@@ -356,7 +356,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -375,7 +375,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -388,7 +388,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -406,7 +406,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -420,7 +420,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -447,7 +447,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={uiWithWatcher}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -468,7 +468,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={uiWithMoreFiles}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -486,7 +486,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -499,7 +499,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -517,7 +517,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"
@@ -536,7 +536,7 @@ describe("BottomBar", () => {
         <BottomBar
           ui={mockUIState}
           rootPath={mockRootPath}
-        columns={mockColumns}
+          columns={mockColumns}
           layout={mockLayout}
           termWidth={80}
           storageMode="disk"

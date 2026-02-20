@@ -211,10 +211,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
               item.section("Sec-2", item("card-2a"), item("card-2b")),
             ),
           ),
-          item.folder(
-            "Folder-B",
-            item.file("File-2", item.section("Sec-3", item("card-3a"), item("card-3b"))),
-          ),
+          item.folder("Folder-B", item.file("File-2", item.section("Sec-3", item("card-3a"), item("card-3b")))),
         ),
       { columns: 120, rows: 40 },
     )

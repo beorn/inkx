@@ -22,12 +22,7 @@ import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { assertNever } from "../action-handlers.ts"
-import {
-  markDialogConfirmed,
-  isDialogConfirmGracePeriod,
-  pushDialogMode,
-  popDialogMode,
-} from "../dialog-guard.ts"
+import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"

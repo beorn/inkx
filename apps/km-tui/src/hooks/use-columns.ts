@@ -155,10 +155,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
  * Import bugs can create duplicate file entries in the DB.
  * Keeps the node with more children; if tied, keeps the first occurrence.
  */
-export function deduplicateByFsPath(
-  nodes: KNode[],
-  getChildCount: (id: string) => number,
-): KNode[] {
+export function deduplicateByFsPath(nodes: KNode[], getChildCount: (id: string) => number): KNode[] {
   const seen = new Map<string, { node: KNode; childCount: number }>()
   const result: KNode[] = []
 
@@ -281,4 +278,3 @@ function createVirtualBodyNode(parentId: string | null): KNode {
     version: "",
   }
 }
-

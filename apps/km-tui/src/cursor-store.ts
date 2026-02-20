@@ -147,7 +147,10 @@ function isInBodyRegion(
  * Eliminates boilerplate of manually calling deriveCursorAncestors at each call site.
  */
 export function createCursorStoreFromRepo(
-  repo: { getNode(id: string): { parent_id: string | null; type: string } | undefined; getChildren(parentId: string | null): { id: string; type: string }[] },
+  repo: {
+    getNode(id: string): { parent_id: string | null; type: string } | undefined
+    getChildren(parentId: string | null): { id: string; type: string }[]
+  },
   rootId: string | null,
   cursorNodeId: string | null,
 ): CursorStore {

@@ -98,14 +98,10 @@ describe("detailOnly nodes hidden from card view", () => {
 
   test("regular li nodes still appear as cards (no false filtering)", () => {
     // Ensure that li nodes WITHOUT detailOnly still appear normally
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("task-a"), item("task-b"), item("regular-li")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"), item("regular-li"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     board.expect("#task-a").toExist()
     board.expect("#task-b").toExist()

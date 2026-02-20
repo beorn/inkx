@@ -42,12 +42,7 @@ export type AsyncDirectoryScanner = (dirPath: string, ignorePatterns?: string[] 
  * Pure comparison logic: compare filesystem entries to database state and generate ops.
  * Shared by both sync and async reconciliation.
  */
-function reconcileFromEntries(
-  db: Database,
-  dirPath: string,
-  repoRoot: string,
-  fsEntries: FsEntry[],
-): ReconcileOp[] {
+function reconcileFromEntries(db: Database, dirPath: string, repoRoot: string, fsEntries: FsEntry[]): ReconcileOp[] {
   const ops: ReconcileOp[] = []
 
   // Convert dirPath to relative for DB queries (DB stores relative paths)
@@ -223,9 +218,7 @@ export async function reconcileDirectoryAsync(
   scanner?: AsyncDirectoryScanner,
 ): Promise<ReconcileOp[]> {
   // Get filesystem state asynchronously
-  const fsEntries = scanner
-    ? await scanner(dirPath, ignorePatterns)
-    : await scanDirectoryAsync(dirPath, ignorePatterns)
+  const fsEntries = scanner ? await scanner(dirPath, ignorePatterns) : await scanDirectoryAsync(dirPath, ignorePatterns)
 
   // Rest is identical to sync version — just comparison logic, no I/O
   return reconcileFromEntries(db, dirPath, repoRoot, fsEntries)

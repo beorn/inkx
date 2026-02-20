@@ -9,10 +9,10 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("detail pane scrolling", () => {
   test("} scrolls detail pane down", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"), item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
@@ -26,10 +26,10 @@ describe("detail pane scrolling", () => {
   })
 
   test("{ scrolls detail pane up", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"), item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     board.press("}") // scroll down
@@ -41,10 +41,10 @@ describe("detail pane scrolling", () => {
   })
 
   test("{ does not scroll past top", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     expect(store.getState().ui.detailScrollOffset).toBe(0)
@@ -54,10 +54,10 @@ describe("detail pane scrolling", () => {
   })
 
   test("scroll offset resets when cursor moves to different node", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"), item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     board.press("}") // scroll down
@@ -69,10 +69,10 @@ describe("detail pane scrolling", () => {
   })
 
   test("scroll offset resets when detail pane is toggled", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press(" ") // open detail pane
     board.press("}") // scroll down
@@ -86,10 +86,10 @@ describe("detail pane scrolling", () => {
   })
 
   test("{/} do nothing when detail pane is closed", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"), item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     expect(store.getState().ui.showDetailPane).toBe(false)
 

@@ -309,13 +309,15 @@ export function scanDirectory(
 export async function scanDirectoryAsync(
   dirPath: string,
   ignorePatterns?: string[] | PatternMatcher,
-): Promise<Array<{
-  path: string
-  ino: number
-  mtime: number
-  isDirectory: boolean
-  isSymlink?: boolean
-}>> {
+): Promise<
+  Array<{
+    path: string
+    ino: number
+    mtime: number
+    isDirectory: boolean
+    isSymlink?: boolean
+  }>
+> {
   const results: Array<{
     path: string
     ino: number
@@ -343,32 +345,38 @@ export async function scanDirectoryAsync(
 
     if (entry.isSymbolicLink()) {
       statPromises.push(
-        fsPromises.stat(fullPath).then(stat => {
-          results.push({
-            path: fullPath,
-            ino: stat.ino,
-            mtime: stat.mtimeMs,
-            isDirectory: stat.isDirectory(),
-            isSymlink: true,
+        fsPromises
+          .stat(fullPath)
+          .then((stat) => {
+            results.push({
+              path: fullPath,
+              ino: stat.ino,
+              mtime: stat.mtimeMs,
+              isDirectory: stat.isDirectory(),
+              isSymlink: true,
+            })
           })
-        }).catch(() => {
-          log.debug?.(`broken symlink, skipping: ${fullPath}`)
-        })
+          .catch(() => {
+            log.debug?.(`broken symlink, skipping: ${fullPath}`)
+          }),
       )
       continue
     }
 
     statPromises.push(
-      fsPromises.stat(fullPath).then(stat => {
-        results.push({
-          path: fullPath,
-          ino: stat.ino,
-          mtime: stat.mtimeMs,
-          isDirectory: entry.isDirectory(),
+      fsPromises
+        .stat(fullPath)
+        .then((stat) => {
+          results.push({
+            path: fullPath,
+            ino: stat.ino,
+            mtime: stat.mtimeMs,
+            isDirectory: entry.isDirectory(),
+          })
         })
-      }).catch(() => {
-        // Skip inaccessible files
-      })
+        .catch(() => {
+          // Skip inaccessible files
+        }),
     )
   }
 

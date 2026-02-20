@@ -55,7 +55,10 @@ export function createColumnState(nodeOverrides: Partial<KNode> = {}, cards: Car
 /**
  * Create a InitialBoardData with columns
  */
-export function createBoardState(columns: ColumnState[] = [], overrides: Partial<InitialBoardData> = {}): InitialBoardData {
+export function createBoardState(
+  columns: ColumnState[] = [],
+  overrides: Partial<InitialBoardData> = {},
+): InitialBoardData {
   const base = createEmptyState()
   return {
     ...base,
