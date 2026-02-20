@@ -726,6 +726,67 @@ describe("Child node structure", () => {
     expect(nodes.find((n) => n.id === "comments-t1")).toBeUndefined()
     expect(nodes.find((n) => n.id === "attachments-t1")).toBeUndefined()
   })
+
+  test("child nodes inherit parent task timestamps", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    const createdMs = new Date("2024-06-15T10:00:00Z").getTime()
+    const modifiedMs = new Date("2025-01-20T14:00:00Z").getTime()
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task with timestamps",
+        createdAt: "2024-06-15T10:00:00Z",
+        modifiedAt: "2025-01-20T14:00:00Z",
+        body: "Description text",
+        comments: [{ author: "alice", createdAt: "2025-01-10T10:00:00Z", text: "Nice!" }],
+        attachments: [{ name: "file.pdf", url: "https://example.com/file.pdf", type: "file" }],
+        activityLog: [{ author: "system", createdAt: "2024-12-01T09:00:00Z", text: "Task moved" }],
+      },
+      "parent",
+      nodes,
+    )
+    // Task node itself should have the Asana timestamps
+    const taskNode = nodes.find((n) => n.id === "t1")!
+    expect(taskNode.created_at).toBe(createdMs)
+    expect(taskNode.updated_at).toBe(modifiedMs)
+
+    // Body paragraph should inherit parent timestamps
+    const bodyNode = nodes.find((n) => n.id === "body-t1")!
+    expect(bodyNode.created_at).toBe(createdMs)
+    expect(bodyNode.updated_at).toBe(modifiedMs)
+
+    // Comments header should inherit parent timestamps
+    const commentsHeader = nodes.find((n) => n.id === "comments-t1")!
+    expect(commentsHeader.created_at).toBe(createdMs)
+    expect(commentsHeader.updated_at).toBe(modifiedMs)
+
+    // Individual comment should use its own createdAt, updated_at from parent
+    const commentNode = nodes.find((n) => n.parent_id === "comments-t1")!
+    expect(commentNode.created_at).toBe(new Date("2025-01-10T10:00:00Z").getTime())
+    expect(commentNode.updated_at).toBe(modifiedMs)
+
+    // Attachments header should inherit parent timestamps
+    const attachmentsHeader = nodes.find((n) => n.id === "attachments-t1")!
+    expect(attachmentsHeader.created_at).toBe(createdMs)
+    expect(attachmentsHeader.updated_at).toBe(modifiedMs)
+
+    // Individual attachment should inherit parent timestamps
+    const attachmentNode = nodes.find((n) => n.parent_id === "attachments-t1")!
+    expect(attachmentNode.created_at).toBe(createdMs)
+    expect(attachmentNode.updated_at).toBe(modifiedMs)
+
+    // Activity header should inherit parent timestamps
+    const activityHeader = nodes.find((n) => n.id === "activity-t1")!
+    expect(activityHeader.created_at).toBe(createdMs)
+    expect(activityHeader.updated_at).toBe(modifiedMs)
+
+    // Individual activity entry should use its own createdAt, updated_at from parent
+    const activityNode = nodes.find((n) => n.parent_id === "activity-t1")!
+    expect(activityNode.created_at).toBe(new Date("2024-12-01T09:00:00Z").getTime())
+    expect(activityNode.updated_at).toBe(modifiedMs)
+  })
 })
 
 // ============================================================================

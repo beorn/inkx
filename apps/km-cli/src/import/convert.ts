@@ -163,6 +163,8 @@ function itemToNodes(
         task_marker: marker as TaskMarker,
         task_status: status,
         content: `![[^${item.sourceId}]]`,
+        created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
+        updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
     )
     return
@@ -178,6 +180,8 @@ function itemToNodes(
         type: "hr",
         parent_id: parentId,
         block_id: item.sourceId,
+        created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
+        updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
     )
     return
@@ -221,6 +225,10 @@ function itemToNodes(
   const parentTaskGid = item.metadata?.parentTaskGid as string | undefined
   const linkTo = parentTaskGid && primaryMap?.has(parentTaskGid) ? `^${parentTaskGid}` : null
 
+  // Compute timestamps once — child nodes inherit these
+  const itemCreatedAt = item.createdAt ? new Date(item.createdAt).getTime() : Date.now()
+  const itemUpdatedAt = item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now()
+
   const taskNode = mkNode(counter, {
     id: item.sourceId,
     type: "oi",
@@ -234,8 +242,8 @@ function itemToNodes(
     start_at: item.startAt?.slice(0, 10),
     priority: item.priority,
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
-    created_at: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
-    updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : Date.now(),
+    created_at: itemCreatedAt,
+    updated_at: itemUpdatedAt,
     ...(linkTo && { link_to: linkTo }),
     ...(Object.keys(nodeData).length > 0 && { data: nodeData }),
   })
@@ -250,6 +258,8 @@ function itemToNodes(
         type: "p",
         parent_id: item.sourceId,
         content: bodyContent,
+        created_at: itemCreatedAt,
+        updated_at: itemUpdatedAt,
       }),
     )
   }
@@ -267,6 +277,8 @@ function itemToNodes(
           parent_id: item.sourceId,
           content: "Comments",
           data: { detailOnly: true },
+          created_at: itemCreatedAt,
+          updated_at: itemUpdatedAt,
         }),
       )
       for (const c of filtered) {
@@ -279,6 +291,8 @@ function itemToNodes(
             type: "li",
             parent_id: `comments-${item.sourceId}`,
             content: `${date} ${author}: ${fullText}`.trim(),
+            created_at: new Date(c.createdAt).getTime(),
+            updated_at: itemUpdatedAt,
           }),
         )
       }
@@ -294,6 +308,8 @@ function itemToNodes(
         parent_id: item.sourceId,
         content: "Attachments",
         data: { detailOnly: true },
+        created_at: itemCreatedAt,
+        updated_at: itemUpdatedAt,
       }),
     )
     for (const att of item.attachments) {
@@ -305,6 +321,8 @@ function itemToNodes(
           type: "li",
           parent_id: `attachments-${item.sourceId}`,
           content: linkMd,
+          created_at: att.createdAt ? new Date(att.createdAt).getTime() : itemCreatedAt,
+          updated_at: itemUpdatedAt,
         }),
       )
     }
@@ -319,6 +337,8 @@ function itemToNodes(
         parent_id: item.sourceId,
         content: "Activity",
         data: { detailOnly: true },
+        created_at: itemCreatedAt,
+        updated_at: itemUpdatedAt,
       }),
     )
     for (const a of item.activityLog) {
@@ -330,6 +350,8 @@ function itemToNodes(
           type: "li",
           parent_id: `activity-${item.sourceId}`,
           content: `${date} ${author}: ${a.text}`.trim(),
+          created_at: new Date(a.createdAt).getTime(),
+          updated_at: itemUpdatedAt,
         }),
       )
     }
@@ -654,6 +676,8 @@ function* generateTagFiles(
             task_marker: marker as TaskMarker,
             task_status: status,
             content: `![[^${item.sourceId}]]`,
+            created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
+            updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
         )
       } else {
