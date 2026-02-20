@@ -138,6 +138,9 @@ const mockZustandStore = createStore(() => ({
 
 const defaultCursorStore = createCursorStore({
   cursorNodeId: null,
+  cursorCardNodeId: null,
+  cursorColumnNodeId: null,
+  selectionLevel: "board",
 })
 
 // Wrap children with all providers TreeNode needs

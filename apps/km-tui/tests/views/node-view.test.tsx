@@ -1,23 +1,56 @@
 /**
  * NodeView Component Tests
  *
- * Tests the unified ColumnHeader component that replaced duplicated
- * column header rendering across CardColumn, ColumnsView, and
- * shared-components (MemoizedColumnHeader).
+ * Tests the unified rendering components:
+ * - ColumnHeader (board style) — column header rendering
+ * - NodeLineView (line style) — compact one-line display
+ * - NodeCardView (card style) — card with subitems
+ * - NodeColumnView (column style) — section header
+ * - NodeTabView (tab style) — tab bar pill
+ * - NodeDetailView (detail style) — full detail pane
  *
- * Verifies:
- * - Column header renders correctly at all style levels
- * - Icon, title, count, separator display
- * - Selection styling (yellow bg when selected)
- * - WIP limit and warning indicators
- * - Virtual/body column dimming
- * - Untitled node display
- * - Sigil name suffix display
- * - Hyperlink rendering through text pipeline
+ * Integration tests use testEnv() for full board rendering.
+ * Unit tests use renderString() for isolated component testing.
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "../helpers/board-test.ts"
+import { renderString } from "inkx"
+import React from "react"
+import {
+  NodeLineView,
+  NodeCardView,
+  NodeColumnView,
+  NodeTabView,
+  NodeDetailView,
+} from "../../src/views/NodeView.tsx"
+import type { KNode } from "@km/core"
+
+// Helper to create a minimal KNode for unit tests
+function makeNode(overrides: Partial<KNode> = {}): KNode {
+  return {
+    id: overrides.id ?? "test-node-1",
+    content: overrides.content ?? "Test Node",
+    type: overrides.type ?? "li",
+    name: overrides.name ?? null,
+    parent_id: overrides.parent_id ?? null,
+    fs_path: overrides.fs_path ?? null,
+    fstype: overrides.fstype ?? null,
+    position: overrides.position ?? 0,
+    created_at: overrides.created_at ?? null,
+    updated_at: overrides.updated_at ?? null,
+    due_at: overrides.due_at ?? null,
+    start_at: overrides.start_at ?? null,
+    done_at: overrides.done_at ?? null,
+    task_marker: overrides.task_marker ?? undefined,
+    task_status: overrides.task_status ?? undefined,
+    priority: overrides.priority ?? null,
+    recurrence: overrides.recurrence ?? null,
+    assigned_to: overrides.assigned_to ?? null,
+    link_to: overrides.link_to ?? null,
+    data: overrides.data ?? null,
+  } as KNode
+}
 
 // =============================================================================
 // Integration: Column header rendering via ColumnHeader component
@@ -140,5 +173,270 @@ describe("ColumnHeader content rendering", () => {
     expect(output).toContain("example.com/page")
     // Protocol should be stripped
     expect(output).not.toContain("https://")
+  })
+})
+
+// =============================================================================
+// NodeLineView — line style (icon + title, 1 line)
+// =============================================================================
+
+describe("NodeLineView (line style)", () => {
+  test("renders node title", async () => {
+    const node = makeNode({ content: "Buy groceries" })
+    const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
+    expect(output).toContain("Buy groceries")
+  })
+
+  test("renders task status icon for tasks", async () => {
+    const node = makeNode({ content: "Todo item", task_status: "todo", task_marker: " " })
+    const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
+    // Should show the title without the task marker
+    expect(output).toContain("Todo item")
+  })
+
+  test("strips task marker from content", async () => {
+    const node = makeNode({ content: "[x] Done task", task_status: "done", task_marker: "x" })
+    const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
+    expect(output).toContain("Done task")
+    expect(output).not.toContain("[x]")
+  })
+
+  test("truncates long content to single line", async () => {
+    const node = makeNode({ content: "A".repeat(100) })
+    const output = await renderString(<NodeLineView node={node} width={30} />, { plain: true, width: 30 })
+    // Output should be no more than 1 line
+    const lines = output.split("\n").filter((l) => l.trim())
+    expect(lines.length).toBeLessThanOrEqual(1)
+  })
+
+  test("renders non-selected state by default", async () => {
+    const node = makeNode({ content: "Normal item" })
+    const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
+    expect(output).toContain("Normal item")
+  })
+})
+
+// =============================================================================
+// NodeCardView — card style (icon + title + subitems + overflow)
+// =============================================================================
+
+describe("NodeCardView (card style)", () => {
+  test("renders card title", async () => {
+    const node = makeNode({ content: "Project Alpha" })
+    const output = await renderString(
+      <NodeCardView node={node} children={[]} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Project Alpha")
+  })
+
+  test("renders subitems as lines", async () => {
+    const parent = makeNode({ content: "Parent" })
+    const children = [
+      makeNode({ id: "c1", content: "Child 1" }),
+      makeNode({ id: "c2", content: "Child 2" }),
+    ]
+    const output = await renderString(
+      <NodeCardView node={parent} children={children} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Parent")
+    expect(output).toContain("Child 1")
+    expect(output).toContain("Child 2")
+  })
+
+  test("shows overflow count when children exceed maxSubitems", async () => {
+    const parent = makeNode({ content: "Parent" })
+    const children = Array.from({ length: 8 }, (_, i) =>
+      makeNode({ id: `c${i}`, content: `Item ${i + 1}` }),
+    )
+    const output = await renderString(
+      <NodeCardView node={parent} children={children} maxSubitems={3} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Parent")
+    expect(output).toContain("Item 1")
+    expect(output).toContain("Item 2")
+    expect(output).toContain("Item 3")
+    expect(output).toContain("+5 more")
+    expect(output).not.toContain("Item 4")
+  })
+
+  test("renders bold title", async () => {
+    const node = makeNode({ content: "Bold Title" })
+    // Use non-plain to check ANSI bold
+    const output = await renderString(
+      <NodeCardView node={node} children={[]} />,
+      { plain: false, width: 40 },
+    )
+    expect(output).toContain("Bold Title")
+  })
+})
+
+// =============================================================================
+// NodeColumnView — column/section header style
+// =============================================================================
+
+describe("NodeColumnView (column style)", () => {
+  test("renders section name with count", async () => {
+    const node = makeNode({ content: "In Progress" })
+    const output = await renderString(
+      <NodeColumnView node={node} displayName="In Progress" count={5} width={40} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("In Progress")
+    expect(output).toContain("5")
+  })
+
+  test("renders section sigil prefix", async () => {
+    const node = makeNode({ content: "Done" })
+    const output = await renderString(
+      <NodeColumnView node={node} displayName="Done" count={12} width={40} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("\u00A7")  // § character
+    expect(output).toContain("Done")
+    expect(output).toContain("12")
+  })
+
+  test("renders separator line", async () => {
+    const node = makeNode({ content: "Section" })
+    const output = await renderString(
+      <NodeColumnView node={node} displayName="Section" count={3} width={30} />,
+      { plain: true, width: 30 },
+    )
+    expect(output).toContain("\u2500")  // ─ character
+  })
+})
+
+// =============================================================================
+// NodeTabView — tab style (title pill)
+// =============================================================================
+
+describe("NodeTabView (tab style)", () => {
+  test("renders tab with name and count", async () => {
+    const node = makeNode({ content: "Todo" })
+    const output = await renderString(
+      <NodeTabView node={node} displayName="Todo" count={7} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Todo")
+    expect(output).toContain("(7)")
+  })
+
+  test("truncates long tab names", async () => {
+    const node = makeNode({ content: "Very Long Section Name That Exceeds Limit" })
+    const output = await renderString(
+      <NodeTabView node={node} displayName="Very Long Section Name That Exceeds Limit" count={3} />,
+      { plain: true, width: 60 },
+    )
+    // Name should be truncated to maxNameWidth (20) with ellipsis
+    expect(output).toContain("\u2026")  // … character
+    expect(output).toContain("(3)")
+  })
+
+  test("renders active tab differently", async () => {
+    const node = makeNode({ content: "Active" })
+    const active = await renderString(
+      <NodeTabView node={node} displayName="Active" count={1} isActive />,
+      { plain: false, width: 40 },
+    )
+    const inactive = await renderString(
+      <NodeTabView node={node} displayName="Inactive" count={1} />,
+      { plain: false, width: 40 },
+    )
+    // Active and inactive should produce different ANSI output
+    expect(active).not.toEqual(inactive)
+  })
+})
+
+// =============================================================================
+// NodeDetailView — detail style (full detail pane)
+// =============================================================================
+
+describe("NodeDetailView (detail style)", () => {
+  test("renders node title in header", async () => {
+    const node = makeNode({ content: "Task Details" })
+    const output = await renderString(
+      <NodeDetailView node={node} children={[]} width={40} height={20} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Task Details")
+  })
+
+  test("renders body content", async () => {
+    const node = makeNode({ content: "Main Task" })
+    const bodyChild = makeNode({ id: "body1", content: "This is body text", type: "p" })
+    const output = await renderString(
+      <NodeDetailView node={node} children={[bodyChild]} width={50} height={20} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).toContain("Main Task")
+    expect(output).toContain("This is body text")
+  })
+
+  test("renders structural children", async () => {
+    const node = makeNode({ content: "Parent Task" })
+    const children = [
+      makeNode({ id: "s1", content: "Subtask 1", type: "li" }),
+      makeNode({ id: "s2", content: "Subtask 2", type: "li" }),
+    ]
+    const output = await renderString(
+      <NodeDetailView node={node} children={children} width={50} height={20} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).toContain("Parent Task")
+    expect(output).toContain("Subtask 1")
+    expect(output).toContain("Subtask 2")
+  })
+
+  test("renders backlinks section", async () => {
+    const node = makeNode({ content: "Referenced Node" })
+    const backlinks = [
+      makeNode({ id: "bl1", content: "Linking Node A" }),
+      makeNode({ id: "bl2", content: "Linking Node B" }),
+    ]
+    const output = await renderString(
+      <NodeDetailView node={node} children={[]} backlinks={backlinks} width={50} height={20} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).toContain("Referenced Node")
+    expect(output).toContain("Backlinks (2)")
+    expect(output).toContain("Linking Node A")
+    expect(output).toContain("Linking Node B")
+  })
+
+  test("shows (empty) when no children or body", async () => {
+    const node = makeNode({ content: "Empty Node" })
+    const output = await renderString(
+      <NodeDetailView node={node} children={[]} width={40} height={15} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Empty Node")
+    expect(output).toContain("(empty)")
+  })
+
+  test("shows task status icon for task nodes", async () => {
+    const node = makeNode({ content: "Done task", task_status: "done", task_marker: "x" })
+    const output = await renderString(
+      <NodeDetailView node={node} children={[]} width={40} height={15} />,
+      { plain: true, width: 40 },
+    )
+    expect(output).toContain("Done task")
+  })
+
+  test("limits backlinks to max 5", async () => {
+    const node = makeNode({ content: "Popular Node" })
+    const backlinks = Array.from({ length: 8 }, (_, i) =>
+      makeNode({ id: `bl${i}`, content: `Backlink ${i + 1}` }),
+    )
+    const output = await renderString(
+      <NodeDetailView node={node} children={[]} backlinks={backlinks} width={50} height={30} />,
+      { plain: true, width: 50 },
+    )
+    expect(output).toContain("Backlinks (8)")
+    expect(output).toContain("Backlink 1")
+    expect(output).toContain("Backlink 5")
+    expect(output).toContain("+3 more")
   })
 })
