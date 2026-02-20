@@ -278,14 +278,12 @@ Pipeline:
 
       // Stage 2: Download attachments
       const outDir = options.out ? resolve(options.out) : join(rootPath, "imports", "asana")
-      const attachDir = join(rootPath, ".km", "imports", "attachments")
-      // Relative path from markdown output dir to attachments dir
-      const attachRelative = "../../.km/imports/attachments"
+      const attachDir = join(outDir, "attachments")
 
       const { downloadAttachments } = await import("../import/download-attachments.ts")
       const dlResult = await downloadAttachments(importData, {
         dir: attachDir,
-        relativePath: attachRelative,
+        relativePath: "attachments",
         dryRun: options.dryRun,
         refreshUrl: asanaToken
           ? async (att) => {
