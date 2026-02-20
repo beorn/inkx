@@ -1,12 +1,13 @@
 /**
  * Board App — createApp() definition (Layer 3)
  *
- * Defines the board application with Zustand store + term:key event handler.
+ * Defines the board application with Zustand store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
+ * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=CURSOR_MOVE, click=TODO(HitRegistry)
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
-import type { Key } from "inkx"
+import type { Key, ParsedMouse } from "inkx"
 import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -272,6 +273,37 @@ function routeThroughCommandSystem(
 }
 
 // =============================================================================
+// Mouse Handler
+// =============================================================================
+
+/**
+ * Handle term:mouse event — entry point for all mouse input.
+ * Dispatches scroll wheel to cursor movement via the command system,
+ * and logs click events (full click-to-select requires HitRegistry — future step).
+ */
+function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
+  const { get } = ctx
+
+  if (mouse.action === "wheel") {
+    // Scroll wheel → cursor movement through the command system
+    const dir = mouse.delta === -1 ? "prev" : "next"
+    const actionCtx = buildActionCtx(get, () => {})
+    const result = handleCommandAction(actionCtx, { type: "CURSOR_MOVE", dir })
+    if (isErr(result) && result.error.type === "boundary") {
+      // Silently ignore boundary on scroll — no bell for wheel events
+    }
+    return
+  }
+
+  if (mouse.action === "down" && mouse.button === 0) {
+    // Left click — TODO: resolve screen coordinates to node via HitRegistry
+    // For now, this is a no-op placeholder. Once HitRegistry is implemented,
+    // this will map (mouse.x, mouse.y) to a node ID and move the cursor there.
+    return
+  }
+}
+
+// =============================================================================
 // App Definition
 // =============================================================================
 
@@ -337,6 +369,9 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
     "term:resize": (data, ctx) => {
       const { cols, rows } = data as { cols: number; rows: number }
       ctx.get().setDimensions({ columns: cols, rows: rows })
+    },
+    "term:mouse": (data, ctx) => {
+      handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)
     },
   })
 
