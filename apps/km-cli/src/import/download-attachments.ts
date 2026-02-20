@@ -221,7 +221,20 @@ export async function downloadAttachments(
   })
   bar.start()
 
+  let consecutiveFailures = 0
+  const MAX_CONSECUTIVE_FAILURES = 20
+
   for (let i = 0; i < allAttachments.length; i += DOWNLOAD_CONCURRENCY) {
+    // Rate limit: small delay between batches to avoid hammering servers
+    if (i > 0) await new Promise((r) => setTimeout(r, 100))
+    // Bail early if too many consecutive failures (e.g. all URLs expired)
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      const remaining = allAttachments.length - i
+      console.log(term.yellow(`  Stopping after ${MAX_CONSECUTIVE_FAILURES} consecutive failures (${remaining} remaining skipped)`))
+      result.failed += remaining
+      bar.increment(remaining)
+      break
+    }
     const batch = allAttachments.slice(i, i + DOWNLOAD_CONCURRENCY)
     await Promise.all(
       batch.map(async (att) => {
@@ -233,6 +246,7 @@ export async function downloadAttachments(
         if (existsSync(localPath)) {
           att.localPath = relativePath
           result.skipped++
+          consecutiveFailures = 0
           bar.increment()
           return
         }
@@ -261,6 +275,7 @@ export async function downloadAttachments(
           if (!res.ok) {
             console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
             result.failed++
+            consecutiveFailures++
             bar.increment()
             return
           }
@@ -272,9 +287,11 @@ export async function downloadAttachments(
           }
           att.localPath = relativePath
           result.downloaded++
+          consecutiveFailures = 0
         } catch (err) {
           console.log(term.yellow(`  Failed to download ${att.name}: ${(err as Error).message}`))
           result.failed++
+          consecutiveFailures++
         }
         bar.increment()
       }),
