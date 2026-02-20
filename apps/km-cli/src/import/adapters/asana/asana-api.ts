@@ -549,7 +549,7 @@ export async function fetchFromAsana(
       })
     }
 
-    console.log(term.dim(`  Fetching My Tasks for ${userList.length} user(s)...`))
+    console.log(term.dim(`  Fetching My Tasks for ${userList.length} user(s) (only tasks visible to you)...`))
 
     for (const user of userList) {
       const userSlug = slugify(user.name)
@@ -573,14 +573,15 @@ export async function fetchFromAsana(
         limit: "100",
       })
 
-      const orphanTasks = allUserTasks.filter((t) => !capturedTaskGids.has(t.gid))
-
-      if (orphanTasks.length === 0) {
-        console.log(term.dim(`  @${userSlug}: 0 orphan tasks (${allUserTasks.length} total, all in projects)`))
+      if (allUserTasks.length === 0) {
+        console.log(term.dim(`  @${userSlug}: 0 tasks`))
         continue
       }
 
-      console.log(term.cyan(`  @${userSlug}: ${orphanTasks.length} orphan tasks (${allUserTasks.length} total)`))
+      const orphanCount = allUserTasks.filter((t) => !capturedTaskGids.has(t.gid)).length
+      console.log(
+        term.cyan(`  @${userSlug}: ${allUserTasks.length} tasks (${orphanCount} orphan, ${allUserTasks.length - orphanCount} in projects)`),
+      )
 
       const { project: userProject } = await fetchAndSaveTaskList(
         client,
@@ -588,7 +589,7 @@ export async function fetchFromAsana(
           sourceId: `user-${user.gid}`,
           slug: `@${userSlug}`,
           title: `@${user.name}`,
-          fetchTasks: () => orphanTasks,
+          fetchTasks: () => allUserTasks,
           // Use assignee_section for My Tasks grouping (API doesn't support /user_task_lists/sections)
           useAssigneeSection: true,
           workspace: workspace.name,

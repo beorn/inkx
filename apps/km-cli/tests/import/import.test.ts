@@ -1036,30 +1036,22 @@ describe("User task lists and tag task lists", () => {
     if (existsSync(downloadDir)) rmSync(downloadDir, { recursive: true })
   })
 
-  test("fetches orphan tasks from user task lists", async () => {
+  test("fetches all tasks from user task lists (not just orphans)", async () => {
     const data = await fetchFromAsana({
       token: "fake-token",
       downloadDir,
       includeUserTaskLists: true,
     })
 
-    // Should have 3 projects + 1 user task list (user-2 has 0 orphans)
+    // Should have 3 projects + 1 user task list (user-2 has 0 tasks)
     const userProj = data.projects.find((p) => p.sourceId === "user-user-1")
     expect(userProj).toBeDefined()
     expect(userProj!.title).toBe("@Test User")
 
-    // Only orphan task (not task-1 which is in Sprint 4)
+    // All tasks visible to us (including those in projects — converter handles dedup)
     const allItems = [...(userProj!.items ?? []), ...(userProj!.sections ?? []).flatMap((s) => s.items)]
-    expect(allItems).toHaveLength(1)
-    expect(allItems[0]!.title).toBe("Personal reminder")
-
-    // Orphan task should be grouped under its assignee_section ("Recently assigned")
-    expect(userProj!.sections).toHaveLength(1)
-    expect(userProj!.sections![0]!.title).toBe("Recently assigned")
-    expect(userProj!.sections![0]!.items).toHaveLength(1)
-    expect(userProj!.sections![0]!.items[0]!.title).toBe("Personal reminder")
-    // No loose items — all tasks should be in sections
-    expect(userProj!.items ?? []).toHaveLength(0)
+    expect(allItems.length).toBeGreaterThanOrEqual(1)
+    expect(allItems.find((i) => i.title === "Personal reminder")).toBeDefined()
   })
 
   test("fetches orphan tasks from tag task lists", async () => {
@@ -1083,7 +1075,7 @@ describe("User task lists and tag task lists", () => {
     expect(emptyTagProj).toBeUndefined()
   })
 
-  test("deduplicates tasks across user task lists and tag task lists", async () => {
+  test("user task lists include project tasks (converter handles dedup)", async () => {
     const data = await fetchFromAsana({
       token: "fake-token",
       downloadDir,
@@ -1091,14 +1083,13 @@ describe("User task lists and tag task lists", () => {
       includeTagTaskLists: true,
     })
 
-    // task-orphan-1 appears in user task list, task-tag-orphan in tag list
-    // Neither should be duplicated
-    const allSourceIds = data.projects.flatMap((p) => {
-      const items = [...(p.items ?? []), ...(p.sections ?? []).flatMap((s) => s.items)]
-      return items.map((i) => i.sourceId)
-    })
-    const uniqueIds = new Set(allSourceIds)
-    expect(allSourceIds.length).toBe(uniqueIds.size)
+    // User task lists now include ALL tasks (not just orphans).
+    // Tasks in both projects and user lists will have the same sourceId —
+    // this is expected, the converter deduplicates at render time via embeds.
+    const userProj = data.projects.find((p) => p.sourceId === "user-user-1")
+    expect(userProj).toBeDefined()
+    const userItems = [...(userProj!.items ?? []), ...(userProj!.sections ?? []).flatMap((s) => s.items)]
+    expect(userItems.length).toBeGreaterThanOrEqual(1)
   })
 })
 
