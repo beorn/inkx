@@ -503,7 +503,7 @@ function MetadataTable({
       {rows.map((row, i) => (
         <Box key={`${row.key}-${i}`} flexDirection="row">
           <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
-          <Text color={isDone ? undefined : row.valueColor} dimColor={isDone}>
+          <Text color={row.valueColor}>
             {row.value}
           </Text>
         </Box>
