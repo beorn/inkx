@@ -64,3 +64,6 @@ __snapshots__/pty/
 
 # Import data (user-specific, may contain sensitive task data)
 imports/
+
+# Playwright CLI session data (logs, page dumps)
+.playwright-cli/
