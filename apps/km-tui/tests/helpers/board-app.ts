@@ -21,11 +21,11 @@
  * ```
  */
 
-import { expect } from "vitest"
-import type { Repo, KNode } from "@km/storage"
-import { createFakeRepo, createRepo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { createBoardDriver, type BoardDriver, type TUIDriverState } from "../../src/driver.ts"
+import type { KNode, Repo } from "@km/storage"
+import { createFakeRepo, createRepo } from "@km/storage"
+import { expect } from "vitest"
+import { type BoardDriver, createBoardDriver, type TUIDriverState } from "../../src/driver.ts"
 import { item } from "./board-test.ts"
 
 // =============================================================================
@@ -263,7 +263,7 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
       return l.columns.map((col, index) => {
         const loc = driver.app.locator(`#${col.node.id}`)
         // Use name or data.name for folders
-        const title = col.node.name ?? (col.node as any).data?.name ?? col.node.id
+        const title = col.node.name ?? (col.node.data?.name as string | undefined) ?? col.node.id
         return {
           index,
           id: col.node.id,
@@ -284,7 +284,8 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
         col.cards.forEach((card, cardIndex) => {
           const loc = driver.app.locator(`#${card.node.id}`)
           // Use content for leaf nodes, name or data.name for folders
-          const text = card.node.content ?? card.node.name ?? (card.node as any).data?.name ?? card.node.id
+          const text =
+            card.node.content ?? card.node.name ?? (card.node.data?.name as string | undefined) ?? card.node.id
           result.push({
             index: cardIndex,
             id: card.node.id,

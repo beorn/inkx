@@ -5,14 +5,14 @@
  * Covers: task rendering, metadata, comments, attachments, dedup, roundtrip parsing.
  */
 
-import { describe, test, expect } from "vitest"
-import { convert, itemToNodes } from "../../src/import/convert.ts"
-import { toImportItem } from "../../src/import/adapters/task-transform.ts"
-import { parseMarkdown, extractFrontmatter, parseTaskMetadata, extractTags, extractMentions } from "@km/markdown"
-import type { List, ListItem, Heading } from "@km/markdown"
-import type { ImportData, ImportItem } from "../../src/import/types.ts"
-import type { AsanaApiTask } from "../../src/import/adapters/asana-types.ts"
 import type { KNode } from "@km/core"
+import type { Heading, List, ListItem } from "@km/markdown"
+import { extractFrontmatter, extractMentions, extractTags, parseMarkdown, parseTaskMetadata } from "@km/markdown"
+import { describe, expect, test } from "vitest"
+import type { AsanaApiTask } from "../../src/import/adapters/asana-types.ts"
+import { toImportItem } from "../../src/import/adapters/task-transform.ts"
+import { convert, itemToNodes } from "../../src/import/convert.ts"
+import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
 // ============================================================================
 // Helpers
@@ -39,7 +39,11 @@ function makeDataWithSections(
       {
         sourceId: project.sourceId ?? "p1",
         title: project.title ?? "Sprint 4",
-        sections: sections.map((s, i) => ({ sourceId: `s${i + 1}`, title: s.title, items: s.items })),
+        sections: sections.map((s, i) => ({
+          sourceId: `s${i + 1}`,
+          title: s.title,
+          items: s.items,
+        })),
       },
     ],
   }
@@ -73,8 +77,20 @@ describe("Stage 2: Convert ImportData to markdown", () => {
             tags: ["design"],
             projects: ["Sprint 4", "Backlog"],
             body: "Create wireframes\nReview with team",
-            comments: [{ author: "bob", createdAt: "2026-02-16T10:30:00Z", text: "Looks great, minor tweaks needed" }],
-            attachments: [{ name: "wireframe.png", url: "https://example.com/wireframe.png", type: "image" }],
+            comments: [
+              {
+                author: "bob",
+                createdAt: "2026-02-16T10:30:00Z",
+                text: "Looks great, minor tweaks needed",
+              },
+            ],
+            attachments: [
+              {
+                name: "wireframe.png",
+                url: "https://example.com/wireframe.png",
+                type: "image",
+              },
+            ],
             children: [
               { sourceId: "s1", title: "Create wireframes", status: "todo" },
               { sourceId: "s2", title: "Review with team", status: "done" },
@@ -84,7 +100,14 @@ describe("Stage 2: Convert ImportData to markdown", () => {
       },
       {
         title: "Done",
-        items: [{ sourceId: "t2", title: "Write tests", status: "done", completedAt: "2026-02-09T16:30:00Z" }],
+        items: [
+          {
+            sourceId: "t2",
+            title: "Write tests",
+            status: "done",
+            completedAt: "2026-02-09T16:30:00Z",
+          },
+        ],
       },
     ],
     { sourceId: "p1", title: "Sprint 4" },
@@ -333,8 +356,18 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("renders milestone task with diamond marker", () => {
     const md = convertToMd(
       makeData([
-        { sourceId: "m1", title: "Launch day", milestone: true, status: "todo" },
-        { sourceId: "m2", title: "Past milestone", milestone: true, status: "done" },
+        {
+          sourceId: "m1",
+          title: "Launch day",
+          milestone: true,
+          status: "todo",
+        },
+        {
+          sourceId: "m2",
+          title: "Past milestone",
+          milestone: true,
+          status: "done",
+        },
       ]),
     )
     expect(md).toContain("## ◆ Launch day ^m1")
@@ -358,8 +391,20 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           tags: ["backend", "urgent"],
           projects: ["Test", "Other Project"],
           children: [{ sourceId: "cs1", title: "Sub-step", status: "done" }],
-          comments: [{ author: "bob", createdAt: "2026-02-09T14:00:00Z", text: "Approved. Ship it!" }],
-          attachments: [{ name: "spec.pdf", url: "https://example.com/spec.pdf", type: "file" }],
+          comments: [
+            {
+              author: "bob",
+              createdAt: "2026-02-09T14:00:00Z",
+              text: "Approved. Ship it!",
+            },
+          ],
+          attachments: [
+            {
+              name: "spec.pdf",
+              url: "https://example.com/spec.pdf",
+              type: "file",
+            },
+          ],
         },
       ]),
     )
@@ -404,8 +449,16 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           sourceId: "t1",
           title: "Task with system comment",
           comments: [
-            { author: "alice", createdAt: "2019-05-10T10:00:00Z", text: "moved this Task from Backlog to In Progress" },
-            { author: "bob", createdAt: "2019-05-11T14:00:00Z", text: "This is a real comment" },
+            {
+              author: "alice",
+              createdAt: "2019-05-10T10:00:00Z",
+              text: "moved this Task from Backlog to In Progress",
+            },
+            {
+              author: "bob",
+              createdAt: "2019-05-11T14:00:00Z",
+              text: "This is a real comment",
+            },
           ],
         },
       ]),
@@ -442,7 +495,11 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           sourceId: "t1",
           title: "Task with modern comment",
           comments: [
-            { author: "alice", createdAt: "2026-02-15T10:00:00Z", text: "moved this Task from Backlog to Done" },
+            {
+              author: "alice",
+              createdAt: "2026-02-15T10:00:00Z",
+              text: "moved this Task from Backlog to Done",
+            },
           ],
         },
       ]),
@@ -500,10 +557,24 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           title: "Rich task",
           body: "Description text here",
           attachments: [
-            { name: "diagram.png", url: "https://example.com/diagram.png", type: "image" },
-            { name: "report.pdf", url: "https://example.com/report.pdf", type: "file" },
+            {
+              name: "diagram.png",
+              url: "https://example.com/diagram.png",
+              type: "image",
+            },
+            {
+              name: "report.pdf",
+              url: "https://example.com/report.pdf",
+              type: "file",
+            },
           ],
-          comments: [{ author: "alice", createdAt: "2026-02-10T10:00:00Z", text: "Great work!" }],
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Great work!",
+            },
+          ],
         },
       ]),
     )
@@ -532,8 +603,16 @@ describe("Activity log rendering", () => {
           sourceId: "t1",
           title: "Task with activity",
           activityLog: [
-            { author: "alice", createdAt: "2026-02-15T09:00:00Z", text: "Alice moved this task to To Do" },
-            { author: "bob", createdAt: "2026-02-16T14:00:00Z", text: "Bob completed this task" },
+            {
+              author: "alice",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Alice moved this task to To Do",
+            },
+            {
+              author: "bob",
+              createdAt: "2026-02-16T14:00:00Z",
+              text: "Bob completed this task",
+            },
           ],
         },
       ]),
@@ -552,8 +631,20 @@ describe("Activity log rendering", () => {
         {
           sourceId: "t1",
           title: "Task with both",
-          comments: [{ author: "alice", createdAt: "2026-02-16T10:00:00Z", text: "A real comment" }],
-          activityLog: [{ author: "system", createdAt: "2026-02-15T09:00:00Z", text: "Task created" }],
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-16T10:00:00Z",
+              text: "A real comment",
+            },
+          ],
+          activityLog: [
+            {
+              author: "system",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Task created",
+            },
+          ],
         },
       ]),
     )
@@ -569,7 +660,13 @@ describe("Activity log rendering", () => {
         {
           sourceId: "t1",
           title: "Bare activity task",
-          activityLog: [{ author: "system", createdAt: "2026-02-15T09:00:00Z", text: "Task moved" }],
+          activityLog: [
+            {
+              author: "system",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Task moved",
+            },
+          ],
         },
       ]),
     )
@@ -616,7 +713,16 @@ describe("Permalink and external metadata", () => {
   test("stores permalink in node data as asana_permalink", () => {
     const nodes: import("@km/core").KNode[] = []
     const counter = { value: 0 }
-    itemToNodes(counter, { sourceId: "t1", title: "Task", permalink: "https://app.asana.com/0/p1/t1" }, "parent", nodes)
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        permalink: "https://app.asana.com/0/p1/t1",
+      },
+      "parent",
+      nodes,
+    )
     const taskNode = nodes.find((n) => n.id === "t1")!
     expect(taskNode.data?.asana_permalink).toBe("https://app.asana.com/0/p1/t1")
   })
@@ -626,12 +732,19 @@ describe("Permalink and external metadata", () => {
     const counter = { value: 0 }
     itemToNodes(
       counter,
-      { sourceId: "t1", title: "Task", metadata: { external: { id: "EXT-123", source: "jira" } } },
+      {
+        sourceId: "t1",
+        title: "Task",
+        metadata: { external: { id: "EXT-123", source: "jira" } },
+      },
       "parent",
       nodes,
     )
     const taskNode = nodes.find((n) => n.id === "t1")!
-    expect(taskNode.data?.asana_external).toEqual({ id: "EXT-123", source: "jira" })
+    expect(taskNode.data?.asana_external).toEqual({
+      id: "EXT-123",
+      source: "jira",
+    })
   })
 
   test("stores assigneeSectionName, parentGid, parentName in node data", () => {
@@ -642,7 +755,11 @@ describe("Permalink and external metadata", () => {
       {
         sourceId: "t1",
         title: "Task",
-        metadata: { assigneeSectionName: "My Tasks: Today", parentGid: "gid-parent", parentName: "Parent Task" },
+        metadata: {
+          assigneeSectionName: "My Tasks: Today",
+          parentGid: "gid-parent",
+          parentName: "Parent Task",
+        },
       },
       "parent",
       nodes,
@@ -675,7 +792,13 @@ describe("Child node structure", () => {
       {
         sourceId: "t1",
         title: "Task",
-        comments: [{ author: "alice", createdAt: "2026-02-10T10:00:00Z", text: "Nice work!" }],
+        comments: [
+          {
+            author: "alice",
+            createdAt: "2026-02-10T10:00:00Z",
+            text: "Nice work!",
+          },
+        ],
       },
       "parent",
       nodes,
@@ -698,7 +821,11 @@ describe("Child node structure", () => {
         sourceId: "t1",
         title: "Task",
         attachments: [
-          { name: "photo.jpg", url: "https://example.com/photo.jpg", type: "image" },
+          {
+            name: "photo.jpg",
+            url: "https://example.com/photo.jpg",
+            type: "image",
+          },
           { name: "doc.pdf", url: "https://example.com/doc.pdf", type: "file" },
         ],
       },
@@ -741,8 +868,20 @@ describe("Child node structure", () => {
         modifiedAt: "2025-01-20T14:00:00Z",
         body: "Description text",
         comments: [{ author: "alice", createdAt: "2025-01-10T10:00:00Z", text: "Nice!" }],
-        attachments: [{ name: "file.pdf", url: "https://example.com/file.pdf", type: "file" }],
-        activityLog: [{ author: "system", createdAt: "2024-12-01T09:00:00Z", text: "Task moved" }],
+        attachments: [
+          {
+            name: "file.pdf",
+            url: "https://example.com/file.pdf",
+            type: "file",
+          },
+        ],
+        activityLog: [
+          {
+            author: "system",
+            createdAt: "2024-12-01T09:00:00Z",
+            text: "Task moved",
+          },
+        ],
       },
       "parent",
       nodes,
@@ -845,7 +984,12 @@ describe("Custom field definitions rendering", () => {
           title: "Sprint 4",
           items: [{ sourceId: "t1", title: "A task" }],
           customFieldSettings: [
-            { name: "Priority", type: "number", description: "Task priority level", precision: 0 },
+            {
+              name: "Priority",
+              type: "number",
+              description: "Task priority level",
+              precision: 0,
+            },
             {
               name: "Stage",
               type: "enum",
@@ -886,13 +1030,25 @@ describe("Multi-project task dedup", () => {
         {
           sourceId: "projA",
           title: "Project Alpha",
-          items: [{ sourceId: "shared-1", title: "Shared task", status: "todo", body: "Details here" }],
+          items: [
+            {
+              sourceId: "shared-1",
+              title: "Shared task",
+              status: "todo",
+              body: "Details here",
+            },
+          ],
         },
         {
           sourceId: "projB",
           title: "Project Beta",
           items: [
-            { sourceId: "shared-1", title: "Shared task", status: "todo", body: "Details here" },
+            {
+              sourceId: "shared-1",
+              title: "Shared task",
+              status: "todo",
+              body: "Details here",
+            },
             { sourceId: "only-beta", title: "Beta only", status: "done" },
           ],
         },
@@ -1024,7 +1180,14 @@ describe("roundtrip: convert → parse", () => {
             {
               sourceId: "s1",
               title: "Work",
-              items: [{ sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" }],
+              items: [
+                {
+                  sourceId: "shared-rt",
+                  title: "Shared task",
+                  status: "todo",
+                  body: "Details",
+                },
+              ],
             },
           ],
         },
@@ -1036,7 +1199,12 @@ describe("roundtrip: convert → parse", () => {
               sourceId: "s2",
               title: "Work",
               items: [
-                { sourceId: "shared-rt", title: "Shared task", status: "todo", body: "Details" },
+                {
+                  sourceId: "shared-rt",
+                  title: "Shared task",
+                  status: "todo",
+                  body: "Details",
+                },
                 { sourceId: "beta-only", title: "Beta only", status: "done" },
               ],
             },
@@ -1108,7 +1276,13 @@ describe("roundtrip: convert → parse", () => {
           team: "Engineering",
           createdAt: "2025-12-01T00:00:00Z",
           modifiedAt: "2026-01-10T12:00:00Z",
-          sections: [{ sourceId: "s1", title: "Tasks", items: [{ sourceId: "t1", title: "A task" }] }],
+          sections: [
+            {
+              sourceId: "s1",
+              title: "Tasks",
+              items: [{ sourceId: "t1", title: "A task" }],
+            },
+          ],
         },
       ],
     }
@@ -1185,19 +1359,40 @@ describe("Within-file dedup", () => {
             {
               sourceId: "sec-a1",
               title: "Section A1",
-              items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+              items: [
+                {
+                  sourceId: "shared-task",
+                  title: "Shared task",
+                  status: "todo",
+                  body: "Full body",
+                },
+              ],
             },
             {
               sourceId: "sec-a2",
               title: "Section A2",
-              items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+              items: [
+                {
+                  sourceId: "shared-task",
+                  title: "Shared task",
+                  status: "todo",
+                  body: "Full body",
+                },
+              ],
             },
           ],
         },
         {
           sourceId: "projB",
           title: "Beta",
-          items: [{ sourceId: "shared-task", title: "Shared task", status: "todo", body: "Full body" }],
+          items: [
+            {
+              sourceId: "shared-task",
+              title: "Shared task",
+              status: "todo",
+              body: "Full body",
+            },
+          ],
         },
       ],
     }
@@ -1233,19 +1428,40 @@ describe("Tag file dedup", () => {
             {
               sourceId: "sec-1",
               title: "Section 1",
-              items: [{ sourceId: "tag-task-1", title: "Tagged task", status: "todo", tags: ["health"] }],
+              items: [
+                {
+                  sourceId: "tag-task-1",
+                  title: "Tagged task",
+                  status: "todo",
+                  tags: ["health"],
+                },
+              ],
             },
             {
               sourceId: "sec-2",
               title: "Section 2",
-              items: [{ sourceId: "tag-task-1", title: "Tagged task", status: "todo", tags: ["health"] }],
+              items: [
+                {
+                  sourceId: "tag-task-1",
+                  title: "Tagged task",
+                  status: "todo",
+                  tags: ["health"],
+                },
+              ],
             },
           ],
         },
         {
           sourceId: "proj-tag2",
           title: "Another Project",
-          items: [{ sourceId: "tag-task-2", title: "Another tagged", status: "done", tags: ["health"] }],
+          items: [
+            {
+              sourceId: "tag-task-2",
+              title: "Another tagged",
+              status: "done",
+              tags: ["health"],
+            },
+          ],
         },
       ],
     }
@@ -1498,7 +1714,7 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
 
     // Should have only 1 H2 heading (the task itself), not additional ones from body
     const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
-    const headingTexts = h2s.map((h) => h.children.map((c: any) => c.value ?? "").join(""))
+    const headingTexts = h2s.map((h) => h.children.map((c) => ("value" in c ? c.value : "")).join(""))
     expect(headingTexts.filter((t) => t.includes("Roundtrip heading task"))).toHaveLength(1)
     // No headings from the body content
     expect(headingTexts.some((t) => t.includes("Overview"))).toBe(false)
@@ -1665,15 +1881,15 @@ describe("HTML content escaping", () => {
 
   /** Helper: extract all text from a parsed tree (concatenate all text nodes) */
   function allText(tree: ReturnType<typeof parseMarkdown>): string {
-    const { nodeToText } = require("@km/markdown")
-    return tree.children.map((n: any) => nodeToText(n)).join("\n")
+    const { nodeToText } = require("@km/markdown") as typeof import("@km/markdown")
+    return tree.children.map((n) => nodeToText(n)).join("\n")
   }
 
   /** Helper: check if any node in the tree has a given type (recursive) */
-  function hasNodeType(node: any, type: string): boolean {
+  function hasNodeType(node: import("mdast").RootContent | import("mdast").Root, type: string): boolean {
     if (node.type === type) return true
     if ("children" in node && Array.isArray(node.children)) {
-      return node.children.some((c: any) => hasNodeType(c, type))
+      return node.children.some((c) => hasNodeType(c, type))
     }
     return false
   }
@@ -1700,9 +1916,7 @@ describe("HTML content escaping", () => {
   test("real HTML link is preserved as a markdown link", () => {
     const { tree } = roundtrip('<body><p>Visit <a href="http://example.com">the site</a> now</p></body>')
     expect(hasNodeType(tree, "link")).toBe(true)
-    const link = tree.children
-      .flatMap((n: any) => ("children" in n ? n.children : []))
-      .find((c: any) => c.type === "link")
+    const link = tree.children.flatMap((n) => ("children" in n ? n.children : [])).find((c) => c.type === "link")
     expect(link.url).toBe("http://example.com")
   })
 
@@ -1884,29 +2098,20 @@ describe("placeholder section titles", () => {
 
 describe("empty project title fallback", () => {
   test("empty project title renders as (untitled)", () => {
-    const data = makeData(
-      [{ sourceId: "t1", title: "A task", status: "todo" }],
-      "",
-    )
+    const data = makeData([{ sourceId: "t1", title: "A task", status: "todo" }], "")
     const md = convertToMd(data)
     expect(md).toContain("# (untitled)")
     expect(md).not.toMatch(/^# -$/m)
   })
 
   test("whitespace-only project title renders as (untitled)", () => {
-    const data = makeData(
-      [{ sourceId: "t1", title: "A task", status: "todo" }],
-      "   ",
-    )
+    const data = makeData([{ sourceId: "t1", title: "A task", status: "todo" }], "   ")
     const md = convertToMd(data)
     expect(md).toContain("# (untitled)")
   })
 
   test("non-empty project title is preserved", () => {
-    const data = makeData(
-      [{ sourceId: "t1", title: "A task", status: "todo" }],
-      "Early Orbit",
-    )
+    const data = makeData([{ sourceId: "t1", title: "A task", status: "todo" }], "Early Orbit")
     const md = convertToMd(data)
     expect(md).toContain("# Early Orbit")
   })

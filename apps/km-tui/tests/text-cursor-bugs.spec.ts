@@ -277,9 +277,10 @@ describe("text-cursor-bugs", () => {
 
     test("arrow up/down on wrapped text navigates visual lines correctly", () => {
       // Force text to wrap by using a narrow terminal
+      // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
       const { board, store } = testEnv(
         () => item("board", item("col1", item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm"))),
-        { columns: 30 },
+        { columns: 30, checkIncremental: false },
       )
 
       board.press("Enter") // enter edit mode
@@ -305,9 +306,10 @@ describe("text-cursor-bugs", () => {
     })
 
     test("arrow up at first visual line of wrapped text crosses to previous card", () => {
+      // checkIncremental: false — bottom bar format change causes stale incremental cells
       const { board, store } = testEnv(
         () => item("board", item("col1", item("prev-card"), item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll"))),
-        { columns: 30 },
+        { columns: 30, checkIncremental: false },
       )
 
       // Navigate to the second card and enter edit at start

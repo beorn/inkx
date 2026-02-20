@@ -6,23 +6,20 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment -- Test file accesses untyped AST nodes from markdown parser */
 
-import { describe, test, expect } from "vitest"
-
+import { describe, expect, test } from "vitest"
+import { buildNodeTree, parseMarkdownToNodes, parseMarkdownWithLinks } from "../src/ast2nodes.ts"
+import { nodesToMarkdown } from "../src/nodes2md.ts"
 import {
-  parseMarkdown,
   extractFrontmatter,
-  parseWikiLinks,
-  slugify,
-  parseTaskMetadata,
-  extractTags,
   extractMentions,
   extractProjects,
+  extractTags,
   parseHeadingRules,
+  parseMarkdown,
+  parseTaskMetadata,
+  parseWikiLinks,
+  slugify,
 } from "../src/parser.ts"
-
-import { parseMarkdownToNodes, buildNodeTree, parseMarkdownWithLinks } from "../src/ast2nodes.ts"
-
-import { nodesToMarkdown } from "../src/nodes2md.ts"
 import { makeTestNode } from "./helpers/test-utils.ts"
 
 // -----------------------------------------------------------------------------
@@ -81,7 +78,7 @@ describe("Markdown Parser", () => {
 
     test("should parse headings", () => {
       const ast = parseMarkdown("# Heading 1\n## Heading 2\n### Heading 3")
-      const headings = ast.children.filter((n: any) => n.type === "heading")
+      const headings = ast.children.filter((n) => n.type === "heading")
       expect(headings.length).toBe(3)
     })
 
@@ -92,23 +89,23 @@ describe("Markdown Parser", () => {
 - [-] Cancelled task
 `
       const ast = parseMarkdown(md)
-      const list = ast.children.find((n: any) => n.type === "list") as any
+      const list = ast.children.find((n): n is import("mdast").List => n.type === "list")
       expect(list).toBeDefined()
-      expect(list.children.length).toBe(3)
+      expect(list!.children.length).toBe(3)
     })
 
     test("should parse code blocks", () => {
       const md = "```javascript\nconst x = 1;\n```"
       const ast = parseMarkdown(md)
-      const code = ast.children.find((n: any) => n.type === "code") as any
+      const code = ast.children.find((n): n is import("mdast").Code => n.type === "code")
       expect(code).toBeDefined()
-      expect(code.lang).toBe("javascript")
+      expect(code!.lang).toBe("javascript")
     })
 
     test("should parse blockquotes", () => {
       const md = "> This is a quote\n> Second line"
       const ast = parseMarkdown(md)
-      const quote = ast.children.find((n: any) => n.type === "blockquote")
+      const quote = ast.children.find((n) => n.type === "blockquote")
       expect(quote).toBeDefined()
     })
 
@@ -119,14 +116,14 @@ describe("Markdown Parser", () => {
 | 1 | 2 |
 `
       const ast = parseMarkdown(md)
-      const table = ast.children.find((n: any) => n.type === "table")
+      const table = ast.children.find((n) => n.type === "table")
       expect(table).toBeDefined()
     })
 
     test("should parse horizontal rules", () => {
       const md = "Before\n\n---\n\nAfter"
       const ast = parseMarkdown(md)
-      const hr = ast.children.find((n: any) => n.type === "thematicBreak")
+      const hr = ast.children.find((n) => n.type === "thematicBreak")
       expect(hr).toBeDefined()
     })
   })
@@ -757,13 +754,21 @@ describe("parseHeadingRules", () => {
       title: "Blocked",
       rules: { sync: "status:blocked" },
     },
-    { heading: "Done km.collapse:: true", title: "Done", rules: { collapse: true } },
+    {
+      heading: "Done km.collapse:: true",
+      title: "Done",
+      rules: { collapse: true },
+    },
     {
       heading: "In Progress km.limit:: 5",
       title: "In Progress",
       rules: { limit: 5 },
     },
-    { heading: "Inbox km.default:: true", title: "Inbox", rules: { default: true } },
+    {
+      heading: "Inbox km.default:: true",
+      title: "Inbox",
+      rules: { default: true },
+    },
     // Color rules
     {
       heading: "Next Actions km.color:: cyan",
@@ -1001,10 +1006,14 @@ More content
 
 describe("nodeToText handles image nodes", () => {
   // Import nodeToText from the parser
-  const { nodeToText } = require("../src/parser.ts") as { nodeToText: (node: any) => string }
+  const { nodeToText } = require("../src/parser.ts") as typeof import("../src/parser.ts")
 
   test("returns alt text for image node", () => {
-    const imageNode = { type: "image", url: "https://example.com/photo.png", alt: "A photo" }
+    const imageNode = {
+      type: "image",
+      url: "https://example.com/photo.png",
+      alt: "A photo",
+    }
     expect(nodeToText(imageNode)).toBe("A photo")
   })
 
@@ -1014,7 +1023,11 @@ describe("nodeToText handles image nodes", () => {
   })
 
   test("returns empty string for image node with empty alt text", () => {
-    const imageNode = { type: "image", url: "https://example.com/photo.png", alt: "" }
+    const imageNode = {
+      type: "image",
+      url: "https://example.com/photo.png",
+      alt: "",
+    }
     expect(nodeToText(imageNode)).toBe("")
   })
 
@@ -1024,7 +1037,11 @@ describe("nodeToText handles image nodes", () => {
       type: "paragraph",
       children: [
         { type: "text", value: "See " },
-        { type: "image", url: "https://example.com/diagram.png", alt: "diagram" },
+        {
+          type: "image",
+          url: "https://example.com/diagram.png",
+          alt: "diagram",
+        },
         { type: "text", value: " for details" },
       ],
     }

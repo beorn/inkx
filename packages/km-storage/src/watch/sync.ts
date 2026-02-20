@@ -261,7 +261,12 @@ export class SyncManager extends EventEmitter {
       this.setState("reconciling")
 
       // Scan entire repo for changes (async to avoid blocking main thread)
-      const ops = await reconcileDirectoryAsync(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
+      const ops = await reconcileDirectoryAsync(
+        this.db,
+        this.config.repoPath,
+        this.config.repoPath,
+        this.ignorePatterns,
+      )
 
       if (ops.length > 0) {
         log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)

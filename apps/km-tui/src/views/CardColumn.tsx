@@ -26,7 +26,7 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
-import { useIsCursorAtCard, useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
+import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.ts"
 
@@ -73,6 +73,8 @@ interface CardProps {
   extraExcludedSigils?: string[]
   /** True if the parent column is at column-level selection (cursor on column header) */
   isColumnSelected?: boolean
+  /** NodeId of the previous card (for body block yield-top logic) */
+  prevCardNodeId?: string
 }
 
 /**
@@ -137,6 +139,7 @@ const Card = React.memo(
     isLastBodyBlock,
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
+    prevCardNodeId,
   }: CardProps): React.ReactElement {
     const nodeId = card.node.id
 
@@ -147,9 +150,8 @@ const Card = React.memo(
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
-    // Structural cards always have borders — their borderBottom doesn't change
-    // with cursor, so body blocks after them keep constant paddingTop=1.
-    const isPrevAtCursor = useIsCursorAtCard(colIndex, cardIndex - 1)
+    // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
+    const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
@@ -351,7 +353,8 @@ const Card = React.memo(
       prev.isPrevBodyBlock === next.isPrevBodyBlock &&
       prev.isLastBodyBlock === next.isLastBodyBlock &&
       prev.extraExcludedSigils === next.extraExcludedSigils &&
-      prev.isColumnSelected === next.isColumnSelected
+      prev.isColumnSelected === next.isColumnSelected &&
+      prev.prevCardNodeId === next.prevCardNodeId
     )
   },
 )
@@ -473,10 +476,7 @@ export const Column = React.memo(function Column({
   //   4. watcherStatus.state is "starting" (watcher is starting up)
   const isLoading = useUISelector(
     (state) =>
-      state.isLoading ||
-      state.backgroundParsing ||
-      !state.watcherStatus ||
-      state.watcherStatus.state === "starting",
+      state.isLoading || state.backgroundParsing || !state.watcherStatus || state.watcherStatus.state === "starting",
   )
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
@@ -578,6 +578,7 @@ export const Column = React.memo(function Column({
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
           isColumnSelected={isColumnSelected}
+          prevCardNodeId={prevCard?.node.id}
         />
       )
     },
@@ -672,11 +673,7 @@ export const Column = React.memo(function Column({
         showSeparator
       >
         {isInlineEditing ? (
-          <InlineEditField
-            initialValue={name}
-            onConfirm={handleInlineEditConfirm}
-            onCancel={handleInlineEditCancel}
-          />
+          <InlineEditField initialValue={name} onConfirm={handleInlineEditConfirm} onCancel={handleInlineEditCancel} />
         ) : undefined}
       </ColumnHeader>
 

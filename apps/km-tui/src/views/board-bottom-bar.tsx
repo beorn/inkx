@@ -7,9 +7,9 @@ import React, { useState, useEffect } from "react"
 import { Box, Text } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
-import type { UIState } from "../ui-reducer.ts"
+import { type UIState, getEditMode } from "../ui-reducer.ts"
 import type { ColumnState } from "../types.ts"
-import { useCursorPosition } from "../cursor-context.tsx"
+import { useCursorNodePosition } from "../cursor-context.tsx"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -106,11 +106,11 @@ export function BottomBar({
   consoleStats,
   toastQueue,
 }: BottomBarProps): React.ReactElement {
-  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
-  const cursorPos = useCursorPosition()
+  // NODE MODEL V2: Use node-based cursor position instead of indices
+  const cursorPos = useCursorNodePosition()
+  const colIndex = columns.findIndex((c) => c.node.id === cursorPos.cursorColumnNodeId)
   const layout = {
-    colIndex: cursorPos.colIndex,
-    cardIndex: cursorPos.cardIndex,
+    colIndex: colIndex >= 0 ? colIndex : 0,
   }
   const homeDir = process.env.HOME || ""
 
@@ -140,6 +140,8 @@ export function BottomBar({
   const statusParts: string[] = []
 
   // Mode indicators always shown first (they're important UI state)
+  const editMode = getEditMode(ui)
+  if (editMode === "text") statusParts.push("[EDIT]")
   if (moveMode) statusParts.push("[MOVE]")
   if (ui.showHelp) statusParts.push("[?]")
   if (ui.showProjectPicker) statusParts.push("[PROJ]")

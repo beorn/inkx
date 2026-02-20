@@ -89,6 +89,10 @@ export interface TextPipelineOptions {
 
   /** Strip known person @mentions entirely (used with shortenMentions + personShortNames) */
   stripKnownMentions?: boolean
+
+  /** Resolve wiki link targets to human-readable titles.
+   * For [[^block-id]] or [[target]], returns the resolved title or null to use default display. */
+  resolveWikiLink?: (target: string) => string | null
 }
 
 // =============================================================================
@@ -245,14 +249,17 @@ export function processText(text: string, options: TextPipelineOptions): string 
 
   // ── Step 5: Handle wiki links [[target|alias]] ──
   // Internal links: green + underline to distinguish from external URLs
+  // When a resolveWikiLink function is provided, resolve targets to human-readable titles
   if (isRich && style) {
     result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-      const { display } = extractLinkParts(content)
-      return style.green.underline(display)
+      const { display, target } = extractLinkParts(content)
+      const resolved = options.resolveWikiLink?.(target) ?? display
+      return style.green.underline(resolved)
     })
   } else {
     result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
-      return extractLinkParts(content).display
+      const { display, target } = extractLinkParts(content)
+      return options.resolveWikiLink?.(target) ?? display
     })
   }
 

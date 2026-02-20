@@ -341,6 +341,57 @@ export function formatInfoSuffix(
 }
 
 // =============================================================================
+// Subtask Count Badge
+// =============================================================================
+
+/**
+ * Build a compact subtask progress badge for card titles.
+ * Shows done/total when the node has task children (e.g., "3/7").
+ * Returns null if there are no task children.
+ */
+export function formatSubtaskBadge(children: KNode[]): string | null {
+  let total = 0
+  let done = 0
+  for (const child of children) {
+    if (!isTask(child)) continue
+    total++
+    if (child.task_status === "done" || child.task_status === "dropped") done++
+  }
+  if (total === 0) return null
+  return `${done}/${total}`
+}
+
+// =============================================================================
+// Dependency Badge
+// =============================================================================
+
+/**
+ * Parse dependency references from node.data.deps or node.data.blocks.
+ * Returns array of reference IDs (with ^ prefix stripped).
+ */
+export function parseDepsRefs(data: Record<string, unknown>, field: "deps" | "blocks"): string[] {
+  const raw = data[field]
+  if (typeof raw !== "string" || raw.length === 0) return []
+  return raw.split(",").map((r) => r.trim().replace(/^\^/, ""))
+}
+
+/**
+ * Check if a node has unresolved dependencies (deps where the target is not done).
+ * Returns true if the node has deps and at least one is not done/dropped.
+ */
+export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | undefined): boolean {
+  const refs = parseDepsRefs(node.data, "deps")
+  if (refs.length === 0) return false
+  for (const ref of refs) {
+    const target = getNode(ref)
+    if (!target) continue // can't resolve — treat as unresolved
+    if (target.task_status !== "done" && target.task_status !== "dropped") return true
+  }
+  // All deps resolved (or none could be found)
+  return refs.some((ref) => !getNode(ref))
+}
+
+// =============================================================================
 // Context Helpers
 // =============================================================================
 

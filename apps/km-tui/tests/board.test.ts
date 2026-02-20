@@ -6,9 +6,9 @@
  * - board-app.spec.ts (board.app() ergonomic API)
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, expect, test } from "vitest"
 import { createEmptyState } from "../src/state.ts"
-import { board } from "./helpers/board-app.ts"
+import { type BoardApp, board } from "./helpers/board-app.ts"
 
 // =============================================================================
 // Empty State
@@ -62,7 +62,7 @@ describe("board.app() API", () => {
 
   test("custom invariants", () => {
     let customCalled = false
-    const customCheck = (_app: any) => {
+    const customCheck = (_app: BoardApp) => {
       customCalled = true
     }
 

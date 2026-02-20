@@ -8,13 +8,14 @@
 // Must be imported first - before any debug() calls
 import "./debug-log.ts"
 
-import { existsSync, statSync } from "fs"
-import { dirname, join, resolve } from "path"
 import { Command, type OptionValues } from "@commander-js/extra-typings"
+import { existsSync, statSync } from "fs"
 import { createTerm } from "inkx"
+import { dirname, join, resolve } from "path"
 
 const term = createTerm(process)
-import { setLogLevel, type LogLevel } from "@km/core"
+
+import { type LogLevel, setLogLevel } from "@km/core"
 
 /** Global options available on the root program */
 interface GlobalOptions extends OptionValues {
@@ -28,28 +29,28 @@ interface GlobalOptions extends OptionValues {
 // @km/storage is imported dynamically in preAction hook to allow
 // view command to show "Loading..." before heavy module loading
 
-import { showCommand } from "./commands/show.ts"
-import { viewCommand } from "./commands/view.ts"
-import { syncCommand } from "./commands/sync.ts"
-import { watchCommand } from "./commands/watch.ts"
-import { doctorCommand } from "./commands/doctor.ts"
-import { taskCommand } from "./commands/tasks.ts"
-import { listCommand } from "./commands/list.ts"
-import { initCommand } from "./commands/init.ts"
-import { newCommand } from "./commands/new.ts"
-import { statusCommand } from "./commands/status.ts"
-import { moveCommand } from "./commands/move.ts"
 import { addCommand } from "./commands/add.ts"
-import { daemonCommand } from "./commands/daemon.ts"
-import { inboxCommand } from "./commands/inbox.ts"
-import { shCommand } from "./commands/sh.ts"
-import { bdCommand } from "./commands/bd.ts"
 import { agentCommand } from "./commands/agent.ts"
-import { statsCommand } from "./commands/stats.ts"
-import { screenshotCommand } from "./commands/screenshot.ts"
-import { worktreeCommand } from "./commands/worktree.ts"
-import { perfCommand } from "./commands/perf.ts"
+import { bdCommand } from "./commands/bd.ts"
+import { daemonCommand } from "./commands/daemon.ts"
+import { doctorCommand } from "./commands/doctor.ts"
 import { importCommand } from "./commands/import.ts"
+import { inboxCommand } from "./commands/inbox.ts"
+import { initCommand } from "./commands/init.ts"
+import { listCommand } from "./commands/list.ts"
+import { moveCommand } from "./commands/move.ts"
+import { newCommand } from "./commands/new.ts"
+import { perfCommand } from "./commands/perf.ts"
+import { screenshotCommand } from "./commands/screenshot.ts"
+import { shCommand } from "./commands/sh.ts"
+import { showCommand } from "./commands/show.ts"
+import { statsCommand } from "./commands/stats.ts"
+import { statusCommand } from "./commands/status.ts"
+import { syncCommand } from "./commands/sync.ts"
+import { taskCommand } from "./commands/tasks.ts"
+import { viewCommand } from "./commands/view.ts"
+import { watchCommand } from "./commands/watch.ts"
+import { worktreeCommand } from "./commands/worktree.ts"
 
 // Global state for resolved root path (set in preAction, used by commands)
 let resolvedRootPath: string | undefined
@@ -130,8 +131,7 @@ Verbosity:
   // Pre-action hook: runs before any command
   program.hook("preAction", (thisCommand, actionCommand) => {
     // Find options from the command chain (global options may be on parent)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cmd: any = actionCommand
+    let cmd: typeof actionCommand | null = actionCommand
     let rootOption: string | undefined
     let silentOption: boolean | undefined
     let verboseOption: number | undefined
@@ -139,14 +139,12 @@ Verbosity:
     let logLevelOption: string | undefined
 
     while (cmd) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.opts() returns any
       const opts = cmd.opts() as GlobalOptions
       rootOption ??= opts.repo
       silentOption ??= opts.silent
       verboseOption ??= typeof opts.verbose === "number" ? opts.verbose : undefined
       quietOption ??= typeof opts.quiet === "number" ? opts.quiet : undefined
       logLevelOption ??= opts.logLevel
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- Commander.js Command.parent is any
       cmd = cmd.parent
     }
 

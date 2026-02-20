@@ -39,10 +39,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex } from "../hooks/use-columns.ts"
 import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
-import {
-  CursorStoreProvider,
-  useCursorPosition,
-} from "../cursor-context.tsx"
+import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 
@@ -161,33 +158,30 @@ function BoardTopBar({
   termWidth,
   filterProperties,
   filterText,
+  isBoardSelected,
 }: {
   columns: ColumnState[]
   rootId: string | null
   termWidth: number
   filterProperties: FilterProperties
   filterText: string
+  isBoardSelected: boolean
 }): React.ReactElement {
   const repo = useRepo()
-  const cursorPos = useCursorPosition()
-  const isBoardSelected = cursorPos.selectionLevel === "board"
-
-  const selectedCol = columns[cursorPos.colIndex]
-  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
+  // NODE MODEL V2: Use node-based cursor position for path display
+  const cursorPos = useCursorNodePosition()
+  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
 
   const pathNodeId =
-    isBoardSelected || !selectedCol
+    selectionLevel === "board" || !cursorColumnNodeId
       ? rootId
-      : cursorPos.selectionLevel === "column" || !selectedCard
-        ? selectedCol.node.id
-        : selectedCard.node.id
+      : selectionLevel === "column" || !cursorCardNodeId
+        ? cursorColumnNodeId
+        : cursorCardNodeId
   // Let inkx's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
   const filterIndicator = formatFilterIndicator(filterProperties, filterText)
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
-  const selectedPathSegments = renderPath(
-    getPathSegments(repo, pathNodeId, rootId),
-    termWidth - 4 - reservedWidth,
-  )
+  const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, rootId), termWidth - 4 - reservedWidth)
 
   const rootNode = rootId ? repo.getNode(rootId) : null
   const boardColor = rootNode
@@ -234,13 +228,14 @@ function CursorAwareDetailPane({
   width: number
   height: number
 }): React.ReactElement | null {
-  const cursorPos = useCursorPosition()
+  // NODE MODEL V2: Use node-based cursor position for detail pane
+  const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
-  const selectedCol = columns[cursorPos.colIndex]
-  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
+  const repo = useRepo()
   // Show detail for card, column, or board node (whichever cursor level)
-  const node = selectedCard?.node ?? selectedCol?.node
+  const nodeId = cursorPos.cursorCardNodeId ?? cursorPos.cursorColumnNodeId
+  const node = nodeId ? repo.getNode(nodeId) : undefined
   // Reset scroll offset when selected node changes
   const prevNodeIdRef = React.useRef(node?.id)
   React.useEffect(() => {
@@ -271,18 +266,11 @@ function CursorAwareNewItemDialog({
   width: number
   height: number
 }): React.ReactElement {
-  const cursorPos = useCursorPosition()
-  const selectedCol = columns[cursorPos.colIndex]
-  const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
-  return (
-    <NewItemDialog
-      cursorNode={selectedCard?.node ?? null}
-      onCreate={onCreate}
-      onCancel={onCancel}
-      width={width}
-      height={height}
-    />
-  )
+  // NODE MODEL V2: Use node-based cursor position for cursor node
+  const cursorPos = useCursorNodePosition()
+  const repo = useRepo()
+  const cursorNode = cursorPos.cursorCardNodeId ? (repo.getNode(cursorPos.cursorCardNodeId) ?? null) : null
+  return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
 }
 
 /**
@@ -377,12 +365,17 @@ export function BoardCore({
           termWidth={termWidth}
           filterProperties={ui.filterProperties}
           filterText={ui.filterText}
+          isBoardSelected={isBoardSelected}
         />
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
           {ui.viewMode === "cards" ? (
-            <ErrorBoundary fallback={<Text color="red">Error loading cards view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading cards view</Text>}
+              resetKey={errorBoundaryResetKey}
+              onError={handleRenderError}
+            >
               {columns.length === 0 ? (
                 <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
                   <Text dimColor>Empty board</Text>
@@ -415,11 +408,19 @@ export function BoardCore({
               )}
             </ErrorBoundary>
           ) : ui.viewMode === "columns" ? (
-            <ErrorBoundary fallback={<Text color="red">Error loading columns view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading columns view</Text>}
+              resetKey={errorBoundaryResetKey}
+              onError={handleRenderError}
+            >
               <ColumnsView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
-            <ErrorBoundary fallback={<Text color="red">Error loading list view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading list view</Text>}
+              resetKey={errorBoundaryResetKey}
+              onError={handleRenderError}
+            >
               <ListView
                 columns={columns}
                 width={boardWidth}
@@ -431,7 +432,11 @@ export function BoardCore({
               />
             </ErrorBoundary>
           ) : (
-            <ErrorBoundary fallback={<Text color="red">Error loading tabs view</Text>} resetKey={errorBoundaryResetKey} onError={handleRenderError}>
+            <ErrorBoundary
+              fallback={<Text color="red">Error loading tabs view</Text>}
+              resetKey={errorBoundaryResetKey}
+              onError={handleRenderError}
+            >
               <TabsView
                 columns={columns}
                 width={boardWidth}
@@ -444,7 +449,9 @@ export function BoardCore({
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && <CursorAwareDetailPane columns={columns} width={detailPaneWidth} height={contentHeight} />}
+          {ui.showDetailPane && (
+            <CursorAwareDetailPane columns={columns} width={detailPaneWidth} height={contentHeight} />
+          )}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox
@@ -871,12 +878,7 @@ export interface BoardAppProps {
  * Production entry component with external integrations.
  * Gets repo, dimensions, exit from context/hooks.
  */
-export function BoardApp({
-  initialViewMode = "cards",
-  toastQueue,
-  navigator,
-  patchedConsole,
-}: BoardAppProps) {
+export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
   const { exit } = useApp()
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
 

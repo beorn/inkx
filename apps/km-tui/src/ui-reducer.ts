@@ -23,6 +23,30 @@ import type { WatcherStatus } from "@km/storage"
 // UI State Type
 // =============================================================================
 
+/** Editing mode — derived from UIState, not stored separately */
+export type EditMode = "node" | "text" | "dialog"
+
+/**
+ * Get the current editing mode from UI state.
+ * - "text": inline editing a node (inlineEditBlock is set)
+ * - "dialog": a dialog is open (search, new item, date prompt, etc.)
+ * - "node": default navigation mode
+ */
+export function getEditMode(ui: UIState): EditMode {
+  if (ui.inlineEditBlock) return "text"
+  if (
+    ui.showSearchDialog ||
+    ui.showNewItemDialog ||
+    ui.showProjectPicker ||
+    ui.showFilterDialog ||
+    ui.datePrompt ||
+    ui.deleteConfirm
+  ) {
+    return "dialog"
+  }
+  return "node"
+}
+
 export interface UIState {
   // View configuration
   viewMode: ViewMode

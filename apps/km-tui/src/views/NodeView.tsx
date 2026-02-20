@@ -40,6 +40,8 @@ import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "chalkx"
 import { extractBody } from "@km/tree"
 import { stripForDisplay } from "@km/tree"
+import { formatDateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.ts"
+import { stripFgColor } from "../text/rich.ts"
 
 // =============================================================================
 // Types
@@ -139,17 +141,11 @@ export function ColumnHeader({
       {/* Header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
       <Box height={1} flexShrink={0} width={width} flexDirection="row">
         <Box width={1} flexShrink={0} />
-        <Box
-          flexGrow={1}
-          flexShrink={1}
-          flexDirection="row"
-          backgroundColor={headerStyle.backgroundColor}
-        >
+        <Box flexGrow={1} flexShrink={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
           {children ? (
             // Custom content (e.g., inline edit field)
             <Text bold color={headerStyle.color} wrap="truncate">
-              <Text color={iconColor}>{icon.char}</Text>{" "}
-              {children}
+              <Text color={iconColor}>{icon.char}</Text> {children}
             </Text>
           ) : (
             <>
@@ -249,23 +245,17 @@ export function NodeLineView({
 
   // Title: strip metadata, render rich text
   const rawContent = node.content ? stripForDisplay(node.content) : ""
-  const displayContent = nodeIsTask ? stripTaskMarker(rawContent) : rawContent
+  const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   const title = renderRich(displayContent)
 
   const textColor = isSelected ? "black" : undefined
   const bgColor = isSelected ? "yellow" : undefined
-  const iconColor = isSelected ? "black" : (isDoneOrDropped ? undefined : icon.color)
+  const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
 
   return (
     <Box width={width} height={1} backgroundColor={bgColor}>
-      <Text
-        color={textColor}
-        dimColor={shouldDim}
-        strikethrough={false}
-        wrap="truncate"
-      >
-        <Text color={iconColor}>{icon.char}</Text>{" "}
-        {title}
+      <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
+        <Text color={iconColor}>{icon.char}</Text> {title}
       </Text>
     </Box>
   )
@@ -288,10 +278,16 @@ export interface NodeCardViewProps {
   maxSubitems?: number
   /** Width available for rendering */
   width?: number
+  /** Optional info suffix (assignee, board pills) — appended after title */
+  infoSuffix?: string
+  /** Whether the node has unresolved dependencies (shows "blocked" indicator) */
+  isBlocked?: boolean
+  /** Parent context string for embedded tasks (shown above title, dimmed italic) */
+  parentContext?: string | null
 }
 
 /**
- * Card-style node display: icon + title + N subitems (as lines) + overflow count.
+ * Card-style node display: icon + title + date badge + N subitems (as lines) + overflow count.
  *
  * Used in board columns. Cross-cutting: isDone/isDropped dims entire card.
  * Pure presentational — no hooks.
@@ -303,6 +299,9 @@ export function NodeCardView({
   ancestorDone = false,
   maxSubitems = 5,
   width,
+  infoSuffix,
+  isBlocked = false,
+  parentContext,
 }: NodeCardViewProps): React.ReactElement {
   const nodeIsTask = isTask(node)
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
@@ -315,15 +314,22 @@ export function NodeCardView({
 
   // Title
   const rawContent = node.content ? stripForDisplay(node.content) : ""
-  const displayContent = nodeIsTask ? stripTaskMarker(rawContent) : rawContent
+  const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   const title = renderRich(displayContent)
 
   const textColor = isSelected ? "black" : undefined
   const bgColor = isSelected ? "yellow" : undefined
-  const iconColor = isSelected ? "black" : (isDoneOrDropped ? undefined : icon.color)
+  const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
+  const shouldStripColor = isSelected || isDoneOrDropped
 
   // Body indicator: show ··· when node has body children (paragraphs, quotes, code blocks, etc.)
   const hasBody = extractBody(children).body.length > 0
+
+  // Subtask progress badge (e.g., "3/7") — shows done/total for task children
+  const subtaskBadge = formatSubtaskBadge(children)
+
+  // Date badge (priority, recurrence, scheduled, due) — right-aligned, hidden for done/dropped
+  const dateBadge = !isDoneOrDropped ? formatDateBadge(node) : ""
 
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
@@ -331,26 +337,41 @@ export function NodeCardView({
 
   return (
     <Box flexDirection="column" width={width}>
-      {/* Title line */}
-      <Box height={1} backgroundColor={bgColor}>
-        <Text
-          bold
-          color={textColor}
-          dimColor={shouldDim}
-          wrap="truncate"
-        >
-          <Text color={iconColor}>{icon.char}</Text>{" "}
-          {title}
-          {hasBody && <Text dimColor>{" ···"}</Text>}
+      {/* Parent context for embedded tasks */}
+      {parentContext && (
+        <Text dimColor italic wrap="truncate">
+          {"  "}
+          {parentContext}
         </Text>
+      )}
+      {/* Title line */}
+      <Box height={1} backgroundColor={bgColor} flexDirection="row">
+        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+          <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
+            <Text color={iconColor}>{icon.char}</Text> {shouldStripColor ? stripFgColor(title) : title}
+            {infoSuffix && <Text dimColor={shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>}
+            {subtaskBadge && <Text color={isSelected ? "black" : "gray"}>{` ${subtaskBadge}`}</Text>}
+            {hasBody && <Text dimColor>{" ···"}</Text>}
+          </Text>
+        </Box>
+        {isBlocked && (
+          <Box flexShrink={0}>
+            <Text color={isSelected ? "black" : "red"}>{" blocked"}</Text>
+          </Box>
+        )}
+        {dateBadge && (
+          <Box flexShrink={0}>
+            <Text color={textColor} wrap="truncate">
+              {" "}
+              {shouldStripColor ? stripFgColor(dateBadge) : dateBadge}
+            </Text>
+          </Box>
+        )}
       </Box>
       {/* Subitems */}
       {visibleChildren.map((child, i) => (
         <Box key={`${child.id}-${i}`} paddingLeft={1}>
-          <NodeLineView
-            node={child}
-            ancestorDone={shouldDim}
-          />
+          <NodeLineView node={child} ancestorDone={shouldDim} />
         </Box>
       ))}
       {/* Overflow indicator */}
@@ -436,6 +457,8 @@ export interface NodeTabViewProps {
   untitled?: boolean
   /** Number of items in the tab's column */
   count: number
+  /** Whether to dim inactive (non-active, non-selected) tabs */
+  dimInactive?: boolean
 }
 
 /**
@@ -451,6 +474,7 @@ export function NodeTabView({
   isSelected = false,
   untitled = false,
   count,
+  dimInactive = false,
 }: NodeTabViewProps): React.ReactElement {
   // Truncate long names
   const maxNameWidth = 20
@@ -462,7 +486,7 @@ export function NodeTabView({
 
   return (
     <Box backgroundColor={isSelected ? "yellow" : undefined}>
-      <Text bold color={textColor} dimColor={!isActive && !isSelected}>
+      <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
           <Text dimColor color="gray">
@@ -497,10 +521,10 @@ export interface NodeDetailViewProps {
 }
 
 /**
- * Detail-style node display: title + body + children (as cards) + backlinks.
+ * Detail-style node display: title + metadata + body + children (as lines) + backlinks.
  *
- * Used in the side pane (detail view). This is a stub that will eventually
- * replace DetailPane.tsx — for now, it provides the basic layout.
+ * Used in the side pane (detail view). Provides layout that mirrors DetailPane.tsx
+ * but through the unified NodeView component API.
  */
 export function NodeDetailView({
   node,
@@ -512,7 +536,7 @@ export function NodeDetailView({
 }: NodeDetailViewProps): React.ReactElement {
   const nodeIsTask = isTask(node)
   const rawContent = node.content ? stripForDisplay(node.content) : ""
-  const displayContent = nodeIsTask ? stripTaskMarker(rawContent) : rawContent
+  const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   const title = renderRich(displayContent)
 
   const statusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
@@ -523,6 +547,15 @@ export function NodeDetailView({
   const maxCards = Math.max(1, height - 10) // Reserve space for title, metadata, separators
   const visibleCards = structuralChildren.slice(0, maxCards)
   const maxBacklinks = 5
+
+  // Metadata fields
+  const metadataRows: { label: string; value: string }[] = []
+  if (node.task_status) metadataRows.push({ label: "Status", value: node.task_status })
+  if (node.due_at) metadataRows.push({ label: "Due", value: node.due_at })
+  if (node.start_at) metadataRows.push({ label: "Start", value: node.start_at })
+  if (node.assigned_to) metadataRows.push({ label: "Assigned", value: node.assigned_to })
+  if (node.priority) metadataRows.push({ label: "Priority", value: `P${node.priority}` })
+  if (node.recurrence) metadataRows.push({ label: "Recurrence", value: node.recurrence })
 
   return (
     <Box
@@ -546,15 +579,32 @@ export function NodeDetailView({
 
       {/* Scrollable content */}
       <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
+        {/* Metadata fields */}
+        {metadataRows.length > 0 && (
+          <Box flexDirection="column">
+            {metadataRows.map((row) => (
+              <Box key={row.label} flexDirection="row">
+                <Box width={10} flexShrink={0}>
+                  <Text dimColor>{row.label}</Text>
+                </Box>
+                <Text>{row.value}</Text>
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {/* Separator between metadata and content */}
+        {metadataRows.length > 0 && <Text dimColor>{"\u2500".repeat(contentWidth)}</Text>}
+
         {/* Body content */}
         {bodyChildren.map((child, i) => (
           <React.Fragment key={`${child.id}-${i}`}>
-            {i > 0 && <Text>{" "}</Text>}
+            {i > 0 && <Text> </Text>}
             <Text wrap="wrap">{renderRich(child.content ?? "")}</Text>
           </React.Fragment>
         ))}
 
-        {/* Children as cards */}
+        {/* Children as lines */}
         {visibleCards.length > 0 && (
           <Box flexDirection="column" marginTop={bodyChildren.length > 0 ? 1 : 0}>
             {visibleCards.map((child, i) => (
@@ -566,9 +616,7 @@ export function NodeDetailView({
           </Box>
         )}
 
-        {bodyChildren.length === 0 && structuralChildren.length === 0 && (
-          <Text dimColor>(empty)</Text>
-        )}
+        {bodyChildren.length === 0 && structuralChildren.length === 0 && <Text dimColor>(empty)</Text>}
 
         {/* Backlinks */}
         {backlinks.length > 0 && (
@@ -582,23 +630,12 @@ export function NodeDetailView({
                 <Text bold>{renderRich(bl.content ? stripForDisplay(bl.content) : "")}</Text>
               </Text>
             ))}
-            {backlinks.length > maxBacklinks && (
-              <Text dimColor>  +{backlinks.length - maxBacklinks} more</Text>
-            )}
+            {backlinks.length > maxBacklinks && <Text dimColor> +{backlinks.length - maxBacklinks} more</Text>}
           </Box>
         )}
       </Box>
     </Box>
   )
-}
-
-// =============================================================================
-// Helper: Strip task marker from content
-// =============================================================================
-
-/** Strip markdown task marker (e.g., [x], [ ]) from beginning of text */
-function stripTaskMarker(text: string): string {
-  return text.replace(/^\[.\]\s*/, "")
 }
 
 // =============================================================================

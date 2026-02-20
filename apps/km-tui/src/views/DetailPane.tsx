@@ -14,7 +14,6 @@ import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderRich, getNodeIcon, getStatusIcon, hyperlink, prettifyUrl } from "../text/index.ts"
-import { NodeLine } from "./shared-components.tsx"
 import {
   formatDate,
   getStatusDisplay,
@@ -24,7 +23,7 @@ import {
   capitalize,
   resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
-import { shortName } from "./tree-node-helpers.ts"
+import { shortName, parseDepsRefs } from "./tree-node-helpers.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -146,6 +145,20 @@ function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneP
 
 function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
+
+  // Wiki link resolver: resolves [[target]] to the node's display title
+  const resolveWikiLink = (target: string): string | null => {
+    // Try smart resolver first (handles IDs, paths, filenames)
+    const resolved = repo.resolveNode(target)
+    if (resolved) return getNodeDisplayName(repo, resolved)
+    // Try stripping ^ prefix for block IDs (^abc123 → abc123)
+    if (target.startsWith("^")) {
+      const byId = repo.resolveNode(target.slice(1)) ?? repo.getNode(target.slice(1))
+      if (byId) return getNodeDisplayName(repo, byId)
+    }
+    return null
+  }
+
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
   const contentWidth = Math.max(8, fullWidth - 2) // 1-space padding each side for text content
@@ -227,9 +240,7 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
 
           {/* Title — renderRich styles sigils but keeps all content visible */}
           <Text bold color="black" wrap="wrap">
-            {node.task_status && (
-              <Text>{getStatusIcon(node.task_status).char} </Text>
-            )}
+            {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
             {renderRich(title)}
           </Text>
         </Box>
@@ -253,20 +264,39 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
           {/* Content area — separator then body + children */}
           <Text dimColor>{"─".repeat(contentWidth)}</Text>
 
-          {bodyChildren.length === 0 && structuralChildren.length === 0 && (
-            <Text dimColor>(empty)</Text>
-          )}
+          {bodyChildren.length === 0 && structuralChildren.length === 0 && <Text dimColor>(empty)</Text>}
 
           {/* Body content — compact for consecutive same-type items, spaced between different types */}
+          {/* Embedded nodes (link_to) resolve to the target and render as inline items */}
           {bodyChildren.map((child, i) => {
             const prev = i > 0 ? bodyChildren[i - 1] : undefined
             // Add blank line between different block types, or between paragraphs.
             // Consecutive list items (li) and same-type items render compactly.
             const needsSpace = prev != null && (prev.type !== child.type || child.type === "p")
+
+            // Context-dependent rendering: embeds resolve to target and render as inline items
+            if (child.link_to) {
+              const target = repo.getNode(child.link_to)
+              if (target) {
+                const icon = getNodeIcon(target.task_status, undefined, target.task_marker !== undefined)
+                const targetIsDone = target.task_status === "done" || target.task_status === "dropped"
+                const title = stripInlineRefs(getNodeDisplayName(repo, target))
+                return (
+                  <React.Fragment key={`${child.id}-${i}`}>
+                    {needsSpace && <Text> </Text>}
+                    <Text wrap="truncate" dimColor={targetIsDone}>
+                      <Text color={targetIsDone ? undefined : icon.color}>{icon.char} </Text>
+                      {renderRich(title)}
+                    </Text>
+                  </React.Fragment>
+                )
+              }
+            }
+
             return (
               <React.Fragment key={`${child.id}-${i}`}>
-                {needsSpace && <Text>{" "}</Text>}
-                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} />
+                {needsSpace && <Text> </Text>}
+                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} resolveWikiLink={resolveWikiLink} />
               </React.Fragment>
             )
           })}
@@ -296,7 +326,9 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
                   </Text>
                 )
               })}
-              {backlinkNodes.length > maxBacklinks && <Text dimColor>  +{backlinkNodes.length - maxBacklinks} more</Text>}
+              {backlinkNodes.length > maxBacklinks && (
+                <Text dimColor> +{backlinkNodes.length - maxBacklinks} more</Text>
+              )}
             </Box>
           )}
         </Box>
@@ -370,6 +402,9 @@ const KNOWN_DATA_KEYS = new Set([
   // Timestamps (mapped to native fields)
   "created_at",
   "modified_at",
+  // Dependencies (rendered in MetadataTable)
+  "deps",
+  "blocks",
 ])
 
 interface MetadataRow {
@@ -468,6 +503,26 @@ function MetadataTable({
     rows.push({ key: "Mentions", value: nonAssigneeMentions.map((m) => `@${m}`).join(", ") })
   }
 
+  // Dependencies (deps = things this task waits on, blocks = things waiting on this task)
+  if (data) {
+    const depsRefs = parseDepsRefs(data, "deps")
+    if (depsRefs.length > 0) {
+      const resolved = depsRefs.map((ref) => {
+        const target = repo.getNode(ref)
+        return target ? (getNodeDisplayName(repo, target) ?? ref) : ref
+      })
+      rows.push({ key: "Depends on", value: resolved.join(", "), valueColor: "yellow" })
+    }
+    const blocksRefs = parseDepsRefs(data, "blocks")
+    if (blocksRefs.length > 0) {
+      const resolved = blocksRefs.map((ref) => {
+        const target = repo.getNode(ref)
+        return target ? (getNodeDisplayName(repo, target) ?? ref) : ref
+      })
+      rows.push({ key: "Blocks", value: resolved.join(", ") })
+    }
+  }
+
   // Remaining data.metadata entries (excluding created/completed already shown above)
   const usedKeys = new Set(rows.map((r) => r.key))
   if (data?.metadata && typeof data.metadata === "object") {
@@ -511,9 +566,7 @@ function MetadataTable({
       {rows.map((row, i) => (
         <Box key={`${row.key}-${i}`} flexDirection="row">
           <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
-          <Text color={row.valueColor ?? "white"}>
-            {row.value}
-          </Text>
+          <Text color={row.valueColor ?? "white"}>{row.value}</Text>
         </Box>
       ))}
     </>
@@ -536,9 +589,13 @@ function DetailSubitems({
   return (
     <>
       {items.map((item, idx) => {
-        const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
-        const isDone = item.task_status === "done" || item.task_status === "dropped"
-        const allKids = repo.getChildren(item.id)
+        // Context-dependent rendering: resolve embed targets for display
+        const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
+        const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
+        const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
+        // For embeds, get children from the target node (transclusion)
+        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : item.id
+        const allKids = repo.getChildren(childrenSourceId)
         const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
         const kidBody: KNode[] = []
         const kidLiItems: KNode[] = []
@@ -547,16 +604,16 @@ function DetailSubitems({
           else kidBody.push(k)
         }
         const kidItems = [...kidLiItems, ...kidOiItems]
-        const dueBadge = item.due_at ? ` ${formatDate(decomposeDatetime(item.due_at)?.date).text}` : ""
-        const assigneeBadge = item.assigned_to ? ` @${item.assigned_to}` : ""
+        const dueBadge = displayItem.due_at ? ` ${formatDate(decomposeDatetime(displayItem.due_at)?.date).text}` : ""
+        const assigneeBadge = displayItem.assigned_to ? ` @${displayItem.assigned_to}` : ""
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
             {/* Blank line + separator + blank line above each subitem */}
-            <Text>{" "}</Text>
+            <Text> </Text>
             <Box>
               <Text dimColor>{"─".repeat(innerWidth)}</Text>
             </Box>
-            <Text>{" "}</Text>
+            <Text> </Text>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
             <Box flexDirection="row" width={innerWidth}>
@@ -567,7 +624,7 @@ function DetailSubitems({
               </Box>
               <Box flexGrow={1} flexShrink={1}>
                 <Text bold wrap="wrap" dimColor={isDone}>
-                  {renderRich(stripInlineRefs(getNodeDisplayName(repo, item)))}
+                  {renderRich(stripInlineRefs(getNodeDisplayName(repo, displayItem)))}
                   {(dueBadge || assigneeBadge) && (
                     <Text dimColor bold={false}>
                       {dueBadge}
@@ -581,7 +638,7 @@ function DetailSubitems({
             {/* Body content — left-aligned with title (indented past checkmark) */}
             {kidBody.map((b, bi) => (
               <React.Fragment key={`${b.id}-${bi}`}>
-                {bi > 0 && <Text>{" "}</Text>}
+                {bi > 0 && <Text> </Text>}
                 <Box flexDirection="row" width={innerWidth}>
                   <Box width={2} flexShrink={0} />
                   <Box flexGrow={1} flexShrink={1}>
@@ -622,15 +679,18 @@ function OutlineTree({
   return (
     <>
       {items.map((item, idx) => {
-        const icon = getNodeIcon(item.task_status, undefined, item.task_marker !== undefined)
-        const isDone = item.task_status === "done" || item.task_status === "dropped"
-        const title = stripInlineRefs(getNodeDisplayName(repo, item))
-        const allKids = depth < 3 ? repo.getChildren(item.id) : []
+        // Context-dependent rendering: resolve embed targets for display
+        const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
+        const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
+        const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
+        const title = stripInlineRefs(getNodeDisplayName(repo, displayItem))
+        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : item.id
+        const allKids = depth < 3 ? repo.getChildren(childrenSourceId) : []
         const { body: kidBody, items: kidOiItems } = extractBody(allKids)
         const kidLiItems = kidBody.filter((k) => k.type === "li")
         const bodyNodes = kidBody.filter((k) => k.type !== "li")
         const kidItems = [...kidLiItems, ...kidOiItems]
-        const hiddenCount = depth >= 3 ? repo.getChildren(item.id).length : 0
+        const hiddenCount = depth >= 3 ? repo.getChildren(childrenSourceId).length : 0
 
         // Single-line body preview: first non-empty line, truncated
         const bodyPreview = bodyNodes
@@ -673,14 +733,24 @@ const BLOCKQUOTE_RE = /^(> ?)(.*)/
  * Attachment links ([name](url)) are shown with both name and readable URL.
  * List items (- or *) render the bullet prefix dimmed.
  * Blockquotes (>) render the > prefix dimmed.
+ * Wiki links [[target]] resolve to node titles when resolveWikiLink is provided.
  * Other lines are rendered with standard rich text formatting. */
-function BodyBlock({ content, innerWidth }: { content: string; innerWidth: number }): React.ReactElement {
+function BodyBlock({
+  content,
+  innerWidth,
+  resolveWikiLink,
+}: {
+  content: string
+  innerWidth: number
+  resolveWikiLink?: (target: string) => string | null
+}): React.ReactElement {
+  const richOpts = resolveWikiLink ? { resolveWikiLink } : undefined
   const lines = content.split("\n")
   return (
     <Box flexDirection="column" width={innerWidth}>
       {lines.map((line, i) => {
         if (line.trim() === "") {
-          return <Text key={`blank-${i}`}>{" "}</Text>
+          return <Text key={`blank-${i}`}> </Text>
         }
         const linkMatch = line.match(MD_LINK_LINE_RE)
         if (linkMatch) {
@@ -690,7 +760,9 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
           return (
             <Text key={`line-${i}`} wrap="truncate">
               <Text dimColor>{isImage ? "[img] " : ""}</Text>
-              <Text color="cyan" underline>{hyperlink(`${name}`, url ?? "")}</Text>
+              <Text color="cyan" underline>
+                {hyperlink(`${name}`, url ?? "")}
+              </Text>
               <Text dimColor> {displayUrl}</Text>
             </Text>
           )
@@ -701,7 +773,7 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
           return (
             <Text key={`line-${i}`} wrap="wrap">
               <Text dimColor>{prefix}</Text>
-              {renderRich(rest)}
+              {renderRich(rest ?? "", richOpts)}
             </Text>
           )
         }
@@ -711,13 +783,13 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
           return (
             <Text key={`line-${i}`} wrap="wrap">
               <Text dimColor>{prefix}</Text>
-              {renderRich(rest)}
+              {renderRich(rest ?? "", richOpts)}
             </Text>
           )
         }
         return (
           <Text key={`line-${i}`} wrap="wrap">
-            {renderRich(line)}
+            {renderRich(line, richOpts)}
           </Text>
         )
       })}

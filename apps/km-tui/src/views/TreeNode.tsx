@@ -50,6 +50,8 @@ import {
   buildPrefix,
   formatInfoSuffix,
   formatDateBadge,
+  formatSubtaskBadge,
+  hasUnresolvedDeps,
   truncateContext,
   stripTaskMark,
   isHRContent,
@@ -566,6 +568,18 @@ function TreeNodeImpl({
     return extractBody(children).body.length > 0
   }, [depth, isOneliner, children])
 
+  // Subtask progress badge: "3/7" showing done/total task children (cards only)
+  const subtaskBadge = useMemo(() => {
+    if (depth !== 0 || isOneliner) return null
+    return formatSubtaskBadge(children)
+  }, [depth, isOneliner, children])
+
+  // Dependency badge: show when this task has unresolved dependencies
+  const isBlocked = useMemo(() => {
+    if (depth !== 0 || isOneliner) return false
+    return hasUnresolvedDeps(displayNode, repo.getNode.bind(repo))
+  }, [depth, isOneliner, displayNode.id, displayNode.data])
+
   // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
   const dateBadge = useMemo(
     () => formatDateBadge(displayNode),
@@ -739,9 +753,7 @@ function TreeNodeImpl({
                 {!childrenHidden && infoSuffix && (
                   <Text dimColor={style.shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
                 )}
-                {showInlineChildCount && (
-                  <Text dimColor> {childCount}</Text>
-                )}
+                {showInlineChildCount && <Text dimColor> {childCount}</Text>}
                 {!childrenHidden && showInlineContext && (
                   <Text dimColor={style.shouldDim} italic>
                     {contextSuffix}
@@ -758,6 +770,18 @@ function TreeNodeImpl({
           {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
               <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
+            </Box>
+          )}
+          {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
+          {isBlocked && !isInlineEditing && (
+            <Box flexShrink={0}>
+              <Text color={isHighlighted ? style.textColor : "red"}>{" blocked"}</Text>
+            </Box>
+          )}
+          {/* Right-aligned: subtask progress badge — "3/7" done/total */}
+          {subtaskBadge && !isInlineEditing && (
+            <Box flexShrink={0}>
+              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}

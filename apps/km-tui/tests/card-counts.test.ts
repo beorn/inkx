@@ -37,14 +37,10 @@ function findColumnHeaderRow(screenText: string, columnName: string): number {
 
 describe("column header count", () => {
   test("column header hides count when no WIP limit", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("nocap", item("task-a"), item("task-b"), item("task-c")),
-        ),
-      { columns: 60, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("nocap", item("task-a"), item("task-b"), item("task-c"))), {
+      columns: 60,
+      rows: 24,
+    })
 
     const headerRow = findColumnHeaderRow(board.screen.text, "nocap")
     expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
@@ -58,11 +54,7 @@ describe("column header count", () => {
 
   test("column header shows count/wip when WIP limit configured", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("capped km.limit:: 5", item("task-a"), item("task-b"), item("task-c")),
-        ),
+      () => item("board", item("capped km.limit:: 5", item("task-a"), item("task-b"), item("task-c"))),
       { columns: 60, rows: 24 },
     )
 
@@ -77,11 +69,7 @@ describe("column header count", () => {
 
   test("column header shows warning when WIP limit exceeded", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("overflow km.limit:: 2", item("task-a"), item("task-b"), item("task-c")),
-        ),
+      () => item("board", item("overflow km.limit:: 2", item("task-a"), item("task-b"), item("task-c"))),
       { columns: 60, rows: 24 },
     )
 
@@ -96,55 +84,34 @@ describe("column header count", () => {
 })
 
 // =============================================================================
-// Card title inline count (removed)
+// Card title subtask progress badge
 // =============================================================================
 
-describe("card title inline count (removed)", () => {
-  test("card title does NOT show inline child count", () => {
+describe("card title subtask progress badge", () => {
+  test("card title shows subtask progress badge (done/total)", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("parent", item("child-a"), item("child-b"), item("child-c"))),
-        ),
+      () => item("board", item("col", item("parent", item("child-a"), item("child-b"), item("child-c")))),
       { columns: 60, rows: 24 },
     )
 
-    // The card title "parent" should NOT have a count indicator
-    // The inline child count was removed in favor of the +N overflow indicator
+    // The card title "parent" should show a subtask badge "0/3" (all todo, none done)
     const box = board.screen.nodeBox("parent")
     expect(box, "parent card should exist").not.toBeNull()
     if (!box) return
 
-    // Scan the title line — no digit should appear (parent has no digits in name)
-    let foundDigit = false
-    for (let x = box.x; x < box.x + box.width; x++) {
-      const cell = board.screen.cell(x, box.y)
-      if (/\d/.test(cell.char)) {
-        foundDigit = true
-        break
-      }
-    }
-    expect(foundDigit, "card title should not have an inline count indicator").toBe(false)
+    // Scan the title line for the badge text "0/3"
+    const row = board.screen.text.split("\n")[box.y] ?? ""
+    expect(row).toContain("0/3")
   })
 
-  test("card title does NOT show count even with many children", () => {
+  test("card title shows subtask progress for many children", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
           item(
             "col",
-            item(
-              "big-parent",
-              item("ca"),
-              item("cb"),
-              item("cc"),
-              item("cd"),
-              item("ce"),
-              item("cf"),
-              item("cg"),
-            ),
+            item("big-parent", item("ca"), item("cb"), item("cc"), item("cd"), item("ce"), item("cf"), item("cg")),
           ),
         ),
       { columns: 60, rows: 30 },
@@ -154,16 +121,9 @@ describe("card title inline count (removed)", () => {
     expect(box, "big-parent should exist").not.toBeNull()
     if (!box) return
 
-    // No digit should appear on the card title line
-    let foundDigit = false
-    for (let x = box.x; x < box.x + box.width; x++) {
-      const cell = board.screen.cell(x, box.y)
-      if (/\d/.test(cell.char)) {
-        foundDigit = true
-        break
-      }
-    }
-    expect(foundDigit, "card title should not have an inline count indicator").toBe(false)
+    // Should show "0/7" (7 children, all todo)
+    const row = board.screen.text.split("\n")[box.y] ?? ""
+    expect(row).toContain("0/7")
   })
 })
 
@@ -173,14 +133,11 @@ describe("card title inline count (removed)", () => {
 
 describe("columns view column header count", () => {
   test("columns view hides count when no WIP limit", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("nocol", item("parent", item("child-a"), item("child-b"))),
-        ),
-      { columns: 60, rows: 24, viewMode: "columns" },
-    )
+    const { board } = testEnv(() => item("board", item("nocol", item("parent", item("child-a"), item("child-b")))), {
+      columns: 60,
+      rows: 24,
+      viewMode: "columns",
+    })
 
     const headerRow = findColumnHeaderRow(board.screen.text, "nocol")
     expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
@@ -193,11 +150,7 @@ describe("columns view column header count", () => {
 
   test("columns view shows count/wip when WIP limit configured", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("limited km.limit:: 5", item("parent", item("child-a"), item("child-b"))),
-        ),
+      () => item("board", item("limited km.limit:: 5", item("parent", item("child-a"), item("child-b")))),
       { columns: 60, rows: 24, viewMode: "columns" },
     )
 

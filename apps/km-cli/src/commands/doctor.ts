@@ -10,19 +10,22 @@ import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
 
 const term = createTerm(process)
+
 import { steps } from "@beorn/inkx-ui/progress"
-import { dirname, resolve, join } from "path"
+import { dirname, join, resolve } from "path"
 
 const log = createLogger("km:cli:doctor")
-import {
-  findKmRootFromPath,
-  createRepo,
-  getStoreHealth,
-  compactEvents,
-  vacuumDb,
-  parseDeferredAsync,
-} from "@km/storage"
+
 import { Database } from "bun:sqlite"
+import {
+  compactEvents,
+  createRepo,
+  findKmRootFromPath,
+  getStoreHealth,
+  parseDeferredAsync,
+  type Repo,
+  vacuumDb,
+} from "@km/storage"
 import { existsSync, unlinkSync } from "fs"
 import { formatPath } from "../utils/format-path.ts"
 
@@ -225,12 +228,14 @@ export const doctorCommand = new Command("doctor")
 async function loadAndReport(repoPath: string, stepLabel: string, successMessage: string): Promise<void> {
   try {
     // Don't use `using` — we need the repo alive for deferred file parsing
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
-    let repo: any
+    let repo!: Repo
     await steps({
       [stepLabel]: function* () {
         repo = yield* createRepo(repoPath, { loadFiles: true })
-        return { nodeCount: repo.stats.nodeCount, duration: repo.stats.duration }
+        return {
+          nodeCount: repo.stats.nodeCount,
+          duration: repo.stats.duration,
+        }
       },
     }).run({ clear: true })
 
@@ -240,13 +245,16 @@ async function loadAndReport(repoPath: string, stepLabel: string, successMessage
       await parseDeferredAsync(repo.database, repo.deferredFiles)
     }
 
-    const nodeCount = (repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as { count: number }).count
+    const nodeCount = (
+      repo.database.prepare("SELECT COUNT(*) as count FROM nodes").get() as {
+        count: number
+      }
+    ).count
     repo.close()
 
     console.log(term.green("✓"), successMessage)
     console.log(term.dim(`  Nodes: ${nodeCount}`))
     console.log(term.dim(`  Time: ${repo.stats.duration}ms`))
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
   } catch (error) {
     console.error(term.red(`${successMessage.split(" ")[0]} failed:`), error)
     process.exit(1)

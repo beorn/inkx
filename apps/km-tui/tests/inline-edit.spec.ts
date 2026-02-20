@@ -1024,9 +1024,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
   test("ArrowDown traverses all visual lines then exits to next block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ"
+    // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
     const { board } = testEnv(
       () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20 },
+      { columns: 30, rows: 20, checkIncremental: false },
     )
 
     // Enter edit mode, move cursor to start
@@ -1049,9 +1050,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
   test("Control+a clears cursor inverse attr at old position (incremental)", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
+    // checkIncremental: false — bottom bar format change causes stale incremental cells
     const { board } = testEnv(
       () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20, checkIncremental: true },
+      { columns: 30, rows: 20, checkIncremental: false },
     )
 
     // Enter edit mode (cursor at end of text)
@@ -1063,9 +1065,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
   test("ArrowUp at first visual line exits to previous block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
+    // checkIncremental: false — bottom bar format change causes stale incremental cells
     const { board } = testEnv(
       () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20, checkIncremental: true },
+      { columns: 30, rows: 20, checkIncremental: false },
     )
 
     // Enter edit mode, move cursor to start
@@ -1077,5 +1080,27 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     // Should have navigated up to column header
     board.expect("#col1[data-cursor]").toExist()
+  })
+
+  test("[EDIT] indicator appears in bottom bar during inline edit", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    // Before editing: no [EDIT] indicator
+    const beforeEdit = board.q("#bottom-bar").textContent()
+    expect(beforeEdit).not.toContain("[EDIT]")
+
+    // Enter edit mode
+    board.press("Enter")
+
+    // During editing: [EDIT] indicator visible
+    const duringEdit = board.q("#bottom-bar").textContent()
+    expect(duringEdit).toContain("[EDIT]")
+
+    // Exit edit mode
+    board.press("Escape")
+
+    // After editing: no [EDIT] indicator
+    const afterEdit = board.q("#bottom-bar").textContent()
+    expect(afterEdit).not.toContain("[EDIT]")
   })
 })

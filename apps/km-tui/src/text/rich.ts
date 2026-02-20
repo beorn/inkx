@@ -107,6 +107,11 @@ export interface RenderRichOptions {
    * Return a color name for resolved sigils, or undefined for unresolved ones.
    */
   resolveSigilColor?: (sigil: string) => string | undefined
+  /**
+   * Resolve wiki link targets to human-readable titles.
+   * For [[^block-id]] or [[target]], returns the resolved title or null to use default display.
+   */
+  resolveWikiLink?: (target: string) => string | null
 }
 
 /**
@@ -139,6 +144,7 @@ export function renderRich(text: string, options?: RenderRichOptions): string {
     excludeSigils: options?.excludeSigils,
     sigilColors: options?.sigilColors,
     resolveSigilColor: options?.resolveSigilColor,
+    resolveWikiLink: options?.resolveWikiLink,
   }
   return processText(text, pipelineOpts)
 }

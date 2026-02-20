@@ -157,6 +157,77 @@ export function useIsColumnSelectedByNode(nodeId: string): {
   return next
 }
 
+/**
+ * Subscribe to the cursor's card nodeId.
+ * NODE MODEL V2: Replacement for useCursorCardIndex — returns nodeId instead of index.
+ * Components can look up position in their own items array.
+ * Only re-renders when the card nodeId changes (same as j/k within same column).
+ */
+export function useCursorCardNodeId(): string | null {
+  const store = useContext(CursorStoreContext)
+  const state = useCursorNodeState(store)
+  return state.selectionLevel === "card" ? state.cursorCardNodeId : null
+}
+
+/**
+ * Subscribe to the cursor's column nodeId.
+ * NODE MODEL V2: Replacement for useCursorColIndex — returns nodeId instead of index.
+ * Only re-renders when the column nodeId changes (h/l movement).
+ */
+export function useCursorColumnNodeId(): string | null {
+  const store = useContext(CursorStoreContext)
+  const state = useCursorNodeState(store)
+  return state.cursorColumnNodeId
+}
+
+/**
+ * Subscribe to the full node-based cursor position.
+ * NODE MODEL V2: Replacement for useCursorPosition() — returns nodeIds instead of indices.
+ * Re-renders on every cursor change (cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel).
+ */
+export function useCursorNodePosition(): {
+  cursorNodeId: string | null
+  cursorCardNodeId: string | null
+  cursorColumnNodeId: string | null
+  selectionLevel: "board" | "column" | "card"
+} {
+  const store = useContext(CursorStoreContext)
+  const layout = useContext(ColumnsLayoutContext)
+  const cacheRef = useRef(defaultCursorNodePosition)
+
+  return useSyncExternalStore(store?.subscribe ?? noopSubscribe, () => {
+    if (!store) return defaultCursorNodePosition
+    const state = store.getState()
+    const prev = cacheRef.current
+    if (
+      prev.cursorNodeId === state.cursorNodeId &&
+      prev.cursorCardNodeId === state.cursorCardNodeId &&
+      prev.cursorColumnNodeId === state.cursorColumnNodeId &&
+      prev.selectionLevel === state.selectionLevel &&
+      prev._layout === layout
+    ) {
+      return prev
+    }
+    const next = {
+      cursorNodeId: state.cursorNodeId,
+      cursorCardNodeId: state.cursorCardNodeId,
+      cursorColumnNodeId: state.cursorColumnNodeId,
+      selectionLevel: state.selectionLevel,
+      _layout: layout,
+    }
+    cacheRef.current = next
+    return next
+  })
+}
+
+const defaultCursorNodePosition = {
+  cursorNodeId: null as string | null,
+  cursorCardNodeId: null as string | null,
+  cursorColumnNodeId: null as string | null,
+  selectionLevel: "board" as const,
+  _layout: null as ColumnsLayout | null,
+}
+
 // =============================================================================
 // Index-based hooks — still derive from ColumnsLayout (MIGRATION TARGET)
 //
@@ -226,7 +297,8 @@ export function useIsCursorAtCard(colIndex: number, cardIndex: number): boolean 
   const derived = useDerivedPosition(store)
   const cacheRef = useRef(false)
 
-  const isSelected = derived.colIndex === colIndex && derived.cardIndex === cardIndex && derived.selectionLevel === "card"
+  const isSelected =
+    derived.colIndex === colIndex && derived.cardIndex === cardIndex && derived.selectionLevel === "card"
   if (isSelected === cacheRef.current) return cacheRef.current
   cacheRef.current = isSelected
   return isSelected
@@ -290,7 +362,11 @@ export function useCursorPosition(): {
   const cacheRef = useRef(defaultCursorPosition)
 
   const prev = cacheRef.current
-  if (prev.colIndex === derived.colIndex && prev.cardIndex === derived.cardIndex && prev.selectionLevel === derived.selectionLevel) {
+  if (
+    prev.colIndex === derived.colIndex &&
+    prev.cardIndex === derived.cardIndex &&
+    prev.selectionLevel === derived.selectionLevel
+  ) {
     return prev
   }
   const next = {

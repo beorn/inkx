@@ -640,6 +640,222 @@ describe("unresolved Asana embed display", () => {
 })
 
 // =============================================================================
+// Context-dependent rendering (node-model-v2)
+// =============================================================================
+
+describe("context-dependent rendering", () => {
+  test("embed link to li task in column renders as bordered card with task icon", () => {
+    // Model rule: li at column position → card (takes on host style)
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("card-a")))
+
+        // Target li task
+        nodes.push({
+          id: "target-li",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Embedded todo task",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed link pointing to the li task, placed in a column
+        nodes.push({
+          id: "embed-link",
+          type: "link" as const,
+          content: "![[target-li]]",
+          link_to: "target-li",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's content
+    expect(text).toContain("Embedded todo task")
+    // Should NOT show embed syntax
+    expect(text).not.toContain("![[")
+  })
+
+  test("embed link to oi section in body renders content without borders", () => {
+    // Model rule: oi in body → body content
+    const { board } = testEnv(
+      () => {
+        // Body embed (before first oi column) should render as virtual/borderless
+        const nodes = item("board", item("col1", item("task-1")))
+
+        // Target oi section
+        nodes.push({
+          id: "target-section",
+          type: "oi" as const,
+          fstype: "mdsection",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          content: "Architecture Notes",
+          name: "architecture-notes",
+          data: { depth: 2 },
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed link in body position (before the oi column)
+        // Add as a p-type body node before col1
+        nodes.push({
+          id: "body-embed",
+          type: "p" as const,
+          content: "![[target-section]]",
+          link_to: "target-section",
+          parent_id: "board",
+          parent_idx: -1, // before col1 (parent_idx=0)
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's name
+    expect(text).toContain("Architecture Notes")
+  })
+
+  test("embed link to done task shows dimmed style in card", () => {
+    // Embedded done tasks should render with the done/dimmed style of the target
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("card-a")))
+
+        // Target: done task
+        nodes.push({
+          id: "done-target",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "done",
+          task_marker: "[x]",
+          content: "Completed task",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed in column
+        nodes.push({
+          id: "embed-done",
+          type: "link" as const,
+          content: "![[done-target]]",
+          link_to: "done-target",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's content
+    expect(text).toContain("Completed task")
+  })
+
+  test("embed link shows target children (transclusion)", () => {
+    // When an embed resolves, its children should come from the TARGET node
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1"))
+
+        // Target oi with children
+        nodes.push({
+          id: "target-parent",
+          type: "oi" as const,
+          fstype: "mdsection",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          content: "Parent Section",
+          name: "parent-section",
+          data: { depth: 2 },
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Child of target
+        nodes.push({
+          id: "target-child",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "target-parent",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Child subtask",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed in column pointing to the parent
+        nodes.push({
+          id: "embed-parent",
+          type: "link" as const,
+          content: "![[target-parent]]",
+          link_to: "target-parent",
+          embed: true,
+          parent_id: "col1",
+          parent_idx: 0,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target section name
+    expect(text).toContain("Parent Section")
+  })
+})
+
+// =============================================================================
 // Embed task status cycling (km-79kld)
 // =============================================================================
 

@@ -19,7 +19,7 @@ import { renderPlain } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
-import { useCursorPosition } from "../cursor-context.tsx"
+import { useCursorNodePosition } from "../cursor-context.tsx"
 import { useUISelector } from "../ui-context.tsx"
 
 // Virtualization constants
@@ -69,11 +69,9 @@ export function ListView({
   const { inOutlineMode } = treeConfig
   const repo = useRepo()
 
-  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
-  const cursorPos = useCursorPosition()
-  const colIndex = cursorPos.colIndex
-  const cardIndex = cursorPos.cardIndex
-  const selectionLevel = cursorPos.selectionLevel
+  // NODE MODEL V2: Use node-based cursor position instead of indices
+  const cursorPos = useCursorNodePosition()
+  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
   const subIndex = subIndexProp
 
   // Track editing state for dynamic item height (border adds 2 rows)
@@ -127,25 +125,32 @@ export function ListView({
     [boardPillsCache],
   )
 
-  // Calculate the selected item's index in flat list
+  // Calculate the selected item's index in flat list using node IDs
   const selectedFlatIndex = useMemo(() => {
-    let idx = 0
-    for (let c = 0; c < colIndex; c++) {
-      idx += 1 + (columnsProp[c]?.cards.length ?? 0)
+    if (!cursorColumnNodeId) return 0
+    for (let i = 0; i < flatItems.length; i++) {
+      const item = flatItems[i]!
+      if (selectionLevel === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
+        return i
+      }
+      if (selectionLevel === "card" && item.type === "card" && item.card.node.id === cursorCardNodeId) {
+        return i
+      }
     }
-    return selectionLevel === "column" ? idx : idx + 1 + cardIndex
-  }, [colIndex, cardIndex, selectionLevel, columnsProp])
+    return 0
+  }, [cursorColumnNodeId, cursorCardNodeId, selectionLevel, flatItems])
 
   // Render item callback for VirtualList
   const renderItem = useCallback(
     (item: FlatItem, flatIndex: number) => {
       if (item.type === "header") {
         const cIdx = item.colIdx
-        const isColSelected = selectionLevel === "column" && colIndex === cIdx
-        const isSelected = colIndex === cIdx
+        const colNodeId = item.column.node.id
+        const isColSelected = selectionLevel === "column" && cursorColumnNodeId === colNodeId
+        const isSelected = cursorColumnNodeId === colNodeId
 
         return (
-          <Box key={`header-${item.column.node.id}-${flatIndex}`} position="sticky" stickyTop={0}>
+          <Box key={`header-${colNodeId}-${flatIndex}`} position="sticky" stickyTop={0}>
             <MemoizedColumnHeader
               column={item.column}
               colIdx={cIdx}
@@ -161,12 +166,13 @@ export function ListView({
       // Card item
       const cIdx = item.colIdx
       const cardIdx = item.cardIdx
+      const cardNodeId = item.card.node.id
       const isCardSelected =
-        selectionLevel === "card" && colIndex === cIdx && cardIndex === cardIdx && (!inOutlineMode || subIndex === 0)
+        selectionLevel === "card" && cursorCardNodeId === cardNodeId && (!inOutlineMode || subIndex === 0)
 
       return (
         <MemoizedTreeCard
-          key={`${item.card.node.id}-${flatIndex}`}
+          key={`${cardNodeId}-${flatIndex}`}
           card={item.card}
           colIndex={cIdx}
           cardIndex={cardIdx}
@@ -178,8 +184,8 @@ export function ListView({
       )
     },
     [
-      colIndex,
-      cardIndex,
+      cursorCardNodeId,
+      cursorColumnNodeId,
       subIndex,
       selectionLevel,
       inOutlineMode,

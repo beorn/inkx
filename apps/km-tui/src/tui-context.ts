@@ -12,7 +12,8 @@ import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
 import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
-import type { UIState } from "./ui-reducer.ts"
+import type { UIState, EditMode } from "./ui-reducer.ts"
+import { getEditMode } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { ViewNavigation } from "./view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
@@ -75,4 +76,26 @@ export interface ActionCtx {
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number
+}
+
+// ===== Mode helpers =====
+
+/** Get the current editing mode */
+export function currentMode(ctx: ActionCtx): EditMode {
+  return getEditMode(ctx.ui)
+}
+
+/** Enter text editing mode on a node */
+export function enterTextMode(
+  ctx: ActionCtx,
+  nodeId: string,
+  blockIndex = 0,
+  initialCursorPos?: "start" | "end",
+): void {
+  ctx.setUI({ inlineEditBlock: { nodeId, blockIndex, initialCursorPos } })
+}
+
+/** Exit text editing mode (save is handled by the EditContext cleanup) */
+export function exitTextMode(ctx: ActionCtx): void {
+  ctx.setUI({ inlineEditBlock: null })
 }

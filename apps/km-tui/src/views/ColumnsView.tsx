@@ -18,7 +18,7 @@ import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from 
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useIsColumnSelectedByNode, useCursorColIndex } from "../cursor-context.tsx"
+import { useIsColumnSelectedByNode, useCursorColumnNodeId } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
@@ -187,8 +187,13 @@ interface ColumnsViewProps {
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
 export function ColumnsView({ columns, width, height, subIndex }: ColumnsViewProps): React.ReactElement {
-  // Subscribe to colIndex only — ColumnsView doesn't re-render on j/k within column
-  const colIndex = useCursorColIndex()
+  // NODE MODEL V2: Use cursorColumnNodeId to derive colIndex from columns array
+  const cursorColumnNodeId = useCursorColumnNodeId()
+  const colIndex = useMemo(() => {
+    if (!cursorColumnNodeId) return 0
+    const idx = columns.findIndex((c) => c.node.id === cursorColumnNodeId)
+    return idx >= 0 ? idx : 0
+  }, [cursorColumnNodeId, columns])
 
   // Column width — uniform width capped at COLUMNS_VIEW_MAX_WIDTH
   const maxCols = Math.max(1, Math.floor(width / 35))

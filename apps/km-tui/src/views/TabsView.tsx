@@ -14,7 +14,8 @@ import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.
 import { useRepo } from "../repo-context.tsx"
 import { renderPlain } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useCursorPosition } from "../cursor-context.tsx"
+import { NodeTabView } from "./NodeView.tsx"
+import { useCursorNodePosition } from "../cursor-context.tsx"
 import { useUISelector } from "../ui-context.tsx"
 
 // Virtualization constants
@@ -45,11 +46,16 @@ export function TabsView({
     treeConfig: { inOutlineMode },
   } = useTreeRenderContext()
 
-  // Use CursorStore for cursor position (self-subscription, bypasses Board re-render)
-  const cursorPos = useCursorPosition()
-  const colIndex = cursorPos.colIndex
-  const cardIndex = cursorPos.cardIndex
-  const selectionLevel = cursorPos.selectionLevel
+  // NODE MODEL V2: Use node-based cursor position instead of indices
+  const cursorPos = useCursorNodePosition()
+  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+
+  // Derive colIndex from cursorColumnNodeId for tab highlighting and column lookup
+  const colIndex = useMemo(() => {
+    if (!cursorColumnNodeId) return 0
+    const idx = columnsProp.findIndex((c) => c.node.id === cursorColumnNodeId)
+    return idx >= 0 ? idx : 0
+  }, [cursorColumnNodeId, columnsProp])
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
@@ -82,41 +88,28 @@ export function TabsView({
           const colName = getNodeDisplayName(repo, column.node)
           const untitled = isNodeUntitled(repo, column.node)
           const colCount = column.cards.length
-          const countStr = ` (${colCount})`
-
-          // Truncate if name exceeds reasonable width (20 chars)
-          const maxNameWidth = 20
-          const truncatedName = colName.length > maxNameWidth ? colName.slice(0, maxNameWidth - 1) + "\u2026" : colName
-
-          // Style like cards view column headers
-          const isTabSelected = isActive && isColumnHeaderSelected
           const showActiveHighlight = isActive && selectionLevel !== "board"
-
-          const textColor = isTabSelected ? "black" : showActiveHighlight ? "yellow" : "white"
+          const isTabSelected = isActive && isColumnHeaderSelected
 
           return (
             <React.Fragment key={`${column.node.id}-${cIdx}`}>
-              {/* Tab with background - content-based width */}
               <Box
                 id={column.node.id}
-                backgroundColor={isTabSelected ? "yellow" : undefined}
                 {...(isTabSelected && {
                   "data-cursor": true,
                   "data-col-index": cIdx,
                   "data-card-index": -1,
                 })}
               >
-                <Text bold color={textColor} dimColor={!showActiveHighlight && selectionLevel === "board"}>
-                  {" "}
-                  {untitled ? (
-                    <Text dimColor color="gray">
-                      {truncatedName}
-                    </Text>
-                  ) : (
-                    truncatedName
-                  )}
-                  <Text dimColor={!isTabSelected}>{countStr}</Text>{" "}
-                </Text>
+                <NodeTabView
+                  node={column.node}
+                  displayName={colName}
+                  isActive={showActiveHighlight}
+                  isSelected={isTabSelected}
+                  untitled={untitled}
+                  count={colCount}
+                  dimInactive={selectionLevel === "board"}
+                />
               </Box>
               {/* Separator with space padding */}
               {cIdx < columnsProp.length - 1 && <Text dimColor> │ </Text>}
@@ -140,13 +133,15 @@ export function TabsView({
               items={currentColumn.cards}
               height={height - 3}
               itemHeight={(card: CardState) => (card.node.id === editingNodeId ? 3 : 1)}
-              scrollTo={cardIndex}
+              scrollTo={
+                cursorCardNodeId ? currentColumn.cards.findIndex((c) => c.node.id === cursorCardNodeId) : undefined
+              }
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}
               keyExtractor={(card) => card.node.id}
               renderItem={(card: CardState, actualCardIndex: number) => {
                 const isCardSelected =
-                  selectionLevel === "card" && actualCardIndex === cardIndex && (!inOutlineMode || subIndex === 0)
+                  selectionLevel === "card" && card.node.id === cursorCardNodeId && (!inOutlineMode || subIndex === 0)
 
                 return (
                   <MemoizedTreeCard
