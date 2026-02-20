@@ -19,7 +19,7 @@ import { createBoardApp } from "./board-app.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
-import { createCursorStore, deriveCursorAncestors } from "./cursor-store.ts"
+import { createCursorStoreFromRepo } from "./cursor-store.ts"
 
 const log = createLogger("km:tui")
 const spanLog = createLogger("km:tui")
@@ -210,10 +210,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       repo: options.repo,
       toastQueue,
       navigator: createGridNavigator(),
-      cursorStore: createCursorStore({
-        cursorNodeId: initialCursorNodeId,
-        ...deriveCursorAncestors((id) => options.repo.getNode(id), state.rootId, initialCursorNodeId, (pid) => options.repo.getChildren(pid)),
-      }),
+      cursorStore: createCursorStoreFromRepo(options.repo, state.rootId, initialCursorNodeId),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState(
         viewMode,

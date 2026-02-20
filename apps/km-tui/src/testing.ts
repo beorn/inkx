@@ -41,7 +41,7 @@ import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "./repo-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
-import { createCursorStore, deriveCursorAncestors } from "./cursor-store.ts"
+import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { buildNodeIndex } from "./hooks/use-columns.ts"
 
 /**
@@ -193,10 +193,7 @@ export async function createBoardTest(
   })
 
   const firstCardNodeId = state.columns[0]?.cards[0]?.node.id ?? null
-  const cursorStore = createCursorStore({
-    cursorNodeId: firstCardNodeId,
-    ...deriveCursorAncestors((id) => repo.getNode(id), state.rootId, firstCardNodeId, (pid) => repo.getChildren(pid)),
-  })
+  const cursorStore = createCursorStoreFromRepo(repo, state.rootId, firstCardNodeId)
 
   const layout = {
     columns: state.columns,

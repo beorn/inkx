@@ -143,6 +143,26 @@ function isInBodyRegion(
 }
 
 /**
+ * Create a CursorStore from a repo + root/cursor IDs, deriving ancestors automatically.
+ * Eliminates boilerplate of manually calling deriveCursorAncestors at each call site.
+ */
+export function createCursorStoreFromRepo(
+  repo: { getNode(id: string): { parent_id: string | null; type: string } | undefined; getChildren(parentId: string | null): { id: string; type: string }[] },
+  rootId: string | null,
+  cursorNodeId: string | null,
+): CursorStore {
+  return createCursorStore({
+    cursorNodeId,
+    ...deriveCursorAncestors(
+      (id) => repo.getNode(id),
+      rootId,
+      cursorNodeId,
+      (pid) => repo.getChildren(pid),
+    ),
+  })
+}
+
+/**
  * Create a lightweight cursor store with pub/sub.
  */
 export function createCursorStore(initial: CursorState): CursorStore {

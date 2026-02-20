@@ -81,7 +81,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { handleKey } from "../../src/board-app.ts"
 import type { InitialBoardData, ColumnState } from "../../src/types.ts"
-import { createCursorStore, deriveCursorAncestors } from "../../src/cursor-store.ts"
+import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
@@ -369,10 +369,7 @@ export function testEnv(
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStore({
-      cursorNodeId: initialCursorNodeId,
-      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
-    }),
+    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,
@@ -1405,10 +1402,7 @@ export function testEnvWithRepo(
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStore({
-      cursorNodeId: initialCursorNodeId,
-      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
-    }),
+    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,
@@ -2205,10 +2199,7 @@ export function renderBoardWithStore(
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStore({
-      cursorNodeId: initialCursorNodeId,
-      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
-    }),
+    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,

@@ -20,7 +20,7 @@ import { createGridNavigator } from "@km/board"
 import { buildBoardState } from "../src/state.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
-import { createCursorStore, deriveCursorAncestors } from "../src/cursor-store.ts"
+import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
 
 /**
  * Build store params from a tree — same logic as tui.tsx's runBoard().
@@ -55,10 +55,7 @@ function buildStoreParams(
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore: createCursorStore({
-      cursorNodeId: initialCursorNodeId,
-      ...deriveCursorAncestors((id) => repo.getNode(id), rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
-    }),
+    cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: createBoardState(rootId, null, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState(
       viewMode,

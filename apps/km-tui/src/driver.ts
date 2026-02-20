@@ -71,7 +71,7 @@ import { resetModeStack } from "./dialog-guard.ts"
 import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { handleKey } from "./board-app.ts"
-import { createCursorStore, deriveCursorAncestors } from "./cursor-store.ts"
+import { createCursorStoreFromRepo } from "./cursor-store.ts"
 
 // =============================================================================
 // Types
@@ -189,10 +189,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     repo,
     toastQueue,
     navigator,
-    cursorStore: createCursorStore({
-      cursorNodeId: initialCursorNodeId,
-      ...deriveCursorAncestors((id) => repo.getNode(id), rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
-    }),
+    cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialData.rootId,
       initialData.rootPath,
