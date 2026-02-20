@@ -19,10 +19,11 @@ import { filterSystemComment } from "./adapters/asana/comment-filter.ts"
 
 /** Slugify a title for use as filename — preserves Unicode letters (ø, é, ñ) */
 export function slugify(title: string): string {
-  return title
+  const slug = title
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
+  return slug || "untitled"
 }
 
 /**
@@ -177,6 +178,12 @@ function buildTaskContent(
       parts.push(...otherProjects.map((p) => `+${slugify(p)}`))
     }
   }
+  // Inline date properties for markdown round-tripping
+  if (item.createdAt) parts.push(`created:: ${item.createdAt.slice(0, 10)}`)
+  if (item.dueAt) parts.push(`due:: ${item.dueAt.slice(0, 10)}`)
+  if (item.startAt) parts.push(`start:: ${item.startAt.slice(0, 10)}`)
+  if (item.completedAt) parts.push(`completed:: ${item.completedAt.slice(0, 10)}`)
+  if (item.priority) parts.push(`p:: ${item.priority}`)
   return parts.join(" ")
 }
 
@@ -475,8 +482,6 @@ function sectionToNodes(
 /** Convert a project to a KNode tree (file + sections + items) */
 function projectToNodes(
   project: ImportProject,
-  source: string,
-  fetchedAt: string,
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
   userSlugMap?: Map<string, string>,
@@ -488,10 +493,7 @@ function projectToNodes(
 
   // File root node — data becomes frontmatter, content becomes H1
   const fileId = `file-${project.sourceId}`
-  const frontmatter: Record<string, unknown> = {
-    imported_from: source,
-    imported_at: fetchedAt,
-  }
+  const frontmatter: Record<string, unknown> = {}
   if (project.owner) {
     const ownerSlug = userSlugMap
       ? resolveUserSlug(project.owner, userSlugMap)
@@ -775,7 +777,7 @@ export function* convertBatch(data: ImportData): Generator<[string, string]> {
   for (const [i, project] of data.projects.entries()) {
     const filename = filenames[i]
     if (!filename) continue
-    const nodes = projectToNodes(project, data.source, data.fetchedAt, rendered, primaryMap, userSlugMap)
+    const nodes = projectToNodes(project, rendered, primaryMap, userSlugMap)
     const markdown = nodesToMarkdown(nodes)
     yield [filename, markdown]
   }
@@ -837,8 +839,6 @@ function* generateTagFiles(
         fstype: "mdfile",
         content: tagSlug,
         data: {
-          imported_from: data.source,
-          imported_at: data.fetchedAt,
           tag: tagSlug,
         },
       }),

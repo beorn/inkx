@@ -39,10 +39,11 @@ export const importCommand = new Command("import")
 /** Load ImportData from a download directory (one JSON file per project) */
 function loadDownloadDir(dirPath: string): ImportData {
   const dirName = basename(dirPath)
-  // Parse: asana-2026-02-17T15-09-50 → source="asana", timestamp
+  // Parse: asana-stabell-2026-02-17T15-09-50 → source="asana", timestamp
+  // Timestamp is always the last 19 chars: YYYY-MM-DDTHH-MM-SS
   const dashIdx = dirName.indexOf("-")
   const source = dirName.slice(0, dashIdx) // "asana"
-  const tsRaw = dirName.slice(dashIdx + 1) // "2026-02-17T15-09-50"
+  const tsRaw = dirName.slice(-19) // "2026-02-17T15-09-50"
   const fetchedAt = tsRaw.replace(/T(\d{2})-(\d{2})-(\d{2})/, "T$1:$2:$3") + "Z"
 
   const files = readdirSync(dirPath)

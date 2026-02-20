@@ -366,8 +366,8 @@ describe("CSV → convert → markdown", () => {
     expect(files.size).toBe(1)
     const md = [...files.values()][0]!
 
-    // Frontmatter
-    expect(md).toContain("imported_from: csv")
+    // Frontmatter — imported_from removed (import JSON has that info)
+    expect(md).not.toContain("imported_from:")
 
     // Tasks rendered as headings
     expect(md).toContain("## Design page @alice #design #frontend")

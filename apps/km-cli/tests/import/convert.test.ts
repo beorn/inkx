@@ -121,7 +121,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("includes frontmatter", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("imported_from: asana")
+    // imported_from/imported_at removed — import JSON has that info
+    expect(md).not.toContain("imported_from:")
     expect(md).not.toContain("asana_project_id:")
   })
 
@@ -141,7 +142,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   test("renders completedAt on done tasks", () => {
     const md = convertToMd(fixture)
     // Done tasks render as headings (no [x] checkbox); completedAt is in node data
-    expect(md).toContain("## Write tests ^t2")
+    expect(md).toContain("## Write tests completed:: 2026-02-09 ^t2")
   })
 
   test("renders multi-project as +project tags (excluding current project)", () => {
@@ -152,7 +153,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders completed tasks as headings", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("## Write tests ^t2")
+    expect(md).toContain("## Write tests completed:: 2026-02-09 ^t2")
   })
 
   test("renders subtasks as headings", () => {
@@ -408,7 +409,9 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("## Full task @alice-smith #backend #urgent +other-project ^tf1")
+    expect(md).toContain(
+      "## Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 p:: 2 ^tf1",
+    )
     expect(md).not.toContain("+test")
     // Body appears directly under heading (no indent since parent is oi)
     expect(md).toContain("Description with **bold** text.")
@@ -507,7 +510,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
     expect(md).toContain("moved this Task from Backlog to Done")
   })
 
-  test("metadata (created::, completed::) lives in data.metadata, not inline content", () => {
+  test("metadata (created::, completed::) rendered as inline properties", () => {
     const md = convertToMd(
       makeData([
         {
@@ -519,12 +522,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    // With oi type, metadata is stored in node data, not inline on headings
-    expect(md).toContain("## Metadata task ^t1")
-    // created/completed metadata is in node data, not rendered inline
-    const taskLine = md.split("\n").find((l) => l.includes("Metadata task"))!
-    expect(taskLine).toBeDefined()
-    expect(taskLine).toContain("^t1")
+    expect(md).toContain("## Metadata task created:: 2026-01-15 completed:: 2026-02-10 ^t1")
   })
 
   test("renders nested subtasks 2+ levels deep", () => {
@@ -1295,8 +1293,9 @@ describe("roundtrip: convert → parse", () => {
     const { frontmatter, body } = extractFrontmatter(md)
     expect(frontmatter).not.toBeNull()
 
-    expect(frontmatter).toContain("imported_from: asana")
-    expect(frontmatter).toContain("imported_at: 2026-01-15T10:30:00Z")
+    // imported_from/imported_at removed — import JSON has that info
+    expect(frontmatter).not.toContain("imported_from:")
+    expect(frontmatter).not.toContain("imported_at:")
     expect(frontmatter).toContain('owner: "@bjorn"')
     expect(frontmatter).not.toContain("asana_project_id:")
     expect(frontmatter).not.toContain("workspace:")
