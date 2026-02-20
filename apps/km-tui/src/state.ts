@@ -9,6 +9,7 @@ import type { KNode } from "@km/core"
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
 import type { InitialBoardData, ColumnState, CardState } from "./types.ts"
+import { deduplicateByFsPath } from "./hooks/use-columns.ts"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 import {
@@ -150,7 +151,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   // Uses batch child counts to keep the node with more children.
   const allColumnIds = rawColumnNodes.map((n) => n.id)
   const allColumnChildCounts = repo.getChildCounts(allColumnIds)
-  const columnNodes = deduplicateByFsPathBatch(rawColumnNodes, allColumnChildCounts)
+  const columnNodes = deduplicateByFsPath(rawColumnNodes, (id) => allColumnChildCounts.get(id) ?? 0)
 
   const total = columnNodes.length + (bodyNodes.length > 0 ? 1 : 0)
   yield "Building view"
@@ -250,38 +251,6 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     collapsedColumns,
     collapsedNodeIds,
   }
-}
-
-/**
- * Deduplicate column nodes by fs_path using pre-fetched child counts.
- * Import bugs can create duplicate file entries in the DB.
- * Keeps the node with more children; if tied, keeps the first occurrence.
- */
-function deduplicateByFsPathBatch(nodes: KNode[], childCounts: Map<string, number>): KNode[] {
-  const seen = new Map<string, { node: KNode; childCount: number }>()
-  const result: KNode[] = []
-
-  for (const node of nodes) {
-    const path = node.fs_path
-    if (!path) {
-      result.push(node)
-      continue
-    }
-
-    const childCount = childCounts.get(node.id) ?? 0
-    const existing = seen.get(path)
-
-    if (!existing) {
-      seen.set(path, { node, childCount })
-      result.push(node)
-    } else if (childCount > existing.childCount) {
-      const idx = result.indexOf(existing.node)
-      if (idx >= 0) result[idx] = node
-      seen.set(path, { node, childCount })
-    }
-  }
-
-  return result
 }
 
 /**

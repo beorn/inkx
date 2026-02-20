@@ -131,7 +131,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 
   // Deduplicate column nodes by fs_path (import bugs can create duplicate file entries).
   // Keep the node with more children; if tied, keep the first one.
-  const deduped = deduplicateByFsPath(columnNodes, repo)
+  const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
 
   // Convert structural children to columns
   for (const node of deduped) {
@@ -150,7 +150,10 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
  * Import bugs can create duplicate file entries in the DB.
  * Keeps the node with more children; if tied, keeps the first occurrence.
  */
-function deduplicateByFsPath(nodes: KNode[], repo: Repo): KNode[] {
+export function deduplicateByFsPath(
+  nodes: KNode[],
+  getChildCount: (id: string) => number,
+): KNode[] {
   const seen = new Map<string, { node: KNode; childCount: number }>()
   const result: KNode[] = []
 
@@ -161,7 +164,7 @@ function deduplicateByFsPath(nodes: KNode[], repo: Repo): KNode[] {
       continue
     }
 
-    const childCount = repo.getChildren(node.id).length
+    const childCount = getChildCount(node.id)
     const existing = seen.get(path)
 
     if (!existing) {
