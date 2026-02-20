@@ -10,7 +10,7 @@
  *   km import asana --project "Sprint 4"  # Single project
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from "fs"
+import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, copyFileSync } from "fs"
 import { basename, join, resolve } from "path"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "inkx"
@@ -276,9 +276,9 @@ Pipeline:
         }
       }
 
-      // Stage 2: Download attachments
+      // Stage 2: Download attachments (stored in .km/ alongside JSON data)
       const outDir = options.out ? resolve(options.out) : join(rootPath, "imports", "asana")
-      const attachDir = join(outDir, "attachments")
+      const attachDir = join(rootPath, ".km", "imports", "attachments")
 
       const { downloadAttachments } = await import("../import/download-attachments.ts")
       const dlResult = await downloadAttachments(importData, {
@@ -320,6 +320,25 @@ Pipeline:
         dryRun: options.dryRun,
         force: options.force,
       })
+
+      // Stage 5: Copy attachments from .km/ cache into output filetree
+      if (!options.dryRun && existsSync(attachDir)) {
+        const outAttachDir = join(outDir, "attachments")
+        mkdirSync(outAttachDir, { recursive: true })
+        const files = readdirSync(attachDir)
+        let copied = 0
+        for (const f of files) {
+          const src = join(attachDir, f)
+          const dst = join(outAttachDir, f)
+          if (!existsSync(dst)) {
+            copyFileSync(src, dst)
+            copied++
+          }
+        }
+        if (copied > 0) {
+          console.log(term.dim(`  Copied ${copied} attachment(s) to ${outAttachDir}`))
+        }
+      }
 
       // Summary
       console.log()

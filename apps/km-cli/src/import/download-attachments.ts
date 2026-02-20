@@ -221,16 +221,16 @@ export async function downloadAttachments(
   })
   bar.start()
 
-  let consecutiveFailures = 0
-  const MAX_CONSECUTIVE_FAILURES = 20
+  let consecutiveAuthFailures = 0
+  const MAX_AUTH_FAILURES = 5
 
   for (let i = 0; i < allAttachments.length; i += DOWNLOAD_CONCURRENCY) {
-    // Rate limit: small delay between batches to avoid hammering servers
+    // Rate limit: delay between batches to respect server limits
     if (i > 0) await new Promise((r) => setTimeout(r, 100))
-    // Bail early if too many consecutive failures (e.g. all URLs expired)
-    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    // Only bail if re-authentication keeps failing (token is invalid)
+    if (consecutiveAuthFailures >= MAX_AUTH_FAILURES) {
       const remaining = allAttachments.length - i
-      console.log(term.yellow(`  Stopping after ${MAX_CONSECUTIVE_FAILURES} consecutive failures (${remaining} remaining skipped)`))
+      console.log(term.yellow(`  Authentication failed ${MAX_AUTH_FAILURES} times — stopping (${remaining} remaining)`))
       result.failed += remaining
       bar.increment(remaining)
       break
@@ -246,7 +246,6 @@ export async function downloadAttachments(
         if (existsSync(localPath)) {
           att.localPath = relativePath
           result.skipped++
-          consecutiveFailures = 0
           bar.increment()
           return
         }
@@ -262,9 +261,8 @@ export async function downloadAttachments(
           let url = att.url
           let res = await fetch(url)
 
-          // Retry once with a fresh URL on 403 (expired signed URLs)
+          // On 403, re-authenticate by fetching a fresh download URL
           if (res.status === 403 && opts.refreshUrl && att.sourceId) {
-            console.log(term.dim(`  Refreshing download URL for ${att.name}...`))
             const freshUrl = await opts.refreshUrl(att)
             if (freshUrl) {
               url = freshUrl
@@ -273,12 +271,14 @@ export async function downloadAttachments(
           }
 
           if (!res.ok) {
+            // Track auth failures separately — only bail on repeated auth failure
+            if (res.status === 403) consecutiveAuthFailures++
             console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
             result.failed++
-            consecutiveFailures++
             bar.increment()
             return
           }
+          consecutiveAuthFailures = 0
           const buffer = Buffer.from(await res.arrayBuffer())
           writeFileSync(localPath, buffer)
           if (att.createdAt) {
@@ -287,11 +287,9 @@ export async function downloadAttachments(
           }
           att.localPath = relativePath
           result.downloaded++
-          consecutiveFailures = 0
         } catch (err) {
           console.log(term.yellow(`  Failed to download ${att.name}: ${(err as Error).message}`))
           result.failed++
-          consecutiveFailures++
         }
         bar.increment()
       }),
