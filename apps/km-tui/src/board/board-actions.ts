@@ -253,14 +253,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
       }
       // No children, or folder — open detail pane
-      ctx.setUI({ showDetailPane: true })
+      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: false })
+      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
       return ok()
     case "TOGGLE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: !ctx.ui.showDetailPane })
+      ctx.setUI({ showDetailPane: !ctx.ui.showDetailPane, detailScrollOffset: 0 })
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
@@ -856,7 +856,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
-      ctx.setUI({ showDetailPane: false })
+      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
+      return ok()
+    case "DETAIL_PANE_SCROLL_DOWN":
+      ctx.setUI((prev) => ({ detailScrollOffset: prev.detailScrollOffset + 3 }))
+      return ok()
+    case "DETAIL_PANE_SCROLL_UP":
+      ctx.setUI((prev) => ({ detailScrollOffset: Math.max(0, prev.detailScrollOffset - 3) }))
       return ok()
 
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===

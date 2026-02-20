@@ -354,6 +354,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Instead, cursor_left handles detail pane close contextually in board-actions-nav.ts
       // because in list view showDetailPane=true by default and h must still navigate.
       { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
+      // Scroll detail pane content with {/} when detail pane is open
+      { key: "}", commandId: "detail_pane.scroll_down", when: isInDetailPane },
+      { key: "{", commandId: "detail_pane.scroll_up", when: isInDetailPane },
     ],
   },
 

@@ -27,6 +27,7 @@ export interface UIState {
   // View configuration
   viewMode: ViewMode
   showDetailPane: boolean
+  detailScrollOffset: number
   maxOutlineDepth: number
   maxContentLines: number
   iconStyle: IconStyle
@@ -232,6 +233,7 @@ export function createInitialUIState(
   return {
     viewMode: initialViewMode,
     showDetailPane: initialViewMode === "list",
+    detailScrollOffset: 0,
     maxOutlineDepth: 2,
     maxContentLines: 3,
     iconStyle: "nerdfont" as IconStyle,

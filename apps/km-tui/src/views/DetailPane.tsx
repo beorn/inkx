@@ -30,23 +30,24 @@ export interface DetailPaneProps {
   node: KNode
   width: number
   height: number
+  scrollOffset?: number
 }
 
-export function DetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
+export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Resolve embedded links to show the target node's details
   const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
   if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
-    return <FolderDetailPane node={resolvedNode} width={width} height={height} />
+    return <FolderDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} />
   }
-  return <TaskDetailPane node={resolvedNode} width={width} height={height} />
+  return <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} />
 }
 
 // =============================================================================
 // Folder Detail Pane — outline of folder contents
 // =============================================================================
 
-function FolderDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
+function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
@@ -54,8 +55,8 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
   const title = getNodeDisplayName(repo, node)
   const children = repo.getChildren(node.id)
 
-  // Build a flat list of outline entries with depth, up to the available height
-  const maxEntries = Math.max(1, height - 8) // Reserve for title, separator, counts, footer
+  // Build a flat list of outline entries with depth (scrollable, so allow generous limit)
+  const maxEntries = 200
   const entries: { node: KNode; depth: number }[] = []
 
   function collectChildren(parentId: string, depth: number) {
@@ -95,7 +96,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
+        <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
           {/* Counts */}
           <Box>
             <Text>
@@ -128,7 +129,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
         {/* Footer: keybindings + debug info — always visible */}
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            h/Esc:close Enter:open
+            {"h/Esc:close {/}:scroll Enter:open"}
           </Text>
           <Text dimColor wrap="truncate">
             {node.type} {node.id}
@@ -143,7 +144,7 @@ function FolderDetailPane({ node, width, height }: DetailPaneProps): React.React
 // Task Detail Pane — task/note details
 // =============================================================================
 
-function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactElement {
+function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
@@ -237,7 +238,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="hidden" flexGrow={1} paddingX={1}>
+        <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
           {/* Metadata fields — aligned key:value table */}
           <MetadataTable
             node={node}
@@ -303,7 +304,7 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
         {/* Footer: keybindings + debug info — always visible */}
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            h/Esc:close Space:status
+            {"h/Esc:close {/}:scroll Space:status"}
           </Text>
           <Text dimColor wrap="truncate">
             {node.type} {node.id}

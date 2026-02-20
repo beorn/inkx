@@ -235,12 +235,24 @@ function CursorAwareDetailPane({
   height: number
 }): React.ReactElement | null {
   const cursorPos = useCursorPosition()
+  const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
+  const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const selectedCol = columns[cursorPos.colIndex]
   const selectedCard = selectedCol?.cards[cursorPos.cardIndex]
   // Show detail for card, column, or board node (whichever cursor level)
   const node = selectedCard?.node ?? selectedCol?.node
+  // Reset scroll offset when selected node changes
+  const prevNodeIdRef = React.useRef(node?.id)
+  React.useEffect(() => {
+    if (node?.id !== prevNodeIdRef.current) {
+      prevNodeIdRef.current = node?.id
+      setUI({ detailScrollOffset: 0 })
+    }
+  }, [node?.id, setUI])
+  // Use 0 during the transitional render where node changed but effect hasn't fired yet
+  const effectiveScrollOffset = node?.id !== prevNodeIdRef.current ? 0 : detailScrollOffset
   if (!node) return null
-  return <DetailPane node={node} width={width} height={height} />
+  return <DetailPane node={node} width={width} height={height} scrollOffset={effectiveScrollOffset} />
 }
 
 /**
