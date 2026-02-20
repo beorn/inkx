@@ -3,7 +3,7 @@
  *
  * Defines the board application with Zustand store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
- * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=CURSOR_MOVE, click=TODO(HitRegistry)
+ * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=multi-CURSOR_MOVE, click=SELECT, dblclick=ENTER_INLINE_EDIT
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
@@ -276,29 +276,100 @@ function routeThroughCommandSystem(
 // Mouse Handler
 // =============================================================================
 
+/** Scroll-wheel step count: each notch moves cursor by this many items */
+const SCROLL_STEP = 3
+
+/** Double-click detection state */
+let lastClick = { time: 0, x: 0, y: 0 }
+const DOUBLE_CLICK_MS = 400
+const DOUBLE_CLICK_DISTANCE = 2
+
+/**
+ * Resolve mouse (x, y) to a card node ID using the GridNavigator position registry.
+ * Returns the node ID if the click lands on a registered card, or null otherwise.
+ */
+function resolveMouseToNode(
+  actionCtx: ActionCtx,
+  mouseX: number,
+  mouseY: number,
+): string | null {
+  const { columns, navigator } = actionCtx
+
+  // Find which column the click falls in by checking each section's x-range
+  let targetColIndex = -1
+  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+    // Check the first registered item in this section to get column x-bounds
+    const itemCount = navigator.getItemCount(colIdx)
+    if (itemCount === 0) continue
+
+    // Find any registered item to get the column's x-range
+    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
+      const rect = navigator.getPosition(colIdx, itemIdx)
+      if (rect) {
+        if (mouseX >= rect.x && mouseX < rect.x + rect.width) {
+          targetColIndex = colIdx
+        }
+        break // Only need the first registered item for x-bounds
+      }
+    }
+    if (targetColIndex >= 0) break
+  }
+
+  if (targetColIndex < 0) return null
+
+  // Find which card in the column the click falls on
+  const cardIndex = navigator.findItemAtY(targetColIndex, mouseY)
+  if (cardIndex < 0) return null
+
+  const column = columns[targetColIndex]
+  const card = column?.cardNodes[cardIndex]
+  return card?.id ?? null
+}
+
 /**
  * Handle term:mouse event — entry point for all mouse input.
- * Dispatches scroll wheel to cursor movement via the command system,
- * and logs click events (full click-to-select requires HitRegistry — future step).
+ * - Scroll wheel: moves cursor by SCROLL_STEP items (feels like column scrolling)
+ * - Left click: select the card under the cursor
+ * - Double-click: enter inline edit mode on the clicked card
  */
 function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
 
   if (mouse.action === "wheel") {
-    // Scroll wheel → cursor movement through the command system
+    // Scroll wheel → move cursor by multiple items for scroll-like feel
     const dir = mouse.delta === -1 ? "prev" : "next"
     const actionCtx = buildActionCtx(get, () => {})
-    const result = handleCommandAction(actionCtx, { type: "CURSOR_MOVE", dir })
-    if (isErr(result) && result.error.type === "boundary") {
-      // Silently ignore boundary on scroll — no bell for wheel events
+    for (let i = 0; i < SCROLL_STEP; i++) {
+      const result = handleCommandAction(actionCtx, { type: "CURSOR_MOVE", dir })
+      if (isErr(result) && result.error.type === "boundary") {
+        break // Stop at boundary — don't overshoot
+      }
     }
     return
   }
 
   if (mouse.action === "down" && mouse.button === 0) {
-    // Left click — TODO: resolve screen coordinates to node via HitRegistry
-    // For now, this is a no-op placeholder. Once HitRegistry is implemented,
-    // this will map (mouse.x, mouse.y) to a node ID and move the cursor there.
+    const actionCtx = buildActionCtx(get, () => {})
+    const nodeId = resolveMouseToNode(actionCtx, mouse.x, mouse.y)
+    if (!nodeId) return
+
+    const now = Date.now()
+    const dx = Math.abs(mouse.x - lastClick.x)
+    const dy = Math.abs(mouse.y - lastClick.y)
+    const isDoubleClick =
+      now - lastClick.time < DOUBLE_CLICK_MS &&
+      dx <= DOUBLE_CLICK_DISTANCE &&
+      dy <= DOUBLE_CLICK_DISTANCE
+
+    if (isDoubleClick) {
+      // Double-click → enter inline edit on the clicked card
+      handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: 0 })
+      lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
+    } else {
+      // Single click → select the card
+      actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+      lastClick = { time: now, x: mouse.x, y: mouse.y }
+    }
     return
   }
 }
