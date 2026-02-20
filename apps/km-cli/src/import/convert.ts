@@ -207,7 +207,6 @@ function itemToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
-  depth = 2,
 ): void {
   // Within-file dedup: skip entirely if already rendered in this project
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
@@ -225,7 +224,6 @@ function itemToNodes(
         task_marker: marker as TaskMarker,
         task_status: status,
         content: `![[^${item.sourceId}]]`,
-        data: { depth },
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
@@ -310,7 +308,7 @@ function itemToNodes(
     created_at: itemCreatedAt,
     updated_at: itemUpdatedAt,
     ...(linkTo && { link_to: linkTo }),
-    data: { ...nodeData, depth },
+    data: Object.keys(nodeData).length > 0 ? nodeData : undefined,
   })
   nodes.push(taskNode)
 
@@ -341,7 +339,6 @@ function itemToNodes(
           type: "oi",
           parent_id: item.sourceId,
           content: "Comments km.collapse:: true",
-          data: { depth: depth + 1 },
           created_at: itemCreatedAt,
           updated_at: itemUpdatedAt,
         }),
@@ -374,7 +371,6 @@ function itemToNodes(
         type: "oi",
         parent_id: item.sourceId,
         content: "Attachments km.collapse:: true",
-        data: { depth: depth + 1 },
         created_at: itemCreatedAt,
         updated_at: itemUpdatedAt,
       }),
@@ -403,7 +399,6 @@ function itemToNodes(
         type: "oi",
         parent_id: item.sourceId,
         content: "Activity km.collapse:: true",
-        data: { depth: depth + 1 },
         created_at: itemCreatedAt,
         updated_at: itemUpdatedAt,
       }),
@@ -429,7 +424,7 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap, depth + 1)
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
     }
   }
 }
@@ -448,7 +443,6 @@ function sectionToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
-  depth = 2,
 ): void {
   const isPlaceholder = NO_SECTION_TITLES.has(section.title.toLowerCase().trim())
   const itemParentId = isPlaceholder ? parentId : `section-${section.sourceId}`
@@ -462,13 +456,12 @@ function sectionToNodes(
         fstype: "mdsection",
         content: section.title,
         title: section.title,
-        data: { depth },
       }),
     )
   }
 
   for (const item of section.items) {
-    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap, isPlaceholder ? depth : depth + 1)
+    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
   }
 }
 
@@ -510,7 +503,7 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap, 2)
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
     }
   }
 

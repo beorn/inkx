@@ -90,7 +90,7 @@ export function nodesToMarkdown(
  * Consecutive list items are grouped together with no blank lines between them,
  * and a single blank line is added after each group.
  */
-function serializeChildren(children: KNode[], ctx: SerializeContext): string {
+function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2): string {
   let md = ""
   const seenEmbedTargets = new Set<string>()
 
@@ -112,14 +112,14 @@ function serializeChildren(children: KNode[], ctx: SerializeContext): string {
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
-      md += serializeNode(child, ctx, 0, false)
+      md += serializeNode(child, ctx, 0, false, depth)
       if (!isNextList) {
         // End of list group - add blank line
         md += "\n"
       }
     } else {
       // Non-list items (sections, paragraphs, etc.) handle their own spacing
-      md += serializeNode(child, ctx, 0, true)
+      md += serializeNode(child, ctx, 0, true, depth)
     }
   }
 
@@ -156,9 +156,9 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
     md += `# ${node.content}\n\n`
   }
 
-  // Children (with proper list grouping)
+  // Children (with proper list grouping) — depth 2 for direct children of # heading
   const children = ctx.tree.get(node.id) ?? []
-  md += serializeChildren(children, ctx)
+  md += serializeChildren(children, ctx, 2)
 
   return md
 }
@@ -167,7 +167,7 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
  * Serialize a single node
  * @param addTrailingNewline - Whether to add trailing newline for list items (default true for backwards compat)
  */
-function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTrailingNewline: boolean = true): string {
+function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTrailingNewline: boolean = true, depth = 2): string {
   const children = ctx.tree.get(node.id) ?? []
 
   // Link nodes with embed flag or any node with link_to is a transclusion
@@ -185,7 +185,7 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
         return serializeFile(node, ctx)
       }
       // mdsection or other oi types
-      return serializeSection(node, children, ctx)
+      return serializeSection(node, children, ctx, depth)
 
     case "li":
       return serializeLi(node, children, ctx, indent, addTrailingNewline)
@@ -226,8 +226,9 @@ function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTr
 /**
  * Serialize a section (heading + children)
  */
-function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext): string {
-  const depth = (node.data?.depth as number) ?? 2
+function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext, treeDepth = 2): string {
+  // Prefer tree-computed depth; fall back to data.depth for parsed markdown roundtrip
+  const depth = (node.data?.depth as number) ?? treeDepth
   const prefix = "#".repeat(depth)
   // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
   const title = node.title ?? node.content ?? ""
@@ -239,7 +240,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext)
   let md = headingLine + "\n\n"
 
   // Use serializeChildren for proper list grouping
-  md += serializeChildren(children, ctx)
+  md += serializeChildren(children, ctx, depth + 1)
 
   return md
 }

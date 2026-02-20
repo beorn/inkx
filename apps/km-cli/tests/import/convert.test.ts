@@ -1608,8 +1608,8 @@ describe("Dependency mapping", () => {
       title: "Independent task",
     })
     const taskNode = nodes.find((n) => n.id === "t1")!
-    expect(taskNode.data).not.toHaveProperty("deps")
-    expect(taskNode.data).not.toHaveProperty("blocks")
+    expect(taskNode.data?.deps).toBeUndefined()
+    expect(taskNode.data?.blocks).toBeUndefined()
   })
 
   test("single dependency produces single ^ref (no trailing comma)", () => {
@@ -1635,8 +1635,8 @@ describe("Dependency mapping", () => {
       },
     })
     const taskNode = nodes.find((n) => n.id === "t1")!
-    expect(taskNode.data).not.toHaveProperty("deps")
-    expect(taskNode.data).not.toHaveProperty("blocks")
+    expect(taskNode.data?.deps).toBeUndefined()
+    expect(taskNode.data?.blocks).toBeUndefined()
   })
 })
 
