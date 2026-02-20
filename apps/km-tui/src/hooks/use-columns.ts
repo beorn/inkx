@@ -283,7 +283,8 @@ function kNodeToColumnView(
     if (!child.link_to) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
-    if (isCollapsedChild(child)) continue
+    // Collapsed structural nodes are kept but rendered folded (compact card)
+    // Only body blocks are filtered out by isCollapsedChild
     cardNodes.push(child)
   }
 

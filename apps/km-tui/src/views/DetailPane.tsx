@@ -585,6 +585,31 @@ function DetailSubitems({
         const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
+        // Collapsed sections render muted with just the title + count
+        const isSectionCollapsed = item.rules?.collapse === true
+        if (isSectionCollapsed) {
+          const kidCount = repo.getChildren(item.id).length
+          return (
+            <React.Fragment key={`${item.id}-${idx}`}>
+              <Text> </Text>
+              <Box>
+                <Text dimColor>{"─".repeat(innerWidth)}</Text>
+              </Box>
+              <Text> </Text>
+              <Box flexDirection="row" width={innerWidth}>
+                <Box width={2} flexShrink={0}>
+                  <Text dimColor>{icon.char}</Text>
+                </Box>
+                <Box flexGrow={1} flexShrink={1}>
+                  <Text dimColor wrap="truncate">
+                    {stripInlineRefs(getNodeDisplayName(repo, displayItem))}
+                    {kidCount > 0 ? ` ··· ${kidCount}` : " ···"}
+                  </Text>
+                </Box>
+              </Box>
+            </React.Fragment>
+          )
+        }
         // For embeds, get children from the target node (transclusion)
         const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : item.id
         const allKids = repo.getChildren(childrenSourceId)
@@ -671,6 +696,8 @@ function OutlineTree({
   return (
     <>
       {items.map((item, idx) => {
+        // Collapsed sections are hidden from the outline tree
+        if (item.rules?.collapse === true) return null
         // Context-dependent rendering: resolve embed targets for display
         const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)

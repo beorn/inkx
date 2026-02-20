@@ -286,6 +286,39 @@ const Card = React.memo(
       )
     }
 
+    // Collapsed card: show title + ··· indicator, no body/children.
+    // Uses dotted border to visually distinguish from normal cards.
+    const isCardCollapsed = card.rules?.collapse === true
+    if (isCardCollapsed) {
+      const title = renderPlain(getNodeDisplayName(repo, card) ?? card.content ?? "")
+      const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "yellow" : "gray"
+      return (
+        <Box
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          borderStyle="round"
+          borderColor={collapsedBorder}
+          borderDimColor={!isSelected && !isMultiSelected && !isColSelected}
+        >
+          <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          <Box
+            id={nodeId}
+            data-view="item"
+            {...(isSelected && {
+              "data-cursor": true,
+              "data-col-index": colIndex,
+              "data-card-index": cardIndex,
+            })}
+          >
+            <Text dimColor={!isSelected && !isMultiSelected} wrap="truncate">
+              {title}{childCount > 0 ? ` ··· ${childCount}` : " ···"}
+            </Text>
+          </Box>
+        </Box>
+      )
+    }
+
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
