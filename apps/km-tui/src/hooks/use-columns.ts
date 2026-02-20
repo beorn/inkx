@@ -13,10 +13,13 @@
 import { useMemo, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { createLogger } from "@beorn/logger"
 import { extractBody } from "@km/tree"
 import type { ColumnState, CardState } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
+
+const log = createLogger("km:tui:columns")
 
 // =============================================================================
 // Helpers — detail-only filtering
@@ -103,6 +106,7 @@ function mapDescendants(
  * zoomed-in views render identically to the board root.
  */
 export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
+  using span = log.span("derive-columns")
   // Split root children into leading body content and structural columns.
   // Only oi nodes become columns; li/link/block nodes before the first oi
   // are leading body content (displayed as a virtual "Description" column).
@@ -138,6 +142,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
     columns.push(kNodeToColumnState(repo, node, wipLimits, foldedNodes))
   }
 
+  span.spanData.columns = columns.length
   return columns
 }
 

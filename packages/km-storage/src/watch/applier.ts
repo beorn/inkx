@@ -75,25 +75,27 @@ export function applyReconcileOps(
 
   const { db, ops: reconcileOps, repoRoot: root, emitter: emit, fs: fileOps = realFs } = options
 
-  log.debug?.(`applying ${reconcileOps.length} reconcile ops`)
-  const start = Date.now()
+  using span = log.span("apply-ops", { count: reconcileOps.length })
 
   // Build lookup map once for efficient link resolution
-  const resolver = createLinkResolver(db)
-  log.debug?.(`resolver ready with ${resolver.size} files`)
+  let resolver: ReturnType<typeof createLinkResolver>
+  {
+    using resolverSpan = span.span("build-resolver")
+    resolver = createLinkResolver(db)
+    resolverSpan.spanData.files = resolver.size
+  }
 
   // Context for collecting new files for batch link resolution
   const ctx: ReconcileContext = { newFiles: [], resolver }
 
   for (const op of reconcileOps) {
-    log.debug?.(`applying op: ${op.type} ${op.path}`)
+    using opSpan = span.span("apply-op", { type: op.type, path: op.path })
     applyOp(db, op, root, emit, fileOps, ctx)
+    void opSpan // used via dispose
   }
 
   // Batch resolve links for all new files at once
   finalizeBatchLinks(db, ctx)
-
-  log.debug?.(`applied ${reconcileOps.length} ops in ${Date.now() - start}ms`)
 }
 
 /**

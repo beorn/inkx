@@ -115,6 +115,7 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
  * Multiple queries are unioned — a node matching any query is included.
  */
 function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx: RuleContext): void {
+  using ruleSpan = log.span("evaluate-add-rule", { sectionId, queryCount: queries.length })
   log.debug?.(`evaluateAddRule: section=${sectionId} queries=${queries.join(" | ")}`)
 
   const section = getNode(db, sectionId)
@@ -227,9 +228,10 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     existingOnBoard.add(match.id) // Prevent adding same match twice
   }
 
-  if (addedCount > 0 || removedCount > 0 || skippedCount > 0) {
-    log.debug?.(`evaluateAddRule: +${addedCount} -${removedCount} skipped=${skippedCount}`)
-  }
+  ruleSpan.spanData.added = addedCount
+  ruleSpan.spanData.removed = removedCount
+  ruleSpan.spanData.skipped = skippedCount
+  ruleSpan.spanData.matches = matchingNodes.length
 
   // Mark the file for write-back if we added or removed any embeds
   if (addedCount > 0 || removedCount > 0) {

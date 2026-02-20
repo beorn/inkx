@@ -22,7 +22,6 @@ import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 
 const log = createLogger("km:tui")
-const spanLog = createLogger("km:tui")
 
 /**
  * Global event emitter for TUI refresh events
@@ -88,7 +87,7 @@ function computeInitialCursor(state: InitialBoardData): string | null {
  */
 // oxlint-disable-next-line complexity/complexity -- 31/30: async setup with nested callbacks, not worth extracting
 export async function runBoard(state: InitialBoardData | null, options?: TuiOptions): Promise<void> {
-  using run = spanLog.span("run-board")
+  using run = log.span("run-board")
   log.debug?.("runBoard start")
 
   if (!state || !options?.repo) {
@@ -153,6 +152,18 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     log.debug?.("Starting syncManager...")
     syncManager.start()
     log.debug?.("syncManager started")
+
+    // Event-loop heartbeat: detect main-thread blocks >500ms
+    let lastHeartbeat = performance.now()
+    const heartbeatInterval = setInterval(() => {
+      const now = performance.now()
+      const gap = now - lastHeartbeat
+      if (gap > 500) {
+        log.warn?.(`event loop blocked for ${gap.toFixed(0)}ms`)
+      }
+      lastHeartbeat = now
+    }, 200)
+    void heartbeatInterval // runs until process exit
   }
 
   // Register error handlers to clean up terminal on crash

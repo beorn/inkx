@@ -334,25 +334,27 @@ export class SyncManager extends EventEmitter {
    * Handle filesystem sync event
    */
   private handleFsSync(data: { paths: string[]; directories: string[] }): void {
-    log.debug?.(`fs sync triggered: ${data.paths.length} paths, ${data.directories.length} directories`)
+    using span = log.span("fs-sync", { paths: data.paths.length, dirs: data.directories.length })
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
 
     try {
       for (const dir of data.directories) {
+        using dirSpan = span.span("reconcile-dir", { dir })
         const ops = reconcileDirectory(this.db, dir, this.config.repoPath, this.ignorePatterns)
-        log.debug?.(`reconciled ${dir}: ${ops.length} ops`)
+        dirSpan.spanData.ops = ops.length
 
         if (ops.length > 0) {
           this.setState("emitting")
+          using applySpan = dirSpan.span("apply")
           applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+          applySpan.spanData.ops = ops.length
         }
       }
     } catch (error) {
-      log.debug?.(`fs sync error: ${String(error)}`)
+      span.error?.(error instanceof Error ? error : String(error))
       this.emit("error", error)
     }
-
     this.lastActivityTime = Date.now()
     this.setState("idle")
   }
