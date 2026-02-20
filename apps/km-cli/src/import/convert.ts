@@ -832,7 +832,7 @@ function* generateTagFiles(
         id: fileId,
         type: "oi",
         fstype: "mdfile",
-        content: `#${tagSlug}`,
+        content: tagSlug,
       }),
     )
 

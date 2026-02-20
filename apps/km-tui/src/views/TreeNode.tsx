@@ -353,7 +353,11 @@ function TreeNodeImpl({
   const sigilName = useMemo(() => {
     const name = displayNode.name
     if (!name || !isSigilName(name)) return null
-    if (name === cleanContent) return null // redundant — title IS the sigil
+    // Normalize for comparison: lowercase, collapse non-alphanum to hyphens
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\p{L}]+/gu, "-").replace(/^-|-$/g, "")
+    const nameNorm = normalize(name.slice(1)) // strip sigil prefix (@/#/+)
+    const contentNorm = normalize(cleanContent)
+    if (nameNorm === contentNorm) return null // redundant — name is a slugified version of the title
     if (excludedSigils.includes(name)) return null // redundant — excluded by board/column context
     return name
   }, [displayNode.name, cleanContent, excludedSigils])
