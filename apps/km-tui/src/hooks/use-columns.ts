@@ -23,13 +23,16 @@ import { parseHeadingRules } from "@km/markdown"
 const log = createLogger("km:tui:columns")
 
 // =============================================================================
-// Helpers — detail-only filtering
+// Helpers — collapsed node filtering
 // =============================================================================
 
-/** Nodes marked detailOnly (e.g., imported comments/attachments/activity) are
- *  shown only in the detail pane, never as cards in columns. */
-function isDetailOnly(node: KNode): boolean {
-  return (node.data as Record<string, unknown>)?.detailOnly === true
+/** Nodes with km.collapse:: true (e.g., imported comments/attachments/activity) are
+ *  shown only in the detail pane, never as cards in columns.
+ *  Also supports legacy detailOnly data flag. */
+function isCollapsedChild(node: KNode): boolean {
+  if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
+  const rules = node.rules ?? parseHeadingRules(node.title || "").rules
+  return rules.collapse === true
 }
 
 // =============================================================================
@@ -163,7 +166,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   // Add virtual body column for meaningful leading content
   // (paragraphs, tasks, embeds that appear before the first section/file/folder)
   const filteredBody = bodyNodes.filter(
-    (n) => !isDetailOnly(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
   )
 
   if (filteredBody.length > 0) {
@@ -275,12 +278,12 @@ function kNodeToColumnView(
   const virtualCardIds = new Set<string>()
 
   for (const child of bodyNodes) {
-    if (isDetailOnly(child)) continue
+    if (isCollapsedChild(child)) continue
     cardNodes.push(child)
     if (!child.link_to) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
-    if (isDetailOnly(child)) continue
+    if (isCollapsedChild(child)) continue
     cardNodes.push(child)
   }
 

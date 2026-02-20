@@ -804,7 +804,7 @@ describe("Child node structure", () => {
     const commentsParent = nodes.find((n) => n.id === "comments-t1")!
     expect(commentsParent).toBeDefined()
     expect(commentsParent.parent_id).toBe("t1")
-    expect(commentsParent.content).toBe("Comments")
+    expect(commentsParent.content).toBe("Comments km.collapse:: true")
     const commentChild = nodes.find((n) => n.parent_id === "comments-t1")!
     expect(commentChild).toBeDefined()
     expect(commentChild.content).toContain("2026-02-10 @alice: Nice work!")
@@ -833,7 +833,7 @@ describe("Child node structure", () => {
     const attachParent = nodes.find((n) => n.id === "attachments-t1")!
     expect(attachParent).toBeDefined()
     expect(attachParent.parent_id).toBe("t1")
-    expect(attachParent.content).toBe("Attachments")
+    expect(attachParent.content).toBe("Attachments km.collapse:: true")
     const children = nodes.filter((n) => n.parent_id === "attachments-t1")
     expect(children).toHaveLength(2)
     expect(children[0]!.content).toBe("![photo.jpg](https://example.com/photo.jpg)")
