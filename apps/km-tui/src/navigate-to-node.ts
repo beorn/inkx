@@ -24,7 +24,7 @@ export interface NavigateRepo {
   getChildren(id: string | null): KNode[]
 }
 
-export type NavigateAction = "SELECT" | "ZOOM_IN"
+export type NavigateAction = "SELECT" | "ZOOM_IN" | "DETAIL_VIEW"
 
 export interface NavigateResult {
   action: NavigateAction
@@ -80,6 +80,25 @@ export function navigateToNode(targetId: string, rootId: string | null, repo: Na
   // Case 3: Target is deeper — need to zoom.
   // Walk the ancestor chain to determine the best zoom level.
   const { zoomTarget, cursorTarget } = resolveZoomTarget(target, repo)
+
+  // If the zoom target would produce a flat list (no oi children = single body
+  // column with only leaf cards), open the detail panel for the cursor target
+  // instead of landing on a visually unhelpful flat board.
+  // We still zoom so the node becomes visible, but signal the caller to also
+  // open the detail pane.
+  const zoomChildren = repo.getChildren(zoomTarget)
+  const hasStructure = zoomChildren.some((c) => isOutline(c.type))
+  if (!hasStructure) {
+    log.debug?.(
+      `navigateToNode: DETAIL_VIEW for ${cursorTarget.slice(-8)} (zoom target ${zoomTarget.slice(-8)} is flat)`,
+    )
+    return {
+      action: "DETAIL_VIEW",
+      zoomTarget,
+      cursorTarget,
+    }
+  }
+
   log.debug?.(`navigateToNode: ZOOM_IN to ${zoomTarget.slice(-8)}, cursor on ${cursorTarget.slice(-8)}`)
 
   return {

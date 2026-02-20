@@ -20,9 +20,9 @@ import { makeSelectionKey, type SelectionKey } from "../types.ts"
  * Moves focus up/down within the same column; selection derived from anchor to focus.
  */
 export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "down"): void {
-  const { layout, ui, dispatchBoard } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { ui, dispatchBoard } = ctx
+  const col = ctx.column
+  const card = ctx.card
 
   if (!card || !col) return
 
@@ -38,9 +38,11 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
 
   // Calculate target
   const targetIdx =
-    direction === "up" ? Math.max(0, layout.cardIndex - 1) : Math.min(col.cards.length - 1, layout.cardIndex + 1)
+    direction === "up"
+      ? Math.max(0, ctx.layout.cardIndex - 1)
+      : Math.min(col.cards.length - 1, ctx.layout.cardIndex + 1)
 
-  if (targetIdx === layout.cardIndex) {
+  if (targetIdx === ctx.layout.cardIndex) {
     // At boundary: if we just initialized the anchor, select the current card
     if (initAnchor) {
       const newSelected = new Set(ui.multiSelected)
@@ -59,7 +61,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Derive selection from anchor to new focus
-    updateSelectionRange(ctx, layout.colIndex, targetIdx, 0)
+    updateSelectionRange(ctx, ctx.layout.colIndex, targetIdx, 0)
   }
 }
 
@@ -68,26 +70,26 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
  * Selects entire columns between anchor and focus.
  */
 export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" | "right"): void {
-  const { layout, ui, dispatchBoard } = ctx
-  const columns = layout.columns
+  const { ui, dispatchBoard } = ctx
+  const columns = ctx.layout.columns
 
   if (columns.length === 0) return
 
   // Resolve anchor column from nodeId (or use current cursor column)
-  const anchorCol = resolveAnchorCol(ctx) ?? layout.colIndex
+  const anchorCol = resolveAnchorCol(ctx) ?? ctx.layout.colIndex
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
-    direction === "right" ? Math.min(columns.length - 1, layout.colIndex + 1) : Math.max(0, layout.colIndex - 1)
+    direction === "right" ? Math.min(columns.length - 1, ctx.layout.colIndex + 1) : Math.max(0, ctx.layout.colIndex - 1)
 
   // At boundary with no selection: select current column
   // At boundary with existing selection: do nothing
-  if (targetColIdx === layout.colIndex) {
+  if (targetColIdx === ctx.layout.colIndex) {
     if (ui.multiSelected.size > 0) return
   }
 
   // Set anchor if starting fresh
-  const card = layout.columns[layout.colIndex]?.cards[layout.cardIndex]
+  const card = ctx.card
   if (ui.selectionAnchor === null && card) {
     ctx.setUI({
       selectionAnchor: { nodeId: card.node.id, sub: 0 },

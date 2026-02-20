@@ -22,13 +22,11 @@ import type { NavState } from "../view-navigation.ts"
  * vertical (hierarchical), and tree-based navigation.
  */
 export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
-  const { layout, ui } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { ui } = ctx
 
   // Outline mode sub-item navigation
   if (ui.inOutlineMode && (dir === "prev" || dir === "next")) {
-    return handleOutlineNav(ctx, dir, card)
+    return handleOutlineNav(ctx, dir, ctx.card)
   }
 
   // Non-shift cursor moves clear multi-selection (Shift+movement extends it
@@ -77,13 +75,13 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: CardState 
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
 function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
-  const { layout, ui, dispatchBoard, navigator, viewNavigation } = ctx
+  const { ui, dispatchBoard, navigator, viewNavigation } = ctx
 
   // Lazy capture: if stickyY not yet set, capture from current card by nodeId.
   // At h/l time, the focused card is always rendered (no dispatch has happened yet).
   // j/k clears stickyY; subsequent h/l preserves it.
-  if (navigator.stickyY === null && layout.isAtCardLevel) {
-    const midY = navigator.getItemMidY(layout.colIndex, layout.cardIndex)
+  if (navigator.stickyY === null && ctx.layout.isAtCardLevel) {
+    const midY = navigator.getItemMidY(ctx.layout.colIndex, ctx.layout.cardIndex)
     if (midY > 0) {
       navigator.setStickyY(midY)
     }
@@ -257,20 +255,19 @@ export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"
  * Page jump up or down.
  */
 export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
-  const { layout, ui, dispatchBoard } = ctx
-  const col = layout.columns[layout.colIndex]
+  const { ui, dispatchBoard } = ctx
+  const col = ctx.column
 
   if (!col) return
 
   // Page size is roughly half the visible cards
   const pageSize = Math.max(5, Math.floor((ui.dimensions.rows - 4) / 2))
 
-  let targetIdx =
-    direction === "up"
-      ? Math.max(0, layout.cardIndex - pageSize)
-      : Math.min(col.cards.length - 1, layout.cardIndex + pageSize)
+  const currentIdx = ctx.layout.cardIndex
+  const targetIdx =
+    direction === "up" ? Math.max(0, currentIdx - pageSize) : Math.min(col.cards.length - 1, currentIdx + pageSize)
 
-  if (targetIdx !== layout.cardIndex) {
+  if (targetIdx !== currentIdx) {
     const targetCard = col.cards[targetIdx]
     if (targetCard) {
       dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })

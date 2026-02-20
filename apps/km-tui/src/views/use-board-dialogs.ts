@@ -167,6 +167,15 @@ export function useBoardDialogs({
       if (nav.action === "SELECT") {
         // Target is already visible (child/grandchild of root, or IS the root)
         dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
+      } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
+        // Zoom target would produce a flat list — zoom there but also open detail pane
+        // so the user sees rich content instead of a single-column flat board.
+        dispatchBoard({
+          type: "ZOOM_IN",
+          nodeId: nav.zoomTarget,
+          cursorNodeId: nav.cursorTarget,
+        })
+        setUI({ showDetailPane: true, detailScrollOffset: 0 })
       } else {
         // Target is deeper — zoom to make it a visible card.
         // Dispatch zoom synchronously with dialog close so both state changes

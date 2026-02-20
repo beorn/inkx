@@ -48,7 +48,7 @@ function firstCardId(
  * Handles detail pane, outline mode, and actual zoom operations.
  */
 export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
-  const { ui, layout, dispatchBoard } = ctx
+  const { ui, dispatchBoard } = ctx
 
   // Close overlays first
   if (ui.showDetailPane) {
@@ -81,7 +81,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
       // Keep cursor on current node if it would be visible; otherwise use the column
       // the cursor was in (becomes a card); otherwise fall back to old root (becomes a column).
       const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
-      const col = layout.columns[layout.colIndex]
+      const col = ctx.column
       let cursorTarget = ctx.rootId // fallback: old root (always a column)
 
       if (cursorNode) {
@@ -144,9 +144,9 @@ function navigateToParent(ctx: ActionCtx): ActionResult {
  * Zoom into the selected card.
  */
 export function handleZoomIn(ctx: ActionCtx): ActionResult {
-  const { dispatchBoard, layout } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { dispatchBoard } = ctx
+  const col = ctx.column
+  const card = ctx.card
 
   // Support zoom at both card and column level
   const nodeId = card?.node.id ?? col?.node.id
@@ -207,9 +207,8 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
  * Stops walking at repo root (parent_id === null).
  */
 export function handleFollowLink(ctx: ActionCtx): ActionResult {
-  const { layout, dispatchBoard } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { dispatchBoard } = ctx
+  const card = ctx.card
   // Read link_to fresh from the repo — the cached layout may have stale null
   // values if background link resolution completed after layout was derived.
   const freshNode = card ? ctx.repo.getNode(card.node.id) : null
@@ -260,9 +259,9 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
  * Zoom inwards - handles outline mode sub-selection or standard zoom.
  */
 export function handleZoomInwards(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchBoard, layout } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { ui, dispatchBoard } = ctx
+  const col = ctx.column
+  const card = ctx.card
 
   // If at column level (no card selected), zoom into the column directly
   if (!card) {

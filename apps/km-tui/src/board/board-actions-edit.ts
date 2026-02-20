@@ -25,7 +25,7 @@ import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskMarker, typ
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
-import { clearSelection, getSelectedCards, refreshBoardState } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, getSelectedCards } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnState } from "../types.ts"
 
@@ -76,9 +76,9 @@ export function needsRenderFlush(): boolean {
  * has children/backlinks/metadata. All-or-nothing after confirmation.
  */
 export function handleDeleteNode(ctx: ActionCtx): void {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { repo } = ctx
+  const col = ctx.column
+  const card = ctx.card
 
   if (!card && col) {
     // Column-level delete — confirmation only if non-empty
@@ -192,7 +192,8 @@ export function executeDelete(ctx: ActionCtx, nodeId: string): void {
  * Clears multi-selection after deletion.
  */
 export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
-  const { layout, repo } = ctx
+  const { repo } = ctx
+  const deleteSet = new Set(nodeIds)
 
   // Recursively delete all descendants bottom-up
   const deleteRecursive = (id: string) => {
@@ -207,6 +208,34 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
   const firstNode = repo.getNode(nodeIds[0] ?? "")
   const isDeletingColumn = firstNode?.parent_id === ctx.rootId
 
+  // Pre-compute the cursor target: find next surviving sibling BEFORE deletion
+  let cursorTarget: string | null = null
+  if (isDeletingColumn) {
+    // For column delete, find adjacent column not being deleted
+    const columns = ctx.layout.columns
+    const colIdx = columns.findIndex((c) => deleteSet.has(c.node.id))
+    // Try next column, then previous
+    const nextCol = columns.slice(colIdx + 1).find((c) => !deleteSet.has(c.node.id))
+    const prevCol = columns
+      .slice(0, colIdx)
+      .reverse()
+      .find((c) => !deleteSet.has(c.node.id))
+    const targetCol = nextCol ?? prevCol
+    cursorTarget = targetCol?.cards[0]?.node.id ?? targetCol?.node.id ?? null
+  } else {
+    // For card delete, find adjacent card in same column not being deleted
+    const col = ctx.column
+    if (col) {
+      const cardIdx = col.cards.findIndex((c) => deleteSet.has(c.node.id))
+      const nextCard = col.cards.slice(cardIdx + 1).find((c) => !deleteSet.has(c.node.id))
+      const prevCard = col.cards
+        .slice(0, cardIdx)
+        .reverse()
+        .find((c) => !deleteSet.has(c.node.id))
+      cursorTarget = (nextCard ?? prevCard)?.node.id ?? col.node.id
+    }
+  }
+
   // Batch all deletions into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Delete")
@@ -220,15 +249,12 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
 
   clearSelection(ctx)
 
-  if (isDeletingColumn) {
-    refreshBoardState(ctx, {
-      colIndex: Math.max(0, layout.colIndex - 1),
-      cardIndex: 0,
-    })
+  // Select the pre-computed cursor target
+  if (cursorTarget) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: cursorTarget })
   } else {
-    refreshBoardState(ctx, {
-      cardIndex: (c) => Math.min(layout.cardIndex, Math.max(0, (c?.cards.length ?? 1) - 1)),
-    })
+    // Fallback: re-select current cursor (may land on column header)
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
   }
 }
 
@@ -253,8 +279,8 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
  * Inherits node type from cursor node (task → task, section → section).
  */
 function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
+  const { repo } = ctx
+  const col = ctx.column
   if (!col) return
 
   // Query repo for fresh children (layout.columns.cards may be stale after prior addNode)
@@ -295,11 +321,8 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(col.node.id, newNode)
 
-  // Refresh board state — usePositionHints because new node isn't in nodeIndex yet
-  refreshBoardState(ctx, {
-    cardIndex: position === "after" ? currentSibIdx + 1 : currentSibIdx,
-    usePositionHints: true,
-  })
+  // Select the newly created node directly by ID
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
 
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
   _needsFlush = true
@@ -310,8 +333,8 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
  * Pushes an undo entry that deletes the new node.
  */
 export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
+  const { repo } = ctx
+  const col = ctx.column
   if (!col) return
 
   const sourceNode = repo.getNode(nodeId)
@@ -347,22 +370,20 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   const parentId = col.node.id
   // Auto-recorded by undoable repo — no manual undo entry needed
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
-  repo.addNode(parentId, newNode)
+  const newId = repo.addNode(parentId, newNode)
 
-  refreshBoardState(ctx, {
-    cardIndex: currentSibIdx + 1,
-    usePositionHints: true,
-  })
+  // Select the duplicated node directly by ID
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
 }
 
 /**
  * Confirm move operation - move selected nodes to target column.
  */
 export function handleConfirmMove(ctx: ActionCtx): void {
-  const { layout, repo, dispatchBoard } = ctx
+  const { repo, dispatchBoard } = ctx
   const sourceNodeIds = ctx.moveSourceNodes
   if (sourceNodeIds.length === 0) return
-  const targetCol = layout.columns[layout.colIndex]
+  const targetCol = ctx.column
   if (!targetCol) return
 
   // Batch all moves into a single undo entry
@@ -378,10 +399,11 @@ export function handleConfirmMove(ctx: ActionCtx): void {
 
   ctx.undoHandle.endBatch()
   dispatchBoard({ type: "CONFIRM_MOVE" })
-  refreshBoardState(ctx, {
-    colIndex: layout.colIndex,
-    cardIndex: () => targetCol.cards.length,
-  })
+  // Select the last moved node by ID
+  const lastMovedId = sourceNodeIds[sourceNodeIds.length - 1]
+  if (lastMovedId) {
+    dispatchBoard({ type: "SELECT", nodeId: lastMovedId })
+  }
 }
 
 /**
@@ -454,7 +476,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
-  refreshBoardState(ctx)
+  // Re-select current node to trigger UI update
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
 }
 
 /**
@@ -464,9 +487,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * When cursor is on a column header: left/right reorders columns.
  */
 export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left" | "right"): ActionResult {
-  const { layout } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const col = ctx.column
+  const card = ctx.card
 
   if (!card) {
     // At column header level — reorder columns left/right
@@ -492,11 +514,13 @@ function moveColumn(
   col: { node: { id: string; parent_idx: number } },
   direction: "left" | "right",
 ): ActionResult {
-  const { layout, repo } = ctx
-  const targetIndex = direction === "left" ? layout.colIndex - 1 : layout.colIndex + 1
-  if (targetIndex < 0 || targetIndex >= layout.columns.length) return boundary(direction)
+  const { repo } = ctx
+  const columns = ctx.layout.columns
+  const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
+  const targetIndex = direction === "left" ? colIndex - 1 : colIndex + 1
+  if (targetIndex < 0 || targetIndex >= columns.length) return boundary(direction)
 
-  const targetCol = layout.columns[targetIndex]
+  const targetCol = columns[targetIndex]
   if (!targetCol) return boundary(direction)
 
   // Virtual columns (e.g., __body__) are synthetic — can't be moved in the repo
@@ -507,7 +531,7 @@ function moveColumn(
   ctx.undoHandle.startBatch("Move column")
 
   // Normalize sort orders for just the two columns being swapped (not all columns)
-  normalizeColumnSortOrders(ctx, layout.colIndex, targetIndex)
+  normalizeColumnSortOrders(ctx, colIndex, targetIndex)
 
   // Swap sort orders by moving each column to the other's position
   const parentId = ctx.rootId
@@ -521,7 +545,8 @@ function moveColumn(
 
   ctx.undoHandle.endBatch()
 
-  refreshBoardState(ctx, { colIndex: targetIndex })
+  // Column moved — re-select by node ID (column header)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
   return ok()
 }
 
@@ -533,9 +558,9 @@ function moveColumn(
  * columns being swapped.
  */
 function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB: number): void {
-  const { layout, repo } = ctx
-  const colA = layout.columns[colIndexA]
-  const colB = layout.columns[colIndexB]
+  const { repo } = ctx
+  const colA = ctx.layout.columns[colIndexA]
+  const colB = ctx.layout.columns[colIndexB]
   if (!colA || !colB) return
 
   // Only normalize if the two columns share the same parent_idx
@@ -560,13 +585,14 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
  * the previous column to follow the indented content.
  */
 export function handleIndentColumn(ctx: ActionCtx, col: ColumnState): ActionResult {
-  const { layout, repo } = ctx
-  const colIndex = layout.colIndex
+  const { repo } = ctx
+  const columns = ctx.layout.columns
+  const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
 
   // Need a previous column to indent into
-  if (colIndex === 0) return boundary("indent", "First column can't be indented")
+  if (colIndex <= 0) return boundary("indent", "First column can't be indented")
 
-  const prevCol = layout.columns[colIndex - 1]
+  const prevCol = columns[colIndex - 1]
   if (!prevCol) return boundary("indent", "No previous column")
 
   // Calculate sort order: after last card in target column
@@ -580,11 +606,8 @@ export function handleIndentColumn(ctx: ActionCtx, col: ColumnState): ActionResu
   // Move the column node under the previous column
   repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)
 
-  // Cursor goes to previous column's first card (the column is now a card there)
-  refreshBoardState(ctx, {
-    colIndex: colIndex - 1,
-    cardIndex: () => targetCards.length, // the new card is at the end
-  })
+  // The indented column is now a card under prevCol — select it by node ID
+  ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
 
   return ok()
 }

@@ -630,9 +630,11 @@ describe("navigateToNode", () => {
     })
   })
 
-  test("body-only grandparent without great-grandparent → walks cursor to parent", () => {
+  test("body-only grandparent without great-grandparent → DETAIL_VIEW (flat list fallback)", () => {
     // Structure: flatList(oi, no oi children) > task1(li) > subtask1(li)
-    // No great-grandparent → zoom to flatList, cursor on task1 (parent)
+    // No great-grandparent → flatList is the zoom target but has no structure.
+    // Returns DETAIL_VIEW so the caller opens the detail pane instead of
+    // landing on a single-column flat board.
     const flatListNode = makeOiNode("flatList", null, 0)
     const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
     const task2Nodes = makeLiNode("task2", "flatList", 1)
@@ -641,7 +643,7 @@ describe("navigateToNode", () => {
 
     const result = navigateToNode("subtask1", null, repo)
     expect(result).toEqual({
-      action: "ZOOM_IN",
+      action: "DETAIL_VIEW",
       zoomTarget: "flatList",
       cursorTarget: "task1",
     })

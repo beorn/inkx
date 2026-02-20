@@ -803,3 +803,140 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding("D", { shift: true }, ctx)).not.toBe("delete_node")
   })
 })
+
+describe("text mode keybinding separation", () => {
+  const inlineCtx = createContext({ isInlineEditing: true, textInputFocused: true })
+  const nodeCtx = createContext()
+
+  beforeEach(() => {
+    clearKeybindings()
+    initDefaultKeybindings()
+  })
+
+  describe("node-mode commands are blocked during inline editing", () => {
+    // Navigation keys that should NOT fire in text mode
+    it.each([
+      ["Tab", {}, "indent_node"],
+      ["Tab", { shift: true }, "outdent"],
+      ["m", {}, "enter_move_mode"],
+      ["q", {}, "quit"],
+      ["v", {}, "cycle_view_mode"],
+      ["/", {}, "search"],
+      ["?", {}, "show_help"],
+      ["c", {}, "toggle_collapse"],
+      ["x", {}, "cycle_task_status"],
+      [" ", {}, "toggle_detail_pane"],
+      ["[", {}, "nav_back"],
+      ["]", {}, "nav_forward"],
+      ["e", {}, "zoom_in"],
+      ["u", {}, "zoom_outwards"],
+      ["i", {}, "zoom_inwards"],
+      ["o", {}, "open_in_system"],
+      ["p", {}, "insert_above"],
+      ["n", {}, "insert_below"],
+      ["d", {}, "duplicate_node"],
+    ])("%s (normally %s) is blocked in text mode", (key, mods, normalCmd) => {
+      // Verify it works in node mode
+      expect(resolveKeybinding(key, mods, nodeCtx)).toBe(normalCmd)
+      // In text mode, it should resolve to noop (wildcard catch-all)
+      expect(resolveKeybinding(key, mods, inlineCtx)).toBe("noop")
+    })
+  })
+
+  describe("text-editing keys still work during inline editing", () => {
+    it("Escape → text.exit_edit", () => {
+      expect(resolveKeybinding("Escape", {}, inlineCtx)).toBe("text.exit_edit")
+    })
+
+    it("Enter → text.confirm", () => {
+      expect(resolveKeybinding("Enter", {}, inlineCtx)).toBe("text.confirm")
+    })
+
+    it("Backspace → text.delete_backward", () => {
+      expect(resolveKeybinding("Backspace", {}, inlineCtx)).toBe("text.delete_backward")
+    })
+
+    it("Delete → text.delete_forward", () => {
+      expect(resolveKeybinding("Delete", {}, inlineCtx)).toBe("text.delete_forward")
+    })
+
+    it("ArrowLeft → text.cursor_left", () => {
+      expect(resolveKeybinding("ArrowLeft", {}, inlineCtx)).toBe("text.cursor_left")
+    })
+
+    it("ArrowRight → text.cursor_right", () => {
+      expect(resolveKeybinding("ArrowRight", {}, inlineCtx)).toBe("text.cursor_right")
+    })
+
+    it("ArrowUp → text.cursor_up", () => {
+      expect(resolveKeybinding("ArrowUp", {}, inlineCtx)).toBe("text.cursor_up")
+    })
+
+    it("ArrowDown → text.cursor_down", () => {
+      expect(resolveKeybinding("ArrowDown", {}, inlineCtx)).toBe("text.cursor_down")
+    })
+
+    it("Ctrl+a → text.cursor_start", () => {
+      expect(resolveKeybinding("a", { ctrl: true }, inlineCtx)).toBe("text.cursor_start")
+    })
+
+    it("Ctrl+e → text.cursor_end", () => {
+      expect(resolveKeybinding("e", { ctrl: true }, inlineCtx)).toBe("text.cursor_end")
+    })
+
+    it("Ctrl+w → text.delete_word", () => {
+      expect(resolveKeybinding("w", { ctrl: true }, inlineCtx)).toBe("text.delete_word")
+    })
+
+    it("Ctrl+u → text.delete_to_start", () => {
+      expect(resolveKeybinding("u", { ctrl: true }, inlineCtx)).toBe("text.delete_to_start")
+    })
+
+    it("Ctrl+k → text.delete_to_end", () => {
+      expect(resolveKeybinding("k", { ctrl: true }, inlineCtx)).toBe("text.delete_to_end")
+    })
+  })
+
+  describe("undo/redo work during inline editing", () => {
+    it("Ctrl+z → undo", () => {
+      expect(resolveKeybinding("z", { ctrl: true }, inlineCtx)).toBe("undo")
+    })
+
+    it("Ctrl+Shift+z → redo", () => {
+      expect(resolveKeybinding("z", { ctrl: true, shift: true }, inlineCtx)).toBe("redo")
+    })
+
+    it("Ctrl+y → text.yank", () => {
+      expect(resolveKeybinding("y", { ctrl: true }, inlineCtx)).toBe("text.yank")
+    })
+  })
+
+  describe("Ctrl combos from node-mode are blocked during inline editing", () => {
+    it("Ctrl+d (page down) is blocked", () => {
+      expect(resolveKeybinding("d", { ctrl: true }, nodeCtx)).toBe("page_down")
+      expect(resolveKeybinding("d", { ctrl: true }, inlineCtx)).toBe("noop")
+    })
+
+    it("Ctrl+j (sibling board next) is blocked", () => {
+      expect(resolveKeybinding("j", { ctrl: true }, nodeCtx)).toBe("sibling_board_next")
+      expect(resolveKeybinding("j", { ctrl: true }, inlineCtx)).toBe("noop")
+    })
+
+    it("Ctrl+i (open detail pane) is blocked", () => {
+      expect(resolveKeybinding("i", { ctrl: true }, nodeCtx)).toBe("open_detail_pane")
+      expect(resolveKeybinding("i", { ctrl: true }, inlineCtx)).toBe("noop")
+    })
+  })
+
+  describe("Meta+direction keys are blocked during inline editing", () => {
+    it("Meta+ArrowUp (shift up) is blocked", () => {
+      expect(resolveKeybinding("ArrowUp", { meta: true }, nodeCtx)).toBe("shift_up")
+      expect(resolveKeybinding("ArrowUp", { meta: true }, inlineCtx)).toBe("noop")
+    })
+
+    it("Meta+ArrowDown (shift down) is blocked", () => {
+      expect(resolveKeybinding("ArrowDown", { meta: true }, nodeCtx)).toBe("shift_down")
+      expect(resolveKeybinding("ArrowDown", { meta: true }, inlineCtx)).toBe("noop")
+    })
+  })
+})

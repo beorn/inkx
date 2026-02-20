@@ -36,16 +36,10 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import {
-  clearSelection,
-  getSelectedCards,
-  progressiveSelectAll,
-  saveNavHistory,
-  refreshBoardState,
-} from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ViewMode } from "../types.ts"
+import { parseSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
@@ -94,9 +88,9 @@ import {
  */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive action switch — TS validates completeness
 export function handleCommandAction(ctx: ActionCtx, action: CommandAction): ActionResult {
-  const { layout, exit } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { exit } = ctx
+  const col = ctx.column
+  const card = ctx.card
 
   switch (action.type) {
     // === TUI-specific actions ===
@@ -229,16 +223,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane.
       // Exception: folders always get the detail pane (shows contents outline).
-      const curCol = layout.columns[layout.colIndex]
-      const curCard = curCol?.cards[layout.cardIndex]
-      const curNodeId = curCard?.node.id ?? curCol?.node.id
+      const curNodeId = card?.node.id ?? col?.node.id
       const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
       // Resolve embedded links to get the actual target node type
       const resolvedNode = curNode?.link_to ? ctx.repo.getNode(curNode.link_to) : curNode
       const isFolder = resolvedNode?.type === "oi" && resolvedNode?.fstype === "folder"
-      log.debug?.(
-        `OPEN_DETAIL_PANE: colIndex=${layout.colIndex} cardIndex=${layout.cardIndex} curNodeId=${curNodeId} isFolder=${isFolder}`,
-      )
+      log.debug?.(`OPEN_DETAIL_PANE: curNodeId=${curNodeId} isFolder=${isFolder}`)
       if (curNodeId && !isFolder) {
         const children = ctx.repo.getChildren(curNodeId)
         log.debug?.(`OPEN_DETAIL_PANE: children=${children.length}`)
@@ -277,14 +267,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const result = ctx.undoHandle.undo()
       // Restore cursor to saved position if available, otherwise keep current
       const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
-      refreshBoardState(ctx)
+      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       return ok()
     }
     case "HISTORY_REDO": {
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
       ctx.undoHandle.redo()
-      refreshBoardState(ctx)
+      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
       return ok()
     }
 
@@ -433,24 +423,21 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Fold operations (single-node) ===
     case "FOLD_NODE": {
-      const foldCard = col?.cards[layout.cardIndex]
-      if (!foldCard) return boundary("fold", "no card selected")
+      if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.add(foldCard.node.id)
+      newFolded.add(card.node.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
     case "UNFOLD_NODE": {
-      const unfoldCard = col?.cards[layout.cardIndex]
-      if (!unfoldCard) return boundary("fold", "no card selected")
+      if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.delete(unfoldCard.node.id)
+      newFolded.delete(card.node.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
     case "UNFOLD_RECURSIVE": {
-      const recursiveCard = col?.cards[layout.cardIndex]
-      if (!recursiveCard) return boundary("fold", "no card selected")
+      if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
       // Unfold the card and all descendants
       const unfoldDescendants = (nodeId: string) => {
@@ -459,7 +446,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           unfoldDescendants(child.id)
         }
       }
-      unfoldDescendants(recursiveCard.node.id)
+      unfoldDescendants(card.node.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
@@ -589,18 +576,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Move mode actions ===
     // Commands return minimal actions; TUI augments with context before dispatching
     case "ENTER_MOVE_MODE": {
-      // Convert ui.multiSelected (SelectionKey format) to node IDs
+      // Convert ui.multiSelected (SelectionKey format "nodeId:subIndex") to node IDs
       // TODO: Unify selection systems - ctx.selectedNodes vs ui.multiSelected
       const nodeIds: string[] = []
       if (ctx.ui.multiSelected.size > 0) {
         for (const selKey of ctx.ui.multiSelected) {
-          const [colStr, cardStr] = selKey.split(":")
-          const colIdx = parseInt(colStr ?? "0", 10)
-          const cardIdx = parseInt(cardStr ?? "0", 10)
-          const col = ctx.layout.columns[colIdx]
-          const card = col?.cards[cardIdx]
-          if (card?.node.id && !nodeIds.includes(card.node.id)) {
-            nodeIds.push(card.node.id)
+          const { nodeId } = parseSelectionKey(selKey)
+          if (nodeId && !nodeIds.includes(nodeId)) {
+            nodeIds.push(nodeId)
           }
         }
       }
@@ -697,7 +680,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               degradation.content = content
             }
             ctx.repo.updateNode(nodeId, degradation)
-            refreshBoardState(ctx)
+            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
             return ok()
           }
           // No degradation possible (plain p) → merge with previous
@@ -708,7 +691,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           ctx.undoHandle.endBatch()
           if (result) {
             ctx.setUI({ inlineEditBlock: null })
-            refreshBoardState(ctx)
+            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
           }
           return ok()
         }
@@ -749,7 +732,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
                 degradation.content = getNodeText(nextNode)
               }
               ctx.repo.updateNode(nextNode.id, degradation)
-              refreshBoardState(ctx)
+              ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
               return ok()
             }
           }
@@ -764,7 +747,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             // Staying in edit mode would require remounting InlineEditField
             // since the content changed but the nodeId didn't.
             ctx.setUI({ inlineEditBlock: null })
-            refreshBoardState(ctx)
+            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
           }
         } else {
           fwdTarget.deleteForward()
@@ -1030,7 +1013,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // =============================================================================
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
-  const { ui, layout } = ctx
+  const { ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
 
@@ -1062,8 +1045,8 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   activeEditTargetRef.current?.save()
 
   // Find adjacent card in the current column
-  const col = layout.columns[layout.colIndex]
-  const currentCardIndex = layout.cardIndex
+  const col = ctx.column
+  const currentCardIndex = col?.cards.findIndex((c) => c.node.id === edit.nodeId) ?? -1
   const adjacentIndex = direction === "down" ? currentCardIndex + 1 : currentCardIndex - 1
   const adjacentCard = col?.cards[adjacentIndex]
 
@@ -1091,9 +1074,8 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
 }
 
 function handleToggleFold(ctx: ActionCtx): ActionResult {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
-  const card = col?.cards[layout.cardIndex]
+  const { repo } = ctx
+  const card = ctx.card
 
   if (!card) return boundary("fold", "no card selected")
 
@@ -1269,12 +1251,11 @@ function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
 }
 
 function handleIgnoreNode(ctx: ActionCtx): ActionResult {
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
+  const { repo } = ctx
   // Always ignore at column level — Board.tsx filters columns, not individual cards.
   // Using card?.node would write an ignore path for the task, but the column would
   // stay visible because isIgnored only checks col.node during rendering.
-  const node = col?.node
+  const node = ctx.column?.node
   if (!node) return boundary("ignore", "No node to ignore")
 
   const ignorePath = computeIgnorePath(node, repo)
@@ -1293,9 +1274,10 @@ function handleIgnoreNode(ctx: ActionCtx): ActionResult {
       ctx.toastQueue.info(`Ignored: ${ignorePath}`)
 
       // Move cursor to adjacent column since this column is now hidden.
-      const colIndex = layout.colIndex
-      const nextCol = layout.columns[colIndex + 1]
-      const prevCol = colIndex > 0 ? layout.columns[colIndex - 1] : undefined
+      // Find current column position, then pick adjacent
+      const colIndex = ctx.layout.columns.findIndex((c) => c.node.id === node.id)
+      const nextCol = ctx.layout.columns[colIndex + 1]
+      const prevCol = colIndex > 0 ? ctx.layout.columns[colIndex - 1] : undefined
       const targetCol = nextCol ?? prevCol
       if (targetCol) {
         // Select first card in target column, or column header if empty
@@ -1374,7 +1356,7 @@ function handleSetPriority(ctx: ActionCtx): ActionResult {
 
   const label = next ? `P${next}` : "None"
   ctx.toastQueue.info(`Priority: ${label}`)
-  refreshBoardState(ctx)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
   return ok()
 }
 
@@ -1497,7 +1479,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
   popDialogMode()
   ctx.setUI({ datePrompt: null })
-  refreshBoardState(ctx)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
   return ok()
 }
 
@@ -1525,8 +1507,8 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
   const clipboard = ctx.ui.clipboard
   if (!clipboard) return boundary("clipboard", "Nothing to paste")
 
-  const { layout, repo } = ctx
-  const col = layout.columns[layout.colIndex]
+  const { repo } = ctx
+  const col = ctx.column
   if (!col) return boundary("clipboard", "No column")
 
   // Find current position in siblings
@@ -1553,6 +1535,7 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
   ctx.undoHandle.startBatch(clipboard.mode === "cut" ? "Cut & Paste" : "Paste")
 
   let pastedCount = 0
+  let lastPastedId: string | null = null
   for (let i = 0; i < clipboard.nodeIds.length; i++) {
     const sourceId = clipboard.nodeIds[i]
     if (!sourceId) continue
@@ -1563,6 +1546,7 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
       // Move the node to the new position
       const sortOrder = baseSortOrder + i * 0.001
       repo.moveNode(sourceId, col.node.id, sortOrder)
+      lastPastedId = sourceId
     } else {
       // Copy: create a new node with same properties
       const newNode: Record<string, unknown> = {
@@ -1581,7 +1565,7 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
       if (sourceNode.fstype) {
         newNode.fstype = sourceNode.fstype
       }
-      repo.addNode(col.node.id, newNode)
+      lastPastedId = repo.addNode(col.node.id, newNode)
     }
     pastedCount++
   }
@@ -1597,10 +1581,10 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 
   ctx.toastQueue.info(`Pasted ${pastedCount} node${pastedCount > 1 ? "s" : ""}`)
 
-  refreshBoardState(ctx, {
-    cardIndex: currentSibIdx + pastedCount,
-    usePositionHints: true,
-  })
+  // Select the last pasted node by ID
+  if (lastPastedId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: lastPastedId })
+  }
 
   return ok()
 }

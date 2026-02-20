@@ -28,8 +28,9 @@ import { ensureAsanaSetup, resetAsanaConfig } from "./import-auth.ts"
 import { printDiscovery } from "./import-discovery.ts"
 
 export const importCommand = new Command("import")
-  .description("Import tasks from external tools (Asana, etc.)")
+  .description("Import tasks from external tools (Asana, CSV, etc.)")
   .addCommand(createAsanaCommand())
+  .addCommand(createCsvCommand())
 
 // ============================================================================
 // Download directory helpers
@@ -301,6 +302,100 @@ Pipeline:
       }
 
       // Stage 3+4: Convert and write (streaming, one project at a time)
+      console.log(term.cyan(options.dryRun ? "Dry run:" : "Writing to"), outDir)
+
+      const { written, skipped } = writeFiles(convertBatch(importData), {
+        outDir,
+        dryRun: options.dryRun,
+        force: options.force,
+      })
+
+      // Summary
+      console.log()
+      if (written.length > 0) {
+        console.log(term.green(`${options.dryRun ? "Would write" : "Wrote"} ${written.length} file(s)`))
+      }
+      if (skipped.length > 0) {
+        console.log(term.yellow(`Skipped ${skipped.length} file(s) (use --force to overwrite)`))
+      }
+      if (written.length === 0 && skipped.length === 0) {
+        console.log(term.yellow("No files to write (empty import)"))
+      }
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+      console.log(term.dim(`Done in ${elapsed}s`))
+    })
+
+  return cmd
+}
+
+// ============================================================================
+// CSV Command
+// ============================================================================
+
+function createCsvCommand(): Command {
+  const cmd = new Command("csv")
+    .description("Import from CSV or TSV file")
+    .addHelpText(
+      "after",
+      `
+Pipeline:
+  1. Parse    CSV/TSV → ImportData (auto-detects delimiter)
+  2. Convert  ImportData → markdown files
+  3. Write    Markdown → <root>/imports/csv/ (or --out)
+
+Expected columns (case-insensitive, all optional except title):
+  title (or name, task)  — Task title (required)
+  status                 — todo, done, wip, blocked, dropped
+  body (or description)  — Task body text
+  assignee               — @mention name
+  due (or due_date)      — Due date (YYYY-MM-DD)
+  start (or start_date)  — Start date
+  priority (or p)        — 1-4
+  tags (or labels)       — Comma-separated tags
+  project (or section)   — Groups tasks into sections
+  parent                 — Parent task title (for hierarchy)
+  id (or source_id)      — Unique identifier
+`,
+    )
+    .argument("<file>", "CSV or TSV file to import")
+    .argument("[root]", "km repository root (default: auto-detect)")
+    .option("-o, --out <dir>", "Output directory (default: <root>/imports/csv/)")
+    .option("--dry-run", "Preview without writing")
+    .option("--force", "Overwrite existing files")
+    .action(async (file, root, options) => {
+      const startTime = Date.now()
+
+      const filePath = resolve(file)
+      if (!existsSync(filePath)) {
+        console.error(term.red(`Not found: ${filePath}`))
+        process.exit(1)
+      }
+
+      const rootPath = root ? resolve(root) : getRootPath()
+      if (!rootPath) {
+        console.error(term.red("No km repository found. Specify a root path or run from a km repo."))
+        process.exit(1)
+      }
+
+      // Stage 1: Parse CSV
+      const { parseCSVToImportData } = await import("../import/adapters/csv-adapter.ts")
+      const content = readFileSync(filePath, "utf-8")
+      const importData = parseCSVToImportData(content, filePath)
+
+      if (importData.projects.length === 0) {
+        console.log(term.yellow("No data found in CSV file"))
+        return
+      }
+
+      const totalItems = importData.projects.reduce((n, p) => {
+        const sectionItems = (p.sections ?? []).reduce((sn, s) => sn + s.items.length, 0)
+        return n + (p.items?.length ?? 0) + sectionItems
+      }, 0)
+      console.log(term.green("Parsed"), `${totalItems} item(s) from ${basename(filePath)}`)
+
+      // Stage 2+3: Convert and write
+      const outDir = options.out ? resolve(options.out) : join(rootPath, "imports", "csv")
       console.log(term.cyan(options.dryRun ? "Dry run:" : "Writing to"), outDir)
 
       const { written, skipped } = writeFiles(convertBatch(importData), {

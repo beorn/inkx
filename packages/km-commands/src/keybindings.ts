@@ -345,6 +345,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
+  // --- Layer 5b: Inline editing catch-all ---
+  // Undo/redo/yank must be explicitly bound above the wildcard so they still work.
+  // The wildcard absorbs all remaining keys during inline editing, preventing
+  // node-mode commands (navigation, edit, task, fold, view, quit) from firing.
+  // Printable chars never reach here — processInkKey's TEXT_INSERT short-circuit
+  // handles them before keybinding resolution.
+  {
+    name: "inline-edit-barrier",
+    bindings: [
+      { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing },
+      { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
+      { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
+      { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
+    ],
+  },
+
   // --- Layer 6: Detail pane ---
   {
     name: "detail-pane",
