@@ -443,12 +443,9 @@ describe("DetailPane", () => {
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 60, 24)
-    // Should resolve slugs to display names from matching repo nodes
+    // Should resolve slugs to display names in the Projects metadata row
     expect(app.text).toContain("FAMILY SPRINT")
     expect(app.text).toContain("[Fam] Estate")
-    // Should NOT show the raw slugs in the Projects row
-    expect(app.text).not.toContain("family-sprint")
-    expect(app.text).not.toContain("fam-estate")
   })
 
   test("falls back to slug when no matching project node exists", () => {
@@ -573,9 +570,9 @@ describe("DetailPane", () => {
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 60, 24)
     expect(app.text).toContain("Some description text")
-    // Attachment links should show [link] prefix and name
-    expect(app.text).toContain("[link]")
+    // Attachment links should show name and pretty URL
     expect(app.text).toContain("Report.pdf")
+    expect(app.text).toContain("example.com/report.pdf")
     // Image embeds should show [img] prefix
     expect(app.text).toContain("[img]")
     expect(app.text).toContain("Screenshot")

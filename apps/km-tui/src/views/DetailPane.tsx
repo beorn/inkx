@@ -13,7 +13,7 @@ import { decomposeDatetime } from "@km/core"
 import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderRich, getNodeIcon, getStatusIcon } from "../text/index.ts"
+import { renderRich, getNodeIcon, getStatusIcon, hyperlink, prettifyUrl } from "../text/index.ts"
 import { NodeLine } from "./shared-components.tsx"
 import {
   formatDate,
@@ -224,12 +224,12 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             </Text>
           )}
 
-          {/* Title */}
+          {/* Title — renderRich styles sigils but keeps all content visible */}
           <Text bold color="black" wrap="wrap">
             {node.task_status && (
               <Text>{getStatusIcon(node.task_status).char} </Text>
             )}
-            {renderRich(stripInlineRefs(title))}
+            {renderRich(title)}
           </Text>
         </Box>
 
@@ -256,13 +256,19 @@ function TaskDetailPane({ node, width, height }: DetailPaneProps): React.ReactEl
             <Text dimColor>(empty)</Text>
           )}
 
-          {/* Body content — rendered line-by-line with blank lines between blocks */}
-          {bodyChildren.map((child, i) => (
-            <React.Fragment key={`${child.id}-${i}`}>
-              {i > 0 && <Text>{" "}</Text>}
-              <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} />
-            </React.Fragment>
-          ))}
+          {/* Body content — compact for consecutive same-type items, spaced between different types */}
+          {bodyChildren.map((child, i) => {
+            const prev = i > 0 ? bodyChildren[i - 1] : undefined
+            // Add blank line between different block types, or between paragraphs.
+            // Consecutive list items (li) and same-type items render compactly.
+            const needsSpace = prev != null && (prev.type !== child.type || child.type === "p")
+            return (
+              <React.Fragment key={`${child.id}-${i}`}>
+                {needsSpace && <Text>{" "}</Text>}
+                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} />
+              </React.Fragment>
+            )
+          })}
 
           {/* Children rendered as subitems with separators */}
           {structuralChildren.length > 0 && (
@@ -678,16 +684,13 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
         if (linkMatch) {
           const [, name, url] = linkMatch
           const isImage = line.startsWith("!")
+          const displayUrl = prettifyUrl(url ?? "")
           return (
-            <Box key={`line-${i}`} flexDirection="row">
-              <Text wrap="truncate">
-                <Text dimColor>{isImage ? "[img] " : "[link] "}</Text>
-                <Text bold underline>
-                  {name}
-                </Text>
-                <Text dimColor> ({url})</Text>
-              </Text>
-            </Box>
+            <Text key={`line-${i}`} wrap="truncate">
+              <Text dimColor>{isImage ? "[img] " : ""}</Text>
+              {hyperlink(`${name}`, url ?? "")}
+              <Text dimColor> {displayUrl}</Text>
+            </Text>
           )
         }
         const listMatch = line.match(LIST_ITEM_RE)
