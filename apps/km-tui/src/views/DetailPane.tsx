@@ -264,6 +264,7 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
 
           {/* Body content — compact for consecutive same-type items, spaced between different types */}
           {/* Embedded nodes (link_to) resolve to the target and render as inline items */}
+          {bodyChildren.length > 2 && <Text> </Text>}
           {bodyChildren.map((child, i) => {
             const prev = i > 0 ? bodyChildren[i - 1] : undefined
             // Add blank line between different block types, or between paragraphs.
@@ -290,6 +291,7 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
               </React.Fragment>
             )
           })}
+          {bodyChildren.length > 2 && <Text> </Text>}
 
           {/* Children rendered as subitems with separators */}
           {structuralChildren.length > 0 && (
