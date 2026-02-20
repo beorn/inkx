@@ -40,7 +40,7 @@ const MD_LINK_REGEX = /\[([^\]]+)\]\(([^)]+)\)/g
 
 /** Markdown formatting */
 const BOLD_REGEX = /\*\*([^*]+)\*\*/g
-const ITALIC_ASTERISK_REGEX = /(?<!\*)\*([^*]+)\*(?!\*)/g
+const ITALIC_ASTERISK_REGEX = /(?<!\*)\*(?!\s)([^*]+?)(?<!\s)\*(?!\*)/g
 const ITALIC_UNDERSCORE_REGEX = /(?<![_\w])_([^_]+)_(?![_\w])/g
 const CODE_REGEX = /`([^`]+)`/g
 const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g

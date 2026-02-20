@@ -228,6 +228,28 @@ describe("renderRich", () => {
     }
   })
 
+  describe("list markers are not italic", () => {
+    it("* followed by space is a list marker, not italic", () => {
+      const result = stripAnsi(renderRich("* item text"))
+      expect(result).toBe("* item text")
+    })
+
+    it("multiline list markers are not italic", () => {
+      const result = stripAnsi(renderRich("* item 1\n* item 2"))
+      expect(result).toBe("* item 1\n* item 2")
+    })
+
+    it("legitimate *italic* still works", () => {
+      const result = stripAnsi(renderRich("this is *italic* text"))
+      expect(result).toBe("this is italic text")
+    })
+
+    it("* at line start with text ending in * is not italic", () => {
+      const result = stripAnsi(renderRich("* some list item"))
+      expect(result).toBe("* some list item")
+    })
+  })
+
   describe("edge cases", () => {
     it("handles empty string", () => {
       expect(renderRich("")).toBe("")

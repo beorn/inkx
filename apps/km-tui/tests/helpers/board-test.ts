@@ -300,6 +300,14 @@ item.task = (content: string, status?: string): KNode[] => {
   return nodes
 }
 
+item.link = (content: string, linkTo: string): KNode[] => {
+  const nodes = makeNodeWithType(content, "link", {})
+  if (nodes[0]) {
+    nodes[0].link_to = linkTo
+  }
+  return nodes
+}
+
 /**
  * Standard board fixture for common tests
  */

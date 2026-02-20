@@ -255,14 +255,15 @@ describe("NodeCardView (card style)", () => {
     expect(output).toContain("Bold Title")
   })
 
-  test("shows body indicator when node has body children", async () => {
+  test("does not show body indicator when body children are visible as subitems", async () => {
     const parent = makeNode({ content: "Card with body" })
     const children = [
       makeNode({ id: "b1", type: "p", content: "A paragraph of body content" }),
       makeNode({ id: "c1", type: "oi", content: "Structural child" }),
     ]
     const output = await renderString(<NodeCardView node={parent} children={children} />, { plain: true, width: 50 })
-    expect(output).toContain("···")
+    // Body children are rendered as subitems, so ··· should NOT show
+    expect(output).not.toContain("···")
   })
 
   test("no body indicator when node has only structural children", async () => {

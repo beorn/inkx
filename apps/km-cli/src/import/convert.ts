@@ -151,20 +151,30 @@ function itemToNodes(
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
     return
   }
-  // Cross-project dedup: if already rendered in another project, emit embed reference
+  // Cross-project dedup: if already rendered in another project, emit task title
+  // with embed reference as body paragraph (so link to primary location is preserved)
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
+    const refNodeId = `ref-${item.sourceId}`
     nodes.push(
       mkNode(counter, {
-        id: `ref-${item.sourceId}`,
+        id: refNodeId,
         type: "oi",
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
-        content: `![[^${item.sourceId}]]`,
+        content: item.title,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
+      }),
+    )
+    nodes.push(
+      mkNode(counter, {
+        id: `ref-body-${item.sourceId}`,
+        type: "p",
+        parent_id: refNodeId,
+        content: `![[^${item.sourceId}]]`,
       }),
     )
     return
@@ -657,35 +667,46 @@ function* generateTagFiles(
     const counter: IdxCounter = { value: 0 }
     const nodes: KNode[] = []
     const fileId = `tag-${tag}`
+    const tagSlug = slugify(tag)
     nodes.push(
       mkNode(counter, {
         id: fileId,
         type: "oi",
         fstype: "mdfile",
-        content: tag,
+        content: tagSlug,
         data: {
           imported_from: data.source,
           imported_at: data.fetchedAt,
-          tag,
+          tag: tagSlug,
         },
       }),
     )
 
     for (const item of items) {
-      // Use embed reference for items already rendered in project files
+      // Use task title with embed reference for items already rendered in project files
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
+        const nodeId = `tagref-${tag}-${item.sourceId}`
         nodes.push(
           mkNode(counter, {
-            id: `tagref-${tag}-${item.sourceId}`,
+            id: nodeId,
             type: "oi",
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,
-            content: `![[^${item.sourceId}]]`,
+            content: item.title,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
+          }),
+        )
+        // Add embed reference as body paragraph so the link to the primary location is preserved
+        nodes.push(
+          mkNode(counter, {
+            id: `tagref-body-${tag}-${item.sourceId}`,
+            type: "p",
+            parent_id: nodeId,
+            content: `![[^${item.sourceId}]]`,
           }),
         )
       } else {

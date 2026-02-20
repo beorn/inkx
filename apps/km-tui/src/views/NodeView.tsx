@@ -335,9 +335,6 @@ export function NodeCardView({
   const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
-  // Body indicator: show ··· when node has body children (paragraphs, quotes, code blocks, etc.)
-  const hasBody = extractBody(children).body.length > 0
-
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
   const subtaskBadge = formatSubtaskBadge(children)
 
@@ -347,6 +344,10 @@ export function NodeCardView({
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
   const overflowCount = children.length - visibleChildren.length
+
+  // Body indicator: show ··· only when body children exist but are hidden by overflow.
+  // When subitems are visible, body content is already displayed inline.
+  const hasBody = extractBody(children).body.length > 0 && children.length > maxSubitems
 
   return (
     <Box flexDirection="column" width={width}>
@@ -704,8 +705,8 @@ export function deriveColumnHeaderProps(
 
   const icon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
 
-  // Check if the column node has body content (non-structural children like p, quote, etc.)
-  const hasBody = !isVirtual && extractBody(repo.getChildren(node.id)).body.length > 0
+  // Column body content is always visible as cards — never show ···
+  const hasBody = false
 
   return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix, hasBody }
 }
