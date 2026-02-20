@@ -27,6 +27,7 @@ export interface InkKeyEvent {
   delete?: boolean
   shift?: boolean
   meta?: boolean // Alt/Option on macOS
+  super?: boolean // Cmd on macOS (requires Kitty protocol)
 }
 
 /** Initialize the command system with default commands and keybindings */
@@ -57,12 +58,14 @@ export function inkKeyToModifiers(key: InkKeyEvent): {
   meta: boolean
   shift: boolean
   alt: boolean
+  super: boolean
 } {
   return {
     ctrl: !!key.ctrl,
     meta: !!key.meta, // Alt/Option on macOS terminals
     shift: !!key.shift,
     alt: false,
+    super: !!key.super, // Cmd on macOS (requires Kitty protocol)
   }
 }
 
@@ -103,7 +106,7 @@ export function processInkKey(
 ): InkCommandResult {
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
-  const hasModifiers = !!modifiers.ctrl || !!modifiers.meta || !!modifiers.shift || !!modifiers.alt
+  const hasModifiers = !!modifiers.ctrl || !!modifiers.meta || !!modifiers.shift || !!modifiers.alt || !!modifiers.super
 
   // Text input priority: when textInputFocused and input is a printable character
   // (not a special key), short-circuit to text insert BEFORE keybinding resolution.
@@ -114,6 +117,7 @@ export function processInkKey(
     input >= " " &&
     !key.ctrl &&
     !key.meta &&
+    !key.super &&
     !key.return &&
     !key.escape &&
     !key.backspace &&

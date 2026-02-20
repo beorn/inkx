@@ -26,6 +26,7 @@ export interface Keybinding {
   meta?: boolean
   shift?: boolean
   alt?: boolean
+  super?: boolean
   /** Chord prefix — if set, this binding requires the prefix key first (e.g., chord: "z" + key: "a" = "za") */
   chord?: string
   commandId: string
@@ -128,6 +129,7 @@ function matchBinding(
     meta?: boolean
     shift?: boolean
     alt?: boolean
+    super?: boolean
   },
   ctx: KeybindingContext,
 ): boolean {
@@ -135,6 +137,7 @@ function matchBinding(
   if (!binding.wildcard) {
     if (!!binding.ctrl !== !!modifiers.ctrl) return false
     if (!!binding.meta !== !!modifiers.meta) return false
+    if (!!binding.super !== !!modifiers.super) return false
     // For single uppercase letters (A-Z), the shift key is implicit in the character
     // Don't require explicit shift: true in the binding for capital letters
     const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
@@ -162,6 +165,7 @@ export function resolveKeybinding(
     meta?: boolean
     shift?: boolean
     alt?: boolean
+    super?: boolean
   },
   ctx: KeybindingContext,
 ): string | null {
@@ -214,6 +218,7 @@ export function resolveChord(
     meta?: boolean
     shift?: boolean
     alt?: boolean
+    super?: boolean
   },
   ctx: KeybindingContext,
 ): string | null {
@@ -459,7 +464,16 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "n", commandId: "insert_below" },
       { key: "d", commandId: "duplicate_node" },
 
-      // Shifting (Alt/Meta+direction) — move nodes in tree
+      // Shifting (Cmd/Super+direction) — move nodes in tree
+      // Also bound to Alt/Meta for terminals without Kitty protocol
+      { key: "ArrowUp", super: true, commandId: "shift_up" },
+      { key: "ArrowDown", super: true, commandId: "shift_down" },
+      { key: "ArrowLeft", super: true, commandId: "shift_left" },
+      { key: "ArrowRight", super: true, commandId: "shift_right" },
+      { key: "k", super: true, commandId: "shift_up" },
+      { key: "j", super: true, commandId: "shift_down" },
+      { key: "h", super: true, commandId: "shift_left" },
+      { key: "l", super: true, commandId: "shift_right" },
       { key: "ArrowUp", meta: true, commandId: "shift_up" },
       { key: "ArrowDown", meta: true, commandId: "shift_down" },
       { key: "ArrowLeft", meta: true, commandId: "shift_left" },
