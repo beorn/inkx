@@ -16,7 +16,8 @@ import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
+import { reconcileDirectory, applyReconcileOps, applyReconcileOpsAsync } from "./reconcile.ts"
+import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
@@ -96,6 +97,7 @@ export class SyncManager extends EventEmitter {
   private ignorePatterns: string[] = []
   private kmDir: string
   private emitter: Emitter // Emitter domain object for event emission
+  private parsePool: ParsePoolService | undefined
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
@@ -180,6 +182,10 @@ export class SyncManager extends EventEmitter {
     this.stopHeartbeat()
     await this.watcher.stop()
     this.writeQueue.clear()
+    if (this.parsePool) {
+      await this.parsePool[Symbol.asyncDispose]()
+      this.parsePool = undefined
+    }
     this.emit("stopped")
   }
 
@@ -226,7 +232,7 @@ export class SyncManager extends EventEmitter {
   /**
    * Run heartbeat reconciliation if idle
    */
-  private runHeartbeat(): void {
+  private async runHeartbeat(): Promise<void> {
     const now = Date.now()
     const idleTime = now - this.lastActivityTime
 
@@ -262,7 +268,13 @@ export class SyncManager extends EventEmitter {
         this.heartbeatDrift += ops.length
 
         this.setState("emitting")
-        applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+        await applyReconcileOpsAsync({
+          db: this.db,
+          ops,
+          repoRoot: this.config.repoPath,
+          emitter: this.emitter,
+          parsePool: this.getParsePool(),
+        })
 
         // Emit event so consumers know about drift
         this.emit("heartbeat:drift", {
@@ -331,9 +343,19 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Handle filesystem sync event
+   * Get or create the parse pool for async markdown parsing
    */
-  private handleFsSync(data: { paths: string[]; directories: string[] }): void {
+  private getParsePool(): ParsePoolService {
+    if (!this.parsePool) {
+      this.parsePool = createParsePool()
+    }
+    return this.parsePool
+  }
+
+  /**
+   * Handle filesystem sync event — async to allow parallel markdown parsing
+   */
+  private async handleFsSync(data: { paths: string[]; directories: string[] }): Promise<void> {
     using span = log.span("fs-sync", { paths: data.paths.length, dirs: data.directories.length })
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
@@ -347,7 +369,13 @@ export class SyncManager extends EventEmitter {
         if (ops.length > 0) {
           this.setState("emitting")
           using applySpan = dirSpan.span("apply")
-          applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+          await applyReconcileOpsAsync({
+            db: this.db,
+            ops,
+            repoRoot: this.config.repoPath,
+            emitter: this.emitter,
+            parsePool: this.getParsePool(),
+          })
           applySpan.spanData.ops = ops.length
         }
       }
