@@ -233,6 +233,28 @@ test("debugging example", () => {
 
 **CRITICAL**: For rendering bugs, state-only assertions (`toExist()`) are insufficient — they pass even when the rendering is broken. Always use buffer assertions for rendering issues.
 
+## Node-Type-Specific Testing
+
+When editing rendering for a specific node type (HR, code, quote, link, etc.), **always include that node type in the test fixture**. Generic fixtures miss type-specific layout interactions.
+
+```typescript
+// BAD: testing HR rendering with generic items
+const { board } = testEnv(() => item("board", item("col", item("card"))))
+
+// GOOD: include the actual node type being changed
+const { board } = testEnv(() =>
+  item("board", item("col",
+    item("card above"),
+    item.hr(),           // actual HR node
+    item("card below"),  // verify adjacent integrity
+  ))
+)
+```
+
+**Why**: HR nodes use auto-height, padding-based layout (matching border width). Code blocks use verbatim rendering. Link nodes resolve via `link_to`. Each has different layout rules that can interact with surrounding elements. Tests that don't include the actual node type miss these interactions.
+
+---
+
 ## When to Use
 
 | Need | Use |

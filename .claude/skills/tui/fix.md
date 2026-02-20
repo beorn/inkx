@@ -164,6 +164,10 @@ Fixer confirms fixed (TUI tests pass)
 **Pure logic bugs** (wrong state, bad cursor position, missing data) can skip GUI/TTY and
 user confirmation. The close reason should state: `Verified: TUI tests only — no visual component`.
 
+### Couple Targeted Fixes with Focused Tests
+
+Small, targeted UI fixes (e.g., normalizing two columns after a swap, fixing a width estimate) can yield large stability gains — but only if paired with a focused regression test. Every fix, no matter how small, MUST have a test that would fail without the fix. This prevents the fix from being silently reverted by future refactors.
+
 **Do NOT close a visual bead until the user has confirmed.** If the user hasn't verified yet,
 the bead stays open (mark as "awaiting user confirmation" in notes).
 
