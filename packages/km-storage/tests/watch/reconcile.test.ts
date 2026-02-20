@@ -558,4 +558,30 @@ describe("reconcile.ts", () => {
         expect(getParentNodeId(db, toRel(filePath))).toBe(folderNode.id)
       }))
   })
+
+  describe("duplicate create guard", () => {
+    test("duplicate create ops for the same file do not produce duplicate nodes", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        // Create a file and sync it
+        const filePath = createMdFile(repoDir, "@next.md", "---\ntitle: Next Actions\n---\n\n# Next Actions\n\n- Task 1\n")
+        await syncDir(db, repoDir, repoDir, emitter)
+
+        const originalNode = assertNodeExists(db, filePath)
+        const originalId = originalNode.id
+
+        // Simulate a duplicate create op (as if fs-watcher fired twice for the same file)
+        const stat = statSync(filePath)
+        const relPath = toRel(filePath)
+        const duplicateOps = [
+          { type: "create" as const, path: filePath, ino: stat.ino, mtime: stat.mtimeMs },
+        ]
+        await applyReconcileOps(db, duplicateOps, repoDir, emitter)
+
+        // Should still have only ONE node for @next.md
+        const allNodes = db.query("SELECT id FROM nodes WHERE fs_path = ?").all(relPath) as { id: string }[]
+        expect(allNodes.length).toBe(1)
+        // Should keep the original node ID
+        expect(allNodes[0]!.id).toBe(originalId)
+      }))
+  })
 })

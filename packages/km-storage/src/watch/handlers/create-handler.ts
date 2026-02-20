@@ -25,6 +25,7 @@ import {
 import { parsePlainTextToNodes } from "@km/markdown"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
+import { handleUpdate } from "./update-handler.ts"
 import type { ParseResult } from "../../parse-pool.ts"
 
 /**
@@ -60,6 +61,18 @@ export interface CreateHandlerOptions {
 export function handleCreate(options: CreateHandlerOptions): void {
   const { db, op, repoRoot, emitter, fs, parsed, ctx } = options
 
+  // Guard against duplicate creates for the same file.
+  // The fs-watcher can fire duplicate events for the same file (~200ms apart),
+  // each generating a fresh ULID. If a node with this fs_path already exists,
+  // treat as update instead of creating a duplicate entry.
+  const relPath = toRelativeFsPath(repoRoot, op.path)
+  const existingNode = getNodeByPath(db, relPath)
+  if (existingNode) {
+    // Redirect to update handler with the existing node's ID
+    handleUpdate({ ...options, op: { ...op, type: "update" as const, nodeId: existingNode.id } })
+    return
+  }
+
   // Ensure all parent folders exist as nodes (and add them to resolver for linking)
   const parentId = ensureFolderHierarchy(db, op.path, repoRoot, emitter, fs, ctx.resolver)
 
@@ -68,14 +81,14 @@ export function handleCreate(options: CreateHandlerOptions): void {
 
   if (stat?.isDirectory()) {
     // Create folder node - use path-based ID for consistency with discovery.ts
-    const relPath = toRelativeFsPath(repoRoot, op.path)
-    const folderId = getFolderNodeId(db, repoRoot, op.path, relPath)
+    const folderRelPath = toRelativeFsPath(repoRoot, op.path)
+    const folderId = getFolderNodeId(db, repoRoot, op.path, folderRelPath)
     const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "oi",
       fstype: "folder",
-      fs_path: relPath,
+      fs_path: folderRelPath,
       fs_ino: op.ino,
       fs_mtime: op.mtime ?? stat.mtimeMs,
       parent_id: parentId,
