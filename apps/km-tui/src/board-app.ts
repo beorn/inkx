@@ -121,9 +121,9 @@ export function handleKey(
 
   const ui = get().ui
 
-  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
-  if (ui.bellState !== null || ui.status !== null) {
-    get().setUI({ bellState: null, status: null })
+  // Clear bell, status, and pending chord at start of each keypress (only if set, to avoid unnecessary re-renders).
+  if (ui.bellState !== null || ui.status !== null || ui.pendingChord !== null) {
+    get().setUI({ bellState: null, status: null, pendingChord: null })
   }
 
   // Clear any pending chord timeout (we got a new key)
@@ -169,8 +169,8 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
       }
     }
   }
-  // Clear chord status indicator
-  freshCtx.setUI({ status: null })
+  // Clear chord status indicator and pending chord
+  freshCtx.setUI({ status: null, pendingChord: null })
 }
 
 /**
@@ -213,7 +213,7 @@ function routeThroughCommandSystem(
   // Chord pending: show status indicator and start timeout
   if (result.pending) {
     parentSpan.spanData.outcome = "chord"
-    ctx.setUI({ status: { level: "info", message: `${result.pending}-` } })
+    ctx.setUI({ status: { level: "info", message: `${result.pending}-` }, pendingChord: result.pending })
     chordTimer = setTimeout(() => {
       chordTimer = null
       fireChordTimeout(get, exitApp)
@@ -333,10 +333,21 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
   const { get } = ctx
 
   if (mouse.action === "wheel") {
-    // Scroll wheel → scroll the column under the mouse pointer
+    // Scroll wheel → scroll the column or detail pane under the mouse pointer
     const actionCtx = buildActionCtx(get, () => {})
     const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
-    if (colIdx < 0) return
+
+    if (colIdx < 0) {
+      // Not over a column — if detail pane is open, scroll it
+      if (actionCtx.ui.showDetailPane) {
+        const scrollDelta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
+        actionCtx.setUI((prev) => ({
+          detailScrollOffset: Math.max(0, prev.detailScrollOffset + scrollDelta),
+        }))
+      }
+      return
+    }
+
     const col = actionCtx.columns[colIdx]
     if (!col || col.cardNodes.length === 0) return
 
