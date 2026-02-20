@@ -7,11 +7,7 @@
 
 import { existsSync, mkdirSync, writeFileSync, utimesSync } from "fs"
 import { join, extname } from "path"
-import { createTerm } from "inkx"
-import { ProgressBar } from "@beorn/inkx-ui/cli"
 import type { ImportData, ImportItem, ImportAttachment } from "./types.ts"
-
-const term = createTerm(process)
 
 const DOWNLOAD_CONCURRENCY = 5
 
@@ -19,6 +15,7 @@ interface DownloadResult {
   downloaded: number
   skipped: number
   failed: number
+  bailedRemaining?: number
 }
 
 /** Markdown image pattern: ![alt](url) */
@@ -199,6 +196,8 @@ export async function downloadAttachments(
     dryRun?: boolean
     /** Called on 403 to refresh an expired download URL. Returns fresh URL or null. */
     refreshUrl?: (att: ImportAttachment) => Promise<string | null>
+    /** Progress callback: called with (current, total) as items complete */
+    onProgress?: (current: number, total: number) => void
   },
 ): Promise<DownloadResult> {
   const attachments = collectAttachments(data)
@@ -215,11 +214,8 @@ export async function downloadAttachments(
   }
 
   const result: DownloadResult = { downloaded: 0, skipped: 0, failed: 0 }
-  const bar = new ProgressBar({
-    total: allAttachments.length,
-    format: "  :bar :current/:total attachments | ETA: :eta",
-  })
-  bar.start()
+  let progressCount = 0
+  opts.onProgress?.(0, allAttachments.length)
 
   let consecutiveAuthFailures = 0
   const MAX_AUTH_FAILURES = 5
@@ -230,9 +226,10 @@ export async function downloadAttachments(
     // Only bail if re-authentication keeps failing (token is invalid)
     if (consecutiveAuthFailures >= MAX_AUTH_FAILURES) {
       const remaining = allAttachments.length - i
-      console.log(term.yellow(`  Authentication failed ${MAX_AUTH_FAILURES} times — stopping (${remaining} remaining)`))
       result.failed += remaining
-      bar.increment(remaining)
+      result.bailedRemaining = remaining
+      progressCount += remaining
+      opts.onProgress?.(progressCount, allAttachments.length)
       break
     }
     const batch = allAttachments.slice(i, i + DOWNLOAD_CONCURRENCY)
@@ -246,14 +243,16 @@ export async function downloadAttachments(
         if (existsSync(localPath)) {
           att.localPath = relativePath
           result.skipped++
-          bar.increment()
+          progressCount++
+          opts.onProgress?.(progressCount, allAttachments.length)
           return
         }
 
         if (opts.dryRun) {
           att.localPath = relativePath
           result.downloaded++
-          bar.increment()
+          progressCount++
+          opts.onProgress?.(progressCount, allAttachments.length)
           return
         }
 
@@ -273,9 +272,9 @@ export async function downloadAttachments(
           if (!res.ok) {
             // Track auth failures separately — only bail on repeated auth failure
             if (res.status === 403) consecutiveAuthFailures++
-            console.log(term.yellow(`  Failed to download ${att.name}: HTTP ${res.status}`))
             result.failed++
-            bar.increment()
+            progressCount++
+            opts.onProgress?.(progressCount, allAttachments.length)
             return
           }
           consecutiveAuthFailures = 0
@@ -287,16 +286,14 @@ export async function downloadAttachments(
           }
           att.localPath = relativePath
           result.downloaded++
-        } catch (err) {
-          console.log(term.yellow(`  Failed to download ${att.name}: ${(err as Error).message}`))
+        } catch {
           result.failed++
         }
-        bar.increment()
+        progressCount++
+        opts.onProgress?.(progressCount, allAttachments.length)
       }),
     )
   }
-
-  bar.stop(true)
 
   // Replace inline image URLs in body text with downloaded local paths
   if (inlineImages.size > 0) {

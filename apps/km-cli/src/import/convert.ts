@@ -207,6 +207,7 @@ function itemToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
+  depth = 2,
 ): void {
   // Within-file dedup: skip entirely if already rendered in this project
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
@@ -224,6 +225,7 @@ function itemToNodes(
         task_marker: marker as TaskMarker,
         task_status: status,
         content: `![[^${item.sourceId}]]`,
+        data: { depth },
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
@@ -308,7 +310,7 @@ function itemToNodes(
     created_at: itemCreatedAt,
     updated_at: itemUpdatedAt,
     ...(linkTo && { link_to: linkTo }),
-    ...(Object.keys(nodeData).length > 0 && { data: nodeData }),
+    data: { ...nodeData, depth },
   })
   nodes.push(taskNode)
 
@@ -424,7 +426,7 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
+      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap, depth + 1)
     }
   }
 }
@@ -443,6 +445,7 @@ function sectionToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
+  depth = 2,
 ): void {
   const isPlaceholder = NO_SECTION_TITLES.has(section.title.toLowerCase().trim())
   const itemParentId = isPlaceholder ? parentId : `section-${section.sourceId}`
@@ -456,13 +459,13 @@ function sectionToNodes(
         fstype: "mdsection",
         content: section.title,
         title: section.title,
-        data: {},
+        data: { depth },
       }),
     )
   }
 
   for (const item of section.items) {
-    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
+    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap, isPlaceholder ? depth : depth + 1)
   }
 }
 
@@ -504,14 +507,14 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
+      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap, 2)
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
+      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap, 2)
     }
   }
 
@@ -829,10 +832,7 @@ function* generateTagFiles(
         id: fileId,
         type: "oi",
         fstype: "mdfile",
-        content: tagSlug,
-        data: {
-          tag: tagSlug,
-        },
+        content: `#${tagSlug}`,
       }),
     )
 
@@ -849,6 +849,7 @@ function* generateTagFiles(
             task_marker: marker as TaskMarker,
             task_status: status,
             content: `![[^${item.sourceId}]]`,
+            data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -906,7 +907,11 @@ function* generateUserFiles(
 
   for (const [assigneeName, rawItems] of userItems) {
     // Skip the importing user (already has a dedicated file)
-    if (assigneeName === importingUserName) continue
+    // Note: assigneeName is pre-slugified by task-transform (lowercase-hyphenated)
+    const importingSlug = importingUserName
+      ? (userSlugMap.get(importingUserName) ?? slugify(importingUserName))
+      : undefined
+    if (assigneeName === importingUserName || assigneeName === importingSlug) continue
 
     // Deduplicate
     const seen = new Set<string>()
@@ -942,6 +947,7 @@ function* generateUserFiles(
             task_marker: marker as TaskMarker,
             task_status: status,
             content: `![[^${item.sourceId}]]`,
+            data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),

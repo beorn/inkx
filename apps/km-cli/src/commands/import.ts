@@ -17,7 +17,7 @@ import { createTerm } from "inkx"
 
 const term = createTerm(process)
 
-import { steps } from "@beorn/inkx-ui/progress"
+import { steps, step } from "@beorn/inkx-ui/progress"
 import { CURSOR_SHOW, write } from "@beorn/inkx-ui/cli"
 import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
@@ -276,71 +276,80 @@ Pipeline:
         }
       }
 
-      // Stage 2: Download attachments (stored in .km/ alongside JSON data)
+      // Pipeline: Download attachments → Convert & write → Copy attachments
       const outDir = options.out ? resolve(options.out) : join(rootPath, "imports", "asana")
       const attachDir = join(rootPath, ".km", "imports", "attachments")
 
       const { downloadAttachments } = await import("../import/download-attachments.ts")
-      const dlResult = await downloadAttachments(importData, {
-        dir: attachDir,
-        relativePath: "attachments",
-        dryRun: options.dryRun,
-        refreshUrl: asanaToken
-          ? async (att) => {
-              if (!att.sourceId) return null
-              try {
-                const res = await fetch(
-                  `https://app.asana.com/api/1.0/attachments/${att.sourceId}?opt_fields=download_url`,
-                  { headers: { Authorization: `Bearer ${asanaToken}` } },
-                )
-                if (!res.ok) return null
-                const json = (await res.json()) as { data?: { download_url?: string } }
-                return json.data?.download_url ?? null
-              } catch {
-                return null
-              }
+
+      const results = await steps({
+        downloadAttachments: async () => {
+          const dlResult = await downloadAttachments(importData, {
+            dir: attachDir,
+            relativePath: ".attachments",
+            dryRun: options.dryRun,
+            refreshUrl: asanaToken
+              ? async (att) => {
+                  if (!att.sourceId) return null
+                  try {
+                    const res = await fetch(
+                      `https://app.asana.com/api/1.0/attachments/${att.sourceId}?opt_fields=download_url`,
+                      { headers: { Authorization: `Bearer ${asanaToken}` } },
+                    )
+                    if (!res.ok) return null
+                    const json = (await res.json()) as { data?: { download_url?: string } }
+                    return json.data?.download_url ?? null
+                  } catch {
+                    return null
+                  }
+                }
+              : undefined,
+            onProgress: (current, total) => step().progress(current, total),
+          })
+          return dlResult
+        },
+        convertAndWrite: () => {
+          const { written, skipped } = writeFiles(convertBatch(importData), {
+            outDir,
+            dryRun: options.dryRun,
+            force: options.force,
+          })
+          return { written, skipped }
+        },
+        copyAttachments: () => {
+          if (options.dryRun || !existsSync(attachDir)) return 0
+          const outAttachDir = join(outDir, ".attachments")
+          mkdirSync(outAttachDir, { recursive: true })
+          const files = readdirSync(attachDir)
+          let copied = 0
+          for (const f of files) {
+            const src = join(attachDir, f)
+            const dst = join(outAttachDir, f)
+            if (!existsSync(dst)) {
+              copyFileSync(src, dst)
+              copied++
             }
-          : undefined,
-      })
+          }
+          return copied
+        },
+      }).run({ clear: true })
+
+      // Summary
+      const dlResult = results.downloadAttachments
+      const { written, skipped } = results.convertAndWrite
+      const copied = results.copyAttachments
+
       if (dlResult.downloaded > 0 || dlResult.failed > 0) {
         console.log(
-          term.green(`  ${dlResult.downloaded} attachment(s) downloaded`),
+          term.green(`  ${dlResult.downloaded} downloaded`),
           dlResult.skipped > 0 ? term.dim(`(${dlResult.skipped} cached)`) : "",
           dlResult.failed > 0 ? term.yellow(`(${dlResult.failed} failed)`) : "",
         )
-      } else if (dlResult.skipped > 0) {
-        console.log(term.dim(`  ${dlResult.skipped} attachment(s) cached`))
+      }
+      if (copied > 0) {
+        console.log(term.dim(`  Copied ${copied} attachment(s) to output`))
       }
 
-      // Stage 3+4: Convert and write (streaming, one project at a time)
-      console.log(term.cyan(options.dryRun ? "Dry run:" : "Writing to"), outDir)
-
-      const { written, skipped } = writeFiles(convertBatch(importData), {
-        outDir,
-        dryRun: options.dryRun,
-        force: options.force,
-      })
-
-      // Stage 5: Copy attachments from .km/ cache into output filetree
-      if (!options.dryRun && existsSync(attachDir)) {
-        const outAttachDir = join(outDir, "attachments")
-        mkdirSync(outAttachDir, { recursive: true })
-        const files = readdirSync(attachDir)
-        let copied = 0
-        for (const f of files) {
-          const src = join(attachDir, f)
-          const dst = join(outAttachDir, f)
-          if (!existsSync(dst)) {
-            copyFileSync(src, dst)
-            copied++
-          }
-        }
-        if (copied > 0) {
-          console.log(term.dim(`  Copied ${copied} attachment(s) to ${outAttachDir}`))
-        }
-      }
-
-      // Summary
       console.log()
       if (written.length > 0) {
         console.log(term.green(`${options.dryRun ? "Would write" : "Wrote"} ${written.length} file(s)`))

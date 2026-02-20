@@ -1107,10 +1107,13 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
-    // Tasks are headings now (oi), not list items
-    const headings = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
-    // Section + parent task + 2 subtasks = 4 H2 headings
-    expect(headings.length).toBeGreaterThanOrEqual(3)
+    // Tasks in a section get depth 3 (section is H2, items are H3), subtasks are H4
+    const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
+    const h3s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 3)
+    const h4s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 4)
+    expect(h2s.length).toBeGreaterThanOrEqual(1) // section heading
+    expect(h3s.length).toBeGreaterThanOrEqual(1) // parent task
+    expect(h4s.length).toBe(2) // 2 subtasks
 
     // Body text appears as a paragraph
     const paragraph = tree.children.find((n) => n.type === "paragraph")
@@ -1157,13 +1160,18 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(md)
     const tree = parseMarkdown(body)
 
-    // All levels are H2 headings now (oi type)
-    const headings = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
-    const headingTexts = headings.map((h) => h.children[0]?.value ?? "")
-    // Section + Level 1 + Level 2 + Level 3
-    expect(headingTexts.some((t) => t.includes("Level 1"))).toBe(true)
-    expect(headingTexts.some((t) => t.includes("Level 2"))).toBe(true)
-    expect(headingTexts.some((t) => t.includes("Level 3"))).toBe(true)
+    // Items in sections start at depth 3 (section is H2)
+    // Nested subtasks increment: H3 → H4 → H5
+    const allHeadings = tree.children.filter((n): n is Heading => n.type === "heading")
+    const level1 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 1"))
+    const level2 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 2"))
+    const level3 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 3"))
+    expect(level1).toBeDefined()
+    expect(level2).toBeDefined()
+    expect(level3).toBeDefined()
+    expect(level1!.depth).toBe(3)
+    expect(level2!.depth).toBe(4)
+    expect(level3!.depth).toBe(5)
   })
 
   test("multi-project dedup references don't break hierarchy", () => {
@@ -1216,16 +1224,17 @@ describe("roundtrip: convert → parse", () => {
     const { body } = extractFrontmatter(betaMd)
     const tree = parseMarkdown(body)
 
-    // With oi type, tasks are headings not list items
+    // Section is H2, section items are H3
     const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
-    // Work section + dedup ref (embed) + Beta only = 3 H2 headings
-    expect(h2s.length).toBeGreaterThanOrEqual(3)
+    const h3s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 3)
+    // Work section = 1 H2
+    expect(h2s.length).toBeGreaterThanOrEqual(1)
 
-    // Dedup reference heading is an embed (resolves to task title at render time)
-    expect(betaMd).toContain("## ![[^shared-rt]]")
+    // Dedup reference + Beta only = H3 under section
+    expect(betaMd).toContain("### ![[^shared-rt]]")
 
-    // Beta only heading
-    const betaHeading = h2s.find((h) => h.children[0]?.value?.includes("Beta only"))
+    // Beta only heading is H3
+    const betaHeading = h3s.find((h) => h.children[0]?.value?.includes("Beta only"))
     expect(betaHeading).toBeDefined()
   })
 

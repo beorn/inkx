@@ -52,7 +52,12 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
         task.tags
           .map((t) => t.name)
           .filter((name): name is string => !!name)
-          .map((name) => name.replace(/\s+/g, "-").toLowerCase()),
+          .map((name) =>
+            name
+              .replace(/^@\s*/, "") // Strip Asana GTD context prefix (e.g. "@ US" → "US")
+              .replace(/\s+/g, "-")
+              .toLowerCase(),
+          ),
       ),
     ]
     if (item.tags.length === 0) delete item.tags
