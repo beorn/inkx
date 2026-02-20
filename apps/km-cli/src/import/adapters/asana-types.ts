@@ -18,7 +18,10 @@ turndown.escape = function (str: string): string {
   // First apply Turndown's built-in CommonMark escaping
   const escaped = originalEscape(str)
   // Then escape GFM strikethrough: ~~ → \~\~
-  return escaped.replace(/~~/g, "\\~\\~")
+  return escaped
+    .replace(/~~/g, "\\~\\~")
+    // Unescape checkbox patterns: \[x\] → [x], \[ \] → [ ], \[\] → []
+    .replace(/\\\[(x| |)\\\]/g, "[$1]")
 }
 
 // Asana html_notes uses <h1>/<h2>/etc. tags. Turndown's default ATX conversion

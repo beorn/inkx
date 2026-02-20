@@ -1805,3 +1805,109 @@ describe("HTML content escaping", () => {
     expect(allText(tree)).toContain("deleted text")
   })
 })
+
+// ============================================================================
+// Escaped checkboxes (km-tui.escaped-checkboxes)
+// ============================================================================
+
+describe("escaped checkboxes unescaped in turndown output", () => {
+  test("turndown does not escape [x] checkbox syntax", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<body><ul><li>[x] done item</li><li>[ ] pending item</li></ul></body>"
+    const md = turndown.turndown(html)
+    expect(md).toContain("[x] done item")
+    expect(md).toContain("[ ] pending item")
+    expect(md).not.toContain("\\[x\\]")
+    expect(md).not.toContain("\\[ \\]")
+  })
+
+  test("turndown does not escape [] empty checkbox syntax", () => {
+    const { turndown } = require("../../src/import/adapters/asana-types.ts")
+    const html = "<body><ul><li>[] unchecked task</li></ul></body>"
+    const md = turndown.turndown(html)
+    expect(md).toContain("[] unchecked task")
+    expect(md).not.toContain("\\[\\]")
+  })
+})
+
+// ============================================================================
+// Placeholder section handling
+// ============================================================================
+
+describe("placeholder section titles", () => {
+  test('sections titled "(no section)" are omitted — items go under project root', () => {
+    const data = makeDataWithSections([
+      {
+        title: "(no section)",
+        items: [{ sourceId: "t1", title: "Loose task", status: "todo" }],
+      },
+      {
+        title: "Backlog",
+        items: [{ sourceId: "t2", title: "Backlog task", status: "todo" }],
+      },
+    ])
+    const md = convertToMd(data)
+    expect(md).not.toContain("(no section)")
+    expect(md).toContain("## Backlog")
+    expect(md).toContain("Loose task")
+    expect(md).toContain("Backlog task")
+  })
+
+  test('sections titled "Untitled Section" are omitted', () => {
+    const data = makeDataWithSections([
+      {
+        title: "Untitled Section",
+        items: [{ sourceId: "t1", title: "Task A", status: "todo" }],
+      },
+    ])
+    const md = convertToMd(data)
+    expect(md).not.toContain("Untitled Section")
+    expect(md).toContain("Task A")
+  })
+
+  test("placeholder detection is case-insensitive", () => {
+    const data = makeDataWithSections([
+      {
+        title: "(No Section)",
+        items: [{ sourceId: "t1", title: "Task B", status: "todo" }],
+      },
+    ])
+    const md = convertToMd(data)
+    expect(md).not.toContain("No Section")
+    expect(md).toContain("Task B")
+  })
+})
+
+// ============================================================================
+// Empty project title fallback
+// ============================================================================
+
+describe("empty project title fallback", () => {
+  test("empty project title renders as (untitled)", () => {
+    const data = makeData(
+      [{ sourceId: "t1", title: "A task", status: "todo" }],
+      "",
+    )
+    const md = convertToMd(data)
+    expect(md).toContain("# (untitled)")
+    expect(md).not.toMatch(/^# -$/m)
+  })
+
+  test("whitespace-only project title renders as (untitled)", () => {
+    const data = makeData(
+      [{ sourceId: "t1", title: "A task", status: "todo" }],
+      "   ",
+    )
+    const md = convertToMd(data)
+    expect(md).toContain("# (untitled)")
+  })
+
+  test("non-empty project title is preserved", () => {
+    const data = makeData(
+      [{ sourceId: "t1", title: "A task", status: "todo" }],
+      "Early Orbit",
+    )
+    const md = convertToMd(data)
+    expect(md).toContain("# Early Orbit")
+  })
+})

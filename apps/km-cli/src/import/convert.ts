@@ -365,7 +365,10 @@ function itemToNodes(
   }
 }
 
-/** Convert a section to KNode(s) */
+/** Section titles that should be treated as "no section" (items go directly under parent) */
+const NO_SECTION_TITLES = new Set(["(no section)", "untitled section", "untitled"])
+
+/** Convert a section to KNode(s) — skips header for placeholder sections like "(no section)" */
 function sectionToNodes(
   counter: IdxCounter,
   section: ImportSection,
@@ -376,21 +379,25 @@ function sectionToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
 ): void {
-  const sectionId = `section-${section.sourceId}`
-  nodes.push(
-    mkNode(counter, {
-      id: sectionId,
-      type: "oi",
-      parent_id: parentId,
-      fstype: "mdsection",
-      content: section.title,
-      title: section.title,
-      data: {},
-    }),
-  )
+  const isPlaceholder = NO_SECTION_TITLES.has(section.title.toLowerCase().trim())
+  const itemParentId = isPlaceholder ? parentId : `section-${section.sourceId}`
+
+  if (!isPlaceholder) {
+    nodes.push(
+      mkNode(counter, {
+        id: itemParentId,
+        type: "oi",
+        parent_id: parentId,
+        fstype: "mdsection",
+        content: section.title,
+        title: section.title,
+        data: {},
+      }),
+    )
+  }
 
   for (const item of section.items) {
-    itemToNodes(counter, item, sectionId, nodes, rendered, primaryMap, currentProject, localRendered)
+    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered)
   }
 }
 
@@ -415,12 +422,13 @@ function projectToNodes(
   }
   if (project.owner) frontmatter.owner = project.owner
 
+  const projectTitle = project.title.trim() || "(untitled)"
   nodes.push(
     mkNode(counter, {
       id: fileId,
       type: "oi",
       fstype: "mdfile",
-      content: project.title,
+      content: projectTitle,
       data: frontmatter,
       created_at: project.createdAt ? new Date(project.createdAt).getTime() : Date.now(),
       updated_at: project.modifiedAt ? new Date(project.modifiedAt).getTime() : Date.now(),
@@ -558,7 +566,7 @@ function buildPrimaryMap(data: ImportData): {
   const primaryMap = new Map<string, string>()
   const filenames: string[] = []
   for (const project of data.projects) {
-    const slug = slugify(project.title)
+    const slug = slugify(project.title.trim() || "untitled")
     const filename = `${project.sourceId}-${slug}.md`
     filenames.push(filename)
     const ids: string[] = []
