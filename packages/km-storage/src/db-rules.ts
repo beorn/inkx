@@ -171,8 +171,9 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   log.debug?.(`evaluateAddRule: existing embeds on board: ${existingOnBoard.size}`)
 
   // Get existing embed children in this section (by link_to) - refresh after cleanup
+  // Include both link-type embeds (from rule engine) and oi/li nodes with link_to (from markdown parse)
   const existingEmbeds = getChildren(db, sectionId)
-    .filter((n) => n.type === "link" && n.embed && n.link_to)
+    .filter((n) => n.link_to)
     .map((n) => n.link_to as string)
 
   // Get next parent_idx for new embeds

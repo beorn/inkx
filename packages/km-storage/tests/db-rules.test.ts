@@ -325,6 +325,46 @@ describe("Database Rules", () => {
           expect(children.length).toBe(1)
         },
       ))
+
+    test("should not duplicate embeds already present in markdown", () =>
+      withMemoryStore(
+        (repoDir) => {
+          mkdirSync(join(repoDir, "inbox"), { recursive: true })
+          writeFileSync(
+            join(repoDir, "inbox", "task.md"),
+            `# Task
+
+- [ ] Buy groceries ^buy1
+`,
+          )
+          // Board has an km.add:: rule AND an existing embed reference to the same task
+          writeFileSync(
+            join(repoDir, "board.md"),
+            `# Board
+
+## Inbox km.add:: ./inbox/**
+
+![[task#^buy1]]
+`,
+          )
+        },
+        ({ store }) => {
+          const allNodes = store.getAllNodes()
+          const inboxSection = allNodes.find(
+            (n) => n.type === "oi" && n.fstype === "mdsection" && n.rules?.add,
+          )
+          expect(inboxSection).toBeDefined()
+
+          const ctx = createRuleContext()
+          evaluateNodeRules(store.getDatabase(), inboxSection!.id, ctx)
+
+          const children = getChildren(store.getDatabase(), inboxSection!.id)
+          // The embed from markdown + rule should not create a duplicate
+          const embedTargets = children.filter((c) => c.link_to).map((c) => c.link_to)
+          const uniqueTargets = new Set(embedTargets)
+          expect(embedTargets.length).toBe(uniqueTargets.size)
+        },
+      ))
   })
 
   describe("incremental updates", () => {

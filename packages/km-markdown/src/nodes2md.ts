@@ -92,11 +92,20 @@ export function nodesToMarkdown(
  */
 function serializeChildren(children: KNode[], ctx: SerializeContext): string {
   let md = ""
+  const seenEmbedTargets = new Set<string>()
 
   for (let i = 0; i < children.length; i++) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
     const child = children[i]!
     const nextChild = children[i + 1]
+
+    // Deduplicate embed references pointing to the same target
+    if (child.link_to && seenEmbedTargets.has(child.link_to)) {
+      continue
+    }
+    if (child.link_to) {
+      seenEmbedTargets.add(child.link_to)
+    }
 
     const isCurrentList = child.type === "li"
     const isNextList = nextChild?.type === "li"
