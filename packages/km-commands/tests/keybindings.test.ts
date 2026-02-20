@@ -732,6 +732,7 @@ describe("chord keybindings", () => {
   it("registers chord prefixes from default keybindings", () => {
     expect(isChordPrefix("z")).toBe(true)
     expect(isChordPrefix("g")).toBe(true)
+    expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
     expect(isChordPrefix("s")).toBe(true)
     // Not chord prefixes
@@ -749,6 +750,14 @@ describe("chord keybindings", () => {
     ["g", "g", "cursor_first"],
     ["g", "p", "project_picker"],
     ["g", "n", "new_item"],
+    ["g", "i", "goto_inbox"],
+    ["g", "j", "goto_journal"],
+    ["g", "h", "goto_home"],
+    ["g", "e", "goto_next"],
+    ["m", "m", "enter_move_mode"],
+    ["m", "i", "move_to_inbox"],
+    ["m", "j", "move_to_journal"],
+    ["m", "e", "move_to_next"],
     ["t", "d", "set_due_date"],
     ["t", "r", "set_recurring"],
     ["t", "s", "set_start_date"],
@@ -776,7 +785,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(17) // 6 z + 4 g + 3 t + 4 s
+    expect(chordBindings.length).toBe(25) // 6 z + 8 g + 4 m + 3 t + 4 s
   })
 
   it("new key remappings work", () => {

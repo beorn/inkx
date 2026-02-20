@@ -214,6 +214,43 @@ const followLink = {
   execute: () => ({ type: "FOLLOW_LINK" }),
 } satisfies CommandDef
 
+// Goto board commands (g-prefix chords)
+const gotoInbox = {
+  id: "goto_inbox",
+  name: "Go to Inbox",
+  description: "Navigate to inbox board",
+  category: "Navigation",
+  shortcuts: ["gi"],
+  execute: () => ({ type: "GOTO_BOARD", boardId: "@inbox" }),
+} satisfies CommandDef
+
+const gotoJournal = {
+  id: "goto_journal",
+  name: "Go to Journal",
+  description: "Navigate to journal board",
+  category: "Navigation",
+  shortcuts: ["gj"],
+  execute: () => ({ type: "GOTO_BOARD", boardId: "@journal" }),
+} satisfies CommandDef
+
+const gotoHome = {
+  id: "goto_home",
+  name: "Go to Home",
+  description: "Navigate to home (root) board",
+  category: "Navigation",
+  shortcuts: ["gh"],
+  execute: () => ({ type: "GOTO_BOARD", boardId: "@home" }),
+} satisfies CommandDef
+
+const gotoNext = {
+  id: "goto_next",
+  name: "Go to Next Actions",
+  description: "Navigate to next actions board",
+  category: "Navigation",
+  shortcuts: ["ge"],
+  execute: () => ({ type: "GOTO_BOARD", boardId: "@next" }),
+} satisfies CommandDef
+
 // All navigation commands
 // Open file/folder in macOS default app (Finder for folders, default editor for files)
 const openInSystem = {
@@ -288,4 +325,8 @@ export const navigationCommands: CommandDef[] = [
   openInTerminal,
   filter,
   commandPalette,
+  gotoInbox,
+  gotoJournal,
+  gotoHome,
+  gotoNext,
 ]

@@ -1158,7 +1158,7 @@ function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
   if (boardId === "@home") {
     // Go to root — zoom all the way out
     saveNavHistory(ctx)
-    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: "" })
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: null })
     clearSelection(ctx)
     return
   }
@@ -1186,12 +1186,19 @@ function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
     return
   }
 
+  // Compute sort order to append at end of target board's children
+  const targetChildren = ctx.repo.getChildren(boardId)
+  let sortOrder = targetChildren.length > 0 ? (targetChildren[targetChildren.length - 1]?.parent_idx ?? 0) + 1 : 0
+
   // Move each selected card to the target board as a child
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Move to board")
   for (const card of cards) {
     if (card.id === boardId) continue // Don't move node into itself
-    ctx.undoHandle.repo.moveNode(card.id, boardId)
+    ctx.repo.moveNode(card.id, boardId, sortOrder)
+    sortOrder++
   }
-  ctx.undoHandle.commit(`Move ${cards.length} item(s) to ${boardId}`)
+  ctx.undoHandle.endBatch()
   clearSelection(ctx)
   ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${boardId}`)
   ctx.setUI({})

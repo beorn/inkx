@@ -164,6 +164,53 @@ const clipboardPaste = {
   execute: () => ({ type: "CLIPBOARD_PASTE" }),
 } satisfies CommandDef
 
+// Move-to-board commands (m-prefix chords)
+const moveToInbox = {
+  id: "move_to_inbox",
+  name: "Move to Inbox",
+  description: "Move selected node(s) to inbox",
+  category: "Edit",
+  shortcuts: ["mi"],
+  execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@inbox" }),
+} satisfies CommandDef
+
+const moveToJournal = {
+  id: "move_to_journal",
+  name: "Move to Journal",
+  description: "Move selected node(s) to journal",
+  category: "Edit",
+  shortcuts: ["mj"],
+  execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@journal" }),
+} satisfies CommandDef
+
+const moveToNext = {
+  id: "move_to_next",
+  name: "Move to Next Actions",
+  description: "Move selected node(s) to next actions",
+  category: "Edit",
+  shortcuts: ["me"],
+  execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@next" }),
+} satisfies CommandDef
+
+// Link/reparent pickers
+const addLink = {
+  id: "add_link",
+  name: "Add Link",
+  description: "Open link/reference picker to add a link",
+  category: "Edit",
+  shortcuts: ["Ctrl+L"],
+  execute: () => ({ type: "ADD_LINK" }),
+} satisfies CommandDef
+
+const reparentPicker = {
+  id: "reparent_picker",
+  name: "Reparent/Move",
+  description: "Open reparent picker to move node to a new parent",
+  category: "Edit",
+  shortcuts: ["Ctrl+R"],
+  execute: () => ({ type: "REPARENT_PICKER" }),
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -182,4 +229,9 @@ export const editCommands: CommandDef[] = [
   clipboardCopy,
   clipboardCut,
   clipboardPaste,
+  moveToInbox,
+  moveToJournal,
+  moveToNext,
+  addLink,
+  reparentPicker,
 ]
