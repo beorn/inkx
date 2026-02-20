@@ -288,40 +288,36 @@ const DOUBLE_CLICK_DISTANCE = 2
  * Resolve mouse (x, y) to a card node ID using the GridNavigator position registry.
  * Returns the node ID if the click lands on a registered card, or null otherwise.
  */
+/** Find which column index the mouse x-coordinate falls in, or -1 if none. */
+function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
+  const { columns, navigator } = actionCtx
+  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+    const itemCount = navigator.getItemCount(colIdx)
+    if (itemCount === 0) continue
+    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
+      const rect = navigator.getPosition(colIdx, itemIdx)
+      if (rect) {
+        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return colIdx
+        break
+      }
+    }
+  }
+  return -1
+}
+
 function resolveMouseToNode(
   actionCtx: ActionCtx,
   mouseX: number,
   mouseY: number,
 ): string | null {
-  const { columns, navigator } = actionCtx
-
-  // Find which column the click falls in by checking each section's x-range
-  let targetColIndex = -1
-  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-    // Check the first registered item in this section to get column x-bounds
-    const itemCount = navigator.getItemCount(colIdx)
-    if (itemCount === 0) continue
-
-    // Find any registered item to get the column's x-range
-    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
-      const rect = navigator.getPosition(colIdx, itemIdx)
-      if (rect) {
-        if (mouseX >= rect.x && mouseX < rect.x + rect.width) {
-          targetColIndex = colIdx
-        }
-        break // Only need the first registered item for x-bounds
-      }
-    }
-    if (targetColIndex >= 0) break
-  }
-
+  const targetColIndex = resolveMouseToColumn(actionCtx, mouseX)
   if (targetColIndex < 0) return null
 
   // Find which card in the column the click falls on
-  const cardIndex = navigator.findItemAtY(targetColIndex, mouseY)
+  const cardIndex = actionCtx.navigator.findItemAtY(targetColIndex, mouseY)
   if (cardIndex < 0) return null
 
-  const column = columns[targetColIndex]
+  const column = actionCtx.columns[targetColIndex]
   const card = column?.cardNodes[cardIndex]
   return card?.id ?? null
 }
@@ -337,19 +333,24 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
   const { get } = ctx
 
   if (mouse.action === "wheel") {
-    // Scroll wheel → scroll column viewport WITHOUT moving cursor
+    // Scroll wheel → scroll the column under the mouse pointer
     const actionCtx = buildActionCtx(get, () => {})
-    const col = actionCtx.column
+    const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
+    if (colIdx < 0) return
+    const col = actionCtx.columns[colIdx]
     if (!col || col.cardNodes.length === 0) return
 
     const currentAnchor = actionCtx.ui.columnScrollAnchor
-    // If no explicit anchor, derive from cursor's card index
-    const baseIndex = currentAnchor ?? actionCtx.cardIndex
+    // If anchor exists for this column, continue from it; otherwise start from middle
+    const baseIndex =
+      currentAnchor?.colIdx === colIdx
+        ? currentAnchor.anchor
+        : Math.floor(col.cardNodes.length / 2)
     const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
     const maxIndex = col.cardNodes.length - 1
     const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
 
-    actionCtx.setUI({ columnScrollAnchor: newAnchor })
+    actionCtx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
     return
   }
 

@@ -509,7 +509,9 @@ export const Column = React.memo(function Column({
   const isInlineEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
-  const columnScrollAnchor = useUISelector((state) => state.columnScrollAnchor)
+  const columnScrollAnchor = useUISelector(
+    (state) => state.columnScrollAnchor?.colIdx === colIndex ? state.columnScrollAnchor.anchor : null,
+  )
 
   // Check if the board is in a loading state (discoverOnly + background parse).
   // Used to show skeleton cards in empty columns instead of "(empty)".

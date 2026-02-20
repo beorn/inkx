@@ -87,8 +87,8 @@ export interface UIState {
   // Column state
   collapsedColumns: Set<number>
   /** Scroll anchor for column viewport scrolling (mouse wheel).
-   *  null = follow cursor (default), number = explicit scroll target index */
-  columnScrollAnchor: number | null
+   *  null = follow cursor (default). When set, scrolls the targeted column. */
+  columnScrollAnchor: { colIdx: number; anchor: number } | null
 
   // Ignore mode — when true, show ignored nodes (dimmed) for un-ignoring
   showIgnored: boolean

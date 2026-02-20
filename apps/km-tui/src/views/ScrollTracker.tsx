@@ -49,9 +49,12 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
 
   // When scrollAnchor is set (mouse wheel scrolling), use it instead of cursor-derived index.
   // This allows the viewport to scroll independently of the cursor position.
-  const effectiveIndex =
-    scrollAnchor != null && isSelected ? scrollAnchor : cardIndex
-  const scrollTo = getScrollToIndex(isSelected, effectiveIndex, virtualListProps.items.length)
+  // scrollAnchor applies even to non-selected columns (mouse can hover over any column).
+  const effectiveIndex = scrollAnchor != null ? scrollAnchor : cardIndex
+  const hasScrollAnchor = scrollAnchor != null
+  const scrollTo = hasScrollAnchor
+    ? effectiveIndex  // Mouse wheel: scroll to anchor regardless of selection
+    : getScrollToIndex(isSelected, effectiveIndex, virtualListProps.items.length)
 
   return <VirtualList scrollTo={scrollTo} {...virtualListProps} />
 }) as <T>(props: ScrollTrackingVirtualListProps<T>) => React.ReactElement
