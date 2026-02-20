@@ -81,7 +81,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { handleKey } from "../../src/board-app.ts"
 import type { InitialBoardData, ColumnState } from "../../src/types.ts"
-import { createCursorStore } from "../../src/cursor-store.ts"
+import { createCursorStore, deriveCursorAncestors } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
@@ -371,6 +371,7 @@ export function testEnv(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -1406,6 +1407,7 @@ export function testEnvWithRepo(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
     }),
     initialBoardState: createBoardState(
       initialState.rootId,
@@ -2205,6 +2207,7 @@ export function renderBoardWithStore(
     navigator: registry,
     cursorStore: createCursorStore({
       cursorNodeId: initialCursorNodeId,
+      ...deriveCursorAncestors((id) => repo.getNode(id), initialState.rootId, initialCursorNodeId, (pid) => repo.getChildren(pid)),
     }),
     initialBoardState: createBoardState(
       initialState.rootId,

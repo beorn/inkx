@@ -20,7 +20,7 @@ import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
-import type { CursorStore } from "./cursor-store.ts"
+import { deriveCursorAncestors, type CursorStore } from "./cursor-store.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
@@ -177,8 +177,14 @@ export function createBoardAppStoreState(
           s.cursorNodeId = action.nodeId
           s.curswantX = null
           s.curswantY = null
+          // Derive cursor ancestors from tree structure
+          const getNode = (id: string) => s.repo.getNode(id)
+          const ancestors = deriveCursorAncestors(getNode, s.rootId, action.nodeId, (pid) => s.repo.getChildren(pid))
           // Notify CursorStore subscribers (only cursor-aware components re-render)
-          s.cursorStore.setState({ cursorNodeId: action.nodeId })
+          s.cursorStore.setState({
+            cursorNodeId: action.nodeId,
+            ...ancestors,
+          })
           return
         }
 
@@ -334,7 +340,12 @@ export function createBoardAppStoreState(
         // After state mutation, notify CursorStore so cursor-aware components update
         // (e.g., ZOOM_IN changes cursorNodeId, CANCEL_MOVE restores it)
         const s = _get()
-        s.cursorStore.setState({ cursorNodeId: s.cursorNodeId })
+        const getNode = (id: string) => s.repo.getNode(id)
+        const ancestors = deriveCursorAncestors(getNode, s.rootId, s.cursorNodeId, (pid) => s.repo.getChildren(pid))
+        s.cursorStore.setState({
+          cursorNodeId: s.cursorNodeId,
+          ...ancestors,
+        })
       },
 
       // --- Direct setters ---
