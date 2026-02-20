@@ -24,6 +24,7 @@ import {
   resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
 import { shortName, parseDepsRefs } from "./tree-node-helpers.ts"
+import { NodeLineView } from "./NodeView.tsx"
 
 export interface DetailPaneProps {
   node: KNode
@@ -106,21 +107,16 @@ function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneP
             </Text>
           </Box>
 
-          {/* Outline */}
+          {/* Outline — uses NodeLineView for consistent icon + title rendering */}
           <Box flexDirection="column" marginTop={1}>
-            {entries.map((entry, i) => {
-              const indent = "  ".repeat(entry.depth)
-              const icon = getNodeIcon(entry.node.task_status, undefined, entry.node.task_marker !== undefined)
-              const entryTitle = getNodeDisplayName(repo, entry.node)
-              return (
-                <Box key={`${entry.node.id}-${i}`} height={1}>
-                  <Text wrap="truncate">
-                    {indent}
-                    <Text color={icon.color}>{icon.char}</Text> {renderRich(entryTitle)}
-                  </Text>
-                </Box>
-              )
-            })}
+            {entries.map((entry, i) => (
+              <NodeLineView
+                key={`${entry.node.id}-${i}`}
+                node={entry.node}
+                displayName={getNodeDisplayName(repo, entry.node)}
+                indent={entry.depth}
+              />
+            ))}
             {hasMore && <Text dimColor> ...and more</Text>}
           </Box>
         </Box>
@@ -278,16 +274,10 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
             if (child.link_to) {
               const target = repo.getNode(child.link_to)
               if (target) {
-                const icon = getNodeIcon(target.task_status, undefined, target.task_marker !== undefined)
-                const targetIsDone = target.task_status === "done" || target.task_status === "dropped"
-                const title = stripInlineRefs(getNodeDisplayName(repo, target))
                 return (
                   <React.Fragment key={`${child.id}-${i}`}>
                     {needsSpace && <Text> </Text>}
-                    <Text wrap="truncate" dimColor={targetIsDone}>
-                      <Text color={targetIsDone ? undefined : icon.color}>{icon.char} </Text>
-                      {renderRich(title)}
-                    </Text>
+                    <NodeLineView node={target} displayName={stripInlineRefs(getNodeDisplayName(repo, target))} />
                   </React.Fragment>
                 )
               }

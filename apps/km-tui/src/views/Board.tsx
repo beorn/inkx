@@ -421,15 +421,7 @@ export function BoardCore({
               resetKey={errorBoundaryResetKey}
               onError={handleRenderError}
             >
-              <ListView
-                columns={columns}
-                width={boardWidth}
-                height={contentHeight}
-                colIndex={layout.colIndex}
-                cardIndex={layout.cardIndex}
-                subIndex={ui.subIndex}
-                selectionLevel={derivedSelectionLevel}
-              />
+              <ListView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
             </ErrorBoundary>
           ) : (
             <ErrorBoundary
@@ -437,15 +429,7 @@ export function BoardCore({
               resetKey={errorBoundaryResetKey}
               onError={handleRenderError}
             >
-              <TabsView
-                columns={columns}
-                width={boardWidth}
-                height={contentHeight}
-                colIndex={layout.colIndex}
-                cardIndex={layout.cardIndex}
-                subIndex={ui.subIndex}
-                selectionLevel={derivedSelectionLevel}
-              />
+              <TabsView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
@@ -567,7 +551,6 @@ export function BoardCore({
           ui={ui}
           rootPath={rootPath}
           columns={columns}
-          layout={layout}
           termWidth={termWidth}
           storageMode={repo.mode}
           nodeCount={repo.stats.nodeCount}
@@ -832,7 +815,7 @@ export function Board({ patchedConsole }: BoardProps) {
   )
 
   return (
-    <CursorStoreProvider store={cursorStore} layout={columnsLayout}>
+    <CursorStoreProvider store={cursorStore}>
       <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
         <BoardCore
           rootId={rootId}

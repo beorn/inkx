@@ -50,20 +50,14 @@ interface ListViewProps {
   columns: ColumnState[]
   width: number
   height: number
-  colIndex: number
-  cardIndex: number
   subIndex: number
-  selectionLevel: "board" | "column" | "card"
 }
 
 export function ListView({
   columns: columnsProp,
   width,
   height,
-  colIndex: _colIndexProp,
-  cardIndex: _cardIndexProp,
   subIndex: subIndexProp,
-  selectionLevel: _selectionLevelProp,
 }: ListViewProps): React.ReactElement {
   const { treeConfig, rootBoardId } = useTreeRenderContext()
   const { inOutlineMode } = treeConfig

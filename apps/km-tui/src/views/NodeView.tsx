@@ -220,19 +220,26 @@ export interface NodeLineViewProps {
   ancestorDone?: boolean
   /** Width available for rendering */
   width?: number
+  /** Override display name (pre-computed, skips stripForDisplay/stripTaskMark) */
+  displayName?: string
+  /** Indentation level (rendered as 2-space increments before icon) */
+  indent?: number
 }
 
 /**
- * Compact one-line node display: icon + title (truncated).
+ * Compact one-line node display: [indent] icon + title (truncated).
  *
- * Used inside cards for subitems and in detail panes for child listings.
- * Pure presentational — no hooks. Status-aware: dims done/dropped items.
+ * Used inside cards for subitems, detail panes for child listings,
+ * and folder outlines. Pure presentational — no hooks.
+ * Status-aware: dims done/dropped items.
  */
 export function NodeLineView({
   node,
   isSelected = false,
   ancestorDone = false,
   width,
+  displayName,
+  indent = 0,
 }: NodeLineViewProps): React.ReactElement {
   const nodeIsTask = isTask(node)
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
@@ -243,18 +250,24 @@ export function NodeLineView({
     ? getStatusIcon(node.task_status ?? "todo")
     : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
-  // Title: strip metadata, render rich text
-  const rawContent = node.content ? stripForDisplay(node.content) : ""
-  const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
-  const title = renderRich(displayContent)
+  // Title: use displayName override or derive from content
+  const title = displayName
+    ? renderRich(displayName)
+    : (() => {
+        const rawContent = node.content ? stripForDisplay(node.content) : ""
+        const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
+        return renderRich(displayContent)
+      })()
 
   const textColor = isSelected ? "black" : undefined
   const bgColor = isSelected ? "yellow" : undefined
   const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
+  const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
     <Box width={width} height={1} backgroundColor={bgColor}>
       <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
+        {indentStr}
         <Text color={iconColor}>{icon.char}</Text> {title}
       </Text>
     </Box>

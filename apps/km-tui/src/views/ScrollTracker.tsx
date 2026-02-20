@@ -17,7 +17,6 @@ import { useCursorCardNodeId } from "../cursor-context.tsx"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
 interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "scrollTo"> {
-  colIndex: number
   isSelected: boolean
   /** Extract nodeId from items for cursor→index lookup. Falls back to (item as any).node.id */
   keyExtractor?: (item: T) => string
@@ -28,7 +27,6 @@ interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "s
  * Isolates j/k re-renders from Column — only this wrapper + VirtualList re-render.
  */
 export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtualList<T>({
-  colIndex: _colIndex,
   isSelected,
   keyExtractor,
   ...virtualListProps

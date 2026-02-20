@@ -127,7 +127,7 @@ export function resolveZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarg
   // Build ancestor chain: [target, parent, grandparent, ...]
   const ancestors: KNode[] = [target]
   let ancestor: KNode | null = target
-  while (ancestor?.parent_id) {
+  for (let i = 0; i < 100 && ancestor?.parent_id; i++) {
     const parent = repo.getNode(ancestor.parent_id)
     if (parent) ancestors.push(parent)
     ancestor = parent

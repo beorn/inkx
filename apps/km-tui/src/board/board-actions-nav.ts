@@ -139,7 +139,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   const { dispatchBoard, navigator, viewNavigation } = ctx
 
   if (!ctx.cursorNodeId) {
-    throw new Error("[nav] handleVerticalNav called without cursorNodeId")
+    return boundary(dir, "no cursor")
   }
 
   const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)

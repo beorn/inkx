@@ -152,7 +152,6 @@ const ColumnTree = React.memo(function ColumnTree({
       {/* Cards with ScrollTrackingVirtualList */}
       {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList
-          colIndex={colIndex}
           isSelected={isSelected}
           items={column.cards}
           height={height - 2}

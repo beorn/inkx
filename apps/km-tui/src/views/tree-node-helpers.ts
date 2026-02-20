@@ -384,11 +384,9 @@ export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | 
   if (refs.length === 0) return false
   for (const ref of refs) {
     const target = getNode(ref)
-    if (!target) continue // can't resolve — treat as unresolved
-    if (target.task_status !== "done" && target.task_status !== "dropped") return true
+    if (!target || (target.task_status !== "done" && target.task_status !== "dropped")) return true
   }
-  // All deps resolved (or none could be found)
-  return refs.some((ref) => !getNode(ref))
+  return false
 }
 
 // =============================================================================

@@ -77,7 +77,6 @@ interface BottomBarProps {
   ui: UIState
   rootPath: string | null
   columns: ColumnState[]
-  layout: { colIndex: number; cardIndex: number }
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"
@@ -98,7 +97,6 @@ export function BottomBar({
   ui,
   rootPath,
   columns,
-  layout: _layoutProp,
   termWidth,
   storageMode,
   nodeCount,

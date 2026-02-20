@@ -56,16 +56,10 @@ export interface CardState {
  *
  * VIEW MODEL ARTIFACT: In the new node model, the column header IS a node —
  * navigating "above the first card" just means cursorNodeId points to the
- * parent node. No sentinel index needed. Target: eliminate.
+ * parent node. No sentinel index needed. Still used by deriveCursorPosition
+ * and ColumnsLayout for index-based position derivation in Board/actions.
  */
 export const COLUMN_HEADER_INDEX = -1
-
-/**
- * Check if a cardIndex represents the column header level.
- */
-export function isAtColumnHeader(cardIndex: number): boolean {
-  return cardIndex === COLUMN_HEADER_INDEX
-}
 
 /**
  * Derived columns layout with cursor position.

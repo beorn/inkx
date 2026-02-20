@@ -514,6 +514,7 @@ function moveColumn(
   col: { node: { id: string; parent_idx: number } },
   direction: "left" | "right",
 ): ActionResult {
+  if (!ctx.rootId) return boundary("move", "no root")
   const { repo } = ctx
   const columns = ctx.layout.columns
   const colIndex = columns.findIndex((c) => c.node.id === col.node.id)

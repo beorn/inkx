@@ -26,21 +26,10 @@ interface TabsViewProps {
   columns: ColumnState[]
   width: number
   height: number
-  colIndex: number
-  cardIndex: number
   subIndex: number
-  selectionLevel: "board" | "column" | "card"
 }
 
-export function TabsView({
-  columns: columnsProp,
-  width,
-  height,
-  colIndex: _colIndexProp,
-  cardIndex: _cardIndexProp,
-  subIndex,
-  selectionLevel: _selectionLevelProp,
-}: TabsViewProps): React.ReactElement {
+export function TabsView({ columns: columnsProp, width, height, subIndex }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
   const {
     treeConfig: { inOutlineMode },

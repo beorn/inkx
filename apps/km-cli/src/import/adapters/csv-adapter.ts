@@ -189,9 +189,7 @@ function normalizeStatus(raw: string): ImportItem["status"] | undefined {
 // CSV → ImportData
 // =============================================================================
 
-let nextId = 0
-
-function csvRowToItem(row: string[], columns: Map<number, ColumnRole>): ImportItem | null {
+function csvRowToItem(row: string[], columns: Map<number, ColumnRole>, counter: { value: number }): ImportItem | null {
   const get = (role: ColumnRole): string | undefined => {
     for (const [idx, r] of columns) {
       if (r === role) return row[idx]?.trim()
@@ -204,7 +202,7 @@ function csvRowToItem(row: string[], columns: Map<number, ColumnRole>): ImportIt
 
   const idRaw = get("id")
   const item: ImportItem = {
-    sourceId: idRaw || `csv-${++nextId}`,
+    sourceId: idRaw || `csv-${++counter.value}`,
     title,
   }
 
@@ -242,8 +240,7 @@ function csvRowToItem(row: string[], columns: Map<number, ColumnRole>): ImportIt
 }
 
 export function parseCSVToImportData(text: string, filename?: string): ImportData {
-  // Reset counter for each parse call (important for tests)
-  nextId = 0
+  const nextId = { value: 0 }
 
   const delimiter = detectDelimiter(text)
   const rows = parseCSV(text, delimiter)
@@ -273,7 +270,7 @@ export function parseCSVToImportData(text: string, filename?: string): ImportDat
   // Parse all items
   const items: Array<{ item: ImportItem; project?: string; parent?: string }> = []
   for (let i = 1; i < rows.length; i++) {
-    const item = csvRowToItem(rows[i]!, columns)
+    const item = csvRowToItem(rows[i]!, columns, nextId)
     if (!item) continue
 
     // Extract project/section grouping

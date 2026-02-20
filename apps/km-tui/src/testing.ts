@@ -42,7 +42,6 @@ import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "./repo-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
-import { buildNodeIndex } from "./hooks/use-columns.ts"
 
 /**
  * Options for creating a board test harness
@@ -195,18 +194,10 @@ export async function createBoardTest(
   const firstCardNodeId = state.columns[0]?.cards[0]?.node.id ?? null
   const cursorStore = createCursorStoreFromRepo(repo, state.rootId, firstCardNodeId)
 
-  const layout = {
-    columns: state.columns,
-    colIndex: 0,
-    cardIndex: 0,
-    isAtCardLevel: true,
-    nodeIndex: buildNodeIndex(state.columns),
-  }
-
   const app = render(
     React.createElement(
       CursorStoreProvider,
-      { store: cursorStore, layout },
+      { store: cursorStore },
       React.createElement(RepoProvider, { repo, children: boardCoreElement }),
     ),
   )

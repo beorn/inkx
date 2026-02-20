@@ -6,6 +6,7 @@
  */
 
 import type { ImportAdapter, AdapterParseOptions, AdapterFetchOptions, AdapterFetchResult } from "../adapter.ts"
+import { readFileSync } from "fs"
 import type { ImportData, ImportAttachment } from "../types.ts"
 import { parseAsanaFile } from "./asana-file.ts"
 
@@ -51,7 +52,7 @@ export const asanaAdapter: ImportAdapter = {
   fileExtensions: [".json"],
 
   parse(options: AdapterParseOptions): ImportData {
-    const content = options.isPath ? require("fs").readFileSync(options.input, "utf-8") : options.input
+    const content = options.isPath ? readFileSync(options.input, "utf-8") : options.input
     return parseAsanaFile(content)
   },
 

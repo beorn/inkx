@@ -191,6 +191,26 @@ describe("NodeLineView (line style)", () => {
     const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
     expect(output).toContain("Normal item")
   })
+
+  test("uses displayName override instead of content", async () => {
+    const node = makeNode({ content: "raw-content-ignored" })
+    const output = await renderString(<NodeLineView node={node} displayName="Custom Title" />, {
+      plain: true,
+      width: 40,
+    })
+    expect(output).toContain("Custom Title")
+    expect(output).not.toContain("raw-content-ignored")
+  })
+
+  test("renders indent as 2-space increments", async () => {
+    const node = makeNode({ content: "Nested item" })
+    const indented = await renderString(<NodeLineView node={node} indent={2} />, { plain: true, width: 40 })
+    const flat = await renderString(<NodeLineView node={node} indent={0} />, { plain: true, width: 40 })
+    // Indented version should have more leading spaces
+    const indentedLeading = indented.match(/^(\s*)/)?.[1]?.length ?? 0
+    const flatLeading = flat.match(/^(\s*)/)?.[1]?.length ?? 0
+    expect(indentedLeading).toBeGreaterThan(flatLeading)
+  })
 })
 
 // =============================================================================

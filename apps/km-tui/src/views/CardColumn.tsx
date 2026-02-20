@@ -679,7 +679,6 @@ export const Column = React.memo(function Column({
 
       {column.cards.length > 0 ? (
         <ScrollTrackingVirtualList
-          colIndex={colIndex}
           isSelected={isSelected}
           items={column.cards}
           width={width - 1}

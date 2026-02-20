@@ -96,8 +96,12 @@ function collectInlineImages(data: ImportData): Map<string, ImportAttachment> {
       for (const url of extractInlineImageUrls(item.body)) {
         if (!existingUrls.has(url) && !urlMap.has(url)) {
           // Guess extension from URL path
-          const urlPath = new URL(url).pathname
-          const ext = extname(urlPath) || ".png"
+          let ext = ".png"
+          try {
+            ext = extname(new URL(url).pathname) || ".png"
+          } catch {
+            /* use default */
+          }
           const name = `inline-image${ext}`
           const att: ImportAttachment = {
             sourceId: urlToSourceId(url),
