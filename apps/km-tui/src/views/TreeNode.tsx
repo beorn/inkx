@@ -910,9 +910,41 @@ function stripContentForDisplay(content: string | undefined): string {
   return stripForDisplay(content.slice(0, nlIdx)) + content.slice(nlIdx)
 }
 
+/** Try to resolve an embed reference (block_id or filename) to a human-readable title.
+ * Only returns a result if the resolved node has real content (not itself an embed). */
+function tryResolveEmbedRef(
+  repo: { getNode(id: string): KNode | undefined; resolveNode?(query: string): KNode | null },
+  ref: string,
+): string | null {
+  if (!repo.resolveNode) return null
+
+  const resolveAndFormat = (query: string): string | null => {
+    const target = repo.resolveNode!(query)
+    if (!target) return null
+    const content = stripContentForDisplay(target.content)
+    // Guard: don't return content that's itself an embed reference
+    if (!content || EMBED_EXTRACT_RE.test(content)) return null
+    return content
+  }
+
+  // Bare block ref "^blockid" → extract blockid and look up
+  const blockMatch = ref.match(/^\^([\w-]+)$/)
+  if (blockMatch) return resolveAndFormat(blockMatch[1]!)
+
+  // file#^blockid → extract blockid part
+  const hashIdx = ref.indexOf("#")
+  if (hashIdx >= 0) {
+    const fragment = ref.slice(hashIdx + 1)
+    if (fragment.startsWith("^")) return resolveAndFormat(fragment.slice(1))
+  }
+
+  // Plain filename — try resolving
+  return resolveAndFormat(ref)
+}
+
 /** Resolve what text to display for a node, handling embeds and section types. */
 function getDisplayContent(
-  repo: { getNode(id: string): KNode | undefined },
+  repo: { getNode(id: string): KNode | undefined; resolveNode?(query: string): KNode | null },
   node: KNode,
   displayNode: KNode,
   resolvedNode: KNode | null,
@@ -929,8 +961,13 @@ function getDisplayContent(
   }
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
-    // Clean block-ID references (^blockid) so they don't show raw IDs
+    // Try to resolve the embed reference to a real node title
     const raw = node.content?.replace(EMBED_EXTRACT_RE, "$1")
+    if (raw) {
+      const resolved = tryResolveEmbedRef(repo, raw)
+      if (resolved) return resolved
+    }
+    // Clean block-ID references (^blockid) so they don't show raw IDs
     const cleaned = raw ? cleanEmbedRef(raw) : ""
     if (cleaned) return cleaned
     // Bare block ref (^id) or no content — show short ID fallback
@@ -941,6 +978,9 @@ function getDisplayContent(
   const trimmed = displayNode.content?.trim()
   if (trimmed && EMBED_EXTRACT_RE.test(trimmed)) {
     const raw = trimmed.replace(EMBED_EXTRACT_RE, "$1")
+    // Try to resolve the embed reference to a real node title
+    const resolved = tryResolveEmbedRef(repo, raw)
+    if (resolved) return resolved
     // Clean block-ID references; bare block refs fall through to short ID
     return cleanEmbedRef(raw) || `(${displayNode.id.slice(0, 8)})`
   }
