@@ -144,7 +144,13 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
 
   // Get direct children and split into body content vs structural items
   const allChildren = repo.getChildren(rootId)
-  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
+  const { body: bodyNodes, items: rawColumnNodes } = extractBody(allChildren)
+
+  // Deduplicate column nodes by fs_path (import bugs can create duplicate file entries).
+  // Uses batch child counts to keep the node with more children.
+  const allColumnIds = rawColumnNodes.map((n) => n.id)
+  const allColumnChildCounts = repo.getChildCounts(allColumnIds)
+  const columnNodes = deduplicateByFsPathBatch(rawColumnNodes, allColumnChildCounts)
 
   const total = columnNodes.length + (bodyNodes.length > 0 ? 1 : 0)
   yield "Building view"
@@ -244,6 +250,38 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     collapsedColumns,
     collapsedNodeIds,
   }
+}
+
+/**
+ * Deduplicate column nodes by fs_path using pre-fetched child counts.
+ * Import bugs can create duplicate file entries in the DB.
+ * Keeps the node with more children; if tied, keeps the first occurrence.
+ */
+function deduplicateByFsPathBatch(nodes: KNode[], childCounts: Map<string, number>): KNode[] {
+  const seen = new Map<string, { node: KNode; childCount: number }>()
+  const result: KNode[] = []
+
+  for (const node of nodes) {
+    const path = node.fs_path
+    if (!path) {
+      result.push(node)
+      continue
+    }
+
+    const childCount = childCounts.get(node.id) ?? 0
+    const existing = seen.get(path)
+
+    if (!existing) {
+      seen.set(path, { node, childCount })
+      result.push(node)
+    } else if (childCount > existing.childCount) {
+      const idx = result.indexOf(existing.node)
+      if (idx >= 0) result[idx] = node
+      seen.set(path, { node, childCount })
+    }
+  }
+
+  return result
 }
 
 /**

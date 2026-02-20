@@ -129,8 +129,12 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
     })
   }
 
+  // Deduplicate column nodes by fs_path (import bugs can create duplicate file entries).
+  // Keep the node with more children; if tied, keep the first one.
+  const deduped = deduplicateByFsPath(columnNodes, repo)
+
   // Convert structural children to columns
-  for (const node of columnNodes) {
+  for (const node of deduped) {
     columns.push(kNodeToColumnState(repo, node, wipLimits, foldedNodes))
   }
 
@@ -140,6 +144,40 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 // =============================================================================
 // Helpers
 // =============================================================================
+
+/**
+ * Deduplicate column nodes that share the same fs_path.
+ * Import bugs can create duplicate file entries in the DB.
+ * Keeps the node with more children; if tied, keeps the first occurrence.
+ */
+function deduplicateByFsPath(nodes: KNode[], repo: Repo): KNode[] {
+  const seen = new Map<string, { node: KNode; childCount: number }>()
+  const result: KNode[] = []
+
+  for (const node of nodes) {
+    const path = node.fs_path
+    if (!path) {
+      result.push(node)
+      continue
+    }
+
+    const childCount = repo.getChildren(node.id).length
+    const existing = seen.get(path)
+
+    if (!existing) {
+      seen.set(path, { node, childCount })
+      result.push(node)
+    } else if (childCount > existing.childCount) {
+      // Replace the previous entry with this one (more children)
+      const idx = result.indexOf(existing.node)
+      if (idx >= 0) result[idx] = node
+      seen.set(path, { node, childCount })
+    }
+    // Otherwise skip (existing has more or equal children)
+  }
+
+  return result
+}
 
 /**
  * Extract WIP limits from column nodes' frontmatter.

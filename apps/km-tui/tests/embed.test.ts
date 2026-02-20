@@ -499,6 +499,147 @@ describe("link title resolution", () => {
 })
 
 // =============================================================================
+// Unresolved Asana embed display (P1 — raw embed IDs in card titles)
+// =============================================================================
+
+describe("unresolved Asana embed display", () => {
+  test("Failure Mode A: file#^blockId resolves to target title, not raw workspace slug", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node that the embed should resolve to
+        // Use block_id value as the node ID so fakeRepo.resolveNode finds it
+        nodes.push({
+          id: "1209600947800994",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Review quarterly report",
+          block_id: "1209600947800994",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Unresolved embed: link_to is null (block_id not found during import)
+        // Content is in the Asana file#^blockId format
+        nodes.push({
+          id: "asana-embed-a",
+          type: "p" as const,
+          content: "![[688309546998762-pers-prod#^1209600947800994]]",
+          link_to: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's actual title
+    expect(text).toContain("Review quarterly report")
+    // Should NOT show the raw Asana workspace slug
+    expect(text).not.toContain("688309546998762-pers-prod")
+    // Should NOT show the raw block reference
+    expect(text).not.toMatch(/\^1209600947800994/)
+  })
+
+  test("Failure Mode B: bare ^blockId resolves to target title, not short ID", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node (ID matches the block_id for fakeRepo resolution)
+        nodes.push({
+          id: "1k4a",
+          type: "li" as const,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          link_to: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Weekly standup notes",
+          block_id: "1k4a",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Unresolved embed: bare block ref with link_to=null
+        nodes.push({
+          id: "bare-embed",
+          type: "p" as const,
+          content: "![[^1k4a]]",
+          link_to: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's actual title
+    expect(text).toContain("Weekly standup notes")
+    // Should NOT show the truncated node ID fallback
+    expect(text).not.toContain("(bare-emb")
+    // Should NOT show the raw block ref
+    expect(text).not.toContain("^1k4a")
+  })
+
+  test("unresolvable embed falls back gracefully to cleaned ref", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Embed with file#^blockId where the target doesn't exist at all
+        nodes.push({
+          id: "orphan-embed",
+          type: "p" as const,
+          content: "![[my-notes#^nonexistent]]",
+          link_to: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should fall back to showing the file name (cleaned ref), not the block ID
+    expect(text).toContain("my-notes")
+    // Should NOT show the block ref
+    expect(text).not.toContain("^nonexistent")
+  })
+})
+
+// =============================================================================
 // Embed task status cycling (km-79kld)
 // =============================================================================
 
