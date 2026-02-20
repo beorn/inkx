@@ -232,7 +232,9 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext)
   // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
   const title = node.title ?? node.content ?? ""
   const ruleStr = node.rules ? serializeRules(node.rules) : ""
-  let headingLine = ruleStr ? `${prefix} ${title} ${ruleStr}` : `${prefix} ${title}`
+  // Prepend task marker if present (e.g., "## [x] Task title")
+  const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
+  let headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
   if (node.block_id) headingLine += ` ^${node.block_id}`
   let md = headingLine + "\n\n"
 

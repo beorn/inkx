@@ -134,15 +134,15 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders tasks as headings with inline metadata", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("## Design login page @alice #design")
+    expect(md).toContain("## [ ] Design login page @alice #design")
     // Metadata (created::, due::, etc.) is stored in node data, not inline on headings
     expect(md).toContain("^t1")
   })
 
   test("renders completedAt on done tasks", () => {
     const md = convertToMd(fixture)
-    // Done tasks render as headings (no [x] checkbox); completedAt is in node data
-    expect(md).toContain("## Write tests completed:: 2026-02-09 ^t2")
+    // Done tasks render as headings with [x] marker; completedAt is in node data
+    expect(md).toContain("## [x] Write tests completed:: 2026-02-09 ^t2")
   })
 
   test("renders multi-project as +project tags (excluding current project)", () => {
@@ -158,8 +158,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders subtasks as headings", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("## Create wireframes ^s1")
-    expect(md).toContain("## Review with team ^s2")
+    expect(md).toContain("## [ ] Create wireframes ^s1")
+    expect(md).toContain("## [x] Review with team ^s2")
   })
 
   test("renders body as paragraph (not blockquote)", () => {
@@ -371,8 +371,8 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("## ◆ Launch day ^m1")
-    expect(md).toContain("## ◆ Past milestone ^m2")
+    expect(md).toContain("## [ ] ◆ Launch day ^m1")
+    expect(md).toContain("## [x] ◆ Past milestone ^m2")
   })
 
   test("renders all-metadata task with every field in output", () => {
@@ -410,13 +410,13 @@ describe("Stage 2: Convert ImportData to markdown", () => {
       ]),
     )
     expect(md).toContain(
-      "## Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 p:: 2 ^tf1",
+      "## [x] Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 p:: 2 ^tf1",
     )
     expect(md).not.toContain("+test")
     // Body appears directly under heading (no indent since parent is oi)
     expect(md).toContain("Description with **bold** text.")
-    // Subtask is a heading too
-    expect(md).toContain("## Sub-step ^cs1")
+    // Subtask is a heading too (depth 3 under parent)
+    expect(md).toContain("### [x] Sub-step ^cs1")
     // Comments and attachments are oi sections rendered as headings
     expect(md).toContain("## Comments")
     expect(md).toContain("- 2026-02-09 @bob: Approved. Ship it!")
@@ -522,7 +522,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    expect(md).toContain("## Metadata task created:: 2026-01-15 completed:: 2026-02-10 ^t1")
+    expect(md).toContain("## [x] Metadata task created:: 2026-01-15 completed:: 2026-02-10 ^t1")
   })
 
   test("renders nested subtasks 2+ levels deep", () => {
@@ -541,10 +541,10 @@ describe("Stage 2: Convert ImportData to markdown", () => {
         },
       ]),
     )
-    // All tasks/subtasks are headings now
-    expect(md).toContain("## Top-level task ^top")
-    expect(md).toContain("## Mid-level subtask ^mid")
-    expect(md).toContain("## Deep subtask ^deep")
+    // All tasks/subtasks are headings now, with task markers and increasing depth
+    expect(md).toContain("## [ ] Top-level task ^top")
+    expect(md).toContain("### [ ] Mid-level subtask ^mid")
+    expect(md).toContain("#### [x] Deep subtask ^deep")
   })
 
   test("renders body as paragraph, attachments and comments as separate child nodes", () => {
@@ -1057,15 +1057,15 @@ describe("Multi-project task dedup", () => {
     const beta = files.get("project-beta.md")!
 
     // Alpha has full content (body, ^block-id)
-    expect(alpha).toContain("## Shared task ^shared-1")
+    expect(alpha).toContain("## [ ] Shared task ^shared-1")
     expect(alpha).toContain("Details here")
 
     // Beta has embed reference (renders target node inline)
     expect(beta).toContain("![[^shared-1]]")
     expect(beta).not.toContain("Details here")
 
-    // Non-shared task renders normally as heading
-    expect(beta).toContain("## Beta only ^only-beta")
+    // Non-shared task renders normally as heading with marker
+    expect(beta).toContain("## [x] Beta only ^only-beta")
   })
 })
 
@@ -1231,7 +1231,7 @@ describe("roundtrip: convert → parse", () => {
     expect(h2s.length).toBeGreaterThanOrEqual(1)
 
     // Dedup reference + Beta only = H3 under section
-    expect(betaMd).toContain("### ![[^shared-rt]]")
+    expect(betaMd).toContain("### [ ] ![[^shared-rt]]")
 
     // Beta only heading is H3
     const betaHeading = h3s.find((h) => h.children[0]?.value?.includes("Beta only"))
@@ -1346,7 +1346,7 @@ describe("Within-file dedup", () => {
     const md = files.get("wellness.md")!
 
     // Task should appear exactly once as a full heading entry
-    const fullMatches = md.match(/## Exercise daily/g)
+    const fullMatches = md.match(/## \[[ x]\] Exercise daily/g)
     expect(fullMatches).toHaveLength(1)
 
     // No within-file cross-reference (embed or old title+link)
@@ -1408,7 +1408,7 @@ describe("Within-file dedup", () => {
     const beta = files.get("beta.md")!
 
     // Alpha: full content once as heading, no self-reference
-    const alphaFullMatches = alpha.match(/## Shared task/g)
+    const alphaFullMatches = alpha.match(/## \[[ x]\] Shared task/g)
     expect(alphaFullMatches).toHaveLength(1)
     expect(alpha).not.toContain("![[^shared-task]]")
 

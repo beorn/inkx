@@ -711,8 +711,7 @@ function buildPrimaryMap(data: ImportData): {
       }
     } else {
       const rawTitle = project.title.trim() || "untitled"
-      const atPrefix = rawTitle.startsWith("@") ? "@" : ""
-      const projectSlug = atPrefix + (projectSlugOverrides.get(project.sourceId) ?? slugify(rawTitle))
+      const projectSlug = projectSlugOverrides.get(project.sourceId) ?? slugify(rawTitle)
       const teamSlug = project.team ? (teamSlugMap.get(project.team) ?? slugify(project.team)) : undefined
 
       if (wsSlug && teamSlug) {
@@ -837,7 +836,6 @@ function* generateTagFiles(
     )
 
     for (const item of items) {
-      // Use task title with embed reference for items already rendered in project files
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
@@ -846,8 +844,9 @@ function* generateTagFiles(
             id: `tagref-${tag}-${item.sourceId}`,
             type: "oi",
             parent_id: fileId,
+            task_marker: marker as TaskMarker,
+            task_status: status,
             content: `![[^${item.sourceId}]]`,
-            data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -942,8 +941,9 @@ function* generateUserFiles(
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "oi",
             parent_id: fileId,
+            task_marker: marker as TaskMarker,
+            task_status: status,
             content: `![[^${item.sourceId}]]`,
-            data: { depth: 2 },
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
