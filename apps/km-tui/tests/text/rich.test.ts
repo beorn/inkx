@@ -108,13 +108,16 @@ describe("renderRich", () => {
   })
 
   describe("wiki link styling", () => {
-    it("renders wiki links - brackets stripped", () => {
+    it("renders wiki links - brackets stripped, green + underlined", () => {
       const result = renderRich("See [[note]]")
       // Wiki link brackets should be removed
       expect(stripAnsi(result)).toBe("See note")
       // Should not contain the raw wiki link syntax
       expect(result).not.toContain("[[")
       expect(result).not.toContain("]]")
+      // Internal links are green (32) + underlined
+      expect(result).toContain("\x1b[32m")
+      expect(result).toContain("\x1b[4m")
     })
 
     it("uses alias when present", () => {
@@ -152,13 +155,15 @@ describe("renderRich", () => {
   })
 
   describe("markdown link styling", () => {
-    it("renders [text](url) links as underlined text", () => {
+    it("renders [text](url) links as cyan underlined text", () => {
       const result = renderRich("Click [Google](https://google.com)")
       expect(stripAnsi(result)).toBe("Click Google")
       // Should not contain raw link syntax (brackets)
       expect(result).not.toContain("](")
-      // Link text is underlined (OSC 8 hyperlinks disabled due to wrap-ansi incompatibility)
+      // Link text is underlined
       expect(result).toContain("\x1b[4m") // underline start
+      // External links are cyan (36)
+      expect(result).toContain("\x1b[36m")
     })
 
     it("handles links with complex URLs", () => {
@@ -176,6 +181,31 @@ describe("renderRich", () => {
       const result = renderRich('Check [Example](https://example.com "Example Site")')
       // The title is part of the URL portion, so it gets stripped
       expect(stripAnsi(result)).toBe("Check Example")
+    })
+  })
+
+  describe("link type differentiation", () => {
+    it("uses different colors for internal vs external links", () => {
+      const wikiResult = renderRich("See [[internal note]]")
+      const mdResult = renderRich("See [external](https://example.com)")
+
+      // Internal wiki links use green (32)
+      expect(wikiResult).toContain("\x1b[32m")
+      expect(wikiResult).not.toContain("\x1b[36m")
+
+      // External markdown links use cyan (36)
+      expect(mdResult).toContain("\x1b[36m")
+      expect(mdResult).not.toContain("\x1b[32m")
+    })
+
+    it("distinguishes link types in mixed content", () => {
+      const result = renderRich("See [[internal]] and [external](https://example.com)")
+      const plain = stripAnsi(result)
+      expect(plain).toBe("See internal and external")
+
+      // Both colors present
+      expect(result).toContain("\x1b[32m") // green for wiki
+      expect(result).toContain("\x1b[36m") // cyan for markdown
     })
   })
 

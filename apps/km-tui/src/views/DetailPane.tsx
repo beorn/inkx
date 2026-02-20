@@ -690,7 +690,7 @@ function BodyBlock({ content, innerWidth }: { content: string; innerWidth: numbe
           return (
             <Text key={`line-${i}`} wrap="truncate">
               <Text dimColor>{isImage ? "[img] " : ""}</Text>
-              {hyperlink(`${name}`, url ?? "")}
+              <Text color="cyan" underline>{hyperlink(`${name}`, url ?? "")}</Text>
               <Text dimColor> {displayUrl}</Text>
             </Text>
           )

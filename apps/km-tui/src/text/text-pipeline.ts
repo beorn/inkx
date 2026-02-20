@@ -236,17 +236,19 @@ export function processText(text: string, options: TextPipelineOptions): string 
   result = result.replace(HTML_TAG_REGEX, "")
 
   // ── Step 4: Handle markdown links [text](url) ──
+  // External links: cyan + underline to distinguish from internal wiki links
   if (isRich && style) {
-    result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => style.underline(linkText))
+    result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => style.cyan.underline(linkText))
   } else {
     result = result.replace(MD_LINK_REGEX, (_match, linkText: string) => linkText)
   }
 
   // ── Step 5: Handle wiki links [[target|alias]] ──
+  // Internal links: green + underline to distinguish from external URLs
   if (isRich && style) {
     result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
       const { display } = extractLinkParts(content)
-      return style.underline(display)
+      return style.green.underline(display)
     })
   } else {
     result = result.replace(WIKI_LINK_REGEX, (_match, content: string) => {
@@ -256,12 +258,12 @@ export function processText(text: string, options: TextPipelineOptions): string 
 
   // ── Step 6: Prettify bare URLs ──
   // Bare URLs (not already consumed by markdown link syntax) get
-  // protocol/www stripped and styled with underline + dim in rich mode.
+  // protocol/www stripped and styled with cyan + dim + underline in rich mode.
   // OSC 8 hyperlink wrapping makes them clickable in supporting terminals.
   if (isRich && style) {
     result = result.replace(BARE_URL_REGEX, (url) => {
       const display = prettifyUrl(url)
-      return hyperlink(style.dim.underline(display), url)
+      return hyperlink(style.cyan.dim.underline(display), url)
     })
   } else {
     result = result.replace(BARE_URL_REGEX, (url) => prettifyUrl(url))
