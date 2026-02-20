@@ -10,6 +10,7 @@ import { watch, type FSWatcher } from "chokidar"
 const log = createLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
 import { statSync, existsSync, readdirSync, readlinkSync, realpathSync, writeFileSync, unlinkSync } from "fs"
+import * as fsPromises from "fs/promises"
 import { EventEmitter } from "events"
 import {
   DEFAULT_IGNORE_PATTERNS,
@@ -298,6 +299,80 @@ export function scanDirectory(
     }
   }
 
+  return results
+}
+
+/**
+ * Async version of scanDirectory - uses non-blocking fs operations.
+ * Prevents blocking the event loop during directory scanning.
+ */
+export async function scanDirectoryAsync(
+  dirPath: string,
+  ignorePatterns?: string[] | PatternMatcher,
+): Promise<Array<{
+  path: string
+  ino: number
+  mtime: number
+  isDirectory: boolean
+  isSymlink?: boolean
+}>> {
+  const results: Array<{
+    path: string
+    ino: number
+    mtime: number
+    isDirectory: boolean
+    isSymlink?: boolean
+  }> = []
+
+  try {
+    await fsPromises.access(dirPath)
+  } catch {
+    return results
+  }
+
+  const entries = await fsPromises.readdir(dirPath, { withFileTypes: true })
+
+  // Batch stat calls for better throughput
+  const statPromises: Array<Promise<void>> = []
+
+  for (const entry of entries) {
+    const fullPath = join(dirPath, entry.name)
+
+    if (isHiddenFile(fullPath)) continue
+    if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) continue
+
+    if (entry.isSymbolicLink()) {
+      statPromises.push(
+        fsPromises.stat(fullPath).then(stat => {
+          results.push({
+            path: fullPath,
+            ino: stat.ino,
+            mtime: stat.mtimeMs,
+            isDirectory: stat.isDirectory(),
+            isSymlink: true,
+          })
+        }).catch(() => {
+          log.debug?.(`broken symlink, skipping: ${fullPath}`)
+        })
+      )
+      continue
+    }
+
+    statPromises.push(
+      fsPromises.stat(fullPath).then(stat => {
+        results.push({
+          path: fullPath,
+          ino: stat.ino,
+          mtime: stat.mtimeMs,
+          isDirectory: entry.isDirectory(),
+        })
+      }).catch(() => {
+        // Skip inaccessible files
+      })
+    )
+  }
+
+  await Promise.all(statPromises)
   return results
 }
 

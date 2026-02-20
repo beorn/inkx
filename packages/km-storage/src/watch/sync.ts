@@ -16,7 +16,7 @@ import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import { reconcileDirectory, applyReconcileOps, applyReconcileOpsAsync } from "./reconcile.ts"
+import { reconcileDirectory, reconcileDirectoryAsync, applyReconcileOps, applyReconcileOpsAsync } from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
@@ -260,8 +260,8 @@ export class SyncManager extends EventEmitter {
     try {
       this.setState("reconciling")
 
-      // Scan entire repo for changes
-      const ops = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
+      // Scan entire repo for changes (async to avoid blocking main thread)
+      const ops = await reconcileDirectoryAsync(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
 
       if (ops.length > 0) {
         log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
@@ -363,7 +363,7 @@ export class SyncManager extends EventEmitter {
     try {
       for (const dir of data.directories) {
         using dirSpan = span.span("reconcile-dir", { dir })
-        const ops = reconcileDirectory(this.db, dir, this.config.repoPath, this.ignorePatterns)
+        const ops = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
         dirSpan.spanData.ops = ops.length
 
         if (ops.length > 0) {

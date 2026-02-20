@@ -10,7 +10,7 @@ import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"
 import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
-import { scanDirectory } from "./watcher.ts"
+import { scanDirectory, scanDirectoryAsync } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
 import { toRelativeFsPath } from "../path-utils.ts"
 
@@ -36,22 +36,19 @@ interface FsEntry {
 
 export type DirectoryScanner = (dirPath: string, ignorePatterns?: string[] | PatternMatcher) => FsEntry[]
 
+export type AsyncDirectoryScanner = (dirPath: string, ignorePatterns?: string[] | PatternMatcher) => Promise<FsEntry[]>
+
 /**
- * Reconcile a directory - compare filesystem to database
- *
- * @param ignorePatterns - Either string[] (legacy) or PatternMatcher (fast, pre-compiled)
+ * Pure comparison logic: compare filesystem entries to database state and generate ops.
+ * Shared by both sync and async reconciliation.
  */
-export function reconcileDirectory(
+function reconcileFromEntries(
   db: Database,
   dirPath: string,
   repoRoot: string,
-  ignorePatterns?: string[] | PatternMatcher,
-  scanner?: DirectoryScanner,
+  fsEntries: FsEntry[],
 ): ReconcileOp[] {
   const ops: ReconcileOp[] = []
-
-  // Get filesystem state (pass ignore patterns to filter out ignored files)
-  const fsEntries = scanner ? scanner(dirPath, ignorePatterns) : scanDirectory(dirPath, ignorePatterns)
 
   // Convert dirPath to relative for DB queries (DB stores relative paths)
   const relDirPath = toRelativeFsPath(repoRoot, dirPath)
@@ -194,6 +191,44 @@ export function reconcileDirectory(
   }
 
   return ops
+}
+
+/**
+ * Reconcile a directory - compare filesystem to database
+ *
+ * @param ignorePatterns - Either string[] (legacy) or PatternMatcher (fast, pre-compiled)
+ */
+export function reconcileDirectory(
+  db: Database,
+  dirPath: string,
+  repoRoot: string,
+  ignorePatterns?: string[] | PatternMatcher,
+  scanner?: DirectoryScanner,
+): ReconcileOp[] {
+  // Get filesystem state (pass ignore patterns to filter out ignored files)
+  const fsEntries = scanner ? scanner(dirPath, ignorePatterns) : scanDirectory(dirPath, ignorePatterns)
+
+  return reconcileFromEntries(db, dirPath, repoRoot, fsEntries)
+}
+
+/**
+ * Async version of reconcileDirectory - uses non-blocking fs operations.
+ * Same logic as reconcileDirectory but accepts an async scanner.
+ */
+export async function reconcileDirectoryAsync(
+  db: Database,
+  dirPath: string,
+  repoRoot: string,
+  ignorePatterns?: string[] | PatternMatcher,
+  scanner?: AsyncDirectoryScanner,
+): Promise<ReconcileOp[]> {
+  // Get filesystem state asynchronously
+  const fsEntries = scanner
+    ? await scanner(dirPath, ignorePatterns)
+    : await scanDirectoryAsync(dirPath, ignorePatterns)
+
+  // Rest is identical to sync version — just comparison logic, no I/O
+  return reconcileFromEntries(db, dirPath, repoRoot, fsEntries)
 }
 
 /**
