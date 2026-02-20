@@ -153,7 +153,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
 
   test("renders completed tasks as headings", () => {
     const md = convertToMd(fixture)
-    expect(md).toContain("## Write tests completed:: 2026-02-09 ^t2")
+    expect(md).toContain("### [x] Write tests completed:: 2026-02-09 ^t2")
   })
 
   test("renders subtasks as headings", () => {
@@ -1687,8 +1687,8 @@ describe("HTML headings converted to bold (not ATX headings)", () => {
       ]),
     )
 
-    // The task heading should appear exactly once
-    const taskHeadings = md.match(/## Task with HTML headings in body/g)
+    // The task heading should appear exactly once (with task marker)
+    const taskHeadings = md.match(/## \[[ x]\] Task with HTML headings in body/g)
     expect(taskHeadings).toHaveLength(1)
 
     // Body content should NOT produce additional H1/H2 headings

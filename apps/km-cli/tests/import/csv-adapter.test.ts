@@ -369,9 +369,9 @@ describe("CSV → convert → markdown", () => {
     // Frontmatter — imported_from removed (import JSON has that info)
     expect(md).not.toContain("imported_from:")
 
-    // Tasks rendered as headings
-    expect(md).toContain("## Design page @alice #design #frontend")
-    expect(md).toContain("## Write tests @bob #backend")
+    // Tasks rendered as headings with task markers
+    expect(md).toContain("## [ ] Design page @alice #design #frontend")
+    expect(md).toContain("## [x] Write tests @bob #backend")
   })
 
   test("converts CSV with sections to markdown", () => {
@@ -383,8 +383,8 @@ describe("CSV → convert → markdown", () => {
 
     expect(md).toContain("## To Do")
     expect(md).toContain("## Done")
-    expect(md).toContain("## Task A")
-    expect(md).toContain("## Task C")
+    expect(md).toContain("## [ ] Task A")
+    expect(md).toContain("## [x] Task C")
   })
 
   test("converts CSV with hierarchy to markdown", () => {
@@ -394,9 +394,9 @@ describe("CSV → convert → markdown", () => {
     const files = convert(data)
     const md = [...files.values()][0]!
 
-    expect(md).toContain("## Epic")
-    expect(md).toContain("## Sub A")
-    expect(md).toContain("## Sub B")
+    expect(md).toContain("## [ ] Epic")
+    expect(md).toContain("### [ ] Sub A")
+    expect(md).toContain("### [x] Sub B")
   })
 
   test("full-featured CSV produces valid markdown", () => {
@@ -415,11 +415,11 @@ describe("CSV → convert → markdown", () => {
     expect(md).toContain("## Sprint 5")
     expect(md).toContain("## Sprint 4")
 
-    // Task with all metadata
-    expect(md).toContain("## Launch v2 @alice #launch #critical")
+    // Task with all metadata (depth 3 inside section)
+    expect(md).toContain("### [ ] Launch v2 @alice #launch #critical")
     expect(md).toContain("Final preparations")
 
-    // Done task
-    expect(md).toContain("## Close old bugs")
+    // Done task (depth 3 inside section)
+    expect(md).toContain("### [x] Close old bugs")
   })
 })
