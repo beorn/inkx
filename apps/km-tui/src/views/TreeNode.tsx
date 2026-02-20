@@ -346,7 +346,9 @@ function TreeNodeImpl({
   const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
   const cleanContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
   // Strip @mentions and +projects from card title display — the info suffix already shows short names
-  const displayContent = depth === 0 ? stripKnownMentions(cleanContent) : cleanContent
+  // Fall back to original if stripping leaves nothing (e.g., user files like @shi-delei.md)
+  const stripped = depth === 0 ? stripKnownMentions(cleanContent) : ""
+  const displayContent = stripped.trim() ? stripped : cleanContent
 
   // Compute sigil for inline display: only if name is a sigil and differs from title
   // Skip sigils that are in the excluded list (e.g., @next on the @next board)
