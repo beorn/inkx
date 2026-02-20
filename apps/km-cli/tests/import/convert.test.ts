@@ -1218,15 +1218,11 @@ describe("roundtrip: convert → parse", () => {
 
     // With oi type, tasks are headings not list items
     const h2s = tree.children.filter((n): n is Heading => n.type === "heading" && n.depth === 2)
-    // Work section + dedup ref (now uses title) + Beta only = 3 H2 headings
+    // Work section + dedup ref (embed) + Beta only = 3 H2 headings
     expect(h2s.length).toBeGreaterThanOrEqual(3)
 
-    // Dedup reference heading shows task title (not bare embed ref)
-    const refHeading = h2s.find((h) => h.children[0]?.value?.includes("Shared task"))
-    expect(refHeading).toBeDefined()
-
-    // Embed reference is preserved as body paragraph under the heading
-    expect(betaMd).toContain("![[^shared-rt]]")
+    // Dedup reference heading is an embed (resolves to task title at render time)
+    expect(betaMd).toContain("## ![[^shared-rt]]")
 
     // Beta only heading
     const betaHeading = h2s.find((h) => h.children[0]?.value?.includes("Beta only"))
