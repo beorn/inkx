@@ -665,6 +665,110 @@ describe("Stage 2: Download Attachments", () => {
 
     server.stop()
   })
+
+  test("downloads inline images from body text and replaces URLs with local paths", async () => {
+    const { downloadAttachments } = await import("../../src/import/download-attachments.ts")
+
+    const server = Bun.serve({
+      port: 0,
+      fetch(req) {
+        const url = new URL(req.url)
+        if (url.pathname === "/inline-image.png") {
+          return new Response("fake-png-data")
+        }
+        return new Response("Not found", { status: 404 })
+      },
+    })
+
+    const inlineImageUrl = `http://localhost:${server.port}/inline-image.png`
+    const data: import("../../src/import/types.ts").ImportData = {
+      source: "test",
+      fetchedAt: new Date().toISOString(),
+      projects: [
+        {
+          sourceId: "proj-1",
+          title: "Test Project",
+          sections: [
+            {
+              sourceId: "sec-1",
+              title: "Section 1",
+              items: [
+                {
+                  sourceId: "task-1",
+                  title: "Task with inline image",
+                  body: `Here is an image:\n\n![screenshot](${inlineImageUrl})\n\nAnd some text after.`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    const relPath = "attachments"
+    await downloadAttachments(data, { dir: testDir, relativePath: relPath })
+
+    // Body should have URL replaced with local path
+    const item = data.projects[0]!.sections![0]!.items[0]!
+    expect(item.body).not.toContain(inlineImageUrl)
+    expect(item.body).toContain(`![screenshot](${relPath}/`)
+    expect(item.body).toContain(".png)")
+
+    server.stop()
+  })
+
+  test("does not duplicate-download inline images that are already attachments", async () => {
+    const { downloadAttachments } = await import("../../src/import/download-attachments.ts")
+
+    let downloadCount = 0
+    const server = Bun.serve({
+      port: 0,
+      fetch() {
+        downloadCount++
+        return new Response("fake-data")
+      },
+    })
+
+    const imageUrl = `http://localhost:${server.port}/photo.png`
+    const data: import("../../src/import/types.ts").ImportData = {
+      source: "test",
+      fetchedAt: new Date().toISOString(),
+      projects: [
+        {
+          sourceId: "proj-1",
+          title: "Test Project",
+          sections: [
+            {
+              sourceId: "sec-1",
+              title: "Section 1",
+              items: [
+                {
+                  sourceId: "task-1",
+                  title: "Task with image in body AND attachments",
+                  body: `See ![photo](${imageUrl})`,
+                  attachments: [
+                    {
+                      sourceId: "att-existing",
+                      name: "photo.png",
+                      url: imageUrl,
+                      type: "image",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+
+    await downloadAttachments(data, { dir: testDir })
+
+    // Should only download once (the existing attachment), not duplicate for inline
+    expect(downloadCount).toBe(1)
+
+    server.stop()
+  })
 })
 
 // ============================================================================

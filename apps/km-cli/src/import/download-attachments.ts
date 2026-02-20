@@ -21,6 +21,9 @@ interface DownloadResult {
   failed: number
 }
 
+/** Markdown image pattern: ![alt](url) */
+const MD_IMAGE_RE = /!\[[^\]]*\]\(([^)]+)\)/g
+
 /** Walk all items in ImportData and collect attachments */
 function collectAttachments(data: ImportData): ImportAttachment[] {
   const all: ImportAttachment[] = []
@@ -48,6 +51,114 @@ function collectAttachments(data: ImportData): ImportAttachment[] {
   }
 
   return all
+}
+
+/** Extract inline image URLs from body text that are remote (http/https) */
+function extractInlineImageUrls(text: string): string[] {
+  const urls: string[] = []
+  for (const match of text.matchAll(MD_IMAGE_RE)) {
+    const url = match[1]
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      urls.push(url)
+    }
+  }
+  return urls
+}
+
+/** Derive a stable filename from a URL (used as sourceId for inline images) */
+function urlToSourceId(url: string): string {
+  // Use a hash of the URL as a stable identifier
+  const hash = Bun.hash(url).toString(36)
+  return `inline-${hash}`
+}
+
+/**
+ * Walk all items and collect inline image URLs from body text.
+ * Creates synthetic ImportAttachment entries and returns a map of URL→attachment
+ * for post-download body text replacement.
+ */
+function collectInlineImages(data: ImportData): Map<string, ImportAttachment> {
+  const urlMap = new Map<string, ImportAttachment>()
+  const existingUrls = new Set<string>()
+
+  // First pass: collect all attachment URLs so we don't duplicate
+  function collectExistingUrls(item: ImportItem): void {
+    if (item.attachments) {
+      for (const att of item.attachments) existingUrls.add(att.url)
+    }
+    if (item.children) {
+      for (const child of item.children) collectExistingUrls(child)
+    }
+  }
+
+  function walkItem(item: ImportItem): void {
+    if (item.body) {
+      for (const url of extractInlineImageUrls(item.body)) {
+        if (!existingUrls.has(url) && !urlMap.has(url)) {
+          // Guess extension from URL path
+          const urlPath = new URL(url).pathname
+          const ext = extname(urlPath) || ".png"
+          const name = `inline-image${ext}`
+          const att: ImportAttachment = {
+            sourceId: urlToSourceId(url),
+            name,
+            url,
+            type: "image",
+          }
+          urlMap.set(url, att)
+        }
+      }
+    }
+    if (item.children) {
+      for (const child of item.children) walkItem(child)
+    }
+  }
+
+  for (const project of data.projects) {
+    if (project.sections) {
+      for (const section of project.sections) {
+        for (const item of section.items) {
+          collectExistingUrls(item)
+        }
+        for (const item of section.items) walkItem(item)
+      }
+    }
+    if (project.items) {
+      for (const item of project.items) {
+        collectExistingUrls(item)
+      }
+      for (const item of project.items) walkItem(item)
+    }
+  }
+
+  return urlMap
+}
+
+/** Replace inline image URLs in body text with local paths */
+function replaceInlineImageUrls(data: ImportData, urlMap: Map<string, ImportAttachment>): void {
+  function walkItem(item: ImportItem): void {
+    if (item.body) {
+      for (const [url, att] of urlMap) {
+        if (att.localPath && item.body.includes(url)) {
+          item.body = item.body.replaceAll(url, att.localPath)
+        }
+      }
+    }
+    if (item.children) {
+      for (const child of item.children) walkItem(child)
+    }
+  }
+
+  for (const project of data.projects) {
+    if (project.sections) {
+      for (const section of project.sections) {
+        for (const item of section.items) walkItem(item)
+      }
+    }
+    if (project.items) {
+      for (const item of project.items) walkItem(item)
+    }
+  }
 }
 
 /** Get file extension from attachment name, with fallback */
@@ -87,7 +198,13 @@ export async function downloadAttachments(
   },
 ): Promise<DownloadResult> {
   const attachments = collectAttachments(data)
-  if (attachments.length === 0) return { downloaded: 0, skipped: 0, failed: 0 }
+
+  // Collect inline images from body text (not already in attachments)
+  const inlineImages = collectInlineImages(data)
+  const inlineAttachments = [...inlineImages.values()]
+  const allAttachments = [...attachments, ...inlineAttachments]
+
+  if (allAttachments.length === 0) return { downloaded: 0, skipped: 0, failed: 0 }
 
   if (!opts.dryRun) {
     mkdirSync(opts.dir, { recursive: true })
@@ -95,13 +212,13 @@ export async function downloadAttachments(
 
   const result: DownloadResult = { downloaded: 0, skipped: 0, failed: 0 }
   const bar = new ProgressBar({
-    total: attachments.length,
+    total: allAttachments.length,
     format: "  :bar :current/:total attachments | ETA: :eta",
   })
   bar.start()
 
-  for (let i = 0; i < attachments.length; i += DOWNLOAD_CONCURRENCY) {
-    const batch = attachments.slice(i, i + DOWNLOAD_CONCURRENCY)
+  for (let i = 0; i < allAttachments.length; i += DOWNLOAD_CONCURRENCY) {
+    const batch = allAttachments.slice(i, i + DOWNLOAD_CONCURRENCY)
     await Promise.all(
       batch.map(async (att) => {
         const filename = localFilename(att)
@@ -161,5 +278,11 @@ export async function downloadAttachments(
   }
 
   bar.stop(true)
+
+  // Replace inline image URLs in body text with downloaded local paths
+  if (inlineImages.size > 0) {
+    replaceInlineImageUrls(data, inlineImages)
+  }
+
   return result
 }
