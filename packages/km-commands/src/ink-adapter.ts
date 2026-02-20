@@ -246,6 +246,8 @@ export function buildKeybindingContext(options: {
   hasActiveToast?: boolean
   /** Current input mode from the mode stack (e.g., "command", "dialog:search"). */
   inputMode?: string
+  /** True when in visual mode (vim-style range selection) */
+  visualMode?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -270,6 +272,7 @@ export function buildKeybindingContext(options: {
     consoleOpen: options.consoleOpen ?? false,
     hasActiveToast: options.hasActiveToast ?? false,
     inputMode: options.inputMode,
+    visualMode: options.visualMode ?? false,
   }
 }
 

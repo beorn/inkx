@@ -6,7 +6,6 @@ const cycleViewMode = {
   name: "Cycle View Mode",
   description: "Cycle through view modes (columns, list, detail)",
   category: "View",
-  shortcuts: ["v"],
   execute: () => ({ type: "CYCLE_VIEW_MODE" }),
 } satisfies CommandDef
 

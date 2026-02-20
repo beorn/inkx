@@ -231,6 +231,24 @@ interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
+interface GotoBoardAction {
+  type: "GOTO_BOARD"
+  boardId: string // Well-known board ID (e.g., "@inbox", "@journal")
+}
+
+interface MoveToBoardAction {
+  type: "MOVE_TO_BOARD"
+  boardId: string // Move selected node(s) to this board
+}
+
+interface AddLinkAction {
+  type: "ADD_LINK" // Open link/reference picker
+}
+
+interface ReparentPickerAction {
+  type: "REPARENT_PICKER" // Open reparent/move-to picker
+}
+
 interface DialogNavUpAction {
   type: "DIALOG_NAV_UP"
 }
@@ -457,6 +475,15 @@ interface PageJumpAction {
 
 // Move mode command actions (TUI augments with context before dispatching to board)
 // These are returned by commands and converted to full BoardAction by board-actions.ts
+// Visual mode (vim-style range selection)
+interface VisualModeEnterAction {
+  type: "VISUAL_MODE_ENTER"
+}
+
+interface VisualModeExitAction {
+  type: "VISUAL_MODE_EXIT"
+}
+
 interface EnterMoveModeAction {
   type: "ENTER_MOVE_MODE"
 }
@@ -520,6 +547,8 @@ export type TUIAction =
   | ShiftDownAction
   | ShiftLeftAction
   | ShiftRightAction
+  | VisualModeEnterAction
+  | VisualModeExitAction
   | MoveAction
   | OpenInSystemAction
   | OpenInTerminalAction
@@ -560,6 +589,10 @@ export type TUIAction =
   | ClipboardCopyAction
   | ClipboardCutAction
   | ClipboardPasteAction
+  | GotoBoardAction
+  | MoveToBoardAction
+  | AddLinkAction
+  | ReparentPickerAction
 
 export type UIAction =
   | ZoomOutwardsAction

@@ -136,6 +136,7 @@ export {
   deleteConfirmOpen,
   consoleOpen,
   hasActiveToast,
+  inVisualMode,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,

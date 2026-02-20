@@ -39,7 +39,7 @@ import {
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { parseSelectionKey, type ViewMode } from "../types.ts"
+import { makeSelectionKey, parseSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
@@ -134,6 +134,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "JUMP_TO_FAVORITE":
       handleJumpToFavorite(ctx, action.favoriteNumber)
+      return ok()
+    case "GOTO_BOARD":
+      handleGotoBoard(ctx, action.boardId)
+      return ok()
+    case "MOVE_TO_BOARD":
+      handleMoveToBoard(ctx, action.boardId)
+      return ok()
+    case "ADD_LINK":
+      // Stub: link picker not yet implemented
+      ctx.toastQueue.info("Link picker not yet implemented")
+      ctx.setUI({})
+      return ok()
+    case "REPARENT_PICKER":
+      // Stub: reparent picker not yet implemented
+      ctx.toastQueue.info("Reparent picker not yet implemented")
+      ctx.setUI({})
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
@@ -343,6 +359,31 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleZoomIn(ctx)
     case "CLEAR_SELECTION":
       clearSelection(ctx)
+      return ok()
+
+    // === Visual mode ===
+    case "VISUAL_MODE_ENTER": {
+      if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
+      // Set visual mode with anchor at current cursor, and select the anchor node
+      const anchorKey = makeSelectionKey(ctx.cursorNodeId, 0)
+      const selected = new Set(ctx.ui.multiSelected)
+      selected.add(anchorKey)
+      ctx.setUI({
+        visualMode: true,
+        visualAnchor: ctx.cursorNodeId,
+        selectionAnchor: { nodeId: ctx.cursorNodeId, sub: 0 },
+        multiSelected: selected,
+        status: { level: "info", message: "-- VISUAL --" },
+      })
+      return ok()
+    }
+    case "VISUAL_MODE_EXIT":
+      clearSelection(ctx)
+      ctx.setUI({
+        visualMode: false,
+        visualAnchor: null,
+        status: null,
+      })
       return ok()
 
     // === BoardAction passthrough (forward to board reducer) ===
@@ -1113,6 +1154,49 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
   clearSelection(ctx)
 }
 
+function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
+  if (boardId === "@home") {
+    // Go to root — zoom all the way out
+    saveNavHistory(ctx)
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: "" })
+    clearSelection(ctx)
+    return
+  }
+
+  const targetNode = ctx.repo.getNode(boardId)
+  if (!targetNode) {
+    ctx.toastQueue.warning(`Board "${boardId}" not found`)
+    ctx.setUI({})
+    return
+  }
+
+  saveNavHistory(ctx)
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: boardId })
+  clearSelection(ctx)
+}
+
+function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return
+
+  const targetNode = ctx.repo.getNode(boardId)
+  if (!targetNode) {
+    ctx.toastQueue.warning(`Board "${boardId}" not found`)
+    ctx.setUI({})
+    return
+  }
+
+  // Move each selected card to the target board as a child
+  for (const card of cards) {
+    if (card.id === boardId) continue // Don't move node into itself
+    ctx.undoHandle.repo.moveNode(card.id, boardId)
+  }
+  ctx.undoHandle.commit(`Move ${cards.length} item(s) to ${boardId}`)
+  clearSelection(ctx)
+  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${boardId}`)
+  ctx.setUI({})
+}
+
 function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult {
   const columns = ctx.columns
   const { dispatchBoard } = ctx
@@ -1136,6 +1220,17 @@ function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult 
 
 function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   const { ui, dispatchBoard } = ctx
+
+  // Exit visual mode first (highest priority for escape alongside move mode)
+  if (ui.visualMode) {
+    clearSelection(ctx)
+    ctx.setUI({
+      visualMode: false,
+      visualAnchor: null,
+      status: null,
+    })
+    return ok()
+  }
 
   // Cancel move mode first (highest priority for escape)
   if (ctx.moveMode) {

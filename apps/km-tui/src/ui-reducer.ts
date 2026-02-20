@@ -80,6 +80,10 @@ export interface UIState {
   selectionAnchor: { nodeId: string; sub: number } | null
   selectAllLevel: number
 
+  // Visual mode (vim-style: v enters, hjkl extends selection, Escape exits)
+  visualMode: boolean
+  visualAnchor: string | null // nodeId where visual selection started
+
   // Column state
   collapsedColumns: Set<number>
   /** Scroll anchor for column viewport scrolling (mouse wheel).
@@ -283,6 +287,9 @@ export function createInitialUIState(
     multiSelected: new Set(),
     selectionAnchor: null,
     selectAllLevel: 0,
+
+    visualMode: false,
+    visualAnchor: null,
 
     collapsedColumns: new Set(collapsedColumns),
     columnScrollAnchor: null,

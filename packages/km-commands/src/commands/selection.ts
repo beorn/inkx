@@ -108,6 +108,24 @@ const extendSelectRight = {
   execute: () => ({ type: "EXTEND_SELECT_RIGHT" }),
 } satisfies CommandDef
 
+// Visual mode (vim-style: v enters, hjkl extends selection, Escape exits)
+const visualModeEnter = {
+  id: "visual_mode_enter",
+  name: "Visual Mode",
+  description: "Enter visual mode for range selection with hjkl",
+  category: "Selection",
+  shortcuts: ["v"],
+  execute: () => ({ type: "VISUAL_MODE_ENTER" }),
+} satisfies CommandDef
+
+const visualModeExit = {
+  id: "visual_mode_exit",
+  name: "Exit Visual Mode",
+  description: "Exit visual mode and clear selection",
+  category: "Selection",
+  execute: () => ({ type: "VISUAL_MODE_EXIT" }),
+} satisfies CommandDef
+
 export const selectionCommands: CommandDef[] = [
   selectToggle,
   selectAdd,
@@ -120,4 +138,6 @@ export const selectionCommands: CommandDef[] = [
   extendSelectDown,
   extendSelectLeft,
   extendSelectRight,
+  visualModeEnter,
+  visualModeExit,
 ]

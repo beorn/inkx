@@ -68,6 +68,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     consoleOpen: ui.showConsole,
     hasActiveToast: !!ctx.toastQueue.getLatest(),
     inputMode: getModeStack().current(),
+    visualMode: ui.visualMode,
   })
 
   const { colIndex, cardIndex, columns } = ctx

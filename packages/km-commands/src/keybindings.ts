@@ -14,6 +14,7 @@ import {
   consoleOpen,
   hasActiveToast,
   hasMultiSelection,
+  inVisualMode,
   not,
   and,
 } from "./when.ts"
@@ -53,6 +54,8 @@ export interface KeybindingContext {
   hasActiveToast: boolean
   /** Current input mode from the mode stack (e.g., "command", "insert", "dialog:search"). */
   inputMode?: string
+  /** True when in visual mode (vim-style range selection) */
+  visualMode?: boolean
 }
 
 // Internal binding with registration order for priority interleaving
@@ -383,6 +386,24 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
+  // --- Layer 6b: Visual mode (vim-style range selection) ---
+  // In visual mode, hjkl extends selection instead of moving cursor.
+  // Escape exits visual mode. Must be above navigation to intercept movement keys.
+  {
+    name: "visual-mode",
+    bindings: [
+      { key: "Escape", commandId: "visual_mode_exit", when: inVisualMode },
+      { key: "j", commandId: "extend_select_down", when: inVisualMode },
+      { key: "k", commandId: "extend_select_up", when: inVisualMode },
+      { key: "h", commandId: "extend_select_left", when: inVisualMode },
+      { key: "l", commandId: "extend_select_right", when: inVisualMode },
+      { key: "ArrowDown", commandId: "extend_select_down", when: inVisualMode },
+      { key: "ArrowUp", commandId: "extend_select_up", when: inVisualMode },
+      { key: "ArrowLeft", commandId: "extend_select_left", when: inVisualMode },
+      { key: "ArrowRight", commandId: "extend_select_right", when: inVisualMode },
+    ],
+  },
+
   // --- Layer 7: Navigation ---
   {
     name: "navigation",
@@ -426,6 +447,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "P", commandId: "follow_link" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
       { key: "i", ctrl: true, commandId: "open_detail_pane" },
+
+      // Ctrl equivalents for chord prefixes and pickers
+      { key: "l", ctrl: true, commandId: "add_link", when: not(textInputFocused) },
+      { key: "r", ctrl: true, commandId: "reparent_picker", when: not(textInputFocused) },
     ],
   },
 
@@ -454,7 +479,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "edit",
     bindings: [
-      { key: "m", commandId: "enter_move_mode" },
+      // m is now a chord prefix (m-prefix chords in fold layer); standalone fallback → enter_move_mode
       { key: "Enter", commandId: "confirm_move", modes: ["move"] },
       { key: "Escape", commandId: "cancel_move", modes: ["move"] },
       // D no longer deletes — only Backspace/Delete
@@ -520,8 +545,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "c", commandId: "toggle_collapse" },
       { key: "C", commandId: "ignore_node" },
 
-      // g/t/s standalone fallbacks for chord timeout
+      // g/m/t/s standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
+      { key: "m", commandId: "enter_move_mode" },
       { key: "t", commandId: "set_due_date" },
       { key: "s", commandId: "set_priority" },
 
@@ -538,6 +564,16 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "p", commandId: "project_picker" },
       { chord: "g", key: "n", commandId: "new_item" },
       { chord: "g", key: "C", commandId: "toggle_show_ignored" },
+      { chord: "g", key: "i", commandId: "goto_inbox" },
+      { chord: "g", key: "j", commandId: "goto_journal" },
+      { chord: "g", key: "h", commandId: "goto_home" },
+      { chord: "g", key: "e", commandId: "goto_next" },
+
+      // m-prefix chords (move to board)
+      { chord: "m", key: "m", commandId: "enter_move_mode" },
+      { chord: "m", key: "i", commandId: "move_to_inbox" },
+      { chord: "m", key: "j", commandId: "move_to_journal" },
+      { chord: "m", key: "e", commandId: "move_to_next" },
 
       // t-prefix chords (time/date stubs)
       { chord: "t", key: "d", commandId: "set_due_date" },
@@ -556,7 +592,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "view",
     bindings: [
-      { key: "v", commandId: "cycle_view_mode" },
+      { key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
       { key: "V", commandId: "cycle_icon_style" },
       { key: "?", commandId: "show_help" },
       { key: "<", commandId: "decrease_outline_depth" },

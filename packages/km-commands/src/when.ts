@@ -80,6 +80,8 @@ export const consoleOpen = when("consoleOpen", (ctx) => ctx.consoleOpen)
 
 export const hasActiveToast = when("hasActiveToast", (ctx) => ctx.hasActiveToast)
 
+export const inVisualMode = when("inVisualMode", (ctx) => !!ctx.visualMode)
+
 // === Mode stack predicates ===
 // These check the inputMode field populated from the ModeStack.
 
