@@ -31,7 +31,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   // before React flushes the batched update.
   const initAnchor = ui.selectionAnchor === null
   if (initAnchor) {
-    const anchor = { nodeId: card.node.id, sub: 0 }
+    const anchor = { nodeId: card.id, sub: 0 }
     ctx.setUI({ selectionAnchor: anchor })
     ctx.ui.selectionAnchor = anchor
   }
@@ -39,14 +39,14 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   // Calculate target
   const targetIdx =
     direction === "up"
-      ? Math.max(0, ctx.layout.cardIndex - 1)
-      : Math.min(col.cards.length - 1, ctx.layout.cardIndex + 1)
+      ? Math.max(0, ctx.cardIndex - 1)
+      : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
 
-  if (targetIdx === ctx.layout.cardIndex) {
+  if (targetIdx === ctx.cardIndex) {
     // At boundary: if we just initialized the anchor, select the current card
     if (initAnchor) {
       const newSelected = new Set(ui.multiSelected)
-      newSelected.add(makeSelectionKey(card.node.id, 0))
+      newSelected.add(makeSelectionKey(card.id, 0))
       ctx.setUI({
         multiSelected: newSelected,
         status: { level: "info", message: "1 item selected" },
@@ -61,7 +61,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Derive selection from anchor to new focus
-    updateSelectionRange(ctx, ctx.layout.colIndex, targetIdx, 0)
+    updateSelectionRange(ctx, ctx.colIndex, targetIdx, 0)
   }
 }
 
@@ -71,20 +71,20 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
  */
 export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" | "right"): void {
   const { ui, dispatchBoard } = ctx
-  const columns = ctx.layout.columns
+  const columns = ctx.columns
 
   if (columns.length === 0) return
 
   // Resolve anchor column from nodeId (or use current cursor column)
-  const anchorCol = resolveAnchorCol(ctx) ?? ctx.layout.colIndex
+  const anchorCol = resolveAnchorCol(ctx) ?? ctx.colIndex
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
-    direction === "right" ? Math.min(columns.length - 1, ctx.layout.colIndex + 1) : Math.max(0, ctx.layout.colIndex - 1)
+    direction === "right" ? Math.min(columns.length - 1, ctx.colIndex + 1) : Math.max(0, ctx.colIndex - 1)
 
   // At boundary with no selection: select current column
   // At boundary with existing selection: do nothing
-  if (targetColIdx === ctx.layout.colIndex) {
+  if (targetColIdx === ctx.colIndex) {
     if (ui.multiSelected.size > 0) return
   }
 
@@ -92,16 +92,16 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
   const card = ctx.card
   if (ui.selectionAnchor === null && card) {
     ctx.setUI({
-      selectionAnchor: { nodeId: card.node.id, sub: 0 },
+      selectionAnchor: { nodeId: card.id, sub: 0 },
     })
   }
 
   // Move cursor to first card in target column
   const targetCol = columns[targetColIdx]
-  if (targetCol && targetCol.cards.length > 0) {
-    const targetCard = targetCol.cards[0]
+  if (targetCol && targetCol.cardNodes.length > 0) {
+    const targetCard = targetCol.cardNodes[0]
     if (targetCard) {
-      dispatchBoard({ type: "SELECT", nodeId: targetCard.node.id })
+      dispatchBoard({ type: "SELECT", nodeId: targetCard.id })
     }
   }
 
@@ -122,7 +122,7 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
 function resolveAnchorCol(ctx: ActionCtx): number | null {
   const anchor = ctx.ui.selectionAnchor
   if (!anchor) return null
-  const pos = ctx.layout.nodeIndex?.get(anchor.nodeId)
+  const pos = ctx.nodeIndex?.get(anchor.nodeId)
   return pos?.colIndex ?? null
 }
 
@@ -133,10 +133,10 @@ function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<
   const maxCol = Math.max(fromCol, toCol)
 
   for (let colIdx = minCol; colIdx <= maxCol; colIdx++) {
-    const col = ctx.layout.columns[colIdx]
+    const col = ctx.columns[colIdx]
     if (col) {
-      for (const card of col.cards) {
-        selected.add(makeSelectionKey(card.node.id, 0))
+      for (const card of col.cardNodes) {
+        selected.add(makeSelectionKey(card.id, 0))
       }
     }
   }

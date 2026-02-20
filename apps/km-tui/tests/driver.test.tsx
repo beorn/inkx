@@ -646,8 +646,8 @@ describe("createBoardDriver", () => {
 
     // Layout is derived on demand via driver.getState()
     const state = driver.getState()
-    expect(state.layout.colIndex).toBe(0)
-    expect(state.layout.cardIndex).toBe(0)
+    expect(state.colIndex).toBe(0)
+    expect(state.cardIndex).toBe(0)
     expect(state.cursor.level).toBe("card")
   })
 

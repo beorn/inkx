@@ -14,15 +14,14 @@ import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
 import type { BoardAppStore } from "../src/board-app-store.ts"
-import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
-import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 
 /** Derive colIndex from store state on demand. */
 function getColIndex(store: StoreApi<BoardAppStore>): number {
   const s = store.getState()
   const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   return cursor.colIndex
 }
 

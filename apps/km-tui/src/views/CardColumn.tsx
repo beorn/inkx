@@ -3,10 +3,9 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  *
- * NODE MODEL V2: Currently receives ColumnState/CardState (view model wrappers).
- * Target: receives KNode directly, calls repo.getChildren(node.id) for cards,
- * and derives isSelected/isFolded from data model hooks. ColumnState/CardState
- * wrappers are eliminated — "column" is just a parent KNode, "card" is a child.
+ * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
+ * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.
+ * No CardState wrapper — cards are plain KNode objects.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
@@ -15,8 +14,9 @@ import { layoutLog, sid } from "../log.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
-import type { CardState, ColumnState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
+import type { KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
@@ -58,7 +58,7 @@ const MAX_RENDERED_CARDS = 50
 // =============================================================================
 
 interface CardProps {
-  card: CardState
+  card: KNode
   selectedSubIndex: number
   width: number
   colIndex: number
@@ -75,6 +75,10 @@ interface CardProps {
   isColumnSelected?: boolean
   /** NodeId of the previous card (for body block yield-top logic) */
   prevCardNodeId?: string
+  /** Whether this card is a virtual body card */
+  isVirtualCard?: boolean
+  /** Number of children (pre-computed to avoid DB lookup when folded) */
+  childCount?: number
 }
 
 /**
@@ -140,8 +144,10 @@ const Card = React.memo(
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
     prevCardNodeId,
+    isVirtualCard = false,
+    childCount: childCountProp,
   }: CardProps): React.ReactElement {
-    const nodeId = card.node.id
+    const nodeId = card.id
 
     // Get selection state exclusively from CursorStore (self-subscription via nodeId).
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
@@ -165,10 +171,12 @@ const Card = React.memo(
     const repo = useRepo()
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const directHidden = Math.max(0, (card.childCount ?? 0) - maxChildren)
+    const children = useMemo(() => repo.getChildren(card.id), [repo, card.id])
+    const childCount = childCountProp ?? children.length
+    const directHidden = Math.max(0, childCount - maxChildren)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
-      const visibleChildren = card.children.slice(0, maxChildren)
+      const visibleChildren = children.slice(0, maxChildren)
       for (const child of visibleChildren) {
         const grandchildren = repo.getChildren(child.id)
         if (grandchildren.length > maxChildren) {
@@ -178,19 +186,19 @@ const Card = React.memo(
       // Title wrap: TreeNode constrainText() allows titles up to 2 lines.
       // When the title wraps, it consumes an extra visual line in the card.
       // Include extra title lines in the overflow count.
-      const titleText = getNodeDisplayName(repo, card.node) ?? card.node.content ?? ""
+      const titleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const textWidth = Math.max(10, treeConfig.cardInnerWidth - 2) // matches TreeNode prefix width
       const titleDisplayWidth = displayLength(renderPlain(titleText))
       const titleExtraLines = Math.min(1, Math.max(0, Math.ceil(titleDisplayWidth / textWidth) - 1))
       total += titleExtraLines
       return { hasOverflow: total > 0, hiddenCount: total }
-    }, [directHidden, card.children, maxChildren, repo, card.node, treeConfig.cardInnerWidth])
+    }, [directHidden, children, maxChildren, repo, card, treeConfig.cardInnerWidth])
 
     // HR nodes render as borderless centered content (unless being edited,
     // in which case they fall through to normal bordered card with InlineEditField).
     // Detection is content-based: editing "---" to "---f" should stop rendering as HR.
     // Nodes with type="hr" and no content default to "---".
-    const hrContent = (card.node.content ?? (card.node.type === "hr" ? "---" : "")).trim()
+    const hrContent = (card.content ?? (card.type === "hr" ? "---" : "")).trim()
     const isHR = isHRContent(hrContent)
     // Body block layout props: border when focused, padding otherwise.
     // Layout stability invariant: cursoring must NOT shift content.
@@ -243,7 +251,7 @@ const Card = React.memo(
       )
     }
 
-    if (isVirtualColumn || card.isVirtual) {
+    if (isVirtualColumn || isVirtualCard) {
       const bodyBorderColor = isEditing ? "cyan" : "yellow"
       return (
         <Box
@@ -262,14 +270,14 @@ const Card = React.memo(
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
-            node={card.node}
+            node={card}
             depth={0}
             isSelected={isSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
             subIndex={0}
             dimInactiveChildren={false}
-            childCount={card.childCount}
+            childCount={childCount}
             extraExcludedSigils={extraExcludedSigils}
             compactContent
             hideChildCount
@@ -280,7 +288,7 @@ const Card = React.memo(
 
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
-    const isDoneOrDropped = card.node.task_status === "done" || card.node.task_status === "dropped"
+    const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
     const defaultBorder = isDoneOrDropped ? "#333" : treeConfig.borderMode === "black" ? "black" : "blackBright"
     const borderColor = isEditing ? "cyan" : isSelected || isMultiSelected || isColSelected ? "yellow" : defaultBorder
 
@@ -298,14 +306,14 @@ const Card = React.memo(
           <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
-              node={card.node}
+              node={card}
               depth={0}
               isSelected={isSelected && selectedSubIndex <= 0}
               colIndex={colIndex}
               cardIndex={cardIndex}
               subIndex={0}
               dimInactiveChildren={false}
-              childCount={card.childCount}
+              childCount={childCount}
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
             />
@@ -325,14 +333,14 @@ const Card = React.memo(
       <Box flexDirection="column" flexShrink={0} width={width} borderStyle="round" borderColor={borderColor}>
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
-          node={card.node}
+          node={card}
           depth={0}
           isSelected={isSelected && selectedSubIndex <= 0}
           colIndex={colIndex}
           cardIndex={cardIndex}
           subIndex={0}
           dimInactiveChildren={false}
-          childCount={card.childCount}
+          childCount={childCount}
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount
         />
@@ -423,7 +431,7 @@ function SkeletonCards({
 // =============================================================================
 
 interface ColumnProps {
-  column: ColumnState
+  column: ColumnView
   colIndex: number
   isCollapsed: boolean
   selectedSubIndex: number
@@ -482,7 +490,7 @@ export const Column = React.memo(function Column({
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = renderPlain(getNodeDisplayName(repo, column.node))
   const untitled = isNodeUntitled(repo, column.node)
-  const count = column.cards.length
+  const count = column.cardNodes.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
 
@@ -551,41 +559,44 @@ export const Column = React.memo(function Column({
 
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
-  const cards = column.cards
+  const cardNodes = column.cardNodes
+  const virtualCardIds = column.virtualCardIds
   const renderItem = useCallback(
-    (card: CardState, actualIndex: number) => {
+    (card: KNode, actualIndex: number) => {
       layoutLog.trace?.(
-        `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.node.id)} content=${card.node.content?.slice(0, 30) ?? "(empty)"}`,
+        `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.id)} content=${card.content?.slice(0, 30) ?? "(empty)"}`,
       )
       // For body blocks: compute neighbor info for layout stability.
       // Only yield paddingTop when prev is also a body block (not structural).
       // Last body block before a structural card gets paddingBottom=1.
-      const isBody = isVirtual || card.isVirtual
-      const prevCard = actualIndex > 0 ? cards[actualIndex - 1] : undefined
-      const nextCard = actualIndex < cards.length - 1 ? cards[actualIndex + 1] : undefined
-      const isPrevBody = isVirtual || (prevCard?.isVirtual ?? false)
-      const isLastBody = isBody && (!nextCard || !(isVirtual || nextCard.isVirtual))
+      const isCardVirtual = virtualCardIds.has(card.id)
+      const isBody = isVirtual || isCardVirtual
+      const prevCard = actualIndex > 0 ? cardNodes[actualIndex - 1] : undefined
+      const nextCard = actualIndex < cardNodes.length - 1 ? cardNodes[actualIndex + 1] : undefined
+      const isPrevBody = isVirtual || (prevCard ? virtualCardIds.has(prevCard.id) : false)
+      const isLastBody = isBody && (!nextCard || !(isVirtual || virtualCardIds.has(nextCard.id)))
       return (
         <Card
-          key={`${card.node.id}-${actualIndex}`}
+          key={`${card.id}-${actualIndex}`}
           card={card}
           selectedSubIndex={selectedSubIndex}
           width={width - 1}
           colIndex={colIndex}
           cardIndex={actualIndex}
           isVirtualColumn={isVirtual}
+          isVirtualCard={isCardVirtual}
           isPrevBodyBlock={isPrevBody}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
           isColumnSelected={isColumnSelected}
-          prevCardNodeId={prevCard?.node.id}
+          prevCardNodeId={prevCard?.id}
         />
       )
     },
-    [colIndex, selectedSubIndex, width, isVirtual, cards, extraExcludedSigils, isColumnSelected],
+    [colIndex, selectedSubIndex, width, isVirtual, cardNodes, virtualCardIds, extraExcludedSigils, isColumnSelected],
   )
 
-  const keyExtractor = useCallback((card: CardState) => card.node.id, [])
+  const keyExtractor = useCallback((card: KNode) => card.id, [])
 
   // Collapsed: bordered card-like strip spanning full column height with vertical title
   if (isCollapsed) {
@@ -677,10 +688,10 @@ export const Column = React.memo(function Column({
         ) : undefined}
       </ColumnHeader>
 
-      {column.cards.length > 0 ? (
+      {column.cardNodes.length > 0 ? (
         <ScrollTrackingVirtualList
           isSelected={isSelected}
-          items={column.cards}
+          items={column.cardNodes}
           width={width - 1}
           height={height - 2}
           itemHeight={ESTIMATED_CARD_HEIGHT}

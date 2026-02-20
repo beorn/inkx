@@ -11,7 +11,7 @@
 import type { KNode, ToastQueue } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
-import type { ColumnsLayout, ColumnState, CardState } from "./types.ts"
+import type { ColumnView } from "./types.ts"
 import type { UIState, EditMode } from "./ui-reducer.ts"
 import { getEditMode } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
@@ -42,18 +42,24 @@ export interface ActionCtx {
 
   // === State (from store) ===
   ui: UIState
-  layout: ColumnsLayout
   navigator: GridNavigator
   viewNavigation: ViewNavigation
   toastQueue: ToastQueue
+
+  // === Layout (derived fresh each key event) ===
+  columns: ColumnView[]
+  colIndex: number
+  cardIndex: number
+  isAtCardLevel: boolean
+  nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
 
   // === Derived (computed once per key event) ===
   /** Currently selected node (null if none) */
   selectedNode: KNode | null
   /** Current column from layout */
-  column: ColumnState | undefined
-  /** Current card from layout */
-  card: CardState | undefined
+  column: ColumnView | undefined
+  /** Current card from layout (plain KNode) */
+  card: KNode | undefined
 
   // === Dispatchers ===
   /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */

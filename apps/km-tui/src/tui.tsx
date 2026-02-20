@@ -68,8 +68,8 @@ function computeInitialCursor(state: InitialBoardData): string | null {
   if (state.columns.length === 0) return null
   const firstCol = state.columns[0]
   if (!firstCol) return null
-  if (firstCol.cards.length > 0) {
-    return firstCol.cards[0]?.node.id ?? firstCol.node.id
+  if (firstCol.cardNodes.length > 0) {
+    return firstCol.cardNodes[0]?.id ?? firstCol.node.id
   }
   return firstCol.node.id
 }

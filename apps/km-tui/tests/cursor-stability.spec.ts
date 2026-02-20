@@ -114,9 +114,8 @@ describe("Cursor movement preserves text content", () => {
 // Cursor stability after property mutations (km-tui.td-cursor-jump)
 //
 // After setting date/priority/status, cursor must remain on the same card.
-// Bug: refreshBoardState re-derives columns with a different method than
-// deriveColumnsFromRepo, causing index mismatch when virtual body columns
-// or li-type root children shift the column indices.
+// Bug: column derivation mismatch caused index drift when virtual body columns
+// or li-type root children shifted column indices. Fixed by nodeId-based cursor.
 // =============================================================================
 
 describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
@@ -151,7 +150,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     board.press("j") // Move to tB (second card in Todo)
     board.expect("#tB[data-cursor]").toExist()
 
-    // Set priority — this triggers refreshBoardState(ctx)
+    // Set priority — triggers SELECT to re-resolve cursor position
     board.press("s").press("p")
 
     // Cursor must still be on tB — NOT jumped to a different card

@@ -27,7 +27,7 @@ import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection, getSelectedCards } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ColumnState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 
 /**
  * Determine the correct heading depth for a new sibling node.
@@ -98,10 +98,10 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   let anyHasMetadata = false
 
   for (const c of cards) {
-    totalChildCount += repo.getChildren(c.node.id).length
-    totalBacklinkCount += repo.getRenameImpact(c.node.id).backlinks.length
-    const significantKeys = c.node.data
-      ? Object.keys(c.node.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
+    totalChildCount += repo.getChildren(c.id).length
+    totalBacklinkCount += repo.getRenameImpact(c.id).backlinks.length
+    const significantKeys = c.data
+      ? Object.keys(c.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
       : []
     if (significantKeys.length > 0) anyHasMetadata = true
   }
@@ -110,12 +110,11 @@ export function handleDeleteNode(ctx: ActionCtx): void {
     // Non-trivial: show confirmation dialog
     const firstCard = cards[0]
     if (!firstCard) return
-    const targetNode = firstCard.node
     const title =
-      cards.length > 1 ? `${cards.length} selected nodes` : (targetNode.name ?? targetNode.content ?? targetNode.id)
+      cards.length > 1 ? `${cards.length} selected nodes` : (firstCard.name ?? firstCard.content ?? firstCard.id)
     ctx.setUI({
       deleteConfirm: {
-        nodeIds: cards.map((c) => c.node.id),
+        nodeIds: cards.map((c) => c.id),
         title,
         childCount: totalChildCount,
         backlinkCount: totalBacklinkCount,
@@ -128,7 +127,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   // All cards are empty: delete immediately
   executeBatchDelete(
     ctx,
-    cards.map((c) => c.node.id),
+    cards.map((c) => c.id),
   )
 }
 
@@ -141,7 +140,6 @@ function handleDeleteColumn(
   ctx: ActionCtx,
   col: {
     node: { id: string; name?: string | null; content?: string | null; data?: Record<string, unknown> | null }
-    cards: { node: { id: string } }[]
   },
 ): void {
   const { repo } = ctx
@@ -212,7 +210,7 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
   let cursorTarget: string | null = null
   if (isDeletingColumn) {
     // For column delete, find adjacent column not being deleted
-    const columns = ctx.layout.columns
+    const columns = ctx.columns
     const colIdx = columns.findIndex((c) => deleteSet.has(c.node.id))
     // Try next column, then previous
     const nextCol = columns.slice(colIdx + 1).find((c) => !deleteSet.has(c.node.id))
@@ -221,18 +219,18 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
       .reverse()
       .find((c) => !deleteSet.has(c.node.id))
     const targetCol = nextCol ?? prevCol
-    cursorTarget = targetCol?.cards[0]?.node.id ?? targetCol?.node.id ?? null
+    cursorTarget = targetCol?.cardNodes[0]?.id ?? targetCol?.node.id ?? null
   } else {
     // For card delete, find adjacent card in same column not being deleted
     const col = ctx.column
     if (col) {
-      const cardIdx = col.cards.findIndex((c) => deleteSet.has(c.node.id))
-      const nextCard = col.cards.slice(cardIdx + 1).find((c) => !deleteSet.has(c.node.id))
-      const prevCard = col.cards
+      const cardIdx = col.cardNodes.findIndex((c) => deleteSet.has(c.id))
+      const nextCard = col.cardNodes.slice(cardIdx + 1).find((c) => !deleteSet.has(c.id))
+      const prevCard = col.cardNodes
         .slice(0, cardIdx)
         .reverse()
-        .find((c) => !deleteSet.has(c.node.id))
-      cursorTarget = (nextCard ?? prevCard)?.node.id ?? col.node.id
+        .find((c) => !deleteSet.has(c.id))
+      cursorTarget = (nextCard ?? prevCard)?.id ?? col.node.id
     }
   }
 
@@ -283,7 +281,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const col = ctx.column
   if (!col) return
 
-  // Query repo for fresh children (layout.columns.cards may be stale after prior addNode)
+  // Query repo for fresh children (columns may be stale after prior addNode)
   const siblings = repo.getChildren(col.node.id)
   const currentSibIdx = siblings.findIndex((s) => s.id === ctx.cursorNodeId)
   const currentNode = siblings[currentSibIdx]
@@ -391,7 +389,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
   ctx.undoHandle.startBatch("Move cards")
 
   let newSortOrder =
-    targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
+    targetCol.cardNodes.length > 0 ? (targetCol.cardNodes[targetCol.cardNodes.length - 1]?.parent_idx ?? 0) + 1 : 0
   for (const nodeId of sourceNodeIds) {
     repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
@@ -424,8 +422,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   for (const c of cards) {
-    const targetId = c.node.link_to || c.node.id
-    const targetNode = c.node.link_to ? ctx.repo.getNode(c.node.link_to) : c.node
+    const targetId = c.link_to || c.id
+    const targetNode = c.link_to ? ctx.repo.getNode(c.link_to) : c
     const currentStatus = targetNode?.task_status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
     const nextIndex = (currentIndex + 1) % statusCycle.length
@@ -516,7 +514,7 @@ function moveColumn(
 ): ActionResult {
   if (!ctx.rootId) return boundary("move", "no root")
   const { repo } = ctx
-  const columns = ctx.layout.columns
+  const columns = ctx.columns
   const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
   const targetIndex = direction === "left" ? colIndex - 1 : colIndex + 1
   if (targetIndex < 0 || targetIndex >= columns.length) return boundary(direction)
@@ -560,8 +558,8 @@ function moveColumn(
  */
 function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB: number): void {
   const { repo } = ctx
-  const colA = ctx.layout.columns[colIndexA]
-  const colB = ctx.layout.columns[colIndexB]
+  const colA = ctx.columns[colIndexA]
+  const colB = ctx.columns[colIndexB]
   if (!colA || !colB) return
 
   // Only normalize if the two columns share the same parent_idx
@@ -585,9 +583,9 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
  * The column becomes a child of the previous column. Cursor moves to
  * the previous column to follow the indented content.
  */
-export function handleIndentColumn(ctx: ActionCtx, col: ColumnState): ActionResult {
+export function handleIndentColumn(ctx: ActionCtx, col: ColumnView): ActionResult {
   const { repo } = ctx
-  const columns = ctx.layout.columns
+  const columns = ctx.columns
   const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
 
   // Need a previous column to indent into

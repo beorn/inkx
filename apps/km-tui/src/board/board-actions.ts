@@ -223,7 +223,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane.
       // Exception: folders always get the detail pane (shows contents outline).
-      const curNodeId = card?.node.id ?? col?.node.id
+      const curNodeId = card?.id ?? col?.node.id
       const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
       // Resolve embedded links to get the actual target node type
       const resolvedNode = curNode?.link_to ? ctx.repo.getNode(curNode.link_to) : curNode
@@ -293,14 +293,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "FOLD_LEVEL":
       if (col) {
         const newFolded = new Set(ctx.foldedNodes)
-        for (const c of col.cards) newFolded.add(c.node.id)
+        for (const c of col.cardNodes) newFolded.add(c.id)
         ctx.setFoldedNodes(newFolded)
       }
       return ok()
     case "UNFOLD_LEVEL":
       if (col) {
         const newFolded = new Set(ctx.foldedNodes)
-        for (const c of col.cards) newFolded.delete(c.node.id)
+        for (const c of col.cardNodes) newFolded.delete(c.id)
         ctx.setFoldedNodes(newFolded)
       }
       return ok()
@@ -425,14 +425,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "FOLD_NODE": {
       if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.add(card.node.id)
+      newFolded.add(card.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
     case "UNFOLD_NODE": {
       if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.delete(card.node.id)
+      newFolded.delete(card.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
@@ -446,7 +446,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           unfoldDescendants(child.id)
         }
       }
-      unfoldDescendants(card.node.id)
+      unfoldDescendants(card.id)
       ctx.setFoldedNodes(newFolded)
       return ok()
     }
@@ -1046,20 +1046,20 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
 
   // Find adjacent card in the current column
   const col = ctx.column
-  const currentCardIndex = col?.cards.findIndex((c) => c.node.id === edit.nodeId) ?? -1
+  const currentCardIndex = col?.cardNodes.findIndex((c) => c.id === edit.nodeId) ?? -1
   const adjacentIndex = direction === "down" ? currentCardIndex + 1 : currentCardIndex - 1
-  const adjacentCard = col?.cards[adjacentIndex]
+  const adjacentCard = col?.cardNodes[adjacentIndex]
 
   if (adjacentCard) {
     // Navigate to adjacent card and enter edit mode on it
-    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentCard.node.id })
+    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentCard.id })
 
     // Determine which block to edit (first or last)
-    const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentCard.node.id)).body.length
+    const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentCard.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount // title (0) when going down, last body block when going up
     ctx.setUI({
       inlineEditBlock: {
-        nodeId: adjacentCard.node.id,
+        nodeId: adjacentCard.id,
         blockIndex: adjBlockIndex,
         initialCursorPos: direction === "down" ? "start" : "end",
         stickyX,
@@ -1080,12 +1080,12 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
   if (!card) return boundary("fold", "no card selected")
 
   // Check if card has children to fold/unfold
-  const children = repo.getChildren(card.node.id)
+  const children = repo.getChildren(card.id)
   if (children.length === 0) {
     return boundary("fold", "no children to fold")
   }
 
-  ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.node.id })
+  ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
   return ok()
 }
 
@@ -1104,7 +1104,7 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
 }
 
 function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult {
-  const columns = ctx.layout.columns
+  const columns = ctx.columns
   const { dispatchBoard } = ctx
 
   // Column numbers are 1-indexed for user, 0-indexed internally
@@ -1115,10 +1115,10 @@ function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult 
   }
 
   const targetCol = columns[targetColIdx]
-  if (targetCol && targetCol.cards.length > 0) {
-    const firstCard = targetCol.cards[0]
+  if (targetCol && targetCol.cardNodes.length > 0) {
+    const firstCard = targetCol.cardNodes[0]
     if (firstCard) {
-      dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+      dispatchBoard({ type: "SELECT", nodeId: firstCard.id })
     }
   }
   return ok()
@@ -1275,16 +1275,16 @@ function handleIgnoreNode(ctx: ActionCtx): ActionResult {
 
       // Move cursor to adjacent column since this column is now hidden.
       // Find current column position, then pick adjacent
-      const colIndex = ctx.layout.columns.findIndex((c) => c.node.id === node.id)
-      const nextCol = ctx.layout.columns[colIndex + 1]
-      const prevCol = colIndex > 0 ? ctx.layout.columns[colIndex - 1] : undefined
+      const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
+      const nextCol = ctx.columns[colIndex + 1]
+      const prevCol = colIndex > 0 ? ctx.columns[colIndex - 1] : undefined
       const targetCol = nextCol ?? prevCol
       if (targetCol) {
         // Select first card in target column, or column header if empty
-        const firstCard = targetCol.cards[0]
+        const firstCard = targetCol.cardNodes[0]
         ctx.dispatchBoard({
           type: "SELECT",
-          nodeId: firstCard?.node.id ?? targetCol.node.id,
+          nodeId: firstCard?.id ?? targetCol.node.id,
         })
       }
     }
@@ -1315,7 +1315,7 @@ function handleOpenInTerminal(ctx: ActionCtx, nodeId: string): void {
 /** Get node IDs from selected cards (batch-aware). */
 function getSelectedCardNodeIds(ctx: ActionCtx): string[] {
   const cards = getSelectedCards(ctx)
-  return cards.map((c) => c.node.id)
+  return cards.map((c) => c.id)
 }
 
 /** Open the date prompt dialog for a given field. */
@@ -1492,7 +1492,7 @@ function handleClipboardCopy(ctx: ActionCtx, mode: "copy" | "cut"): ActionResult
   const cards = getSelectedCards(ctx)
   if (cards.length === 0) return boundary("clipboard", "No card to copy")
 
-  const nodeIds = cards.map((c) => c.node.id)
+  const nodeIds = cards.map((c) => c.id)
   ctx.setUI({
     clipboard: { nodeIds, mode },
   })

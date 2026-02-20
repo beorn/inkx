@@ -7,7 +7,7 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { InitialBoardData, CardState, ColumnState } from "../../src/types.ts"
+import type { InitialBoardData, ColumnView } from "../../src/types.ts"
 import { createEmptyState } from "../../src/state.ts"
 
 /**
@@ -33,30 +33,29 @@ function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNod
 }
 
 /**
- * Create a CardState with children
+ * Create a card KNode (cards are plain KNode — no wrapper type)
  */
-export function createCardState(nodeOverrides: Partial<KNode> = {}, children: KNode[] = []): CardState {
-  const node = createTestKNode(nodeOverrides)
-  return { node, children }
+export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KNode[] = []): KNode {
+  return createTestKNode(nodeOverrides)
 }
 
 /**
- * Create a ColumnState with cards
+ * Create a ColumnView with card nodes
  */
-export function createColumnState(nodeOverrides: Partial<KNode> = {}, cards: CardState[] = []): ColumnState {
+export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): ColumnView {
   const node = createTestKNode({
     type: "oi",
     fstype: "folder",
     ...nodeOverrides,
   })
-  return { node, cards }
+  return { node, cardNodes, virtualCardIds: new Set() }
 }
 
 /**
  * Create a InitialBoardData with columns
  */
 export function createBoardState(
-  columns: ColumnState[] = [],
+  columns: ColumnView[] = [],
   overrides: Partial<InitialBoardData> = {},
 ): InitialBoardData {
   const base = createEmptyState()
@@ -90,14 +89,14 @@ function createSimpleTestBoard(): {
   const card2Id = ulid()
   const card3Id = ulid()
 
-  const card1 = createCardState({
+  const card1 = createCardNode({
     id: card1Id,
     parent_id: col1Id,
     content: "Task 1",
     type: "li",
   })
 
-  const card2 = createCardState({
+  const card2 = createCardNode({
     id: card2Id,
     parent_id: col1Id,
     parent_idx: 1,
@@ -105,16 +104,18 @@ function createSimpleTestBoard(): {
     type: "li",
   })
 
-  const card3 = createCardState({
+  const card3 = createCardNode({
     id: card3Id,
     parent_id: col2Id,
     content: "Task 3",
     type: "li",
   })
 
-  const col1 = createColumnState({ id: col1Id, parent_id: rootId, content: "Todo" }, [card1, card2])
+  const col1 = createColumnView({ id: col1Id, parent_id: rootId, content: "Todo" }, [card1, card2])
 
-  const col2 = createColumnState({ id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" }, [card3])
+  const col2 = createColumnView({ id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" }, [card3])
+
+  // Note: createCardNode now returns KNode directly (no wrapper)
 
   return {
     state: createBoardState([col1, col2], { rootId }),
@@ -151,14 +152,14 @@ function createNestedTestBoard(): {
   const subCard2Id = ulid()
 
   // The card has children that form a nested board when zoomed
-  const subCard1 = createCardState({
+  const _subCard1 = createCardNode({
     id: subCard1Id,
     parent_id: subColId,
     content: "Sub-task 1",
     type: "li",
   })
 
-  const subCard2 = createCardState({
+  const _subCard2 = createCardNode({
     id: subCard2Id,
     parent_id: subColId,
     parent_idx: 1,
@@ -166,30 +167,14 @@ function createNestedTestBoard(): {
     type: "li",
   })
 
-  const card = createCardState(
-    {
-      id: cardId,
-      parent_id: colId,
-      content: "Card with children",
-      type: "li",
-    },
-    // Children shown in card view (not as columns yet)
-    [
-      createTestKNode({
-        id: subCard1Id,
-        parent_id: cardId,
-        content: "Sub-task 1",
-      }),
-      createTestKNode({
-        id: subCard2Id,
-        parent_id: cardId,
-        parent_idx: 1,
-        content: "Sub-task 2",
-      }),
-    ],
-  )
+  const card = createCardNode({
+    id: cardId,
+    parent_id: colId,
+    content: "Card with children",
+    type: "li",
+  })
 
-  const col = createColumnState({ id: colId, parent_id: rootId, content: "Column" }, [card])
+  const col = createColumnView({ id: colId, parent_id: rootId, content: "Column" }, [card])
 
   return {
     state: createBoardState([col], { rootId }),
@@ -208,32 +193,32 @@ function createNestedTestBoard(): {
  * Create a board state with task statuses for status icon testing
  */
 function createStatusTestBoard(): InitialBoardData {
-  const col = createColumnState({ content: "Tasks" }, [
-    createCardState({
+  const col = createColumnView({ content: "Tasks" }, [
+    createCardNode({
       content: "Todo task",
       type: "li",
       task_status: "todo",
       task_marker: "[ ]",
     }),
-    createCardState({
+    createCardNode({
       content: "In progress task",
       type: "li",
       task_status: "wip",
       task_marker: "[/]",
     }),
-    createCardState({
+    createCardNode({
       content: "Blocked task",
       type: "li",
       task_status: "blocked",
       task_marker: "[!]",
     }),
-    createCardState({
+    createCardNode({
       content: "Done task",
       type: "li",
       task_status: "done",
       task_marker: "[x]",
     }),
-    createCardState({
+    createCardNode({
       content: "Dropped task",
       type: "li",
       task_status: "dropped",

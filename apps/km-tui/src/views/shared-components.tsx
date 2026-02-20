@@ -9,7 +9,7 @@ import { Box, Text, useContentRectCallback } from "inkx"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:layout")
-import type { CardState, ColumnState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
@@ -26,7 +26,7 @@ import { useUISelector } from "../ui-context.tsx"
 // =============================================================================
 
 interface MemoizedTreeCardProps {
-  card: CardState
+  card: KNode
   colIndex: number
   cardIndex: number
   isSelected?: boolean
@@ -59,21 +59,20 @@ export const MemoizedTreeCard = React.memo(
   }: MemoizedTreeCardProps): React.ReactElement {
     // Self-subscribe to CursorStore for selection state (by nodeId)
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
-    const cursorIsSelected = useIsCursorAtNode(card.node.id)
+    const cursorIsSelected = useIsCursorAtNode(card.id)
     const isSelected = isSelectedProp ?? cursorIsSelected
-    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.node.id)
+    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.id)
 
     const content = (
-      <CardLayoutTracker nodeId={card.node.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
+      <CardLayoutTracker nodeId={card.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode
-          node={card.node}
+          node={card}
           depth={0}
           isSelected={isSelected}
           colIndex={colIndex}
           cardIndex={cardIndex}
           subIndex={0}
           children={children}
-          childCount={card.childCount}
           getBoardPills={getBoardPills}
           extraExcludedSigils={extraExcludedSigils}
         />
@@ -94,9 +93,9 @@ export const MemoizedTreeCard = React.memo(
   (prev, next) => {
     // Props-based memo check — CursorStore triggers re-renders independently
     return (
-      prev.card.node.id === next.card.node.id &&
-      prev.card.node.content === next.card.node.content &&
-      prev.card.node.task_status === next.card.node.task_status &&
+      prev.card.id === next.card.id &&
+      prev.card.content === next.card.content &&
+      prev.card.task_status === next.card.task_status &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
       prev.isSelected === next.isSelected &&
@@ -171,7 +170,7 @@ function CardLayoutTracker({
 // =============================================================================
 
 interface MemoizedColumnHeaderProps {
-  column: ColumnState
+  column: ColumnView
   colIdx: number
   isSelected: boolean
   isColSelected: boolean
@@ -226,7 +225,7 @@ export const MemoizedColumnHeader = React.memo(
           ownColor={ownColor}
           headerStyle={headerStyle}
           icon={icon}
-          cardCount={column.cards.length}
+          cardCount={column.cardNodes.length}
           width={width}
           isColumnSelected={isColSelected}
           isSelected={isSelected}
@@ -241,7 +240,7 @@ export const MemoizedColumnHeader = React.memo(
   (prev, next) => {
     return (
       prev.column.node.id === next.column.node.id &&
-      prev.column.cards.length === next.column.cards.length &&
+      prev.column.cardNodes.length === next.column.cardNodes.length &&
       prev.colIdx === next.colIdx &&
       prev.isSelected === next.isSelected &&
       prev.isColSelected === next.isColSelected &&

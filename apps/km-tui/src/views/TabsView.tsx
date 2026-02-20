@@ -8,7 +8,8 @@
  */
 import React, { useMemo } from "react"
 import { Box, Text, VirtualList } from "inkx"
-import type { ColumnState, CardState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
+import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -23,7 +24,7 @@ const OVERSCAN = 10
 const MAX_RENDERED_ITEMS = 100
 
 interface TabsViewProps {
-  columns: ColumnState[]
+  columns: ColumnView[]
   width: number
   height: number
   subIndex: number
@@ -51,7 +52,7 @@ export function TabsView({ columns: columnsProp, width, height, subIndex }: Tabs
 
   // Get current column
   const currentColumn = columnsProp[colIndex]
-  const count = currentColumn?.cards.length ?? 0
+  const count = currentColumn?.cardNodes.length ?? 0
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const colName = currentColumn ? renderPlain(getNodeDisplayName(repo, currentColumn.node)) : ""
@@ -76,7 +77,7 @@ export function TabsView({ columns: columnsProp, width, height, subIndex }: Tabs
           const isActive = cIdx === colIndex
           const colName = getNodeDisplayName(repo, column.node)
           const untitled = isNodeUntitled(repo, column.node)
-          const colCount = column.cards.length
+          const colCount = column.cardNodes.length
           const showActiveHighlight = isActive && selectionLevel !== "board"
           const isTabSelected = isActive && isColumnHeaderSelected
 
@@ -119,22 +120,22 @@ export function TabsView({ columns: columnsProp, width, height, subIndex }: Tabs
         {currentColumn ? (
           count > 0 ? (
             <VirtualList
-              items={currentColumn.cards}
+              items={currentColumn.cardNodes}
               height={height - 3}
-              itemHeight={(card: CardState) => (card.node.id === editingNodeId ? 3 : 1)}
+              itemHeight={(card: KNode) => (card.id === editingNodeId ? 3 : 1)}
               scrollTo={
-                cursorCardNodeId ? currentColumn.cards.findIndex((c) => c.node.id === cursorCardNodeId) : undefined
+                cursorCardNodeId ? currentColumn.cardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined
               }
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}
-              keyExtractor={(card) => card.node.id}
-              renderItem={(card: CardState, actualCardIndex: number) => {
+              keyExtractor={(card) => card.id}
+              renderItem={(card: KNode, actualCardIndex: number) => {
                 const isCardSelected =
-                  selectionLevel === "card" && card.node.id === cursorCardNodeId && (!inOutlineMode || subIndex === 0)
+                  selectionLevel === "card" && card.id === cursorCardNodeId && (!inOutlineMode || subIndex === 0)
 
                 return (
                   <MemoizedTreeCard
-                    key={`${card.node.id}-${actualCardIndex}`}
+                    key={`${card.id}-${actualCardIndex}`}
                     card={card}
                     colIndex={colIndex}
                     cardIndex={actualCardIndex}

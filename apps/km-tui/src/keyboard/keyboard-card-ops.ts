@@ -4,12 +4,13 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
-import { isBlock, isOutline, isItem } from "@km/core"
+import { isBlock, isItem } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
-import type { CardState, SelectionKey } from "../types.ts"
+import type { KNode } from "@km/core"
+import type { SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { clearSelection, getSelectedCardIndices, refreshBoardState } from "./keyboard-helpers.ts"
+import { clearSelection, getSelectedCardIndices } from "./keyboard-helpers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 
 // =============================================================================
@@ -22,23 +23,23 @@ import { indexOfChild } from "../sibling-index.ts"
  * fractional insertion between equal values produces wrong sort order.
  * Assigns sequential integers [0, 1, 2, ...] when duplicates exist.
  */
-function normalizeSortOrders(ctx: ActionCtx, col: { cards: CardState[]; node: { id: string } }): void {
+function normalizeSortOrders(ctx: ActionCtx, col: { cardNodes: KNode[]; node: { id: string } }): void {
   const seen = new Set<number>()
   let hasDuplicates = false
-  for (const card of col.cards) {
-    if (seen.has(card.node.parent_idx)) {
+  for (const card of col.cardNodes) {
+    if (seen.has(card.parent_idx)) {
       hasDuplicates = true
       break
     }
-    seen.add(card.node.parent_idx)
+    seen.add(card.parent_idx)
   }
   if (!hasDuplicates) return
 
-  for (let i = 0; i < col.cards.length; i++) {
-    const card = col.cards[i]
-    if (card && card.node.parent_idx !== i) {
-      ctx.repo.moveNode(card.node.id, col.node.id, i)
-      card.node.parent_idx = i
+  for (let i = 0; i < col.cardNodes.length; i++) {
+    const card = col.cardNodes[i]
+    if (card && card.parent_idx !== i) {
+      ctx.repo.moveNode(card.id, col.node.id, i)
+      card.parent_idx = i
     }
   }
 }
@@ -48,8 +49,8 @@ function normalizeSortOrders(ctx: ActionCtx, col: { cards: CardState[]; node: { 
  * Places the value between the two neighbors, or beyond the boundary card.
  * Requires normalizeSortOrders to have been called first.
  */
-function calculateSortOrder(col: { cards: CardState[] }, targetIndex: number, direction: "up" | "down"): number {
-  const order = (i: number) => col.cards[i]?.node.parent_idx ?? i
+function calculateSortOrder(col: { cardNodes: KNode[] }, targetIndex: number, direction: "up" | "down"): number {
+  const order = (i: number) => col.cardNodes[i]?.parent_idx ?? i
 
   if (direction === "up") {
     if (targetIndex === 0) {
@@ -58,8 +59,8 @@ function calculateSortOrder(col: { cards: CardState[] }, targetIndex: number, di
     return (order(targetIndex - 1) + order(targetIndex)) / 2
   }
   // direction === "down"
-  if (targetIndex >= col.cards.length - 1) {
-    return order(col.cards.length - 1) + 1
+  if (targetIndex >= col.cardNodes.length - 1) {
+    return order(col.cardNodes.length - 1) + 1
   }
   return (order(targetIndex) + order(targetIndex + 1)) / 2
 }
@@ -90,8 +91,8 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
 // =============================================================================
 
 /** Move card within column (up/down) */
-export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up" | "down"): ActionResult {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
+export function moveCardInColumn(ctx: ActionCtx, card: KNode, direction: "up" | "down"): ActionResult {
+  const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 
   // Batch all moves (normalize + card moves) into a single undo entry
@@ -104,10 +105,10 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
   const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove =
     selectedIndices.length > 0
-      ? selectedIndices.map((i: number) => ({ index: i, card: col.cards[i] }))
-      : [{ index: ctx.layout.cardIndex, card }]
+      ? selectedIndices.map((i: number) => ({ index: i, card: col.cardNodes[i] }))
+      : [{ index: ctx.cardIndex, card }]
 
-  const validCards = cardsToMove.filter((c): c is { index: number; card: CardState } => c.card !== undefined)
+  const validCards = cardsToMove.filter((c): c is { index: number; card: KNode } => c.card !== undefined)
   if (validCards.length === 0) {
     ctx.undoHandle.endBatch()
     return boundary(direction)
@@ -124,48 +125,48 @@ export function moveCardInColumn(ctx: ActionCtx, card: CardState, direction: "up
     return boundary(direction)
   }
   const targetIndex = direction === "up" ? firstToMove.index - 1 : firstToMove.index + 1
-  if (targetIndex < 0 || targetIndex >= col.cards.length) {
+  if (targetIndex < 0 || targetIndex >= col.cardNodes.length) {
     ctx.undoHandle.endBatch()
     return boundary(direction)
   }
 
   for (const { index: currentIndex, card: cardToMove } of sortedCards) {
     const cardTargetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
-    if (cardTargetIndex < 0 || cardTargetIndex >= col.cards.length) continue
+    if (cardTargetIndex < 0 || cardTargetIndex >= col.cardNodes.length) continue
 
     const newSortOrder = calculateSortOrder(col, cardTargetIndex, direction)
-    ctx.repo.moveNode(cardToMove.node.id, col.node.id, newSortOrder)
+    ctx.repo.moveNode(cardToMove.id, col.node.id, newSortOrder)
   }
 
   ctx.undoHandle.endBatch()
 
-  const movedCardIds = validCards.map((c) => c.card.node.id)
-  const newCardIndex = direction === "up" ? ctx.layout.cardIndex - 1 : ctx.layout.cardIndex + 1
+  const movedCardIds = validCards.map((c) => c.card.id)
 
-  refreshBoardState(ctx, { cardIndex: newCardIndex })
+  // Cursor follows the moved card — its ID is unchanged, just its position shifted
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
 
   if (movedCardIds.length > 1) {
-    rebuildSelectionForMovedCards(ctx, ctx.layout.colIndex, movedCardIds)
+    rebuildSelectionForMovedCards(ctx, ctx.colIndex, movedCardIds)
   }
 
   return ok()
 }
 
 /** Move card to different column (left/right) */
-export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "left" | "right"): ActionResult {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
+export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" | "right"): ActionResult {
+  const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 
-  const targetColIndex = direction === "left" ? ctx.layout.colIndex - 1 : ctx.layout.colIndex + 1
-  if (targetColIndex < 0 || targetColIndex >= ctx.layout.columns.length) return boundary(direction)
+  const targetColIndex = direction === "left" ? ctx.colIndex - 1 : ctx.colIndex + 1
+  if (targetColIndex < 0 || targetColIndex >= ctx.columns.length) return boundary(direction)
 
-  const targetCol = ctx.layout.columns[targetColIndex]
+  const targetCol = ctx.columns[targetColIndex]
   if (!targetCol) return boundary(direction)
 
   const selectedIndices = getSelectedCardIndices(ctx)
-  const cardsToMove: CardState[] =
+  const cardsToMove: KNode[] =
     selectedIndices.length > 0
-      ? selectedIndices.map((i: number) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+      ? selectedIndices.map((i: number) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
       : [card]
 
   if (cardsToMove.length === 0) return boundary(direction)
@@ -175,22 +176,19 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
   ctx.undoHandle.startBatch("Move card to column")
 
   let newSortOrder =
-    targetCol.cards.length > 0 ? (targetCol.cards[targetCol.cards.length - 1]?.node.parent_idx ?? 0) + 1 : 0
+    targetCol.cardNodes.length > 0 ? (targetCol.cardNodes[targetCol.cardNodes.length - 1]?.parent_idx ?? 0) + 1 : 0
 
   for (const cardToMove of cardsToMove) {
-    ctx.repo.moveNode(cardToMove.node.id, targetCol.node.id, newSortOrder)
+    ctx.repo.moveNode(cardToMove.id, targetCol.node.id, newSortOrder)
     newSortOrder++
   }
 
   ctx.undoHandle.endBatch()
 
-  const movedCardIds = cardsToMove.map((c) => c.node.id)
-  const expectedCardIndex = targetCol.cards.length
+  const movedCardIds = cardsToMove.map((c) => c.id)
 
-  refreshBoardState(ctx, {
-    colIndex: targetColIndex,
-    cardIndex: (col) => Math.min(expectedCardIndex, col?.cards.length || 0),
-  })
+  // Cursor follows the first moved card to its new column
+  ctx.dispatchBoard({ type: "SELECT", nodeId: cardsToMove[0]!.id })
 
   rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
 
@@ -203,8 +201,8 @@ export function moveCardToColumn(ctx: ActionCtx, card: CardState, direction: "le
 
 /** Indent node: reparent under previous sibling (make it last child).
  * Returns true if indent succeeded, false if blocked (caller should bell). */
-export function indentNode(ctx: ActionCtx, card: CardState): boolean {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
+export function indentNode(ctx: ActionCtx, card: KNode): boolean {
+  const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
@@ -219,14 +217,14 @@ export function indentNode(ctx: ActionCtx, card: CardState): boolean {
   // Cursor follows the indented node. nodeIndex maps descendants to their
   // containing card, so visual cursor lands on the parent card. Navigation
   // resolves sub-card nodes to card level (see navigateVertical).
-  ctx.dispatchBoard({ type: "SELECT", nodeId: card.node.id })
+  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
   return true
 }
 
 /** Outdent node: make it a sibling of its parent.
  * Returns true if outdent succeeded, false if blocked (caller should bell). */
-export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
+export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
+  const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
@@ -238,7 +236,7 @@ export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
 
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   executeOutdent(ctx, card)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: card.node.id })
+  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
   return true
 }
 
@@ -248,22 +246,22 @@ export function outdentNode(ctx: ActionCtx, card: CardState): boolean {
 // Items (oi, li) are indentable — not blocks or links
 
 /** Check if a card can be indented (has a previous sibling to nest under) */
-function canIndent(ctx: ActionCtx, card: CardState): boolean {
-  if (!isItem(card.node.type)) return false
+function canIndent(ctx: ActionCtx, card: KNode): boolean {
+  if (!isItem(card.type)) return false
 
-  const parentId = card.node.parent_id
+  const parentId = card.parent_id
   if (!parentId) return false
 
   const siblings = ctx.repo.getChildren(parentId)
-  const myIndex = indexOfChild(siblings, card.node.id)
+  const myIndex = indexOfChild(siblings, card.id)
   return myIndex > 0
 }
 
 /** Check if a card can be outdented (has a grandparent to move to) */
-function canOutdent(ctx: ActionCtx, card: CardState): boolean {
-  if (!isItem(card.node.type)) return false
+function canOutdent(ctx: ActionCtx, card: KNode): boolean {
+  if (!isItem(card.type)) return false
 
-  const parentId = card.node.parent_id
+  const parentId = card.parent_id
   if (!parentId) return false
 
   const parent = ctx.repo.getNode(parentId)
@@ -273,12 +271,12 @@ function canOutdent(ctx: ActionCtx, card: CardState): boolean {
 // --- Indent/Outdent Execution ---
 
 /** Execute indent for a single card (no validation, no refresh). */
-function executeIndent(ctx: ActionCtx, card: CardState): void {
-  const parentId = card.node.parent_id
+function executeIndent(ctx: ActionCtx, card: KNode): void {
+  const parentId = card.parent_id
   if (!parentId) return
 
   const siblings = ctx.repo.getChildren(parentId)
-  const myIndex = indexOfChild(siblings, card.node.id)
+  const myIndex = indexOfChild(siblings, card.id)
   if (myIndex <= 0) return
 
   const prevSibling = siblings[myIndex - 1]
@@ -289,12 +287,12 @@ function executeIndent(ctx: ActionCtx, card: CardState): void {
   const lastChild = newParentChildren[newParentChildren.length - 1]
   const newSortOrder = lastChild ? lastChild.parent_idx + 1 : 0
 
-  ctx.repo.moveNode(card.node.id, newParentId, newSortOrder)
+  ctx.repo.moveNode(card.id, newParentId, newSortOrder)
 }
 
 /** Execute outdent for a single card (no validation, no refresh) */
-function executeOutdent(ctx: ActionCtx, card: CardState): void {
-  const parentId = card.node.parent_id
+function executeOutdent(ctx: ActionCtx, card: KNode): void {
+  const parentId = card.parent_id
   if (!parentId) return
 
   const parent = ctx.repo.getNode(parentId)
@@ -312,7 +310,7 @@ function executeOutdent(ctx: ActionCtx, card: CardState): void {
     newSortOrder = (parent.parent_idx + (nextSibling?.parent_idx ?? parent.parent_idx + 2)) / 2
   }
 
-  ctx.repo.moveNode(card.node.id, grandparentId, newSortOrder)
+  ctx.repo.moveNode(card.id, grandparentId, newSortOrder)
 }
 
 // --- Atomic Batch Operations ---
@@ -322,9 +320,9 @@ function executeOutdent(ctx: ActionCtx, card: CardState): void {
  * All-or-nothing: if any card can't be indented, none are.
  * Cards are processed bottom-up to avoid invalidating indices.
  */
-function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): boolean {
+function indentNodesAtomically(ctx: ActionCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be indented
-  const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+  const cards = selectedIndices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
   if (cards.length === 0) return false
 
   for (const card of cards) {
@@ -338,7 +336,7 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
   // Process bottom-up (highest column index first) to avoid invalidating sibling indices
   const bottomUp = [...selectedIndices].sort((a, b) => b - a)
   for (const idx of bottomUp) {
-    const card = col.cards[idx]
+    const card = col.cardNodes[idx]
     if (card) executeIndent(ctx, card)
   }
 
@@ -346,7 +344,7 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
 
   // Cursor follows first indented card (resolves to parent card via nodeIndex)
   const firstCard = cards[0]
-  if (firstCard) ctx.dispatchBoard({ type: "SELECT", nodeId: firstCard.node.id })
+  if (firstCard) ctx.dispatchBoard({ type: "SELECT", nodeId: firstCard.id })
   clearSelection(ctx)
   return true
 }
@@ -356,9 +354,9 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sele
  * All-or-nothing: if any card can't be outdented, none are.
  * Cards are processed top-down to maintain sort order.
  */
-function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, selectedIndices: number[]): boolean {
+function outdentNodesAtomically(ctx: ActionCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be outdented
-  const cards = selectedIndices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+  const cards = selectedIndices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
   if (cards.length === 0) return false
 
   for (const card of cards) {
@@ -372,7 +370,7 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
   // Process top-down (lowest column index first) to maintain relative order
   const topDown = [...selectedIndices].sort((a, b) => a - b)
   for (const idx of topDown) {
-    const card = col.cards[idx]
+    const card = col.cardNodes[idx]
     if (card) executeOutdent(ctx, card)
   }
 
@@ -380,7 +378,7 @@ function outdentNodesAtomically(ctx: ActionCtx, col: { cards: CardState[] }, sel
 
   // Cursor follows first card in batch
   const firstOutdented = cards[0]
-  if (firstOutdented) ctx.dispatchBoard({ type: "SELECT", nodeId: firstOutdented.node.id })
+  if (firstOutdented) ctx.dispatchBoard({ type: "SELECT", nodeId: firstOutdented.id })
   clearSelection(ctx)
   return true
 }

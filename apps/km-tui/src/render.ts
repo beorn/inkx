@@ -16,7 +16,8 @@ import { createTerm, type StyleChain } from "inkx"
 import type { TaskStatus } from "@km/core"
 import { stripForDisplay } from "@km/tree"
 import type { Repo } from "./repo-context.tsx"
-import type { InitialBoardData, CardState, RenderOptions } from "./types.ts"
+import type { InitialBoardData, RenderOptions } from "./types.ts"
+import type { KNode } from "@km/core"
 import { getNodeDisplayName } from "./state.ts"
 import { getStatusIcon as getStatusIconBase, renderRich, colorize } from "./text/index.ts"
 
@@ -77,7 +78,7 @@ export function renderBoard(
   // Column headers
   const headers = state.columns.map((col, i) => {
     const name = getNodeDisplayName(repo, col.node)
-    const count = col.cards.length
+    const count = col.cardNodes.length
     const header = ` ${name} (${count}) `
     const isSelected = i === colIndex
     const padded = header.padEnd(colWidth - 1).slice(0, colWidth - 1)
@@ -91,7 +92,7 @@ export function renderBoard(
 
   for (let row = 0; row < maxCardsVisible; row++) {
     const cardLines = state.columns.map((col, ci) => {
-      const card = col.cards[row]
+      const card = col.cardNodes[row]
       if (!card) {
         return " ".repeat(colWidth - 1)
       }
@@ -115,8 +116,8 @@ export function renderBoard(
 
   // Show "..." if more cards
   const moreIndicators = state.columns.map((col) => {
-    if (col.cards.length > maxCardsVisible) {
-      return style.dim(`  ... +${col.cards.length - maxCardsVisible} more`).padEnd(colWidth - 1)
+    if (col.cardNodes.length > maxCardsVisible) {
+      return style.dim(`  ... +${col.cardNodes.length - maxCardsVisible} more`).padEnd(colWidth - 1)
     }
     return " ".repeat(colWidth - 1)
   })
@@ -134,7 +135,7 @@ export function renderBoard(
  */
 export function renderCard(
   repo: Repo,
-  card: CardState,
+  card: KNode,
   width: number,
   isCurrent: boolean,
   isSelected: boolean,
@@ -142,11 +143,11 @@ export function renderCard(
 ): string {
   const style = createTermStyle()
   const lines: string[] = []
-  const { node, children } = card
+  const children = repo.getChildren(card.id)
 
   // Status icon and content - compact format: "○ Content"
   // For embedded links (link_to), resolve the target node and show its content
-  const displayNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
+  const displayNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card
   const statusIcon = renderStatusIcon(displayNode.task_status)
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
   const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)

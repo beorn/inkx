@@ -15,8 +15,7 @@ import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helper
 import { activeEditTargetRef } from "inkx"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
-import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
-import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", () => {
@@ -259,10 +258,10 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     const s = store.getState()
     const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
     const ni = buildNodeIndex(cols)
-    const cursor = deriveCursorPosition(cols, s.cursorNodeId, ni)
+    const cursor = deriveCursorIndices(cols, s.cursorNodeId, ni)
     const col = cols[cursor.colIndex]
-    const card = col?.cards[cursor.cardIndex]
-    const selectedNode = card?.node ?? col?.node ?? null
+    const card = col?.cardNodes[cursor.cardIndex]
+    const selectedNode = card ?? col?.node ?? null
     expect(selectedNode?.content).toBe("Delta task")
 
     // CRITICAL: Must NOT be in inline edit mode

@@ -118,8 +118,8 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   let initialCursorNodeId: string | null = null
   if (initialState.columns.length > 0) {
     const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cards.length > 0) {
-      initialCursorNodeId = firstCol.cards[0]?.node.id ?? firstCol.node.id
+    if (firstCol && firstCol.cardNodes.length > 0) {
+      initialCursorNodeId = firstCol.cardNodes[0]?.id ?? firstCol.node.id
     } else if (firstCol) {
       initialCursorNodeId = firstCol.node.id
     }

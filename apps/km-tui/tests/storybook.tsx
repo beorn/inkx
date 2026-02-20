@@ -58,7 +58,22 @@ import { BoardCore } from "../src/views/Board.tsx"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
-import type { TUIBoardState, ColumnState, CardState } from "../src/types.ts"
+import type { ColumnView } from "../src/types.ts"
+
+/** Local type for storybook mock board state (TUIBoardState was removed from types.ts) */
+interface TUIBoardState {
+  rootId: string | null
+  rootPath: string | null
+  columns: ColumnView[]
+  selectedNodes: Set<string>
+  visualMode: boolean
+  foldedNodes: Set<string>
+  collapsedColumns: Set<number>
+  collapsedNodeIds: Set<string>
+  searchQuery: string
+  searchMode: boolean
+  helpMode: boolean
+}
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
 import { StoreContext } from "inkx/runtime"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
@@ -894,19 +909,21 @@ function Layer3Views(): React.ReactElement {
 // Layer 3: All Four View Modes
 // ============================================================================
 
-// Helper to create mock CardState with children
-// Children are created with proper parent_id for getChildren() to work
-function mockCard(node: KNode, childDefs: Array<{ content: string; status?: string }> = []): CardState {
-  const children = childDefs.map((def, i) =>
+// Helper to create a card KNode and register its children.
+// Children are created with proper parent_id for getChildren() to work.
+// Cards are now plain KNode — no wrapper type.
+function mockCard(node: KNode, childDefs: Array<{ content: string; status?: string }> = []): KNode {
+  // Register children so getChildrenFromStore() works
+  childDefs.forEach((def, i) =>
     mockNode(`${node.id}-child-${i}`, def.content, def.status, "li", {
       parentId: node.id,
     }),
   )
-  return { node, children }
+  return node
 }
 
-/** Create individual body content cards (p, code, table, quote — each navigable) */
-function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: string }>): CardState[] {
+/** Create individual body content card KNodes (p, code, table, quote — each navigable) */
+function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: string }>): KNode[] {
   return bodyDefs.map((def, i) => {
     const bNode: KNode = {
       id: `${id}-body-${i}`,
@@ -921,15 +938,16 @@ function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: stri
       version: "1",
     }
     registerNode(bNode)
-    return { node: bNode, children: [], isVirtual: true }
+    return bNode
   })
 }
 
-// Helper to create mock ColumnState
-function mockColumn(name: string, cards: CardState[]): ColumnState {
+// Helper to create mock ColumnView
+function mockColumn(name: string, cardNodes: KNode[]): ColumnView {
   return {
     node: mockNode(`col-${name}`, name, undefined, "oi", { fstype: "mdsection" }),
-    cards,
+    cardNodes,
+    virtualCardIds: new Set(),
   }
 }
 
@@ -988,7 +1006,7 @@ function createMockTUIBoardState(): TUIBoardState {
 
   // Column 1 - Active Tasks with CHILDREN (shows inactive children dimming)
   // When this column is NOT selected, children at depth > 0 are dimmed
-  const activeCards: CardState[] = [
+  const activeCards: KNode[] = [
     // WIP task WITH CHILDREN - children show inactive dimming when not selected
     mockCard(mockNode("act1", "Implement **auth flow**", "wip"), [
       { content: "Setup OAuth provider", status: "done" }, // done = always dimmed
@@ -1009,7 +1027,7 @@ function createMockTUIBoardState(): TUIBoardState {
   // Column 2 - EMBEDDED/LINKED Tasks (shows parent context with prefix)
   // These tasks have link_to set, pointing to ORIGINAL tasks in other files
   // The parent context shows the PARENT of the original task (the section)
-  const embeddedCards: CardState[] = [
+  const embeddedCards: KNode[] = [
     // Embedded task from API project - shows "API Integration Project"
     mockCard(
       mockNode("emb1", "Implement REST endpoints", "wip", "li", {
@@ -1048,7 +1066,7 @@ function createMockTUIBoardState(): TUIBoardState {
   ]
 
   // Column 3 - Completed (done/dropped = ALL dimmed)
-  const completedCards: CardState[] = [
+  const completedCards: KNode[] = [
     mockCard(mockNode("cmp1", "Setup project structure", "done")),
     mockCard(mockNode("cmp2", "Create initial tests", "done"), [
       { content: "Unit tests for `utils.ts`", status: "done" },
@@ -1064,7 +1082,7 @@ function createMockTUIBoardState(): TUIBoardState {
   ]
 
   // Column 4 - Rich Text formatting showcase
-  const formattingCards: CardState[] = [
+  const formattingCards: KNode[] = [
     mockCard(mockNode("fmt1", "Task with **bold** text", "todo")),
     mockCard(mockNode("fmt2", "Task with *italic* text", "todo")),
     mockCard(mockNode("fmt3", "Task with `inline code`", "todo")),
@@ -1074,7 +1092,7 @@ function createMockTUIBoardState(): TUIBoardState {
   ]
 
   // Column 5 - Markdown body content (p, code, table, quote, etc.)
-  const markdownCards: CardState[] = [
+  const markdownCards: KNode[] = [
     // Paragraph body cards
     ...mockBodyCards("md-p", [
       { type: "p", content: "This is a paragraph with **bold** and *italic* text." },
@@ -1108,7 +1126,7 @@ function createMockTUIBoardState(): TUIBoardState {
     ]),
   ]
 
-  // Note: colIndex/cardIndex are now in ColumnsLayout, not TUIBoardState
+  // Note: colIndex/cardIndex are now flat props, not in TUIBoardState
   return {
     rootId: "board-root",
     rootPath: "/Projects/webapp",

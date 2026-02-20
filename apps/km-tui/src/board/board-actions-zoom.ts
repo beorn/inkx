@@ -149,7 +149,7 @@ export function handleZoomIn(ctx: ActionCtx): ActionResult {
   const card = ctx.card
 
   // Support zoom at both card and column level
-  const nodeId = card?.node.id ?? col?.node.id
+  const nodeId = card?.id ?? col?.node.id
   if (!nodeId) return precondition("card")
 
   // If node has no children, return boundary.
@@ -211,8 +211,8 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
   const card = ctx.card
   // Read link_to fresh from the repo — the cached layout may have stale null
   // values if background link resolution completed after layout was derived.
-  const freshNode = card ? ctx.repo.getNode(card.node.id) : null
-  const linkTo = freshNode?.link_to ?? card?.node.link_to
+  const freshNode = card ? ctx.repo.getNode(card.id) : null
+  const linkTo = freshNode?.link_to ?? card?.link_to
   if (!linkTo) return boundary("follow_link", "not an embed")
 
   const target = ctx.repo.getNode(linkTo)
@@ -285,7 +285,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
       }
     }
 
-    collectVisible(card.node.id, 1, ui.maxOutlineDepth)
+    collectVisible(card.id, 1, ui.maxOutlineDepth)
 
     const targetChild = flatChildren[ui.subIndex - 1]
     if (targetChild?.node) {
@@ -308,7 +308,7 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
 
   // Zoom one level inward toward the cursor node.
   // If cursor is a leaf (no children), there's nothing to zoom into.
-  const cursorId = card.node.id
+  const cursorId = card.id
   if (ctx.repo.getChildren(cursorId).length === 0) {
     return boundary("in", "no children")
   }

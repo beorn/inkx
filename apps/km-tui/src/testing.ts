@@ -35,7 +35,7 @@ import type { AutoLocator, FilterOptions } from "inkx/testing"
 import type { InkxNode } from "inkx"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
-import type { InitialBoardData, ColumnState } from "./types.ts"
+import type { InitialBoardData, ColumnView } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -77,7 +77,7 @@ export interface BoardTestHarness extends AutoLocator {
 
   // State access
   /** Get the current board state */
-  getState(): { rootId: string | null; columns: ColumnState[] }
+  getState(): { rootId: string | null; columns: ColumnView[] }
   /** Get the current cursor position [colIndex, cardIndex] */
   getCursor(): [number, number]
   /** Get the currently selected node, if any */
@@ -168,12 +168,9 @@ export async function createBoardTest(
     rootId: state.rootId,
     rootPath: state.rootPath,
     columns: state.columns,
-    layout: {
-      columns: state.columns,
-      colIndex: 0,
-      cardIndex: 0,
-      isAtCardLevel: true,
-    },
+    colIndex: 0,
+    cardIndex: 0,
+    isAtCardLevel: true,
     ui: createInitialUIState("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card",
     dimensions: { columns: width, rows: height },
@@ -191,7 +188,7 @@ export async function createBoardTest(
     moveMode: false,
   })
 
-  const firstCardNodeId = state.columns[0]?.cards[0]?.node.id ?? null
+  const firstCardNodeId = state.columns[0]?.cardNodes[0]?.id ?? null
   const cursorStore = createCursorStoreFromRepo(repo, state.rootId, firstCardNodeId)
 
   const app = render(
@@ -300,8 +297,7 @@ export async function createBoardTest(
       // Static harness always at position (0, 0)
       const col = s.columns[0]
       if (!col) return null
-      const card = col.cards[0]
-      return card?.node ?? null
+      return col.cardNodes[0] ?? null
     },
 
     // Lifecycle

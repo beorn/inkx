@@ -13,7 +13,8 @@ import { renderCard } from "../src/render.ts"
 import { renderStatic } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { createStore, type StoreApi } from "zustand"
-import type { CardState, InitialBoardData } from "../src/types.ts"
+import type { InitialBoardData } from "../src/types.ts"
+
 import { BoardCore } from "../src/views/Board.tsx"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -85,8 +86,8 @@ describe("State", () => {
     const state = buildBoardState(repo, "board")
     expect(state.rootId).toBe("board")
     expect(state.columns).toHaveLength(2)
-    expect(state.columns[0]?.cards).toHaveLength(2)
-    expect(state.columns[1]?.cards).toHaveLength(1)
+    expect(state.columns[0]?.cardNodes).toHaveLength(2)
+    expect(state.columns[1]?.cardNodes).toHaveLength(1)
   })
 
   test("initBoardState builds state from repo root", () => {
@@ -143,8 +144,8 @@ describe("State", () => {
     const state = buildBoardState(repo, "@issue.md")
     expect(state.columns).toHaveLength(3)
     expect(state.columns[0]!.isVirtual).toBe(true)
-    expect(state.columns[0]!.cards).toHaveLength(1)
-    expect(state.columns[0]!.cards[0]!.node.type).toBe("p")
+    expect(state.columns[0]!.cardNodes).toHaveLength(1)
+    expect(state.columns[0]!.cardNodes[0]!.type).toBe("p")
     expect(state.columns[1]!.node.type).toBe("oi")
     expect(state.columns[2]!.node.type).toBe("oi")
   })
@@ -161,7 +162,7 @@ describe("State", () => {
     expect(state.columns).toHaveLength(2)
     expect(state.columns[0]!.isVirtual).toBe(true)
     // Each body node is its own navigable card
-    expect(state.columns[0]!.cards).toHaveLength(2)
+    expect(state.columns[0]!.cardNodes).toHaveLength(2)
     expect(state.columns[1]!.node.id).toBe("Getting Started")
   })
 })
@@ -189,43 +190,39 @@ describe("Render", () => {
 
   test("renderCard includes content", () => {
     const repo = createFakeRepo()
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "li",
-        list_marker: "-",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "My Test Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [],
+    const card: KNode = {
+      id: "test-card",
+      type: "li",
+      list_marker: "-",
+      parent_id: null,
+      parent_idx: 0,
+      link_to: null,
+      content: "My Test Task",
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
     }
-    const output = renderCard(repo, cardState, 40, false, false, false)
+    const output = renderCard(repo, card, 40, false, false, false)
     expect(output).toContain("My Test Task")
   })
 
   test("renderCard shows children when not folded", () => {
-    const repo = createFakeRepo()
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "li",
-        list_marker: "-",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "Parent Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [
+    const repo = createFakeRepo({
+      nodes: [
+        {
+          id: "test-card",
+          type: "li",
+          list_marker: "-",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          content: "Parent Task",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        },
         {
           id: "child-1",
           type: "li",
@@ -240,28 +237,28 @@ describe("Render", () => {
           version: "v1",
         },
       ],
-    }
-    const output = renderCard(repo, cardState, 40, false, false, false)
+    })
+    const card = repo.getNode("test-card")!
+    const output = renderCard(repo, card, 40, false, false, false)
     expect(output).toContain("Child Task 1")
   })
 
   test("renderCard shows item count when folded", () => {
-    const repo = createFakeRepo()
-    const cardState: CardState = {
-      node: {
-        id: "test-card",
-        type: "li",
-        list_marker: "-",
-        parent_id: null,
-        parent_idx: 0,
-        link_to: null,
-        content: "Parent Task",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      children: [
+    const repo = createFakeRepo({
+      nodes: [
+        {
+          id: "test-card",
+          type: "li",
+          list_marker: "-",
+          parent_id: null,
+          parent_idx: 0,
+          link_to: null,
+          content: "Parent Task",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        },
         {
           id: "child-1",
           type: "li",
@@ -289,8 +286,9 @@ describe("Render", () => {
           version: "v1",
         },
       ],
-    }
-    const output = renderCard(repo, cardState, 40, false, false, true)
+    })
+    const card = repo.getNode("test-card")!
+    const output = renderCard(repo, card, 40, false, false, true)
     expect(output).toContain("\u25b6 2")
     expect(output).not.toContain("Child 1")
   })

@@ -600,12 +600,12 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     expect(processingCol.node.id).toBe(sectionId)
 
     // Cards should be the embeds
-    expect(processingCol.cards.length).toBe(2)
+    expect(processingCol.cardNodes.length).toBe(2)
 
     // BUG: embeds were marked as virtual because they're not tasks and not structural
     // FIX: embeds should NOT be virtual — they are discrete items
-    for (const card of processingCol.cards) {
-      expect(card.isVirtual).toBeFalsy()
+    for (const card of processingCol.cardNodes) {
+      expect(processingCol.virtualCardIds.has(card.id)).toBeFalsy()
     }
   })
 
@@ -630,8 +630,8 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const col = columns[0]!
 
     // Paragraphs in a column with no structural children and no tasks = all virtual
-    for (const card of col.cards) {
-      expect(card.isVirtual).toBe(true)
+    for (const card of col.cardNodes) {
+      expect(col.virtualCardIds.has(card.id)).toBe(true)
     }
   })
 
@@ -665,16 +665,16 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
     expect(columns.length).toBe(1)
     const col = columns[0]!
-    expect(col.cards.length).toBe(2)
+    expect(col.cardNodes.length).toBe(2)
 
     // Both are non-structural and there are no structural children,
     // so extractBody returns all in body with empty items.
     // With the fix, embed cards should NOT be virtual even in this case.
-    const paraCard = col.cards.find((c) => c.node.id === paraId)
-    const embedCard = col.cards.find((c) => c.node.id === embedId)
+    const paraCard = col.cardNodes.find((c) => c.id === paraId)
+    const embedCard = col.cardNodes.find((c) => c.id === embedId)
 
-    // After fix: embed should not be virtual
-    expect(embedCard?.isVirtual).toBeFalsy()
+    // After fix: embed should not be virtual (link_to nodes are not added to virtualCardIds)
+    expect(col.virtualCardIds.has(embedId)).toBeFalsy()
   })
 })
 
@@ -798,8 +798,8 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     expect(built.columns[1]!.node.id).toBe(sec2Id)
 
     // Card counts should match
-    expect(derived[0]!.cards.length).toBe(built.columns[0]!.cards.length)
-    expect(derived[1]!.cards.length).toBe(built.columns[1]!.cards.length)
+    expect(derived[0]!.cardNodes.length).toBe(built.columns[0]!.cardNodes.length)
+    expect(derived[1]!.cardNodes.length).toBe(built.columns[1]!.cardNodes.length)
   })
 })
 

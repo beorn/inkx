@@ -8,7 +8,7 @@ import type { KNode } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { InitialBoardData, ColumnState, CardState } from "./types.ts"
+import type { InitialBoardData, ColumnView } from "./types.ts"
 import { deduplicateByFsPath } from "./hooks/use-columns.ts"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
@@ -23,38 +23,32 @@ import {
 
 /**
  * Build cards for a column from its body and structural children.
- * Each body node is its own navigable card (isVirtual for styling).
+ * Each body node is its own navigable card (virtual for styling).
  * Structural (oi) nodes are regular cards.
- * childCounts is an optional pre-fetched map (used by batch-optimized buildBoardState).
+ * Returns plain KNode[] and a Set of virtual card IDs.
  */
 function buildColumnCards(
   bodyNodes: KNode[],
   structuralNodes: KNode[],
-  childCounts?: Map<string, number>,
-): CardState[] {
-  const cards: CardState[] = []
+): { cardNodes: KNode[]; virtualCardIds: Set<string> } {
+  const cardNodes: KNode[] = []
+  const virtualCardIds = new Set<string>()
 
   // Each body node becomes its own navigable card.
   // Embed links (link_to) are discrete items — not virtual.
   for (const node of bodyNodes) {
-    cards.push({
-      node,
-      children: [],
-      childCount: childCounts?.get(node.id) ?? 0,
-      ...(node.link_to ? {} : { isVirtual: true }),
-    })
+    cardNodes.push(node)
+    if (!node.link_to) {
+      virtualCardIds.add(node.id)
+    }
   }
 
   // Structural (oi) nodes are regular cards
   for (const node of structuralNodes) {
-    cards.push({
-      node,
-      children: [],
-      childCount: childCounts?.get(node.id) ?? 0,
-    })
+    cardNodes.push(node)
   }
 
-  return cards
+  return { cardNodes, virtualCardIds }
 }
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
@@ -161,15 +155,11 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   const columnIds = columnNodes.map((n) => n.id)
   const columnChildCounts = repo.getChildCounts(columnIds)
 
-  // First pass: collect all card IDs (including body nodes for child count)
+  // First pass: collect card nodes per column
   const columnCardNodes: KNode[][] = []
-  const allCardIds: string[] = []
 
-  // Include body node IDs so their child counts are fetched
+  // Filter out body nodes with empty/whitespace-only content (e.g., HTML anchor tags)
   const meaningfulBody = bodyNodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
-  for (const n of meaningfulBody) {
-    allCardIds.push(n.id)
-  }
 
   for (let colIdx = 0; colIdx < columnNodes.length; colIdx++) {
     const colNode = columnNodes[colIdx]
@@ -184,31 +174,24 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     const cardNodes = repo.getChildren(colNode.id)
     columnCardNodes[colIdx] = cardNodes
 
-    for (const cardNode of cardNodes) {
-      allCardIds.push(cardNode.id)
-    }
-
     // Yield progress after each column
     yield { current: colIdx + 1, total }
   }
 
-  // Single batch query for all child counts
-  const childCounts = repo.getChildCounts(allCardIds)
-
-  // Second pass: build columns with pre-fetched child counts
-  const columns: ColumnState[] = []
+  // Second pass: build columns
+  const columns: ColumnView[] = []
 
   // Add virtual body column if there's meaningful leading content
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
   if (meaningfulBody.length > 0) {
+    const bodyVirtualIds = new Set<string>()
+    for (const n of meaningfulBody) {
+      if (!n.link_to) bodyVirtualIds.add(n.id)
+    }
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: meaningfulBody.map((n) => ({
-        node: n,
-        children: [],
-        childCount: childCounts.get(n.id) ?? 0,
-        ...(n.link_to ? {} : { isVirtual: true }),
-      })),
+      cardNodes: meaningfulBody,
+      virtualCardIds: bodyVirtualIds,
       isVirtual: true,
     })
   }
@@ -227,7 +210,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     // All body nodes merge into one virtual card; structural nodes are regular cards.
     const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
-    const cards: CardState[] = buildColumnCards(colBodyNodes, structuralCards, childCounts)
+    const { cardNodes: colCardNodes, virtualCardIds } = buildColumnCards(colBodyNodes, structuralCards)
 
     const colName = getNodeDisplayName(repo, colNode)
     const normalizedName = normalizeColumnName(colName)
@@ -241,7 +224,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       collapsedNodeIds.add(colNode.id)
     }
 
-    columns.push({ node: colNode, cards, wipLimit, rules })
+    columns.push({ node: colNode, cardNodes: colCardNodes, virtualCardIds, wipLimit, rules })
   }
 
   return {

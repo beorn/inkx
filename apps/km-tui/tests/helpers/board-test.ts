@@ -80,15 +80,15 @@ import {
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
 import { handleKey } from "../../src/board-app.ts"
-import type { InitialBoardData, ColumnState } from "../../src/types.ts"
+import type { InitialBoardData, ColumnView } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
 import {
   createBoardState as createBoardStateFixture,
-  createColumnState,
-  createCardState,
+  createColumnView,
+  createCardNode,
 } from "../fixtures/board-fixtures.ts"
 
 // =============================================================================
@@ -111,8 +111,8 @@ function computeInitialCursor(initialState: InitialBoardData) {
       if (!col) continue
       if (initialState.collapsedNodeIds.has(col.node.id)) continue
       colIndex = i
-      if (col.cards.length > 0) {
-        cursorNodeId = col.cards[0]?.node.id ?? col.node.id
+      if (col.cardNodes.length > 0) {
+        cursorNodeId = col.cardNodes[0]?.id ?? col.node.id
         cardIndex = 0
       } else {
         cursorNodeId = col.node.id
@@ -131,10 +131,10 @@ function computeInitialCursor(initialState: InitialBoardData) {
 
   const selectedCol = initialState.columns[colIndex]
   const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
-  const selectedCard = selectedCol && !isCollapsed ? selectedCol.cards[0] : undefined
-  const selectionLevel: "board" | "column" | "card" = cursorNodeId === null ? "board" : selectedCard ? "card" : "column"
+  const hasCards = selectedCol && !isCollapsed && selectedCol.cardNodes.length > 0
+  const selectionLevel: "board" | "column" | "card" = cursorNodeId === null ? "board" : hasCards ? "card" : "column"
 
-  return { cursorNodeId, colIndex, cardIndex: selectedCard ? 0 : cardIndex, selectedCard, selectedCol, selectionLevel }
+  return { cursorNodeId, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, selectionLevel }
 }
 
 // =============================================================================
@@ -2241,7 +2241,7 @@ export function renderBoardWithStore(
 export function column(title: string, cards: (string | { title: string; children?: string[] })[]) {
   const cardStates = cards.map((card, idx) => {
     if (typeof card === "string") {
-      return createCardState({ content: card, parent_idx: idx })
+      return createCardNode({ content: card, parent_idx: idx })
     }
     const children = (card.children ?? []).map((childContent, childIdx) => ({
       id: `child-${idx}-${childIdx}`,
@@ -2256,10 +2256,10 @@ export function column(title: string, cards: (string | { title: string; children
       updated_at: Date.now(),
       version: "v1",
     }))
-    return createCardState({ content: card.title, parent_idx: idx }, children)
+    return createCardNode({ content: card.title, parent_idx: idx }, children)
   })
 
-  return createColumnState({ content: title }, cardStates)
+  return createColumnView({ content: title }, cardStates)
 }
 
 /**

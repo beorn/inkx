@@ -9,7 +9,7 @@ import React from "react"
 import { createRenderer } from "inkx/testing"
 import { BottomBar } from "../../src/views/board-bottom-bar.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
-import type { ColumnState } from "../../src/types.ts"
+import type { ColumnView } from "../../src/types.ts"
 
 const render = createRenderer()
 
@@ -80,7 +80,7 @@ describe("BottomBar", () => {
   }
 
   const mockRootPath = "/tmp/test-repo"
-  const mockColumns: ColumnState[] = [
+  const mockColumns: ColumnView[] = [
     {
       node: {
         id: "section-1",
@@ -96,7 +96,8 @@ describe("BottomBar", () => {
         updated_at: Date.now(),
         version: "v1",
       },
-      cards: [],
+      cardNodes: [],
+      virtualCardIds: new Set(),
     },
     {
       node: {
@@ -113,7 +114,8 @@ describe("BottomBar", () => {
         updated_at: Date.now(),
         version: "v1",
       },
-      cards: [],
+      cardNodes: [],
+      virtualCardIds: new Set(),
     },
   ]
 

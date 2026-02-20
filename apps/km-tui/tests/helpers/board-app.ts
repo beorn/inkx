@@ -137,14 +137,13 @@ export const nodeLinks: Invariant = (app) => {
 /** Layout indices are within bounds */
 export const layout: Invariant = (app) => {
   const state = app.state
-  const l = state.layout
-  if (!l || l.columns.length === 0) return
+  if (!state.columns || state.columns.length === 0) return
 
   // Skip board-level checks
   if (state.cursor?.level === "board") return
 
-  expect(l.colIndex, "Column index negative").toBeGreaterThanOrEqual(0)
-  expect(l.colIndex, "Column index out of bounds").toBeLessThan(l.columns.length)
+  expect(state.colIndex, "Column index negative").toBeGreaterThanOrEqual(0)
+  expect(state.colIndex, "Column index out of bounds").toBeLessThan(state.columns.length)
 }
 
 /** Default invariants - call manually with board.check() */
@@ -258,18 +257,16 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
 
     columns() {
       const state = driver.getState()
-      const l = state.layout
-      if (!l) return []
-      return l.columns.map((col, index) => {
+      if (!state.columns || state.columns.length === 0) return []
+      return state.columns.map((col, index) => {
         const loc = driver.app.locator(`#${col.node.id}`)
-        // Use name or data.name for folders
         const title = col.node.name ?? (col.node.data?.name as string | undefined) ?? col.node.id
         return {
           index,
           id: col.node.id,
           title,
           box: loc.count() > 0 ? loc.boundingBox() : null,
-          cardCount: col.cards.length,
+          cardCount: col.cardNodes.length,
           hasCursor: state.cursor?.col === index,
         }
       })
@@ -277,18 +274,16 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
 
     cards() {
       const state = driver.getState()
-      const l = state.layout
-      if (!l) return []
+      if (!state.columns || state.columns.length === 0) return []
       const result: CardInfo[] = []
-      l.columns.forEach((col, colIndex) => {
-        col.cards.forEach((card, cardIndex) => {
-          const loc = driver.app.locator(`#${card.node.id}`)
-          // Use content for leaf nodes, name or data.name for folders
+      state.columns.forEach((col, colIndex) => {
+        col.cardNodes.forEach((card, cardIndex) => {
+          const loc = driver.app.locator(`#${card.id}`)
           const text =
-            card.node.content ?? card.node.name ?? (card.node.data?.name as string | undefined) ?? card.node.id
+            card.content ?? card.name ?? (card.data?.name as string | undefined) ?? card.id
           result.push({
             index: cardIndex,
-            id: card.node.id,
+            id: card.id,
             text,
             column: colIndex,
             box: loc.count() > 0 ? loc.boundingBox() : null,

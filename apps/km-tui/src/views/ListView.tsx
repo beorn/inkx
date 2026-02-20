@@ -11,13 +11,13 @@
  */
 import React, { useMemo, useCallback } from "react"
 import { Box, Text, VirtualList } from "inkx"
-import type { ColumnState, CardState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
+import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { renderPlain } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
-import type { KNode } from "@km/core"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 import { useUISelector } from "../ui-context.tsx"
@@ -32,22 +32,22 @@ type FlatItem =
       type: "header"
       colIdx: number
       cardIdx: -1
-      column: ColumnState
+      column: ColumnView
       card?: undefined
     }
   | {
       type: "card"
       colIdx: number
       cardIdx: number
-      column: ColumnState
-      card: CardState
+      column: ColumnView
+      card: KNode
     }
 
 // Empty children array constant - stable reference for memoization
 const EMPTY_CHILDREN: KNode[] = []
 
 interface ListViewProps {
-  columns: ColumnState[]
+  columns: ColumnView[]
   width: number
   height: number
   subIndex: number
@@ -77,7 +77,7 @@ export function ListView({
 
     columnsProp.forEach((column, cIdx) => {
       items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column })
-      column.cards.forEach((card, idx) => {
+      column.cardNodes.forEach((card, idx) => {
         items.push({ type: "card", colIdx: cIdx, cardIdx: idx, column, card })
       })
     })
@@ -103,8 +103,8 @@ export function ListView({
     const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
     for (const item of flatItems) {
-      if (item.type === "card" && item.card.node.task_status != null) {
-        cache.set(item.card.node.id, getBoardPills(repo, item.card.node, excludeBoardIds))
+      if (item.type === "card" && item.card.task_status != null) {
+        cache.set(item.card.id, getBoardPills(repo, item.card, excludeBoardIds))
       }
     }
     return cache
@@ -127,7 +127,7 @@ export function ListView({
       if (selectionLevel === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
         return i
       }
-      if (selectionLevel === "card" && item.type === "card" && item.card.node.id === cursorCardNodeId) {
+      if (selectionLevel === "card" && item.type === "card" && item.card.id === cursorCardNodeId) {
         return i
       }
     }
@@ -160,7 +160,7 @@ export function ListView({
       // Card item
       const cIdx = item.colIdx
       const cardIdx = item.cardIdx
-      const cardNodeId = item.card.node.id
+      const cardNodeId = item.card.id
       const isCardSelected =
         selectionLevel === "card" && cursorCardNodeId === cardNodeId && (!inOutlineMode || subIndex === 0)
 
@@ -210,11 +210,11 @@ export function ListView({
       <VirtualList
         items={flatItems}
         height={height - 1}
-        itemHeight={(item: FlatItem) => (item.type === "card" && item.card.node.id === editingNodeId ? 3 : 1)}
+        itemHeight={(item: FlatItem) => (item.type === "card" && item.card.id === editingNodeId ? 3 : 1)}
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
-        keyExtractor={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.node.id)}
+        keyExtractor={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.id)}
         renderItem={renderItem}
         width={width}
       />

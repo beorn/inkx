@@ -29,7 +29,7 @@ describe("board-test helper", () => {
     })
 
     expect(state.columns).toHaveLength(1)
-    expect(state.columns[0]?.cards).toHaveLength(2)
+    expect(state.columns[0]?.cardNodes).toHaveLength(2)
     expect(state.columns[0]?.node.content).toBe("My Column")
   })
 

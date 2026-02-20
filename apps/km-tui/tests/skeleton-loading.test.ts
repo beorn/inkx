@@ -18,18 +18,22 @@ import type { KNode } from "@km/core"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
 import type { StoreApi } from "zustand"
 import type { BoardAppStore } from "../src/board-app-store.ts"
-import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
-import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 
 /** Derive layout from store state on demand. */
 function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
   const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
+  const selectionLevel: "board" | "column" | "card" =
+    cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {
-    layout: { columns, colIndex: cursor.colIndex, cardIndex: cursor.cardIndex, nodeIndex },
-    selectionLevel: cursor.selectionLevel,
+    columns,
+    colIndex: cursor.colIndex,
+    cardIndex: cursor.cardIndex,
+    nodeIndex,
+    selectionLevel,
   }
 }
 
@@ -362,8 +366,8 @@ describe("Skeleton loading", () => {
     })
 
     // Confirm initial cursor is on col1's first card
-    expect(derivedState(store).layout.colIndex).toBe(0)
-    expect(derivedState(store).layout.cardIndex).toBe(0)
+    expect(derivedState(store).colIndex).toBe(0)
+    expect(derivedState(store).cardIndex).toBe(0)
     expect(derivedState(store).selectionLevel).toBe("card")
 
     // Set loading (simulates watcher-status "syncing" event from background parse)
@@ -374,11 +378,11 @@ describe("Skeleton loading", () => {
 
     // Board is still interactive — navigate right to col2
     board.press("l")
-    expect(derivedState(store).layout.colIndex).toBe(1)
+    expect(derivedState(store).colIndex).toBe(1)
 
     // Navigate right to col3 (empty column, shows skeleton)
     board.press("l")
-    expect(derivedState(store).layout.colIndex).toBe(2)
+    expect(derivedState(store).colIndex).toBe(2)
 
     // col3 shows skeleton since it's empty and isLoading is true
     expect(board.screenshot()).toContain("░")
@@ -392,7 +396,7 @@ describe("Skeleton loading", () => {
     // Cursor should still be on col3, not reset
     const afterClear = derivedState(store)
     expect(afterClear.selectionLevel).not.toBe("board")
-    expect(afterClear.layout.colIndex).toBe(2)
+    expect(afterClear.colIndex).toBe(2)
     expect(board.screenshot()).toContain("col3")
 
     // Simulate background parse completing: add parsed content to col3
@@ -405,7 +409,7 @@ describe("Skeleton loading", () => {
     // Cursor should still be on col3 after repo data update
     const afterTouch = derivedState(store)
     expect(afterTouch.selectionLevel).not.toBe("board")
-    expect(afterTouch.layout.colIndex).toBe(2)
+    expect(afterTouch.colIndex).toBe(2)
     // New cards visible after parse
     expect(board.screenshot()).toContain("Parsed Task C2")
   })

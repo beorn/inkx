@@ -8,7 +8,7 @@ import { Box, Text } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type UIState, getEditMode } from "../ui-reducer.ts"
-import type { ColumnState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
@@ -76,7 +76,7 @@ function useSpinnerFrame(enabled: boolean): string {
 interface BottomBarProps {
   ui: UIState
   rootPath: string | null
-  columns: ColumnState[]
+  columns: ColumnView[]
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"

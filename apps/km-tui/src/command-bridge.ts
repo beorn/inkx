@@ -28,7 +28,7 @@ export function ensureCommandSystemInitialized(): void {
 
 /** Build command and keybinding contexts from the current ActionCtx */
 function buildCommandContexts(ctx: ActionCtx) {
-  const { ui, layout, selectedNode } = ctx
+  const { ui, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
   // For embedded links, resolve through link_to to check if the target is a task,
@@ -70,14 +70,14 @@ function buildCommandContexts(ctx: ActionCtx) {
     inputMode: getModeStack().current(),
   })
 
-  const { colIndex, cardIndex, columns } = layout
+  const { colIndex, cardIndex, columns } = ctx
   const column = columns[colIndex]
 
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
     selectedNodes: Array.from(ctx.selectedNodes),
-    siblingCount: column?.cards.length ?? 0,
+    siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,
     columnCount: columns.length,

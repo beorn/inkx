@@ -13,7 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
-import type { ColumnState, ColumnsLayout, ViewMode } from "../types.ts"
+import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "@km/storage"
@@ -37,8 +37,7 @@ import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
-import { useColumns, buildNodeIndex } from "../hooks/use-columns.ts"
-import { deriveCursorPosition } from "../hooks/use-cursor-position.ts"
+import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
@@ -73,15 +72,20 @@ export { makeSelectionKey } from "../types.ts"
 // BoardCore - Pure Rendering (No Hooks)
 // =============================================================================
 
+/** Layout indices derived from cursor position */
 export interface BoardCoreProps {
   /** Root node ID */
   rootId: string | null
   /** Filesystem path to the board root (for display in bottom bar) */
   rootPath: string | null
   /** Derived columns for rendering */
-  columns: ColumnState[]
-  /** Derived columns layout (includes colIndex/cardIndex derived from cursorNodeId) */
-  layout: ColumnsLayout
+  columns: ColumnView[]
+  /** Current column index (derived from cursorNodeId) */
+  colIndex: number
+  /** Current card index (derived from cursorNodeId) */
+  cardIndex: number
+  /** Whether cursor is at card level (vs column/board) */
+  isAtCardLevel: boolean
   /** UI state (dialogs, view mode, etc.) */
   ui: UIState
   /** Derived selection level from cursor depth */
@@ -160,7 +164,7 @@ function BoardTopBar({
   filterText,
   isBoardSelected,
 }: {
-  columns: ColumnState[]
+  columns: ColumnView[]
   rootId: string | null
   termWidth: number
   filterProperties: FilterProperties
@@ -224,7 +228,7 @@ function CursorAwareDetailPane({
   width,
   height,
 }: {
-  columns: ColumnState[]
+  columns: ColumnView[]
   width: number
   height: number
 }): React.ReactElement | null {
@@ -260,7 +264,7 @@ function CursorAwareNewItemDialog({
   width,
   height,
 }: {
-  columns: ColumnState[]
+  columns: ColumnView[]
   onCreate: (newNodeId: string) => void
   onCancel: () => void
   width: number
@@ -283,7 +287,9 @@ export function BoardCore({
   rootId,
   rootPath,
   columns,
-  layout,
+  colIndex,
+  cardIndex,
+  isAtCardLevel,
   ui,
   derivedSelectionLevel,
   dimensions,
@@ -314,7 +320,7 @@ export function BoardCore({
   // (e.g., during zoom transitions or detail pane open/close).
   // Includes rootId (zoom), viewMode, detailPane, colIndex (h/l nav),
   // and column count (structural changes) to maximize recovery opportunities.
-  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${ui.showDetailPane}-${layout.colIndex}-${columns.length}`
+  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${ui.showDetailPane}-${colIndex}-${columns.length}`
 
   // Silent error handler — ErrorBoundary resetKey auto-recovers on next state change (km-tui.error-loading-cards)
   const handleRenderError = useCallback((_error: Error, _errorInfo: React.ErrorInfo) => {
@@ -348,8 +354,8 @@ export function BoardCore({
         id={rootId ?? undefined}
         data-view="board"
         data-board={true}
-        data-col-index={layout.colIndex}
-        data-card-index={layout.cardIndex}
+        data-col-index={colIndex}
+        data-card-index={cardIndex}
         {...(isBoardSelected && { "data-cursor": true })}
         flexDirection="column"
         width={termWidth}
@@ -387,7 +393,7 @@ export function BoardCore({
                   height={contentHeight}
                   itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
                   gap={1}
-                  scrollTo={isBoardSelected ? undefined : layout.colIndex}
+                  scrollTo={isBoardSelected ? undefined : colIndex}
                   renderItem={(col, index) => (
                     <Column
                       column={col}
@@ -660,7 +666,8 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
   const columns = useColumns(repo, rootId, foldedNodes)
-  const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
+  const getChildren = useCallback((id: string) => repo.getChildren(id), [repo])
+  const nodeIndex = useMemo(() => buildNodeIndex(columns, getChildren), [columns, getChildren])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks
@@ -675,11 +682,11 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive cursor position from cursorNodeId + columns
   const cursorPosition = useMemo(
-    () => deriveCursorPosition(columns, cursorNodeId, nodeIndex),
+    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex),
     [columns, cursorNodeId, nodeIndex],
   )
 
-  const columnsLayout: ColumnsLayout = useMemo(
+  const columnsLayout = useMemo(
     () => ({
       columns,
       colIndex: cursorPosition.colIndex,
@@ -690,7 +697,8 @@ export function Board({ patchedConsole }: BoardProps) {
     [columns, cursorPosition, nodeIndex],
   )
 
-  const derivedSelectionLevel = cursorPosition.selectionLevel
+  const derivedSelectionLevel: "board" | "column" | "card" =
+    cursorPosition.colIndex < 0 ? "board" : cursorPosition.isAtCardLevel ? "card" : "column"
 
   // Read ignored paths for filtering (re-read only when ignore list actually changes)
   const ignoredPaths = useMemo(() => readBoardIgnored(repo.path), [repo.path, ui.ignoreVersion])
@@ -723,9 +731,9 @@ export function Board({ patchedConsole }: BoardProps) {
     const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
     return visibleColumns.map((col) => ({
       ...col,
-      cards: col.cards.filter((card) => {
+      cardNodes: col.cardNodes.filter((card) => {
         // For embeds (link_to), resolve to source node for filtering
-        const filterNode = card.node.link_to ? (repo.getNode(card.node.link_to) ?? card.node) : card.node
+        const filterNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card
         // Text filter: match card content (use source node content for embeds)
         if (hasTextFilter) {
           const name = (filterNode.content ?? "").toLowerCase()
@@ -821,11 +829,9 @@ export function Board({ patchedConsole }: BoardProps) {
           rootId={rootId}
           rootPath={rootPath}
           columns={filteredColumns}
-          layout={
-            visibleColIndex === columnsLayout.colIndex
-              ? columnsLayout
-              : { ...columnsLayout, columns: visibleColumns, colIndex: visibleColIndex }
-          }
+          colIndex={visibleColIndex}
+          cardIndex={columnsLayout.cardIndex}
+          isAtCardLevel={columnsLayout.isAtCardLevel}
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}

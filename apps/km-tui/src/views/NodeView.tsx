@@ -26,7 +26,7 @@
  * Callers pass computed style props (headerStyle, isColumnSelected, etc.).
  * This keeps NodeView testable and avoids coupling to cursor architecture.
  *
- * NODE MODEL V2: Receives KNode directly. No ColumnState/CardState wrappers.
+ * NODE MODEL V2: Receives KNode directly.
  */
 import React from "react"
 import { Box, Text } from "inkx"

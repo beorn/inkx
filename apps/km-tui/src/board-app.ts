@@ -18,8 +18,7 @@ import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
-import { deriveColumnsFromRepo, buildNodeIndex } from "./hooks/use-columns.ts"
-import { deriveCursorPosition } from "./hooks/use-cursor-position.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 
 const perfLog = createLogger("km:perf")
 
@@ -41,18 +40,11 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   const s = get()
   // Derive layout fresh — no store cache, no feedback loop
   const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-  const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
-  const layout = {
-    columns,
-    colIndex: cursor.colIndex,
-    cardIndex: cursor.cardIndex,
-    isAtCardLevel: cursor.isAtCardLevel,
-    nodeIndex,
-  }
+  const nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id))
+  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const column = columns[cursor.colIndex]
-  const card = column?.cards[cursor.cardIndex]
-  const selectedNode = card?.node ?? column?.node ?? null
+  const card = column?.cardNodes[cursor.cardIndex]
+  const selectedNode = card ?? column?.node ?? null
 
   return {
     repo: s.repo,
@@ -66,7 +58,11 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     moveSourceNodes: s.moveSourceNodes,
     moveSourceCursorNodeId: s.moveSourceCursorNodeId,
     ui: s.ui,
-    layout,
+    columns,
+    colIndex: cursor.colIndex,
+    cardIndex: cursor.cardIndex,
+    isAtCardLevel: cursor.isAtCardLevel,
+    nodeIndex,
     navigator: s.navigator,
     viewNavigation: cardsViewNavigation,
     toastQueue: s.toastQueue,

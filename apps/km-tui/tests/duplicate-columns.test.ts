@@ -85,7 +85,7 @@ describe("duplicate column deduplication", () => {
     expect(columns.length).toBe(2)
     // The surviving column should be the populated one
     expect(columns[0]!.node.id).toBe("next-1")
-    expect(columns[0]!.cards.length).toBe(2)
+    expect(columns[0]!.cardNodes.length).toBe(2)
     expect(columns[1]!.node.id).toBe("other-col")
   })
 
@@ -128,7 +128,7 @@ describe("duplicate column deduplication", () => {
     expect(columns.length).toBe(1)
     // Should keep the populated one regardless of order
     expect(columns[0]!.node.id).toBe("next-pop")
-    expect(columns[0]!.cards.length).toBe(1)
+    expect(columns[0]!.cardNodes.length).toBe(1)
   })
 
   test("does not deduplicate nodes without fs_path", () => {

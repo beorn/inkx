@@ -10,7 +10,7 @@
  *
  * CursorState holds cursorNodeId plus derived ancestor IDs (card, column).
  * Ancestors are computed when the cursor changes — components use them
- * for self-selection without needing ColumnsLayout.
+ * for self-selection without needing layout derivation.
  */
 
 export interface CursorState {

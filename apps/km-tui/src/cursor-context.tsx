@@ -6,8 +6,7 @@
  * whose selection status changed will re-render on j/k.
  *
  * All hooks read cursorCardNodeId/cursorColumnNodeId directly from CursorStore.
- * No ColumnsLayout dependency — the index-based hooks were removed in the
- * visual navigation migration (phases 4-6).
+ * No layout dependency — cursor state is derived from nodeId ancestors.
  */
 
 import React, { createContext, useContext, useRef, useSyncExternalStore } from "react"

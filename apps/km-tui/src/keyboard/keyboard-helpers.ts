@@ -4,10 +4,10 @@
  * Utility functions for keyboard handling.
  */
 
-import type { CardState, SelectionKey } from "../types.ts"
+import type { KNode } from "@km/core"
+import type { SelectionKey } from "../types.ts"
 import { makeSelectionKey, parseSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { deriveColumnsFromRepo } from "../hooks/use-columns.ts"
 
 // =============================================================================
 // Navigation History
@@ -46,8 +46,8 @@ export function saveNavHistory(ctx: ActionCtx): void {
   pushNavHistoryEntry(
     ctx.setUI,
     ctx.rootId,
-    ctx.layout.colIndex,
-    ctx.layout.cardIndex,
+    ctx.colIndex,
+    ctx.cardIndex,
     ctx.ui.subIndex,
     ctx.ui.multiSelected,
     ctx.ui.inOutlineMode,
@@ -74,7 +74,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
   const newSelected = new Set<SelectionKey>()
 
   // Resolve anchor position from nodeId
-  const anchorPos = ctx.layout.nodeIndex?.get(anchor.nodeId)
+  const anchorPos = ctx.nodeIndex?.get(anchor.nodeId)
   if (!anchorPos) return
   const anchorCol = anchorPos.colIndex
   const anchorCard = anchorPos.cardIndex
@@ -83,10 +83,10 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     // Sub-item range within the same card (outline mode)
     const minSub = Math.min(anchor.sub, toSub)
     const maxSub = Math.max(anchor.sub, toSub)
-    const cardNode = ctx.layout.columns[toCol]?.cards[toCard]
+    const cardNode = ctx.columns[toCol]?.cardNodes[toCard]
     if (cardNode) {
       for (let s = minSub; s <= maxSub; s++) {
-        newSelected.add(makeSelectionKey(cardNode.node.id, s))
+        newSelected.add(makeSelectionKey(cardNode.id, s))
       }
     }
   } else if (anchorCol === toCol) {
@@ -94,7 +94,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     const minCard = Math.min(anchorCard, toCard)
     const maxCard = Math.max(anchorCard, toCard)
     for (let c = minCard; c <= maxCard; c++) {
-      const card = ctx.layout.columns[toCol]?.cards[c]
+      const card = ctx.columns[toCol]?.cardNodes[c]
       if (card) {
         addCardItems(newSelected, ctx, card)
       }
@@ -104,9 +104,9 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     const minCol = Math.min(anchorCol, toCol)
     const maxCol = Math.max(anchorCol, toCol)
     for (let colIdx = minCol; colIdx <= maxCol; colIdx++) {
-      const col = ctx.layout.columns[colIdx]
+      const col = ctx.columns[colIdx]
       if (col) {
-        for (const card of col.cards) {
+        for (const card of col.cardNodes) {
           addCardItems(newSelected, ctx, card)
         }
       }
@@ -151,14 +151,14 @@ export function clearSelection(ctx: ActionCtx): void {
  * This is the standard way to make any card operation batch-aware:
  * `const cards = getSelectedCards(ctx)` gives you the right set to iterate.
  */
-export function getSelectedCards(ctx: ActionCtx): CardState[] {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
-  const cursorCard = col?.cards[ctx.layout.cardIndex]
+export function getSelectedCards(ctx: ActionCtx): KNode[] {
+  const col = ctx.columns[ctx.colIndex]
+  const cursorCard = col?.cardNodes[ctx.cardIndex]
   if (!col || !cursorCard) return []
 
   const indices = getSelectedCardIndices(ctx)
   if (indices.length > 1) {
-    return indices.map((i) => col.cards[i]).filter((c): c is CardState => c !== undefined)
+    return indices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
   }
   return [cursorCard]
 }
@@ -166,14 +166,14 @@ export function getSelectedCards(ctx: ActionCtx): CardState[] {
 /** Get unique selected card indices from multi-selection */
 export function getSelectedCardIndices(ctx: ActionCtx): number[] {
   if (ctx.ui.multiSelected.size === 0) return []
-  const nodeIndex = ctx.layout.nodeIndex
+  const nodeIndex = ctx.nodeIndex
   if (!nodeIndex) return []
   const indices = new Set<number>()
   for (const key of ctx.ui.multiSelected) {
     const { nodeId } = parseSelectionKey(key)
     // Check nodeIndex for card roots
     const pos = nodeIndex.get(nodeId)
-    if (pos && pos.colIndex === ctx.layout.colIndex) {
+    if (pos && pos.colIndex === ctx.colIndex) {
       indices.add(pos.cardIndex)
     }
     // For sub-items not in nodeIndex, walk parent chain
@@ -181,7 +181,7 @@ export function getSelectedCardIndices(ctx: ActionCtx): number[] {
       let current = ctx.repo.getNode(nodeId)
       while (current?.parent_id) {
         const parentPos = nodeIndex.get(current.parent_id)
-        if (parentPos && parentPos.colIndex === ctx.layout.colIndex) {
+        if (parentPos && parentPos.colIndex === ctx.colIndex) {
           indices.add(parentPos.cardIndex)
           break
         }
@@ -193,94 +193,16 @@ export function getSelectedCardIndices(ctx: ActionCtx): number[] {
 }
 
 // =============================================================================
-// State Refresh
-// =============================================================================
-
-/** Rebuild board state after a mutation, preserving navigation context.
- *
- * When called without options, re-SELECTs the current cursorNodeId (the node
- * hasn't moved, only its properties changed). This is the common case for
- * property mutations (priority, status, date, undo/redo).
- *
- * When called with positional options (colIndex/cardIndex), derives fresh
- * columns from repo using deriveColumnsFromRepo (same logic as useColumns)
- * to correctly account for virtual body columns.
- *
- * @param options.usePositionHints - When true, pass computed colIndex/cardIndex
- *   directly to SELECT (bypasses stale nodeIndex). Use after addNode where the
- *   new node isn't in the nodeIndex yet.
- */
-export function refreshBoardState(
-  ctx: ActionCtx,
-  options?: {
-    colIndex?: number
-    cardIndex?: number | ((col: { cards: CardState[] } | undefined) => number)
-    usePositionHints?: boolean
-  },
-): void {
-  // Columns are derived from repo via useColumns hook, which subscribes to
-  // repo mutations via useSyncExternalStore. This function only needs to
-  // update the cursor position after mutations.
-
-  // Fast path: no positional options — just re-SELECT the current cursor node.
-  // The node hasn't moved (only properties changed), so cursorNodeId is still valid.
-  // Layout is derived on demand by buildActionCtx and React hooks.
-  if (!options || (options.colIndex === undefined && options.cardIndex === undefined)) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
-    return
-  }
-
-  // Positional path: derive fresh columns using the same logic as useColumns
-  // to correctly account for virtual body columns and extractBody splitting.
-  const columns = deriveColumnsFromRepo(ctx.repo, ctx.rootId, ctx.foldedNodes)
-
-  // Calculate new cursor position
-  const colIndex = options.colIndex ?? ctx.layout.colIndex
-  const col = columns[colIndex]
-  const cards = col?.cards ?? []
-  let cardIndex: number
-
-  if (typeof options.cardIndex === "function") {
-    // cardIndex callback receives column shape for dynamic calculation
-    cardIndex = options.cardIndex(col)
-  } else {
-    cardIndex = options.cardIndex ?? ctx.layout.cardIndex
-  }
-
-  // Clamp card index to valid range
-  const maxCardIndex = Math.max(0, cards.length - 1)
-  cardIndex = Math.min(cardIndex, maxCardIndex)
-
-  // Dispatch SELECT. When usePositionHints is set, pass colIndex/cardIndex
-  // directly to bypass stale nodeIndex (e.g., after addNode before render).
-  const targetCard = cards[cardIndex]
-  const selectAction: {
-    type: "SELECT"
-    nodeId: string | null
-    colIndex?: number
-    cardIndex?: number
-  } = {
-    type: "SELECT",
-    nodeId: targetCard?.node.id ?? col?.node.id ?? ctx.cursorNodeId,
-  }
-  if (options.usePositionHints) {
-    selectAction.colIndex = colIndex
-    selectAction.cardIndex = cardIndex
-  }
-  ctx.dispatchBoard(selectAction)
-}
-
-// =============================================================================
 // Progressive Selection
 // =============================================================================
 
 type SelectionScope = "card" | "column" | "board"
 
 /** Add all visible items for a single card to the selection set */
-function addCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: CardState): void {
-  const maxItems = 1 + ctx.countVisibleDescendants(card.node, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
+function addCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: KNode): void {
+  const maxItems = 1 + ctx.countVisibleDescendants(card, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
   for (let s = 0; s < maxItems; s++) {
-    selected.add(makeSelectionKey(card.node.id, s))
+    selected.add(makeSelectionKey(card.id, s))
   }
 }
 
@@ -289,24 +211,24 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<Selection
   const selected = new Set<SelectionKey>()
 
   if (scope === "card") {
-    const card = ctx.layout.columns[ctx.layout.colIndex]?.cards[ctx.layout.cardIndex]
+    const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
     if (card) {
       addCardItems(selected, ctx, card)
     }
   } else if (scope === "column") {
-    const col = ctx.layout.columns[ctx.layout.colIndex]
+    const col = ctx.columns[ctx.colIndex]
     if (col) {
-      for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
-        const c = col.cards[cardIdx]
+      for (let cardIdx = 0; cardIdx < col.cardNodes.length; cardIdx++) {
+        const c = col.cardNodes[cardIdx]
         if (c) addCardItems(selected, ctx, c)
       }
     }
   } else {
-    for (let colIdx = 0; colIdx < ctx.layout.columns.length; colIdx++) {
-      const column = ctx.layout.columns[colIdx]
+    for (let colIdx = 0; colIdx < ctx.columns.length; colIdx++) {
+      const column = ctx.columns[colIdx]
       if (column) {
-        for (let cardIdx = 0; cardIdx < column.cards.length; cardIdx++) {
-          const c = column.cards[cardIdx]
+        for (let cardIdx = 0; cardIdx < column.cardNodes.length; cardIdx++) {
+          const c = column.cardNodes[cardIdx]
           if (c) addCardItems(selected, ctx, c)
         }
       }
@@ -318,8 +240,8 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<Selection
 
 /** Progressive select all with Shift+A */
 export function progressiveSelectAll(ctx: ActionCtx): void {
-  const col = ctx.layout.columns[ctx.layout.colIndex]
-  const card = col?.cards[ctx.layout.cardIndex]
+  const col = ctx.columns[ctx.colIndex]
+  const card = col?.cardNodes[ctx.cardIndex]
   const currentLevel = ctx.ui.selectAllLevel
 
   let scope: SelectionScope

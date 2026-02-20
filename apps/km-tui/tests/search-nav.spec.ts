@@ -23,8 +23,7 @@ import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
 import { navigateToNode } from "../src/navigate-to-node.ts"
 import type { KNode } from "@km/core"
-import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
-import { deriveCursorPosition } from "../src/hooks/use-cursor-position.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import type { StoreApi } from "zustand"
 import type { BoardAppStore } from "../src/board-app-store.ts"
 
@@ -83,14 +82,19 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
   const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorPosition(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const col = columns[cursor.colIndex]
-  const card = col?.cards[cursor.cardIndex]
-  const selectedNode = card?.node ?? col?.node ?? null
+  const card = col?.cardNodes[cursor.cardIndex]
+  const selectedNode = card ?? col?.node ?? null
+  const selectionLevel: "board" | "column" | "card" =
+    cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {
-    layout: { columns, colIndex: cursor.colIndex, cardIndex: cursor.cardIndex, nodeIndex },
+    columns,
+    colIndex: cursor.colIndex,
+    cardIndex: cursor.cardIndex,
+    nodeIndex,
     selectedNode,
-    selectionLevel: cursor.selectionLevel,
+    selectionLevel,
   }
 }
 
@@ -535,7 +539,7 @@ describe("scroll to selection after zoom", () => {
     // DOM should have cursor on dtask12
     board.expect("#dtask12[data-cursor]").toExist()
     expect(store.getState().cursorNodeId).toBe("dtask12")
-    expect(derivedState(store).layout.cardIndex).toBe(12)
+    expect(derivedState(store).cardIndex).toBe(12)
   })
 })
 

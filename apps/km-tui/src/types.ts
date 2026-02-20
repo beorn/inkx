@@ -4,11 +4,8 @@
  * These types describe how nodes are presented in the TUI, not how they're stored.
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
- * ColumnState/CardState are view model types that wrap KNode with
- * pre-fetched children. They exist because the board view needs columns/cards,
- * but the underlying model is just nodes.
- *
- * ColumnsLayout is a derived layout type that includes cursor position.
+ * ColumnView wraps a column KNode with its pre-fetched card KNodes.
+ * Cards are plain KNode — children fetched via repo.getChildren() on demand.
  */
 
 import type { KNode } from "@km/core"
@@ -22,57 +19,24 @@ import type { Repo } from "./repo-context.tsx"
 export interface InitialBoardData {
   rootId: string | null
   rootPath: string | null
-  columns: ColumnState[]
+  columns: ColumnView[]
   collapsedColumns: Set<number>
   collapsedNodeIds: Set<string>
 }
 
-// VIEW MODEL: A "column" is just a parent KNode whose children render as cards.
-// Target: eliminate this wrapper — components call repo.getChildren(node.id) directly.
-// wipLimit/rules should move to node.rules (data model, parsed at storage layer).
-// isVirtual body columns → view splits children by isItem(type), no synthetic nodes.
-export interface ColumnState {
+/**
+ * VIEW MODEL: A column is a parent KNode whose children render as cards.
+ * Cards are plain KNode[] — no wrapper type.
+ */
+export interface ColumnView {
   node: KNode
-  cards: CardState[]
-  wipLimit?: number // Optional WIP limit from frontmatter
-  rules?: SectionRules // Optional column rules parsed from heading
+  cardNodes: KNode[]
+  /** Set of card IDs that are virtual (leading body content, not structural items) */
+  virtualCardIds: Set<string>
+  wipLimit?: number
+  rules?: SectionRules
   /** True for virtual body column (displays leading non-section content) */
   isVirtual?: boolean
-}
-
-// VIEW MODEL: A "card" is just a child KNode rendered in card style.
-// Target: eliminate this wrapper — children/childCount derived from repo on demand.
-export interface CardState {
-  node: KNode
-  children: KNode[]
-  /** Child count for lazy loading (may be > 0 even when children array is empty) */
-  childCount?: number
-  /** True for virtual body card (displays leading non-section content) */
-  isVirtual?: boolean
-}
-
-/**
- * Special cardIndex value indicating cursor is at column header level.
- *
- * VIEW MODEL ARTIFACT: In the new node model, the column header IS a node —
- * navigating "above the first card" just means cursorNodeId points to the
- * parent node. No sentinel index needed. Still used by deriveCursorPosition
- * and ColumnsLayout for index-based position derivation in Board/actions.
- */
-export const COLUMN_HEADER_INDEX = -1
-
-/**
- * Derived columns layout with cursor position.
- * Used by cursor-context and Board to pass derived layout data.
- */
-export interface ColumnsLayout {
-  columns: ColumnState[]
-  colIndex: number
-  /** Card index within column, or COLUMN_HEADER_INDEX (-1) if at column header */
-  cardIndex: number
-  isAtCardLevel: boolean
-  /** O(1) nodeId → position index, built alongside column derivation */
-  nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>
 }
 
 /**

@@ -12,7 +12,7 @@ import { createRenderer } from "inkx/testing"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { UIState } from "../src/ui-reducer.ts"
-import type { ColumnState } from "../src/types.ts"
+import type { ColumnView } from "../src/types.ts"
 
 const render = createRenderer({ cols: 80, rows: 1 })
 
@@ -51,7 +51,7 @@ const baseUI: UIState = {
 }
 
 const testRootPath = "/tmp/test"
-const testColumns: ColumnState[] = [
+const testColumns: ColumnView[] = [
   {
     node: {
       id: "col-1",
@@ -67,7 +67,8 @@ const testColumns: ColumnState[] = [
       updated_at: Date.now(),
       version: "v1",
     },
-    cards: [],
+    cardNodes: [],
+    virtualCardIds: new Set(),
   },
 ]
 

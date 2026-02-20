@@ -13,7 +13,8 @@ import { Box, Text, HorizontalVirtualList } from "inkx"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:columns")
-import type { ColumnState, CardState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
+import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
@@ -43,7 +44,7 @@ const MAX_RENDERED_ITEMS = 100
 // =============================================================================
 
 interface ColumnTreeProps {
-  column: ColumnState
+  column: ColumnView
   colIndex: number
   selectedSubIndex: number
   width: number
@@ -78,7 +79,7 @@ const ColumnTree = React.memo(function ColumnTree({
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
 
-  const count = column.cards.length
+  const count = column.cardNodes.length
 
   // Column header is selected when at column level
   const isColumnHeaderSelected = isSelected && selectionLevel === "column"
@@ -100,10 +101,10 @@ const ColumnTree = React.memo(function ColumnTree({
   // Stable renderCard callback — doesn't depend on cardIndex.
   // MemoizedTreeCard gets selection state from CursorStore self-subscription.
   const renderCard = useCallback(
-    (card: CardState, actualIndex: number) => {
-      log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.node.id}`)
+    (card: KNode, actualIndex: number) => {
+      log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.id}`)
       return (
-        <Box key={`${card.node.id}-${actualIndex}`} paddingLeft={1}>
+        <Box key={`${card.id}-${actualIndex}`} paddingLeft={1}>
           <MemoizedTreeCard
             card={card}
             colIndex={colIndex}
@@ -150,15 +151,15 @@ const ColumnTree = React.memo(function ColumnTree({
       />
 
       {/* Cards with ScrollTrackingVirtualList */}
-      {column.cards.length > 0 ? (
+      {column.cardNodes.length > 0 ? (
         <ScrollTrackingVirtualList
           isSelected={isSelected}
-          items={column.cards}
+          items={column.cardNodes}
           height={height - 2}
-          itemHeight={(card: CardState) => (card.node.id === editingNodeId ? 3 : 1)}
+          itemHeight={(card: KNode) => (card.id === editingNodeId ? 3 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
-          keyExtractor={(card) => card.node.id}
+          keyExtractor={(card) => card.id}
           renderItem={renderCard}
           overflowIndicator
         />
@@ -176,7 +177,7 @@ const ColumnTree = React.memo(function ColumnTree({
 // =============================================================================
 
 interface ColumnsViewProps {
-  columns: ColumnState[]
+  columns: ColumnView[]
   width: number
   height: number
   subIndex: number

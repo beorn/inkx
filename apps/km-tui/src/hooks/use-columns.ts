@@ -1,13 +1,14 @@
 /**
  * useColumns Hook — VIEW MODEL DERIVATION
  *
- * Derives ColumnState[] from Repo. This is the main view model construction point:
- * it reads data model (KNode tree via Repo) and produces view model (ColumnState/CardState).
+ * Derives ColumnView[] from Repo. This is the main view model construction point:
+ * it reads data model (KNode tree via Repo) and produces view model (ColumnView with KNode cards).
  *
  * Structure:
  * 1. useColumns() — React hook with repo subscription
- * 2. deriveColumnsFromRepo() — Pure function: repo → ColumnState[]
+ * 2. deriveColumnsFromRepo() — Pure function: repo → ColumnView[]
  * 3. buildNodeIndex() — O(1) cursor position lookup map
+ * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
 
 import { useMemo, useSyncExternalStore } from "react"
@@ -15,7 +16,7 @@ import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createLogger } from "@beorn/logger"
 import { extractBody } from "@km/tree"
-import type { ColumnState, CardState } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
 
@@ -32,6 +33,44 @@ function isDetailOnly(node: KNode): boolean {
 }
 
 // =============================================================================
+// Cursor Position Derivation
+// =============================================================================
+
+export interface CursorIndices {
+  colIndex: number
+  cardIndex: number
+  isAtCardLevel: boolean
+}
+
+/**
+ * Derive cursor indices from cursorNodeId using nodeIndex for O(1) lookup.
+ * Replaces the old deriveCursorPosition from use-cursor-position.ts.
+ */
+export function deriveCursorIndices(
+  columns: ColumnView[],
+  cursorNodeId: string | null,
+  nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
+): CursorIndices {
+  if (!cursorNodeId || columns.length === 0) {
+    return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
+  }
+
+  const pos = nodeIndex.get(cursorNodeId)
+  if (pos) {
+    return {
+      colIndex: pos.colIndex,
+      cardIndex: pos.cardIndex,
+      isAtCardLevel: pos.cardIndex !== -1,
+    }
+  }
+
+  // Cursor node not found in visible columns
+  const perfLog = createLogger("km:perf")
+  perfLog.debug?.(`cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`)
+  return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
+}
+
+// =============================================================================
 // Hook
 // =============================================================================
 
@@ -45,9 +84,9 @@ function isDetailOnly(node: KNode): boolean {
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
  * @param foldedNodes - Set of folded node IDs
- * @returns ColumnState[] for rendering
+ * @returns ColumnView[] for rendering
  */
-export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
+export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnView[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
@@ -58,24 +97,27 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
 
 /**
  * Build a nodeId → {colIndex, cardIndex} map for O(1) cursor position lookup.
- * Includes column header nodes (cardIndex = COLUMN_HEADER_INDEX) and card nodes.
- * Also checks card children for descendant mapping.
+ * Includes column header nodes (cardIndex = -1) and card nodes.
+ * When getChildren is provided, also maps card descendants for cursor resolution
+ * (e.g., after indent, the indented node resolves to its parent card's position).
  */
-export function buildNodeIndex(columns: ColumnState[]): Map<string, { colIndex: number; cardIndex: number }> {
+export function buildNodeIndex(
+  columns: ColumnView[],
+  getChildren?: (parentId: string) => { id: string }[],
+): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
     const col = columns[colIdx]
     if (!col) continue
     // Column header node
     index.set(col.node.id, { colIndex: colIdx, cardIndex: -1 })
-    // Card nodes
-    for (let cardIdx = 0; cardIdx < col.cards.length; cardIdx++) {
-      const card = col.cards[cardIdx]
+    // Card nodes + descendants
+    for (let cardIdx = 0; cardIdx < col.cardNodes.length; cardIdx++) {
+      const card = col.cardNodes[cardIdx]
       if (!card) continue
-      index.set(card.node.id, { colIndex: colIdx, cardIndex: cardIdx })
-      // Map descendants to this card position
-      for (const child of card.children) {
-        mapDescendants(child, colIdx, cardIdx, index)
+      index.set(card.id, { colIndex: colIdx, cardIndex: cardIdx })
+      if (getChildren) {
+        mapDescendants(card.id, colIdx, cardIdx, index, getChildren)
       }
     }
   }
@@ -83,16 +125,16 @@ export function buildNodeIndex(columns: ColumnState[]): Map<string, { colIndex: 
 }
 
 function mapDescendants(
-  node: { id: string; children?: unknown[] },
+  parentId: string,
   colIndex: number,
   cardIndex: number,
   index: Map<string, { colIndex: number; cardIndex: number }>,
+  getChildren: (parentId: string) => { id: string }[],
 ): void {
-  index.set(node.id, { colIndex, cardIndex })
-  const children = (node as { children?: { id: string; children?: unknown[] }[] }).children
-  if (children) {
-    for (const child of children) {
-      mapDescendants(child, colIndex, cardIndex, index)
+  for (const child of getChildren(parentId)) {
+    if (!index.has(child.id)) {
+      index.set(child.id, { colIndex, cardIndex })
+      mapDescendants(child.id, colIndex, cardIndex, index, getChildren)
     }
   }
 }
@@ -105,7 +147,7 @@ function mapDescendants(
  * structural (oi) columns -- matching buildBoardState's logic so that
  * zoomed-in views render identically to the board root.
  */
-export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnState[] {
+export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnView[] {
   using span = log.span("derive-columns")
   // Split root children into leading body content and structural columns.
   // Only oi nodes become columns; li/link/block nodes before the first oi
@@ -116,19 +158,23 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   // Extract WIP limits from column frontmatter
   const wipLimits = extractWipLimits(columnNodes)
 
-  const columns: ColumnState[] = []
+  const columns: ColumnView[] = []
 
   // Add virtual body column for meaningful leading content
   // (paragraphs, tasks, embeds that appear before the first section/file/folder)
-  const bodyCards = bodyNodes
-    .filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
-    .map((n) => buildCardState(repo, n, foldedNodes, true))
-    .filter((c): c is CardState => c !== null)
+  const filteredBody = bodyNodes.filter(
+    (n) => !isDetailOnly(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
 
-  if (bodyCards.length > 0) {
+  if (filteredBody.length > 0) {
+    const virtualCardIds = new Set<string>()
+    for (const n of filteredBody) {
+      if (!n.link_to) virtualCardIds.add(n.id)
+    }
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cards: bodyCards,
+      cardNodes: filteredBody,
+      virtualCardIds,
       isVirtual: true,
     })
   }
@@ -139,7 +185,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 
   // Convert structural children to columns
   for (const node of deduped) {
-    columns.push(kNodeToColumnState(repo, node, wipLimits, foldedNodes))
+    columns.push(kNodeToColumnView(repo, node, wipLimits, foldedNodes))
   }
 
   span.spanData.columns = columns.length
@@ -206,33 +252,14 @@ function extractWipLimits(nodes: KNode[]): Map<string, number> {
 }
 
 /**
- * Build a CardState from a KNode. Shared by virtual body columns and structural columns.
- * - Body nodes (non-link_to) are marked isVirtual for borderless rendering.
- * - Embed links (link_to) are discrete items — not virtual.
- * - Children are fetched for buildNodeIndex cursor resolution.
- * - detailOnly nodes are excluded.
+ * Convert a KNode to ColumnView.
  */
-function buildCardState(repo: Repo, node: KNode, foldedNodes: Set<string>, isBody: boolean): CardState | null {
-  if (isDetailOnly(node)) return null
-  const children = repo.getChildren(node.id)
-  const isFolded = foldedNodes.has(node.id)
-  return {
-    node,
-    children: isFolded ? [] : children,
-    childCount: children.length,
-    ...(isBody && !node.link_to ? { isVirtual: true } : {}),
-  }
-}
-
-/**
- * Convert a KNode to ColumnState.
- */
-function kNodeToColumnState(
+function kNodeToColumnView(
   repo: Repo,
   node: KNode,
   wipLimits: Map<string, number>,
   foldedNodes: Set<string>,
-): ColumnState {
+): ColumnView {
   // Use node.rules if available, otherwise parse from title
   const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || "").rules
 
@@ -241,20 +268,23 @@ function kNodeToColumnState(
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
   // Split children into body (paragraphs) and structural (oi) cards
-  const cardNodes = repo.getChildren(node.id)
-  const { body: bodyNodes, items: structuralNodes } = extractBody(cardNodes)
+  const allCardNodes = repo.getChildren(node.id)
+  const { body: bodyNodes, items: structuralNodes } = extractBody(allCardNodes)
 
-  const cards: CardState[] = []
+  const cardNodes: KNode[] = []
+  const virtualCardIds = new Set<string>()
+
   for (const child of bodyNodes) {
-    const card = buildCardState(repo, child, foldedNodes, true)
-    if (card) cards.push(card)
+    if (isDetailOnly(child)) continue
+    cardNodes.push(child)
+    if (!child.link_to) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
-    const card = buildCardState(repo, child, foldedNodes, false)
-    if (card) cards.push(card)
+    if (isDetailOnly(child)) continue
+    cardNodes.push(child)
   }
 
-  return { node, cards, wipLimit, rules }
+  return { node, cardNodes, virtualCardIds, wipLimit, rules }
 }
 
 /**
