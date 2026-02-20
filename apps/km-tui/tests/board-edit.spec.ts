@@ -283,6 +283,27 @@ describe("Edit Operations", () => {
     expect(col2Box!.x).toBeLessThan(col1Box!.x)
   })
 
+  test("Meta+l at column header with many duplicate-parent_idx columns completes without hanging", () => {
+    // Regression: normalizeColumnSortOrders used to iterate ALL columns and write
+    // to disk for each one. With 20+ columns sharing parent_idx=0, this caused hangs.
+    const cols = Array.from({ length: 20 }, (_, i) => item(`col${i + 1}`, item(`${i + 1}a`)))
+    const nodes = item("board", ...cols)
+    for (const n of nodes) {
+      if (n.type === "heading") n.parent_idx = 0
+    }
+    const { board } = testEnv(() => nodes)
+    board.press("k")
+    board.expect("#col1[data-cursor]").toExist()
+
+    // Should complete instantly — only 2 columns normalized, not all 20
+    board.press("Meta+l")
+
+    board.expect("#col1[data-cursor]").toExist()
+    const col1Box = board.q("#col1").boundingBox()
+    const col2Box = board.q("#col2").boundingBox()
+    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+  })
+
   test("Meta+h at leftmost column header does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.press("k")

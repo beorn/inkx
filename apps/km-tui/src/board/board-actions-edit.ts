@@ -506,8 +506,8 @@ function moveColumn(
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move column")
 
-  // Normalize column sort orders when duplicates exist (e.g., all default to 0)
-  normalizeColumnSortOrders(ctx)
+  // Normalize sort orders for just the two columns being swapped (not all columns)
+  normalizeColumnSortOrders(ctx, layout.colIndex, targetIndex)
 
   // Swap sort orders by moving each column to the other's position
   const parentId = ctx.rootId
@@ -526,30 +526,34 @@ function moveColumn(
 }
 
 /**
- * Ensure all columns have distinct parent_idx values.
- * Same problem as cards: when siblings share parent_idx (e.g., all 0),
- * swapping equal values is a no-op.
+ * Ensure the two columns involved in a swap have distinct parent_idx values.
+ * When siblings share parent_idx (e.g., all 0 from import), swapping equal
+ * values is a no-op. Instead of normalizing ALL columns (which triggers N
+ * disk writes and watcher events), only assign distinct indices to the two
+ * columns being swapped.
  */
-function normalizeColumnSortOrders(ctx: ActionCtx): void {
+function normalizeColumnSortOrders(
+  ctx: ActionCtx,
+  colIndexA: number,
+  colIndexB: number,
+): void {
   const { layout, repo } = ctx
-  const seen = new Set<number>()
-  let hasDuplicates = false
-  for (const c of layout.columns) {
-    if (seen.has(c.node.parent_idx)) {
-      hasDuplicates = true
-      break
-    }
-    seen.add(c.node.parent_idx)
-  }
-  if (!hasDuplicates) return
+  const colA = layout.columns[colIndexA]
+  const colB = layout.columns[colIndexB]
+  if (!colA || !colB) return
 
+  // Only normalize if the two columns share the same parent_idx
+  if (colA.node.parent_idx !== colB.node.parent_idx) return
+
+  // Assign distinct indices: use their layout positions, which are guaranteed unique
   const parentId = ctx.rootId
-  for (let i = 0; i < layout.columns.length; i++) {
-    const c = layout.columns[i]
-    if (c && !c.isVirtual && c.node.parent_idx !== i) {
-      repo.moveNode(c.node.id, parentId, i)
-      c.node.parent_idx = i
-    }
+  if (!colA.isVirtual && colA.node.parent_idx !== colIndexA) {
+    repo.moveNode(colA.node.id, parentId, colIndexA)
+    colA.node.parent_idx = colIndexA
+  }
+  if (!colB.isVirtual && colB.node.parent_idx !== colIndexB) {
+    repo.moveNode(colB.node.id, parentId, colIndexB)
+    colB.node.parent_idx = colIndexB
   }
 }
 
