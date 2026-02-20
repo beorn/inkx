@@ -792,20 +792,23 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // NO useInput — keys handled by term:key in board-app.ts
 
-  // Estimate card inner width for line-aware title truncation.
-  // Card inner width = column width - 2 (border). Column width ~= termWidth / numVisibleCols.
-  // Approximate: don't need exact collapsed/expanded split — just a reasonable estimate.
+  // Card inner width for line-aware title truncation.
+  // Uses actual column count + collapsed state (same math as BoardCore line 331-342).
   const cardInnerWidth = useMemo(() => {
     const termWidth = ui.dimensions.columns
     const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
     const boardWidth = termWidth - detailPaneWidth
-    // Estimate ~35 chars per column (min), minus 2 for card border
-    const approxColWidth = Math.max(
-      20,
-      Math.min(boardWidth, Math.floor(boardWidth / Math.max(1, Math.floor(boardWidth / 35)))),
-    )
-    return approxColWidth - 2
-  }, [ui.dimensions.columns, ui.showDetailPane])
+    const COLLAPSED_WIDTH = 3
+    const totalCollapsed = filteredColumns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
+    const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
+    const effectiveColCount = Math.min(filteredColumns.length, maxExpandedCols + totalCollapsed)
+    const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
+    const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
+    const collapsedSpace = visibleCollapsed * COLLAPSED_WIDTH
+    const separators = Math.max(0, effectiveColCount - 1)
+    const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
+    return expandedWidth - 2 // minus border left + right
+  }, [ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
