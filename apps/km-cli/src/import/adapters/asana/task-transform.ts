@@ -1,8 +1,9 @@
 import type { AsanaClient } from "./asana-client.ts"
 import type { AsanaApiTask } from "./asana-types.ts"
-import { TASK_FIELDS, turndown } from "./asana-types.ts"
+import { TASK_FIELDS } from "./asana-types.ts"
 import { fetchComments } from "./comment-filter.ts"
 import type { FetchCommentsResult } from "./comment-filter.ts"
+import { htmlToMarkdown } from "./html-to-md.ts"
 import type { ImportItem, ImportAttachment } from "../../types.ts"
 
 /** Pattern matching `→ ^numericId` at end of string (Asana recurring task parent ref) */
@@ -10,62 +11,6 @@ const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/
 
 /** Strip `→ ^numericId` pattern from text (can appear anywhere in body content) */
 const BLOCKREF_INLINE_RE = /\s*→\s*\^\d+/g
-
-/** Clean HTML remnants that Turndown sometimes leaves behind:
- * 1. Decode common HTML entities (&amp; → &, &#123; → {, etc.)
- * 2. Strip remnant HTML tags (<br>, <em>, </em>, etc.)
- * Preserves CommonMark autolinks (<https://...>) and content in code blocks/inline code. */
-function cleanHtmlRemnants(md: string): string {
-  // Step 1: Decode HTML entities
-  let result = md
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
-
-  // Step 2: Strip remnant HTML tags, preserving autolinks and code content.
-  // Strategy: process the string segment by segment, skipping code blocks and inline code.
-  const segments: string[] = []
-  // Match fenced code blocks (```...```), inline code (`...`), or everything else
-  const codePattern = /(```[\s\S]*?```|`[^`]+`)/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-  while ((match = codePattern.exec(result)) !== null) {
-    // Process the non-code segment before this match
-    if (match.index > lastIndex) {
-      segments.push(stripHtmlTags(result.slice(lastIndex, match.index)))
-    }
-    // Keep code segment as-is
-    segments.push(match[0])
-    lastIndex = match.index + match[0].length
-  }
-  // Process remaining non-code segment
-  if (lastIndex < result.length) {
-    segments.push(stripHtmlTags(result.slice(lastIndex)))
-  }
-  return segments.join("")
-}
-
-/** Strip HTML tags from a markdown segment, preserving CommonMark autolinks (<https://...>, <http://...>) */
-function stripHtmlTags(segment: string): string {
-  // Match <tag>, </tag>, <tag attr="...">, but NOT <https://...> or <http://...>
-  return segment.replace(/<\/?(?!https?:\/\/)[a-zA-Z][a-zA-Z0-9]*\b[^>]*\/?>/g, "")
-}
-
-/** Fix escaped underscores in URLs. Turndown escapes _ to \_ in text nodes,
- * which breaks URLs when they appear as link display text or bare URLs. */
-function unescapeUrlUnderscores(md: string): string {
-  // Fix in markdown link text: [url\_with\_underscores](url) → [url_with_underscores](url)
-  let result = md.replace(/\[([^\]]*\\\_[^\]]*)\]\(/g, (match, text) => {
-    return `[${text.replace(/\\_/g, "_")}](`
-  })
-  // Fix in bare URLs: https://...\_... → https://..._...
-  result = result.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
-  return result
-}
 
 /** Convert Asana task to ImportItem */
 export function toImportItem(task: AsanaApiTask): ImportItem {
@@ -86,9 +31,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
 
   // Prefer html_notes (rich text) over plain notes
   if (task.html_notes?.trim()) {
-    let md = turndown.turndown(preprocessAsanaHtml(task.html_notes)).trim()
-    md = unescapeUrlUnderscores(md)
-    md = cleanHtmlRemnants(md)
+    const md = htmlToMarkdown(task.html_notes)
     if (md) item.body = md.replace(BLOCKREF_INLINE_RE, "")
   } else if (task.notes?.trim()) {
     item.body = task.notes.trim().replace(BLOCKREF_INLINE_RE, "")
@@ -277,17 +220,3 @@ export async function fetchSubtasks(client: AsanaClient, taskGid: string, opts?:
   return Promise.all(subtasks.map((sub) => enrichItem(client, sub, opts)))
 }
 
-/**
- * Preprocess Asana html_notes before turndown conversion.
- * Asana uses bare \n for line breaks in html_notes, but HTML spec treats \n as
- * insignificant whitespace. Turndown correctly collapses them, losing line breaks.
- * Fix: convert \n to <br> while preserving structural whitespace between tags.
- */
-function preprocessAsanaHtml(html: string): string {
-  let result = html.replace(/\n/g, "<br>\n")
-  // Remove <br> between tags (structural whitespace, e.g. </li>\n<li>)
-  result = result.replace(/><br>\n</g, ">\n<")
-  // Collapse double <br> from existing <br>\n -> <br><br>\n
-  result = result.replace(/<br><br>/g, "<br>")
-  return result
-}

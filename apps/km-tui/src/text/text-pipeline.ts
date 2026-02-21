@@ -240,6 +240,11 @@ export function processText(text: string, options: TextPipelineOptions): string 
   // so Step 6 can style them. Other angle-bracket content (actual HTML) is left as-is.
   result = result.replace(/<(https?:\/\/[^>]+)>/g, "$1")
 
+  // ── Step 3: Strip embed block references ![[^numericGID]] ──
+  // Asana tag file cross-references use ![[^GID]] to link back to the original task.
+  // These are metadata for cross-linking and should not appear in display text.
+  result = result.replace(/\s*!\[\[\^\d+\]\]/g, "")
+
   // ── Step 4: Handle markdown links [text](url) ──
   // External links: cyan + underline + OSC 8 hyperlink for clickable URLs
   if (isRich && style) {

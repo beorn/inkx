@@ -980,3 +980,105 @@ describe("embed task status cycling (km-79kld)", () => {
     expect(targetAfter?.task_status).not.toBe("done")
   })
 })
+
+// =============================================================================
+// Tag file sections with ![[^GID]] embed references (km-tui.tag-block-ids)
+// =============================================================================
+
+describe("tag file section display", () => {
+  test("tag file sections show task title, not bare GID", () => {
+    // Simulate a tag file (#home.md) parsed into the DB.
+    // The markdown looks like:
+    //   # #home
+    //   ## [x] Clean-up after trip ![[^1138180707609595]]
+    //   ## [ ] Norway stuff - papers ![[^1137303518371267]]
+    //
+    // After parsing, each heading becomes an mdsection node.
+    // The board view should show "Clean-up after trip ![[^1138180707609595]]",
+    // NOT the bare GID "1138180707609595".
+    const now = Date.now()
+    const { board } = testEnv(
+      () => {
+        // Root: tags folder
+        const nodes = item(
+          "tags-folder",
+          // Column: #home tag file (mdfile)
+          item.file(
+            "#home",
+            // Cards: mdsection items from parsed headings
+            item.section("Clean-up after trip"),
+            item.section("Norway stuff - papers"),
+          ),
+        )
+
+        // Patch the section nodes to match what the parser produces for tag files:
+        // - title includes the ![[^GID]] suffix
+        // - content includes [x] marker prefix
+        // - task_marker and task_status are set
+        for (const node of nodes) {
+          if (node.id === "Clean-up after trip") {
+            node.title = "Clean-up after trip ![[^1138180707609595]]"
+            node.content = "[x] Clean-up after trip ![[^1138180707609595]]"
+            node.task_marker = "[x]"
+            node.task_status = "done"
+          }
+          if (node.id === "Norway stuff - papers") {
+            node.title = "Norway stuff - papers ![[^1137303518371267]]"
+            node.content = "[ ] Norway stuff - papers ![[^1137303518371267]]"
+            node.task_marker = "[ ]"
+            node.task_status = "todo"
+          }
+        }
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the task titles
+    expect(text).toContain("Clean-up after trip")
+    expect(text).toContain("Norway stuff")
+    // Should NOT show bare numeric GIDs without task titles
+    expect(text).not.toMatch(/(?<![[\w])1138180707609595(?![\]\w])/)
+    expect(text).not.toMatch(/(?<![[\w])1137303518371267(?![\]\w])/)
+  })
+
+  test("tag file sections with content-only (no title) show task title", () => {
+    // Some nodes may have content but no title field (e.g., from nodesToMarkdown round-trip)
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "tags-folder",
+          item.file(
+            "#home",
+            item.section("Task A embed"),
+            item.section("Task B embed"),
+          ),
+        )
+
+        for (const node of nodes) {
+          if (node.id === "Task A embed") {
+            node.title = undefined
+            node.content = "Task A ![[^9999999999999901]]"
+            node.task_marker = "[x]"
+            node.task_status = "done"
+          }
+          if (node.id === "Task B embed") {
+            node.title = undefined
+            node.content = "Task B ![[^9999999999999902]]"
+            node.task_marker = "[ ]"
+            node.task_status = "todo"
+          }
+        }
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    expect(text).toContain("Task A")
+    expect(text).toContain("Task B")
+  })
+})

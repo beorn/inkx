@@ -790,8 +790,12 @@ describe("stripForDisplay", () => {
     expect(stripForDisplay("^1202466275397380")).toBe("")
   })
 
-  it("preserves ^numeric-id inside wikilink brackets ![[^id]]", () => {
-    expect(stripForDisplay("![[^1203128650780856]]")).toBe("![[^1203128650780856]]")
+  it("strips embed block reference ![[^numericId]]", () => {
+    expect(stripForDisplay("![[^1203128650780856]]")).toBe("")
+  })
+
+  it("strips embed block reference suffix from title", () => {
+    expect(stripForDisplay("Clean-up after trip ![[^1138180707609595]]")).toBe("Clean-up after trip")
   })
 
   it("preserves ^numeric-id inside inline wikilink [[^id]]", () => {

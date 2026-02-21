@@ -1,0 +1,83 @@
+/**
+ * Convert Asana HTML notes to clean markdown using mdast.
+ *
+ * Pipeline: HTML → hast (HTML AST) → mdast (markdown AST) → markdown string
+ *
+ * Replaces Turndown, which was lossy (escaped underscores in URLs, formatting quirks,
+ * lost semantics). The mdast approach gives full AST control and clean output.
+ */
+import { fromHtml } from "hast-util-from-html"
+import { toMdast } from "hast-util-to-mdast"
+import { toMarkdown } from "mdast-util-to-markdown"
+import type { Nodes as MdastNode } from "mdast"
+
+/**
+ * Convert Asana html_notes to clean markdown.
+ *
+ * Handles Asana-specific quirks:
+ * - Bare \n treated as line breaks (Asana convention, not HTML spec)
+ * - Headings in body content → bold text (preserves emphasis without breaking tree)
+ * - Clean list bullets (- not *)
+ * - No escaped underscores in URLs
+ */
+export function htmlToMarkdown(html: string): string {
+  // Step 1: Preprocess Asana HTML quirks
+  const preprocessed = preprocessAsanaHtml(html)
+
+  // Step 2: Parse HTML → hast
+  const hast = fromHtml(preprocessed, { fragment: true })
+
+  // Step 3: Convert hast → mdast
+  const mdast = toMdast(hast)
+
+  // Step 4: Transform mdast (headings → bold, cleanup)
+  transformMdast(mdast)
+
+  // Step 5: Serialize mdast → markdown
+  const md = toMarkdown(mdast, {
+    bullet: "-",
+    bulletOther: "+",
+    emphasis: "_",
+    strong: "*",
+    rule: "-",
+    listItemIndent: "one",
+  })
+
+  return md.trim()
+}
+
+/**
+ * Preprocess Asana html_notes before parsing.
+ * Asana uses bare \n for line breaks in html_notes, but HTML spec treats \n as
+ * insignificant whitespace. Convert \n to <br> while preserving structural whitespace.
+ */
+function preprocessAsanaHtml(html: string): string {
+  let result = html.replace(/\n/g, "<br>\n")
+  // Remove <br> between tags (structural whitespace, e.g. </li>\n<li>)
+  result = result.replace(/><br>\n</g, ">\n<")
+  // Collapse double <br> from existing <br>\n -> <br><br>\n
+  result = result.replace(/<br><br>/g, "<br>")
+  return result
+}
+
+/**
+ * Walk mdast tree and apply transformations.
+ * Headings are preserved — km's parser will create child sections/items from them,
+ * giving proper tree structure to body content.
+ * `delete` nodes (from <del>/<s> tags) are unwrapped to plain text since
+ * mdast-util-to-markdown doesn't handle them without the GFM extension.
+ */
+function transformMdast(node: MdastNode): void {
+  if (!("children" in node) || !Array.isArray(node.children)) return
+
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i]
+    // Unwrap <del>/<s> nodes — mdast-util-to-markdown can't serialize them without GFM extension
+    if (child.type === "delete" && "children" in child) {
+      node.children.splice(i, 1, ...child.children)
+      i-- // re-check at same index since we spliced
+      continue
+    }
+    transformMdast(child)
+  }
+}

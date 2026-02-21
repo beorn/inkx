@@ -154,7 +154,16 @@ export function renderCard(
 
   // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
   const isDoneOrDropped = displayNode.task_status === "done" || displayNode.task_status === "dropped"
-  const styledContent = renderRich(rawContent)
+  const resolveWikiLink = (target: string): string | null => {
+    const resolved = repo.resolveNode(target)
+    if (resolved) return getNodeDisplayName(repo, resolved)
+    if (target.startsWith("^")) {
+      const byId = repo.resolveNode(target.slice(1)) ?? repo.getNode(target.slice(1))
+      if (byId) return getNodeDisplayName(repo, byId)
+    }
+    return null
+  }
+  const styledContent = renderRich(rawContent, { resolveWikiLink })
   const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`
 

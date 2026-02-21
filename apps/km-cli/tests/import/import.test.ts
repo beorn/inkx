@@ -261,13 +261,13 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(result.recorded!.some((r) => r.path === "/projects")).toBe(true)
   })
 
-  test("converts html_notes with bullets via turndown", async () => {
+  test("converts html_notes with bullets via mdast", async () => {
     const data = await fetchFromAsana({ token: "fake-token", downloadDir })
     const edge = data.projects[2]!
     const htmlTask = edge.sections![0]!.items.find((i) => i.sourceId === "task-html")!
     expect(htmlTask.body).toContain("Planning notes:")
-    // turndown converts <li> to "* " bullets
-    expect(htmlTask.body).toMatch(/\*\s+First option/)
+    // mdast converts <li> to "- " bullets
+    expect(htmlTask.body).toMatch(/-\s+First option/)
     expect(htmlTask.body).toContain("Additional context here.")
   })
 
@@ -416,16 +416,14 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(recur.metadata?.parentName).toBe("Weekly standup")
   })
 
-  test("html headings in notes are converted to bold", async () => {
+  test("html headings in notes are preserved as markdown headings", async () => {
     const data = await fetchFromAsana({ token: "fake-token", downloadDir })
     const edge = data.projects[2]!
     const htmlH = edge.sections![0]!.items.find((i) => i.sourceId === "task-html-headings")!
     expect(htmlH.body).toBeDefined()
-    // h1/h2 should be converted to **bold** by the turndown rule
-    expect(htmlH.body).toContain("**Requirements**")
-    expect(htmlH.body).toContain("**Notes**")
-    // Should NOT contain markdown headings (# or ##)
-    expect(htmlH.body).not.toMatch(/^#{1,6}\s/m)
+    // h1/h2 are now preserved as markdown headings (mdast preserves them)
+    expect(htmlH.body).toContain("# Requirements")
+    expect(htmlH.body).toContain("## Notes")
     expect(htmlH.body).toContain("Must support X.")
     expect(htmlH.body).toContain("Extra info.")
   })
@@ -890,9 +888,9 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     expect(edge).toContain("## Milestones")
     // Milestone renders with diamond marker (as heading) and task marker
     expect(edge).toContain("## [ ] ◆ Beta release")
-    // HTML notes converted to markdown with bullets in body paragraph
-    expect(edge).toMatch(/\s+\*\s+First option/)
-    expect(edge).not.toMatch(/>\s+\*\s+First option/)
+    // HTML notes converted to markdown with bullets in body paragraph (mdast uses - bullets)
+    expect(edge).toMatch(/-\s+First option/)
+    expect(edge).not.toMatch(/>\s+-\s+First option/)
     // Multi-line comment has continuation lines
     expect(edge).toContain("@alice-smith: First line of feedback")
     // All-metadata task (as heading under section, depth 3)
@@ -909,9 +907,9 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     const files = convert(data)
     const edge = files.get("test-workspace/edge-cases.md")!
     // The html_notes for task-links contain Asana URLs that should be converted
-    // to [[^GID|text]] references in the final markdown, preserving link text as alias
-    expect(edge).toContain("[[^789012|Related task]]")
-    expect(edge).toContain("[[^222333|Another task]]")
+    // to [[^GID]] block references in the final markdown (no aliases)
+    expect(edge).toContain("[[^789012]]")
+    expect(edge).toContain("[[^222333]]")
     expect(edge).not.toContain("app.asana.com")
   })
 

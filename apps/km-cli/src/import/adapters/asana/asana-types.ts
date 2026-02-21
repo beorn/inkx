@@ -1,44 +1,6 @@
-import TurndownService from "turndown"
-
 export const ASANA_BASE = "https://app.asana.com/api/1.0"
 export const TASK_FIELDS =
   "name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,assignee.name,tags.name,custom_fields,memberships.project.name,memberships.section.name,num_subtasks,permalink_url,resource_subtype,assignee_section.name,parent.gid,parent.name,dependencies,dependents,is_rendered_as_separator,external"
-
-/** Convert Asana HTML notes to markdown */
-export const turndown = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-})
-
-// Turndown's built-in escape handles CommonMark special chars (*, [, ], _, `, #, >, \)
-// but NOT GFM strikethrough (~~). Since km's parser uses GFM extensions, we need to
-// also escape tildes so `~~text~~` in plain HTML text doesn't become strikethrough.
-const originalEscape = turndown.escape.bind(turndown)
-turndown.escape = function (str: string): string {
-  // First apply Turndown's built-in CommonMark escaping
-  const escaped = originalEscape(str)
-  // Then escape GFM strikethrough: ~~ → \~\~
-  return (
-    escaped
-      .replace(/~~/g, "\\~\\~")
-      // Unescape checkbox patterns: \[x\] → [x], \[ \] → [ ], \[\] → []
-      .replace(/\\\[(x| |)\\\]/g, "[$1]")
-  )
-}
-
-// Asana html_notes uses <h1>/<h2>/etc. tags. Turndown's default ATX conversion
-// produces `# Heading` markdown, which km's parser interprets as new sections —
-// splitting one task's description into multiple items on re-parse.
-// Convert heading tags to **bold text** instead to preserve the visual emphasis
-// without creating structural headings.
-turndown.addRule("headings-to-bold", {
-  filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
-  replacement: (content) => {
-    const trimmed = content.trim()
-    if (!trimmed) return ""
-    return `\n\n**${trimmed}**\n\n`
-  },
-})
 
 /** Asana task shape from API */
 export interface AsanaApiTask {

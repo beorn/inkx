@@ -16,6 +16,8 @@ export function stripForDisplay(text: string): string {
     clean
       // Strip "→ ^numericId" and "→ [[^numericId]]" references (Asana recurring task parent refs)
       .replace(/\s*→\s*(?:\[\[)?\^\d+(?:\]\])?/g, "")
+      // Strip embed block references ![[^numericId]] (Asana tag file cross-references)
+      .replace(/\s*!\[\[\^\d+\]\]/g, "")
       // Strip inline ^numeric-id references (Asana-style 10+ digit IDs) that are NOT inside [[...]]
       .replace(/\^\d{10,}/g, (match, offset: number, str: string) => {
         // Check if this ^ is inside a wikilink by looking for preceding [[ without intervening ]]
@@ -46,7 +48,11 @@ export type GetNodeFn = (nodeId: string) => KNode | null | undefined
  */
 function stripInlineRules(text: string): string {
   PROP_REGEX.lastIndex = 0
-  return text.replace(PROP_REGEX, "").replace(/\s+/g, " ").trim()
+  return text
+    .replace(PROP_REGEX, "")
+    .replace(/\s*!\[\[\^\d+\]\]/g, "") // Strip embed block references ![[^numericId]]
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 /**

@@ -124,6 +124,10 @@
     "chokidar": "^5.0.0",
     "chrono-node": "^2.9.0",
     "debug": "^4.4.3",
+    "hast-util-from-html": "^2.0.3",
+    "hast-util-to-mdast": "^10.1.2",
+    "mdast-util-to-markdown": "^2.1.2",
+    "rehype-parse": "^9.0.1",
     "rrule": "^2.8.1",
     "turndown": "^7.2.2",
     "ulid": "^3.0.2"

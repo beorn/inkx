@@ -21,15 +21,11 @@ const ASANA_URL_PATTERNS = [
 ]
 
 function convertAsanaLinks(text: string): string {
-  // First pass: convert markdown links [text](asana-url)
+  // First pass: convert markdown links [text](asana-url) → [[^GID]]
+  // No aliases — smart resolver provides display titles dynamically
   for (const pattern of ASANA_URL_PATTERNS) {
     const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
-    text = text.replace(mdLinkRe, (_match, linkText: string, gid: string) => {
-      if (linkText && linkText !== gid && !linkText.startsWith("http")) {
-        return `[[^${gid}|${linkText}]]`
-      }
-      return `[[^${gid}]]`
-    })
+    text = text.replace(mdLinkRe, (_match, _linkText: string, gid: string) => `[[^${gid}]]`)
   }
   // Second pass: convert bare Asana URLs
   for (const pattern of ASANA_URL_PATTERNS) {

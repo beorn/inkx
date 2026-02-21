@@ -76,15 +76,9 @@ export function resolveUserSlug(
  * Since each task has ^GID as its block ID, links become [[^GID]].
  *
  * Conversion strategy:
- * - Markdown link [text](asana-url) → [[^GID|text]] (with alias to preserve link text)
- *   UNLESS: link text is empty, equals the GID, or is a URL (filtering edge cases)
- * - Bare URL → [[^GID]] (no alias needed)
- *
- * Rationale for aliases:
- * During import we don't have target task names, so we can't determine if link text
- * matches the task name (auto-populated) vs custom (user-chosen). Preserving aliases
- * ensures link text survives if the target node is deleted or unresolvable.
- * km's rendering system prefers aliases when present, or resolves the target's title.
+ * - Markdown link [text](asana-url) → [[^GID]]
+ * - Bare URL → [[^GID]]
+ * km's smart resolver provides display titles dynamically from the target node.
  */
 const ASANA_URL_PATTERNS = [
   /https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/,
@@ -93,21 +87,11 @@ const ASANA_URL_PATTERNS = [
 ]
 
 function convertAsanaLinks(text: string): string {
-  // First pass: convert markdown links [text](asana-url)
-  // Preserve link text as alias [[^GID|text]] when appropriate
+  // First pass: convert markdown links [text](asana-url) → [[^GID]]
+  // No aliases — smart resolver provides display titles dynamically
   for (const pattern of ASANA_URL_PATTERNS) {
     const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
-    text = text.replace(mdLinkRe, (_match, linkText: string, gid: string) => {
-      // Include alias only when link text is meaningful:
-      // - non-empty, non-whitespace
-      // - not equal to the GID itself (filters auto-numbered refs)
-      // - not a URL (filters copy-paste errors)
-      if (linkText && linkText !== gid && !linkText.startsWith("http")) {
-        return `[[^${gid}|${linkText}]]`
-      }
-      // Fallback: bare GID reference (km will resolve title from target)
-      return `[[^${gid}]]`
-    })
+    text = text.replace(mdLinkRe, (_match, _linkText: string, gid: string) => `[[^${gid}]]`)
   }
   // Second pass: convert bare Asana URLs (not in markdown link syntax)
   for (const pattern of ASANA_URL_PATTERNS) {
@@ -226,6 +210,8 @@ function buildBodyContent(item: ImportItem): string | null {
   text = text.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
   // Clean up redundant [url](url) → <url> autolinks
   text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
+  // Normalize Turndown-style *-bullets to - (from cached JSON with old Turndown output)
+  text = text.replace(/^(\s*)\*(\s{1,3})/gm, "$1-$2")
   // Collapse 3+ consecutive blank lines to 2 (one blank line between paragraphs)
   text = text.replace(/\n{3,}/g, "\n\n")
   return text
@@ -889,17 +875,13 @@ function* generateTagFiles(
 
     for (const item of items) {
       if (rendered.has(item.sourceId)) {
-        const status = toTaskStatus(item.status)
-        const marker = status === "done" ? "[x]" : "[ ]"
-        const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
+        // Embed-only: smart resolver provides display title dynamically
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
             type: "oi",
             parent_id: fileId,
-            task_marker: marker as TaskMarker,
-            task_status: status,
-            content: `${embedTitle} ![[^${item.sourceId}]]`,
+            content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -1006,17 +988,13 @@ function* generateUserFiles(
 
     const emitUserItem = (item: ImportItem, parentId: string): void => {
       if (rendered.has(item.sourceId)) {
-        const status = toTaskStatus(item.status)
-        const marker = status === "done" ? "[x]" : "[ ]"
-        const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
+        // Embed-only: smart resolver provides display title dynamically
         nodes.push(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "oi",
             parent_id: parentId,
-            task_marker: marker as TaskMarker,
-            task_status: status,
-            content: `${embedTitle} ![[^${item.sourceId}]]`,
+            content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
