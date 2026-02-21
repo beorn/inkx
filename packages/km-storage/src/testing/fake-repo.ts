@@ -300,6 +300,14 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       const byId = nodes.get(query)
       if (byId) return byId
 
+      // Try block_id match (strip ^ prefix for block references)
+      const blockQuery = query.startsWith("^") ? query.slice(1) : query
+      if (/^\d{5,}$/.test(blockQuery)) {
+        for (const node of nodes.values()) {
+          if (node.block_id === blockQuery) return node
+        }
+      }
+
       // Try content match
       for (const node of nodes.values()) {
         if (node.content?.includes(query) || node.title?.includes(query)) {
