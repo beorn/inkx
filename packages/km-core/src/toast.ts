@@ -41,6 +41,8 @@ export interface Toast {
   // If items.length < threshold: show all items
   // If items.length >= threshold: show "N items" summary
   itemThreshold?: number
+  progress?: number // 0-1, renders a progress bar
+  persistent?: boolean // don't auto-dismiss
 }
 
 export type ToastOptions = Omit<Toast, "id" | "level" | "message">
@@ -119,8 +121,8 @@ export function createToastQueue(options: ToastQueueOptions = {}): ToastQueue {
         toasts.push(toast)
       }
 
-      // Auto-dismiss after duration
-      if (toast.duration && toast.duration > 0) {
+      // Auto-dismiss after duration (skip for persistent toasts)
+      if (!toast.persistent && toast.duration && toast.duration > 0) {
         scheduleDismiss(id, toast.duration)
       }
 

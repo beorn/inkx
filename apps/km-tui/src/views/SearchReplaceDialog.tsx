@@ -17,6 +17,7 @@
 import React from "react"
 import { Box, Text, useEditContext } from "inkx"
 import type { SearchReplaceState } from "../ui-reducer.ts"
+import { formatTitleWithHotkey } from "./shared-components.tsx"
 
 interface SearchReplaceDialogProps {
   state: SearchReplaceState
@@ -119,9 +120,7 @@ export function SearchReplaceDialog({
     >
       {/* Title bar */}
       <Box flexDirection="row" justifyContent="space-between">
-        <Text bold color="cyan">
-          Search & Replace
-        </Text>
+        {formatTitleWithHotkey("Find & Replace", "F", "cyan")}
         {matchIndicator && (
           <Text color={matchCount === 0 ? "red" : "yellow"}>{matchIndicator}</Text>
         )}

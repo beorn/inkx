@@ -134,24 +134,39 @@ export function BottomBar({
     displayPath = "~" + displayPath.slice(homeDir.length)
   }
 
-  // Build status parts (middle)
-  const statusParts: string[] = []
-
-  // Mode indicators always shown first (they're important UI state)
+  // Build mode/pane context (middle section)
   const editMode = getEditMode(ui)
-  if (editMode === "text") statusParts.push("[EDIT]")
-  if (moveMode) statusParts.push("[MOVE]")
-  if (ui.showHelp) statusParts.push("[?]")
-  if (ui.showProjectPicker) statusParts.push("[PROJ]")
-  if (ui.showNewItemDialog) statusParts.push("[NEW]")
-  // Derive outline mode: cursor is inside a card's sub-items
-  const inOutlineMode =
-    cursorPos.cursorNodeId !== null &&
-    cursorPos.cursorCardNodeId !== null &&
-    cursorPos.cursorNodeId !== cursorPos.cursorCardNodeId
-  if (inOutlineMode) statusParts.push("OUT")
 
-  // Status message shown after mode indicators
+  // Mode label: MOVE > VISUAL > TEXT > NODE (priority order)
+  let modeLabel: string
+  let modeColor: string | undefined
+  let modeBold = false
+  if (moveMode) {
+    modeLabel = "MOVE"
+    modeColor = "magenta"
+  } else if (ui.visualMode) {
+    modeLabel = "VISUAL"
+    modeColor = "cyan"
+  } else if (editMode === "text") {
+    modeLabel = "TEXT"
+    modeColor = "yellow"
+    modeBold = true
+  } else {
+    modeLabel = "NODE"
+    modeColor = undefined // default/dim
+  }
+
+  // Pane: board or detail
+  const paneLabel = ui.focusedPane === "detail" ? "detail" : "board"
+
+  // Chord prefix (only when pending)
+  const chordSuffix = ui.pendingChord ? ` ${ui.pendingChord}…` : ""
+
+  // Multi-selection count
+  const multiSuffix = ui.multiSelected.size > 0 ? ` [${ui.multiSelected.size}]` : ""
+
+  // Status message (shown after mode/pane context)
+  const statusParts: string[] = []
   if (ui.status) {
     const icons = {
       info: "ℹ",
@@ -169,9 +184,6 @@ export function BottomBar({
     if (ui.isMouseDragging && ui.mouseSelection) {
       statusParts.push("[Sel]")
     }
-    if (ui.multiSelected.size > 0) {
-      statusParts.push(`[${ui.multiSelected.size}]`)
-    }
   }
 
   // Right side info
@@ -182,8 +194,8 @@ export function BottomBar({
   const showColPosition = ui.viewMode === "columns" && columns.length > 1
 
   // Left side info
-  const modeLabel = storageMode === "memory" ? "MEM" : "DISK"
-  const middle = statusParts.join("  ")
+  const storageLabel = storageMode === "memory" ? "MEM" : "DISK"
+  const statusMessage = statusParts.join("  ")
   return (
     <Box
       flexDirection="row"
@@ -196,17 +208,36 @@ export function BottomBar({
       {/* Left side: fills remaining space, truncates overflow */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
         <Text dimColor id="storage-mode">
-          {modeLabel}
+          {storageLabel}
         </Text>
         <Text dimColor>{" 📁 "}</Text>
         <Text dimColor id="repo-path">
           {displayPath}
         </Text>
-        {middle && (
+        {/* Mode/pane context */}
+        <Text dimColor>{"   "}</Text>
+        <Text color={modeColor} bold={modeBold} id="mode-label">
+          {modeLabel}
+        </Text>
+        <Text dimColor>{" "}</Text>
+        <Text dimColor id="pane-label">
+          {paneLabel}
+        </Text>
+        {chordSuffix && (
+          <Text dimColor id="chord-prefix">
+            {chordSuffix}
+          </Text>
+        )}
+        {multiSuffix && (
+          <Text dimColor id="multi-count">
+            {multiSuffix}
+          </Text>
+        )}
+        {statusMessage && (
           <>
             <Text dimColor>{"   "}</Text>
             <Text dimColor id="status-message">
-              {middle}
+              {statusMessage}
             </Text>
           </>
         )}

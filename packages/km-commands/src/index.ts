@@ -154,6 +154,10 @@ export {
   inDialogFilter,
 } from "./when.ts"
 
+// Help data (auto-generated from registry)
+export type { HelpItem, HelpSection } from "./help-data.ts"
+export { getHelpScreenData } from "./help-data.ts"
+
 // Ink Adapter (for TUI integration)
 export {
   initCommandSystem,

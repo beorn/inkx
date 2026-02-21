@@ -332,10 +332,10 @@ export function BoardCore({
   const boardWidth = termWidth - detailPaneWidth
 
   // Calculate content area height - space between top and bottom bars
+  // KeyBar and FindBar share a single slot (included in BOTTOM_BAR_HEIGHT), so no extra height needed
   const SYNC_PANE_HEIGHT = 6
-  const FIND_BAR_HEIGHT = ui.localSearch ? 1 : 0
   const contentHeight =
-    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0) - FIND_BAR_HEIGHT
+    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -733,18 +733,18 @@ export function BoardCore({
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
-        {/* Local find bar (inline search) */}
-        {ui.localSearch && (
+        {/* Which-key popup (shows chord suffixes when prefix is pending) */}
+        {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
+        {/* Line 1 chrome: shared slot — only one visible at a time */}
+        {ui.localSearch ? (
           <FindBar
             localSearch={ui.localSearch}
             width={termWidth}
             onQueryChange={handleFindQueryChange}
           />
+        ) : (
+          <KeyBar ui={ui} termWidth={termWidth} />
         )}
-        {/* Which-key popup (shows chord suffixes when prefix is pending) */}
-        {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
-        {/* Key hint bar (context-sensitive shortcuts) */}
-        <KeyBar ui={ui} termWidth={termWidth} />
         {/* Bottom bar (includes status messages) */}
         <BottomBar
           ui={ui}

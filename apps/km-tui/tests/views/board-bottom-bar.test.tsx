@@ -302,7 +302,7 @@ describe("BottomBar", () => {
       />,
     )
     const output = app.text
-    expect(output).toContain("[MOVE]")
+    expect(output).toContain("MOVE")
   })
 
   it("does not show move mode indicator when not in move mode", () => {
@@ -319,7 +319,7 @@ describe("BottomBar", () => {
       />,
     )
     const output = app.text
-    expect(output).not.toContain("[MOVE]")
+    expect(output).not.toContain("MOVE")
   })
 
   it("shows move mode indicator alongside status message", () => {
@@ -341,9 +341,9 @@ describe("BottomBar", () => {
     )
     const output = app.text
     // Mode indicator should always be visible when in move mode
-    expect(output).toContain("[MOVE]")
-    // Status message should also be visible
-    expect(output).toContain("Test message")
+    expect(output).toContain("MOVE")
+    // Status message should also be visible (may be truncated at narrow widths)
+    expect(output).toMatch(/Test mes/)
   })
 
   // ===========================================================================

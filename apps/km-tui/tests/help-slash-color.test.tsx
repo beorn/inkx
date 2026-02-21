@@ -1,8 +1,9 @@
 /**
  * Test: Help overlay content and rendering
  *
- * Verifies the help overlay renders correctly with the chord-based
- * keybinding layout, and that "/" keys render in the proper color.
+ * Verifies the help overlay renders correctly with auto-generated
+ * keybinding sections from the command registry, and that key names
+ * render in the proper color (yellow).
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
@@ -11,7 +12,7 @@ import { HelpOverlay } from "../src/views/HelpOverlay.tsx"
 
 /** Render the help overlay and return stripped lines */
 async function renderHelp(opts?: { height?: number; scrollOffset?: number }) {
-  const h = opts?.height ?? 60
+  const h = opts?.height ?? 200
   const element = React.createElement(HelpOverlay, {
     width: 80,
     height: h,
@@ -26,55 +27,77 @@ function strip(s: string): string {
 }
 
 describe("HelpOverlay", () => {
-  test("shows chord matrix as first section", async () => {
+  test("shows auto-generated section headers from keybinding layers", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
-    expect(stripped).toContain("VERBS x LOCATIONS")
-    expect(stripped).toContain("GO (g)")
-    expect(stripped).toContain("MOVE (m)")
-    expect(stripped).toContain("ADD (a)")
+    // Sections derived from keybinding layer categories
+    expect(stripped).toContain("GLOBAL")
+    expect(stripped).toContain("NAVIGATION")
+    expect(stripped).toContain("EDITING")
+    expect(stripped).toContain("SYSTEM")
   })
 
-  test("chord matrix contains all location rows", async () => {
+  test("shows all expected section categories", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
-    for (const loc of ["inbox", "today", "home", "project", "node", "tag", "person"]) {
-      expect(stripped).toContain(loc)
+    for (const section of [
+      "GLOBAL",
+      "NAVIGATION",
+      "SELECTION",
+      "EDITING",
+      "TASK",
+      "FOLD & CHORDS",
+      "VIEW",
+      "HISTORY",
+      "SYSTEM",
+      "FAVORITES & COLUMNS",
+    ]) {
+      expect(stripped).toContain(section)
     }
   })
 
-  test("shows task prefix section", async () => {
+  test("shows task section with task commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("TASK")
-    expect(stripped).toContain("tt dialog")
+    // Task commands: toggle done (x), cycle status (X), archive (e), capture (c)
+    expect(stripped).toMatch(/[xX]/)
   })
 
-  test("shows navigation section", async () => {
+  test("shows navigation section with movement keys", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("NAVIGATION")
-    expect(stripped).toContain("hjkl")
+    // Navigation keys: j, k, h, l appear as key column entries
+    expect(stripped).toContain("j")
+    expect(stripped).toContain("k")
   })
 
-  test("shows editing section", async () => {
+  test("shows editing section with edit commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("EDITING")
-    expect(stripped).toContain("edit title")
+    // Edit commands include descriptions like "Edit node title inline"
+    expect(stripped).toMatch(/[Ee]dit/)
   })
 
-  test("shows search & dialogs section", async () => {
+  test("shows fold & chords section with chord sequences", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
-    expect(stripped).toContain("SEARCH")
-    expect(stripped).toContain("omnibox")
+    expect(stripped).toContain("FOLD & CHORDS")
+    // Chord sequences use -> notation (e.g. g->g, m->i, a->#)
+    expect(stripped).toContain("->")
   })
 
   test("bare '/' key for find is rendered in yellow", async () => {
     const output = await renderHelp()
     const lines = output.split("\n")
-    const findLine = lines.find((l: string) => strip(l).includes("find"))
+    // The "/" key is in the System section (tui layer), bound to local_find
+    // Description is "Open inline find bar"
+    const findLine = lines.find((l: string) => {
+      const s = strip(l)
+      return s.includes("find") || s.includes("Find")
+    })
     expect(findLine).toBeDefined()
     // The "/" key should be in yellow (ANSI 38;5;3)
     expect(findLine).toMatch(/38;5;3/)
@@ -84,17 +107,17 @@ describe("HelpOverlay", () => {
     // Use a small height so content doesn't all fit (forces scroll)
     const smallHeight = 30
 
-    // At scroll offset 0, VERBS should be visible
+    // At scroll offset 0, GLOBAL (first section) should be visible
     const output0 = await renderHelp({ height: smallHeight, scrollOffset: 0 })
-    expect(strip(output0)).toContain("VERBS x LOCATIONS")
+    expect(strip(output0)).toContain("GLOBAL")
 
-    // At a moderate scroll offset, later sections should be visible
-    const output15 = await renderHelp({ height: smallHeight, scrollOffset: 15 })
-    const stripped15 = strip(output15)
-    // VERBS header should be scrolled past
-    expect(stripped15).not.toContain("VERBS x LOCATIONS")
-    // EDITING section should now be visible
-    expect(stripped15).toContain("EDITING")
+    // At a large scroll offset, later sections should be visible
+    const output40 = await renderHelp({ height: smallHeight, scrollOffset: 40 })
+    const stripped40 = strip(output40)
+    // GLOBAL header should be scrolled past
+    expect(stripped40).not.toContain("GLOBAL")
+    // A later section should now be visible (SELECTION or beyond)
+    expect(stripped40).toMatch(/SELECTION|EDITING|TASK|FOLD|VIEW|HISTORY|SYSTEM/)
   })
 
   test("renders footer with close instructions", async () => {

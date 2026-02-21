@@ -218,7 +218,7 @@ describe("Search & Replace", () => {
     board.press("F")
 
     const output = board.screenshot()
-    expect(output).toContain("Search & Replace")
+    expect(output).toContain("[F]ind & Replace")
     expect(output).toContain("Find:")
     expect(output).toContain("Repl:")
   })

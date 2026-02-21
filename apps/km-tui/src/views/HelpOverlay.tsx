@@ -1,14 +1,15 @@
 /**
  * Help Overlay Component
  *
- * Displays keyboard shortcuts for the board TUI, organized around
- * the verb x location chord system.
+ * Displays keyboard shortcuts for the board TUI, auto-generated from the
+ * keybinding registry and command definitions.
  *
  * Scrollable with j/k when content exceeds viewport.
  */
-import React from "react"
+import React, { useMemo } from "react"
 import { Box, Text } from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
+import { getHelpScreenData, type HelpSection } from "@km/commands"
 
 interface HelpOverlayProps {
   width: number
@@ -33,267 +34,51 @@ function SectionHeader({ title }: { title: string }) {
   )
 }
 
-/** Key = yellow, desc = dim */
-function KD({ k, d }: { k: string; d: string }) {
-  return (
-    <>
-      <Text color="yellow">{k}</Text>
-      <Text dimColor> {d}</Text>
-    </>
-  )
+/** Format keys for display: join with / separator, pad to fixed width */
+function KeyColumn({ keys, width }: { keys: string[]; width: number }) {
+  const display = keys.join("/")
+  return <Text color="yellow">{display.padEnd(width)}</Text>
 }
 
-/** Chord matrix cell: suffix + key combo, fixed width */
-function ChordCell({ combo, width }: { combo: string; width: number }) {
-  if (combo === "—") {
-    return <Text dimColor>{combo.padEnd(width)}</Text>
-  }
-  return <Text color="yellow">{combo.padEnd(width)}</Text>
-}
-
-/** Build all content lines as an array of React elements */
-function buildContentLines(): React.ReactElement[] {
+/** Build content lines from auto-generated help data */
+function buildContentLines(sections: HelpSection[]): React.ReactElement[] {
   const lines: React.ReactElement[] = []
+  const KEY_WIDTH = 14
+  const DESC_WIDTH = 48
 
-  // ── VERBS x LOCATIONS (the centerpiece) ──────────────────────────
-  lines.push(<SectionHeader key="s-chord" title="VERBS x LOCATIONS" />)
-  lines.push(
-    <Text key="chord-hdr">
-      {"  "}
-      <Text dimColor>{"           "}</Text>
-      <Text bold color="green">
-        {"GO (g)    "}
-      </Text>
-      <Text bold color="magenta">
-        {"MOVE (m)  "}
-      </Text>
-      <Text bold color="blue">
-        {"ADD (a)"}
-      </Text>
-    </Text>,
-  )
+  for (const section of sections) {
+    // Section header
+    lines.push(<SectionHeader key={`s-${section.category}`} title={section.category.toUpperCase()} />)
 
-  const matrix: Array<[string, string, string, string, string]> = [
-    ["i", "inbox", "gi", "mi", "ai"],
-    ["j", "today", "gj", "mj", "aj"],
-    ["h", "home", "gh", "mh", "ah"],
-    ["+", "project", "g+", "m+", "a+"],
-    ["[", "node", "g[", "m[", "a["],
-    ["#", "tag", "g#", "m#", "a#"],
-    ["@", "person", "\u2014", "\u2014", "a@"],
-  ]
+    // Single-column layout: one item per line (fits in 64-char content area)
+    for (let i = 0; i < section.items.length; i++) {
+      const item = section.items[i]
+      lines.push(
+        <Text key={`${section.category}-${i}`}>
+          {"  "}
+          <KeyColumn keys={item.keys} width={KEY_WIDTH} />
+          <Text dimColor>{item.description.slice(0, DESC_WIDTH)}</Text>
+        </Text>,
+      )
+    }
 
-  for (const [suffix, label, go, move, add] of matrix) {
-    lines.push(
-      <Text key={`chord-${suffix}`}>
-        {"  "}
-        <Text color="yellow">{suffix}</Text>
-        <Text dimColor>{"  " + label.padEnd(8)}</Text>
-        <ChordCell combo={go} width={10} />
-        <ChordCell combo={move} width={10} />
-        <ChordCell combo={add} width={10} />
-      </Text>,
-    )
+    // Blank line after section
+    lines.push(<Text key={`${section.category}-blank`}> </Text>)
   }
-  lines.push(<Text key="chord-blank"> </Text>)
 
-  // ── TASK (t-prefix) ──────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-task" title="TASK (t)" />)
+  // Add favorites/columns note at the end
+  lines.push(<SectionHeader key="s-extra" title="FAVORITES & COLUMNS" />)
   lines.push(
-    <Text key="task-row">
+    <Text key="fav-1">
       {"  "}
-      <KD k="tt" d="dialog" />
-      {"  "}
-      <KD k="to" d="owner" />
-      {"  "}
-      <KD k="td" d="date" />
-      {"  "}
-      <KD k="t!" d="priority" />
-      {"  "}
-      <KD k="ts" d="status" />
+      <Text color="yellow">{"0-9           "}</Text>
+      <Text dimColor>Jump to favorite board</Text>
     </Text>,
   )
-  lines.push(<Text key="task-blank"> </Text>)
-
-  // ── NAVIGATION ───────────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-nav" title="NAVIGATION" />)
-  lines.push(
-    <Text key="nav-1">
-      {"  "}
-      <KD k="hjkl" d="move" />
-      {"  "}
-      <KD k="JK" d="block nav" />
-      {"  "}
-      <KD k="gg" d="first" />
-      <Text dimColor> / </Text>
-      <KD k="G" d="last" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="nav-2">
-      {"  "}
-      <KD k="{}" d="history" />
-      {"  "}
-      <KD k="z" d="zoom in" />
-      <Text dimColor> / </Text>
-      <KD k="Z" d="out" />
-      {"  "}
-      <KD k="PgUp/Dn" d="page" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="nav-3">
-      {"  "}
-      <KD k="HL" d="fold/unfold" />
-      {"  "}
-      <KD k="<>" d="fold all" />
-      {"  "}
-      <KD k="+-" d="content lines" />
-    </Text>,
-  )
-  lines.push(<Text key="nav-blank"> </Text>)
-
-  // ── EDITING ──────────────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-edit" title="EDITING" />)
-  lines.push(
-    <Text key="edit-1">
-      {"  "}
-      <KD k="i" d="edit title (start)" />
-      {"  "}
-      <KD k="Enter" d="edit title (end)" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="edit-2">
-      {"  "}
-      <KD k="I" d="edit body (start)" />
-      {"  "}
-      <KD k="S-Enter" d="edit body (end)" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="edit-3">
-      {"  "}
-      <KD k="o/O" d="new below/above" />
-      {"  "}
-      <KD k="c/C" d="capture" />
-      {"  "}
-      <KD k="e" d="archive" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="edit-4">
-      {"  "}
-      <KD k="d" d="cut" />
-      {"  "}
-      <KD k="y" d="copy" />
-      {"  "}
-      <KD k="p" d="paste" />
-      {"  "}
-      <KD k="x/X" d="done/cycle" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="edit-5">
-      {"  "}
-      <KD k="Tab/S-Tab" d="indent" />
-      {"  "}
-      <KD k="u/U" d="undo" />
-      {"  "}
-      <KD k="Alt+hjkl" d="shift" />
-    </Text>,
-  )
-  lines.push(<Text key="edit-blank"> </Text>)
-
-  // ── SEARCH & DIALOGS ─────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-search" title="SEARCH & DIALOGS" />)
-  lines.push(
-    <Text key="dlg-1">
-      {"  "}
-      <KD k="/" d="find" />
-      {"  "}
-      <KD k=":" d="omnibox" />
-      {"  "}
-      <KD k="F" d="search/replace" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="dlg-2">
-      {"  "}
-      <KD k="T" d="task dialog" />
-      {"  "}
-      <KD k="G" d="filter" />
-      {"  "}
-      <KD k="A" d="AI" />
-      {"  "}
-      <KD k="P" d="preview pane" />
-    </Text>,
-  )
-  lines.push(<Text key="dlg-blank"> </Text>)
-
-  // ── SELECTION & SYSTEM ───────────────────────────────────────────
-  lines.push(<SectionHeader key="s-sel" title="SELECTION & SYSTEM" />)
-  lines.push(
-    <Text key="sel-1">
-      {"  "}
-      <KD k="Space" d="select" />
-      {"  "}
-      <KD k="v" d="visual mode" />
-      {"  "}
-      <KD k="S-arrows" d="extend" />
-      {"  "}
-      <KD k="C-a" d="select all" />
-    </Text>,
-  )
-  lines.push(
-    <Text key="sel-2">
-      {"  "}
-      <KD k="P" d="smart pane" />
-      {"  "}
-      <KD k="Esc" d="layered dismiss" />
-      {"  "}
-      <KD k="," d="settings" />
-      {"  "}
-      <KD k="q" d="quit" />
-    </Text>,
-  )
-  lines.push(<Text key="sel-blank"> </Text>)
-
-  // ── BARE SYMBOLS ─────────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-bare" title="BARE SYMBOLS (node mode)" />)
-  lines.push(
-    <Text key="bare-1">
-      {"  "}
-      <KD k="@" d="assign (=a@)" />
-      {"  "}
-      <KD k="#" d="tag (=a#)" />
-      {"  "}
-      <KD k="+" d="project (=m+)" />
-      {"  "}
-      <KD k="[" d="node (=m[)" />
-    </Text>,
-  )
-  lines.push(<Text key="bare-blank"> </Text>)
-
-  // ── SMART OPEN ───────────────────────────────────────────────────
-  lines.push(<SectionHeader key="s-open" title="SMART OPEN" />)
-  lines.push(
-    <Text key="open-1">
-      {"  "}
-      <KD k="go" d="Finder/browser" />
-      {"  "}
-      <KD k="gO" d="terminal/editor" />
-      {"  "}
-      <KD k="C-o" d="smart open" />
-    </Text>,
-  )
+  lines.push(<Text key="fav-blank"> </Text>)
 
   return lines
 }
-
-// Pre-build content lines (static data)
-const contentLines = buildContentLines()
-const TOTAL_LINES = contentLines.length
 
 // Minimum dimensions to render the overlay
 const MIN_WIDTH = 30
@@ -318,15 +103,23 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
     )
   }
 
+  // Generate content from registry (memoized since data is static)
+  const contentLines = useMemo(() => {
+    const sections = getHelpScreenData()
+    return buildContentLines(sections)
+  }, [])
+
+  const totalLines = contentLines.length
+
   // Calculate content dimensions
   const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8))
   // ModalDialog: border (2) + paddingY (2) + title (1) + title spacer (1) + footer spacer (1) + footer (1) = 8 lines of chrome
   const chromeLines = 8
-  const boxHeight = Math.max(MIN_HEIGHT, Math.min(TOTAL_LINES + chromeLines, height - 6))
+  const boxHeight = Math.max(MIN_HEIGHT, Math.min(totalLines + chromeLines, height - 6))
   const visibleLines = boxHeight - chromeLines
 
   // Clamp scroll offset
-  const maxScroll = Math.max(0, TOTAL_LINES - visibleLines)
+  const maxScroll = Math.max(0, totalLines - visibleLines)
   const clampedOffset = Math.min(scrollOffset, maxScroll)
 
   // Slice visible content
@@ -346,7 +139,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   const footer = (
     <Box>
-      <Text dimColor>? or Esc to close</Text>
+      <Text dimColor>Esc to close</Text>
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
@@ -358,7 +151,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" footer={footer}>
+      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" footer={footer}>
         {visibleContent}
       </ModalDialog>
     </Box>

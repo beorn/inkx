@@ -504,7 +504,7 @@ describe("Delete Confirmation", () => {
 // =============================================================================
 
 describe("Move Mode", () => {
-  test("m enters move mode, shows [MOVE] indicator", () => {
+  test("m enters move mode, shows MOVE indicator", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
@@ -513,7 +513,7 @@ describe("Move Mode", () => {
     board.press("m").press("m")
 
     const output = board.screenshot()
-    expect(output).toContain("[MOVE]")
+    expect(output).toContain("MOVE")
   })
 
   test("Escape in move mode cancels and restores cursor", () => {
@@ -521,7 +521,7 @@ describe("Move Mode", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("m").press("m")
-    expect(board.screenshot()).toContain("[MOVE]")
+    expect(board.screenshot()).toContain("MOVE")
 
     // Navigate to different column while in move mode
     board.press("l")
@@ -529,7 +529,7 @@ describe("Move Mode", () => {
     // Cancel move mode
     board.press("Escape")
 
-    expect(board.screenshot()).not.toContain("[MOVE]")
+    expect(board.screenshot()).not.toMatch(/\bMOVE\b/)
     // Cursor should be restored to original position (1a)
     board.expect("#1a[data-cursor]").toExist()
   })
@@ -539,7 +539,7 @@ describe("Move Mode", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("m").press("m")
-    expect(board.screenshot()).toContain("[MOVE]")
+    expect(board.screenshot()).toContain("MOVE")
 
     // Navigate to col2
     board.press("l")
@@ -547,7 +547,7 @@ describe("Move Mode", () => {
     // Confirm move
     board.press("Enter")
 
-    expect(board.screenshot()).not.toContain("[MOVE]")
+    expect(board.screenshot()).not.toMatch(/\bMOVE\b/)
 
     // 1a should now be in col2 (alongside 2a).
     // Body cards: selected (1a) has side borders, unselected (2a) has paddingLeft,
@@ -567,11 +567,11 @@ describe("Move Mode", () => {
 
     // Can navigate while in move mode
     board.press("l")
-    expect(board.screenshot()).toContain("[MOVE]")
+    expect(board.screenshot()).toContain("MOVE")
 
     // Escape to cancel
     board.press("Escape")
-    expect(board.screenshot()).not.toContain("[MOVE]")
+    expect(board.screenshot()).not.toMatch(/\bMOVE\b/)
   })
 
   test("move mode on single card in single column", () => {
@@ -579,10 +579,10 @@ describe("Move Mode", () => {
     board.expect("#only[data-cursor]").toExist()
 
     board.press("m").press("m")
-    expect(board.screenshot()).toContain("[MOVE]")
+    expect(board.screenshot()).toContain("MOVE")
 
     board.press("Escape")
-    expect(board.screenshot()).not.toContain("[MOVE]")
+    expect(board.screenshot()).not.toMatch(/\bMOVE\b/)
     board.expect("#only[data-cursor]").toExist()
   })
 })

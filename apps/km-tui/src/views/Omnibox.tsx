@@ -352,6 +352,7 @@ export function Omnibox({
   return (
     <ModalDialog
       title="Command Palette"
+      hotkey=":"
       width={width}
       height={dialogHeight}
       footer={footerContent}

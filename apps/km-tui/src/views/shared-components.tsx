@@ -261,6 +261,8 @@ export interface ModalDialogProps {
   title?: string
   /** Title alignment (default: center) */
   titleAlign?: "center" | "flex-start" | "flex-end"
+  /** Toggle hotkey character (e.g., "?" for help). Renders [X] prefix in title. */
+  hotkey?: string
   /** Dialog width */
   width?: number
   /** Dialog height (optional, omit for auto-height) */
@@ -271,6 +273,49 @@ export interface ModalDialogProps {
   footerAlign?: "center" | "flex-start" | "flex-end"
   /** Dialog children */
   children: React.ReactNode
+}
+
+/**
+ * Format a dialog title with a hotkey prefix.
+ *
+ * If the hotkey letter appears in the title (case-insensitive), highlights it inline:
+ *   hotkey="D", title="Details" → [D]etails
+ * If the hotkey is not found in the title, prepends it:
+ *   hotkey="?", title="Help" → [?] Help
+ *
+ * Brackets are dim, the hotkey letter is bold/bright.
+ */
+export function formatTitleWithHotkey(
+  title: string,
+  hotkey: string,
+  color?: string,
+): React.ReactElement {
+  const idx = title.toLowerCase().indexOf(hotkey.toLowerCase())
+  if (idx >= 0 && hotkey.length === 1 && hotkey.toLowerCase() !== hotkey.toUpperCase()) {
+    // Letter found in title — highlight it inline: prefix + [X] + rest
+    const before = title.slice(0, idx)
+    const matched = title[idx]
+    const after = title.slice(idx + 1)
+    return (
+      <Text color={color} bold>
+        {before}
+        <Text dimColor bold={false}>[</Text>
+        <Text bold>{matched}</Text>
+        <Text dimColor bold={false}>]</Text>
+        {after}
+      </Text>
+    )
+  }
+  // Hotkey not in title (or symbol) — prepend [X] Title
+  return (
+    <Text color={color} bold>
+      <Text dimColor bold={false}>[</Text>
+      <Text bold>{hotkey}</Text>
+      <Text dimColor bold={false}>]</Text>
+      {" "}
+      {title}
+    </Text>
+  )
 }
 
 /**
@@ -287,6 +332,7 @@ export function ModalDialog({
   borderColor = "white",
   title,
   titleAlign = "center",
+  hotkey,
   width,
   height,
   footer,
@@ -307,9 +353,13 @@ export function ModalDialog({
       {title && (
         <Box flexShrink={0} flexDirection="column">
           <Box justifyContent={titleAlign}>
-            <Text color={borderColor} bold>
-              {title}
-            </Text>
+            {hotkey ? (
+              formatTitleWithHotkey(title, hotkey, borderColor)
+            ) : (
+              <Text color={borderColor} bold>
+                {title}
+              </Text>
+            )}
           </Box>
           <Text> </Text>
         </Box>

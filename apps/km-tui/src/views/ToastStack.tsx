@@ -15,6 +15,22 @@ interface ToastStackProps {
 }
 
 /**
+ * Simple ASCII progress bar: [████░░░░░░] 40%
+ */
+function ProgressBar({ progress, color }: { progress: number; color: string }): React.ReactElement {
+  const barWidth = 10
+  const clamped = Math.max(0, Math.min(1, progress))
+  const filled = Math.round(clamped * barWidth)
+  const empty = barWidth - filled
+  const pct = Math.round(clamped * 100)
+  return (
+    <Text color={color}>
+      {"[" + "\u2588".repeat(filled) + "\u2591".repeat(empty) + "] " + pct + "%"}
+    </Text>
+  )
+}
+
+/**
  * Single toast item in the stack
  */
 function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
@@ -71,6 +87,8 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
     >
       {/* Main message */}
       <Text color={color}>{content}</Text>
+      {/* Progress bar */}
+      {toast.progress != null && <ProgressBar progress={toast.progress} color={color} />}
       {/* Description on second line if present */}
       {toast.description && <Text dimColor>{toast.description}</Text>}
       {/* Show individual items if below threshold */}

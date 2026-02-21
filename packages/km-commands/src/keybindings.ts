@@ -748,7 +748,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
       { key: "g", super: true, commandId: "filter" },
-      { key: "d", super: true, commandId: "toggle_detail_pane" },
+      { key: "p", super: true, commandId: "toggle_detail_pane" },
       { key: ",", super: true, commandId: "settings" },
 
       // Favorites (0-9) — jump to favorite boards
