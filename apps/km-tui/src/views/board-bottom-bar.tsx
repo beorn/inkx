@@ -219,7 +219,7 @@ export function BottomBar({
         <Text color={modeColor} bold={modeBold} id="mode-label">
           {modeLabel}
         </Text>
-        <Text dimColor>{" "}</Text>
+        <Text dimColor> </Text>
         <Text dimColor id="pane-label">
           {paneLabel}
         </Text>

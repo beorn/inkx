@@ -113,10 +113,13 @@ function FolderDetailPane({
         {/* Title — yellow bg spans full width, text padded; dim when detail pane is not focused */}
         <Box width={fullWidth} backgroundColor={detailFocused ? "yellow" : undefined} paddingX={1}>
           <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
-            <Text dimColor bold={false}>[</Text>
+            <Text dimColor bold={false}>
+              [
+            </Text>
             <Text bold>D</Text>
-            <Text dimColor bold={false}>]</Text>
-            {" "}
+            <Text dimColor bold={false}>
+              ]
+            </Text>{" "}
             {renderRich(title)}
           </Text>
         </Box>
@@ -277,10 +280,13 @@ function TaskDetailPane({
 
           {/* Title — renderRich styles sigils but keeps all content visible */}
           <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
-            <Text dimColor bold={false}>[</Text>
+            <Text dimColor bold={false}>
+              [
+            </Text>
             <Text bold>D</Text>
-            <Text dimColor bold={false}>]</Text>
-            {" "}
+            <Text dimColor bold={false}>
+              ]
+            </Text>{" "}
             {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
             {renderRich(title)}
           </Text>
@@ -845,9 +851,7 @@ function OutlineTree({
               {showBody && <Text dimColor> \u2025 {bodyPreview}</Text>}
               {!isDone && hiddenCount > 0 && <Text dimColor>{` +${hiddenCount}`}</Text>}
             </Text>
-            {showKids && (
-              <OutlineTree repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
-            )}
+            {showKids && <OutlineTree repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />}
           </React.Fragment>
         )
       })}

@@ -1050,11 +1050,7 @@ describe("tag file section display", () => {
       () => {
         const nodes = item(
           "tags-folder",
-          item.file(
-            "#home",
-            item.section("Task A embed"),
-            item.section("Task B embed"),
-          ),
+          item.file("#home", item.section("Task A embed"), item.section("Task B embed")),
         )
 
         for (const node of nodes) {

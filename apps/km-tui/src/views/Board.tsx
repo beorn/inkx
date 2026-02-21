@@ -226,13 +226,7 @@ function BoardTopBar({
  * CursorAwareDetailPane - only subscribes to cursor position when visible.
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
-function CursorAwareDetailPane({
-  width,
-  height,
-}: {
-  width: number
-  height: number
-}): React.ReactElement | null {
+function CursorAwareDetailPane({ width, height }: { width: number; height: number }): React.ReactElement | null {
   // NODE MODEL V2: Use node-based cursor position for detail pane
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
@@ -321,8 +315,7 @@ export function BoardCore({
   // Calculate content area height - space between top and bottom bars
   // KeyBar and FindBar share a single slot (included in BOTTOM_BAR_HEIGHT), so no extra height needed
   const SYNC_PANE_HEIGHT = 6
-  const contentHeight =
-    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -505,9 +498,7 @@ export function BoardCore({
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && (
-            <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />
-          )}
+          {ui.showDetailPane && <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox
@@ -657,11 +648,7 @@ export function BoardCore({
         {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
         {/* Line 1 chrome: shared slot — only one visible at a time */}
         {ui.localSearch ? (
-          <FindBar
-            localSearch={ui.localSearch}
-            width={termWidth}
-            onQueryChange={handleFindQueryChange}
-          />
+          <FindBar localSearch={ui.localSearch} width={termWidth} onQueryChange={handleFindQueryChange} />
         ) : (
           <KeyBar ui={ui} termWidth={termWidth} />
         )}
@@ -953,14 +940,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
     () => deriveTreeConfig(ui, cardInnerWidth),
-    [
-      ui.viewMode,
-      ui.maxOutlineDepth,
-      ui.maxContentLines,
-      ui.iconStyle,
-      ui.borderMode,
-      cardInnerWidth,
-    ],
+    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.iconStyle, ui.borderMode, cardInnerWidth],
   )
 
   // Derive search highlight state for TreeNode rendering

@@ -138,11 +138,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (prev.isSelected !== next.isSelected) return false
 
   // Position (affects key lookups and child selection)
-  if (
-    prev.colIndex !== next.colIndex ||
-    prev.cardIndex !== next.cardIndex ||
-    prev.depth !== next.depth
-  ) {
+  if (prev.colIndex !== next.colIndex || prev.cardIndex !== next.cardIndex || prev.depth !== next.depth) {
     return false
   }
 
@@ -215,13 +211,7 @@ function TreeNodeImpl({
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
     useTreeRenderContext()
-  const {
-    maxOutlineDepth: maxDepth,
-    maxContentLines,
-    variant,
-    iconStyle,
-    cardInnerWidth,
-  } = treeConfig
+  const { maxOutlineDepth: maxDepth, maxContentLines, variant, iconStyle, cardInnerWidth } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -309,11 +299,7 @@ function TreeNodeImpl({
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const effectiveBg =
-    isSearchMatch && !isSelected && !isMultiSelected
-      ? isCurrentMatch
-        ? "#665500"
-        : "#333300"
-      : style.backgroundColor
+    isSearchMatch && !isSelected && !isMultiSelected ? (isCurrentMatch ? "#665500" : "#333300") : style.backgroundColor
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)

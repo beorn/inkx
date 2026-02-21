@@ -126,8 +126,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
               maxRendered={MAX_RENDERED_ITEMS}
               keyExtractor={(card) => card.id}
               renderItem={(card: KNode, actualCardIndex: number) => {
-                const isCardSelected =
-                  selectionLevel === "card" && card.id === cursorCardNodeId
+                const isCardSelected = selectionLevel === "card" && card.id === cursorCardNodeId
 
                 return (
                   <MemoizedTreeCard

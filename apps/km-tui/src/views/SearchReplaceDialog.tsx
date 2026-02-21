@@ -51,13 +51,7 @@ function DialogInput({
   return <ActiveInput value={value} onChange={onChange} />
 }
 
-function ActiveInput({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (value: string) => void
-}): React.ReactElement {
+function ActiveInput({ value, onChange }: { value: string; onChange: (value: string) => void }): React.ReactElement {
   const { beforeCursor, afterCursor } = useEditContext({
     initialValue: value,
     onConfirm: () => {
@@ -121,9 +115,7 @@ export function SearchReplaceDialog({
       {/* Title bar */}
       <Box flexDirection="row" justifyContent="space-between">
         {formatTitleWithHotkey("Find & Replace", "F", "cyan")}
-        {matchIndicator && (
-          <Text color={matchCount === 0 ? "red" : "yellow"}>{matchIndicator}</Text>
-        )}
+        {matchIndicator && <Text color={matchCount === 0 ? "red" : "yellow"}>{matchIndicator}</Text>}
       </Box>
 
       {/* Search field */}
@@ -132,11 +124,7 @@ export function SearchReplaceDialog({
           {focusedField === "search" ? "> " : "  "}
           Find:{" "}
         </Text>
-        <DialogInput
-          value={searchQuery}
-          onChange={onSearchChange}
-          isActive={focusedField === "search"}
-        />
+        <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
 
       {/* Replace field */}
@@ -145,19 +133,13 @@ export function SearchReplaceDialog({
           {focusedField === "replace" ? "> " : "  "}
           Repl:{" "}
         </Text>
-        <DialogInput
-          value={replaceQuery}
-          onChange={onReplaceChange}
-          isActive={focusedField === "replace"}
-        />
+        <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
 
       {/* Bottom bar: toggles + hints */}
       <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
         <Box flexDirection="row" gap={1}>
-          <Text color={useRegex ? "green" : "gray"}>
-            [{useRegex ? "x" : " "}] regex
-          </Text>
+          <Text color={useRegex ? "green" : "gray"}>[{useRegex ? "x" : " "}] regex</Text>
         </Box>
         <Box flexDirection="row" gap={1}>
           <Text dimColor>Tab:field</Text>

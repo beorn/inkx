@@ -12,13 +12,7 @@ import React from "react"
 import { Box, Text } from "inkx"
 import { ModalDialog, InputBox } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import {
-  getAllCommands,
-  getAllKeybindings,
-  fuzzyMatch,
-  type CommandDef,
-  type Keybinding,
-} from "@km/commands"
+import { getAllCommands, getAllKeybindings, fuzzyMatch, type CommandDef, type Keybinding } from "@km/commands"
 
 // =============================================================================
 // Types
@@ -208,13 +202,7 @@ function scoreResult(result: OmniboxResult, query: string): number {
 // Result Item Component
 // =============================================================================
 
-function ResultItem({
-  result,
-  isSelected,
-}: {
-  result: OmniboxResult
-  isSelected: boolean
-}): React.ReactElement {
+function ResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
 
   return (
@@ -254,12 +242,7 @@ interface OmniboxProps {
   maxHeight: number
 }
 
-export function Omnibox({
-  onSelect,
-  onCancel,
-  width,
-  maxHeight,
-}: OmniboxProps): React.ReactElement {
+export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps): React.ReactElement {
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
   // Stable refs for callbacks used in useDialogInput closures
@@ -275,8 +258,7 @@ export function Omnibox({
     initialValue: "",
     onChange: () => setSelectedIndex(0),
     navUp: () => setSelectedIndex((i) => Math.max(0, i - 1)),
-    navDown: () =>
-      setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
+    navDown: () => setSelectedIndex((i) => Math.min(i + 1, Math.max(0, resultsRef.current.length - 1))),
     onConfirm: () => {
       const selected = resultsRef.current[selectedIndexRef.current]
       if (selected) {
@@ -289,14 +271,8 @@ export function Omnibox({
   // Build results (memoized — keybinding map and goto results are static)
   const keybindingMap = React.useMemo(() => buildKeybindingMap(), [])
   const gotoResults = React.useMemo(() => buildGotoResults(), [])
-  const commandResults = React.useMemo(
-    () => buildCommandResults(keybindingMap),
-    [keybindingMap],
-  )
-  const allResults = React.useMemo(
-    () => [...gotoResults, ...commandResults],
-    [gotoResults, commandResults],
-  )
+  const commandResults = React.useMemo(() => buildCommandResults(keybindingMap), [keybindingMap])
+  const allResults = React.useMemo(() => [...gotoResults, ...commandResults], [gotoResults, commandResults])
 
   // Filter and sort results based on query
   const query = editCtx.value.trim()
@@ -321,13 +297,7 @@ export function Omnibox({
   const resultCount = filteredResults.length
   const scrollOffset =
     resultCount > 0
-      ? Math.max(
-          0,
-          Math.min(
-            selectedIndex - Math.floor(maxVisible / 2),
-            Math.max(0, resultCount - maxVisible),
-          ),
-        )
+      ? Math.max(0, Math.min(selectedIndex - Math.floor(maxVisible / 2), Math.max(0, resultCount - maxVisible)))
       : 0
 
   // Auto-size dialog height
@@ -350,13 +320,7 @@ export function Omnibox({
   )
 
   return (
-    <ModalDialog
-      title="Command Palette"
-      hotkey=":"
-      width={width}
-      height={dialogHeight}
-      footer={footerContent}
-    >
+    <ModalDialog title="Command Palette" hotkey=":" width={width} height={dialogHeight} footer={footerContent}>
       {/* Search input */}
       <Box flexShrink={0}>
         <InputBox
@@ -376,13 +340,7 @@ export function Omnibox({
         ) : (
           visibleResults.map((result, i) => {
             const actualIndex = scrollOffset + i
-            return (
-              <ResultItem
-                key={result.key}
-                result={result}
-                isSelected={actualIndex === selectedIndex}
-              />
-            )
+            return <ResultItem key={result.key} result={result} isSelected={actualIndex === selectedIndex} />
           })
         )}
       </Box>

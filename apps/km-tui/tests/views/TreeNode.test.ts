@@ -19,11 +19,7 @@ describe("makeSelectionKey", () => {
   })
 
   it("creates unique keys for different nodes", () => {
-    const keys = new Set([
-      makeSelectionKey("node-1"),
-      makeSelectionKey("node-2"),
-      makeSelectionKey("node-3"),
-    ])
+    const keys = new Set([makeSelectionKey("node-1"), makeSelectionKey("node-2"), makeSelectionKey("node-3")])
     expect(keys.size).toBe(3)
   })
 })

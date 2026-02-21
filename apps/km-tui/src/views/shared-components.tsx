@@ -285,11 +285,7 @@ export interface ModalDialogProps {
  *
  * Brackets are dim, the hotkey letter is bold/bright.
  */
-export function formatTitleWithHotkey(
-  title: string,
-  hotkey: string,
-  color?: string,
-): React.ReactElement {
+export function formatTitleWithHotkey(title: string, hotkey: string, color?: string): React.ReactElement {
   const idx = title.toLowerCase().indexOf(hotkey.toLowerCase())
   if (idx >= 0 && hotkey.length === 1 && hotkey.toLowerCase() !== hotkey.toUpperCase()) {
     // Letter found in title — highlight it inline: prefix + [X] + rest
@@ -299,9 +295,13 @@ export function formatTitleWithHotkey(
     return (
       <Text color={color} bold>
         {before}
-        <Text dimColor bold={false}>[</Text>
+        <Text dimColor bold={false}>
+          [
+        </Text>
         <Text bold>{matched}</Text>
-        <Text dimColor bold={false}>]</Text>
+        <Text dimColor bold={false}>
+          ]
+        </Text>
         {after}
       </Text>
     )
@@ -309,10 +309,13 @@ export function formatTitleWithHotkey(
   // Hotkey not in title (or symbol) — prepend [X] Title
   return (
     <Text color={color} bold>
-      <Text dimColor bold={false}>[</Text>
+      <Text dimColor bold={false}>
+        [
+      </Text>
       <Text bold>{hotkey}</Text>
-      <Text dimColor bold={false}>]</Text>
-      {" "}
+      <Text dimColor bold={false}>
+        ]
+      </Text>{" "}
       {title}
     </Text>
   )

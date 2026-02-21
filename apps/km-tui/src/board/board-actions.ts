@@ -74,11 +74,7 @@ import {
   handleZoomInwards,
   handleZoomOutwards,
 } from "./board-actions-zoom.ts"
-import {
-  handleLocalFindOpen,
-  handleLocalFindNext,
-  handleLocalFindPrev,
-} from "./board-actions-find.ts"
+import { handleLocalFindOpen, handleLocalFindNext, handleLocalFindPrev } from "./board-actions-find.ts"
 import {
   handleSearchReplaceOpen,
   handleSearchReplaceNext,

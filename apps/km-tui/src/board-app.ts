@@ -205,11 +205,7 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
  * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
  * Call from React callbacks (e.g., omnibox onSelect) that have store access.
  */
-export function dispatchCommandById(
-  commandId: string,
-  get: () => BoardAppStore,
-  exitApp: () => void = () => {},
-): void {
+export function dispatchCommandById(commandId: string, get: () => BoardAppStore, exitApp: () => void = () => {}): void {
   ensureCommandSystemInitialized()
   const ctx = buildActionCtx(get, exitApp)
 

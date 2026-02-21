@@ -51,9 +51,7 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("typing a query updates match count", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("box"), item("dog"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("box"), item("dog"))))
     board.press("/")
     // Type "ox" — should match "fox" and "box"
     board.press("o")
@@ -67,9 +65,7 @@ describe("Local Find", () => {
   })
 
   test("match count displays on screen", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("fox"), item("box"), item("dog"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("fox"), item("box"), item("dog"))))
     board.press("/")
     // Type "ox" — matches fox, box
     board.press("o")
@@ -79,9 +75,7 @@ describe("Local Find", () => {
   })
 
   test("no matches shows 'No matches' indicator", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("alpha"), item("beta"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
     board.press("/")
     board.press("z")
     board.press("z")
@@ -91,9 +85,7 @@ describe("Local Find", () => {
   })
 
   test("search is case-insensitive", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("Alpha"), item("BETA"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("Alpha"), item("BETA"))))
     board.press("/")
     // Type "alp" to match only "Alpha"
     board.press("a")
@@ -110,12 +102,8 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("typing moves cursor to first match", () => {
-    const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("apple"), item("banana")),
-        item("col2", item("cherry"), item("apricot")),
-      ),
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("apple"), item("banana")), item("col2", item("cherry"), item("apricot"))),
       { columns: 120 },
     )
     // Cursor starts on "apple" (first card, first column)
@@ -140,9 +128,7 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("Enter confirms and exits input mode", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"), item("box"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
     board.press("/")
     // "ox" matches fox and box
     board.press("o")
@@ -158,9 +144,7 @@ describe("Local Find", () => {
   })
 
   test("n navigates to next match after Enter", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"), item("box"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
     board.press("/")
     // "ox" matches fox (index 0) and box (index 1)
     board.press("o")
@@ -177,9 +161,7 @@ describe("Local Find", () => {
   })
 
   test("N navigates to previous match after Enter", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"), item("box"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
     board.press("/")
     // "ox" matches fox (index 0) and box (index 1)
     board.press("o")
@@ -193,9 +175,7 @@ describe("Local Find", () => {
   })
 
   test("n wraps around from last to first match", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"), item("box"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
     board.press("/")
     // "ox" matches fox and box (2 matches)
     board.press("o")
@@ -213,9 +193,7 @@ describe("Local Find", () => {
   })
 
   test("Escape after Enter closes find bar entirely", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"))))
     board.press("/")
     board.press("o")
     board.press("x")
@@ -231,9 +209,7 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("match indicator updates as query changes", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("fox"), item("foxy"), item("dog"))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("fox"), item("foxy"), item("dog"))))
     board.press("/")
     // "fox" matches fox and foxy
     board.press("f")
@@ -247,9 +223,7 @@ describe("Local Find", () => {
   })
 
   test("clearing query resets match count", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("fox"), item("dog"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"))))
     board.press("/")
     // "fox" matches only "fox"
     board.press("f")

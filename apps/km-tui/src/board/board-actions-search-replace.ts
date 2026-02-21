@@ -130,9 +130,7 @@ export function handleSearchReplaceToggleRegex(ctx: ActionCtx): ActionResult {
   if (!sr) return ok()
 
   const newUseRegex = !sr.useRegex
-  const matches = sr.searchQuery
-    ? searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, sr.searchQuery, newUseRegex)
-    : []
+  const matches = sr.searchQuery ? searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, sr.searchQuery, newUseRegex) : []
 
   // Navigate to first match
   if (matches.length > 0 && matches[0]) {

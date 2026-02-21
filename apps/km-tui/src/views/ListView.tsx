@@ -52,11 +52,7 @@ interface ListViewProps {
   height: number
 }
 
-export function ListView({
-  columns: columnsProp,
-  width,
-  height,
-}: ListViewProps): React.ReactElement {
+export function ListView({ columns: columnsProp, width, height }: ListViewProps): React.ReactElement {
   const { treeConfig, rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
 
@@ -172,14 +168,7 @@ export function ListView({
         />
       )
     },
-    [
-      cursorCardNodeId,
-      cursorColumnNodeId,
-      selectionLevel,
-      width,
-      getCachedBoardPills,
-      columnExcludedSigilsByCol,
-    ],
+    [cursorCardNodeId, cursorColumnNodeId, selectionLevel, width, getCachedBoardPills, columnExcludedSigilsByCol],
   )
 
   // Empty state

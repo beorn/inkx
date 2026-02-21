@@ -215,9 +215,7 @@ describe("Escape Layering", () => {
   })
 
   test("pane open + selection: Escape closes pane, clears selection, then bells", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col", item("1a"), item("1b"), item("1c"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Create selection
     board.press("Shift+ArrowDown")

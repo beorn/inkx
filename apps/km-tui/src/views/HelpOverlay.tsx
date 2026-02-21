@@ -167,9 +167,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
   const canScrollUp = clampedOffset > 0
   const canScrollDown = clampedOffset < maxScroll
   const scrollHint =
-    canScrollUp || canScrollDown
-      ? `${canScrollUp ? "\u2191" : " "}j/k scroll${canScrollDown ? "\u2193" : " "}`
-      : ""
+    canScrollUp || canScrollDown ? `${canScrollUp ? "\u2191" : " "}j/k scroll${canScrollDown ? "\u2193" : " "}` : ""
 
   // Center the box
   const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))

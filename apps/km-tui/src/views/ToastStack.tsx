@@ -23,11 +23,7 @@ function ProgressBar({ progress, color }: { progress: number; color: string }): 
   const filled = Math.round(clamped * barWidth)
   const empty = barWidth - filled
   const pct = Math.round(clamped * 100)
-  return (
-    <Text color={color}>
-      {"[" + "\u2588".repeat(filled) + "\u2591".repeat(empty) + "] " + pct + "%"}
-    </Text>
-  )
+  return <Text color={color}>{"[" + "\u2588".repeat(filled) + "\u2591".repeat(empty) + "] " + pct + "%"}</Text>
 }
 
 /**

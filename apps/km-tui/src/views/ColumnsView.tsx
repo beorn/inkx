@@ -57,12 +57,7 @@ interface ColumnTreeProps {
  * ScrollTrackingVirtualList handles cardIndex subscription.
  * Cards use CursorStore self-subscription for selection state.
  */
-const ColumnTree = React.memo(function ColumnTree({
-  column,
-  colIndex,
-  width,
-  height,
-}: ColumnTreeProps) {
+const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, height }: ColumnTreeProps) {
   const repo = useRepo()
   const {
     treeConfig: { iconStyle },
@@ -221,12 +216,7 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
           gap={1}
           scrollTo={colIndex}
           renderItem={(col, index) => (
-            <ColumnTree
-              column={col}
-              colIndex={index}
-              width={expandedWidth}
-              height={columnHeight}
-            />
+            <ColumnTree column={col} colIndex={index} width={expandedWidth} height={columnHeight} />
           )}
           renderOverflowIndicator={(dir) => <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />}
           overflowIndicatorWidth={1}
