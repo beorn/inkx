@@ -141,8 +141,8 @@ const KM_PATTERNS = [
   },
 ]
 
-/** Sigil pattern: @mentions, #tags, +projects */
-const SIGIL_RE = /([@#\+])([\p{L}\p{N}_-]+)/gu
+/** Sigil pattern: @mentions, #tags, +projects (includes / and . for nested projects) */
+const SIGIL_RE = /([@#\+])([\p{L}\p{N}_\/.-]+)/gu
 
 /**
  * Parse km-specific syntax from a text node.

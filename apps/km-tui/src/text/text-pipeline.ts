@@ -14,40 +14,12 @@
 // Canonical Patterns (Unicode-aware)
 // =============================================================================
 
-/** Match @mentions: @person-name (Unicode letters/digits/underscore/hyphen) */
-export const MENTION_PATTERN = /@([\p{L}\p{N}_-]+)/gu
-
-/** Match #tags: #tag-name */
-export const TAG_PATTERN = /#([\p{L}\p{N}_-]+)/gu
-
-/** Match +projects: +project-name (also allows / and . for nested projects) */
-export const PROJECT_PATTERN = /\+([\p{L}\p{N}_/.-]+)/gu
-
-/** Combined sigil pattern: captures prefix and name separately */
-export const SIGIL_PATTERN = /([@#\+])([\p{L}\p{N}_-]+)/gu
+/** Combined sigil pattern: captures prefix and name separately (includes / and . for nested projects) */
+export const SIGIL_PATTERN = /([@#\+])([\p{L}\p{N}_\/.-]+)/gu
 
 // =============================================================================
 // Extraction Helpers
 // =============================================================================
-
-/**
- * Extract display text and target from a wiki link content.
- * For [[path|alias]], returns { display: "alias", target: "path" }.
- * For [[text]], returns { display: "text", target: "text" }.
- */
-export function extractLinkParts(linkContent: string): {
-  display: string
-  target: string
-} {
-  if (linkContent.includes("|")) {
-    const parts = linkContent.split("|")
-    return {
-      target: parts[0] ?? linkContent,
-      display: parts[1] ?? linkContent,
-    }
-  }
-  return { display: linkContent, target: linkContent }
-}
 
 /**
  * Extract all references from text in a single pass (Unicode-aware).

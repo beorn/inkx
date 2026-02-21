@@ -2,9 +2,8 @@
  * Inline AST Types
  *
  * Typed nodes representing parsed inline markdown content.
- * Used by InlineComponents.tsx for JSX rendering and by the
- * future inline parser (Phase 2) that will replace the regex
- * text pipeline.
+ * Used by inline-parser.ts (parseInlineText) for parsing and
+ * InlineComponents.tsx (InlineText) for JSX rendering.
  */
 
 // =============================================================================

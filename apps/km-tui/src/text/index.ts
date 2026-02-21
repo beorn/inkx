@@ -12,16 +12,8 @@
  * - `InlineComponents` - InlineNode[] → React JSX rendering
  */
 
-// Text pipeline utilities (kept: extractRefs, extractLinkParts, prettifyUrl, patterns)
-export {
-  extractRefs,
-  extractLinkParts,
-  prettifyUrl,
-  SIGIL_PATTERN,
-  MENTION_PATTERN,
-  TAG_PATTERN,
-  PROJECT_PATTERN,
-} from "./text-pipeline.ts"
+// Text pipeline utilities (extractRefs, prettifyUrl, SIGIL_PATTERN)
+export { extractRefs, prettifyUrl, SIGIL_PATTERN } from "./text-pipeline.ts"
 
 // Icon utilities (moved from @km/tui-core)
 export {
