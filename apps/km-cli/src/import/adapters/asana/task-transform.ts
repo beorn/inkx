@@ -19,7 +19,7 @@ function unescapeUrlUnderscores(md: string): string {
     return `[${text.replace(/\\_/g, "_")}](`
   })
   // Fix in bare URLs: https://...\_... → https://..._...
-  result = result.replace(/(https?:\/\/\S*)\\_/g, (match) => match.replace(/\\_/g, "_"))
+  result = result.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
   return result
 }
 

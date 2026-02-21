@@ -191,6 +191,11 @@ function buildTaskContent(
 function buildBodyContent(item: ImportItem): string | null {
   if (!item.body?.trim()) return null
   let text = convertAsanaLinks(item.body.trim())
+  // Fix escaped underscores in URLs (Turndown escapes _ to \_ in text nodes)
+  text = text.replace(/\[([^\]]*\\_[^\]]*)\]\(/g, (_match, linkText: string) => {
+    return `[${linkText.replace(/\\_/g, "_")}](`
+  })
+  text = text.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
   // Clean up redundant [url](url) → <url> autolinks
   text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
   return text
