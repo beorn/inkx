@@ -28,8 +28,7 @@ describe("body indicator (···)", () => {
   test("does NOT show ··· on column headers (body content visible as cards)", () => {
     // Column with body children (paragraphs) — these are shown as cards in the column
     const { board } = testEnv(
-      () =>
-        item("board", item("col-with-body", item.paragraph("Body paragraph"), item("regular-card")), item("col2")),
+      () => item("board", item("col-with-body", item.paragraph("Body paragraph"), item("regular-card")), item("col2")),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
@@ -43,18 +42,14 @@ describe("body indicator (···)", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item("card-with-body", item.paragraph("Hidden body text"), item.paragraph("More hidden text")),
-          ),
+          item("col1", item("card-with-body", item.paragraph("Hidden body text"), item.paragraph("More hidden text"))),
           item("col2", item("card2")),
         ),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    // Fold the card's children with zc (fold_node)
-    board.press("z")
-    board.press("c")
+    // Fold the card's children with H (fold_node)
+    board.press("H")
 
     // Now ··· should show because body children are hidden (folded)
     const screen = board.screenshot()

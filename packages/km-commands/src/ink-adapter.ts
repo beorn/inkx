@@ -81,6 +81,8 @@ export interface InkCommandResult {
   handled: boolean
   /** If set, a chord is pending (show in status bar, start timeout) */
   pending?: string
+  /** True when a chord prefix+suffix resolved to a command (for which-key popup dismissal) */
+  chordResolved?: boolean
 }
 
 /** Check if a blocking modal is active (chords should not activate during these) */
@@ -150,7 +152,7 @@ export function processInkKey(
         return { commandId: null, actions: null, handled: true, pending: chordResult.prefix }
       case "resolved": {
         const actions = executeCommand(chordResult.commandId, ctx)
-        return { commandId: chordResult.commandId, actions, handled: true }
+        return { commandId: chordResult.commandId, actions, handled: true, chordResolved: true }
       }
       case "replay": {
         // Execute the standalone command

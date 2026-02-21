@@ -23,7 +23,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(initialTopBar).toContain("board")
 
     // Zoom into "section" (e on card with children)
-    board.press("e")
+    board.press("z")
     // Now section is the root, subsection should be a column
     board.expect("#subsection").toExist()
 
@@ -46,11 +46,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom into Frontend
-    board.press("e")
+    board.press("z")
     board.expect("#React").toExist()
 
     // Zoom into React
-    board.press("e")
+    board.press("z")
     board.expect("#hooks").toExist()
 
     const topBar = board.q("#top-bar").textContent()
@@ -75,8 +75,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom deep
-    board.press("e") // into VeryLongSectionNameHere
-    board.press("e") // into VeryLongSubsectionName
+    board.press("z") // into VeryLongSectionNameHere
+    board.press("z") // into VeryLongSubsectionName
 
     const topBar = board.q("#top-bar").textContent()
     // Path should be truncated with ellipsis when it doesn't fit
@@ -92,7 +92,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom into parent
-    board.press("e")
+    board.press("z")
     board.expect("#child").toExist()
 
     // The top bar should contain all ancestors
@@ -107,8 +107,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom in twice
-    board.press("e") // into level1
-    board.press("e") // into level2
+    board.press("z") // into level1
+    board.press("z") // into level2
     let topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
@@ -156,11 +156,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom to Work level (simulating what search does)
-    board.press("e") // zoom into Work
+    board.press("z") // zoom into Work
     board.expect("#Immigration").toExist()
 
     // Zoom into Immigration
-    board.press("e")
+    board.press("z")
     board.expect("#form-i130").toExist()
 
     // Top bar should show the full path so user knows where they are
@@ -184,7 +184,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 
     board.press("h") // back to Alpha
     board.press("j") // to deep1 card
-    board.press("e") // zoom into deep1
+    board.press("z") // zoom into deep1
 
     const topBarZoomed = board.screenshot().split("\n")[0] ?? ""
     // Should contain "deep1" and NOT have ghost chars from "Beta"

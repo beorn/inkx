@@ -182,8 +182,8 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")
     expect(repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
 
-    // Zoom in (e) then escape back out
-    board.press("e") // zoom into Task One
+    // Zoom in (z) then escape back out
+    board.press("z") // zoom into Task One
 
     // Content should still be intact after zoom
     expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")

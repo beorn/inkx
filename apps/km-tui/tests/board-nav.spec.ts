@@ -664,17 +664,17 @@ describe("Boundaries and Edge Cases", () => {
       board.expect("#task[data-cursor]").toExist()
 
       // [ when no history
-      board.press("[")
+      board.press("{")
       board.expect("#task[data-cursor]").toExist()
 
       // ] when no forward history
-      board.press("]")
+      board.press("}")
       board.expect("#task[data-cursor]").toExist()
 
       // z on column header does nothing
       board.press("k")
       board.expect("#col[data-cursor]").toExist()
-      board.press("z").press("M")
+      board.press("<")
       board.expect("#col[data-cursor]").toExist()
     })
 
@@ -687,7 +687,7 @@ describe("Boundaries and Edge Cases", () => {
       board.expect("#leaf[data-cursor]").toExist()
 
       // z on card without children
-      board.press("z").press("M")
+      board.press("<")
       board.expect("#leaf[data-cursor]").toExist()
     })
   })

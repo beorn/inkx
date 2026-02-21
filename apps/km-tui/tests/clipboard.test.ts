@@ -121,7 +121,7 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Select A and B using Shift+J (extend selection down)
-    board.press("J") // extends selection to include A and B
+    board.press("Shift+ArrowDown") // extends selection to include A and B
 
     // Copy selection
     board.press("Control+c")

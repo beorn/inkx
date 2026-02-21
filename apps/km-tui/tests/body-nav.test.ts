@@ -340,7 +340,7 @@ describe("body column navigation after zoom", () => {
 
     // Navigate to column header and zoom in to root-section
     board.press("k") // body-text → root-section column header
-    board.press("e") // zoom into root-section
+    board.press("z") // zoom into root-section
 
     // After zoom, cursor on first body card
     board.expect("#body-text[data-cursor]").toExist()
@@ -363,7 +363,7 @@ describe("body column navigation after zoom", () => {
 
     // Navigate to column header and zoom
     board.press("k") // body-p → root4 column header
-    board.press("e") // zoom into root4
+    board.press("z") // zoom into root4
 
     board.expect("#body-p[data-cursor]").toExist()
 
@@ -403,7 +403,7 @@ describe("zoom into node with body content: cursor placement", () => {
     expect(driver.getState().selectedNodeId).toBe("target-card")
 
     // Zoom in (e)
-    driver.press("e")
+    driver.press("z")
     expect(driver.store.getState().rootId).toBe("target-card")
 
     // Cursor should be on first body card (intro-text), not stuck on board level
@@ -426,7 +426,7 @@ describe("zoom into node with body content: cursor placement", () => {
     const driver = createBoardDriver(repo, "board")
 
     // Zoom into section-with-hr
-    driver.press("e")
+    driver.press("z")
     expect(driver.store.getState().rootId).toBe("section-with-hr")
 
     // Cursor should NOT be stuck on board level — should be on a navigable card
@@ -455,7 +455,7 @@ describe("zoom into node with body content: cursor placement", () => {
     )
 
     // Zoom into target (cursor starts on target)
-    board.press("e")
+    board.press("z")
 
     // After zoom, cursor should be on first body card
     board.expect(cursor("body1")).toExist()
@@ -483,7 +483,7 @@ describe("zoom into node with body content: cursor placement", () => {
     const driver = createBoardDriver(repo, "board")
 
     // Zoom into section
-    driver.press("e")
+    driver.press("z")
     expect(driver.store.getState().rootId).toBe("section")
 
     // Navigate to board level first
@@ -527,7 +527,7 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const driver = createBoardDriver(repo, "board")
 
     // Zoom into root-section
-    driver.press("e")
+    driver.press("z")
     expect(driver.store.getState().rootId).toBe("root-section")
 
     // Navigate to board level
@@ -559,7 +559,7 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const driver = createBoardDriver(repo, "board")
 
     // Zoom into target
-    driver.press("e")
+    driver.press("z")
     expect(driver.store.getState().rootId).toBe("target")
 
     // Cursor should NOT be on the HR (it's filtered from columns)
@@ -607,7 +607,7 @@ describe("real vault scenario: zoom into section with mixed columns", () => {
     )
 
     // Zoom into "landing" → becomes root, children become columns
-    board.press("e")
+    board.press("z")
 
     // Now at column level or card level in the zoomed view
     // Navigate to agent-instructions column's body card
@@ -642,9 +642,9 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // Cursor starts on body column (first non-collapsed column).
-    // Press c to toggle collapse on body column — this triggers the bug:
+    // Press g.c to toggle collapse on body column — this triggers the bug:
     // "ERROR km:nav cursor node not in repo: __body__board, falling back to root"
-    board.press("c")
+    board.press("g").press("c")
 
     // Check no error was logged about __body__
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
@@ -659,7 +659,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // Body column is virtual/synthetic — collapse should be a boundary error (bell)
-    board.press("c")
+    board.press("g").press("c")
     expect(board.bell, "body column collapse should ring bell").toBe(true)
   })
 
@@ -668,12 +668,12 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
 
     const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
-    // c on body column (should be noop/boundary)
-    board.press("c")
+    // g.c on body column (should be noop/boundary)
+    board.press("g").press("c")
     // l to navigate to col1
     board.press("l")
-    // c to collapse col1 (this should work fine)
-    board.press("c")
+    // g.c to collapse col1 (this should work fine)
+    board.press("g").press("c")
 
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
       args.some((arg) => typeof arg === "string" && arg.includes("__body__")),

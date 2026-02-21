@@ -30,11 +30,7 @@ function isRoundBorderChar(c: string): boolean {
  * Verify that a node has round border characters on its left side.
  * The nodeBox is the content area — borders are 1 cell outside it.
  */
-function expectLeftBorder(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeId: string,
-  label: string,
-) {
+function expectLeftBorder(board: ReturnType<typeof testEnv>["board"], nodeId: string, label: string) {
   const box = board.screen.nodeBox(nodeId)
   expect(box, `${label}: node "${nodeId}" should be visible`).not.toBeNull()
   if (!box) return
@@ -54,10 +50,7 @@ function expectLeftBorder(
  * Collect border status for all given node IDs.
  * Returns an object mapping nodeId -> whether left border is intact.
  */
-function checkBorders(
-  board: ReturnType<typeof testEnv>["board"],
-  nodeIds: string[],
-): Record<string, boolean> {
+function checkBorders(board: ReturnType<typeof testEnv>["board"], nodeIds: string[]): Record<string, boolean> {
   const result: Record<string, boolean> = {}
   for (const id of nodeIds) {
     const box = board.screen.nodeBox(id)
@@ -82,26 +75,25 @@ describe("border rendering after detail pane close", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.section("Section A", item("task1"), item("task2"), item("task3")),
-          ),
-          item(
-            "col2",
-            item.section("Section B", item("task4"), item("task5"), item("task6")),
-          ),
-          item(
-            "col3",
-            item.section("Section C", item("task7"), item("task8")),
-          ),
+          item("col1", item.section("Section A", item("task1"), item("task2"), item("task3"))),
+          item("col2", item.section("Section B", item("task4"), item("task5"), item("task6"))),
+          item("col3", item.section("Section C", item("task7"), item("task8"))),
         ),
-      { columns: 120, rows: 30 },
+      { columns: 120, rows: 31 },
     )
 
     const allNodes = [
-      "Section A", "task1", "task2", "task3",
-      "Section B", "task4", "task5", "task6",
-      "Section C", "task7", "task8",
+      "Section A",
+      "task1",
+      "task2",
+      "task3",
+      "Section B",
+      "task4",
+      "task5",
+      "task6",
+      "Section C",
+      "task7",
+      "task8",
     ]
 
     // --- Phase 1: Verify borders are correct initially ---
@@ -120,13 +112,13 @@ describe("border rendering after detail pane close", () => {
     }
 
     // --- Phase 2: Open detail pane (Space) ---
-    board.press(" ")
+    board.press("D")
 
     // Detail pane should be open — board width shrinks, some nodes may move
     // We don't need to assert borders here, just that the state changed
 
     // --- Phase 3: Close detail pane (Space again) ---
-    board.press(" ")
+    board.press("D")
 
     // --- Phase 4: Verify ALL columns still have proper borders ---
     const afterBorders = checkBorders(board, allNodes)
@@ -152,26 +144,25 @@ describe("border rendering after detail pane close", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.section("Section A", item("task1"), item("task2"), item("task3")),
-          ),
-          item(
-            "col2",
-            item.section("Section B", item("task4"), item("task5"), item("task6")),
-          ),
-          item(
-            "col3",
-            item.section("Section C", item("task7"), item("task8")),
-          ),
+          item("col1", item.section("Section A", item("task1"), item("task2"), item("task3"))),
+          item("col2", item.section("Section B", item("task4"), item("task5"), item("task6"))),
+          item("col3", item.section("Section C", item("task7"), item("task8"))),
         ),
-      { columns: 120, rows: 30 },
+      { columns: 120, rows: 31 },
     )
 
     const allNodes = [
-      "Section A", "task1", "task2", "task3",
-      "Section B", "task4", "task5", "task6",
-      "Section C", "task7", "task8",
+      "Section A",
+      "task1",
+      "task2",
+      "task3",
+      "Section B",
+      "task4",
+      "task5",
+      "task6",
+      "Section C",
+      "task7",
+      "task8",
     ]
 
     // Verify initial borders
@@ -182,12 +173,12 @@ describe("border rendering after detail pane close", () => {
     }
 
     // Move to col2 first so h has somewhere to go
-    board.press("l")  // move to col2
+    board.press("l") // move to col2
 
     // Exact repro: open detail pane → navigate column → close detail pane
-    board.press(" ")  // open detail pane
-    board.press("h")  // move column left (key step that triggers the bug)
-    board.press(" ")  // close detail pane
+    board.press("D") // open detail pane
+    board.press("h") // move column left (key step that triggers the bug)
+    board.press("D") // close detail pane
 
     // All visible nodes must still have borders
     for (const id of allNodes) {
@@ -203,27 +194,18 @@ describe("border rendering after detail pane close", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.section("Section A", item("task1"), item("task2")),
-          ),
-          item(
-            "col2",
-            item.section("Section B", item("task3"), item("task4")),
-          ),
-          item(
-            "col3",
-            item.section("Section C", item("task5"), item("task6")),
-          ),
+          item("col1", item.section("Section A", item("task1"), item("task2"))),
+          item("col2", item.section("Section B", item("task3"), item("task4"))),
+          item("col3", item.section("Section C", item("task5"), item("task6"))),
         ),
-      { columns: 120, rows: 30 },
+      { columns: 120, rows: 31 },
     )
 
     const allNodes = ["Section A", "task1", "task2", "Section B", "task3", "task4", "Section C", "task5", "task6"]
 
-    board.press(" ")  // open detail pane
-    board.press("l")  // move column right
-    board.press(" ")  // close detail pane
+    board.press("D") // open detail pane
+    board.press("l") // move column right
+    board.press("D") // close detail pane
 
     for (const id of allNodes) {
       const box = board.screen.nodeBox(id)
@@ -246,7 +228,7 @@ describe("border rendering after detail pane close", () => {
           item("c5", item.section("S5", item("t5a"), item("t5b"), item("t5c"))),
           item("c6", item.section("S6", item("t6a"), item("t6b"), item("t6c"))),
         ),
-      { columns: 120, rows: 30 },
+      { columns: 120, rows: 31 },
     )
 
     // Navigate to middle column
@@ -254,18 +236,36 @@ describe("border rendering after detail pane close", () => {
     board.press("l") // col3
 
     // Exact repro: Space → h → Space
-    board.press(" ")  // open detail pane (board shrinks to ~60%)
-    board.press("h")  // move column left
-    board.press(" ")  // close detail pane (board expands back to 100%)
+    board.press("D") // open detail pane (board shrinks to ~60%)
+    board.press("h") // move column left
+    board.press("D") // close detail pane (board expands back to 100%)
 
     // Check all visible borders
     const allNodes = [
-      "S1", "t1a", "t1b", "t1c",
-      "S2", "t2a", "t2b", "t2c",
-      "S3", "t3a", "t3b", "t3c",
-      "S4", "t4a", "t4b", "t4c",
-      "S5", "t5a", "t5b", "t5c",
-      "S6", "t6a", "t6b", "t6c",
+      "S1",
+      "t1a",
+      "t1b",
+      "t1c",
+      "S2",
+      "t2a",
+      "t2b",
+      "t2c",
+      "S3",
+      "t3a",
+      "t3b",
+      "t3c",
+      "S4",
+      "t4a",
+      "t4b",
+      "t4c",
+      "S5",
+      "t5a",
+      "t5b",
+      "t5c",
+      "S6",
+      "t6a",
+      "t6b",
+      "t6c",
     ]
     for (const id of allNodes) {
       const box = board.screen.nodeBox(id)
@@ -279,14 +279,8 @@ describe("border rendering after detail pane close", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.section("Alpha", item("a1"), item("a2")),
-          ),
-          item(
-            "col2",
-            item.section("Beta", item("b1"), item("b2")),
-          ),
+          item("col1", item.section("Alpha", item("a1"), item("a2"))),
+          item("col2", item.section("Beta", item("b1"), item("b2"))),
         ),
       { columns: 100, rows: 25 },
     )
@@ -295,8 +289,8 @@ describe("border rendering after detail pane close", () => {
 
     // Toggle detail pane open/close 3 times to stress-test incremental rendering
     for (let cycle = 1; cycle <= 3; cycle++) {
-      board.press(" ") // open
-      board.press(" ") // close
+      board.press("D") // open
+      board.press("D") // close
 
       // After each close cycle, verify borders
       for (const id of nodes) {
@@ -325,8 +319,8 @@ describe("border rendering after detail pane close", () => {
     }
 
     // Open then close detail pane
-    board.press(" ")
-    board.press(" ")
+    board.press("D")
+    board.press("D")
 
     // Right column borders must still be intact
     for (const id of ["R1", "R2", "R3"]) {
@@ -375,7 +369,7 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       const driver = withDiagnostics(
         createBoardDriver(repo, boardRootId, {
           columns: 120,
-          rows: 30,
+          rows: 31,
           incremental: true,
         }),
         {
@@ -389,9 +383,9 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       await driver.cmd.right!()
 
       // Exact repro: Space → h → Space
-      await driver.press(" ")   // open detail pane
-      await driver.cmd.left!()  // move column left (h)
-      await driver.press(" ")   // close detail pane
+      await driver.press("D") // open detail pane
+      await driver.cmd.left!() // move column left (h)
+      await driver.press("D") // close detail pane
 
       // If withDiagnostics didn't throw, incremental matches fresh
     })
@@ -407,7 +401,7 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       const driver = withDiagnostics(
         createBoardDriver(repo, boardRootId, {
           columns: 120,
-          rows: 30,
+          rows: 31,
           incremental: true,
         }),
         {
@@ -418,9 +412,9 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       )
 
       // Exact repro variant: Space → l → Space
-      await driver.press(" ")   // open detail pane
+      await driver.press("D") // open detail pane
       await driver.cmd.right!() // move column right (l)
-      await driver.press(" ")   // close detail pane
+      await driver.press("D") // close detail pane
     })
   },
 )

@@ -527,6 +527,24 @@ interface ShiftRightAction {
   type: "SHIFT_RIGHT"
 }
 
+// Stub actions for v2 keybindings (TODO: implement handlers)
+interface ArchiveNodeAction {
+  type: "ARCHIVE_NODE"
+  nodeId: string
+}
+
+interface CaptureInboxAction {
+  type: "CAPTURE_INBOX"
+}
+
+interface CaptureDialogAction {
+  type: "CAPTURE_DIALOG"
+}
+
+interface SettingsAction {
+  type: "SETTINGS"
+}
+
 export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
@@ -593,6 +611,10 @@ export type TUIAction =
   | MoveToBoardAction
   | AddLinkAction
   | ReparentPickerAction
+  | ArchiveNodeAction
+  | CaptureInboxAction
+  | CaptureDialogAction
+  | SettingsAction
 
 export type UIAction =
   | ZoomOutwardsAction

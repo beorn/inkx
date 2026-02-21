@@ -47,6 +47,8 @@ import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-l
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { BottomBar } from "./board-bottom-bar.tsx"
+import { KeyBar } from "./key-bar.tsx"
+import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import {
@@ -235,6 +237,7 @@ function CursorAwareDetailPane({
   // NODE MODEL V2: Use node-based cursor position for detail pane
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
+  const detailFocused = useAppStore<BoardAppStore, boolean>((s) => s.ui.focusedPane === "detail")
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
   // Show detail for card, column, or board node (whichever cursor level)
@@ -251,7 +254,15 @@ function CursorAwareDetailPane({
   // Use 0 during the transitional render where node changed but effect hasn't fired yet
   const effectiveScrollOffset = node?.id !== prevNodeIdRef.current ? 0 : detailScrollOffset
   if (!node) return null
-  return <DetailPane node={node} width={width} height={height} scrollOffset={effectiveScrollOffset} />
+  return (
+    <DetailPane
+      node={node}
+      width={width}
+      height={height}
+      scrollOffset={effectiveScrollOffset}
+      focused={detailFocused}
+    />
+  )
 }
 
 /**
@@ -399,7 +410,6 @@ export function BoardCore({
                       column={col}
                       colIndex={index}
                       isCollapsed={collapsedNodes.has(col.node.id)}
-                      selectedSubIndex={ui.inOutlineMode ? ui.subIndex : -1}
                       width={collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
                       height={contentHeight}
                     />
@@ -419,7 +429,7 @@ export function BoardCore({
               resetKey={errorBoundaryResetKey}
               onError={handleRenderError}
             >
-              <ColumnsView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
+              <ColumnsView columns={columns} width={boardWidth} height={contentHeight} />
             </ErrorBoundary>
           ) : ui.viewMode === "list" ? (
             <ErrorBoundary
@@ -427,7 +437,7 @@ export function BoardCore({
               resetKey={errorBoundaryResetKey}
               onError={handleRenderError}
             >
-              <ListView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
+              <ListView columns={columns} width={boardWidth} height={contentHeight} />
             </ErrorBoundary>
           ) : (
             <ErrorBoundary
@@ -435,7 +445,7 @@ export function BoardCore({
               resetKey={errorBoundaryResetKey}
               onError={handleRenderError}
             >
-              <TabsView columns={columns} width={boardWidth} height={contentHeight} subIndex={ui.subIndex} />
+              <TabsView columns={columns} width={boardWidth} height={contentHeight} />
             </ErrorBoundary>
           )}
           {/* Detail pane — subscribes to cursor position independently */}
@@ -552,6 +562,10 @@ export function BoardCore({
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
+        {/* Which-key popup (shows chord suffixes when prefix is pending) */}
+        {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
+        {/* Key hint bar (context-sensitive shortcuts) */}
+        <KeyBar ui={ui} termWidth={termWidth} />
         {/* Bottom bar (includes status messages) */}
         <BottomBar
           ui={ui}
@@ -817,8 +831,6 @@ export function Board({ patchedConsole }: BoardProps) {
       ui.viewMode,
       ui.maxOutlineDepth,
       ui.maxContentLines,
-      ui.inOutlineMode,
-      ui.subIndex,
       ui.iconStyle,
       ui.borderMode,
       cardInnerWidth,

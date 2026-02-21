@@ -74,10 +74,8 @@ export interface UIState {
   showSyncPane: boolean
 
   // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
-  subIndex: number
-  inOutlineMode: boolean
   multiSelected: Set<SelectionKey>
-  selectionAnchor: { nodeId: string; sub: number } | null
+  selectionAnchor: { nodeId: string } | null
   selectAllLevel: number
 
   // Visual mode (vim-style: v enters, hjkl extends selection, Escape exits)
@@ -109,9 +107,7 @@ export interface UIState {
     colIndex: number
     cardIndex: number
     cursorNodeId: string | null
-    subIndex: number
     multiSelected: Set<SelectionKey>
-    inOutlineMode: boolean
     foldedNodes?: Set<string>
   }>
   navHistoryIndex: number
@@ -171,6 +167,12 @@ export interface UIState {
     level: "info" | "success" | "warning" | "error"
     message: string
   } | null
+
+  // Pending chord prefix (for which-key popup)
+  pendingChord: string | null
+
+  // Focus state — which pane has keyboard focus (board vs detail)
+  focusedPane: "board" | "detail"
 
   // Filter state — persistent property-based + text filter across views
   showFilterDialog: boolean
@@ -282,8 +284,6 @@ export function createInitialUIState(
     showConsole: false,
     showSyncPane: false,
 
-    subIndex: 0,
-    inOutlineMode: false,
     multiSelected: new Set(),
     selectionAnchor: null,
     selectAllLevel: 0,
@@ -330,6 +330,9 @@ export function createInitialUIState(
 
     bellState: null,
     status: null,
+    pendingChord: null,
+
+    focusedPane: "board",
 
     showFilterDialog: false,
     filterText: "",

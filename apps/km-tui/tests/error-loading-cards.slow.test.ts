@@ -42,11 +42,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(store.getState().cursorNodeId).toBe("wireframes")
 
     // Open detail pane
-    board.press(" ")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Close detail pane
-    board.press(" ")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
 
     // Navigate — this should NOT throw or show error
@@ -86,7 +86,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(store.getState().cursorNodeId).toBe("action-2")
 
     // Open detail pane
-    board.press(" ")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Close with Escape
@@ -176,11 +176,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(store.getState().cursorNodeId).toBe("milestone-2a")
 
     // Open detail pane
-    board.press(" ")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Close detail pane
-    board.press(" ")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
 
     // Navigate extensively — stress the ErrorBoundary recovery
@@ -221,8 +221,8 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-1b") board.press(c)
     board.press("Enter")
     expect(store.getState().cursorNodeId).toBe("card-1b")
-    board.press(" ") // open detail
-    board.press(" ") // close detail
+    board.press("P") // open detail
+    board.press("P") // close detail
     board.press("j")
 
     let output = board.screenshot()
@@ -237,7 +237,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-3a") board.press(c)
     board.press("Enter")
     expect(store.getState().cursorNodeId).toBe("card-3a")
-    board.press(" ") // open detail
+    board.press("P") // open detail
     board.press("Escape") // close detail with Escape (zooms out instead)
     board.press("j")
     board.press("l")

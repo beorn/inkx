@@ -71,7 +71,6 @@ export const MemoizedTreeCard = React.memo(
           isSelected={isSelected}
           colIndex={colIndex}
           cardIndex={cardIndex}
-          subIndex={0}
           children={children}
           getBoardPills={getBoardPills}
           extraExcludedSigils={extraExcludedSigils}

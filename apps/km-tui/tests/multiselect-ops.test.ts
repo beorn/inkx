@@ -46,8 +46,8 @@ describe("Multi-select delete", () => {
 
     // Cursor starts on A. Move to B, then extend selection B→D (2 J presses).
     board.press("j") // → B (card 1)
-    board.press("J") // anchor=B, multiSelected={B:0}, cursor→C
-    board.press("J") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
     board.press("Backspace")
 
@@ -61,8 +61,8 @@ describe("Multi-select delete", () => {
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    board.press("J") // anchor=A, multiSelected={A:0}, cursor→parent
-    board.press("J") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→parent
+    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
 
     board.press("Backspace")
 
@@ -78,8 +78,8 @@ describe("Multi-select delete", () => {
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    board.press("J") // anchor=A, cursor→parent
-    board.press("J") // range A→C, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, cursor→parent
+    board.press("Shift+ArrowDown") // range A→C, cursor→C
 
     board.press("Backspace") // triggers confirmation dialog
     board.press("Enter") // confirm delete
@@ -96,8 +96,8 @@ describe("Multi-select delete", () => {
     // Cursor starts on A. Move to C, extend C→E (2 J presses).
     board.press("j") // → B
     board.press("j") // → C
-    board.press("J") // anchor=C, cursor→D
-    board.press("J") // range C→E, cursor→E
+    board.press("Shift+ArrowDown") // anchor=C, cursor→D
+    board.press("Shift+ArrowDown") // range C→E, cursor→E
 
     board.press("Backspace")
 
@@ -109,8 +109,8 @@ describe("Multi-select delete", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("J") // anchor=A, cursor→B
-    board.press("J") // range A→C, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, cursor→C
 
     board.press("Backspace")
 
@@ -141,10 +141,10 @@ describe("Multi-select status toggle", () => {
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("J") // anchor=A, cursor→B
-    board.press("J") // range A→C, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, cursor→C
 
-    board.press("x") // batch toggle
+    board.press("X") // batch toggle
 
     // A, B, C should all advance to "wip"
     expect(nodeStatus(repo, "A")).toBe("wip")
@@ -161,13 +161,13 @@ describe("Multi-select status toggle", () => {
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("J") // anchor=A, cursor→B
-    board.press("J") // range A→C, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, cursor→C
 
-    board.press("x") // batch toggle: A→wip, B→wip, C→wip
+    board.press("X") // batch toggle: A→wip, B→wip, C→wip
 
     // Selection preserved: toggling again affects all selected cards
-    board.press("x")
+    board.press("X")
     expect(nodeStatus(repo, "A")).toBe("blocked") // wip→blocked
     expect(nodeStatus(repo, "B")).toBe("blocked") // wip→blocked
     expect(nodeStatus(repo, "C")).toBe("blocked") // wip→blocked
@@ -183,17 +183,17 @@ describe("Multi-select status toggle", () => {
 
     // Cursor starts on A. Move to B and cycle it to "blocked" (todo→wip→blocked)
     board.press("j") // → B
-    board.press("x") // todo→wip
-    board.press("x") // wip→blocked
+    board.press("X") // todo→wip
+    board.press("X") // wip→blocked
 
     expect(nodeStatus(repo, "B")).toBe("blocked")
 
     // Move back to A. Select A→C (2 J presses). A=todo, B=blocked, C=todo.
     board.press("k") // → A
-    board.press("J") // anchor=A, cursor→B
-    board.press("J") // range A→C, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, cursor→C
 
-    board.press("x") // batch toggle
+    board.press("X") // batch toggle
 
     // Each advances from its own position
     expect(nodeStatus(repo, "A")).toBe("wip") // todo→wip
@@ -209,7 +209,7 @@ describe("Multi-select status toggle", () => {
     // Navigate to trigger re-render so command system picks up task_status
     board.press("j") // → B
     board.press("k") // → A
-    board.press("x") // single toggle
+    board.press("X") // single toggle
 
     expect(nodeStatus(repo, "A")).toBe("wip")
     expect(nodeStatus(repo, "B")).toBe("todo") // unchanged

@@ -43,6 +43,7 @@ import { stripFgColor } from "../text/rich.ts"
 import { constrainText } from "inkx"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils, useUISelector } from "../ui-context.tsx"
+import { useCursorNodePosition } from "../cursor-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
 import {
@@ -93,7 +94,6 @@ interface TreeNodeProps {
   isSelected: boolean
   colIndex: number
   cardIndex: number
-  subIndex: number
   /** Dim child items when this subtree is not the active card (for cards view) */
   dimInactiveChildren?: boolean
   /** Pre-loaded children (optional - if not provided, fetched from storage) */
@@ -124,7 +124,7 @@ interface TreeNodeProps {
  * Custom comparison focuses on the fields that actually affect rendering:
  * - node.id, node.content, node.task_status (identity and display)
  * - isSelected (selection state)
- * - depth, colIndex, cardIndex, subIndex (position)
+ * - depth, colIndex, cardIndex (position)
  * - dimInactiveChildren (visual state)
  *
  * Callback props (getChildren, etc.) are compared by reference.
@@ -141,7 +141,6 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (
     prev.colIndex !== next.colIndex ||
     prev.cardIndex !== next.cardIndex ||
-    prev.subIndex !== next.subIndex ||
     prev.depth !== next.depth
   ) {
     return false
@@ -201,7 +200,6 @@ function TreeNodeImpl({
   isSelected,
   colIndex,
   cardIndex,
-  subIndex,
   dimInactiveChildren = false,
   children: childrenProp,
   childCount: childCountProp,
@@ -219,8 +217,6 @@ function TreeNodeImpl({
   const {
     maxOutlineDepth: maxDepth,
     maxContentLines,
-    inOutlineMode,
-    currentSubIndex,
     variant,
     iconStyle,
     cardInnerWidth,
@@ -228,7 +224,7 @@ function TreeNodeImpl({
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
-  const selectionKey = makeSelectionKey(node.id, subIndex)
+  const selectionKey = makeSelectionKey(node.id)
   const nodeState = useAppShallow<
     BoardAppStore,
     {
@@ -356,7 +352,11 @@ function TreeNodeImpl({
     const name = displayNode.name
     if (!name || !isSigilName(name)) return null
     // Normalize for comparison: lowercase, collapse non-alphanum to hyphens
-    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\p{L}]+/gu, "-").replace(/^-|-$/g, "")
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\p{L}]+/gu, "-")
+        .replace(/^-|-$/g, "")
     const nameNorm = normalize(name.slice(1)) // strip sigil prefix (@/#/+)
     const contentNorm = normalize(cleanContent)
     if (nameNorm === contentNorm) return null // redundant — name is a slugified version of the title
@@ -886,10 +886,7 @@ function TreeNodeImpl({
             children={isInlineEditing ? structuralChildren : visibleChildren}
             colIndex={colIndex}
             cardIndex={cardIndex}
-            startSubIndex={subIndex + 1}
             depth={depth}
-            inOutlineMode={inOutlineMode}
-            currentSubIndex={currentSubIndex}
             dimInactiveChildren={dimInactiveChildren}
             dim={dim || style.isDoneOrDropped}
             hiddenCount={isInlineEditing ? 0 : hiddenCount}
@@ -1079,10 +1076,7 @@ interface NodeChildrenProps {
   children: KNode[]
   colIndex: number
   cardIndex: number
-  startSubIndex: number
   depth: number
-  inOutlineMode: boolean
-  currentSubIndex: number
   dimInactiveChildren: boolean
   /** Force dim on all children (e.g., parent is done/dropped) */
   dim?: boolean
@@ -1104,10 +1098,7 @@ function NodeChildren({
   children,
   colIndex,
   cardIndex,
-  startSubIndex,
   depth,
-  inOutlineMode,
-  currentSubIndex,
   dimInactiveChildren,
   dim: parentDim = false,
   hiddenCount,
@@ -1133,12 +1124,14 @@ function NodeChildren({
       ]
     : children.map((c) => ({ node: c, isBody: false }))
 
+  // Get cursor position from CursorStore to determine which child is selected
+  const { cursorNodeId } = useCursorNodePosition()
+
   return (
     <Box flexDirection="column">
       {orderedChildren.map((item, i) => {
-        const childSubIndex = startSubIndex + i
-        // Body items are never selected in outline mode
-        const childSelected = inOutlineMode && currentSubIndex === childSubIndex && !item.isBody
+        // Body items are never selected in outline mode; structural items match by node ID
+        const childSelected = !item.isBody && cursorNodeId === item.node.id
 
         return (
           <TreeNode
@@ -1148,7 +1141,6 @@ function NodeChildren({
             isSelected={childSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
-            subIndex={childSubIndex}
             dim={parentDim}
             dimInactiveChildren={dimInactiveChildren || item.isBody}
             getChildren={getChildren}

@@ -52,8 +52,8 @@ function buildCommandContexts(ctx: ActionCtx) {
     inInputMode:
       ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog || ui.showFilterDialog || !!ui.datePrompt,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
-    isInDetailPane: ui.showDetailPane,
-    isInOutlineMode: ui.inOutlineMode,
+    isInDetailPane: ui.focusedPane === "detail",
+    isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
     textInputFocused:
       !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker || !!ui.datePrompt,

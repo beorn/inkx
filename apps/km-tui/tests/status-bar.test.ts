@@ -177,7 +177,7 @@ describe("Bottom bar VIEW indicator", () => {
       rows: 24,
       columns: 80,
     })
-    env.board.press("v") // Switch view mode
+    env.board.press("g").press("v") // Switch view mode (g.v chord)
     const text = env.board.screenshot()
     // Could be LIST, COLUMNS, or TABS
     expect(text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)

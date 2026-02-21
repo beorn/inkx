@@ -339,8 +339,8 @@ describe("Edit Operations", () => {
     board.press("Meta+h")
     board.expect("#col3[data-cursor]").toExist()
 
-    // Zoom in ('i' = zoom_inwards) — should not throw "cursor node not in repo"
-    board.press("i")
+    // Zoom in ('z' = zoom_inwards) — should not throw "cursor node not in repo"
+    board.press("z")
 
     // After zoom, root should be col3 and cursor on first child
     board.expect("#3a[data-cursor]").toExist()
@@ -510,7 +510,7 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("mm")
+    board.press("m").press("m")
 
     const output = board.screenshot()
     expect(output).toContain("[MOVE]")
@@ -520,7 +520,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("mm")
+    board.press("m").press("m")
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate to different column while in move mode
@@ -538,7 +538,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("mm")
+    board.press("m").press("m")
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate to col2
@@ -563,7 +563,7 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("mm")
+    board.press("m").press("m")
 
     // Can navigate while in move mode
     board.press("l")
@@ -578,7 +578,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("only"))))
     board.expect("#only[data-cursor]").toExist()
 
-    board.press("mm")
+    board.press("m").press("m")
     expect(board.screenshot()).toContain("[MOVE]")
 
     board.press("Escape")

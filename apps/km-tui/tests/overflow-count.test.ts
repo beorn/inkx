@@ -184,7 +184,7 @@ describe("overflow indicator on cards", () => {
     )
 
     // Zoom into zoomTarget via 'e'
-    board.press("e")
+    board.press("z")
 
     const screenshot = board.screenshot()
     // After zoom into zoomTarget: sectionA is column, card1 is a card

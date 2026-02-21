@@ -26,11 +26,11 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
           item("Beta", item("Beta item one"), item("Beta item two")),
           item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
         ),
-      { columns: 120, rows: 24 },
+      { columns: 120, rows: 25 },
     )
 
     // Switch to TABS view
-    board.press("v").press("v")
+    board.press("g").press("v").press("g").press("v")
 
     // Alpha tab should be active, breadcrumb should show Alpha
     let screen = board.screenshot()
@@ -66,10 +66,10 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
           item("Beta", item("Beta item one"), item("Beta item two")),
           item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
         ),
-      { columns: 120, rows: 24 },
+      { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("v")
+    board.press("g").press("v").press("g").press("v")
 
     const screen = board.screenshot()
     expect(screen).toContain("Alpha task one")
@@ -97,10 +97,10 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
           ),
           item("ref", item("Reference doc")),
         ),
-      { columns: 120, rows: 24 },
+      { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("v")
+    board.press("g").press("v").press("g").press("v")
 
     // First tab (TaskNotes) should show its content
     let screen = board.screenshot()
@@ -126,10 +126,10 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
           item("First", item("First-unique-content-AAA")),
           item("Second", item("Second-unique-content-BBB")),
         ),
-      { columns: 120, rows: 24 },
+      { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("v")
+    board.press("g").press("v").press("g").press("v")
 
     let screen = board.screenshot()
     expect(screen).toContain("First-unique-content-AAA")
@@ -155,10 +155,10 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
           item("Beta", item("Beta-unique-222")),
           item("Gamma", item("Gamma-unique-333")),
         ),
-      { columns: 120, rows: 24 },
+      { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("v")
+    board.press("g").press("v").press("g").press("v")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
     board.press("l").press("l").press("h").press("h").press("l")
@@ -180,7 +180,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
 
     const baseDriver = createBoardDriver(repo, "board", {
       columns: 120,
-      rows: 24,
+      rows: 25,
     })
 
     const driver = withDiagnostics(baseDriver, {
@@ -221,7 +221,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
 
     const baseDriver = createBoardDriver(repo, "board", {
       columns: 120,
-      rows: 24,
+      rows: 25,
     })
 
     const driver = withDiagnostics(baseDriver, {

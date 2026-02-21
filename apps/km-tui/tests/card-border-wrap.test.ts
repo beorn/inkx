@@ -16,12 +16,7 @@ describe("card border text wrapping", () => {
     const title = "[Tech] Set up chrome dev tools for node"
 
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item(title), item("another card")),
-          item("col2", item("card in col2")),
-        ),
+      () => item("board", item("col1", item(title), item("another card")), item("col2", item("card in col2"))),
       { columns: 120, rows: 24, checkIncremental: false, incremental: false },
     )
 

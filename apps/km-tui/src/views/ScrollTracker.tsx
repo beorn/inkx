@@ -53,7 +53,7 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
   const effectiveIndex = scrollAnchor != null ? scrollAnchor : cardIndex
   const hasScrollAnchor = scrollAnchor != null
   const scrollTo = hasScrollAnchor
-    ? effectiveIndex  // Mouse wheel: scroll to anchor regardless of selection
+    ? effectiveIndex // Mouse wheel: scroll to anchor regardless of selection
     : getScrollToIndex(isSelected, effectiveIndex, virtualListProps.items.length)
 
   return <VirtualList scrollTo={scrollTo} {...virtualListProps} />

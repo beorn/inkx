@@ -55,8 +55,10 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
     ctx.setUI({ showDetailPane: false })
     return ok()
   }
-  if (ui.inOutlineMode) {
-    ctx.setUI({ inOutlineMode: false, subIndex: 0 })
+  // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
+  const inOutlineMode = ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id
+  if (inOutlineMode && ctx.card) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
     clearSelection(ctx)
     return ok()
   }
@@ -238,19 +240,10 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
 
   clearSelection(ctx)
 
-  // If target is a sub-item (3+ levels below root), enter outline mode
-  // so the cursor points at the specific sub-item within its parent card.
-  if (target.parent_id) {
-    const targetParent = ctx.repo.getNode(target.parent_id)
-    if (targetParent?.parent_id && targetParent.parent_id !== rootId) {
-      // target is inside a card — find its position in parent's children
-      const cardChildren = ctx.repo.getChildren(target.parent_id)
-      const subIndex = cardChildren.findIndex((c) => c.id === target.id) + 1
-      if (subIndex > 0) {
-        ctx.setUI({ inOutlineMode: true, subIndex })
-      }
-    }
-  }
+  // cursorNodeId is already set to target.id by ZOOM_IN above.
+  // CursorStore will automatically derive cursorCardNodeId and cursorColumnNodeId.
+  // If the target is a sub-item, the cursor will naturally be "in outline mode"
+  // because cursorNodeId !== cursorCardNodeId.
 
   return ok()
 }
@@ -269,36 +262,19 @@ export function handleZoomInwards(ctx: ActionCtx): ActionResult {
     return handleZoomInNode(ctx, col.node.id)
   }
 
-  // If we're in outline mode with a sub-selection, zoom to that child
-  if (ui.inOutlineMode && ui.subIndex > 0) {
-    const flatChildren: { node: KNode; depth: number }[] = []
-
-    // Build flat list of visible descendants
-    function collectVisible(nodeId: string, depth: number, maxDepth: number): void {
-      if (depth > maxDepth) return
-      const nodeChildren = ctx.repo.getChildren(nodeId)
-      for (const child of nodeChildren) {
-        flatChildren.push({ node: child, depth })
-        if (!ctx.foldedNodes.has(child.id)) {
-          collectVisible(child.id, depth + 1, maxDepth)
-        }
-      }
-    }
-
-    collectVisible(card.id, 1, ui.maxOutlineDepth)
-
-    const targetChild = flatChildren[ui.subIndex - 1]
-    if (targetChild?.node) {
-      // Save state and zoom to child
+  // If cursor is inside a card's sub-items, zoom to that node
+  const inOutlineMode = ctx.cursorNodeId !== null && ctx.cursorNodeId !== card.id
+  if (inOutlineMode && ctx.cursorNodeId) {
+    const targetNode = ctx.repo.getNode(ctx.cursorNodeId)
+    if (targetNode) {
+      // Save state and zoom to the cursor node
       saveNavHistory(ctx)
 
-      ctx.setUI({ inOutlineMode: false, subIndex: 0 })
-
-      const targetChildChildren = ctx.repo.getChildren(targetChild.node.id)
+      const targetChildren = ctx.repo.getChildren(targetNode.id)
       dispatchBoard({
         type: "ZOOM_IN",
-        nodeId: targetChild.node.id,
-        cursorNodeId: firstCardId(targetChildChildren, ctx.repo),
+        nodeId: targetNode.id,
+        cursorNodeId: firstCardId(targetChildren, ctx.repo),
       })
 
       clearSelection(ctx)

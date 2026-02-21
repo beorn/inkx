@@ -211,6 +211,50 @@ const reparentPicker = {
   execute: () => ({ type: "REPARENT_PICKER" }),
 } satisfies CommandDef
 
+// Archive (remove from view, still searchable) — stub
+const archiveNode = {
+  id: "archive",
+  name: "Archive",
+  description: "Archive node (remove from view, still searchable)",
+  category: "Edit",
+  shortcuts: ["e"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    // TODO: implement archive action
+    return { type: "ARCHIVE_NODE", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
+// Capture new item to inbox (quick-add) — stub
+const captureInbox = {
+  id: "capture_inbox",
+  name: "Capture to Inbox",
+  description: "Quick-add a new item to inbox",
+  category: "Edit",
+  shortcuts: ["c"],
+  execute: () => ({ type: "CAPTURE_INBOX" }),
+} satisfies CommandDef
+
+// Capture with dialog — stub
+const captureDialog = {
+  id: "capture_dialog",
+  name: "Capture with Dialog",
+  description: "Add a new item via capture dialog",
+  category: "Edit",
+  shortcuts: ["C"],
+  execute: () => ({ type: "CAPTURE_DIALOG" }),
+} satisfies CommandDef
+
+// Move to home board (mh chord)
+const moveToHome = {
+  id: "move_to_home",
+  name: "Move to Home",
+  description: "Move selected node(s) to home board",
+  category: "Edit",
+  shortcuts: ["mh"],
+  execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@home" }),
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -232,6 +276,10 @@ export const editCommands: CommandDef[] = [
   moveToInbox,
   moveToJournal,
   moveToNext,
+  moveToHome,
   addLink,
   reparentPicker,
+  archiveNode,
+  captureInbox,
+  captureDialog,
 ]

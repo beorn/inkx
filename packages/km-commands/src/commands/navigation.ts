@@ -298,6 +298,45 @@ const commandPalette = {
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 
+// Block-by-block navigation (J/K — auto-unfolds, jumps blocks)
+const blockNavDown = {
+  id: "block_nav_down",
+  name: "Block Down",
+  description: "Move cursor down by block (auto-unfolds)",
+  category: "Navigation",
+  shortcuts: ["J"],
+  execute: () => ({ type: "CURSOR_MOVE", dir: "block_down" }),
+} satisfies CommandDef
+
+const blockNavUp = {
+  id: "block_nav_up",
+  name: "Block Up",
+  description: "Move cursor up by block (auto-unfolds)",
+  category: "Navigation",
+  shortcuts: ["K"],
+  execute: () => ({ type: "CURSOR_MOVE", dir: "block_up" }),
+} satisfies CommandDef
+
+// Settings / view modes
+const settings = {
+  id: "settings",
+  name: "Settings",
+  description: "Open settings / view mode preferences",
+  category: "Navigation",
+  shortcuts: [","],
+  execute: () => ({ type: "SETTINGS" }),
+} satisfies CommandDef
+
+// Goto archive board
+const gotoArchive = {
+  id: "goto_archive",
+  name: "Go to Archive",
+  description: "Navigate to archive board",
+  category: "Navigation",
+  shortcuts: ["ge"],
+  execute: () => ({ type: "GOTO_BOARD", boardId: "@archive" }),
+} satisfies CommandDef
+
 export const navigationCommands: CommandDef[] = [
   cursorPrev,
   cursorNext,
@@ -329,4 +368,8 @@ export const navigationCommands: CommandDef[] = [
   gotoJournal,
   gotoHome,
   gotoNext,
+  gotoArchive,
+  blockNavDown,
+  blockNavUp,
+  settings,
 ]

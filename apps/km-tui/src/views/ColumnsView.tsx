@@ -46,7 +46,6 @@ const MAX_RENDERED_ITEMS = 100
 interface ColumnTreeProps {
   column: ColumnView
   colIndex: number
-  selectedSubIndex: number
   width: number
   height: number
 }
@@ -61,13 +60,12 @@ interface ColumnTreeProps {
 const ColumnTree = React.memo(function ColumnTree({
   column,
   colIndex,
-  selectedSubIndex,
   width,
   height,
 }: ColumnTreeProps) {
   const repo = useRepo()
   const {
-    treeConfig: { inOutlineMode, iconStyle },
+    treeConfig: { iconStyle },
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
@@ -180,13 +178,12 @@ interface ColumnsViewProps {
   columns: ColumnView[]
   width: number
   height: number
-  subIndex: number
 }
 
 // Maximum column width for columns view (tighter than cards view)
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
-export function ColumnsView({ columns, width, height, subIndex }: ColumnsViewProps): React.ReactElement {
+export function ColumnsView({ columns, width, height }: ColumnsViewProps): React.ReactElement {
   // NODE MODEL V2: Use cursorColumnNodeId to derive colIndex from columns array
   const cursorColumnNodeId = useCursorColumnNodeId()
   const colIndex = useMemo(() => {
@@ -227,7 +224,6 @@ export function ColumnsView({ columns, width, height, subIndex }: ColumnsViewPro
             <ColumnTree
               column={col}
               colIndex={index}
-              selectedSubIndex={subIndex}
               width={expandedWidth}
               height={columnHeight}
             />

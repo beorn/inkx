@@ -453,10 +453,10 @@ describe("initDefaultKeybindings", () => {
     ["Enter", {}, "normal", "enter_inline_edit"],
     // Enter in move mode = confirm_move (defined with modes: ["move"])
     ["Enter", {}, "move", "confirm_move"],
-    // TUI: 'e' zooms in, 'o' opens in system, 'i' zooms inwards
-    ["e", {}, "normal", "zoom_in"],
-    ["o", {}, "normal", "open_in_system"],
-    ["i", {}, "normal", "zoom_inwards"],
+    // v2: 'i' starts inline edit, 'o' inserts below, 'e' archives
+    ["e", {}, "normal", "archive"],
+    ["o", {}, "normal", "insert_below"],
+    ["i", {}, "normal", "enter_inline_edit"],
     // TUI: Escape is close_or_quit (contextual) in normal mode
     ["Escape", {}, "normal", "close_or_quit"],
     // In move mode, Escape cancels move (mode-specific binding takes precedence)
@@ -493,8 +493,8 @@ describe("initDefaultKeybindings", () => {
     // Sibling board navigation (Ctrl+J/K)
     ["j", { ctrl: true }, "sibling_board_next"],
     ["k", { ctrl: true }, "sibling_board_prev"],
-    // Enter node keybinding
-    ["i", {}, "zoom_inwards"],
+    // v2: z = zoom_in (focus cursor node as root)
+    ["z", {}, "zoom_in"],
   ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
@@ -689,7 +689,6 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("cursor_down")
     expect(commandIds).toContain("cursor_up")
     expect(commandIds).toContain("zoom_in")
-    expect(commandIds).toContain("zoom_inwards")
     expect(commandIds).toContain("zoom_outwards")
 
     // Selection
@@ -703,23 +702,25 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("shift_up")
     expect(commandIds).toContain("delete_node")
 
-    // Task
+    // Task (v2: x = toggle_task_done, X = cycle_task_status)
+    expect(commandIds).toContain("toggle_task_done")
     expect(commandIds).toContain("cycle_task_status")
 
-    // Fold
+    // Fold (v2: </> = fold/unfold all)
     expect(commandIds).toContain("fold_all")
+    expect(commandIds).toContain("fold_node")
+    expect(commandIds).toContain("unfold_node")
 
     // View
     expect(commandIds).toContain("visual_mode_enter")
     expect(commandIds).toContain("show_help")
-    expect(commandIds).toContain("increase_outline_depth")
+    expect(commandIds).toContain("increase_content_lines")
 
     // Page navigation and board navigation
     expect(commandIds).toContain("page_down")
     expect(commandIds).toContain("page_up")
     expect(commandIds).toContain("sibling_board_next")
     expect(commandIds).toContain("sibling_board_prev")
-    expect(commandIds).toContain("zoom_inwards")
   })
 })
 
@@ -730,40 +731,41 @@ describe("chord keybindings", () => {
   })
 
   it("registers chord prefixes from default keybindings", () => {
-    expect(isChordPrefix("z")).toBe(true)
+    // v2: z is no longer a chord prefix (z = zoom_in, not fold chord)
+    // s-prefix removed (task properties now under t-prefix)
     expect(isChordPrefix("g")).toBe(true)
     expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
-    expect(isChordPrefix("s")).toBe(true)
     // Not chord prefixes
+    expect(isChordPrefix("z")).toBe(false)
+    expect(isChordPrefix("s")).toBe(false)
     expect(isChordPrefix("j")).toBe(false)
     expect(isChordPrefix("k")).toBe(false)
   })
 
   it.each([
-    ["z", "a", "toggle_fold"],
-    ["z", "c", "fold_node"],
-    ["z", "o", "unfold_node"],
-    ["z", "O", "unfold_recursive"],
-    ["z", "M", "fold_all"],
-    ["z", "R", "unfold_all"],
+    // v2: z-prefix chords removed (z = zoom_in standalone)
+    // g-prefix chords (go-to)
     ["g", "g", "cursor_first"],
+    ["g", "o", "open_in_system"],
+    ["g", "O", "open_in_terminal"],
     ["g", "p", "project_picker"],
     ["g", "n", "new_item"],
     ["g", "i", "goto_inbox"],
     ["g", "j", "goto_journal"],
     ["g", "h", "goto_home"],
-    ["g", "e", "goto_next"],
+    ["g", "e", "goto_archive"],
+    // m-prefix chords (move to board)
     ["m", "m", "enter_move_mode"],
     ["m", "i", "move_to_inbox"],
     ["m", "j", "move_to_journal"],
-    ["m", "e", "move_to_next"],
+    ["m", "h", "move_to_home"],
+    ["m", "p", "reparent_picker"],
+    // t-prefix chords (task properties)
     ["t", "d", "set_due_date"],
-    ["t", "r", "set_recurring"],
     ["t", "s", "set_start_date"],
-    ["s", "p", "set_priority"],
-    ["s", "l", "set_label"],
-    ["s", "a", "set_assignee"],
+    ["t", "o", "set_assignee"],
+    ["t", "l", "set_label"],
   ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
     const ctx = createContext()
     expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
@@ -776,37 +778,59 @@ describe("chord keybindings", () => {
   })
 
   it("clearKeybindings clears chord state", () => {
-    expect(isChordPrefix("z")).toBe(true)
+    expect(isChordPrefix("g")).toBe(true)
     clearKeybindings()
-    expect(isChordPrefix("z")).toBe(false)
-    expect(resolveChord("z", "a", {}, createContext())).toBeNull()
+    expect(isChordPrefix("g")).toBe(false)
+    expect(resolveChord("g", "i", {}, createContext())).toBeNull()
   })
 
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(25) // 6 z + 8 g + 4 m + 3 t + 4 s
+    expect(chordBindings.length).toBe(26) // 12 g + 5 m + 9 t
   })
 
-  it("new key remappings work", () => {
+  it("v2 key remappings work", () => {
     const ctx = createContext()
-    // x → cycle_task_status
-    expect(resolveKeybinding("x", {}, ctx)).toBe("cycle_task_status")
-    // d → duplicate_node
-    expect(resolveKeybinding("d", {}, ctx)).toBe("duplicate_node")
-    // p → insert_above
-    expect(resolveKeybinding("p", {}, ctx)).toBe("insert_above")
-    // n → insert_below
-    expect(resolveKeybinding("n", {}, ctx)).toBe("insert_below")
+    // v2: x → toggle_task_done, X → cycle_task_status
+    expect(resolveKeybinding("x", {}, ctx)).toBe("toggle_task_done")
+    expect(resolveKeybinding("X", {}, ctx)).toBe("cycle_task_status")
+    // v2: d → clipboard_cut, y → clipboard_copy, p → clipboard_paste
+    expect(resolveKeybinding("d", {}, ctx)).toBe("clipboard_cut")
+    expect(resolveKeybinding("y", {}, ctx)).toBe("clipboard_copy")
+    expect(resolveKeybinding("p", {}, ctx)).toBe("clipboard_paste")
+    // v2: o → insert_below, O → insert_above
+    expect(resolveKeybinding("o", {}, ctx)).toBe("insert_below")
+    expect(resolveKeybinding("O", {}, ctx)).toBe("insert_above")
+    // v2: u → undo, U → redo
+    expect(resolveKeybinding("u", {}, ctx)).toBe("undo")
+    expect(resolveKeybinding("U", {}, ctx)).toBe("redo")
+    // v2: z → zoom_in (focus cursor node as root), Z → zoom_outwards
+    expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_in")
+    expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
+    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane
+    expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
+    expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
+    expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
+    expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
+    // v2: Space → select_toggle
+    expect(resolveKeybinding(" ", {}, ctx)).toBe("select_toggle")
+    // v2: H → fold_node, L → unfold_node
+    expect(resolveKeybinding("H", {}, ctx)).toBe("fold_node")
+    expect(resolveKeybinding("L", {}, ctx)).toBe("unfold_node")
+    // v2: < → fold_all, > → unfold_all
+    expect(resolveKeybinding("<", {}, ctx)).toBe("fold_all")
+    expect(resolveKeybinding(">", {}, ctx)).toBe("unfold_all")
     // Tab → indent_node (structural indent)
     expect(resolveKeybinding("Tab", {}, ctx)).toBe("indent_node")
-    // \ → command_palette
-    expect(resolveKeybinding("\\", {}, ctx)).toBe("command_palette")
+    // v2: : → command_palette, , → settings
+    expect(resolveKeybinding(":", {}, ctx)).toBe("command_palette")
+    expect(resolveKeybinding(",", {}, ctx)).toBe("settings")
     // Ctrl+/ → filter
     expect(resolveKeybinding("/", { ctrl: true }, ctx)).toBe("filter")
   })
 
-  it("D no longer maps to delete_node", () => {
+  it("D no longer maps to delete_node (v2: D is free)", () => {
     const ctx = createContext()
     // D was removed — should NOT resolve to delete_node
     expect(resolveKeybinding("D", { shift: true }, ctx)).not.toBe("delete_node")
@@ -832,18 +856,17 @@ describe("text mode keybinding separation", () => {
       ["v", {}, "visual_mode_enter"],
       ["/", {}, "search"],
       ["?", {}, "show_help"],
-      ["c", {}, "toggle_collapse"],
-      ["x", {}, "cycle_task_status"],
-      [" ", {}, "toggle_detail_pane"],
-      ["[", {}, "nav_back"],
-      ["]", {}, "nav_forward"],
-      ["e", {}, "zoom_in"],
-      ["u", {}, "zoom_outwards"],
-      ["i", {}, "zoom_inwards"],
-      ["o", {}, "open_in_system"],
-      ["p", {}, "insert_above"],
-      ["n", {}, "insert_below"],
-      ["d", {}, "duplicate_node"],
+      // v2 rebindings
+      ["x", {}, "toggle_task_done"],
+      [" ", {}, "select_toggle"],
+      ["e", {}, "archive"],
+      ["u", {}, "undo"],
+      ["o", {}, "insert_below"],
+      ["p", {}, "clipboard_paste"],
+      ["d", {}, "clipboard_cut"],
+      ["y", {}, "clipboard_copy"],
+      ["c", {}, "capture_inbox"],
+      ["z", {}, "zoom_in"],
     ])("%s (normally %s) is blocked in text mode", (key, mods, normalCmd) => {
       // Verify it works in node mode
       expect(resolveKeybinding(key, mods, nodeCtx)).toBe(normalCmd)

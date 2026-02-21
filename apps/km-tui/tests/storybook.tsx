@@ -796,7 +796,6 @@ const treeNodeDIProps = {
   depth: 0,
   colIndex: 0,
   cardIndex: 0,
-  subIndex: 0,
   dimInactiveChildren: false,
   getChildren: getChildrenFromStore,
   getParentContext: getParentContextFromStore,

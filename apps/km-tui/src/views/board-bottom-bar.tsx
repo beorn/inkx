@@ -144,7 +144,12 @@ export function BottomBar({
   if (ui.showHelp) statusParts.push("[?]")
   if (ui.showProjectPicker) statusParts.push("[PROJ]")
   if (ui.showNewItemDialog) statusParts.push("[NEW]")
-  if (ui.inOutlineMode) statusParts.push("OUT")
+  // Derive outline mode: cursor is inside a card's sub-items
+  const inOutlineMode =
+    cursorPos.cursorNodeId !== null &&
+    cursorPos.cursorCardNodeId !== null &&
+    cursorPos.cursorNodeId !== cursorPos.cursorCardNodeId
+  if (inOutlineMode) statusParts.push("OUT")
 
   // Status message shown after mode indicators
   if (ui.status) {

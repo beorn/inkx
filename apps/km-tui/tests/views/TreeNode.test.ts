@@ -9,37 +9,34 @@ import { describe, it, expect } from "vitest"
 import { makeSelectionKey, parseSelectionKey } from "../../src/types.ts"
 
 describe("makeSelectionKey", () => {
-  it("creates key from nodeId and sub index", () => {
-    expect(makeSelectionKey("node-abc", 0)).toBe("node-abc:0")
-    expect(makeSelectionKey("node-xyz", 3)).toBe("node-xyz:3")
+  it("creates key from nodeId", () => {
+    expect(makeSelectionKey("node-abc")).toBe("node-abc")
+    expect(makeSelectionKey("node-xyz")).toBe("node-xyz")
   })
 
   it("handles node IDs with special characters", () => {
-    expect(makeSelectionKey("a:b:c", 1)).toBe("a:b:c:1")
+    expect(makeSelectionKey("a:b:c")).toBe("a:b:c")
   })
 
   it("creates unique keys for different nodes", () => {
     const keys = new Set([
-      makeSelectionKey("node-1", 0),
-      makeSelectionKey("node-1", 1),
-      makeSelectionKey("node-2", 0),
-      makeSelectionKey("node-3", 0),
+      makeSelectionKey("node-1"),
+      makeSelectionKey("node-2"),
+      makeSelectionKey("node-3"),
     ])
-    expect(keys.size).toBe(4)
+    expect(keys.size).toBe(3)
   })
 })
 
 describe("parseSelectionKey", () => {
-  it("parses nodeId and sub from key", () => {
-    const result = parseSelectionKey("node-abc:0")
+  it("parses nodeId from key", () => {
+    const result = parseSelectionKey("node-abc")
     expect(result.nodeId).toBe("node-abc")
-    expect(result.sub).toBe(0)
   })
 
   it("handles node IDs with colons", () => {
-    const result = parseSelectionKey("a:b:c:1")
+    const result = parseSelectionKey("a:b:c")
     expect(result.nodeId).toBe("a:b:c")
-    expect(result.sub).toBe(1)
   })
 })
 

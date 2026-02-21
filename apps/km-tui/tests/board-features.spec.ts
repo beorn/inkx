@@ -109,7 +109,7 @@ describe("Folding", () => {
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
     board.expect("#child1").toExist()
-    board.press("z").press("M")
+    board.press("<")
     board.expect("#child1").not.toExist()
     // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
@@ -117,7 +117,7 @@ describe("Folding", () => {
   test("folded card hides children", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     board.expect("#sub1").toExist()
-    board.press("z").press("M")
+    board.press("<")
     board.expect("#sub1").not.toExist()
   })
 })
@@ -695,7 +695,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Navigate down with j — detail pane should stay open
@@ -711,7 +711,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     // Detail pane should contain card1 content
     const screen1 = board.screenshot()
@@ -728,11 +728,11 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Space again should close it
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -740,7 +740,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Escape should close it
@@ -756,7 +756,7 @@ describe("Detail Pane Navigation", () => {
     })
 
     // Open detail pane on card1
-    board.press(" ")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // h/l should navigate columns — detail pane stays open

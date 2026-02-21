@@ -49,33 +49,29 @@ export interface ColumnView {
 export type ViewMode = "cards" | "list" | "columns" | "tabs"
 
 /**
- * Selection key format: "nodeId:subIndex"
+ * Selection key — just the node ID.
  *
- * Node-based keys survive card movements (unlike positional "col:card:sub").
- * The nodeId identifies the specific node, subIndex is its position within
- * the card's outline tree (0 = card root).
+ * Every node has a globally unique ID, so there's no need to encode
+ * positional indices. This replaced the old "nodeId:subIndex" format.
  */
-export type SelectionKey = `${string}:${number}`
+export type SelectionKey = string
 
 /**
- * Create a selection key from a node ID and sub-index.
+ * Create a selection key from a node ID.
+ * Thin wrapper for migration — returns the nodeId directly.
  */
-export function makeSelectionKey(nodeId: string, sub: number): SelectionKey {
-  return `${nodeId}:${sub}`
+export function makeSelectionKey(nodeId: string): SelectionKey {
+  return nodeId
 }
 
 /**
  * Parse a selection key into its components.
+ * Thin wrapper for migration — returns `{ nodeId }`.
  */
 export function parseSelectionKey(key: SelectionKey): {
   nodeId: string
-  sub: number
 } {
-  const colonIdx = key.lastIndexOf(":")
-  return {
-    nodeId: key.substring(0, colonIdx),
-    sub: parseInt(key.substring(colonIdx + 1), 10),
-  }
+  return { nodeId: key }
 }
 
 export interface RenderOptions {

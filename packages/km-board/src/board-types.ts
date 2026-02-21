@@ -136,6 +136,9 @@ export type NodeDirection =
   | "down"
   | "left"
   | "right"
+  // Block-by-block (auto-unfolds, jumps by block)
+  | "block_up"
+  | "block_down"
   // Structural
   | "prev"
   | "next"

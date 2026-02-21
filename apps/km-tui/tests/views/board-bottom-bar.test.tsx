@@ -31,8 +31,6 @@ describe("BottomBar", () => {
     showSearchDialog: false,
 
     // Selection state
-    subIndex: 0,
-    inOutlineMode: false,
     multiSelected: new Set(),
     selectionAnchor: null,
     selectAllLevel: 0,
@@ -77,6 +75,9 @@ describe("BottomBar", () => {
 
     // Status message
     status: null,
+
+    // Focus state
+    focusedPane: "board",
   }
 
   const mockRootPath = "/tmp/test-repo"

@@ -279,8 +279,7 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
       state.columns.forEach((col, colIndex) => {
         col.cardNodes.forEach((card, cardIndex) => {
           const loc = driver.app.locator(`#${card.id}`)
-          const text =
-            card.content ?? card.name ?? (card.data?.name as string | undefined) ?? card.id
+          const text = card.content ?? card.name ?? (card.data?.name as string | undefined) ?? card.id
           result.push({
             index: cardIndex,
             id: card.id,

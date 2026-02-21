@@ -39,7 +39,7 @@ import {
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { makeSelectionKey, parseSelectionKey, type ViewMode } from "../types.ts"
+import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
@@ -101,8 +101,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       pushDialogMode("dialog:newItem")
       ctx.setUI({
         showNewItemDialog: true,
-        inOutlineMode: false,
-        subIndex: 0,
         showDetailPane: false,
       })
       clearSelection(ctx)
@@ -112,8 +110,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         pushDialogMode("dialog:projectPicker")
         ctx.setUI({
           showProjectPicker: true,
-          inOutlineMode: false,
-          subIndex: 0,
           showDetailPane: false,
         })
         clearSelection(ctx)
@@ -126,8 +122,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         searchDialogInitialInput: "",
         searchScope: "all",
         searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
-        inOutlineMode: false,
-        subIndex: 0,
         showDetailPane: false,
       })
       clearSelection(ctx)
@@ -261,7 +255,17 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
       return ok()
     case "TOGGLE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: !ctx.ui.showDetailPane, detailScrollOffset: 0 })
+      // Smart-P toggle: three states per v2 spec
+      if (!ctx.ui.showDetailPane) {
+        // Pane closed -> open + focus pane
+        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0, focusedPane: "detail" })
+      } else if (ctx.ui.focusedPane === "board") {
+        // Pane open, board focused -> focus pane
+        ctx.setUI({ focusedPane: "detail" })
+      } else {
+        // Pane open, pane focused -> close pane
+        ctx.setUI({ showDetailPane: false, detailScrollOffset: 0, focusedPane: "board" })
+      }
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
@@ -365,13 +369,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "VISUAL_MODE_ENTER": {
       if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
       // Set visual mode with anchor at current cursor, and select the anchor node
-      const anchorKey = makeSelectionKey(ctx.cursorNodeId, 0)
+      const anchorKey = makeSelectionKey(ctx.cursorNodeId)
       const selected = new Set(ctx.ui.multiSelected)
       selected.add(anchorKey)
       ctx.setUI({
         visualMode: true,
         visualAnchor: ctx.cursorNodeId,
-        selectionAnchor: { nodeId: ctx.cursorNodeId, sub: 0 },
+        selectionAnchor: { nodeId: ctx.cursorNodeId },
         multiSelected: selected,
         status: { level: "info", message: "-- VISUAL --" },
       })
@@ -591,6 +595,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === UI stubs (future features) ===
     case "COMMAND_PALETTE":
+    case "ARCHIVE_NODE":
+    case "CAPTURE_INBOX":
+    case "CAPTURE_DIALOG":
+    case "SETTINGS":
       return unimplemented("ui")
 
     // === Property actions ===
@@ -627,14 +635,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Move mode actions ===
     // Commands return minimal actions; TUI augments with context before dispatching
     case "ENTER_MOVE_MODE": {
-      // Convert ui.multiSelected (SelectionKey format "nodeId:subIndex") to node IDs
-      // TODO: Unify selection systems - ctx.selectedNodes vs ui.multiSelected
+      // SelectionKey IS nodeId — direct conversion
       const nodeIds: string[] = []
       if (ctx.ui.multiSelected.size > 0) {
         for (const selKey of ctx.ui.multiSelected) {
-          const { nodeId } = parseSelectionKey(selKey)
-          if (nodeId && !nodeIds.includes(nodeId)) {
-            nodeIds.push(nodeId)
+          if (selKey && !nodeIds.includes(selKey)) {
+            nodeIds.push(selKey)
           }
         }
       }
@@ -885,7 +891,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
-      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
+      // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
+      ctx.setUI({ focusedPane: "board" })
       return ok()
     case "DETAIL_PANE_SCROLL_DOWN":
       ctx.setUI((prev) => ({ detailScrollOffset: prev.detailScrollOffset + 3 }))
@@ -1259,8 +1266,9 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     ctx.setUI({ showDetailPane: false })
     return ok()
   }
-  if (ui.inOutlineMode) {
-    ctx.setUI({ inOutlineMode: false, subIndex: 0 })
+  // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
+  if (ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
     return ok()
   }
   if (ui.showHelp) {

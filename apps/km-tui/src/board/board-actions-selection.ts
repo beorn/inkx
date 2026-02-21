@@ -31,22 +31,20 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   // before React flushes the batched update.
   const initAnchor = ui.selectionAnchor === null
   if (initAnchor) {
-    const anchor = { nodeId: card.id, sub: 0 }
+    const anchor = { nodeId: card.id }
     ctx.setUI({ selectionAnchor: anchor })
     ctx.ui.selectionAnchor = anchor
   }
 
   // Calculate target
   const targetIdx =
-    direction === "up"
-      ? Math.max(0, ctx.cardIndex - 1)
-      : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
+    direction === "up" ? Math.max(0, ctx.cardIndex - 1) : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
 
   if (targetIdx === ctx.cardIndex) {
     // At boundary: if we just initialized the anchor, select the current card
     if (initAnchor) {
       const newSelected = new Set(ui.multiSelected)
-      newSelected.add(makeSelectionKey(card.id, 0))
+      newSelected.add(makeSelectionKey(card.id))
       ctx.setUI({
         multiSelected: newSelected,
         status: { level: "info", message: "1 item selected" },
@@ -61,7 +59,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
     // Derive selection from anchor to new focus
-    updateSelectionRange(ctx, ctx.colIndex, targetIdx, 0)
+    updateSelectionRange(ctx, ctx.colIndex, targetIdx)
   }
 }
 
@@ -92,7 +90,7 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
   const card = ctx.card
   if (ui.selectionAnchor === null && card) {
     ctx.setUI({
-      selectionAnchor: { nodeId: card.id, sub: 0 },
+      selectionAnchor: { nodeId: card.id },
     })
   }
 
@@ -136,7 +134,7 @@ function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<
     const col = ctx.columns[colIdx]
     if (col) {
       for (const card of col.cardNodes) {
-        selected.add(makeSelectionKey(card.id, 0))
+        selected.add(makeSelectionKey(card.id))
       }
     }
   }

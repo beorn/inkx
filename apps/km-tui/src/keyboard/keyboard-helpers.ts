@@ -19,9 +19,7 @@ export function pushNavHistoryEntry(
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
-  subIndex: number,
   multiSelected: Set<SelectionKey>,
-  inOutlineMode: boolean,
   cursorNodeId: string | null = null,
   foldedNodes?: Set<string>,
 ): void {
@@ -30,9 +28,7 @@ export function pushNavHistoryEntry(
     colIndex,
     cardIndex,
     cursorNodeId,
-    subIndex,
     multiSelected: new Set(multiSelected),
-    inOutlineMode,
     foldedNodes: foldedNodes ? new Set(foldedNodes) : undefined,
   }
   setUI((prev) => {
@@ -41,16 +37,14 @@ export function pushNavHistoryEntry(
   })
 }
 
-/** Push nav history from ActionCtx (convenience wrapper to avoid 9-arg repetition) */
+/** Push nav history from ActionCtx (convenience wrapper) */
 export function saveNavHistory(ctx: ActionCtx): void {
   pushNavHistoryEntry(
     ctx.setUI,
     ctx.rootId,
     ctx.colIndex,
     ctx.cardIndex,
-    ctx.ui.subIndex,
     ctx.ui.multiSelected,
-    ctx.ui.inOutlineMode,
     ctx.cursorNodeId,
     ctx.foldedNodes,
   )
@@ -64,11 +58,10 @@ export function saveNavHistory(ctx: ActionCtx): void {
  * Update multi-selection range from anchor to current focus position.
  *
  * Selection is always derived from (anchor, focus):
- * - Same col, same card: sub-item range (outline mode)
  * - Same col, different cards: card range within column
  * - Different cols: all cards in all columns between anchor.col and focus.col
  */
-export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number, toSub: number): void {
+export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number): void {
   if (!ctx.ui.selectionAnchor) return
   const anchor = ctx.ui.selectionAnchor
   const newSelected = new Set<SelectionKey>()
@@ -79,17 +72,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
   const anchorCol = anchorPos.colIndex
   const anchorCard = anchorPos.cardIndex
 
-  if (anchorCol === toCol && anchorCard === toCard) {
-    // Sub-item range within the same card (outline mode)
-    const minSub = Math.min(anchor.sub, toSub)
-    const maxSub = Math.max(anchor.sub, toSub)
-    const cardNode = ctx.columns[toCol]?.cardNodes[toCard]
-    if (cardNode) {
-      for (let s = minSub; s <= maxSub; s++) {
-        newSelected.add(makeSelectionKey(cardNode.id, s))
-      }
-    }
-  } else if (anchorCol === toCol) {
+  if (anchorCol === toCol) {
     // Card range within the same column
     const minCard = Math.min(anchorCard, toCard)
     const maxCard = Math.max(anchorCard, toCard)
@@ -198,12 +181,9 @@ export function getSelectedCardIndices(ctx: ActionCtx): number[] {
 
 type SelectionScope = "card" | "column" | "board"
 
-/** Add all visible items for a single card to the selection set */
-function addCardItems(selected: Set<SelectionKey>, ctx: ActionCtx, card: KNode): void {
-  const maxItems = 1 + ctx.countVisibleDescendants(card, 0, ctx.ui.maxOutlineDepth, ctx.foldedNodes)
-  for (let s = 0; s < maxItems; s++) {
-    selected.add(makeSelectionKey(card.id, s))
-  }
+/** Add the card node ID to the selection set */
+function addCardItems(selected: Set<SelectionKey>, _ctx: ActionCtx, card: KNode): void {
+  selected.add(makeSelectionKey(card.id))
 }
 
 /** Build a selection set for the given scope (card, column, or board) */
@@ -213,24 +193,19 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<Selection
   if (scope === "card") {
     const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
     if (card) {
-      addCardItems(selected, ctx, card)
+      selected.add(makeSelectionKey(card.id))
     }
   } else if (scope === "column") {
     const col = ctx.columns[ctx.colIndex]
     if (col) {
-      for (let cardIdx = 0; cardIdx < col.cardNodes.length; cardIdx++) {
-        const c = col.cardNodes[cardIdx]
-        if (c) addCardItems(selected, ctx, c)
+      for (const c of col.cardNodes) {
+        selected.add(makeSelectionKey(c.id))
       }
     }
   } else {
-    for (let colIdx = 0; colIdx < ctx.columns.length; colIdx++) {
-      const column = ctx.columns[colIdx]
-      if (column) {
-        for (let cardIdx = 0; cardIdx < column.cardNodes.length; cardIdx++) {
-          const c = column.cardNodes[cardIdx]
-          if (c) addCardItems(selected, ctx, c)
-        }
+    for (const column of ctx.columns) {
+      for (const c of column.cardNodes) {
+        selected.add(makeSelectionKey(c.id))
       }
     }
   }
@@ -244,9 +219,12 @@ export function progressiveSelectAll(ctx: ActionCtx): void {
   const card = col?.cardNodes[ctx.cardIndex]
   const currentLevel = ctx.ui.selectAllLevel
 
+  // Derive outline mode: cursor is inside a card's sub-items
+  const inOutlineMode = ctx.cursorNodeId !== null && card !== undefined && ctx.cursorNodeId !== card.id
+
   let scope: SelectionScope
   let nextLevel: number
-  if (currentLevel === 0 && ctx.ui.inOutlineMode && card) {
+  if (currentLevel === 0 && inOutlineMode && card) {
     scope = "card"
     nextLevel = 1
   } else if (currentLevel <= 1 && col) {

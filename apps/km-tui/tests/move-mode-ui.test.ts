@@ -18,10 +18,10 @@ describe("Move Mode UI", () => {
     expect(initial).not.toContain("[MOVE]")
 
     // Select current node with Shift+J (extend selection down)
-    board.press("J") // Shift+J to select current and next
+    board.press("Shift+ArrowDown") // Shift+J to select current and next
 
     // Enter move mode with 'm'
-    board.press("mm")
+    board.press("m").press("m")
 
     // Should show [MOVE] indicator in status bar
     const afterMove = board.screenshot()
@@ -34,8 +34,8 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("J") // Shift+J to select
-    board.press("mm") // Enter move mode
+    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Cancel with Escape
@@ -52,8 +52,8 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("J") // Shift+J to select
-    board.press("mm") // Enter move mode
+    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Move to different column and confirm with Enter
@@ -75,8 +75,8 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("J") // Shift+J to select
-    board.press("mm") // Enter move mode
+    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("[MOVE]")
 
     // Navigate around - indicator should persist

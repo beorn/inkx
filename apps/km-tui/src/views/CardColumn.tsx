@@ -59,7 +59,6 @@ const MAX_RENDERED_CARDS = 50
 
 interface CardProps {
   card: KNode
-  selectedSubIndex: number
   width: number
   colIndex: number
   cardIndex: number
@@ -134,7 +133,6 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
 const Card = React.memo(
   function Card({
     card,
-    selectedSubIndex,
     width,
     colIndex,
     cardIndex,
@@ -163,7 +161,7 @@ const Card = React.memo(
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
-    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId, 0)))
+    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
 
     // Dual cursor: dim the cursor when board is not focused
     const boardFocused = useUISelector((state) => state.focusedPane === "board")
@@ -279,7 +277,6 @@ const Card = React.memo(
             isSelected={isSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
-            subIndex={0}
             dimInactiveChildren={false}
             childCount={childCount}
             extraExcludedSigils={extraExcludedSigils}
@@ -355,10 +352,9 @@ const Card = React.memo(
             <TreeNode
               node={card}
               depth={0}
-              isSelected={isSelected && selectedSubIndex <= 0}
+              isSelected={isSelected}
               colIndex={colIndex}
               cardIndex={cardIndex}
-              subIndex={0}
               dimInactiveChildren={false}
               childCount={childCount}
               extraExcludedSigils={extraExcludedSigils}
@@ -393,10 +389,9 @@ const Card = React.memo(
         <TreeNode
           node={card}
           depth={0}
-          isSelected={isSelected && selectedSubIndex <= 0}
+          isSelected={isSelected}
           colIndex={colIndex}
           cardIndex={cardIndex}
-          subIndex={0}
           dimInactiveChildren={false}
           childCount={childCount}
           extraExcludedSigils={extraExcludedSigils}
@@ -412,7 +407,6 @@ const Card = React.memo(
     // so it's not compared here — CursorStore triggers re-renders independently.
     return (
       prev.card === next.card &&
-      prev.selectedSubIndex === next.selectedSubIndex &&
       prev.width === next.width &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
@@ -493,7 +487,6 @@ interface ColumnProps {
   column: ColumnView
   colIndex: number
   isCollapsed: boolean
-  selectedSubIndex: number
   width: number
   height: number
 }
@@ -511,7 +504,6 @@ export const Column = React.memo(function Column({
   column,
   colIndex,
   isCollapsed,
-  selectedSubIndex,
   width,
   height,
 }: ColumnProps): React.ReactElement {
@@ -647,7 +639,6 @@ export const Column = React.memo(function Column({
         <Card
           key={`${card.id}-${actualIndex}`}
           card={card}
-          selectedSubIndex={selectedSubIndex}
           width={width - 1}
           colIndex={colIndex}
           cardIndex={actualIndex}
@@ -661,7 +652,7 @@ export const Column = React.memo(function Column({
         />
       )
     },
-    [colIndex, selectedSubIndex, width, isVirtual, cardNodes, virtualCardIds, extraExcludedSigils, isColumnSelected],
+    [colIndex, width, isVirtual, cardNodes, virtualCardIds, extraExcludedSigils, isColumnSelected],
   )
 
   const keyExtractor = useCallback((card: KNode) => card.id, [])

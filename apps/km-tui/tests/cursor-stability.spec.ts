@@ -129,7 +129,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority
-    board.press("s").press("p")
+    board.press("t").press("!")
 
     // Cursor should still be on tB
     board.expect("#tB[data-cursor]").toExist()
@@ -151,7 +151,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority — triggers SELECT to re-resolve cursor position
-    board.press("s").press("p")
+    board.press("t").press("!")
 
     // Cursor must still be on tB — NOT jumped to a different card
     board.expect("#tB[data-cursor]").toExist()
@@ -205,7 +205,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority (creates undo entry)
-    board.press("s").press("p")
+    board.press("t").press("!")
     board.expect("#tB[data-cursor]").toExist()
 
     // Undo (Ctrl-z)

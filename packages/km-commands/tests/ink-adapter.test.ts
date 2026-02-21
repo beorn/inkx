@@ -353,7 +353,7 @@ describe("wouldHandleKey", () => {
     // Use keys/combinations that are definitely not registered
     expect(wouldHandleKey("~", {}, kbCtx)).toBe(false)
     // Note: backtick IS now registered (console.toggle)
-    expect(wouldHandleKey("}", {}, kbCtx)).toBe(false)
+    // Note: } IS now registered (nav_forward per v2 spec)
   })
 
   it("respects modifiers", () => {

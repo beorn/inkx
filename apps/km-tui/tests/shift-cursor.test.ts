@@ -304,7 +304,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board } = makeBoard()
 
     // Cursor starts on A (card 0)
-    board.press("J") // anchor=A, cursor→B
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B
 
     // After one J, the selection range should include both A and B
     // Check status message reflects 2 items selected
@@ -322,7 +322,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     repo.updateNode("C", { task_status: "todo", task_marker: "[ ]" })
 
     // Re-render to pick up node type changes
-    board.press("J") // anchor=A, cursor→B — should select range [A, B]
+    board.press("Shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
 
     // Toggle status on selection
     board.press("x")
@@ -343,7 +343,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board, repo } = makeBoard()
 
     // Cursor on A, press J to select range A→B
-    board.press("J")
+    board.press("Shift+ArrowDown")
 
     // Delete the selection
     board.press("Backspace")

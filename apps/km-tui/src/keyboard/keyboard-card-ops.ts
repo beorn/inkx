@@ -79,7 +79,7 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
     for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
       const c = cards[cardIdx]
       if (c && movedCardIds.includes(c.id)) {
-        newSelected.add(makeSelectionKey(c.id, 0))
+        newSelected.add(makeSelectionKey(c.id))
       }
     }
   }

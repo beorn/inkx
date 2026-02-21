@@ -432,7 +432,7 @@ describe("undo: TUI integration", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate task-a (d key)
-    board.press("d")
+    board.press("Cmd+d")
 
     // Should have 3 cards now
     const childrenAfterDup = repo.getChildren("col1")
@@ -450,7 +450,7 @@ describe("undo: TUI integration", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate
-    board.press("d")
+    board.press("Cmd+d")
     expect(repo.getChildren("col1").length).toBe(3)
 
     // Undo
@@ -511,7 +511,7 @@ describe("Undo duplicate node", () => {
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
     // Press d to duplicate node A (cursor starts on first card)
-    board.press("d")
+    board.press("Cmd+d")
 
     // Should now have 4 children — original A + duplicate + B + C
     const afterDup = childIds(repo, "col1")
@@ -545,13 +545,13 @@ describe("Undo duplicate node", () => {
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
 
     // Duplicate A
-    board.press("d")
+    board.press("Cmd+d")
     expect(childIds(repo, "col1")).toHaveLength(3)
 
     // Navigate to B (now at index 2) and duplicate it
     board.press("j") // to dup of A
     board.press("j") // to B
-    board.press("d")
+    board.press("Cmd+d")
     expect(childIds(repo, "col1")).toHaveLength(4)
 
     // Undo last duplicate (B's duplicate)
@@ -689,7 +689,7 @@ describe("undo cursor restore", () => {
     board.expect("#task-b[data-cursor]").toExist()
 
     // Duplicate task-b (key: d)
-    board.press("d")
+    board.press("Cmd+d")
     // After duplicate, cursor moves to the new duplicate (task-b copy)
     // The original task-b should still be visible
     board.expect("#task-b").toExist()
@@ -708,7 +708,7 @@ describe("undo cursor restore", () => {
     board.expect("#first[data-cursor]").toExist()
 
     // Duplicate first card
-    board.press("d")
+    board.press("Cmd+d")
 
     // Undo
     board.press("ctrl+z")
@@ -730,7 +730,7 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
     expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["A", "B"])
 
     // Duplicate A -> 3 children
-    board.press("d")
+    board.press("Cmd+d")
     expect(repo.getChildren("col1")).toHaveLength(3)
 
     // Undo -> back to 2
@@ -745,7 +745,7 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
   test("rapid undo/redo cycle preserves duplicate", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
-    board.press("d") // dup -> 3
+    board.press("Cmd+d") // dup -> 3
     board.press("Ctrl+Z") // undo -> 2
     board.press("Ctrl+Y") // redo -> 3
     board.press("Ctrl+Z") // undo -> 2

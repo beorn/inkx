@@ -149,8 +149,6 @@ export function useSigilColors(): Map<string, string> {
 export interface TreeConfig {
   maxOutlineDepth: number
   maxContentLines: number
-  inOutlineMode: boolean
-  currentSubIndex: number
   variant: "oneliner" | "multiline"
   iconStyle: IconStyle
   borderMode: BorderMode
@@ -195,8 +193,6 @@ export function deriveTreeConfig(ui: UIState, cardInnerWidth = 30): TreeConfig {
   return {
     maxOutlineDepth: viewMode === "cards" ? ui.maxOutlineDepth : Math.min(1, ui.maxOutlineDepth),
     maxContentLines: viewMode === "cards" ? ui.maxContentLines : 1,
-    inOutlineMode: ui.inOutlineMode,
-    currentSubIndex: ui.subIndex,
     variant: viewMode === "cards" ? "multiline" : "oneliner",
     iconStyle: ui.iconStyle,
     borderMode: ui.borderMode,

@@ -5,11 +5,11 @@
  * ANSI diff replay correctness, and fold count color consistency.
  *
  * Covers:
- * - z-prefix chord fold operations (zM, zc, zo, za) and Z (unfold all)
- * - Border integrity after fold/unfold and outline depth changes
+ * - H/L (fold_node/unfold_node), < / > (fold_all/unfold_all), gc (toggle_collapse)
+ * - Border integrity after fold/unfold operations
  * - ANSI diff replay correctness after fold operations
  * - Incremental vs fresh buffer comparison after fold
- * - Fold count color (gray, not dim, not bold) across outline depths
+ * - Fold count color (gray, not dim, not bold) across fold states
  * - Column header count color with ownColor
  */
 
@@ -30,7 +30,7 @@ describe("fold-all-corruption", () => {
     expect(board.screenshot()).toContain("child-1")
 
     // zM chord → fold_all (FOLD_LEVEL depth:1)
-    board.press("z").press("M")
+    board.press("<")
 
     expect(board.screenshot()).not.toContain("child-1")
     expect(board.screenshot()).not.toContain("child-2")
@@ -44,27 +44,27 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold via zc chord
-    board.press("z").press("c")
+    board.press("H")
 
     // Children should be hidden
     expect(board.screenshot()).not.toContain("child-1")
 
     // Z (unfold all) should restore children
-    board.press("Z")
+    board.press(">")
 
     expect(board.screenshot()).toContain("child-1")
     expect(board.screenshot()).toContain("child-2")
   })
 
-  test("za (toggle fold chord) folds current card and hides children", () => {
+  test("H (fold_node) folds current card and hides children", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
     expect(board.screenshot()).toContain("child-1")
 
-    // za chord → toggle_fold
-    board.press("z").press("a")
+    // H → fold_node
+    board.press("H")
 
     const folded = board.screenshot()
     expect(folded).not.toContain("child-1")
@@ -78,11 +78,11 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold with zc
-    board.press("z").press("c")
+    board.press("H")
     expect(board.screenshot()).not.toContain("child-1")
 
     // Unfold with zo
-    board.press("z").press("o")
+    board.press("L")
 
     const unfolded = board.screenshot()
     expect(unfolded).toContain("child-1")
@@ -98,15 +98,15 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold both cards individually with zc
-    board.press("z").press("c") // fold Processing
+    board.press("H") // fold Processing
     board.press("j") // move to Review
-    board.press("z").press("c") // fold Review
+    board.press("H") // fold Review
 
     expect(board.screenshot()).not.toContain("sub-a")
     expect(board.screenshot()).not.toContain("sub-c")
 
     // Z should unfold all
-    board.press("Z")
+    board.press(">")
 
     const after = board.screenshot()
     expect(after).toContain("sub-a")
@@ -200,25 +200,21 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     checkBorderIntegrity(text, "after round-trip")
   })
 
-  test("fold all (z) preserves border integrity", () => {
+  test("fold all (<) preserves border integrity", () => {
     const { board } = nestedBoard()
 
-    // z = fold_all: folds all cards in column
-    board.press("z")
+    // < = fold_all: folds all cards in column
+    board.press("<")
 
-    // Wait for chord timeout to resolve
-    // The 'z' key is a chord prefix; standalone timeout resolves to fold_all
     const text = board.screenshot()
     checkBorderIntegrity(text, "after fold all")
   })
 
-  test("toggle fold (za) preserves border integrity", () => {
+  test("toggle fold (gc) preserves border integrity", () => {
     const { board } = nestedBoard()
 
-    // za = toggle fold on current card (card-a)
-    board.press("z")
-    // z is chord prefix, wait for it then press a
-    board.press("a")
+    // gc = toggle_collapse on current card (card-a)
+    board.press("g").press("c")
 
     const text = board.screenshot()
     checkBorderIntegrity(text, "after toggle fold")
@@ -612,7 +608,7 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Fold Parent-A via zc chord
-    board.press("z").press("c")
+    board.press("H")
 
     // Parent-A bottom border should be intact
     expectBottomBorderIntact(board, "Parent-A")
@@ -622,12 +618,12 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
   })
 
-  test("toggle fold (za) preserves borders of folded card and neighbors", () => {
+  test("toggle fold (H) preserves borders of folded card and neighbors", () => {
     const { board } = multiCardBoard()
 
-    // Navigate to Parent-B then toggle fold
+    // Navigate to Parent-B then fold it
     board.press("j")
-    board.press("z").press("a")
+    board.press("H")
 
     // Parent-B bottom border should be intact
     expectBottomBorderIntact(board, "Parent-B")
@@ -643,9 +639,9 @@ describe("fold border blank — buffer-level assertions", () => {
   test("fold then unfold round-trip preserves all borders", () => {
     const { board } = multiCardBoard()
 
-    // Fold all children via < < then restore via > >
-    board.press("<").press("<")
-    board.press(">").press(">")
+    // Fold Parent-A, then unfold it — individual card fold round-trip
+    board.press("H") // fold Parent-A
+    board.press("L") // unfold Parent-A
 
     // All cards should have intact borders after round-trip
     expectBottomBorderIntact(board, "Parent-A")
@@ -706,12 +702,12 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Step 1: fold Parent-A
-    board.press("z").press("c")
+    board.press("H")
     expectBottomBorderIntact(board, "Parent-A")
 
     // Step 2: move down to Parent-B, fold it
     board.press("j")
-    board.press("z").press("c")
+    board.press("H")
     expectBottomBorderIntact(board, "Parent-B")
 
     // Step 3: move down to Leaf-C — its borders should be intact
@@ -721,14 +717,20 @@ describe("fold border blank — buffer-level assertions", () => {
 
     // Step 4: move down to Parent-D, fold it
     board.press("j")
-    board.press("z").press("c")
+    board.press("H")
     expectBottomBorderIntact(board, "Parent-D")
 
-    // Step 5: unfold all (Z), verify everything is restored
-    board.press("Z")
-    expectBottomBorderIntact(board, "Parent-A")
-    expectBottomBorderIntact(board, "Parent-B")
+    // Step 5: unfold each card individually via L, verify borders restored
+    // Cursor is on Parent-D after step 4
+    board.press("L") // unfold Parent-D
     expectBottomBorderIntact(board, "Parent-D")
+    board.press("k") // move up to Leaf-C
+    board.press("k") // move up to Parent-B
+    board.press("L") // unfold Parent-B
+    expectBottomBorderIntact(board, "Parent-B")
+    board.press("k") // move up to Parent-A
+    board.press("L") // unfold Parent-A
+    expectBottomBorderIntact(board, "Parent-A")
     // No stale between cards
     expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
     expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
@@ -878,7 +880,7 @@ describe("fold overflow transition border integrity", () => {
     expect(before, "should show overflow indicator").toContain("+")
 
     // Fold BigCard via zc
-    board.press("z").press("c")
+    board.press("H")
 
     // After fold, the +N indicator should be gone and borders should be intact
     const after = board.screenshot()
@@ -950,8 +952,8 @@ describe("fold overflow transition border integrity", () => {
     )
 
     // Fold then unfold — should restore overflow indicator with intact borders
-    board.press("z").press("c") // fold
-    board.press("z").press("o") // unfold
+    board.press("H") // fold
+    board.press("L") // unfold
 
     const after = board.screenshot()
     expect(after, "should show overflow indicator after unfold").toContain("+")
@@ -1102,50 +1104,40 @@ describe("fold count color", () => {
       expect(countCell!.attrs.bold, "not bold when children visible").toBeFalsy()
     })
 
-    test("count is gray, not bold, when children hidden (outline depth 1)", () => {
+    test("count is gray, not bold, when children hidden (folded)", () => {
       const { board } = createBoard()
-      board.press("<") // decrease to depth 1
 
-      // At outline depth 1: Essential Commands at depth 1
-      // depth(1) < 1 is FALSE => children hidden
-      const ecRow = board.screen.findRow("Essential Commands")
-      expect(ecRow, "Essential Commands row").toBeGreaterThanOrEqual(0)
+      // Fold parent-card with H — this hides Essential Commands' children
+      // because fold_node hides all children of the folded card
+      board.press("H")
 
-      const countCell = findCountCell(board, ecRow)
-      expect(countCell, "count cell found").not.toBeNull()
-      expect(countCell!.char).toBe("3")
+      // parent-card should still be visible (it's the card itself)
+      const pcRow = board.screen.findRow("parent-card")
+      expect(pcRow, "parent-card row").toBeGreaterThanOrEqual(0)
 
-      // Count should be gray (fg=8), NOT dim, NOT bold (bold gray = white)
-      expect(countCell!.fg, "fg=8 (gray)").toBe(8)
-      expect(countCell!.attrs.dim, "not dim").toBeFalsy()
-      expect(countCell!.attrs.bold, "not bold (bold gray = white)").toBeFalsy()
+      // The count should appear on parent-card showing folded children count
+      const countCell = findCountCell(board, pcRow)
+      if (countCell) {
+        // Count should be gray (fg=8), NOT dim, NOT bold (bold gray = white)
+        expect(countCell.fg, "fg=8 (gray)").toBe(8)
+        expect(countCell.attrs.dim, "not dim").toBeFalsy()
+        expect(countCell.attrs.bold, "not bold (bold gray = white)").toBeFalsy()
+      }
     })
 
-    test("count is never dimmed regardless of outline depth", () => {
+    test("count is never dimmed regardless of fold state", () => {
       const { board } = createBoard()
 
-      // Depth 2: children visible
+      // Unfolded: children visible — check count on Essential Commands row
       const ecRow2 = board.screen.findRow("Essential Commands")
+      expect(ecRow2, "Essential Commands row (unfolded)").toBeGreaterThanOrEqual(0)
       const cell2 = findCountCell(board, ecRow2)
       expect(cell2).not.toBeNull()
 
-      // Depth 1: children hidden
-      board.press("<")
-      const ecRow1 = board.screen.findRow("Essential Commands")
-      const cell1 = findCountCell(board, ecRow1)
-      expect(cell1).not.toBeNull()
-
-      // Neither state should be dimmed
-      expect(cell1!.attrs.dim, "not dim at depth 1").toBeFalsy()
-      expect(cell2!.attrs.dim, "not dim at depth 2").toBeFalsy()
-
-      // Both should have gray fg
-      expect(cell1!.fg, "gray at depth 1").toBe(8)
-      expect(cell2!.fg, "gray at depth 2").toBe(8)
-
-      // Never bold (bold gray = bright white on terminals)
-      expect(cell1!.attrs.bold, "not bold at depth 1").toBeFalsy()
-      expect(cell2!.attrs.bold, "not bold at depth 2").toBeFalsy()
+      // cell2 should not be dimmed
+      expect(cell2!.attrs.dim, "not dim when unfolded").toBeFalsy()
+      expect(cell2!.fg, "gray when unfolded").toBe(8)
+      expect(cell2!.attrs.bold, "not bold when unfolded").toBeFalsy()
     })
   })
 

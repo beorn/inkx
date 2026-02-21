@@ -249,8 +249,8 @@ describe("date badge display", () => {
       repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
-    // Open detail pane (Space opens detail for current node)
-    await driver.press(" ")
+    // Open detail pane (D = toggle_detail_pane in v2)
+    await driver.press("D")
 
     const screen = driver.getState().screen
     const clean = screen.replace(/\x1b\[[0-9;]*m/g, "")
@@ -643,33 +643,29 @@ describe("date prompt (td)", () => {
     expect(text).toContain("Empty = clear value")
   })
 
-  test("td chord timeout does not leak 'd' into text input (km-tui.chord-leak)", () => {
-    // Regression: when 't' and 'd' are pressed with >300ms gap, the chord
-    // timeout fires first (resolving 't' standalone → set_due_at), then
-    // 'd' arrives with textInputFocused=true and leaks into the dialog.
-    // The grace period in handleKey should suppress this.
+  test("td chord timeout resolves t standalone to noop in v2", () => {
+    // In v2, 't' standalone is noop (chord prefix only).
+    // When chord timeout fires, 't' resolves to noop.
+    // Then 'd' arriving afterward should be handled as clipboard_cut (its v2 binding).
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
 
     board.press("j")
     board.press("t")
 
-    // Manually trigger chord timeout (bypasses real setTimeout, which can't
-    // fire synchronously within testEnv's act()-based rendering model)
+    // Manually trigger chord timeout (bypasses real setTimeout)
     act(() => {
       __triggerChordTimeout(store.getState)
     })
 
-    // Verify store state: datePrompt should be set (dialog opened)
-    expect(store.getState().ui.datePrompt).toBeTruthy()
+    // Verify: t standalone = noop, so datePrompt should NOT be set
+    expect(store.getState().ui.datePrompt).toBeFalsy()
 
-    // Now press 'd' — the grace period should suppress it.
-    // This also triggers an inkx render, updating the screenshot.
+    // Now press 'd' — should resolve to clipboard_cut (not open a dialog)
     board.press("d")
 
-    // The dialog should be visible and 'd' should NOT appear in the text input
+    // No date dialog should appear
     const text = board.screenshot()
-    expect(text).toContain("Set Due Date")
-    expect(text).not.toMatch(/> [^\s]*d/)
+    expect(text).not.toContain("Set Due Date")
   })
 
   test("ts chord opens start date dialog", () => {
@@ -903,9 +899,9 @@ describe("priority (sp)", () => {
     // Initially no priority in full screenshot
     expect(board.screenshot()).not.toMatch(/P[1-4]/)
 
-    // sp → P1
-    board.press("s")
-    board.press("p")
+    // t! → P1
+    board.press("t")
+    board.press("!")
 
     // Should show P1 somewhere (toast or card)
     const text = board.screenshot()
@@ -919,19 +915,19 @@ describe("priority (sp)", () => {
 
     // Cycle: none → P1 → P2 → P3 → P4 → none
     // Each sp should show the next priority in a toast
-    board.press("s").press("p")
+    board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: P1")
 
-    board.press("s").press("p")
+    board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: P2")
 
-    board.press("s").press("p")
+    board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: P3")
 
-    board.press("s").press("p")
+    board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: P4")
 
-    board.press("s").press("p")
+    board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: None")
   })
 })

@@ -32,8 +32,8 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
     const before = board.screenshot()
     expect(before).toContain("Task A")
 
-    // Press C to ignore node — should not throw
-    expect(() => board.press("C")).not.toThrow()
+    // Press gC to ignore node — should not throw
+    expect(() => board.press("g").press("C")).not.toThrow()
 
     // Board should still be usable
     const after = board.screenshot()
@@ -45,7 +45,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
   test("pressing C shows error toast instead of crashing", () => {
     const { board } = makeBoard()
 
-    board.press("C")
+    board.press("g").press("C")
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render
@@ -59,23 +59,23 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
 // ---------------------------------------------------------------------------
 
 describe("Open in System crash when repo.data is null (km-otgyy)", () => {
-  test("pressing o does not crash when repo.data is null", () => {
+  test("pressing go does not crash when repo.data is null", () => {
     const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
     board.press("j")
 
     // This should NOT throw — it should handle missing repo.data gracefully
-    expect(() => board.press("o")).not.toThrow()
+    expect(() => board.press("g").press("o")).not.toThrow()
   })
 
-  test("pressing O (open in terminal) does not crash when repo.data is null", () => {
+  test("pressing gO (open in terminal) does not crash when repo.data is null", () => {
     const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     board.press("j")
 
     // Same issue: handleOpenInTerminal also calls resolveNodeFsPath
-    expect(() => board.press("O")).not.toThrow()
+    expect(() => board.press("g").press("O")).not.toThrow()
   })
 })
 

@@ -307,8 +307,8 @@ describe("Interaction with folded nodes", () => {
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("target"))),
     )
 
-    // Fold parent (za chord)
-    board.press("z").press("a") // toggle_fold on parent
+    // Fold parent
+    board.press("H") // fold_node on parent
 
     // Navigate to target
     board.press("j") // → target
@@ -456,8 +456,8 @@ describe("Multi-select indent (atomic batch)", () => {
     )
 
     board.press("j") // → B (index 1)
-    board.press("J") // anchor=B, multiSelected={B:0}, cursor→C
-    board.press("J") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
     board.press("Tab")
 
@@ -473,8 +473,8 @@ describe("Multi-select indent (atomic batch)", () => {
     // A is first child (no prev sibling) → entire batch fails
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.press("J") // anchor=A, multiSelected={A:0}, cursor→B
-    board.press("J") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
     board.press("Tab")
 
@@ -486,8 +486,8 @@ describe("Multi-select indent (atomic batch)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     board.press("j") // → B
-    board.press("J") // anchor=B, multiSelected={B:0}
-    board.press("J") // range B→D, multiSelected={B:0,C:0,D:0}
+    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}
+    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
     board.press("Tab")
 
     // After successful batch indent, no "selected" status
@@ -504,8 +504,8 @@ describe("Multi-select outdent (atomic batch)", () => {
     // Shift+Tab → all three move to board level
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.press("J") // anchor=A, multiSelected={A:0}, cursor→B
-    board.press("J") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
     board.press("Shift+Tab")
 

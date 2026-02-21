@@ -87,6 +87,7 @@ export {
   resolveKeybinding,
   isChordPrefix,
   resolveChord,
+  getChordSuffixes,
   defaultKeybindings,
   defaultKeybindingLayers,
   initDefaultKeybindings,

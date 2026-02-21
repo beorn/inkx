@@ -205,7 +205,7 @@ describe("Columns View", () => {
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
-      board.press("z").press("M")
+      board.press("<")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
       expect(board.screenshot()).toContain(" 2")
@@ -347,7 +347,7 @@ describe("Columns View", () => {
     test("e zooms into card with children", () => {
       const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
       board.expect("#card[data-cursor]").toExist()
-      board.press("e")
+      board.press("z")
       board.expect("#subcard").toExist()
     })
 
@@ -368,7 +368,7 @@ describe("Columns View", () => {
 
     test("Escape after zoom returns to parent", () => {
       const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
-      board.press("e")
+      board.press("z")
       board.expect("#subcard").toExist()
       board.press("\x1B")
       board.expect("#card[data-cursor]").toExist()

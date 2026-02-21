@@ -27,14 +27,10 @@ interface TabsViewProps {
   columns: ColumnView[]
   width: number
   height: number
-  subIndex: number
 }
 
-export function TabsView({ columns: columnsProp, width, height, subIndex }: TabsViewProps): React.ReactElement {
+export function TabsView({ columns: columnsProp, width, height }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
-  const {
-    treeConfig: { inOutlineMode },
-  } = useTreeRenderContext()
 
   // NODE MODEL V2: Use node-based cursor position instead of indices
   const cursorPos = useCursorNodePosition()
@@ -131,7 +127,7 @@ export function TabsView({ columns: columnsProp, width, height, subIndex }: Tabs
               keyExtractor={(card) => card.id}
               renderItem={(card: KNode, actualCardIndex: number) => {
                 const isCardSelected =
-                  selectionLevel === "card" && card.id === cursorCardNodeId && (!inOutlineMode || subIndex === 0)
+                  selectionLevel === "card" && card.id === cursorCardNodeId
 
                 return (
                   <MemoizedTreeCard

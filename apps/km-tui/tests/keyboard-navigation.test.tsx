@@ -762,10 +762,10 @@ describe("Keyboard Navigation: body card stickyY (within-column body)", () => {
   })
 })
 
-describe("Keyboard Navigation: i (zoom inwards)", () => {
-  test("i keeps cursor on the same card after zoom inwards", () => {
+describe("Keyboard Navigation: z (zoom in)", () => {
+  test("z zooms into cursor node, making it the root", () => {
     // Structure: board > col1 > [1a, 1b, 1c]
-    // Each card needs children so zoom inwards has somewhere to go
+    // Each card needs children so zoom_in has somewhere to show
     const { board } = testEnv(() =>
       item(
         "board",
@@ -781,12 +781,13 @@ describe("Keyboard Navigation: i (zoom inwards)", () => {
     board.press("j")
     board.expect("#1b[data-cursor]").toExist()
 
-    // Press i to zoom inwards — cursor should stay on 1b
-    board.press("i")
-    board.expect("#1b[data-cursor]").toExist()
+    // Press z to zoom in — 1b becomes root, its child sub2 is visible
+    board.press("z")
+    const text = board.screenshot()
+    expect(text).toContain("sub2")
   })
 
-  test("i keeps cursor on third card after zoom inwards", () => {
+  test("z zoom into third card shows its children", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a", item("sub1")), item("1b", item("sub2")), item("1c", item("sub3")))),
     )
@@ -795,8 +796,9 @@ describe("Keyboard Navigation: i (zoom inwards)", () => {
     board.press("j").press("j")
     board.expect("#1c[data-cursor]").toExist()
 
-    // Press i to zoom inwards — cursor should stay on 1c
-    board.press("i")
-    board.expect("#1c[data-cursor]").toExist()
+    // Press z to zoom in — 1c becomes root, its child sub3 is visible
+    board.press("z")
+    const text = board.screenshot()
+    expect(text).toContain("sub3")
   })
 })

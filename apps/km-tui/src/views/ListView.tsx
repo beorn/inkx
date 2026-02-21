@@ -50,23 +50,19 @@ interface ListViewProps {
   columns: ColumnView[]
   width: number
   height: number
-  subIndex: number
 }
 
 export function ListView({
   columns: columnsProp,
   width,
   height,
-  subIndex: subIndexProp,
 }: ListViewProps): React.ReactElement {
   const { treeConfig, rootBoardId } = useTreeRenderContext()
-  const { inOutlineMode } = treeConfig
   const repo = useRepo()
 
   // NODE MODEL V2: Use node-based cursor position instead of indices
   const cursorPos = useCursorNodePosition()
   const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
-  const subIndex = subIndexProp
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
@@ -161,8 +157,7 @@ export function ListView({
       const cIdx = item.colIdx
       const cardIdx = item.cardIdx
       const cardNodeId = item.card.id
-      const isCardSelected =
-        selectionLevel === "card" && cursorCardNodeId === cardNodeId && (!inOutlineMode || subIndex === 0)
+      const isCardSelected = selectionLevel === "card" && cursorCardNodeId === cardNodeId
 
       return (
         <MemoizedTreeCard
@@ -180,9 +175,7 @@ export function ListView({
     [
       cursorCardNodeId,
       cursorColumnNodeId,
-      subIndex,
       selectionLevel,
-      inOutlineMode,
       width,
       getCachedBoardPills,
       columnExcludedSigilsByCol,

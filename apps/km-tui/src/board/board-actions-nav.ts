@@ -24,8 +24,9 @@ import type { NavState } from "../view-navigation.ts"
 export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
   const { ui } = ctx
 
-  // Outline mode sub-item navigation
-  if (ui.inOutlineMode && (dir === "prev" || dir === "next")) {
+  // Outline mode sub-item navigation (when cursor is inside a card's descendants)
+  const inOutlineMode = ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id
+  if (inOutlineMode && (dir === "prev" || dir === "next")) {
     return handleOutlineNav(ctx, dir, ctx.card)
   }
 
@@ -48,8 +49,10 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
   }
 
   // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
-  if (dir === "up" || dir === "down") {
-    const result = handleVerticalNav(ctx, dir)
+  // block_up/block_down are stubs that map to regular up/down for now (TODO: auto-unfold + block jump)
+  if (dir === "up" || dir === "down" || dir === "block_up" || dir === "block_down") {
+    const effectiveDir = dir === "block_up" ? "up" : dir === "block_down" ? "down" : dir
+    const result = handleVerticalNav(ctx, effectiveDir as "up" | "down")
     ctx.navigator.clearStickyY()
     return result
   }
@@ -60,22 +63,21 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
   return result
 }
 
-/** Outline mode prev/next sub-item navigation. */
+/** Outline mode prev/next sub-item navigation using node IDs. */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   const { ui } = ctx
+  if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  if (dir === "prev" && ui.subIndex > 0) {
-    ctx.setUI({ subIndex: ui.subIndex - 1 })
-    return ok()
-  }
-  if (dir === "next" && card) {
-    const maxIdx = ctx.countVisibleDescendants(card, 0, ui.maxOutlineDepth, ctx.foldedNodes)
-    if (ui.subIndex < maxIdx) {
-      ctx.setUI({ subIndex: ui.subIndex + 1 })
-      return ok()
-    }
-  }
-  return boundary(dir)
+  const descendantIds = ctx.getVisibleDescendantIds(card, ui.maxOutlineDepth, ctx.foldedNodes)
+  const currentIdx = descendantIds.indexOf(ctx.cursorNodeId)
+  if (currentIdx < 0) return boundary(dir)
+
+  const targetIdx = dir === "prev" ? currentIdx - 1 : currentIdx + 1
+  const targetId = descendantIds[targetIdx]
+  if (!targetId) return boundary(dir)
+
+  ctx.dispatchBoard({ type: "SELECT", nodeId: targetId })
+  return ok()
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
@@ -200,15 +202,9 @@ function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
 
   // Restore selection state
   if (entry.multiSelected && entry.multiSelected.size > 0) {
-    ctx.setUI({
-      multiSelected: entry.multiSelected,
-      ...(entry.inOutlineMode ? { inOutlineMode: true, subIndex: entry.subIndex } : {}),
-    })
+    ctx.setUI({ multiSelected: entry.multiSelected })
   } else {
     clearSelection(ctx)
-    if (entry.inOutlineMode) {
-      ctx.setUI({ inOutlineMode: true, subIndex: entry.subIndex })
-    }
   }
 
   if (entry.foldedNodes) {

@@ -41,8 +41,8 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    // Navigate to first embed, press n to create new node after it
-    board.press("n")
+    // Navigate to first embed, press o to create new node after it
+    board.press("o")
     board.press("Escape") // exit inline edit
 
     const items = board.q(colItems("col1"))
@@ -79,8 +79,8 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    // Navigate to sec-a, press n
-    board.press("n")
+    // Navigate to sec-a, press o
+    board.press("o")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))
@@ -111,7 +111,7 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    board.press("n")
+    board.press("o")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))
@@ -144,8 +144,8 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    // Press p to insert before current node
-    board.press("p")
+    // Press O to insert before current node
+    board.press("O")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))

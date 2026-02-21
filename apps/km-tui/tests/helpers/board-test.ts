@@ -79,7 +79,8 @@ import {
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
-import { handleKey } from "../../src/board-app.ts"
+import { handleKey, handleMouse } from "../../src/board-app.ts"
+import type { ParsedMouse } from "inkx"
 import type { InitialBoardData, ColumnView } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 
@@ -453,6 +454,16 @@ export function testEnv(
         }
       }
     }
+  }
+
+  // Send a mouse event through handleMouse (same path as production)
+  const sendMouseEvent = (mouse: ParsedMouse) => {
+    act(() => {
+      handleMouse(mouse, { get: store.getState, set: store.setState } as Parameters<typeof handleMouse>[1])
+      store.setState((s) => s)
+    })
+    // Flush React effects via a no-op press
+    void originalPress("") // triggers doRender without actual key processing
   }
 
   // Create fluent API using App's auto-refreshing locators
@@ -1543,7 +1554,7 @@ export function testEnvWithRepo(
       result.unmount()
     },
   }
-  return { board, registry, toastQueue }
+  return { board, registry, toastQueue, store }
 }
 
 // =============================================================================

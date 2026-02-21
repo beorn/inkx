@@ -26,8 +26,6 @@ const baseUI: UIState = {
   showProjectPicker: false,
   showNewItemDialog: false,
   showSearchDialog: false,
-  subIndex: 0,
-  inOutlineMode: false,
   multiSelected: new Set(),
   selectionAnchor: null,
   selectAllLevel: 0,
@@ -48,6 +46,7 @@ const baseUI: UIState = {
   bellState: null,
   showConsole: false,
   status: null,
+  focusedPane: "board",
 }
 
 const testRootPath = "/tmp/test"
@@ -212,14 +211,14 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       expect(bottomRow).toContain("CARDS VIEW")
 
       // Press 'v' to cycle to columns view
-      board.press("v")
+      board.press("g").press("v")
       bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("COLUMNS VIEW")
       // Old view mode text should NOT be present
       expect(bottomRow).not.toContain("CARDS")
 
       // Press 'v' again to cycle to tabs view
-      board.press("v")
+      board.press("g").press("v")
       bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("TABS VIEW")
       // Old view mode text should NOT be present
@@ -227,7 +226,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       expect(bottomRow).not.toContain("CARDS")
 
       // Press 'v' to cycle back to cards
-      board.press("v")
+      board.press("g").press("v")
       bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("CARDS VIEW")
       // Old view mode text should NOT be present
@@ -245,7 +244,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
 
       // Rapidly cycle through all views multiple times
       for (let i = 0; i < 6; i++) {
-        board.press("v")
+        board.press("g").press("v")
       }
 
       // Should be back at cards view (6 cycles: cards->col->tabs->cards->col->tabs)
@@ -311,7 +310,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       expect((bottomRow.match(/VIEW/g) || []).length).toBe(1)
 
       // Switch to columns view (longer name) and check again
-      board.press("v")
+      board.press("g").press("v")
       const bottomRow2 = board.screen.row(lastRow)
       expect((bottomRow2.match(/VIEW/g) || []).length).toBe(1)
       expect(bottomRow2).toContain("COLUMNS VIEW")
@@ -327,13 +326,13 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       )
 
       // Start with CARDS, go to COLUMNS
-      board.press("v") // -> COLUMNS
+      board.press("g").press("v") // -> COLUMNS
       const lastRow = board.screen.rows.length - 1
       let bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("COLUMNS VIEW")
 
       // Switch to TABS (shorter)
-      board.press("v") // -> TABS
+      board.press("g").press("v") // -> TABS
       bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("TABS VIEW")
       // "COLUMNS" must be completely gone - no leftover characters

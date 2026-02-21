@@ -167,7 +167,13 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
  * Serialize a single node
  * @param addTrailingNewline - Whether to add trailing newline for list items (default true for backwards compat)
  */
-function serializeNode(node: KNode, ctx: SerializeContext, indent: number, addTrailingNewline: boolean = true, depth = 2): string {
+function serializeNode(
+  node: KNode,
+  ctx: SerializeContext,
+  indent: number,
+  addTrailingNewline: boolean = true,
+  depth = 2,
+): string {
   const children = ctx.tree.get(node.id) ?? []
 
   // Link nodes with embed flag or any node with link_to is a transclusion

@@ -3,7 +3,7 @@
  *
  * Defines the board application with Zustand store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
- * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=multi-CURSOR_MOVE, click=SELECT, ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
+ * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=SELECT(card/column/sub-block), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT(blockIndex)
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
@@ -78,12 +78,23 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     exit,
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldedNodes),
+    getVisibleDescendantIds: (cardNode, maxDepth, foldedNodes) =>
+      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldedNodes),
   }
 }
 
 // Chord timeout timer
 let chordTimer: ReturnType<typeof setTimeout> | null = null
 const CHORD_TIMEOUT_MS = 300
+
+// Minimum display duration for the which-key popup (ms).
+// The popup stays visible for at least this long after appearing, even after
+// the chord timeout fires the standalone command. Only dismissed by:
+// (1) valid suffix key, (2) Escape, (3) any key after min duration elapsed.
+const WHICH_KEY_MIN_DISPLAY_MS = 1500
+
+// Timestamp when pendingChord was set (for minimum display duration)
+let pendingChordShownAt = 0
 
 // When the chord timeout fires and resolves the prefix as a standalone command
 // (e.g., 't' → set_due_date), the user's intended chord-completion key ('d')
@@ -121,9 +132,23 @@ export function handleKey(
 
   const ui = get().ui
 
-  // Clear bell, status, and pending chord at start of each keypress (only if set, to avoid unnecessary re-renders).
-  if (ui.bellState !== null || ui.status !== null || ui.pendingChord !== null) {
-    get().setUI({ bellState: null, status: null, pendingChord: null })
+  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
+  // pendingChord is NOT cleared here — it has its own lifecycle (see which-key popup logic below).
+  if (ui.bellState !== null || ui.status !== null) {
+    get().setUI({ bellState: null, status: null })
+  }
+
+  // Which-key popup dismissal logic:
+  // The popup stays visible for at least WHICH_KEY_MIN_DISPLAY_MS. After that,
+  // any keypress dismisses it. Before that, only valid suffix or Escape dismisses.
+  if (ui.pendingChord !== null) {
+    const elapsed = now - pendingChordShownAt
+    if (key.escape || elapsed >= WHICH_KEY_MIN_DISPLAY_MS) {
+      // Dismiss: Escape cancels, or min display time elapsed + any key
+      get().setUI({ pendingChord: null })
+    }
+    // If within min display time: pendingChord stays set.
+    // The chord state machine still processes the key (suffix → resolve, which clears pendingChord below).
   }
 
   // Clear any pending chord timeout (we got a new key)
@@ -169,8 +194,8 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
       }
     }
   }
-  // Clear chord status indicator and pending chord
-  freshCtx.setUI({ status: null, pendingChord: null })
+  // Clear chord status indicator (but keep pendingChord for which-key popup minimum display duration)
+  freshCtx.setUI({ status: null })
 }
 
 /**
@@ -213,12 +238,18 @@ function routeThroughCommandSystem(
   // Chord pending: show status indicator and start timeout
   if (result.pending) {
     parentSpan.spanData.outcome = "chord"
+    pendingChordShownAt = performance.now()
     ctx.setUI({ status: { level: "info", message: `${result.pending}-` }, pendingChord: result.pending })
     chordTimer = setTimeout(() => {
       chordTimer = null
       fireChordTimeout(get, exitApp)
     }, CHORD_TIMEOUT_MS)
     return
+  }
+
+  // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
+  if (result.chordResolved && get().ui.pendingChord !== null) {
+    ctx.setUI({ pendingChord: null })
   }
 
   if (!result.handled) {
@@ -284,10 +315,20 @@ let lastClick = { time: 0, x: 0, y: 0 }
 const DOUBLE_CLICK_MS = 400
 const DOUBLE_CLICK_DISTANCE = 2
 
-/**
- * Resolve mouse (x, y) to a card node ID using the GridNavigator position registry.
- * Returns the node ID if the click lands on a registered card, or null otherwise.
- */
+/** Mouse click target — what the user clicked on */
+export interface MouseTarget {
+  /** "card" = clicked on a card, "column" = clicked on column header or empty space */
+  kind: "card" | "column"
+  /** Column index in the columns array */
+  colIndex: number
+  /** Column node ID (the column's own node) */
+  columnNodeId: string
+  /** Card node ID (only for kind="card") */
+  cardNodeId?: string
+  /** Sub-block index within the card: 0 = title, 1+ = body children (only for kind="card") */
+  blockIndex: number
+}
+
 /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
 function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
   const { columns, navigator } = actionCtx
@@ -305,31 +346,83 @@ function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
   return -1
 }
 
-function resolveMouseToNode(
-  actionCtx: ActionCtx,
-  mouseX: number,
-  mouseY: number,
-): string | null {
+/**
+ * Resolve mouse (x, y) to a precise click target.
+ *
+ * Returns a MouseTarget describing what was clicked:
+ * - Card click: identifies the specific card and sub-block (title vs body child)
+ * - Column click: clicking the header or empty space below cards selects the column
+ * - null: click didn't land on any recognizable UI element
+ */
+function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number): MouseTarget | null {
   const targetColIndex = resolveMouseToColumn(actionCtx, mouseX)
   if (targetColIndex < 0) return null
 
+  const column = actionCtx.columns[targetColIndex]
+  if (!column) return null
+  const columnNodeId = column.node.id
+
   // Find which card in the column the click falls on
   const cardIndex = actionCtx.navigator.findItemAtY(targetColIndex, mouseY)
-  if (cardIndex < 0) return null
 
-  const column = actionCtx.columns[targetColIndex]
-  const card = column?.cardNodes[cardIndex]
-  return card?.id ?? null
+  if (cardIndex < 0) {
+    // Click didn't land on a card — it's either the column header or empty space below cards.
+    // Both select the column.
+    return { kind: "column", colIndex: targetColIndex, columnNodeId, blockIndex: 0 }
+  }
+
+  const card = column.cardNodes[cardIndex]
+  if (!card) return null
+
+  // Determine sub-block precision within the card.
+  // Card layout: border-top (1 row) + title/HeadRow (1 row) + children (1 row each) + border-bottom (1 row)
+  // For virtual/body cards (no border): title (1 row) + children
+  const cardRect = actionCtx.navigator.getPosition(targetColIndex, cardIndex)
+  if (!cardRect) {
+    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
+  }
+
+  // Relative Y within the card's bounding box
+  const relY = mouseY - cardRect.y
+
+  // Bordered cards: row 0 = top border, row 1 = title, row 2+ = children
+  // The first content row (title) is at relY=1 for bordered cards.
+  // Children start at relY=2.
+  // For virtual/body block cards (which still have borders per bodyBlockLayoutProps),
+  // the layout is the same.
+  const isVirtual = column.isVirtual || column.virtualCardIds.has(card.id)
+  const titleRow = isVirtual ? 0 : 1 // virtual cards may not have borders, but bodyBlockLayoutProps adds them
+  const childStartRow = titleRow + 1
+
+  if (relY <= titleRow) {
+    // Clicked on the title row (or border above it)
+    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
+  }
+
+  // Clicked below the title — determine which child block
+  const childOffset = relY - childStartRow
+  // Get children to validate the offset
+  const children = actionCtx.repo.getChildren(card.id)
+  if (children.length === 0 || childOffset < 0) {
+    // No children or clicked on a non-child row (e.g., bottom border)
+    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
+  }
+
+  // blockIndex: 0 = title, 1 = first child, 2 = second child, etc.
+  const blockIndex = Math.min(childOffset + 1, children.length)
+  return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex }
 }
 
 /**
  * Handle term:mouse event — entry point for all mouse input.
  * - Scroll wheel: moves cursor by SCROLL_STEP items (feels like column scrolling)
- * - Left click: select the card under the cursor (clears multi-selection)
+ * - Left click on card title: select the card (clears multi-selection)
+ * - Left click on card sub-block: select card + enter outline mode at that block
+ * - Left click on column header or empty space: select the column
  * - Ctrl-click: move cursor to card and toggle it in multi-selection
- * - Double-click: enter inline edit mode on the clicked card
+ * - Double-click on card/sub-block: enter inline edit on the clicked block
  */
-function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
+export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
 
   if (mouse.action === "wheel") {
@@ -353,10 +446,7 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
 
     const currentAnchor = actionCtx.ui.columnScrollAnchor
     // If anchor exists for this column, continue from it; otherwise start from middle
-    const baseIndex =
-      currentAnchor?.colIdx === colIdx
-        ? currentAnchor.anchor
-        : Math.floor(col.cardNodes.length / 2)
+    const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(col.cardNodes.length / 2)
     const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
     const maxIndex = col.cardNodes.length - 1
     const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
@@ -367,20 +457,28 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
 
   if (mouse.action === "down" && mouse.button === 0) {
     const actionCtx = buildActionCtx(get, () => {})
-    const nodeId = resolveMouseToNode(actionCtx, mouse.x, mouse.y)
-    if (!nodeId) return
+    const target = resolveMouseTarget(actionCtx, mouse.x, mouse.y)
+    if (!target) return
 
     const now = Date.now()
     const dx = Math.abs(mouse.x - lastClick.x)
     const dy = Math.abs(mouse.y - lastClick.y)
     const isDoubleClick =
-      now - lastClick.time < DOUBLE_CLICK_MS &&
-      dx <= DOUBLE_CLICK_DISTANCE &&
-      dy <= DOUBLE_CLICK_DISTANCE
+      now - lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
+
+    if (target.kind === "column") {
+      // Column header or empty space click → select the column (move cursor to column level)
+      actionCtx.dispatchBoard({ type: "SELECT", nodeId: target.columnNodeId })
+      lastClick = { time: now, x: mouse.x, y: mouse.y }
+      return
+    }
+
+    // Card click (target.kind === "card")
+    const nodeId = target.cardNodeId!
 
     if (isDoubleClick) {
-      // Double-click → enter inline edit on the clicked card
-      handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: 0 })
+      // Double-click → enter inline edit on the clicked block
+      handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: target.blockIndex })
       lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
     } else if (mouse.ctrl) {
       // Ctrl-click → move cursor to clicked card and toggle its selection
@@ -388,8 +486,21 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
       actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
       lastClick = { time: now, x: mouse.x, y: mouse.y }
     } else {
-      // Single click → select the card (clears multi-selection)
+      // Single click on card: select card and (if sub-block) navigate cursor to that child node
       actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+      if (target.blockIndex > 0) {
+        // Clicked a sub-block within the card body — set cursor to that child's node ID
+        const descendantIds = getVisibleDescendantIds(
+          actionCtx.repo,
+          { id: nodeId },
+          actionCtx.ui.maxOutlineDepth,
+          actionCtx.foldedNodes,
+        )
+        const childId = descendantIds[target.blockIndex]
+        if (childId) {
+          actionCtx.dispatchBoard({ type: "SELECT", nodeId: childId })
+        }
+      }
       lastClick = { time: now, x: mouse.x, y: mouse.y }
     }
     return
@@ -507,4 +618,27 @@ function countVisibleDescendants(
     count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
   }
   return count
+}
+
+/**
+ * Get flat list of visible descendant IDs in DFS order for outline navigation.
+ * First entry is the card itself (index 0), then its visible descendants.
+ */
+function getVisibleDescendantIds(
+  repo: { getChildren(id: string): { id: string }[] },
+  cardNode: { id: string },
+  maxDepth: number,
+  foldedNodes: Set<string>,
+): string[] {
+  const result: string[] = [cardNode.id]
+  function walk(node: { id: string }, depth: number): void {
+    if (depth >= maxDepth || foldedNodes.has(node.id)) return
+    const children = repo.getChildren(node.id)
+    for (const child of children) {
+      result.push(child.id)
+      walk(child, depth + 1)
+    }
+  }
+  walk(cardNode, 0)
+  return result
 }
