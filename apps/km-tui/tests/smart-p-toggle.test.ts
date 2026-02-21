@@ -1,19 +1,15 @@
 /**
- * Smart-D detail pane toggle tests
+ * Detail pane toggle tests
  *
- * Verifies the three-state D key behavior:
- * 1. Pane closed → D → open + focus pane
- * 2. Pane open, board focused → D → focus pane
- * 3. Pane open, pane focused → D → close pane
- *
- * Also verifies Escape unfocuses pane (returns to board) without closing,
- * and Cmd+W always closes the pane regardless of focus state.
+ * D toggles detail pane open/closed. Focus stays on board.
+ * Detail pane follows cursor selection (read-only preview).
+ * Pane focus (interactive mode) is future work.
  */
 import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
-describe("Smart-D detail pane toggle", () => {
-  test("three-state cycle: D opens+focuses, Escape unfocuses, D refocuses, D closes", () => {
+describe("Detail pane toggle", () => {
+  test("D opens pane, D again closes it (focus stays on board)", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("card1"), item("card2"))),
       { checkIncremental: false, incremental: false },
@@ -23,71 +19,48 @@ describe("Smart-D detail pane toggle", () => {
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
 
-    // State 1: P opens pane and focuses it
+    // D opens pane, focus stays on board
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-
-    // Escape unfocuses pane (returns to board), pane stays open
-    board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("board")
 
-    // State 2: P with pane open + board focused → focus pane (not toggle closed)
-    board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-
-    // State 3: P with pane open + pane focused → close pane
+    // D again closes pane
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })
 
-  test("P from closed state opens and focuses detail pane", () => {
+  test("cursor movement works while detail pane is open", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("card1"), item("card2"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Open pane
+    board.press("D")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // j moves cursor down on the board
+    board.press("j")
+    expect(store.getState().cursorNodeId).toBe("card2")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // k moves cursor back up
+    board.press("k")
+    expect(store.getState().cursorNodeId).toBe("card1")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+  })
+
+  test("Escape closes detail pane", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("card1"))),
       { checkIncremental: false, incremental: false },
     )
-
-    expect(store.getState().ui.showDetailPane).toBe(false)
 
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-  })
 
-  test("P when pane is open but board has focus → focuses pane without closing", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"))),
-      { checkIncremental: false, incremental: false },
-    )
-
-    // Open and focus pane, then Escape to return focus to board
-    board.press("D")
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
-
-    // P should focus the pane, not close it
-    board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-  })
-
-  test("P when pane is open and focused → closes pane", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"))),
-      { checkIncremental: false, incremental: false },
-    )
-
-    // Open and focus pane
-    board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-
-    // P again closes the pane
-    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })
@@ -102,14 +75,14 @@ describe("Smart-D detail pane toggle", () => {
     board.press("D")
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
-    // Simulate scroll (detail pane scroll sets offset directly in store)
+    // Simulate scroll
     store.setState((s: any) => ({
       ...s,
       ui: { ...s.ui, detailScrollOffset: 6 },
     }))
     expect(store.getState().ui.detailScrollOffset).toBe(6)
 
-    // Close pane with P → offset should reset
+    // Close pane with D → offset should reset
     board.press("D")
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
@@ -118,53 +91,21 @@ describe("Smart-D detail pane toggle", () => {
     expect(store.getState().ui.detailScrollOffset).toBe(0)
   })
 
-  test("Escape in detail pane returns focus to board without closing", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1"), item("card2"))),
-      { checkIncremental: false, incremental: false },
-    )
-
-    // Open and focus pane
-    board.press("D")
-    expect(store.getState().ui.focusedPane).toBe("detail")
-
-    // Escape → board focused, pane still open
-    board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
-
-    // Can navigate normally while pane stays open
-    board.press("j")
-    expect(store.getState().cursorNodeId).toBe("card2")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-  })
-
-  test("multiple P cycles work correctly", () => {
+  test("multiple D cycles work correctly", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("card1"))),
       { checkIncremental: false, incremental: false },
     )
 
-    // Cycle 1: open+focus → close
+    // Rapid toggle: open → close
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
 
-    // Cycle 2: open+focus → unfocus → refocus → close
+    // Again
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-    board.press("Escape")
-    expect(store.getState().ui.focusedPane).toBe("board")
-    board.press("D")
-    expect(store.getState().ui.focusedPane).toBe("detail")
-    board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
-
-    // Cycle 3: open+focus → close (rapid toggle)
-    board.press("D")
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")

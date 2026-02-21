@@ -42,20 +42,15 @@ describe("detail pane on link-type nodes", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    // Open detail pane with D (Smart-D: opens + focuses)
+    // Open detail pane with D (focus stays on board)
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
-
-    // v2: Escape unfocuses pane (returns to board), pane stays open
-    board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("board")
 
-    // Close with D (Smart-D: board-focused → focus pane → close pane)
-    board.press("D") // focus pane
-    board.press("D") // close pane
+    // Escape closes pane
+    board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().ui.focusedPane).toBe("board")
   })
 
   test("link node whose target has children: Enter zooms instead of detail pane", { timeout: 5000 }, () => {
@@ -144,17 +139,11 @@ describe("detail pane on link-type nodes", () => {
     board.press("l")
     expect(store.getState().cursorNodeId).toBe("card2")
 
-    // v2: Escape unfocuses pane (doesn't close it), pane stays open
+    // Escape closes pane
     expect(store.getState().ui.showDetailPane).toBe(true)
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
-
-    // P from board-focused -> focuses pane, then P again -> closes pane
-    board.press("D") // focus pane
-    expect(store.getState().ui.focusedPane).toBe("detail")
-    board.press("D") // close pane
     expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().ui.focusedPane).toBe("board")
   })
 
   test("detail pane closes on link node pointing to existing target", { timeout: 5000 }, () => {

@@ -753,17 +753,17 @@ describe("Detail Pane Navigation", () => {
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
-  test("Escape unfocuses detail pane (pane stays open, focus returns to board)", () => {
+  test("Escape closes detail pane", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
-    // Open detail pane (P toggles: closed → open+focused)
+    // Open detail pane (focus stays on board)
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("detail")
+    expect(store.getState().ui.focusedPane).toBe("board")
 
-    // Escape should unfocus pane (pane stays open, focus returns to board)
+    // Escape closes pane
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })
 
