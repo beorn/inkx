@@ -1044,9 +1044,22 @@ export function Board({ patchedConsole }: BoardProps) {
     ],
   )
 
+  // Derive search highlight state for TreeNode rendering
+  const searchMatchNodeIds = useMemo(
+    () => (ui.localSearch ? new Set(ui.localSearch.matchNodeIds) : undefined),
+    [ui.localSearch?.matchNodeIds],
+  )
+  const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
+
   return (
     <CursorStoreProvider store={cursorStore}>
-      <TreeRenderProvider treeConfig={treeConfig} setUI={setUI} rootBoardId={ui.rootBoardId}>
+      <TreeRenderProvider
+        treeConfig={treeConfig}
+        setUI={setUI}
+        rootBoardId={ui.rootBoardId}
+        searchMatchNodeIds={searchMatchNodeIds}
+        currentMatchNodeId={currentMatchNodeId}
+      >
         <BoardCore
           rootId={rootId}
           rootPath={rootPath}

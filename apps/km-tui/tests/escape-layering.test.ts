@@ -82,7 +82,7 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.focusedPane).toBe("board")
   })
 
-  test("second Escape after unfocus does not close the pane", () => {
+  test("second Escape after unfocus closes the pane", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"))))
 
     // Open+focus detail pane
@@ -95,9 +95,13 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("board")
 
-    // Second Escape: nothing to do → boundary (bell)
+    // Second Escape: close pane
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().ui.focusedPane).toBe("board")
+
+    // Third Escape: nothing left → bell
+    board.press("Escape")
     expect(board.bell).toBe(true)
   })
 
@@ -230,7 +234,7 @@ describe("Escape Layering", () => {
     expect(board.bell).toBe(true)
   })
 
-  test("pane open + selection: Escape unfocuses pane, then clears selection, then bells", () => {
+  test("pane open + selection: Escape unfocuses, closes pane, clears selection, then bells", () => {
     const { board, store } = testEnv(() =>
       item("board", item("col", item("1a"), item("1b"), item("1c"))),
     )
@@ -248,11 +252,16 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.focusedPane).toBe("board")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
-    // Escape 2: clear selection
+    // Escape 2: close pane (selection still active)
+    board.press("Escape")
+    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+
+    // Escape 3: clear selection
     board.press("Escape")
     expect(store.getState().ui.multiSelected.size).toBe(0)
 
-    // Escape 3: nothing left → bell
+    // Escape 4: nothing left → bell
     board.press("Escape")
     expect(board.bell).toBe(true)
   })

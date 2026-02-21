@@ -169,6 +169,10 @@ export interface TreeRenderCtx {
   resolveSigilColor: (sigil: string) => string | undefined
   setUI: BoardAppStore["setUI"]
   rootBoardId: string | null
+  /** Node IDs matching the current local search query (empty set when no search) */
+  searchMatchNodeIds: ReadonlySet<string>
+  /** The currently focused match node ID (highlighted differently from other matches) */
+  currentMatchNodeId: string | null
 }
 
 const TreeRenderContext = createContext<TreeRenderCtx | null>(null)
@@ -224,21 +228,29 @@ function createSigilColorResolver(repo: Repo): (sigil: string) => string | undef
  * Placed at the Board level to give all TreeNode instances
  * access to global config without per-node store subscriptions.
  */
+const EMPTY_SET: ReadonlySet<string> = new Set()
+
 export function TreeRenderProvider({
   treeConfig,
   setUI,
   rootBoardId,
+  searchMatchNodeIds,
+  currentMatchNodeId,
   children,
 }: {
   treeConfig: TreeConfig
   setUI: BoardAppStore["setUI"]
   rootBoardId: string | null
+  searchMatchNodeIds?: ReadonlySet<string>
+  currentMatchNodeId?: string | null
   children: React.ReactNode
 }): React.ReactElement {
   const repo = useRepo()
   // Dynamic sigil resolver: resolves sigils not in the static GTD map
   // by looking up the node in the repo and getting its color
   const resolveSigilColor = useMemo(() => createSigilColorResolver(repo), [repo])
+  const matchIds = searchMatchNodeIds ?? EMPTY_SET
+  const matchNode = currentMatchNodeId ?? null
   const ctx = useMemo(
     () => ({
       treeConfig,
@@ -246,8 +258,10 @@ export function TreeRenderProvider({
       resolveSigilColor,
       setUI,
       rootBoardId,
+      searchMatchNodeIds: matchIds,
+      currentMatchNodeId: matchNode,
     }),
-    [treeConfig, resolveSigilColor, setUI, rootBoardId],
+    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode],
   )
   return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }

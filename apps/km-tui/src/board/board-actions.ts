@@ -1338,6 +1338,12 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
+  // --- Layer 2b: Pane open but unfocused -> close pane ---
+  if (ui.showDetailPane) {
+    ctx.setUI({ showDetailPane: false, focusedPane: "board" })
+    return ok()
+  }
+
   // --- Layer 3: Dialog open -> close topmost dialog ---
   if (ui.showHelp) {
     ctx.setUI({ showHelp: false })

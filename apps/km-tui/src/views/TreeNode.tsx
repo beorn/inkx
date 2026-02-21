@@ -213,7 +213,8 @@ function TreeNodeImpl({
   hideChildCount = false,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId } = useTreeRenderContext()
+  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
+    useTreeRenderContext()
   const {
     maxOutlineDepth: maxDepth,
     maxContentLines,
@@ -303,6 +304,16 @@ function TreeNodeImpl({
     isInlineEditing,
     dim,
   ])
+
+  // Search match highlighting: dim highlight for non-current matches, brighter for current
+  const isSearchMatch = searchMatchNodeIds.has(node.id)
+  const isCurrentMatch = node.id === currentMatchNodeId
+  const effectiveBg =
+    isSearchMatch && !isSelected && !isMultiSelected
+      ? isCurrentMatch
+        ? "#665500"
+        : "#333300"
+      : style.backgroundColor
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -531,10 +542,21 @@ function TreeNodeImpl({
     if (node.type === "code" || node.type === "table") {
       return content // Verbatim — no renderRich processing
     }
+    // Resolve [[target]] wikilinks to display titles
+    const resolveWikiLink = (target: string): string | null => {
+      const resolved = repo.resolveNode(target)
+      if (resolved) return getNodeDisplayName(repo, resolved)
+      if (target.startsWith("^")) {
+        const byId = repo.resolveNode(target.slice(1)) ?? repo.getNode(target.slice(1))
+        if (byId) return getNodeDisplayName(repo, byId)
+      }
+      return null
+    }
     const rich = renderRich(content, {
       excludeSigils: excludedSigils,
       sigilColors,
       resolveSigilColor,
+      resolveWikiLink,
     })
     // Card titles: line-aware truncation to avoid partial trailing lines.
     // constrainText wraps to width, takes maxLines, and appends ellipsis on the last line if truncated.
@@ -551,6 +573,7 @@ function TreeNodeImpl({
     excludedSigils,
     sigilColors,
     resolveSigilColor,
+    repo,
     isOneliner,
     node.type,
     cardInnerWidth,
@@ -701,7 +724,7 @@ function TreeNodeImpl({
           flexDirection="row"
           alignItems="flex-start"
           paddingLeft={Math.max(0, depth - 1)}
-          backgroundColor={style.backgroundColor}
+          backgroundColor={effectiveBg}
           height={isOneliner || isCardChild ? 1 : undefined}
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
