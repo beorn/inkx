@@ -227,16 +227,23 @@ export function parseInlineText(text: string): InlineNode[] {
     mdastExtensions: [gfmFromMarkdown()],
   })
 
-  // The tree contains block-level nodes. For inline text, we expect
-  // a single paragraph with phrasing content children.
-  const para = tree.children[0]
-  if (para?.type !== "paragraph" || !("children" in para)) {
-    // Fallback: if mdast doesn't produce a paragraph (e.g., heading, code block),
-    // treat the entire text as plain + km syntax
-    return parseKmSyntax(text)
+  // The tree contains block-level nodes. Process all paragraphs,
+  // joining them with newlines (preserving multi-paragraph content).
+  const result: InlineNode[] = []
+  for (let i = 0; i < tree.children.length; i++) {
+    const child = tree.children[i]
+    if (i > 0) result.push({ type: "plain", text: "\n" })
+    if (child?.type === "paragraph" && "children" in child) {
+      result.push(...phrasingToInline(child.children))
+    } else {
+      // Fallback for non-paragraph blocks (headings, code blocks, etc.)
+      const start = child?.position?.start?.offset ?? 0
+      const end = child?.position?.end?.offset ?? text.length
+      result.push(...parseKmSyntax(text.slice(start, end)))
+    }
   }
 
-  return phrasingToInline(para.children)
+  return result
 }
 
 /**
