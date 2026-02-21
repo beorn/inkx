@@ -1,3 +1,4 @@
+/* oxlint-disable complexity/complexity -- Test file with nested fixtures */
 /**
  * Import Pipeline — Stage 2: Convert Tests
  *
@@ -1870,6 +1871,22 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(item.title).toBe("Task with spaces")
     expect(item.metadata?.parentTaskGid).toBe("12345")
   })
+
+  test("toImportItem stores assignee_section name in metadata", () => {
+    const task = makeAsanaTask({
+      gid: "456",
+      name: "My task",
+      assignee_section: { gid: "sec-1", name: "Recently assigned" },
+    })
+    const item = toImportItem(task)
+    expect(item.metadata?.assigneeSectionName).toBe("Recently assigned")
+  })
+
+  test("toImportItem omits assigneeSectionName when no assignee_section", () => {
+    const task = makeAsanaTask({ gid: "789", name: "No section" })
+    const item = toImportItem(task)
+    expect(item.metadata?.assigneeSectionName).toBeUndefined()
+  })
 })
 
 // ============================================================================
@@ -2121,5 +2138,109 @@ describe("empty project title fallback", () => {
     const data = makeData([{ sourceId: "t1", title: "A task", status: "todo" }], "Early Orbit")
     const md = convertToMd(data)
     expect(md).toContain("# Early Orbit")
+  })
+})
+
+// ============================================================================
+// User aggregate file section grouping
+// ============================================================================
+
+describe("User aggregate files group items by assignee section", () => {
+  test("items with assigneeSectionName are grouped under section headings", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      users: [
+        { gid: "user-1", name: "Importing User" },
+        { gid: "user-2", name: "Other User" },
+      ],
+      importingUserGid: "user-1",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Project",
+          items: [
+            {
+              sourceId: "t1",
+              title: "Task in Today",
+              status: "todo",
+              assignee: "other-user",
+              metadata: { assigneeSectionName: "Today" },
+            },
+            {
+              sourceId: "t2",
+              title: "Task in Upcoming",
+              status: "todo",
+              assignee: "other-user",
+              metadata: { assigneeSectionName: "Upcoming" },
+            },
+            {
+              sourceId: "t3",
+              title: "Task in Today too",
+              status: "done",
+              assignee: "other-user",
+              metadata: { assigneeSectionName: "Today" },
+            },
+            {
+              sourceId: "t4",
+              title: "Unsectioned task",
+              status: "todo",
+              assignee: "other-user",
+            },
+          ],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const userFile = [...files.entries()].find(([k]) => k.includes("@other-user"))
+    expect(userFile).toBeDefined()
+    const md = userFile![1]
+
+    // Should have section headings
+    expect(md).toContain("## Today")
+    expect(md).toContain("## Upcoming")
+
+    // Tasks should be under their sections (as embeds since they're already rendered in project)
+    const lines = md.split("\n")
+    const todayIdx = lines.findIndex((l) => l.trim() === "## Today")
+    const upcomingIdx = lines.findIndex((l) => l.trim() === "## Upcoming")
+    expect(todayIdx).toBeGreaterThan(-1)
+    expect(upcomingIdx).toBeGreaterThan(todayIdx)
+
+    // Unsectioned task should NOT be under a section heading
+    expect(md).toContain("![[^t4]]")
+  })
+
+  test("items without assigneeSectionName render flat (no section)", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      users: [
+        { gid: "user-1", name: "Me" },
+        { gid: "user-2", name: "Them" },
+      ],
+      importingUserGid: "user-1",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Project",
+          items: [
+            { sourceId: "t1", title: "A task", status: "todo", assignee: "them" },
+            { sourceId: "t2", title: "B task", status: "todo", assignee: "them" },
+          ],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const userFile = [...files.entries()].find(([k]) => k.includes("@them"))
+    expect(userFile).toBeDefined()
+    const md = userFile![1]
+
+    // No section headings — just flat embeds (## [ ] lines are task embeds, not sections)
+    expect(md).not.toMatch(/^## [A-Z]/m) // no section titles like "## Today"
+    expect(md).toContain("![[^t1]]")
+    expect(md).toContain("![[^t2]]")
   })
 })

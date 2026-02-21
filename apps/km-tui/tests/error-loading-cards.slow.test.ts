@@ -34,7 +34,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     )
 
     // Search for a deeply nested card
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "wireframes") board.press(c)
     board.press("Enter")
 
@@ -79,7 +79,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     )
 
     // Search and navigate to a nested card
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "action-2") board.press(c)
     board.press("Enter")
 
@@ -118,7 +118,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     const originalRoot = store.getState().rootId
 
     // Search navigate to a deep node
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "task-beta") board.press(c)
     board.press("Enter")
 
@@ -169,7 +169,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     )
 
     // Search for a deeply nested card in a different project
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "milestone-2a") board.press(c)
     board.press("Enter")
 
@@ -217,7 +217,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     )
 
     // First cycle: search → detail → close → navigate
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "card-1b") board.press(c)
     board.press("Enter")
     expect(store.getState().cursorNodeId).toBe("card-1b")
@@ -233,7 +233,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("Escape")
 
     // Second cycle: search to a different node
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "card-3a") board.press(c)
     board.press("Enter")
     expect(store.getState().cursorNodeId).toBe("card-3a")

@@ -128,6 +128,22 @@ export const tuiCommands: CommandDef[] = [
     shortcuts: ["?", "Escape", "q"],
     execute: (): CommandAction => ({ type: "HIDE_HELP" }),
   },
+  {
+    id: "help.scroll_up",
+    name: "Help Scroll Up",
+    description: "Scroll help overlay up",
+    category: "View",
+    shortcuts: ["k", "ArrowUp"],
+    execute: (): CommandAction => ({ type: "HELP_SCROLL_UP" }),
+  },
+  {
+    id: "help.scroll_down",
+    name: "Help Scroll Down",
+    description: "Scroll help overlay down",
+    category: "View",
+    shortcuts: ["j", "ArrowDown"],
+    execute: (): CommandAction => ({ type: "HELP_SCROLL_DOWN" }),
+  },
 
   // Delete confirmation
   {
@@ -211,5 +227,47 @@ export const tuiCommands: CommandDef[] = [
     description: "Absorb key without action",
     category: "View",
     execute: (): CommandAction => ({ type: "NOOP" }),
+  },
+
+  // Local find (inline search bar)
+  {
+    id: "local_find",
+    name: "Find",
+    description: "Open inline find bar",
+    category: "Navigation",
+    shortcuts: ["/", "Ctrl+F"],
+    execute: (): CommandAction => ({ type: "LOCAL_FIND_OPEN" }),
+  },
+  {
+    id: "find_next",
+    name: "Find Next",
+    description: "Go to next match",
+    category: "Navigation",
+    shortcuts: ["n"],
+    execute: (): CommandAction => ({ type: "LOCAL_FIND_NEXT" }),
+  },
+  {
+    id: "find_prev",
+    name: "Find Previous",
+    description: "Go to previous match",
+    category: "Navigation",
+    shortcuts: ["N"],
+    execute: (): CommandAction => ({ type: "LOCAL_FIND_PREV" }),
+  },
+  {
+    id: "find_close",
+    name: "Close Find",
+    description: "Close find bar and clear search",
+    category: "Navigation",
+    shortcuts: ["Escape"],
+    execute: (): CommandAction => ({ type: "LOCAL_FIND_CLOSE" }),
+  },
+  {
+    id: "find_confirm",
+    name: "Confirm Find",
+    description: "Close find bar but keep cursor on match",
+    category: "Navigation",
+    shortcuts: ["Enter"],
+    execute: (): CommandAction => ({ type: "LOCAL_FIND_CONFIRM" }),
   },
 ]

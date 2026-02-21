@@ -32,7 +32,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       incremental: false,
     })
 
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(getColIndex(store)).toBe(0)
 
@@ -48,7 +48,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     })
 
     board.press("l") // go to col2 first
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(getColIndex(store)).toBe(1)
 
@@ -63,7 +63,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     board.press("j") // move down
@@ -79,7 +79,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
 
     board.press("l") // col1 → col2
     expect(getColIndex(store)).toBe(1)

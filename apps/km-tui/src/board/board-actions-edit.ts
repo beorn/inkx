@@ -21,7 +21,7 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskMarker, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
@@ -322,6 +322,79 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   // Select the newly created node directly by ID
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
 
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  _needsFlush = true
+}
+
+/**
+ * Create a new child node under the current card and enter inline edit on it.
+ * (a-prefix chord: ai = add child item)
+ */
+export function handleAddNodeChild(ctx: ActionCtx): void {
+  const { repo } = ctx
+  const cursorId = ctx.cursorNodeId
+  if (!cursorId) return
+
+  const currentNode = repo.getNode(cursorId)
+  if (!currentNode) return
+
+  // Add as last child of current node
+  const children = repo.getChildren(cursorId)
+  const lastChild = children[children.length - 1]
+  const newSortOrder = lastChild ? (lastChild.parent_idx ?? 0) + 1 : 0
+
+  const newNode: Partial<KNode> = {
+    type: "oi",
+    content: "",
+    parent_idx: newSortOrder,
+    data: {},
+  }
+
+  ctx.undoHandle.setCursor(cursorId)
+  const newId = repo.addNode(cursorId, newNode)
+
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  _needsFlush = true
+}
+
+/**
+ * Create a new sibling of the current node's parent (uncle node) and enter inline edit.
+ * (a-prefix chord: ah = add item at parent level)
+ */
+export function handleAddNodeAtParent(ctx: ActionCtx): void {
+  const { repo } = ctx
+  const cursorId = ctx.cursorNodeId
+  if (!cursorId) return
+
+  const currentNode = repo.getNode(cursorId)
+  if (!currentNode?.parent_id) return
+
+  const parentNode = repo.getNode(currentNode.parent_id)
+  if (!parentNode?.parent_id) return
+
+  // Add as sibling after the parent (i.e., under grandparent, after parent)
+  const grandparentId = parentNode.parent_id
+  const siblings = repo.getChildren(grandparentId)
+  const parentSibIdx = siblings.findIndex((s) => s.id === parentNode.id)
+  const parentIdx = parentNode.parent_idx ?? 0
+  const nextSibling = siblings[parentSibIdx + 1]
+  const nextIdx = nextSibling?.parent_idx ?? parentIdx + 1
+  const newSortOrder = (parentIdx + nextIdx) / 2
+
+  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- partial node stub for depth calc
+  const depth = siblingOrParentDepth(parentNode, { id: grandparentId } as any, repo)
+  const newNode: Partial<KNode> = {
+    type: "oi",
+    content: "",
+    parent_idx: newSortOrder,
+    data: depth ? { depth } : {},
+  }
+
+  ctx.undoHandle.setCursor(cursorId)
+  const newId = repo.addNode(grandparentId, newNode)
+
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
   _needsFlush = true
 }

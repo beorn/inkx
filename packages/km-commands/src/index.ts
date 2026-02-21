@@ -138,6 +138,8 @@ export {
   consoleOpen,
   hasActiveToast,
   inVisualMode,
+  localFindActive,
+  omniboxOpen,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,

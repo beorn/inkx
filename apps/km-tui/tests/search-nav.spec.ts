@@ -725,7 +725,7 @@ describe("search flow via key presses", () => {
     )
 
     // Open search dialog
-    board.press("/")
+    board.press("Cmd+f")
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type search query
@@ -752,7 +752,7 @@ describe("search flow via key presses", () => {
     )
 
     // Open search dialog
-    board.press("/")
+    board.press("Cmd+f")
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type search query
@@ -778,7 +778,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search for the deeply nested subtask
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "subtask-xyz") board.press(ch)
     board.press("Enter")
 
@@ -809,7 +809,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search for the depth-3 node
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "my-task") board.press(ch)
     board.press("Enter")
 
@@ -841,7 +841,7 @@ describe("search flow via key presses", () => {
     expect(store.getState().rootId).toBe("projects")
 
     // Now search for taskA2
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "taskA2") board.press(ch)
     board.press("Enter")
 
@@ -860,7 +860,7 @@ describe("search flow via key presses", () => {
       { checkIncremental: false },
     )
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "alpha") board.press(ch)
     board.press("Enter")
 
@@ -898,7 +898,7 @@ describe("search flow via key presses", () => {
       { checkIncremental: false },
     )
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "README") board.press(ch)
     board.press("Enter")
 
@@ -920,7 +920,7 @@ describe("search flow via key presses", () => {
     expect(store.getState().cursorNodeId).toBe("taskA")
 
     // Search for taskC (different card in the same column)
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "taskC") board.press(ch)
     board.press("Enter")
 
@@ -950,7 +950,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search and select taskA2
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "taskA2") board.press(ch)
     board.press("Enter")
 
@@ -978,7 +978,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().rootId).toBe("project")
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "task-beta") board.press(ch)
     board.press("Enter")
 
@@ -1001,7 +1001,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().rootId).toBe("project")
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "my-subtask") board.press(ch)
     board.press("Enter")
 
@@ -1029,7 +1029,7 @@ describe("search flow via key presses", () => {
     expect(derivedState(store).selectedNode?.id).toBe("first")
 
     // Search for third (same column, different card)
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "third") board.press(ch)
     board.press("Enter")
 

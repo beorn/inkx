@@ -5,16 +5,14 @@ import {
   isInDetailPane,
   isInlineEditing,
   searchDialogOpen,
-  projectPickerOpen,
-  newItemDialogOpen,
   anyDialogOpen,
   filterDialogOpen,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
   hasActiveToast,
-  hasMultiSelection,
   inVisualMode,
+  localFindActive,
   not,
   and,
 } from "./when.ts"
@@ -56,6 +54,10 @@ export interface KeybindingContext {
   inputMode?: string
   /** True when in visual mode (vim-style range selection) */
   visualMode?: boolean
+  /** True when the local find bar is active */
+  localFindActive?: boolean
+  /** True when the omnibox/command palette is open */
+  omniboxOpen?: boolean
 }
 
 // Internal binding with registration order for priority interleaving
@@ -275,10 +277,14 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "modal",
     bindings: [
-      // Help overlay — dismiss with ?, Escape, q; absorb everything else
+      // Help overlay — dismiss with ?, Escape, q; j/k scroll; absorb everything else
       { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
       { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
       { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
+      { key: "j", commandId: "help.scroll_down", when: helpOverlayOpen },
+      { key: "k", commandId: "help.scroll_up", when: helpOverlayOpen },
+      { key: "ArrowDown", commandId: "help.scroll_down", when: helpOverlayOpen },
+      { key: "ArrowUp", commandId: "help.scroll_up", when: helpOverlayOpen },
       { key: "*", wildcard: true, commandId: "noop", when: helpOverlayOpen },
 
       // Delete confirmation — Enter confirms, any other key cancels
@@ -302,6 +308,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "`", commandId: "console.toggle" },
       { key: "t", ctrl: true, commandId: "dev.test_toast" },
+      { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
     ],
   },
 
@@ -322,6 +329,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
       { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
       { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
+    ],
+  },
+
+  // --- Layer 3b: Local find (inline search bar) ---
+  // When find bar input is active: intercept Enter/Escape before generic dialog layer.
+  // When find bar is closed but matches exist: n/N navigate matches, Escape clears.
+  {
+    name: "local-find",
+    bindings: [
+      // Find bar input active (text input focused): Enter confirms, Escape cancels
+      { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused) },
+      { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
+      // Find bar closed but matches remain: n/N navigate, Escape clears
+      { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
+      { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
+      { key: "Escape", commandId: "find_close", when: and(localFindActive, not(textInputFocused)) },
     ],
   },
 
@@ -463,6 +486,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Smart-P: context-aware pane toggle (open+focus / focus / close) per v2 spec
       { key: "P", commandId: "toggle_detail_pane" },
+      // Cmd+W: always close detail pane regardless of focus state
+      { key: "w", super: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
       { key: "i", ctrl: true, commandId: "open_detail_pane" },
 
@@ -580,9 +605,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "<", commandId: "fold_all" },
       { key: ">", commandId: "unfold_all" },
 
-      // g/m/t standalone fallbacks for chord timeout
+      // g/m/a/t standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
+      { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
 
       // g-prefix chords (go-to)
@@ -605,6 +631,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
       { chord: "m", key: "p", commandId: "reparent_picker" },
+
+      // a-prefix chords (add operations — v2 spec)
+      { chord: "a", key: "#", commandId: "add_tag" },
+      { chord: "a", key: "@", commandId: "add_assignee" },
+      { chord: "a", key: "+", commandId: "add_project" },
+      { chord: "a", key: "[", commandId: "add_backlink" },
+      { chord: "a", key: "i", commandId: "insert_child" },
+      { chord: "a", key: "j", commandId: "add_sibling_below" },
+      { chord: "a", key: "h", commandId: "insert_at_parent" },
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "noop" },
@@ -635,7 +670,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Filter and command palette
       { key: "/", ctrl: true, commandId: "filter" },
       { key: ":", commandId: "command_palette" },
-      { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
     ],
   },
 
@@ -658,9 +692,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "tui",
     bindings: [
       { key: "q", commandId: "quit" },
-      { key: "/", commandId: "search" },
+      { key: "/", commandId: "local_find" },
       { key: "f", super: true, commandId: "search" },
-      { key: "f", ctrl: true, commandId: "search", when: not(textInputFocused) },
+      { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
 
       // Favorites (0-9) — jump to favorite boards
       { key: "0", commandId: "favorite_1" },

@@ -89,7 +89,7 @@ describe("board.app() API", () => {
   test("type() for text input", () => {
     const app = board.app(["Col > Task"])
 
-    app.press("/") // Open search
+    app.press("Cmd+f") // Open search
     app.type("test")
     app.press("Escape")
     // Invariants checked after each action

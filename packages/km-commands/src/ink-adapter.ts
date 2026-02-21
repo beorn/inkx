@@ -250,6 +250,10 @@ export function buildKeybindingContext(options: {
   inputMode?: string
   /** True when in visual mode (vim-style range selection) */
   visualMode?: boolean
+  /** True when the omnibox/command palette is open */
+  omniboxOpen?: boolean
+  /** True when the local find bar is active (has matches or input) */
+  localFindActive?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -275,6 +279,8 @@ export function buildKeybindingContext(options: {
     hasActiveToast: options.hasActiveToast ?? false,
     inputMode: options.inputMode,
     visualMode: options.visualMode ?? false,
+    omniboxOpen: options.omniboxOpen ?? false,
+    localFindActive: options.localFindActive ?? false,
   }
 }
 

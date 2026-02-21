@@ -23,15 +23,15 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().cursorNodeId).toBe("link-to-target")
 
     // Open detail pane with Space
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Close detail pane with Space
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
-  test("Escape closes detail pane on link node", { timeout: 5000 }, () => {
+  test("Escape unfocuses detail pane (v2: pane stays open)", { timeout: 5000 }, () => {
     const { board, store } = testEnv(
       () =>
         item(
@@ -42,12 +42,19 @@ describe("detail pane on link-type nodes", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    // Open detail pane with Space
-    board.press("D")
+    // Open detail pane with P (Smart-P: opens + focuses)
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.focusedPane).toBe("detail")
 
-    // Close with Escape
+    // v2: Escape unfocuses pane (returns to board), pane stays open
     board.press("Escape")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.focusedPane).toBe("board")
+
+    // Close with P (Smart-P: board-focused → focus pane → close pane)
+    board.press("P") // focus pane
+    board.press("P") // close pane
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -81,7 +88,7 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().ui.showDetailPane).toBe(false)
 
     // Space is the correct key to open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Backslash does NOT close it either
@@ -89,7 +96,7 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Space closes it
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -105,7 +112,7 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // Open detail pane on link node
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Navigate to next card (regular card)
@@ -114,7 +121,7 @@ describe("detail pane on link-type nodes", () => {
 
     // Detail pane still open, should close with Space
     expect(store.getState().ui.showDetailPane).toBe(true)
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -130,16 +137,23 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // Open detail pane on link node
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Navigate to different column
     board.press("l")
     expect(store.getState().cursorNodeId).toBe("card2")
 
-    // Detail pane still closeable with Escape
+    // v2: Escape unfocuses pane (doesn't close it), pane stays open
     expect(store.getState().ui.showDetailPane).toBe(true)
     board.press("Escape")
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.focusedPane).toBe("board")
+
+    // P from board-focused -> focuses pane, then P again -> closes pane
+    board.press("P") // focus pane
+    expect(store.getState().ui.focusedPane).toBe("detail")
+    board.press("P") // close pane
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -156,11 +170,11 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // Open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Close with Space
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 })

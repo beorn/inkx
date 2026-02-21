@@ -27,6 +27,14 @@ const SHORT_LABELS: Record<string, string> = {
   move_to_journal: "journal",
   move_to_home: "home",
   reparent_picker: "reparent",
+  // a-prefix (add)
+  add_tag: "tag",
+  add_assignee: "assignee",
+  add_project: "project",
+  add_backlink: "backlink",
+  insert_child: "child",
+  add_sibling_below: "below",
+  insert_at_parent: "parent",
   // t-prefix (task properties)
   noop: "...",
   set_assignee: "assignee",

@@ -552,7 +552,7 @@ describe("createBoardDriver", () => {
     expect(state.dialogs.newItem).toBe(false)
 
     // Open search dialog
-    await driver.press("/")
+    await driver.press("Cmd+f")
 
     // Dialog should be open
     state = driver.getState()
@@ -661,7 +661,7 @@ describe("createBoardDriver", () => {
     expect(storeState.ui.showSearchDialog).toBe(false)
 
     // Open search dialog
-    await driver.press("/")
+    await driver.press("Cmd+f")
 
     // Store should reflect dialog state
     storeState = driver.store.getState()

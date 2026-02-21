@@ -235,9 +235,9 @@ describe("Terminal Sizes", () => {
 // Note: Move Mode tests deferred - feature not yet implemented
 
 describe("Search and Filter", () => {
-  test("/ opens search dialog with title and footer", () => {
+  test("Cmd+f opens search dialog with title and footer", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.press("/")
+    board.press("Cmd+f")
     const output = board.screenshot()
     expect(output).toContain("Search")
     expect(output).toContain("All")
@@ -253,7 +253,7 @@ describe("Search and Filter", () => {
         item("col", item("Task Alpha with long title"), item("Task Beta with long title"), item("Task Gamma short")),
       ),
     )
-    board.press("/")
+    board.press("Cmd+f")
     // Type query to trigger results (min 2 chars required)
     board.press("T")
     board.press("a")
@@ -266,7 +266,7 @@ describe("Search and Filter", () => {
 
   test("Escape closes search dialog", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"))))
-    board.press("/")
+    board.press("Cmd+f")
     expect(board.screenshot()).toContain("Search")
     board.press("\x1b")
     expect(board.screenshot()).not.toContain("Enter go")
@@ -278,7 +278,7 @@ describe("Search and Filter", () => {
     const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
 
     // Type "/" followed immediately by a query - all characters should be captured
-    board.press("/")
+    board.press("Cmd+f")
     board.press("a")
     board.press("l")
     board.press("p")
@@ -324,7 +324,7 @@ describe("Search and Filter", () => {
         ),
       {},
     )
-    board.press("/")
+    board.press("Cmd+f")
     // Type query to trigger results (min 2 chars required)
     board.press("T")
     board.press("a")
@@ -364,7 +364,7 @@ describe("Search and Filter", () => {
     )
 
     // Open search and type to filter
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "Gamma") board.press(c)
     board.press("Enter")
 
@@ -389,7 +389,7 @@ describe("Search and Filter", () => {
     let output = board.screenshot()
 
     // Open search and select a deeply nested item
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "Task Deep") board.press(c)
     board.press("Enter")
 
@@ -412,7 +412,7 @@ describe("Search and Filter", () => {
     let output = board.screenshot()
 
     // Search for a deeply nested section
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "Section A") board.press(c)
     board.press("Enter")
 
@@ -433,7 +433,7 @@ describe("Search and Filter", () => {
     board.press("Escape")
 
     // Search for Section A and select it
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "Section A") board.press(c)
     board.press("Enter")
 
@@ -460,7 +460,7 @@ describe("Search and Filter", () => {
 
     // Board root = "board", columns = [col], cards = [card-parent]
     // leaf-target is a grandchild of col, not directly visible as a card
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "leaf-target") board.press(c)
     board.press("Enter")
 
@@ -478,7 +478,7 @@ describe("Search and Filter", () => {
     // Target is already a card in the current view (grandchild of root)
     const { board, store } = testEnv(() => item("board", item("col", item("visible-card"), item("another-card"))))
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "another-card") board.press(c)
     board.press("Enter")
 
@@ -495,7 +495,7 @@ describe("Search and Filter", () => {
     // making C a column and target a card.
     const { board, store } = testEnv(() => item("root", item("A", item("B", item("C", item("deep-target"))))))
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "deep-target") board.press(c)
     board.press("Enter")
 
@@ -515,7 +515,7 @@ describe("Search and Filter", () => {
       item("root", item("A", item("B", item("C", item("D", item("very-deep-target")))))),
     )
 
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "very-deep-target") board.press(c)
     board.press("Enter")
 
@@ -548,7 +548,7 @@ describe("Search and Filter", () => {
     board.press("Escape")
 
     // Search for a paragraph inside a section inside a file
-    board.press("/")
+    board.press("Cmd+f")
     for (const c of "China") board.press(c)
     board.press("Enter")
 
@@ -695,7 +695,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Navigate down with j — detail pane should stay open
@@ -711,7 +711,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
     // Detail pane should contain card1 content
     const screen1 = board.screenshot()
@@ -728,24 +728,26 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Space again should close it
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
-  test("Escape closes detail pane", () => {
+  test("Escape unfocuses detail pane (pane stays open, focus returns to board)", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
-    // Open detail pane
-    board.press("D")
+    // Open detail pane (P toggles: closed → open+focused)
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.focusedPane).toBe("detail")
 
-    // Escape should close it
+    // Escape should unfocus pane (pane stays open, focus returns to board)
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().ui.focusedPane).toBe("board")
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
@@ -756,7 +758,7 @@ describe("Detail Pane Navigation", () => {
     })
 
     // Open detail pane on card1
-    board.press("D")
+    board.press("P")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // h/l should navigate columns — detail pane stays open

@@ -112,13 +112,13 @@ describe("border rendering after detail pane close", () => {
     }
 
     // --- Phase 2: Open detail pane (Space) ---
-    board.press("D")
+    board.press("P")
 
     // Detail pane should be open — board width shrinks, some nodes may move
     // We don't need to assert borders here, just that the state changed
 
     // --- Phase 3: Close detail pane (Space again) ---
-    board.press("D")
+    board.press("P")
 
     // --- Phase 4: Verify ALL columns still have proper borders ---
     const afterBorders = checkBorders(board, allNodes)
@@ -176,9 +176,9 @@ describe("border rendering after detail pane close", () => {
     board.press("l") // move to col2
 
     // Exact repro: open detail pane → navigate column → close detail pane
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
     board.press("h") // move column left (key step that triggers the bug)
-    board.press("D") // close detail pane
+    board.press("P") // close detail pane
 
     // All visible nodes must still have borders
     for (const id of allNodes) {
@@ -203,9 +203,9 @@ describe("border rendering after detail pane close", () => {
 
     const allNodes = ["Section A", "task1", "task2", "Section B", "task3", "task4", "Section C", "task5", "task6"]
 
-    board.press("D") // open detail pane
+    board.press("P") // open detail pane
     board.press("l") // move column right
-    board.press("D") // close detail pane
+    board.press("P") // close detail pane
 
     for (const id of allNodes) {
       const box = board.screen.nodeBox(id)
@@ -236,9 +236,9 @@ describe("border rendering after detail pane close", () => {
     board.press("l") // col3
 
     // Exact repro: Space → h → Space
-    board.press("D") // open detail pane (board shrinks to ~60%)
+    board.press("P") // open detail pane (board shrinks to ~60%)
     board.press("h") // move column left
-    board.press("D") // close detail pane (board expands back to 100%)
+    board.press("P") // close detail pane (board expands back to 100%)
 
     // Check all visible borders
     const allNodes = [
@@ -289,8 +289,8 @@ describe("border rendering after detail pane close", () => {
 
     // Toggle detail pane open/close 3 times to stress-test incremental rendering
     for (let cycle = 1; cycle <= 3; cycle++) {
-      board.press("D") // open
-      board.press("D") // close
+      board.press("P") // open
+      board.press("P") // close
 
       // After each close cycle, verify borders
       for (const id of nodes) {
@@ -319,8 +319,8 @@ describe("border rendering after detail pane close", () => {
     }
 
     // Open then close detail pane
-    board.press("D")
-    board.press("D")
+    board.press("P")
+    board.press("P")
 
     // Right column borders must still be intact
     for (const id of ["R1", "R2", "R3"]) {
@@ -383,9 +383,9 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       await driver.cmd.right!()
 
       // Exact repro: Space → h → Space
-      await driver.press("D") // open detail pane
+      await driver.press("P") // open detail pane
       await driver.cmd.left!() // move column left (h)
-      await driver.press("D") // close detail pane
+      await driver.press("P") // close detail pane
 
       // If withDiagnostics didn't throw, incremental matches fresh
     })
@@ -412,9 +412,9 @@ describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
       )
 
       // Exact repro variant: Space → l → Space
-      await driver.press("D") // open detail pane
+      await driver.press("P") // open detail pane
       await driver.cmd.right!() // move column right (l)
-      await driver.press("D") // close detail pane
+      await driver.press("P") // close detail pane
     })
   },
 )

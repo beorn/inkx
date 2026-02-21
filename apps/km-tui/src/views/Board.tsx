@@ -12,11 +12,10 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import type { Repo } from "@km/storage"
 import { DetailPane } from "./DetailPane.tsx"
 import { ProjectPicker } from "./ProjectPicker.tsx"
 import { HelpOverlay } from "./HelpOverlay.tsx"
@@ -24,6 +23,7 @@ import { NewItemDialog } from "./NewItemDialog.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
 import { FilterDialog, formatFilterIndicator } from "./FilterDialog.tsx"
+import { Omnibox } from "./Omnibox.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
@@ -37,6 +37,8 @@ import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
+import { dispatchCommandById } from "../board-app.ts"
+import { popDialogMode } from "../dialog-guard.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
@@ -51,6 +53,7 @@ import { KeyBar } from "./key-bar.tsx"
 import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
+import { FindBar } from "./FindBar.tsx"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -59,14 +62,14 @@ import {
   createSyncEventCollector,
 } from "./board-effects.ts"
 import type { ToastQueue } from "@km/core"
-import { createToastQueue, getStatusForMarker } from "@km/core"
+import { getStatusForMarker } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { readBoardIgnored, isIgnored } from "../ignored.ts"
 import { createLogger } from "@beorn/logger"
 
-const log = createLogger("km:tui:board")
+const _log = createLogger("km:tui:board")
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -108,6 +111,8 @@ export interface BoardCoreProps {
     handleSearchCancel: () => void
     handleDatePromptConfirm: () => void
     handleDatePromptCancel: () => void
+    handleOmniboxSelect: (commandId: string) => void
+    handleOmniboxCancel: () => void
   }
   /** Collapsed nodes (node IDs) */
   collapsedNodes: Set<string>
@@ -117,6 +122,8 @@ export interface BoardCoreProps {
   consoleStats?: { total: number; errors: number; warnings: number }
   /** Toast queue instance (injected, not global). Optional for static render tests. */
   toastQueue?: ToastQueue
+  /** Board dispatch (for cursor navigation from find bar) */
+  dispatchBoard?: BoardAppStore["dispatchBoard"]
 }
 
 /**
@@ -159,7 +166,7 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
  * Also shows compact filter indicator in the right side when filters are active.
  */
 function BoardTopBar({
-  columns,
+  columns: _columns,
   rootId,
   termWidth,
   filterProperties,
@@ -226,7 +233,7 @@ function BoardTopBar({
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
 function CursorAwareDetailPane({
-  columns,
+  columns: _columns,
   width,
   height,
 }: {
@@ -269,7 +276,7 @@ function CursorAwareDetailPane({
  * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
  */
 function CursorAwareNewItemDialog({
-  columns,
+  columns: _columns,
   onCreate,
   onCancel,
   width,
@@ -300,17 +307,18 @@ export function BoardCore({
   columns,
   colIndex,
   cardIndex,
-  isAtCardLevel,
+  isAtCardLevel: _isAtCardLevel,
   ui,
   derivedSelectionLevel,
   dimensions,
-  navigator,
+  navigator: _navigator,
   setUI,
   dialogHandlers,
   collapsedNodes,
   moveMode,
   consoleStats,
   toastQueue,
+  dispatchBoard,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
@@ -324,7 +332,9 @@ export function BoardCore({
 
   // Calculate content area height - space between top and bottom bars
   const SYNC_PANE_HEIGHT = 6
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+  const FIND_BAR_HEIGHT = ui.localSearch ? 1 : 0
+  const contentHeight =
+    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0) - FIND_BAR_HEIGHT
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -338,6 +348,42 @@ export function BoardCore({
     // Intentionally silent: logging here triggers console output which fails tests.
     // The resetKey mechanism auto-recovers, and DEBUG_LOG captures errors via React's own logging.
   }, [])
+
+  // Local find: query change callback — compute matches from visible columns
+  const handleFindQueryChange = useCallback(
+    (query: string) => {
+      if (!query) {
+        setUI({
+          localSearch: { query: "", isInputActive: true, matchIndex: 0, matchCount: 0, matchNodeIds: [] },
+        })
+        return
+      }
+      const lowerQuery = query.toLowerCase()
+      const matchNodeIds: string[] = []
+      for (const col of columns) {
+        for (const card of col.cardNodes) {
+          const text = (card.content ?? card.name ?? "").toLowerCase()
+          if (text.includes(lowerQuery)) {
+            matchNodeIds.push(card.id)
+          }
+        }
+      }
+      // Navigate cursor to first match
+      if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
+        dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+      }
+      setUI({
+        localSearch: {
+          query,
+          isInputActive: true,
+          matchIndex: 0,
+          matchCount: matchNodeIds.length,
+          matchNodeIds,
+        },
+      })
+    },
+    [columns, setUI, dispatchBoard],
+  )
 
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = 3
@@ -554,14 +600,40 @@ export function BoardCore({
               />
             </DialogBox>
           )}
+          {/* Omnibox / command palette */}
+          {ui.showOmnibox && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={80}
+              widthFraction={2 / 3}
+              topFraction={1 / 6}
+              data-dialog="omnibox"
+            >
+              <Omnibox
+                onSelect={dialogHandlers.handleOmniboxSelect}
+                onCancel={dialogHandlers.handleOmniboxCancel}
+                width={Math.min(80, Math.floor((termWidth * 2) / 3))}
+                maxHeight={Math.floor((contentHeight * 2) / 3)}
+              />
+            </DialogBox>
+          )}
           {/* Help overlay */}
-          {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} />}
+          {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} scrollOffset={ui.helpScrollOffset} />}
           {/* Console now uses screen switching (pause/resume) instead of overlay */}
         </Box>
         {/* Toast stack - bottom-right corner */}
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
+        {/* Local find bar (inline search) */}
+        {ui.localSearch && (
+          <FindBar
+            localSearch={ui.localSearch}
+            width={termWidth}
+            onQueryChange={handleFindQueryChange}
+          />
+        )}
         {/* Which-key popup (shows chord suffixes when prefix is pending) */}
         {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
         {/* Key hint bar (context-sensitive shortcuts) */}
@@ -613,6 +685,7 @@ export interface BoardProps {
  *
  * Keys are handled by the term:key handler in board-app.ts — not here.
  */
+// oxlint-disable-next-line complexity/complexity -- React connector — hooks + effects inflate score
 export function Board({ patchedConsole }: BoardProps) {
   // Read pause/resume directly from AppContext (via mutable ref).
   // BoardApp doesn't re-render after initial mount, so passing these as props
@@ -767,7 +840,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
     (s) => s.undoHandle,
   )
-  const dialogHandlers = useBoardDialogs({
+  const baseDialogHandlers = useBoardDialogs({
     repo,
     setUI,
     dispatchBoard,
@@ -775,6 +848,33 @@ export function Board({ patchedConsole }: BoardProps) {
     rootId,
     undoHandle,
   })
+
+  // Omnibox handlers — need store access for dispatchCommandById
+  const storeRef = React.useContext(StoreContext)
+  const handleOmniboxSelect = useCallback(
+    (commandId: string) => {
+      popDialogMode()
+      setUI({ showOmnibox: false })
+      if (storeRef) {
+        const store = storeRef as import("zustand").StoreApi<BoardAppStore>
+        dispatchCommandById(commandId, store.getState.bind(store))
+      }
+    },
+    [setUI, storeRef],
+  )
+  const handleOmniboxCancel = useCallback(() => {
+    popDialogMode()
+    setUI({ showOmnibox: false })
+  }, [setUI])
+
+  const dialogHandlers = useMemo(
+    () => ({
+      ...baseDialogHandlers,
+      handleOmniboxSelect,
+      handleOmniboxCancel,
+    }),
+    [baseDialogHandlers, handleOmniboxSelect, handleOmniboxCancel],
+  )
 
   // Initialize command system
   useEffect(() => {
@@ -857,6 +957,7 @@ export function Board({ patchedConsole }: BoardProps) {
           moveMode={moveMode}
           consoleStats={consoleStats}
           toastQueue={toastQueue}
+          dispatchBoard={dispatchBoard}
         />
       </TreeRenderProvider>
     </CursorStoreProvider>
@@ -909,6 +1010,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
 /** Check if a node matches all active property filters (AND logic between categories) */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-category filter matching
+// oxlint-disable-next-line complexity/complexity -- multi-category filter matching with early returns
 function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean {
   // Task status filter — only applies to task nodes; non-task nodes (headings, paragraphs) pass through
   if (filters.taskStatus.size > 0) {

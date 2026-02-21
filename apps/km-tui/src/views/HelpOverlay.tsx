@@ -1,7 +1,10 @@
 /**
  * Help Overlay Component
  *
- * Displays keyboard shortcuts for the board TUI
+ * Displays keyboard shortcuts for the board TUI, organized around
+ * the verb x location chord system.
+ *
+ * Scrollable with j/k when content exceeds viewport.
  */
 import React from "react"
 import { Box, Text } from "inkx"
@@ -10,124 +13,293 @@ import { ModalDialog } from "./shared-components.tsx"
 interface HelpOverlayProps {
   width: number
   height: number
+  scrollOffset?: number
 }
 
-// Keyboard shortcuts organized by category
-// NOTE: Keep in sync with packages/km-commands/src/keybindings.ts
-// Key format: macOS modifier icons (⌃ ⇧ ⌥), dim "/" separators
-const shortcuts = [
-  {
-    category: "Navigation",
-    keys: [
-      { key: "h / l (← / →)", desc: "Move between columns" },
-      { key: "j / k (↓ / ↑)", desc: "Move between cards" },
-      { key: "J / K", desc: "Block navigation (auto-unfolds)" },
-      { key: "g / G", desc: "Go to first / last card" },
-      { key: "i / Enter", desc: "Edit inline (i at start, Enter at end)" },
-      { key: "z / Z", desc: "Zoom in / out one level" },
-      { key: "P", desc: "Smart pane toggle (open/focus/close)" },
-      { key: "⌃Enter", desc: "Follow embedded link" },
-      { key: "{ / }", desc: "History back / forward" },
-      { key: "⌃J / ⌃K", desc: "Navigate to sibling board" },
-      { key: "⌃D / ⌃U", desc: "Page down / up (half page)" },
-      { key: "/", desc: "Search items" },
-      { key: ":", desc: "Command palette" },
-      { key: "1-9", desc: "Jump to favorite board" },
-      { key: "Esc", desc: "Close pane / exit mode / quit" },
-    ],
-  },
-  {
-    category: "Editing",
-    keys: [
-      { key: "o / O", desc: "Insert item below / above" },
-      { key: "d", desc: "Cut (yank + delete)" },
-      { key: "y", desc: "Copy (yank)" },
-      { key: "p", desc: "Paste" },
-      { key: "Backspace / Del", desc: "Delete item" },
-      { key: "x / X", desc: "Toggle done / cycle status" },
-      { key: "e", desc: "Archive" },
-      { key: "c / C", desc: "Capture to inbox / with dialog" },
-      { key: "u / U", desc: "Undo / redo" },
-      { key: "mm", desc: "Enter move mode (Enter to confirm)" },
-      { key: "⌘hjkl / ⌥↑↓←→", desc: "Shift item" },
-      { key: "Tab / ⇧Tab", desc: "Indent / outdent" },
-    ],
-  },
-  {
-    category: "Chords",
-    keys: [
-      { key: "g…", desc: "Go-to (gi inbox, gj today, gh home, ge archive)" },
-      { key: "go / gO", desc: "Open in system / terminal" },
-      { key: "gp / gn", desc: "Project picker / new item dialog" },
-      { key: "gc / gC", desc: "Collapse column / show ignored" },
-      { key: "m…", desc: "Move-to (mi inbox, mj today, mh home, mp picker)" },
-      { key: "t…", desc: "Task (td due, ts start, t! pri, to owner, tl label)" },
-    ],
-  },
-  {
-    category: "View",
-    keys: [
-      { key: "V", desc: "Cycle icon style" },
-      { key: "H / L", desc: "Fold / unfold subtree" },
-      { key: "< / >", desc: "Fold all / unfold all" },
-      { key: "+ / -", desc: "Increase / decrease content lines" },
-      { key: "D", desc: "Toggle hide done" },
-      { key: "⌃/", desc: "Filter items" },
-      { key: ",", desc: "Settings" },
-      { key: "`", desc: "Toggle console" },
-    ],
-  },
-  {
-    category: "Selection",
-    keys: [
-      { key: "Space", desc: "Toggle selection" },
-      { key: "v", desc: "Enter visual mode (hjkl to extend)" },
-      { key: "⇧A / ⌃A", desc: "Select all (progressive / instant)" },
-      { key: "⇧↑↓←→", desc: "Extend selection" },
-      { key: "?", desc: "Toggle this help" },
-      { key: "q", desc: "Quit" },
-    ],
-  },
-]
+// ── Content lines ────────────────────────────────────────────────────
+// Each section is a flat array of React elements (one per line).
+// We assemble them all, then slice for scrolling.
 
-/**
- * Render key text with dimmed "/" separators for visual clarity.
- * Keys are yellow, " / " separators (space-slash-space) are dim.
- * A bare "/" key (e.g., for search) renders yellow, not as a separator.
- */
-function KeyText({ text, width }: { text: string; width: number }) {
-  const padded = text.padEnd(width)
-  // Split on " / " (space-slash-space) to distinguish separators from "/" as a key
-  const parts = padded.split(" / ")
-  if (parts.length === 1) {
-    return <Text color="yellow">{padded}</Text>
-  }
+/** Section header with box-drawing decoration */
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text>
+      <Text dimColor>{"── "}</Text>
+      <Text bold color="cyan">
+        {title}
+      </Text>
+      <Text dimColor>{" " + "─".repeat(Math.max(0, 56 - title.length))}</Text>
+    </Text>
+  )
+}
+
+/** Key = yellow, desc = dim */
+function KD({ k, d }: { k: string; d: string }) {
   return (
     <>
-      {parts.map((part, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && (
-            <>
-              <Text color="yellow"> </Text>
-              <Text dimColor>/</Text>
-              <Text color="yellow"> </Text>
-            </>
-          )}
-          <Text color="yellow">{part}</Text>
-        </React.Fragment>
-      ))}
+      <Text color="yellow">{k}</Text>
+      <Text dimColor> {d}</Text>
     </>
   )
 }
 
-// Calculate max key width across all shortcuts
-const maxKeyWidth = Math.max(...shortcuts.flatMap((cat) => cat.keys.map((k) => k.key.length)))
+/** Chord matrix cell: suffix + key combo, fixed width */
+function ChordCell({ combo, width }: { combo: string; width: number }) {
+  if (combo === "—") {
+    return <Text dimColor>{combo.padEnd(width)}</Text>
+  }
+  return <Text color="yellow">{combo.padEnd(width)}</Text>
+}
+
+/** Build all content lines as an array of React elements */
+function buildContentLines(): React.ReactElement[] {
+  const lines: React.ReactElement[] = []
+
+  // ── VERBS x LOCATIONS (the centerpiece) ──────────────────────────
+  lines.push(<SectionHeader key="s-chord" title="VERBS x LOCATIONS" />)
+  lines.push(
+    <Text key="chord-hdr">
+      {"  "}
+      <Text dimColor>{"           "}</Text>
+      <Text bold color="green">
+        {"GO (g)    "}
+      </Text>
+      <Text bold color="magenta">
+        {"MOVE (m)  "}
+      </Text>
+      <Text bold color="blue">
+        {"ADD (a)"}
+      </Text>
+    </Text>,
+  )
+
+  const matrix: Array<[string, string, string, string, string]> = [
+    ["i", "inbox", "gi", "mi", "ai"],
+    ["j", "today", "gj", "mj", "aj"],
+    ["h", "home", "gh", "mh", "ah"],
+    ["+", "project", "g+", "m+", "a+"],
+    ["[", "node", "g[", "m[", "a["],
+    ["#", "tag", "g#", "m#", "a#"],
+    ["@", "person", "\u2014", "\u2014", "a@"],
+  ]
+
+  for (const [suffix, label, go, move, add] of matrix) {
+    lines.push(
+      <Text key={`chord-${suffix}`}>
+        {"  "}
+        <Text color="yellow">{suffix}</Text>
+        <Text dimColor>{"  " + label.padEnd(8)}</Text>
+        <ChordCell combo={go} width={10} />
+        <ChordCell combo={move} width={10} />
+        <ChordCell combo={add} width={10} />
+      </Text>,
+    )
+  }
+  lines.push(<Text key="chord-blank"> </Text>)
+
+  // ── TASK (t-prefix) ──────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-task" title="TASK (t)" />)
+  lines.push(
+    <Text key="task-row">
+      {"  "}
+      <KD k="tt" d="dialog" />
+      {"  "}
+      <KD k="to" d="owner" />
+      {"  "}
+      <KD k="td" d="date" />
+      {"  "}
+      <KD k="t!" d="priority" />
+      {"  "}
+      <KD k="ts" d="status" />
+    </Text>,
+  )
+  lines.push(<Text key="task-blank"> </Text>)
+
+  // ── NAVIGATION ───────────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-nav" title="NAVIGATION" />)
+  lines.push(
+    <Text key="nav-1">
+      {"  "}
+      <KD k="hjkl" d="move" />
+      {"  "}
+      <KD k="JK" d="block nav" />
+      {"  "}
+      <KD k="gg" d="first" />
+      <Text dimColor> / </Text>
+      <KD k="G" d="last" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="nav-2">
+      {"  "}
+      <KD k="{}" d="history" />
+      {"  "}
+      <KD k="z" d="zoom in" />
+      <Text dimColor> / </Text>
+      <KD k="Z" d="out" />
+      {"  "}
+      <KD k="PgUp/Dn" d="page" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="nav-3">
+      {"  "}
+      <KD k="HL" d="fold/unfold" />
+      {"  "}
+      <KD k="<>" d="fold all" />
+      {"  "}
+      <KD k="+-" d="content lines" />
+    </Text>,
+  )
+  lines.push(<Text key="nav-blank"> </Text>)
+
+  // ── EDITING ──────────────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-edit" title="EDITING" />)
+  lines.push(
+    <Text key="edit-1">
+      {"  "}
+      <KD k="i" d="edit title (start)" />
+      {"  "}
+      <KD k="Enter" d="edit title (end)" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="edit-2">
+      {"  "}
+      <KD k="I" d="edit body (start)" />
+      {"  "}
+      <KD k="S-Enter" d="edit body (end)" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="edit-3">
+      {"  "}
+      <KD k="o/O" d="new below/above" />
+      {"  "}
+      <KD k="c/C" d="capture" />
+      {"  "}
+      <KD k="e" d="archive" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="edit-4">
+      {"  "}
+      <KD k="d" d="cut" />
+      {"  "}
+      <KD k="y" d="copy" />
+      {"  "}
+      <KD k="p" d="paste" />
+      {"  "}
+      <KD k="x/X" d="done/cycle" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="edit-5">
+      {"  "}
+      <KD k="Tab/S-Tab" d="indent" />
+      {"  "}
+      <KD k="u/U" d="undo" />
+      {"  "}
+      <KD k="Alt+hjkl" d="shift" />
+    </Text>,
+  )
+  lines.push(<Text key="edit-blank"> </Text>)
+
+  // ── SEARCH & DIALOGS ─────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-search" title="SEARCH & DIALOGS" />)
+  lines.push(
+    <Text key="dlg-1">
+      {"  "}
+      <KD k="/" d="find" />
+      {"  "}
+      <KD k=":" d="omnibox" />
+      {"  "}
+      <KD k="F" d="search/replace" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="dlg-2">
+      {"  "}
+      <KD k="T" d="task dialog" />
+      {"  "}
+      <KD k="G" d="filter" />
+      {"  "}
+      <KD k="A" d="AI" />
+      {"  "}
+      <KD k="P" d="preview pane" />
+    </Text>,
+  )
+  lines.push(<Text key="dlg-blank"> </Text>)
+
+  // ── SELECTION & SYSTEM ───────────────────────────────────────────
+  lines.push(<SectionHeader key="s-sel" title="SELECTION & SYSTEM" />)
+  lines.push(
+    <Text key="sel-1">
+      {"  "}
+      <KD k="Space" d="select" />
+      {"  "}
+      <KD k="v" d="visual mode" />
+      {"  "}
+      <KD k="S-arrows" d="extend" />
+      {"  "}
+      <KD k="C-a" d="select all" />
+    </Text>,
+  )
+  lines.push(
+    <Text key="sel-2">
+      {"  "}
+      <KD k="P" d="smart pane" />
+      {"  "}
+      <KD k="Esc" d="layered dismiss" />
+      {"  "}
+      <KD k="," d="settings" />
+      {"  "}
+      <KD k="q" d="quit" />
+    </Text>,
+  )
+  lines.push(<Text key="sel-blank"> </Text>)
+
+  // ── BARE SYMBOLS ─────────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-bare" title="BARE SYMBOLS (node mode)" />)
+  lines.push(
+    <Text key="bare-1">
+      {"  "}
+      <KD k="@" d="assign (=a@)" />
+      {"  "}
+      <KD k="#" d="tag (=a#)" />
+      {"  "}
+      <KD k="+" d="project (=m+)" />
+      {"  "}
+      <KD k="[" d="node (=m[)" />
+    </Text>,
+  )
+  lines.push(<Text key="bare-blank"> </Text>)
+
+  // ── SMART OPEN ───────────────────────────────────────────────────
+  lines.push(<SectionHeader key="s-open" title="SMART OPEN" />)
+  lines.push(
+    <Text key="open-1">
+      {"  "}
+      <KD k="go" d="Finder/browser" />
+      {"  "}
+      <KD k="gO" d="terminal/editor" />
+      {"  "}
+      <KD k="C-o" d="smart open" />
+    </Text>,
+  )
+
+  return lines
+}
+
+// Pre-build content lines (static data)
+const contentLines = buildContentLines()
+const TOTAL_LINES = contentLines.length
 
 // Minimum dimensions to render the overlay
 const MIN_WIDTH = 30
 const MIN_HEIGHT = 10
 
-export function HelpOverlay({ width, height }: HelpOverlayProps) {
+export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProps) {
   // Guard against invalid dimensions - render fallback if too small
   if (width < MIN_WIDTH || height < MIN_HEIGHT) {
     return (
@@ -146,39 +318,48 @@ export function HelpOverlay({ width, height }: HelpOverlayProps) {
     )
   }
 
-  // Calculate content dimensions - more padding around the box
-  // Use Math.max to ensure positive values
+  // Calculate content dimensions
   const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8))
-  const boxHeight = Math.max(
-    MIN_HEIGHT,
-    Math.min(
-      shortcuts.reduce((acc, cat) => acc + cat.keys.length + 3, 4), // Extra lines for internal padding
-      height - 6,
-    ),
-  )
+  // ModalDialog: border (2) + paddingY (2) + title (1) + title spacer (1) + footer spacer (1) + footer (1) = 8 lines of chrome
+  const chromeLines = 8
+  const boxHeight = Math.max(MIN_HEIGHT, Math.min(TOTAL_LINES + chromeLines, height - 6))
+  const visibleLines = boxHeight - chromeLines
 
-  // Center the box - ensure non-negative margins
+  // Clamp scroll offset
+  const maxScroll = Math.max(0, TOTAL_LINES - visibleLines)
+  const clampedOffset = Math.min(scrollOffset, maxScroll)
+
+  // Slice visible content
+  const visibleContent = contentLines.slice(clampedOffset, clampedOffset + visibleLines)
+
+  // Scroll indicators
+  const canScrollUp = clampedOffset > 0
+  const canScrollDown = clampedOffset < maxScroll
+  const scrollHint =
+    canScrollUp || canScrollDown
+      ? `${canScrollUp ? "\u2191" : " "}j/k scroll${canScrollDown ? "\u2193" : " "}`
+      : ""
+
+  // Center the box
   const marginLeft = Math.max(0, Math.floor((width - boxWidth) / 2))
   const marginTop = Math.max(0, Math.floor((height - boxHeight) / 2))
 
+  const footer = (
+    <Box>
+      <Text dimColor>? or Esc to close</Text>
+      {scrollHint && (
+        <>
+          <Text dimColor>{"  "}</Text>
+          <Text color="yellow">{scrollHint}</Text>
+        </>
+      )}
+    </Box>
+  )
+
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog width={boxWidth} title="Keyboard Shortcuts" footer="Press ? or Esc to close">
-        {shortcuts.map((category) => (
-          <Box key={category.category} flexDirection="column">
-            <Text bold color="white">
-              {category.category}
-            </Text>
-            {category.keys.map((shortcut) => (
-              <Text key={shortcut.key}>
-                {"  "}
-                <KeyText text={shortcut.key} width={maxKeyWidth + 2} />
-                <Text dimColor>{shortcut.desc}</Text>
-              </Text>
-            ))}
-            <Text> </Text>
-          </Box>
-        ))}
+      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" footer={footer}>
+        {visibleContent}
       </ModalDialog>
     </Box>
   )

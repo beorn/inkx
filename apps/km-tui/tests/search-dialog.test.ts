@@ -120,7 +120,7 @@ describe("Search dialog bugs", () => {
       const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
-      board.press("/")
+      board.press("Cmd+f")
       board.press("a")
       board.press("b")
 
@@ -145,7 +145,7 @@ describe("Search dialog bugs", () => {
     test("rapid backspace doesn't leave artifacts", () => {
       const { board } = testEnv(() => item("board", item("col", item("test"))))
 
-      board.press("/")
+      board.press("Cmd+f")
       board.press("t")
       board.press("e")
       board.press("s")
@@ -184,7 +184,7 @@ describe("Search dialog bugs", () => {
         { rows: 20 },
       )
 
-      board.press("/")
+      board.press("Cmd+f")
       board.press("T")
       board.press("a")
 
@@ -220,7 +220,7 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
     const { board } = makeEscapeTestBoard()
 
     // Open search dialog
-    board.press("/")
+    board.press("Cmd+f")
     expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
 
     // Press Escape to close
@@ -234,7 +234,7 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
     const { board } = makeEscapeTestBoard()
 
     // Open search, type a query
-    board.press("/")
+    board.press("Cmd+f")
     board.press("a").press("l")
     expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
 
@@ -249,7 +249,7 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
     const { board } = makeEscapeTestBoard()
 
     // Open and close search
-    board.press("/")
+    board.press("Cmd+f")
     board.press("Escape")
 
     // Should be able to navigate normally
@@ -284,7 +284,7 @@ function scopeDialogText(board: ReturnType<typeof testEnv>["board"]): string {
 describe("Search scope: UI toggle", () => {
   test("search dialog opens with 'All' scope by default", () => {
     const { board } = makeScopeBoard()
-    board.press("/")
+    board.press("Cmd+f")
     const text = scopeDialogText(board)
     // Scope prompt: "All > "
     expect(text).toContain("All")
@@ -294,7 +294,7 @@ describe("Search scope: UI toggle", () => {
 
   test("Tab toggles scope between All and scoped, back to All", () => {
     const { board } = makeScopeBoard()
-    board.press("/")
+    board.press("Cmd+f")
 
     // Initially "All > " prompt
     let text = scopeDialogText(board)
@@ -317,7 +317,7 @@ describe("Search scope: UI toggle", () => {
 describe("Search scope: result filtering", () => {
   test("'All' scope returns results from entire repo", () => {
     const { board } = makeScopeBoard()
-    board.press("/")
+    board.press("Cmd+f")
 
     // Type a query that matches items in both columns
     // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
@@ -336,7 +336,7 @@ describe("Search scope: result filtering", () => {
 
     // Cursor starts on first card ("Alpha project" which has children)
     // Open search, switch to Subtree scope
-    board.press("/")
+    board.press("Cmd+f")
     board.press("Tab") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
@@ -355,7 +355,7 @@ describe("Search scope: result filtering", () => {
     const { board } = makeScopeBoard()
 
     // Cursor starts on "Alpha project"
-    board.press("/")
+    board.press("Cmd+f")
     board.press("Tab") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
@@ -366,7 +366,7 @@ describe("Search scope: result filtering", () => {
 
   test("switching scope re-filters results", () => {
     const { board } = makeScopeBoard()
-    board.press("/")
+    board.press("Cmd+f")
 
     // Type query matching items across the board
     board.press("p").press("r").press("o").press("j")
@@ -397,7 +397,7 @@ describe("Search scope: scope node capture", () => {
     board.press("j")
 
     // Open search with Subtree scope
-    board.press("/")
+    board.press("Cmd+f")
     board.press("Tab")
 
     // Search for "project" — only Beta should match (it has no descendants with "project")
@@ -430,7 +430,7 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   test("typing 'ready-' does not blank the screen", () => {
     const { board } = makeSearchBoard()
 
-    board.press("/")
+    board.press("Cmd+f")
     // Type "ready-" character by character
     for (const c of "ready-") board.press(c)
 
@@ -445,7 +445,7 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   test("typing backtick does not blank the screen", () => {
     const { board } = makeSearchBoard()
 
-    board.press("/")
+    board.press("Cmd+f")
     board.press("`")
 
     const output = board.screenshot()
@@ -457,7 +457,7 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   test("typing parentheses in search does not crash", () => {
     const { board } = makeSearchBoard()
 
-    board.press("/")
+    board.press("Cmd+f")
     board.press("(").press("t").press("e").press("s").press("t").press(")")
 
     const output = board.screenshot()

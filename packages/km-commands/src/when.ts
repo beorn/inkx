@@ -52,14 +52,22 @@ export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectP
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
-/** Any text-input dialog is open (search, project picker, new item, date prompt) */
+/** Any text-input dialog is open (search, project picker, new item, date prompt, omnibox) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
-  (ctx) => ctx.searchDialogOpen || ctx.projectPickerOpen || ctx.newItemDialogOpen || ctx.datePromptOpen,
+  (ctx) =>
+    ctx.searchDialogOpen ||
+    ctx.projectPickerOpen ||
+    ctx.newItemDialogOpen ||
+    ctx.datePromptOpen ||
+    !!ctx.omniboxOpen,
 )
 
 /** Filter dialog is open (separate from text-input dialogs — has its own key handling) */
 export const filterDialogOpen = when("filterDialogOpen", (ctx) => ctx.filterDialogOpen)
+
+/** Omnibox / command palette is open */
+export const omniboxOpen = when("omniboxOpen", (ctx) => !!ctx.omniboxOpen)
 
 /** Any dialog OR filter panel is open */
 export const anyOverlayOpen = when(
@@ -69,7 +77,8 @@ export const anyOverlayOpen = when(
     ctx.projectPickerOpen ||
     ctx.newItemDialogOpen ||
     ctx.datePromptOpen ||
-    ctx.filterDialogOpen,
+    ctx.filterDialogOpen ||
+    !!ctx.omniboxOpen,
 )
 
 export const helpOverlayOpen = when("helpOverlayOpen", (ctx) => ctx.helpOverlayOpen)
@@ -81,6 +90,8 @@ export const consoleOpen = when("consoleOpen", (ctx) => ctx.consoleOpen)
 export const hasActiveToast = when("hasActiveToast", (ctx) => ctx.hasActiveToast)
 
 export const inVisualMode = when("inVisualMode", (ctx) => !!ctx.visualMode)
+
+export const localFindActive = when("localFindActive", (ctx) => !!ctx.localFindActive)
 
 // === Mode stack predicates ===
 // These check the inputMode field populated from the ModeStack.

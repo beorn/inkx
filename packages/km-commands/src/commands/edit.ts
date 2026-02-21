@@ -245,6 +245,76 @@ const captureDialog = {
   execute: () => ({ type: "CAPTURE_DIALOG" }),
 } satisfies CommandDef
 
+// Add child item (a-prefix chord: ai)
+const insertChild = {
+  id: "insert_child",
+  name: "Add Child",
+  description: "Insert a child item under the current node",
+  category: "Edit",
+  shortcuts: ["ai"],
+  execute: () => ({ type: "INSERT_CHILD" }),
+} satisfies CommandDef
+
+// Add sibling below (a-prefix chord: aj) — alias for insert_below
+const addSiblingBelow = {
+  id: "add_sibling_below",
+  name: "Add Sibling Below",
+  description: "Insert a sibling item below the current node",
+  category: "Edit",
+  shortcuts: ["aj"],
+  execute: () => ({ type: "INSERT_BELOW" }),
+} satisfies CommandDef
+
+// Add item at parent level (a-prefix chord: ah)
+const insertAtParent = {
+  id: "insert_at_parent",
+  name: "Add at Parent Level",
+  description: "Insert an item at the parent's level (uncle node)",
+  category: "Edit",
+  shortcuts: ["ah"],
+  execute: () => ({ type: "INSERT_AT_PARENT" }),
+} satisfies CommandDef
+
+// Add tag (a-prefix chord: a#)
+const addTag = {
+  id: "add_tag",
+  name: "Add Tag",
+  description: "Add a tag to the current node",
+  category: "Edit",
+  shortcuts: ["a#"],
+  execute: () => ({ type: "SET_LABEL" }),
+} satisfies CommandDef
+
+// Add assignee (a-prefix chord: a@)
+const addAssignee = {
+  id: "add_assignee",
+  name: "Add Assignee",
+  description: "Assign a person to the current node",
+  category: "Edit",
+  shortcuts: ["a@"],
+  execute: () => ({ type: "SET_ASSIGNEE" }),
+} satisfies CommandDef
+
+// Add dep/project (a-prefix chord: a+)
+const addProject = {
+  id: "add_project",
+  name: "Add to Project",
+  description: "Add to a project / add dependency",
+  category: "Edit",
+  shortcuts: ["a+"],
+  execute: () => ({ type: "REPARENT_PICKER" }),
+} satisfies CommandDef
+
+// Add backlink/label (a-prefix chord: a[)
+const addBacklink = {
+  id: "add_backlink",
+  name: "Add Backlink",
+  description: "Add a backlink or label reference",
+  category: "Edit",
+  shortcuts: ["a["],
+  execute: () => ({ type: "ADD_LINK" }),
+} satisfies CommandDef
+
 // Move to home board (mh chord)
 const moveToHome = {
   id: "move_to_home",
@@ -282,4 +352,11 @@ export const editCommands: CommandDef[] = [
   archiveNode,
   captureInbox,
   captureDialog,
+  insertChild,
+  addSiblingBelow,
+  insertAtParent,
+  addTag,
+  addAssignee,
+  addProject,
+  addBacklink,
 ]

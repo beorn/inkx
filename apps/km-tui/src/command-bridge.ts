@@ -50,13 +50,24 @@ function buildCommandContexts(ctx: ActionCtx) {
     inMoveMode: ctx.moveMode,
     inSearchMode: ui.showSearchDialog,
     inInputMode:
-      ui.showNewItemDialog || ui.showProjectPicker || ui.showSearchDialog || ui.showFilterDialog || !!ui.datePrompt,
+      ui.showNewItemDialog ||
+      ui.showProjectPicker ||
+      ui.showSearchDialog ||
+      ui.showFilterDialog ||
+      !!ui.datePrompt ||
+      ui.showOmnibox,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.focusedPane === "detail",
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
     textInputFocused:
-      !!ui.inlineEditBlock || ui.showSearchDialog || ui.showNewItemDialog || ui.showProjectPicker || !!ui.datePrompt,
+      !!ui.inlineEditBlock ||
+      ui.showSearchDialog ||
+      ui.showNewItemDialog ||
+      ui.showProjectPicker ||
+      !!ui.datePrompt ||
+      ui.showOmnibox ||
+      !!ui.localSearch?.isInputActive,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: ui.showProjectPicker,
@@ -69,6 +80,8 @@ function buildCommandContexts(ctx: ActionCtx) {
     hasActiveToast: !!ctx.toastQueue.getLatest(),
     inputMode: getModeStack().current(),
     visualMode: ui.visualMode,
+    localFindActive: !!ui.localSearch,
+    omniboxOpen: ui.showOmnibox,
   })
 
   const { colIndex, cardIndex, columns } = ctx

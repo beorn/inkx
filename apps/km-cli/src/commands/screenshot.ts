@@ -96,6 +96,8 @@ export const screenshotCommand = new Command("screenshot")
         handleSearchCancel: () => {},
         handleDatePromptConfirm: () => {},
         handleDatePromptCancel: () => {},
+        handleOmniboxSelect: () => {},
+        handleOmniboxCancel: () => {},
       },
       collapsedNodes: new Set<string>(),
       moveMode: false,

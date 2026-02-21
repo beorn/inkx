@@ -72,6 +72,7 @@ import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import { getChordState } from "@km/commands"
 import { resetModeStack } from "../../src/dialog-guard.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
 import {
@@ -361,6 +362,7 @@ export function testEnv(
 
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
+  getChordState().cancel() // Reset any stale chord state from previous tests
   resetModeStack()
 
   // Set up store (same pattern as driver)
@@ -1402,6 +1404,7 @@ export function testEnvWithRepo(
 
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
+  getChordState().cancel() // Reset any stale chord state from previous tests
   resetModeStack()
 
   // Set up store (same pattern as driver/testEnv)
@@ -2204,6 +2207,7 @@ export function renderBoardWithStore(
   const initialState = buildBoardState(repo, rootId)
 
   ensureCommandSystemInitialized()
+  getChordState().cancel() // Reset any stale chord state from previous tests
   resetModeStack()
 
   const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)

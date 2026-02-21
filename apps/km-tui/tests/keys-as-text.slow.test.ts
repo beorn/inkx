@@ -209,7 +209,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     board
       .press("l") // right
       .press("h") // left
-      .press("/") // open search
+      .press("Cmd+f") // open search
       .press("Escape") // close search
       .press("l") // right again
       .press("h") // left again
@@ -238,7 +238,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(store.getState().ui.showSearchDialog).toBe(false)
 
     // Open search
-    board.press("/")
+    board.press("Cmd+f")
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type a query that matches "Delta task"
@@ -302,7 +302,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Open search, type query, select result
-    board.press("/")
+    board.press("Cmd+f")
     for (const ch of "Delta") board.press(ch)
     board.press("Enter") // Confirms search, closes dialog
 

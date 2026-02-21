@@ -15,6 +15,7 @@ import {
   defaultKeybindings,
   isChordPrefix,
   resolveChord,
+  getChordSuffixes,
   type Keybinding,
   type KeybindingContext,
 } from "../src/keybindings.ts"
@@ -66,6 +67,8 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     searchDialogOpen: false,
     projectPickerOpen: false,
     newItemDialogOpen: false,
+    datePromptOpen: false,
+    filterDialogOpen: false,
     helpOverlayOpen: false,
     deleteConfirmOpen: false,
     consoleOpen: false,
@@ -490,9 +493,10 @@ describe("initDefaultKeybindings", () => {
     // Page jump keybindings (Ctrl+D/U)
     ["d", { ctrl: true }, "page_down"],
     ["u", { ctrl: true }, "page_up"],
-    // Sibling board navigation (Ctrl+J/K)
+    // Sibling board navigation (Ctrl+J)
     ["j", { ctrl: true }, "sibling_board_next"],
-    ["k", { ctrl: true }, "sibling_board_prev"],
+    // Ctrl+K → command_palette (global layer 2, higher priority than sibling_board_prev)
+    ["k", { ctrl: true }, "command_palette"],
     // v2: z = zoom_in (focus cursor node as root)
     ["z", {}, "zoom_in"],
   ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
@@ -609,9 +613,20 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
     expect(resolveKeybinding("q", {}, ctx)).toBe("help.dismiss")
   })
 
-  it("help overlay: j is absorbed (noop)", () => {
+  it("help overlay: j scrolls down", () => {
     const ctx = createContext({ helpOverlayOpen: true })
-    expect(resolveKeybinding("j", {}, ctx)).toBe("noop")
+    expect(resolveKeybinding("j", {}, ctx)).toBe("help.scroll_down")
+  })
+
+  it("help overlay: k scrolls up", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("k", {}, ctx)).toBe("help.scroll_up")
+  })
+
+  it("help overlay: other keys are absorbed (noop)", () => {
+    const ctx = createContext({ helpOverlayOpen: true })
+    expect(resolveKeybinding("a", {}, ctx)).toBe("noop")
+    expect(resolveKeybinding("x", {}, ctx)).toBe("noop")
   })
 
   it("delete confirm: Enter confirms", () => {
@@ -735,6 +750,7 @@ describe("chord keybindings", () => {
     // s-prefix removed (task properties now under t-prefix)
     expect(isChordPrefix("g")).toBe(true)
     expect(isChordPrefix("m")).toBe(true)
+    expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
     // Not chord prefixes
     expect(isChordPrefix("z")).toBe(false)
@@ -761,6 +777,14 @@ describe("chord keybindings", () => {
     ["m", "j", "move_to_journal"],
     ["m", "h", "move_to_home"],
     ["m", "p", "reparent_picker"],
+    // a-prefix chords (add operations)
+    ["a", "#", "add_tag"],
+    ["a", "@", "add_assignee"],
+    ["a", "+", "add_project"],
+    ["a", "[", "add_backlink"],
+    ["a", "i", "insert_child"],
+    ["a", "j", "add_sibling_below"],
+    ["a", "h", "insert_at_parent"],
     // t-prefix chords (task properties)
     ["t", "d", "set_due_date"],
     ["t", "s", "set_start_date"],
@@ -787,7 +811,32 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(26) // 12 g + 5 m + 9 t
+    expect(chordBindings.length).toBe(33) // 12 g + 5 m + 7 a + 9 t
+  })
+
+  it("getChordSuffixes returns a-prefix hints", () => {
+    const suffixes = getChordSuffixes("a")
+    const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
+    expect(suffixMap).toEqual({
+      "#": "add_tag",
+      "@": "add_assignee",
+      "+": "add_project",
+      "[": "add_backlink",
+      i: "insert_child",
+      j: "add_sibling_below",
+      h: "insert_at_parent",
+    })
+  })
+
+  it("getChordSuffixes returns g-prefix hints", () => {
+    const suffixes = getChordSuffixes("g")
+    const keys = suffixes.map((s) => s.key).sort()
+    expect(keys).toEqual(["C", "O", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
+  })
+
+  it("getChordSuffixes returns empty for non-chord prefix", () => {
+    expect(getChordSuffixes("z")).toEqual([])
+    expect(getChordSuffixes("x")).toEqual([])
   })
 
   it("v2 key remappings work", () => {
@@ -808,11 +857,11 @@ describe("chord keybindings", () => {
     // v2: z → zoom_in (focus cursor node as root), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_in")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
-    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane
+    // v2: e → archive, c → capture_inbox, C → capture_dialog, P → toggle_detail_pane (Smart-P)
     expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
     expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
     expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
-    expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
+    expect(resolveKeybinding("P", {}, ctx)).toBe("toggle_detail_pane")
     // v2: Space → select_toggle
     expect(resolveKeybinding(" ", {}, ctx)).toBe("select_toggle")
     // v2: H → fold_node, L → unfold_node
@@ -835,6 +884,41 @@ describe("chord keybindings", () => {
     // D was removed — should NOT resolve to delete_node
     expect(resolveKeybinding("D", { shift: true }, ctx)).not.toBe("delete_node")
   })
+
+  it("Smart-P: P key maps to toggle_detail_pane", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("P", {}, ctx)).toBe("toggle_detail_pane")
+  })
+
+  it("Escape in detail pane unfocuses (detail_pane.close)", () => {
+    const ctx = createContext({ isInDetailPane: true })
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("detail_pane.close")
+  })
+
+  it("Escape without detail pane focused falls through to close_or_quit", () => {
+    const ctx = createContext({ isInDetailPane: false })
+    expect(resolveKeybinding("Escape", {}, ctx)).toBe("close_or_quit")
+  })
+
+  it("a is a chord prefix for add operations", () => {
+    expect(isChordPrefix("a")).toBe(true)
+  })
+
+  it("a-prefix chords resolve correctly", () => {
+    const ctx = createContext()
+    expect(resolveChord("a", "#", {}, ctx)).toBe("add_tag")
+    expect(resolveChord("a", "@", {}, ctx)).toBe("add_assignee")
+    expect(resolveChord("a", "+", {}, ctx)).toBe("add_project")
+    expect(resolveChord("a", "[", {}, ctx)).toBe("add_backlink")
+    expect(resolveChord("a", "i", {}, ctx)).toBe("insert_child")
+    expect(resolveChord("a", "j", {}, ctx)).toBe("add_sibling_below")
+    expect(resolveChord("a", "h", {}, ctx)).toBe("insert_at_parent")
+  })
+
+  it("a standalone (chord timeout) resolves to noop", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("a", {}, ctx)).toBe("noop")
+  })
 })
 
 describe("text mode keybinding separation", () => {
@@ -854,7 +938,7 @@ describe("text mode keybinding separation", () => {
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
       ["v", {}, "visual_mode_enter"],
-      ["/", {}, "search"],
+      ["/", {}, "local_find"],
       ["?", {}, "show_help"],
       // v2 rebindings
       ["x", {}, "toggle_task_done"],

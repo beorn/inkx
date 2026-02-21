@@ -14,6 +14,7 @@ import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
+import { executeCommand } from "@km/commands"
 import { getModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
@@ -196,6 +197,62 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
   }
   // Clear chord status indicator (but keep pendingChord for which-key popup minimum display duration)
   freshCtx.setUI({ status: null })
+}
+
+/**
+ * Execute a command by ID — used by omnibox/command palette.
+ *
+ * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
+ * Call from React callbacks (e.g., omnibox onSelect) that have store access.
+ */
+export function dispatchCommandById(
+  commandId: string,
+  get: () => BoardAppStore,
+  exitApp: () => void = () => {},
+): void {
+  ensureCommandSystemInitialized()
+  const ctx = buildActionCtx(get, exitApp)
+
+  // Build command context for the executor
+  const cmdCtx = {
+    currentNode: ctx.selectedNode
+      ? ({
+          ...ctx.selectedNode,
+          isTask: ctx.selectedNode.task_status != null,
+          children: [],
+          depth: 0,
+          childCount: 0,
+          childrenLoaded: true,
+        } as import("@km/commands").TNode)
+      : null,
+    currentNodeId: ctx.selectedNode?.id ?? null,
+    selectedNodes: Array.from(ctx.selectedNodes),
+    viewMode: ctx.ui.viewMode,
+    siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
+    siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
+    columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
+    columnCount: ctx.columns.length,
+    moveMode: ctx.moveMode,
+    foldedNodes: ctx.foldedNodes,
+  }
+
+  const actions = executeCommand(commandId, cmdCtx)
+  if (!actions) return
+
+  const actionList = Array.isArray(actions) ? actions : [actions]
+  for (const action of actionList) {
+    const actionResult = handleCommandAction(ctx, action)
+    if (isErr(actionResult) && actionResult.error.type === "boundary") {
+      ctx.setUI({
+        bellState: actionResult.error.direction,
+        status: {
+          level: "warning",
+          message: actionResult.error.message ?? `Can't: ${commandId}`,
+        },
+      })
+      process.stdout.write("\x07")
+    }
+  }
 }
 
 /**
@@ -422,6 +479,7 @@ function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number
  * - Ctrl-click: move cursor to card and toggle it in multi-selection
  * - Double-click on card/sub-block: enter inline edit on the clicked block
  */
+// oxlint-disable-next-line complexity/complexity -- mouse handler with necessary branching
 export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
 
@@ -474,7 +532,8 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
     }
 
     // Card click (target.kind === "card")
-    const nodeId = target.cardNodeId!
+    const nodeId = target.cardNodeId
+    if (!nodeId) return
 
     if (isDoubleClick) {
       // Double-click → enter inline edit on the clicked block
@@ -512,6 +571,7 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
 // =============================================================================
 
 /** Produce a human-readable label for a key press (e.g. "Ctrl+x", "F5", "w"). */
+// oxlint-disable-next-line complexity/complexity -- exhaustive ternary chain for key descriptions
 function describeKey(input: string, key: Key): string {
   const parts: string[] = []
   if (key.ctrl) parts.push("Ctrl")

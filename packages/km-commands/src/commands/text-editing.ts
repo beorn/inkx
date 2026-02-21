@@ -116,8 +116,8 @@ export const textEditingCommands: CommandDef[] = [
 export const detailPaneCommands: CommandDef[] = [
   {
     id: "detail_pane.close",
-    name: "Close Detail Pane",
-    description: "Close the detail pane",
+    name: "Unfocus Detail Pane",
+    description: "Return focus to board (pane stays open)",
     category: "View",
     execute: (): CommandAction => ({ type: "DETAIL_PANE_CLOSE" }),
   },

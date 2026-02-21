@@ -65,6 +65,14 @@ describe("which-key popup", () => {
     board.press("t")
     expect(store.getState().ui.pendingChord).toBe("t")
   })
+
+  test("a chord prefix sets pendingChord", () => {
+    const { board, store } = testEnv(() => item("board", item("col", item("task"))))
+
+    board.press("j")
+    board.press("a")
+    expect(store.getState().ui.pendingChord).toBe("a")
+  })
 })
 
 describe("which-key popup rendering", () => {
@@ -104,6 +112,19 @@ describe("which-key popup rendering", () => {
     const text = board.screenshot()
     expect(text).toContain("move")
     expect(text).toContain("inbox")
+  })
+
+  test("a-prefix popup shows add-related suffixes", () => {
+    const { board } = testEnv(() => item("board", item("col", item("task"))))
+
+    board.press("j")
+    board.press("a")
+
+    // a-prefix should show add-related suffixes
+    const text = board.screenshot()
+    expect(text).toContain("tag")
+    expect(text).toContain("child")
+    expect(text).toContain("below")
   })
 })
 
@@ -161,6 +182,22 @@ describe("getChordSuffixes", () => {
     const keys = suffixes.map((s) => s.key)
     expect(keys).toContain("m") // mm = enter_move_mode
     expect(keys).toContain("i") // mi = move_to_inbox
+  })
+
+  test("returns suffixes for a prefix", () => {
+    testEnv(() => item("board", item("col", item("task"))))
+
+    const suffixes = getChordSuffixes("a")
+    expect(suffixes.length).toBe(7)
+
+    const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
+    expect(suffixMap["#"]).toBe("add_tag")
+    expect(suffixMap["@"]).toBe("add_assignee")
+    expect(suffixMap["+"]).toBe("add_project")
+    expect(suffixMap["["]).toBe("add_backlink")
+    expect(suffixMap["i"]).toBe("insert_child")
+    expect(suffixMap["j"]).toBe("add_sibling_below")
+    expect(suffixMap["h"]).toBe("insert_at_parent")
   })
 
   test("returns empty for non-prefix key", () => {

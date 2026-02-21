@@ -40,7 +40,9 @@ export function getEditMode(ui: UIState): EditMode {
     ui.showProjectPicker ||
     ui.showFilterDialog ||
     ui.datePrompt ||
-    ui.deleteConfirm
+    ui.deleteConfirm ||
+    ui.localSearch ||
+    ui.showOmnibox
   ) {
     return "dialog"
   }
@@ -62,6 +64,7 @@ export interface UIState {
 
   // Overlays/dialogs
   showHelp: boolean
+  helpScrollOffset: number
   showProjectPicker: boolean
   showNewItemDialog: boolean
   showSearchDialog: boolean
@@ -180,6 +183,26 @@ export interface UIState {
   filterProperties: FilterProperties
   filterCursorRow: number
   filterCursorVal: number
+
+  // Local find (inline search bar within the board)
+  localSearch: LocalSearchState | null
+
+  // Omnibox / command palette state
+  showOmnibox: boolean
+}
+
+/** State for the inline local find/search bar */
+export interface LocalSearchState {
+  /** Current search query */
+  query: string
+  /** True when the text input is active (typing phase) */
+  isInputActive: boolean
+  /** 0-based index of the currently focused match */
+  matchIndex: number
+  /** Total number of matches found */
+  matchCount: number
+  /** Node IDs that contain matches, in visual order */
+  matchNodeIds: string[]
 }
 
 /** Structured filter state for property-based filtering */
@@ -275,6 +298,7 @@ export function createInitialUIState(
     rootBoardId,
 
     showHelp: false,
+    helpScrollOffset: 0,
     showProjectPicker: false,
     showNewItemDialog: false,
     showSearchDialog: false,
@@ -339,5 +363,9 @@ export function createInitialUIState(
     filterProperties: createEmptyFilterProperties(),
     filterCursorRow: 0,
     filterCursorVal: 0,
+
+    localSearch: null,
+
+    showOmnibox: false,
   }
 }

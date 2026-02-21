@@ -1012,7 +1012,7 @@ describe("u zooms out to parent", () => {
     board.expect("#sub1").toExist()
 
     // Open detail pane with D (toggle_detail_pane)
-    board.press("D")
+    board.press("P")
 
     // u should close detail pane first, not zoom
     board.press("Z")

@@ -146,14 +146,25 @@ const openDetailPane = {
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 } satisfies CommandDef
 
-// Toggle detail pane (open if closed, close if open)
+// Smart-P: context-aware detail pane toggle (v2 spec)
+// Closed -> open+focus, open+board-focused -> focus pane, open+pane-focused -> close
 const toggleDetailPane = {
   id: "toggle_detail_pane",
   name: "Toggle Detail",
-  description: "Toggle detail pane for current node",
+  description: "Smart detail pane toggle (open+focus / focus / close)",
   category: "Navigation",
-  shortcuts: ["Space"],
+  shortcuts: ["P"],
   execute: () => ({ type: "TOGGLE_DETAIL_PANE" }),
+} satisfies CommandDef
+
+// Close detail pane unconditionally (Cmd+W)
+const closeDetailPane = {
+  id: "close_detail_pane",
+  name: "Close Detail",
+  description: "Close detail pane regardless of focus state",
+  category: "Navigation",
+  shortcuts: ["Cmd+W"],
+  execute: () => ({ type: "CLOSE_DETAIL_PANE" }),
 } satisfies CommandDef
 
 // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
@@ -354,6 +365,7 @@ export const navigationCommands: CommandDef[] = [
   zoomOutwards,
   openDetailPane,
   toggleDetailPane,
+  closeDetailPane,
   pageDown,
   pageUp,
   siblingBoardNext,

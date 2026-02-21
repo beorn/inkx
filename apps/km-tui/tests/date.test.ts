@@ -1,3 +1,4 @@
+/* oxlint-disable complexity/complexity -- Test file with nested assertions */
 /**
  * Date, priority, and recurrence tests: badge display, date prompt dialog,
  * priority cycling, due date filtering for @next board.
@@ -250,7 +251,7 @@ describe("date badge display", () => {
     })
 
     // Open detail pane (D = toggle_detail_pane in v2)
-    await driver.press("D")
+    await driver.press("P")
 
     const screen = driver.getState().screen
     const clean = screen.replace(/\x1b\[[0-9;]*m/g, "")

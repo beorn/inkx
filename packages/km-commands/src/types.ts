@@ -183,6 +183,14 @@ interface HideHelpAction {
   type: "HIDE_HELP"
 }
 
+interface HelpScrollUpAction {
+  type: "HELP_SCROLL_UP"
+}
+
+interface HelpScrollDownAction {
+  type: "HELP_SCROLL_DOWN"
+}
+
 interface CycleViewModeAction {
   type: "CYCLE_VIEW_MODE"
 }
@@ -379,6 +387,14 @@ interface InsertBelowAction {
   type: "INSERT_BELOW"
 }
 
+interface InsertChildAction {
+  type: "INSERT_CHILD"
+}
+
+interface InsertAtParentAction {
+  type: "INSERT_AT_PARENT"
+}
+
 interface DuplicateNodeAction {
   type: "DUPLICATE_NODE"
   nodeId: string
@@ -545,6 +561,34 @@ interface SettingsAction {
   type: "SETTINGS"
 }
 
+// Local find (inline search bar)
+interface LocalFindOpenAction {
+  type: "LOCAL_FIND_OPEN"
+}
+
+interface LocalFindNextAction {
+  type: "LOCAL_FIND_NEXT"
+}
+
+interface LocalFindPrevAction {
+  type: "LOCAL_FIND_PREV"
+}
+
+interface LocalFindCloseAction {
+  type: "LOCAL_FIND_CLOSE"
+}
+
+interface LocalFindConfirmAction {
+  type: "LOCAL_FIND_CONFIRM"
+}
+
+type LocalFindAction =
+  | LocalFindOpenAction
+  | LocalFindNextAction
+  | LocalFindPrevAction
+  | LocalFindCloseAction
+  | LocalFindConfirmAction
+
 export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
@@ -595,6 +639,8 @@ export type TUIAction =
   | CommandPaletteAction
   | InsertAboveAction
   | InsertBelowAction
+  | InsertChildAction
+  | InsertAtParentAction
   | DuplicateNodeAction
   | SetDueDateAction
   | SetStartDateAction
@@ -615,6 +661,7 @@ export type TUIAction =
   | CaptureInboxAction
   | CaptureDialogAction
   | SettingsAction
+  | LocalFindAction
 
 export type UIAction =
   | ZoomOutwardsAction
@@ -623,6 +670,8 @@ export type UIAction =
   | ToggleDetailPaneAction
   | ShowHelpAction
   | HideHelpAction
+  | HelpScrollUpAction
+  | HelpScrollDownAction
   | CycleViewModeAction
   | CycleIconStyleAction
   | DeleteNodeAction

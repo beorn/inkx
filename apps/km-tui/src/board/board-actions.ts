@@ -51,6 +51,8 @@ import {
   handleConfirmMove,
   handleAddNodeAfter,
   handleAddNodeBefore,
+  handleAddNodeChild,
+  handleAddNodeAtParent,
   handleDeleteNode,
   handleDuplicateNode,
   handleIndentColumn,
@@ -225,10 +227,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "SHOW_HELP":
-      ctx.setUI({ showHelp: true })
+      ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
       return ok()
     case "HIDE_HELP":
-      ctx.setUI({ showHelp: false })
+      ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
+      return ok()
+    case "HELP_SCROLL_UP":
+      ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
+      return ok()
+    case "HELP_SCROLL_DOWN":
+      ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
     case "OPEN_DETAIL_PANE": {
       // If current node has children, zoom into it instead of opening detail pane.
@@ -247,12 +255,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           return handleZoomInNode(ctx, curNodeId)
         }
       }
-      // No children, or folder — open detail pane
-      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
+      // No children, or folder — open detail pane and focus it
+      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0, focusedPane: "detail" })
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
+      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0, focusedPane: "board" })
       return ok()
     case "TOGGLE_DETAIL_PANE":
       // Smart-P toggle: three states per v2 spec
@@ -520,6 +528,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "INSERT_BELOW":
       handleAddNodeAfter(ctx)
       return ok()
+    case "INSERT_CHILD":
+      handleAddNodeChild(ctx)
+      return ok()
+    case "INSERT_AT_PARENT":
+      handleAddNodeAtParent(ctx)
+      return ok()
     case "DUPLICATE_NODE":
       handleDuplicateNode(ctx, action.nodeId)
       return ok()
@@ -593,8 +607,39 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
 
-    // === UI stubs (future features) ===
+    // === Command palette (omnibox) ===
     case "COMMAND_PALETTE":
+      if (ctx.ui.showOmnibox) {
+        // Already open — close (toggle behavior)
+        popDialogMode()
+        ctx.setUI({ showOmnibox: false })
+      } else {
+        pushDialogMode("dialog:omnibox")
+        ctx.setUI({ showOmnibox: true })
+        clearSelection(ctx)
+      }
+      return ok()
+
+    // === Local find (inline search bar) ===
+    case "LOCAL_FIND_OPEN":
+      return handleLocalFindOpen(ctx)
+    case "LOCAL_FIND_NEXT":
+      return handleLocalFindNext(ctx)
+    case "LOCAL_FIND_PREV":
+      return handleLocalFindPrev(ctx)
+    case "LOCAL_FIND_CLOSE":
+      ctx.setUI({ localSearch: null })
+      return ok()
+    case "LOCAL_FIND_CONFIRM":
+      // Close input but keep matches for n/N navigation
+      if (ctx.ui.localSearch) {
+        ctx.setUI({
+          localSearch: { ...ctx.ui.localSearch, isInputActive: false },
+        })
+      }
+      return ok()
+
+    // === UI stubs (future features) ===
     case "ARCHIVE_NODE":
     case "CAPTURE_INBOX":
     case "CAPTURE_DIALOG":
@@ -1235,7 +1280,15 @@ function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult 
 function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   const { ui, dispatchBoard } = ctx
 
-  // Exit visual mode first (highest priority for escape alongside move mode)
+  // v2 Escape Layering — each Escape pops one layer (follows focus stack):
+  // 1. Cancel move/visual mode (highest priority — modal states)
+  // 2. Text edit -> node mode (save+exit)
+  // 3. Pane focused -> focus board (pane stays open)
+  // 4. Dialog open -> close topmost dialog
+  // 5. Selection active -> clear selection
+  // 6. Nothing -> no-op (visual bell)
+
+  // --- Layer 0: Modal states (move mode, visual mode) ---
   if (ui.visualMode) {
     clearSelection(ctx)
     ctx.setUI({
@@ -1246,13 +1299,12 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  // Cancel move mode first (highest priority for escape)
   if (ctx.moveMode) {
     dispatchBoard({ type: "CANCEL_MOVE" })
     return ok()
   }
 
-  // Save + exit inline edit (Escape = save, not cancel)
+  // --- Layer 1: Text edit -> node mode ---
   // Note: normally Escape during editing routes to TEXT_EXIT_EDIT, not here.
   // This is a safety fallback.
   if (ui.inlineEditBlock) {
@@ -1261,18 +1313,24 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  // Close any open overlay first
-  if (ui.showDetailPane) {
-    ctx.setUI({ showDetailPane: false })
+  // --- Layer 2: Pane focused -> focus board (pane stays open) ---
+  if (ui.showDetailPane && ui.focusedPane === "detail") {
+    ctx.setUI({ focusedPane: "board" })
     return ok()
   }
-  // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
-  if (ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
-    return ok()
-  }
+
+  // --- Layer 3: Dialog open -> close topmost dialog ---
   if (ui.showHelp) {
     ctx.setUI({ showHelp: false })
+    return ok()
+  }
+  if (ui.showOmnibox) {
+    popDialogMode()
+    ctx.setUI({ showOmnibox: false })
+    return ok()
+  }
+  if (ui.localSearch) {
+    ctx.setUI({ localSearch: null })
     return ok()
   }
   if (ui.showSearchDialog) {
@@ -1301,18 +1359,24 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  // Clear multi-selection if active
+  // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
+  if (ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
+    return ok()
+  }
+
+  // --- Layer 4: Selection active -> clear selection ---
   if (ui.multiSelected.size > 0) {
     clearSelection(ctx)
     return ok()
   }
 
-  // Try to navigate back (zoom out) if we have history
+  // --- Layer 5: Navigate back (zoom out) if we have history ---
   if (ui.navHistoryIndex > 0) {
     return handleNavBack(ctx)
   }
 
-  // Nothing to close or navigate - indicate boundary
+  // --- Layer 6: Nothing -> no-op (visual bell) ---
   return boundary("escape", "nothing to close")
 }
 
@@ -1530,6 +1594,7 @@ function resolveDate(input: string): { date: string; time: string } | null {
 
 /** Handle confirmation of the date prompt dialog. */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: date parsing with multiple formats
+// oxlint-disable-next-line complexity/complexity -- date parsing with multiple formats
 function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   const prompt = ctx.ui.datePrompt
   if (!prompt) return ok()
@@ -1707,4 +1772,112 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
   }
 
   return ok()
+}
+
+// =============================================================================
+// Local Find (Inline Search Bar)
+// =============================================================================
+
+/** Collect visible node IDs from the current columns in visual order */
+function collectVisibleNodeIds(ctx: ActionCtx): string[] {
+  const ids: string[] = []
+  for (const col of ctx.columns) {
+    for (const card of col.cardNodes) {
+      ids.push(card.id)
+    }
+  }
+  return ids
+}
+
+/** Search visible nodes for a query string (case-insensitive substring) */
+function findMatchingNodeIds(ctx: ActionCtx, query: string): string[] {
+  if (!query) return []
+  const lowerQuery = query.toLowerCase()
+  const visibleIds = collectVisibleNodeIds(ctx)
+  const matches: string[] = []
+
+  for (const nodeId of visibleIds) {
+    const node = ctx.repo.getNode(nodeId)
+    if (!node) continue
+    // Check node content/title
+    const text = (node.content ?? node.name ?? "").toLowerCase()
+    if (text.includes(lowerQuery)) {
+      matches.push(nodeId)
+    }
+  }
+  return matches
+}
+
+/** Open the local find bar */
+function handleLocalFindOpen(ctx: ActionCtx): ActionResult {
+  ctx.setUI({
+    localSearch: {
+      query: "",
+      isInputActive: true,
+      matchIndex: 0,
+      matchCount: 0,
+      matchNodeIds: [],
+    },
+    // Close other overlays
+    inlineEditBlock: null,
+  })
+  clearSelection(ctx)
+  return ok()
+}
+
+/** Navigate to the next match */
+function handleLocalFindNext(ctx: ActionCtx): ActionResult {
+  const ls = ctx.ui.localSearch
+  if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
+
+  const nextIndex = (ls.matchIndex + 1) % ls.matchCount
+  const nodeId = ls.matchNodeIds[nextIndex]
+  if (nodeId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  }
+  ctx.setUI({
+    localSearch: { ...ls, matchIndex: nextIndex },
+  })
+  return ok()
+}
+
+/** Navigate to the previous match */
+function handleLocalFindPrev(ctx: ActionCtx): ActionResult {
+  const ls = ctx.ui.localSearch
+  if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
+
+  const prevIndex = (ls.matchIndex - 1 + ls.matchCount) % ls.matchCount
+  const nodeId = ls.matchNodeIds[prevIndex]
+  if (nodeId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  }
+  ctx.setUI({
+    localSearch: { ...ls, matchIndex: prevIndex },
+  })
+  return ok()
+}
+
+/**
+ * Update local search results based on query change.
+ * Called from Board.tsx when the FindBar input changes.
+ */
+export function updateLocalSearchMatches(ctx: ActionCtx, query: string): void {
+  const matchNodeIds = findMatchingNodeIds(ctx, query)
+  const matchCount = matchNodeIds.length
+
+  // Navigate to first match if available
+  const matchIndex = 0
+  if (matchCount > 0 && matchNodeIds[0]) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+  }
+
+  ctx.setUI({
+    localSearch: {
+      query,
+      isInputActive: true,
+      matchIndex,
+      matchCount,
+      matchNodeIds,
+    },
+  })
 }
