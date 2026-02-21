@@ -1796,6 +1796,30 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(item.body).not.toContain("^12345")
   })
 
+  test("toImportItem unescapes underscores in URLs from html_notes", () => {
+    const task = makeAsanaTask({
+      gid: "123",
+      name: "Task with URL",
+      html_notes:
+        '<body><p><a href="https://x.com/user/status/123?t=fMq0FKbaXO-Q25vj12k_fQ">https://x.com/user/status/123?t=fMq0FKbaXO-Q25vj12k_fQ</a></p></body>',
+    })
+    const item = toImportItem(task)
+    // Underscores in URL display text should not be escaped
+    expect(item.body).not.toContain("\\_")
+    expect(item.body).toContain("_fQ")
+  })
+
+  test("toImportItem preserves escaped underscores in non-URL text", () => {
+    const task = makeAsanaTask({
+      gid: "124",
+      name: "Task with emphasis",
+      html_notes: "<body><p>Use _italic_ for emphasis</p></body>",
+    })
+    const item = toImportItem(task)
+    // Non-URL underscores should remain escaped
+    expect(item.body).toContain("\\_italic\\_")
+  })
+
   test("convert resolves parentTaskGid to link_to when target exists", () => {
     const data: ImportData = {
       source: "asana",

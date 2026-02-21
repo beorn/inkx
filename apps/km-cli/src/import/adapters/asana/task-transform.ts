@@ -11,6 +11,18 @@ const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/
 /** Strip `→ ^numericId` pattern from text (can appear anywhere in body content) */
 const BLOCKREF_INLINE_RE = /\s*→\s*\^\d+/g
 
+/** Fix escaped underscores in URLs. Turndown escapes _ to \_ in text nodes,
+ * which breaks URLs when they appear as link display text or bare URLs. */
+function unescapeUrlUnderscores(md: string): string {
+  // Fix in markdown link text: [url\_with\_underscores](url) → [url_with_underscores](url)
+  let result = md.replace(/\[([^\]]*\\\_[^\]]*)\]\(/g, (match, text) => {
+    return `[${text.replace(/\\_/g, "_")}](`
+  })
+  // Fix in bare URLs: https://...\_... → https://..._...
+  result = result.replace(/(https?:\/\/\S*)\\_/g, (match) => match.replace(/\\_/g, "_"))
+  return result
+}
+
 /** Convert Asana task to ImportItem */
 export function toImportItem(task: AsanaApiTask): ImportItem {
   // Strip → ^numericId suffix from task name (Asana recurring task parent reference)
@@ -30,7 +42,8 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
 
   // Prefer html_notes (rich text) over plain notes
   if (task.html_notes?.trim()) {
-    const md = turndown.turndown(preprocessAsanaHtml(task.html_notes)).trim()
+    let md = turndown.turndown(preprocessAsanaHtml(task.html_notes)).trim()
+    md = unescapeUrlUnderscores(md)
     if (md) item.body = md.replace(BLOCKREF_INLINE_RE, "")
   } else if (task.notes?.trim()) {
     item.body = task.notes.trim().replace(BLOCKREF_INLINE_RE, "")
