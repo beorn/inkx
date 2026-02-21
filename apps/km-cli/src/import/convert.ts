@@ -23,6 +23,8 @@ export function slugify(title: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")
+    // Strip trailing numeric GIDs (13+ digits) that Asana appends to project names
+    .replace(/-\d{13,}$/, "")
   return slug || "untitled"
 }
 
@@ -161,7 +163,8 @@ function buildTaskContent(
   currentProject?: string,
   userSlugMap?: Map<string, string>,
 ): string {
-  const title = item.milestone ? `◆ ${item.title}` : item.title
+  const prettyTitle = prettifyTitle(item.title)
+  const title = item.milestone ? `◆ ${prettyTitle}` : prettyTitle
   const parts: string[] = [title]
   if (item.assignee) {
     const slug = userSlugMap
@@ -187,10 +190,33 @@ function buildTaskContent(
   return parts.join(" ")
 }
 
+/** Decode common HTML entities that may remain in saved JSON */
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+/** Strip remnant HTML tags (br, em, strong, etc.) but preserve <https://...> autolinks */
+function stripHtmlTags(text: string): string {
+  // Replace HTML tags but not <https://...> autolinks
+  return text.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*\b[^>]*>/g, (match) => {
+    // Preserve autolinks like <https://example.com>
+    if (/^<https?:\/\//.test(match)) return match
+    return ""
+  })
+}
+
 /** Build body content string (paragraph body text, not blockquote) */
 function buildBodyContent(item: ImportItem): string | null {
   if (!item.body?.trim()) return null
   let text = convertAsanaLinks(item.body.trim())
+  // Clean up HTML artifacts from saved JSON
+  text = decodeHtmlEntities(text)
+  text = stripHtmlTags(text)
   // Fix escaped underscores in URLs (Turndown escapes _ to \_ in text nodes)
   text = text.replace(/\[([^\]]*\\_[^\]]*)\]\(/g, (_match, linkText: string) => {
     return `[${linkText.replace(/\\_/g, "_")}](`
@@ -198,7 +224,23 @@ function buildBodyContent(item: ImportItem): string | null {
   text = text.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
   // Clean up redundant [url](url) → <url> autolinks
   text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
+  // Collapse 3+ consecutive blank lines to 2 (one blank line between paragraphs)
+  text = text.replace(/\n{3,}/g, "\n\n")
   return text
+}
+
+/** Prettify URL-only titles: strip protocol, www., trailing /, truncate to ~60 chars */
+export function prettifyTitle(title: string): string {
+  // Only transform if the entire title is a URL
+  if (!/^https?:\/\/\S+$/.test(title.trim())) return title
+  let pretty = title.trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/+$/, "")
+  if (pretty.length > 60) {
+    pretty = pretty.slice(0, 57) + "..."
+  }
+  return pretty
 }
 
 /** Convert an ImportItem to KNode(s) and append to the nodes array */
@@ -218,17 +260,21 @@ function itemToNodes(
     return
   }
   // Cross-project dedup: if already rendered in another project, emit embed reference
+  // Use the task's actual title as the node content so it's identifiable in listings,
+  // with the embed reference ![[^GID]] as a child paragraph node
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
+    const refNodeId = `ref-${item.sourceId}`
+    const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
     nodes.push(
       mkNode(counter, {
-        id: `ref-${item.sourceId}`,
+        id: refNodeId,
         type: "oi",
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
-        content: `![[^${item.sourceId}]]`,
+        content: `${embedTitle} ![[^${item.sourceId}]]`,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
@@ -628,7 +674,7 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
 }
 
 /** Export for testing: convert a single ImportItem to KNode, slug helpers */
-export { itemToNodes, buildTaskContent, buildBodyContent }
+export { itemToNodes, buildTaskContent, buildBodyContent, decodeHtmlEntities, stripHtmlTags }
 
 /**
  * Build the primaryMap (task sourceId → filename) and filename list.
@@ -840,6 +886,7 @@ function* generateTagFiles(
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
+        const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
@@ -847,7 +894,7 @@ function* generateTagFiles(
             parent_id: fileId,
             task_marker: marker as TaskMarker,
             task_status: status,
-            content: `![[^${item.sourceId}]]`,
+            content: `${embedTitle} ![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -956,6 +1003,7 @@ function* generateUserFiles(
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
+        const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
         nodes.push(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
@@ -963,7 +1011,7 @@ function* generateUserFiles(
             parent_id: parentId,
             task_marker: marker as TaskMarker,
             task_status: status,
-            content: `![[^${item.sourceId}]]`,
+            content: `${embedTitle} ![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),

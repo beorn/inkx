@@ -12,7 +12,15 @@ import { extractFrontmatter, extractMentions, extractTags, parseMarkdown, parseT
 import { describe, expect, test } from "vitest"
 import type { AsanaApiTask } from "../../src/import/adapters/asana/asana-types.ts"
 import { toImportItem } from "../../src/import/adapters/asana/task-transform.ts"
-import { convert, itemToNodes } from "../../src/import/convert.ts"
+import {
+  buildBodyContent,
+  convert,
+  decodeHtmlEntities,
+  itemToNodes,
+  prettifyTitle,
+  slugify,
+  stripHtmlTags,
+} from "../../src/import/convert.ts"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
 // ============================================================================
@@ -1231,8 +1239,8 @@ describe("roundtrip: convert → parse", () => {
     // Work section = 1 H2
     expect(h2s.length).toBeGreaterThanOrEqual(1)
 
-    // Dedup reference + Beta only = H3 under section
-    expect(betaMd).toContain("### [ ] ![[^shared-rt]]")
+    // Dedup reference uses actual title alongside embed reference
+    expect(betaMd).toContain("### [ ] Shared task ![[^shared-rt]]")
 
     // Beta only heading is H3
     const betaHeading = h3s.find((h) => h.children[0]?.value?.includes("Beta only"))
@@ -2069,6 +2077,68 @@ describe("HTML content escaping", () => {
 })
 
 // ============================================================================
+// HTML cleanup in fetch stage (cleanHtmlRemnants)
+// ============================================================================
+
+describe("HTML cleanup in toImportItem (entity decoding + tag stripping)", () => {
+  test("decodes HTML entities in body from html_notes", () => {
+    const task = makeAsanaTask({
+      gid: "ent1",
+      name: "Entity task",
+      html_notes: "<body><p>Tom &amp; Jerry &lt;3 &gt; 2 &quot;quoted&quot; it&#39;s &#123;braces&#125;</p></body>",
+    })
+    const item = toImportItem(task)
+    expect(item.body).toContain("Tom & Jerry <3 > 2")
+    expect(item.body).toContain('"quoted"')
+    expect(item.body).toContain("it's")
+    expect(item.body).toContain("{braces}")
+    expect(item.body).not.toContain("&amp;")
+    expect(item.body).not.toContain("&lt;")
+    expect(item.body).not.toContain("&gt;")
+    expect(item.body).not.toContain("&quot;")
+    expect(item.body).not.toContain("&#39;")
+    expect(item.body).not.toContain("&#123;")
+  })
+
+  test("strips remnant HTML tags from body", () => {
+    const task = makeAsanaTask({
+      gid: "tag1",
+      name: "Tag task",
+      html_notes: "<body><p>Hello<br>world <em>emphasis</em> and <strong>bold</strong> leftover</p></body>",
+    })
+    const item = toImportItem(task)
+    // Turndown should handle most tags, but if any survive as remnants they should be stripped.
+    // The key assertion: no raw HTML tags in the output
+    expect(item.body).not.toMatch(/<br\s*\/?>/)
+    expect(item.body).not.toMatch(/<\/?em>/)
+    expect(item.body).not.toMatch(/<\/?strong>/)
+  })
+
+  test("preserves autolinks <https://example.com> (not stripped as HTML)", () => {
+    const task = makeAsanaTask({
+      gid: "auto1",
+      name: "Autolink task",
+      html_notes:
+        '<body><p>Visit <a href="https://example.com">https://example.com</a> for details</p></body>',
+    })
+    const item = toImportItem(task)
+    expect(item.body).toContain("https://example.com")
+  })
+
+  test("preserves inline code containing HTML-like content", () => {
+    const task = makeAsanaTask({
+      gid: "code1",
+      name: "Code task",
+      html_notes: "<body><p>Use <code>&lt;div&gt;</code> for layout</p></body>",
+    })
+    const item = toImportItem(task)
+    // Turndown converts <code> tags to backtick inline code, and entities inside
+    // get decoded, so the result should be `<div>` preserved in inline code
+    expect(item.body).toContain("`<div>`")
+  })
+})
+
+// ============================================================================
 // Escaped checkboxes (km-tui.escaped-checkboxes)
 // ============================================================================
 
@@ -2266,5 +2336,313 @@ describe("User aggregate files group items by assignee section", () => {
     expect(md).not.toMatch(/^## [A-Z]/m) // no section titles like "## Today"
     expect(md).toContain("![[^t1]]")
     expect(md).toContain("![[^t2]]")
+  })
+})
+
+// ============================================================================
+// Fix 1: HTML entities + tags in buildBodyContent
+// ============================================================================
+
+describe("HTML entities and tags in body content", () => {
+  test("decodes common HTML entities in body text", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with entities",
+          body: "Tom &amp; Jerry, x &gt; y, a &lt; b, &quot;quoted&quot;, it&#39;s fine",
+        },
+      ]),
+    )
+    expect(md).toContain('Tom & Jerry, x > y, a < b, "quoted", it\'s fine')
+    expect(md).not.toContain("&amp;")
+    expect(md).not.toContain("&gt;")
+    expect(md).not.toContain("&lt;")
+    expect(md).not.toContain("&quot;")
+    expect(md).not.toContain("&#39;")
+  })
+
+  test("strips remnant HTML tags from body text", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with tags",
+          body: "Line one<br>Line two with <em>emphasis</em> and <strong>bold</strong>",
+        },
+      ]),
+    )
+    expect(md).toContain("Line oneLine two with emphasis and bold")
+    expect(md).not.toContain("<br>")
+    expect(md).not.toContain("<em>")
+    expect(md).not.toContain("</em>")
+    expect(md).not.toContain("<strong>")
+    expect(md).not.toContain("</strong>")
+  })
+
+  test("preserves <https://...> autolinks when stripping HTML", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with autolink",
+          body: "Visit <https://example.com> for details",
+        },
+      ]),
+    )
+    expect(md).toContain("<https://example.com>")
+  })
+
+  test("decodeHtmlEntities handles all common entities", () => {
+    expect(decodeHtmlEntities("&amp;")).toBe("&")
+    expect(decodeHtmlEntities("&gt;")).toBe(">")
+    expect(decodeHtmlEntities("&lt;")).toBe("<")
+    expect(decodeHtmlEntities("&quot;")).toBe('"')
+    expect(decodeHtmlEntities("&#39;")).toBe("'")
+    expect(decodeHtmlEntities("no entities")).toBe("no entities")
+  })
+
+  test("stripHtmlTags removes tags but preserves autolinks", () => {
+    expect(stripHtmlTags("text<br>more")).toBe("textmore")
+    expect(stripHtmlTags("<em>italic</em>")).toBe("italic")
+    expect(stripHtmlTags("<https://example.com>")).toBe("<https://example.com>")
+    expect(stripHtmlTags("<http://test.org/path>")).toBe("<http://test.org/path>")
+  })
+})
+
+// ============================================================================
+// Fix 2: Excessive whitespace collapsed
+// ============================================================================
+
+describe("Excessive whitespace in body content", () => {
+  test("collapses 3+ consecutive blank lines to 2", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with whitespace",
+          body: "First paragraph\n\n\n\nSecond paragraph\n\n\n\n\nThird paragraph",
+        },
+      ]),
+    )
+    expect(md).toContain("First paragraph\n\nSecond paragraph\n\nThird paragraph")
+    expect(md).not.toContain("\n\n\n")
+  })
+
+  test("preserves single blank lines between paragraphs", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with normal spacing",
+          body: "First paragraph\n\nSecond paragraph",
+        },
+      ]),
+    )
+    expect(md).toContain("First paragraph\n\nSecond paragraph")
+  })
+})
+
+// ============================================================================
+// Fix 3: Filenames with raw GIDs stripped from slugs
+// ============================================================================
+
+describe("Filenames with raw GIDs", () => {
+  test("slugify strips trailing numeric GIDs (13+ digits)", () => {
+    expect(slugify("Fam Estate 688176235175685")).toBe("fam-estate")
+  })
+
+  test("slugify preserves short trailing numbers (< 13 digits)", () => {
+    expect(slugify("Sprint 42")).toBe("sprint-42")
+    expect(slugify("Q4 2026")).toBe("q4-2026")
+  })
+
+  test("slugify strips exactly 13-digit trailing GIDs", () => {
+    expect(slugify("Project 1234567890123")).toBe("project")
+  })
+
+  test("project filenames do not contain raw GIDs", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "p1",
+          title: "Fam Estate 688176235175685",
+          items: [{ sourceId: "t1", title: "A task" }],
+        },
+      ],
+    }
+    const files = convert(data)
+    expect(files.has("fam-estate.md")).toBe(true)
+    expect(files.has("fam-estate-688176235175685.md")).toBe(false)
+  })
+})
+
+// ============================================================================
+// Fix 4: Separator items (already tested above, but verify HR output)
+// ============================================================================
+
+describe("Separator items as HR nodes (additional)", () => {
+  test("separator with isSeparator metadata emits HR in markdown", () => {
+    const md = convertToMd(
+      makeData([
+        { sourceId: "t1", title: "Before" },
+        { sourceId: "sep1", title: "-", metadata: { isSeparator: true } },
+        { sourceId: "t2", title: "After" },
+      ]),
+    )
+    expect(md).toContain("---")
+    // Title "-" should not appear as a task
+    expect(md).not.toContain("[ ] -")
+  })
+})
+
+// ============================================================================
+// Fix 5: Embed-only titles use actual task title
+// ============================================================================
+
+describe("Embed nodes use actual task title", () => {
+  test("cross-project dedup uses task title instead of embed-only content", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "projA",
+          title: "Project Alpha",
+          items: [
+            {
+              sourceId: "shared-1",
+              title: "Review quarterly report",
+              status: "todo",
+              body: "Details here",
+            },
+          ],
+        },
+        {
+          sourceId: "projB",
+          title: "Project Beta",
+          items: [
+            {
+              sourceId: "shared-1",
+              title: "Review quarterly report",
+              status: "todo",
+              body: "Details here",
+            },
+          ],
+        },
+      ],
+    }
+    const files = convert(data)
+    const beta = files.get("project-beta.md")!
+
+    // The embed node should use the actual task title alongside the embed reference
+    expect(beta).toContain("Review quarterly report ![[^shared-1]]")
+  })
+
+  test("embed node content includes title and embed reference", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    const rendered = new Set(["shared-1"])
+    const primaryMap = new Map([["shared-1", "project-alpha.md"]])
+    itemToNodes(
+      counter,
+      {
+        sourceId: "shared-1",
+        title: "Actual Task Title",
+        status: "todo",
+      },
+      "parent",
+      nodes,
+      rendered,
+      primaryMap,
+    )
+    const refNode = nodes.find((n) => n.id === "ref-shared-1")!
+    expect(refNode).toBeDefined()
+    // Content includes both title and embed reference
+    expect(refNode.content).toBe("Actual Task Title ![[^shared-1]]")
+    // Only one node emitted (no child paragraph)
+    expect(nodes).toHaveLength(1)
+  })
+})
+
+// ============================================================================
+// Fix 6: URL-only titles prettified
+// ============================================================================
+
+describe("URL-only titles prettified", () => {
+  test("prettifyTitle strips protocol, www, and trailing slash", () => {
+    expect(prettifyTitle("https://example.com/some/path")).toBe("example.com/some/path")
+    expect(prettifyTitle("http://www.example.com/page/")).toBe("example.com/page")
+    expect(prettifyTitle("https://www.test.org/")).toBe("test.org")
+  })
+
+  test("prettifyTitle truncates long URLs to ~60 chars", () => {
+    const longUrl = "https://example.com/" + "a".repeat(80)
+    const result = prettifyTitle(longUrl)
+    expect(result.length).toBeLessThanOrEqual(60)
+    expect(result).toMatch(/\.\.\.$/)
+  })
+
+  test("prettifyTitle leaves non-URL titles unchanged", () => {
+    expect(prettifyTitle("Normal task title")).toBe("Normal task title")
+    expect(prettifyTitle("Design login page")).toBe("Design login page")
+    expect(prettifyTitle("")).toBe("")
+  })
+
+  test("prettifyTitle leaves mixed content titles unchanged", () => {
+    expect(prettifyTitle("See https://example.com for details")).toBe(
+      "See https://example.com for details",
+    )
+  })
+
+  test("URL-only task title is prettified in markdown output", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "https://www.example.com/some/long/path",
+          status: "todo",
+        },
+      ]),
+    )
+    expect(md).toContain("example.com/some/long/path")
+    expect(md).not.toContain("https://www.example.com/some/long/path")
+  })
+
+  test("URL-only title on embed node is also prettified", () => {
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "projA",
+          title: "Alpha",
+          items: [
+            {
+              sourceId: "url-task",
+              title: "https://www.example.com/docs/api",
+              status: "todo",
+            },
+          ],
+        },
+        {
+          sourceId: "projB",
+          title: "Beta",
+          items: [
+            {
+              sourceId: "url-task",
+              title: "https://www.example.com/docs/api",
+              status: "todo",
+            },
+          ],
+        },
+      ],
+    }
+    const files = convert(data)
+    const beta = files.get("beta.md")!
+    expect(beta).toContain("example.com/docs/api")
+    expect(beta).not.toContain("https://www.example.com")
   })
 })
