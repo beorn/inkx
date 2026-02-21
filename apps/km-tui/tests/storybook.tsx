@@ -18,7 +18,7 @@
  *    Render `BoardCore` with different `ui.viewMode` values.
  *
  * 2. **Production components only** — Layer 1-2 sections use production functions
- *    (renderRich, getStatusIcon, etc.). Layer 3 uses BoardCore.
+ *    (InlineText, getStatusIcon, etc.). Layer 3 uses BoardCore.
  *
  * 3. **Follow testing.ts pattern** — `BoardCore` wrapped in `RepoProvider`, with
  *    mock state from `createInitialUIState` + `createGridNavigator`.
@@ -34,7 +34,7 @@ import React, { useState } from "react"
 import { render as inkxRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "inkx"
 
 import {
-  renderRich,
+  InlineText,
   getStatusIcon,
   getFoldMarker,
   colorize,
@@ -233,7 +233,7 @@ function Layer1RichText(): React.ReactElement {
     <>
       <SectionHeader title="Layer 1: Rich Text Rendering" />
 
-      <SubsectionHeader title="renderRich() - Inline Field Stripping" />
+      <SubsectionHeader title="InlineText - Inline Field Stripping" />
       {examples.inlineFields.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
@@ -242,13 +242,13 @@ function Layer1RichText(): React.ReactElement {
           </Text>
           <Text>
             <Text dimColor>output: </Text>
-            {renderRich(ex.input)}
+            <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
         </Box>
       ))}
 
-      <SubsectionHeader title="renderRich() - Wiki Link Styling" />
+      <SubsectionHeader title="InlineText - Wiki Link Styling" />
       {examples.wikiLinks.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
@@ -257,13 +257,13 @@ function Layer1RichText(): React.ReactElement {
           </Text>
           <Text>
             <Text dimColor>output: </Text>
-            {renderRich(ex.input)}
+            <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
         </Box>
       ))}
 
-      <SubsectionHeader title="renderRich() - Markdown Formatting" />
+      <SubsectionHeader title="InlineText - Markdown Formatting" />
       {examples.markdown.map((ex, i) => (
         <Box key={i} flexDirection="column">
           <Text>
@@ -272,7 +272,7 @@ function Layer1RichText(): React.ReactElement {
           </Text>
           <Text>
             <Text dimColor>output: </Text>
-            {renderRich(ex.input)}
+            <InlineText text={ex.input} />
           </Text>
           <Text> </Text>
         </Box>

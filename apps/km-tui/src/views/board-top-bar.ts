@@ -5,7 +5,7 @@ import { createTerm, type StyleChain } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderPlain, colorize } from "../text/index.ts"
+import { parseToPlainText, colorize } from "../text/index.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -77,7 +77,7 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     // Strip wiki link brackets and show alias for display
     const rawName = getNodeDisplayName(repo, node)
     // Strip Asana "#@mention" tag syntax — orphan "#" before "@" isn't a valid sigil
-    const name = renderPlain(rawName.replace(/#@/g, "@"))
+    const name = parseToPlainText(rawName.replace(/#@/g, "@"))
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
     if (node.type === "oi" && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {

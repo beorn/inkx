@@ -15,6 +15,7 @@ import { gfmFromMarkdown } from "mdast-util-gfm"
 import { gfm } from "micromark-extension-gfm"
 import type { PhrasingContent, Root } from "mdast"
 import type { InlineNode } from "./inline-ast-types.ts"
+import { prettifyUrl } from "./text-pipeline.ts"
 
 // =============================================================================
 // mdast → InlineNode[] conversion
@@ -54,7 +55,6 @@ function phrasingToInline(nodes: PhrasingContent[]): InlineNode[] {
         }
         break
       }
-        break
       case "image":
         // Render as a link to the image
         result.push({
@@ -133,7 +133,7 @@ const KM_PATTERNS = [
     make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
     // Skip if inside a wikilink
     skipIf: (m: RegExpExecArray, text: string) => {
-      const before = text.slice(0, m.index!)
+      const before = text.slice(0, m.index ?? 0)
       const lastOpen = before.lastIndexOf("[[")
       const lastClose = before.lastIndexOf("]]")
       return lastOpen > lastClose
@@ -230,7 +230,7 @@ export function parseInlineText(text: string): InlineNode[] {
   // The tree contains block-level nodes. For inline text, we expect
   // a single paragraph with phrasing content children.
   const para = tree.children[0]
-  if (!para || para.type !== "paragraph" || !("children" in para)) {
+  if (para?.type !== "paragraph" || !("children" in para)) {
     // Fallback: if mdast doesn't produce a paragraph (e.g., heading, code block),
     // treat the entire text as plain + km syntax
     return parseKmSyntax(text)
@@ -278,7 +278,7 @@ export function inlineNodesToPlainText(nodes: InlineNode[]): string {
         case "blockref":
           return "" // metadata, not display text
         case "bareurl":
-          return node.url
+          return prettifyUrl(node.url)
       }
     })
     .join("")

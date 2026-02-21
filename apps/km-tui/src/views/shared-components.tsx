@@ -13,7 +13,7 @@ import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
-import { getNodeIcon, renderRich } from "../text/index.ts"
+import { getNodeIcon, InlineText } from "../text/index.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -491,7 +491,7 @@ export function NodeLine({
       <Text color={isSelected ? "black" : undefined} wrap="truncate">
         {prefix}
         <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
-        {renderRich(title)}
+        <InlineText text={title} />
         {parentContext && (
           <Text dimColor={!isSelected} color={isSelected ? "gray" : undefined}>
             {` < ${parentContext}`}

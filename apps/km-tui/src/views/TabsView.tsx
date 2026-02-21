@@ -11,9 +11,9 @@ import { Box, Text, VirtualList } from "inkx"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
-import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
-import { renderPlain } from "../text/index.ts"
+import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
@@ -51,7 +51,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   const count = currentColumn?.cardNodes.length ?? 0
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
-  const colName = currentColumn ? renderPlain(getNodeDisplayName(repo, currentColumn.node)) : ""
+  const colName = currentColumn ? parseToPlainText(getNodeDisplayName(repo, currentColumn.node)) : ""
   const columnExcludedSigils = useMemo(
     () => deriveColumnExcludedSigils(colName, currentColumn?.node.id, currentColumn?.node.fs_path),
     [colName, currentColumn?.node.id, currentColumn?.node.fs_path],

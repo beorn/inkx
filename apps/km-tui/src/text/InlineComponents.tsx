@@ -5,14 +5,13 @@
  * Each component maps an AST node type to JSX output using
  * inkx's Text component for terminal styling.
  *
- * These are the JSX equivalents of what the regex text pipeline
- * currently renders as ANSI strings. Phase 2 will wire a parser
- * to produce InlineNode[] and render them through these components.
+ * Each component handles an InlineNode type from the inline parser.
+ * The InlineText component is the main entry point — it parses text
+ * into an AST and renders via InlineNodes.
  */
 
 import React from "react"
 import { Text } from "inkx"
-import { hyperlink } from "chalkx"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
@@ -107,11 +106,11 @@ export function InlineCode({ node }: { node: CodeNode }): React.ReactElement {
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  if (ctx.noColor) {
-    return <Text underline>{node.text}</Text>
-  }
-  // OSC 8 hyperlink wrapping for clickable URLs in supporting terminals
-  return <Text>{hyperlink(`\x1b[36;4m${node.text}\x1b[0m`, node.url)}</Text>
+  return (
+    <Text color={ctx.noColor ? undefined : "cyan"} underline>
+      {node.text}
+    </Text>
+  )
 }
 
 export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactElement {
@@ -182,10 +181,11 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
 export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
-  if (ctx.noColor) {
-    return <Text underline>{display}</Text>
-  }
-  return <Text>{hyperlink(`\x1b[36;2;4m${display}\x1b[0m`, node.url)}</Text>
+  return (
+    <Text color={ctx.noColor ? undefined : "cyan"} dim={!ctx.noColor} underline>
+      {display}
+    </Text>
+  )
 }
 
 export function InlineBlockRef({ node: _node }: { node: BlockRefNode }): null {

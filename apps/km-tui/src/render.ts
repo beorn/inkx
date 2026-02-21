@@ -4,7 +4,7 @@
  * Pure functions that render board state to strings - fully testable.
  *
  * Uses the text layer (text/index.ts) for:
- * - Content rendering: renderRich() for markdown-aware styling
+ * - Content rendering: parseToPlainText() for markdown stripping
  * - Status icons: renderStatusIcon() with colorize()
  *
  * Uses term for UI chrome:
@@ -19,7 +19,7 @@ import type { Repo } from "./repo-context.tsx"
 import type { InitialBoardData, RenderOptions } from "./types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName } from "./state.ts"
-import { getStatusIcon as getStatusIconBase, renderRich, colorize } from "./text/index.ts"
+import { getStatusIcon as getStatusIconBase, parseToPlainText, colorize } from "./text/index.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -152,18 +152,9 @@ export function renderCard(
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
   const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)
 
-  // Apply markdown styling via renderRich, then dim+strikethrough for done/dropped
+  // Apply plain text conversion, then dim+strikethrough for done/dropped
   const isDoneOrDropped = displayNode.task_status === "done" || displayNode.task_status === "dropped"
-  const resolveWikiLink = (target: string): string | null => {
-    const resolved = repo.resolveNode(target)
-    if (resolved) return getNodeDisplayName(repo, resolved)
-    if (target.startsWith("^")) {
-      const byId = repo.resolveNode(target.slice(1)) ?? repo.getNode(target.slice(1))
-      if (byId) return getNodeDisplayName(repo, byId)
-    }
-    return null
-  }
-  const styledContent = renderRich(rawContent, { resolveWikiLink })
+  const styledContent = parseToPlainText(rawContent)
   const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`
 
@@ -184,7 +175,7 @@ export function renderCard(
     for (const child of visibleChildren) {
       const childIcon = renderStatusIcon(child.task_status)
       const childRaw = (child.content || "").slice(0, width - 3)
-      const childContent = renderRich(childRaw)
+      const childContent = parseToPlainText(childRaw)
       lines.push(style.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width))
     }
     if (children.length > maxChildren) {

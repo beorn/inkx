@@ -4,7 +4,8 @@
 
 import { describe, it, expect } from "vitest"
 import { createTerm } from "inkx"
-import { displayLength, stripAnsi, renderRich, renderPlain } from "../../src/text/rich.ts"
+import { displayLength, stripAnsi } from "../../src/text/rich.ts"
+import { parseToPlainText } from "../../src/text/inline-parser.ts"
 
 // Create a term with forced color for testing
 const term = createTerm({ color: "truecolor" })
@@ -76,287 +77,31 @@ describe("stripAnsi", () => {
 })
 
 // ============================================================================
-// Rich Text Rendering
+// parseToPlainText (replacement for renderPlain)
 // ============================================================================
 
-describe("renderRich", () => {
-  describe("inline property highlighting", () => {
-    it("styles bracketed inline fields instead of stripping", () => {
-      const result = renderRich("Task [due:: 2024-01-15]")
-      // Should contain the key and value (not stripped)
-      expect(result).toContain("due")
-      expect(result).toContain("::")
-      expect(result).toContain("2024-01-15")
-      // Should have ANSI styling applied
-      expect(result).not.toBe("Task due:: 2024-01-15")
-    })
-
-    it("styles bare inline properties", () => {
-      const result = renderRich("Task blocked-by:: [[other]] rating:: 5")
-      expect(result).toContain("blocked-by")
-      expect(result).toContain("rating")
-      // Should have ANSI styling applied
-      expect(result).not.toBe("Task blocked-by:: [[other]] rating:: 5")
-    })
-
-    it("applies styling to property keys and values", () => {
-      const plain = renderRich("plain text")
-      const withProp = renderRich("plain text due:: 2024-01-15")
-      // With property should be longer (has ANSI codes)
-      expect(withProp.length).toBeGreaterThan(plain.length)
-    })
-  })
-
-  describe("wiki link styling", () => {
-    it("renders wiki links - brackets stripped, green + underlined", () => {
-      const result = renderRich("See [[note]]")
-      // Wiki link brackets should be removed
-      expect(stripAnsi(result)).toBe("See note")
-      // Should not contain the raw wiki link syntax
-      expect(result).not.toContain("[[")
-      expect(result).not.toContain("]]")
-      // Internal links are green (32) + underlined
-      expect(result).toContain("\x1b[32m")
-      expect(result).toContain("\x1b[4m")
-    })
-
-    it("uses alias when present", () => {
-      const result = renderRich("See [[path/to/note|My Note]]")
-      expect(stripAnsi(result)).toBe("See My Note")
-    })
-
-    it("handles multiple wiki links", () => {
-      const result = renderRich("Link to [[one]] and [[two]]")
-      expect(stripAnsi(result)).toBe("Link to one and two")
-    })
-
-    it("handles wiki links with paths", () => {
-      const result = renderRich("See [[folder/subfolder/note]]")
-      expect(stripAnsi(result)).toBe("See folder/subfolder/note")
-    })
-
-    it("strips embed syntax ![[target]] like a wiki link", () => {
-      const result = renderRich("![[2026 @Kaiser Guide.pdf]]")
-      expect(stripAnsi(result)).not.toContain("!")
-      expect(stripAnsi(result)).not.toContain("[[")
-      expect(stripAnsi(result)).not.toContain("]]")
-    })
-
-    it("strips embed syntax with alias ![[target|alias]]", () => {
-      const result = renderRich("![[path/to/note|My Note]]")
-      expect(stripAnsi(result)).toBe("My Note")
-    })
-
-    it("strips embed syntax mixed with text", () => {
-      const result = renderRich("See ![[embedded]] here")
-      expect(stripAnsi(result)).toBe("See embedded here")
-      expect(stripAnsi(result)).not.toContain("!")
-    })
-  })
-
-  describe("markdown link styling", () => {
-    it("renders [text](url) links as cyan underlined text", () => {
-      const result = renderRich("Click [Google](https://google.com)")
-      expect(stripAnsi(result)).toBe("Click Google")
-      // Should not contain raw link syntax (brackets)
-      expect(result).not.toContain("](")
-      // Link text is underlined
-      expect(result).toContain("\x1b[4m") // underline start
-      // External links are cyan (36)
-      expect(result).toContain("\x1b[36m")
-    })
-
-    it("handles links with complex URLs", () => {
-      const result = renderRich("See [docs](https://example.com/path?query=1)")
-      expect(stripAnsi(result)).toBe("See docs")
-    })
-
-    it("handles multiple markdown links", () => {
-      const result = renderRich("[one](url1) and [two](url2)")
-      expect(stripAnsi(result)).toBe("one and two")
-    })
-
-    it("handles links with title attribute", () => {
-      // [text](url "title") - common markdown extension
-      const result = renderRich('Check [Example](https://example.com "Example Site")')
-      // The title is part of the URL portion, so it gets stripped
-      expect(stripAnsi(result)).toBe("Check Example")
-    })
-
-    it("wraps markdown links in OSC 8 hyperlink for terminal clickability", () => {
-      const result = renderRich("Click [Google](https://google.com) here")
-      // OSC 8 open with the URL
-      expect(result).toContain("\x1b]8;;https://google.com\x1b\\")
-      // OSC 8 close
-      expect(result).toContain("\x1b]8;;\x1b\\")
-      // Plain text should only show the link text, not the URL
-      expect(stripAnsi(result)).toBe("Click Google here")
-    })
-
-    it("wraps each markdown link in its own OSC 8 hyperlink", () => {
-      const result = renderRich("[one](https://one.com) and [two](https://two.com)")
-      expect(result).toContain("\x1b]8;;https://one.com\x1b\\")
-      expect(result).toContain("\x1b]8;;https://two.com\x1b\\")
-      expect(stripAnsi(result)).toBe("one and two")
-    })
-  })
-
-  describe("CommonMark autolinks", () => {
-    it("converts <URL> autolinks to bare URLs in rich mode", () => {
-      const result = renderRich("See <https://example.com/page> for info")
-      const plain = stripAnsi(result)
-      // Should show prettified URL, not be deleted
-      expect(plain).toContain("example.com/page")
-      // Should NOT contain angle brackets
-      expect(plain).not.toContain("<")
-      expect(plain).not.toContain(">")
-    })
-
-    it("converts <URL> autolinks to bare URLs in plain mode", () => {
-      const result = renderPlain("See <https://example.com/page> for info")
-      expect(result).toContain("example.com/page")
-      expect(result).not.toContain("<")
-      expect(result).not.toContain(">")
-    })
-
-    it("does not silently delete autolink URLs", () => {
-      // Regression: HTML_TAG_REGEX was stripping <https://...> as HTML tags
-      const result = renderPlain("Link: <https://app.asana.com/0/12345>")
-      expect(result).toContain("app.asana.com")
-    })
-
-    it("handles multiple autolinks", () => {
-      const result = renderPlain("<https://one.com> and <https://two.com>")
-      expect(result).toContain("one.com")
-      expect(result).toContain("two.com")
-    })
-
-    it("wraps autolink URLs in OSC 8 hyperlink in rich mode", () => {
-      const result = renderRich("See <https://example.com/page>")
-      // The autolink should be converted to a bare URL, then wrapped in OSC 8
-      expect(result).toContain("\x1b]8;;https://example.com/page\x1b\\")
-    })
-
-    it("preserves non-URL angle bracket content as-is", () => {
-      // Non-URL angle brackets are not converted (only <https://...> is)
-      const result = renderPlain("Use <em> tags")
-      expect(result).toContain("<em>")
-    })
-  })
-
-  describe("link type differentiation", () => {
-    it("uses different colors for internal vs external links", () => {
-      const wikiResult = renderRich("See [[internal note]]")
-      const mdResult = renderRich("See [external](https://example.com)")
-
-      // Internal wiki links use green (32)
-      expect(wikiResult).toContain("\x1b[32m")
-      expect(wikiResult).not.toContain("\x1b[36m")
-
-      // External markdown links use cyan (36)
-      expect(mdResult).toContain("\x1b[36m")
-      expect(mdResult).not.toContain("\x1b[32m")
-    })
-
-    it("distinguishes link types in mixed content", () => {
-      const result = renderRich("See [[internal]] and [external](https://example.com)")
-      const plain = stripAnsi(result)
-      expect(plain).toBe("See internal and external")
-
-      // Both colors present
-      expect(result).toContain("\x1b[32m") // green for wiki
-      expect(result).toContain("\x1b[36m") // cyan for markdown
-    })
-  })
-
-  describe("markdown formatting", () => {
-    const formats: Array<[string, string, string]> = [
-      ["**bold**", "This is **bold** text", "This is bold text"],
-      ["*italic*", "This is *italic* text", "This is italic text"],
-      ["_italic_", "This is _italic_ text", "This is italic text"],
-      ["`code`", "Use `code` here", "Use code here"],
-      ["~~strikethrough~~", "This is ~~deleted~~ text", "This is deleted text"],
-      ["mixed", "**bold** and *italic* and `code`", "bold and italic and code"],
-      ["mixed bold+italic", "**bold** text and _italic_ emphasis", "bold text and italic emphasis"],
-      ["**bold only**", "**bold text**", "bold text"],
-    ]
-
-    for (const [label, input, expected] of formats) {
-      it(`renders ${label} — markers stripped`, () => {
-        expect(stripAnsi(renderRich(input))).toBe(expected)
-      })
-    }
-  })
-
-  describe("list markers are not italic", () => {
-    it("* followed by space is a list marker, not italic", () => {
-      const result = stripAnsi(renderRich("* item text"))
-      expect(result).toBe("* item text")
-    })
-
-    it("multiline list markers are not italic", () => {
-      const result = stripAnsi(renderRich("* item 1\n* item 2"))
-      expect(result).toBe("* item 1\n* item 2")
-    })
-
-    it("legitimate *italic* still works", () => {
-      const result = stripAnsi(renderRich("this is *italic* text"))
-      expect(result).toBe("this is italic text")
-    })
-
-    it("* at line start with text ending in * is not italic", () => {
-      const result = stripAnsi(renderRich("* some list item"))
-      expect(result).toBe("* some list item")
-    })
-  })
-
-  describe("edge cases", () => {
-    it("handles empty string", () => {
-      expect(renderRich("")).toBe("")
-    })
-
-    it("handles text with no formatting", () => {
-      expect(renderRich("plain text")).toBe("plain text")
-    })
-
-    it("cleans up multiple spaces", () => {
-      const result = renderRich("word   word")
-      expect(stripAnsi(result)).toBe("word word")
-    })
-
-    it("trims whitespace", () => {
-      const result = renderRich("  text  ")
-      expect(result).toBe("text")
-    })
-  })
-})
-
-// ============================================================================
-// Plain Text Rendering
-// ============================================================================
-
-describe("renderPlain", () => {
+describe("parseToPlainText", () => {
   const cases: Array<[string, string, string]> = [
     ["wiki link brackets", "See [[note]]", "See note"],
     ["wiki link alias", "See [[path|alias]]", "See alias"],
-    ["inline fields", "Task [due:: 2024-01-15]", "Task"],
     ["plain text", "hello world", "hello world"],
     ["empty string", "", ""],
-    ["whitespace cleanup", "word   [field:: value]   word", "word word"],
     ["markdown links", "Click [Google](https://google.com)", "Click Google"],
     ["multiple markdown links", "[one](url1) and [two](url2)", "one and two"],
-    ["embed syntax", "![[Some File.pdf]]", "Some File.pdf"],
-    ["embed with alias", "![[path|My Alias]]", "My Alias"],
+    ["bold", "**bold** text", "bold text"],
+    ["italic", "*italic* text", "italic text"],
+    ["code", "Use `code` here", "Use code here"],
+    ["strikethrough", "~~deleted~~ text", "deleted text"],
   ]
 
   for (const [label, input, expected] of cases) {
     it(`${label}: '${input}' → '${expected}'`, () => {
-      expect(renderPlain(input)).toBe(expected)
+      expect(parseToPlainText(input)).toBe(expected)
     })
   }
 
   it("does not add ANSI codes", () => {
-    const result = renderPlain("**bold** and [[link]]")
+    const result = parseToPlainText("**bold** and [[link]]")
     expect(result).toBe(stripAnsi(result))
   })
 })

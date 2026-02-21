@@ -1,23 +1,16 @@
 /**
- * Rich Text Rendering (Layer 1 - Shared)
+ * ANSI String Utilities (Layer 1 - Shared)
  *
- * Transform raw markdown content to styled ANSI strings.
- * Used by both CLI commands and TUI components.
- *
- * Delegates to the unified text pipeline (text-pipeline.ts) for all
- * text processing. This module re-exports the pipeline functions under
- * the legacy API names for backward compatibility.
+ * Utilities for working with ANSI-styled terminal strings.
  *
  * ## Functions
- * - `renderRich(raw)` - strips markup, applies term styling
- * - `renderPlain(raw)` - strips markup, returns plain text
- * - `displayLength(styled)` - character count excluding ANSI codes
- * - `stripAnsi(styled)` - remove all ANSI escape codes
+ * - `stripFgColor(text)` - remove foreground colors, keep formatting
+ * - `displayLength(text)` - character count excluding ANSI codes
+ * - `stripAnsi(text)` - remove all ANSI escape codes
  */
 
 import { stripAnsi } from "inkx"
 import stringWidth from "string-width"
-import { processText, type TextPipelineOptions } from "./text-pipeline.ts"
 
 // ============================================================================
 // ANSI String Utilities
@@ -82,92 +75,4 @@ export function stripFgColor(text: string): string {
  */
 export function displayLength(text: string): number {
   return stringWidth(text)
-}
-
-// ============================================================================
-// Rich Text Rendering (delegates to text-pipeline)
-// ============================================================================
-
-/**
- * Options for rich text rendering
- */
-export interface RenderRichOptions {
-  /**
-   * Sigils to exclude from display (e.g., ["@issue"] when viewing the @issue board).
-   * Include the full sigil with prefix (e.g., "@issue", "#feature", "+project").
-   */
-  excludeSigils?: string[]
-  /**
-   * Map of sigil to color (e.g., { "@next": "cyan", "#urgent": "red" }).
-   * Resolved sigils are displayed in their color; unresolved render as plain text.
-   */
-  sigilColors?: Map<string, string>
-  /**
-   * Dynamic resolver for sigil colors. Called for sigils not found in sigilColors map.
-   * Return a color name for resolved sigils, or undefined for unresolved ones.
-   */
-  resolveSigilColor?: (sigil: string) => string | undefined
-  /**
-   * Resolve wiki link targets to human-readable titles.
-   * For [[^block-id]] or [[target]], returns the resolved title or null to use default display.
-   */
-  resolveWikiLink?: (target: string) => string | null
-}
-
-/**
- * Render raw markdown text to a styled ANSI string.
- *
- * Transformations:
- * - Strips inline fields: [due:: 2024-01-15] → ""
- * - Styles wiki links: [[note]] → underlined "note"
- * - Styles sigils: resolved → colored by node, unresolved → plain text
- * - Filters out excluded sigils (e.g., @issue when viewing @issue board)
- * - Styles **bold** → bold
- * - Styles *italic* → italic
- * - Styles `code` → cyan
- * - Styles ~~strikethrough~~ → dim
- * - Cleans up whitespace
- *
- * The result can be safely wrapped/truncated using displayLength().
- *
- * @example
- * renderRich("Task [[project|My Project]] [due:: 2024-01-15]")
- * // Returns: "Task \x1b[2m\x1b[4mMy Project\x1b[0m"
- *
- * @example
- * renderRich("Fix bug @issue #P1", { excludeSigils: ["@issue"] })
- * // Returns: "Fix bug \x1b[36m\x1b[4m#P1\x1b[0m" (without @issue)
- */
-export function renderRich(text: string, options?: RenderRichOptions): string {
-  const pipelineOpts: TextPipelineOptions = {
-    mode: "rich",
-    excludeSigils: options?.excludeSigils,
-    sigilColors: options?.sigilColors,
-    resolveSigilColor: options?.resolveSigilColor,
-    resolveWikiLink: options?.resolveWikiLink,
-  }
-  return processText(text, pipelineOpts)
-}
-
-/**
- * Render raw markdown text to plain text (no styling).
- *
- * Transformations:
- * - Strips inline fields: [due:: 2024-01-15] → ""
- * - Strips markdown formatting: **bold** → "bold", *italic* → "italic"
- * - Strips wiki link syntax: [[note]] → "note", [[path|alias]] → "alias"
- * - Cleans up whitespace
- *
- * Use this when you need plain text without ANSI codes.
- *
- * @example
- * renderPlain("Task [[project|My Project]] [due:: 2024-01-15]")
- * // Returns: "Task My Project"
- *
- * @example
- * renderPlain("**bold** and *italic* text")
- * // Returns: "bold and italic text"
- */
-export function renderPlain(text: string): string {
-  return processText(text, { mode: "plain" })
 }

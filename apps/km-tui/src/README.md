@@ -83,29 +83,31 @@ These are managed inside `Board.tsx`:
 | Task status    | SQLite → Markdown checkboxes      |
 | Node hierarchy | SQLite parent_id → File structure |
 
-## Layered Rendering
+## Inline Text Rendering
 
 ```
-Raw markdown → renderRich() → styled ANSI → constrainText() → <Text>
+Raw markdown → parseInlineText() → InlineNode[] AST → <InlineText> → React JSX
 ```
 
-1. **Layer 1**: `renderRich(raw)` - convert markdown to styled ANSI string
-2. **Layer 2**: `constrainText(styled, width, lines)` - wrap/truncate using display length
-3. **Layer 3**: Render each line in `<Text>`
+1. **Parser**: `parseInlineText(raw)` — converts markdown text to an `InlineNode[]` AST using mdast
+2. **Component**: `<InlineText text={raw} context={...} />` — parses and renders inline AST as React JSX
+3. **Plain text**: `parseToPlainText(raw)` — parses markdown and returns plain text (no ANSI)
 
-Key principle: **Render before truncate** - always convert to styled strings before any width calculations.
+Key principle: **AST before rendering** — parse to structured nodes, then render through React components. No regex-to-ANSI pipeline.
 
 ## Key Files
 
-| File                   | Purpose                                        |
-| ---------------------- | ---------------------------------------------- |
-| `tui.ts`               | Entry point, sync manager lifecycle            |
-| `views/Board.tsx`      | Main container, state, keyboard handling       |
-| `views/TreeNode.tsx`   | Unified tree node rendering                    |
-| `views/DetailPane.tsx` | Task detail view with fields                   |
-| `text/rich.ts`         | renderRich(), constrainText(), displayLength() |
-| `state.ts`             | BoardState building and manipulation           |
-| `types.ts`             | Type definitions for all TUI components        |
+| File                          | Purpose                                        |
+| ----------------------------- | ---------------------------------------------- |
+| `tui.ts`                      | Entry point, sync manager lifecycle            |
+| `views/Board.tsx`             | Main container, state, keyboard handling       |
+| `views/TreeNode.tsx`          | Unified tree node rendering                    |
+| `views/DetailPane.tsx`        | Task detail view with fields                   |
+| `text/inline-parser.ts`       | Markdown → InlineNode[] AST parser             |
+| `text/InlineComponents.tsx`   | InlineNode[] → React JSX rendering             |
+| `text/rich.ts`                | ANSI utilities (stripFgColor, displayLength)   |
+| `state.ts`                    | BoardState building and manipulation           |
+| `types.ts`                    | Type definitions for all TUI components        |
 
 ## Automatic Sync
 

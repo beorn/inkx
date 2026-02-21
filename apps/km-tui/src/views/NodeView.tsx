@@ -32,7 +32,7 @@ import React from "react"
 import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
-import { getColumnHeaderIcon, getNodeIcon, getStatusIcon, isSigilName, renderPlain, renderRich } from "../text/index.ts"
+import { getColumnHeaderIcon, getNodeIcon, getStatusIcon, isSigilName, parseToPlainText, InlineText } from "../text/index.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
@@ -251,12 +251,10 @@ export function NodeLineView({
     : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   // Title: use displayName override or derive from content
-  const title = displayName
-    ? renderRich(displayName)
-    : (() => {
+  const titleText = displayName
+    ?? (() => {
         const rawContent = node.content ? stripForDisplay(node.content) : ""
-        const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
-        return renderRich(displayContent)
+        return nodeIsTask ? stripTaskMark(rawContent) : rawContent
       })()
 
   const textColor = isSelected ? "black" : undefined
@@ -268,7 +266,7 @@ export function NodeLineView({
     <Box width={width} height={1} backgroundColor={bgColor}>
       <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
         {indentStr}
-        <Text color={iconColor}>{icon.char}</Text> {title}
+        <Text color={iconColor}>{icon.char}</Text> <InlineText text={titleText} />
       </Text>
     </Box>
   )
@@ -328,7 +326,6 @@ export function NodeCardView({
   // Title
   const rawContent = node.content ? stripForDisplay(node.content) : ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
-  const title = renderRich(displayContent)
 
   const textColor = isSelected ? "black" : undefined
   const bgColor = isSelected ? "yellow" : undefined
@@ -362,7 +359,7 @@ export function NodeCardView({
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
-            <Text color={iconColor}>{icon.char}</Text> {shouldStripColor ? stripFgColor(title) : title}
+            <Text color={iconColor}>{icon.char}</Text> <InlineText text={displayContent} context={{ noColor: shouldStripColor }} />
             {infoSuffix && <Text dimColor={shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>}
             {subtaskBadge && <Text color={isSelected ? "black" : "gray"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
@@ -551,7 +548,6 @@ export function NodeDetailView({
   const nodeIsTask = isTask(node)
   const rawContent = node.content ? stripForDisplay(node.content) : ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
-  const title = renderRich(displayContent)
 
   const statusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
   const contentWidth = Math.max(8, width - 4)
@@ -584,7 +580,7 @@ export function NodeDetailView({
       <Box flexDirection="column" width={width - 2} backgroundColor="yellow" paddingX={1}>
         <Text bold color="black" wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
-          {title}
+          <InlineText text={displayContent} context={{ noColor: true }} />
         </Text>
       </Box>
 
@@ -614,7 +610,7 @@ export function NodeDetailView({
         {bodyChildren.map((child, i) => (
           <React.Fragment key={`${child.id}-${i}`}>
             {i > 0 && <Text> </Text>}
-            <Text wrap="wrap">{renderRich(child.content ?? "")}</Text>
+            <Text wrap="wrap"><InlineText text={child.content ?? ""} /></Text>
           </React.Fragment>
         ))}
 
@@ -641,7 +637,7 @@ export function NodeDetailView({
             {backlinks.slice(0, maxBacklinks).map((bl) => (
               <Text key={bl.id} wrap="truncate">
                 {"  "}
-                <Text bold>{renderRich(bl.content ? stripForDisplay(bl.content) : "")}</Text>
+                <Text bold><InlineText text={bl.content ? stripForDisplay(bl.content) : ""} /></Text>
               </Text>
             ))}
             {backlinks.length > maxBacklinks && <Text dimColor> +{backlinks.length - maxBacklinks} more</Text>}
@@ -687,7 +683,7 @@ export function deriveColumnHeaderProps(
   hasBody: boolean
 } {
   const isVirtual = opts.isVirtual ?? false
-  const displayName = renderPlain(getNodeDisplayName(repo, node))
+  const displayName = parseToPlainText(getNodeDisplayName(repo, node))
   const untitled = isNodeUntitled(repo, node)
   const ownColor = isVirtual ? undefined : getOwnColor(node)
   const typeSuffix = getCollapsedTypeSuffix(repo, node) || undefined

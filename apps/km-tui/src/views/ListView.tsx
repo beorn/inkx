@@ -16,7 +16,7 @@ import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderPlain } from "../text/index.ts"
+import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
@@ -53,7 +53,7 @@ interface ListViewProps {
 }
 
 export function ListView({ columns: columnsProp, width, height }: ListViewProps): React.ReactElement {
-  const { treeConfig, rootBoardId } = useTreeRenderContext()
+  const { rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
 
   // NODE MODEL V2: Use node-based cursor position instead of indices
@@ -81,7 +81,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const columnExcludedSigilsByCol = useMemo(() => {
     const map = new Map<number, string[] | undefined>()
     columnsProp.forEach((col, cIdx) => {
-      const name = renderPlain(getNodeDisplayName(repo, col.node))
+      const name = parseToPlainText(getNodeDisplayName(repo, col.node))
       const sigils = deriveColumnExcludedSigils(name, col.node.id, col.node.fs_path)
       map.set(cIdx, sigils.length > 0 ? sigils : undefined)
     })

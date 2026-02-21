@@ -5,12 +5,9 @@
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import {
-  extractRefs,
-  stripInlineRefsFromText,
-  shortenInlineRefsInText,
-  stripKnownMentionsInText,
-} from "../text/text-pipeline.ts"
+import { extractRefs } from "../text/text-pipeline.ts"
+import { parseInlineText, inlineNodesToPlainText } from "../text/inline-parser.ts"
+import type { InlineNode } from "../text/inline-ast-types.ts"
 
 // =============================================================================
 // Date formatting
@@ -167,13 +164,6 @@ export function resolveProjectDisplayNames(repo: Repo, slugs: string[]): string[
 // Text utilities
 // =============================================================================
 
-/** Strip @mentions, #tags, +projects, and residual key:: value metadata from text.
- * Used for display titles where these fields are shown separately in the metadata table.
- * Delegates to the unified text pipeline. */
-export function stripInlineRefs(text: string): string {
-  return stripInlineRefsFromText(text)
-}
-
 /** Hardcoded person name -> short name mapping. P4: replace with contact type system. */
 export const PERSON_SHORT_NAMES: Record<string, string> = {
   "bjørn-stabell": "BS",
@@ -182,18 +172,34 @@ export const PERSON_SHORT_NAMES: Record<string, string> = {
   "shi-delei": "SD",
 }
 
-/** Replace known person @mentions with @ShortName, strip #tags and +projects.
- * Unknown @mentions (sigils like @next, @urgent) are left untouched.
- * Delegates to the unified text pipeline. */
-export function shortenInlineRefs(text: string): string {
-  return shortenInlineRefsInText(text, PERSON_SHORT_NAMES)
-}
-
 /** Strip known person @mentions entirely, strip #tags and +projects.
  * Unknown @mentions (sigils like @next, @urgent) are preserved.
  * Used for card titles where the info suffix already shows @BS. */
 export function stripKnownMentions(text: string): string {
-  return stripKnownMentionsInText(text, PERSON_SHORT_NAMES)
+  const nodes = parseInlineText(text)
+  return stripKnownFromNodes(nodes).trim().replace(/  +/g, " ")
+}
+
+function stripKnownFromNodes(nodes: InlineNode[]): string {
+  return nodes
+    .map((node) => {
+      switch (node.type) {
+        case "mention":
+          return PERSON_SHORT_NAMES[node.name] !== undefined ? "" : `@${node.name}`
+        case "tag":
+        case "project":
+        case "field":
+        case "blockref":
+          return ""
+        case "bold":
+        case "italic":
+        case "strikethrough":
+          return stripKnownFromNodes(node.children)
+        default:
+          return inlineNodesToPlainText([node])
+      }
+    })
+    .join("")
 }
 
 /** Capitalize the first character of a string */

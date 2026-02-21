@@ -5,27 +5,22 @@
  * CLI commands and TUI components.
  *
  * ## Modules
- * - `rich` - Rich text rendering (markdown to ANSI) and ANSI utilities
+ * - `rich` - ANSI string utilities (stripFgColor, displayLength, stripAnsi)
  * - `icons` - Status and type icons
  * - `format` - Node formatting for display
+ * - `inline-parser` - Markdown text → InlineNode[] AST
+ * - `InlineComponents` - InlineNode[] → React JSX rendering
  */
 
-// Rich text rendering (ANSI utilities exported from inkx)
-export { renderRich, renderPlain, type RenderRichOptions } from "./rich.ts"
-
-// Unified text pipeline
+// Text pipeline utilities (kept: extractRefs, extractLinkParts, prettifyUrl, patterns)
 export {
-  processText,
   extractRefs,
   extractLinkParts,
   prettifyUrl,
-  stripInlineRefsFromText,
-  shortenInlineRefsInText,
   SIGIL_PATTERN,
   MENTION_PATTERN,
   TAG_PATTERN,
   PROJECT_PATTERN,
-  type TextPipelineOptions,
 } from "./text-pipeline.ts"
 
 // Icon utilities (moved from @km/tui-core)

@@ -18,7 +18,6 @@ import type { KNode } from "@km/core"
 import {
   extractTitleTaskMarker,
   isTask,
-  isBlock,
   stringifyTaskMetadata,
   parseTaskMetadataFromText,
   getStatusForMarker,
@@ -32,15 +31,15 @@ import {
 } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious, stripForDisplay } from "@km/tree"
 import {
-  renderRich,
   getTypeBullet,
   getCircleBullet,
   getFoldMarker,
   isSigilName,
+  InlineText,
+  type InlineRenderContext,
   type StatusIcon,
 } from "../text/index.ts"
 import { stripFgColor } from "../text/rich.ts"
-import { constrainText } from "inkx"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
@@ -211,7 +210,7 @@ function TreeNodeImpl({
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
     useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, maxContentLines, variant, iconStyle, cardInnerWidth } = treeConfig
+  const { maxOutlineDepth: maxDepth, maxContentLines, variant, iconStyle } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -520,14 +519,15 @@ function TreeNodeImpl({
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
   const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
 
-  // Memoize rich text rendering - only recalc when content or sigil config changes
-  // Code blocks and tables render verbatim (no markdown formatting applied)
-  const styledContent = useMemo(() => {
-    // Collapse blank lines for compact body cards (cards view)
-    const content = compactContent ? displayContent.replace(/\n\s*\n/g, "\n") : displayContent
-    if (node.type === "code" || node.type === "table") {
-      return content // Verbatim — no renderRich processing
-    }
+  // Memoize content for display - collapse blank lines for compact body cards
+  const isVerbatim = node.type === "code" || node.type === "table"
+  const processedContent = useMemo(() => {
+    return compactContent ? displayContent.replace(/\n\s*\n/g, "\n") : displayContent
+  }, [displayContent, compactContent])
+
+  // Memoize inline render context - only recalc when sigil config changes
+  const inlineContext: InlineRenderContext = useMemo(() => {
+    const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
     // Resolve [[target]] wikilinks to display titles
     const resolveWikiLink = (target: string): string | null => {
       const resolved = repo.resolveNode(target)
@@ -538,32 +538,13 @@ function TreeNodeImpl({
       }
       return null
     }
-    const rich = renderRich(content, {
-      excludeSigils: excludedSigils,
+    return {
+      excludeSigils: excludeSet,
       sigilColors,
       resolveSigilColor,
       resolveWikiLink,
-    })
-    // Card titles: line-aware truncation to avoid partial trailing lines.
-    // constrainText wraps to width, takes maxLines, and appends ellipsis on the last line if truncated.
-    // Body content (p, quote, etc.) wraps naturally via inkx's wrap="wrap".
-    if (!isOneliner && !isBlock(node.type)) {
-      const textWidth = Math.max(10, cardInnerWidth - 2) // 2 chars for prefix (marker + space)
-      const { lines } = constrainText(rich, textWidth, 2)
-      return lines.join("\n")
     }
-    return rich
-  }, [
-    displayContent,
-    compactContent,
-    excludedSigils,
-    sigilColors,
-    resolveSigilColor,
-    repo,
-    isOneliner,
-    node.type,
-    cardInnerWidth,
-  ])
+  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
 
   // Memoize info suffix - only recalc when node metadata changes
   // Use displayNode for metadata (assigned_to, board pills)
@@ -758,7 +739,7 @@ function TreeNodeImpl({
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
-                {shouldStripColor ? stripFgColor(styledContent) : styledContent}
+                {isVerbatim ? processedContent : <InlineText text={processedContent} context={{ ...inlineContext, noColor: shouldStripColor }} />}
                 {sigilName && (
                   <>
                     {" "}
@@ -874,7 +855,7 @@ function TreeNodeImpl({
                 />
               ) : (
                 <Text color="cyan" dimColor>
-                  {renderRich(child.content ?? "")}
+                  <InlineText text={child.content ?? ""} />
                 </Text>
               )}
             </Box>

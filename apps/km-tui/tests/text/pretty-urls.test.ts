@@ -1,14 +1,13 @@
 /**
- * Tests for pretty URL rendering in the text pipeline.
+ * Tests for pretty URL rendering.
  *
- * Bare URLs are prettified: protocol + www stripped, styled with underline + dim
- * in rich mode, and wrapped with OSC 8 hyperlinks for clickability.
+ * Unit tests for prettifyUrl() and board-level integration tests
+ * verifying URLs are prettified in the TUI.
  */
 
 import { describe, it, expect } from "vitest"
-import { stripAnsi } from "inkx"
-import { renderRich, renderPlain } from "../../src/text/rich.ts"
 import { prettifyUrl } from "../../src/text/text-pipeline.ts"
+import { parseToPlainText } from "../../src/text/inline-parser.ts"
 import { testEnv, item } from "../helpers/board-test.ts"
 
 // =============================================================================
@@ -57,115 +56,10 @@ describe("prettifyUrl", () => {
 })
 
 // =============================================================================
-// Rich mode: bare URLs styled
+// parseToPlainText: bare URLs prettified
 // =============================================================================
 
-describe("renderRich: bare URLs", () => {
-  it("prettifies a bare https URL", () => {
-    const result = renderRich("Visit https://example.com for info")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("Visit example.com for info")
-    // Should not contain protocol
-    expect(plain).not.toContain("https://")
-  })
-
-  it("prettifies a bare http URL", () => {
-    const result = renderRich("See http://example.com/page")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("See example.com/page")
-    expect(plain).not.toContain("http://")
-  })
-
-  it("strips www prefix", () => {
-    const result = renderRich("Go to https://www.example.com")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("Go to example.com")
-    expect(plain).not.toContain("www.")
-  })
-
-  it("applies underline styling", () => {
-    const result = renderRich("Visit https://example.com here")
-    // Should have underline ANSI code
-    expect(result).toContain("\x1b[4m") // underline
-  })
-
-  it("applies dim styling", () => {
-    const result = renderRich("Visit https://example.com here")
-    // Should have dim ANSI code
-    expect(result).toContain("\x1b[2m") // dim
-  })
-
-  it("handles multiple URLs in same text", () => {
-    const result = renderRich("See https://one.com and https://two.com")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("See one.com and two.com")
-  })
-
-  it("preserves URL with path and query", () => {
-    const result = renderRich("Link: https://example.com/path?q=test")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("Link: example.com/path?q=test")
-  })
-
-  it("does not double-process markdown link URLs", () => {
-    // Markdown links [text](url) should show text only, not prettify the URL
-    const result = renderRich("Click [Google](https://google.com) here")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("Click Google here")
-    // Should not contain the prettified URL
-    expect(plain).not.toContain("google.com")
-  })
-
-  it("handles URL at start of text", () => {
-    const result = renderRich("https://example.com is great")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("example.com is great")
-  })
-
-  it("handles URL at end of text", () => {
-    const result = renderRich("Visit https://example.com")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("Visit example.com")
-  })
-
-  it("handles URL as only content", () => {
-    const result = renderRich("https://example.com/path")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("example.com/path")
-  })
-
-  it("wraps URL in OSC 8 hyperlink", () => {
-    const result = renderRich("Visit https://example.com/page here")
-    // OSC 8 hyperlink format: \x1b]8;;url\x1b\\ text \x1b]8;;\x1b\\
-    expect(result).toContain("\x1b]8;;https://example.com/page\x1b\\")
-    expect(result).toContain("\x1b]8;;\x1b\\") // link end
-  })
-
-  it("does not interfere with wiki links", () => {
-    const result = renderRich("See [[note]] and https://example.com")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("See note and example.com")
-  })
-
-  it("handles URL followed by period (sentence ending)", () => {
-    const result = renderRich("Visit https://example.com.")
-    const plain = stripAnsi(result)
-    // Period should not be part of the URL
-    expect(plain).toBe("Visit example.com.")
-  })
-
-  it("handles URL followed by comma", () => {
-    const result = renderRich("See https://example.com, then continue")
-    const plain = stripAnsi(result)
-    expect(plain).toBe("See example.com, then continue")
-  })
-})
-
-// =============================================================================
-// Plain mode: bare URLs prettified (no ANSI)
-// =============================================================================
-
-describe("renderPlain: bare URLs", () => {
+describe("parseToPlainText: bare URLs", () => {
   const cases: Array<[string, string, string]> = [
     ["bare https URL", "Visit https://example.com", "Visit example.com"],
     ["bare http URL", "See http://example.com/page", "See example.com/page"],
@@ -179,14 +73,9 @@ describe("renderPlain: bare URLs", () => {
 
   for (const [label, input, expected] of cases) {
     it(`${label}: '${input}' -> '${expected}'`, () => {
-      expect(renderPlain(input)).toBe(expected)
+      expect(parseToPlainText(input)).toBe(expected)
     })
   }
-
-  it("no ANSI codes in plain mode", () => {
-    const result = renderPlain("Visit https://example.com")
-    expect(result).toBe(stripAnsi(result))
-  })
 })
 
 // =============================================================================
@@ -244,7 +133,6 @@ describe("board: URL prettification in cards", () => {
     // Check the rendered buffer for escape sequence artifacts
     const screenText = board.screen.text
     // OSC 8 escape sequences should never appear as visible text in the buffer.
-    // If slice-ansi misparses OSC 8, you get visible garbage like "]8;;" or raw URL fragments.
     expect(screenText).not.toContain("]8;;")
     expect(screenText).not.toContain("\x1b]")
     expect(screenText).not.toContain("\x1b\\")
@@ -268,19 +156,5 @@ describe("board: URL prettification in cards", () => {
     expect(screenText).not.toContain("]8;;")
     expect(screenText).not.toContain("\x1b]")
     expect(screenText).not.toContain("\x1b\\")
-  })
-
-  it("slice-ansi does not corrupt OSC 8 hyperlink text", () => {
-    // Direct test: renderRich produces OSC 8 sequences, verify they don't
-    // produce visible garbage when stripped by stripAnsi
-    const rich = renderRich("Task with https://www.example.com/very/long/path/that/will/truncate")
-    // Should contain OSC 8
-    expect(rich).toContain("\x1b]8;;")
-
-    // stripAnsi should cleanly remove all escape sequences
-    const plain = stripAnsi(rich)
-    expect(plain).not.toContain("\x1b")
-    expect(plain).not.toContain("]8;;")
-    expect(plain).toContain("example.com")
   })
 })
