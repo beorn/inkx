@@ -346,13 +346,13 @@ function TaskDetailPane({
               </Text>
               {backlinkNodes.slice(0, maxBacklinks).map((bl) => {
                 const path = getProjectPath(repo, bl)
-                const title = getNodeDisplayName(repo, bl)
+                const title = stripInlineRefs(getNodeDisplayName(repo, bl))
                 const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
                 return (
                   <Text key={bl.id} wrap="truncate">
                     {"  "}
                     <Text dimColor>{breadcrumb}</Text>
-                    <Text bold>{renderRich(title)}</Text>
+                    <Text bold>{renderRich(title, { resolveWikiLink })}</Text>
                   </Text>
                 )
               })}
