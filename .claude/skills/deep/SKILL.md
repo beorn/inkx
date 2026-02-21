@@ -22,32 +22,22 @@ See `/llm` for output format, flags, and background execution.
 
 ## Execution Pattern
 
-**IMPORTANT**: Deep research takes 2-15 minutes. Use ONE of these patterns:
+**IMPORTANT**: Deep research takes 2-15 minutes. **ALWAYS run in background** — foreground blocks Claude Code and makes you unresponsive to the user for the entire duration.
 
-### Pattern A: Foreground with long timeout (SIMPLEST, preferred)
-
-```
-Bash(command='bun llm --deep -y "topic"', timeout=600000)
-```
-
-This blocks for up to 10 minutes. Stdout contains JSON with the output file path. Read the file after.
-
-### Pattern B: Background + do other work
+### Launch in background
 
 ```
-# Step 1: Launch
+# Step 1: Launch (ALWAYS background)
 Bash(command='bun llm --deep -y "topic"', run_in_background=true)
-# Returns task_id
+# Returns task_id — tell the user you launched it
 
 # Step 2: Do other work while waiting...
 
-# Step 3: Retrieve (blocks up to 10 min)
+# Step 3: Check for completion
 TaskOutput(task_id=<id>, block=true, timeout=600000)
 
-# Step 4: Find the output file path
-# Look for "Output written to: /tmp/llm-*.txt" in the last lines of output.
-# If output was truncated (>30KB of streaming tokens), find the file:
-#   ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
+# Step 4: Find the output file
+ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
 
 # Step 5: Read the OUTPUT FILE (NOT the task output — that's just streaming tokens)
 Read(file_path="/tmp/llm-<session>-<timestamp>-<rand>.txt")
@@ -57,17 +47,40 @@ Read(file_path="/tmp/llm-<session>-<timestamp>-<rand>.txt")
 captures stderr+stdout combined, which can exceed 30KB and get truncated by Claude Code.
 The actual response is in the OUTPUT FILE, not in the task output. Always read the file.
 
+### Recovery (interrupted/killed processes)
+
+Deep research runs **server-side at OpenAI**. If the local process is killed (Escape, timeout,
+crash), the research **continues and completes remotely**. You do NOT need to restart it.
+
+**NEVER restart a deep research call after interruption** — it wastes $2-5 and 15 minutes.
+Instead, recover the completed response:
+
+```bash
+bun llm recover              # List incomplete responses (shows IDs + status)
+bun llm recover <id>         # Retrieve completed response by ID
+```
+
+Recovery writes the output file just like a normal completion. If the response isn't ready yet,
+`recover` will tell you — wait a few minutes and try again.
+
 ### Anti-patterns (NEVER do these)
 
 ```
-# BAD: Sleep-polling wastes turns and gets killed
-Bash("sleep 30 && wc -c output.txt")  # 5 turns of sleeping = killed
+# BAD: Foreground — blocks Claude Code for 15 minutes, user can't interact
+Bash(command='bun llm --deep -y "topic"', timeout=600000)
 
-# BAD: Subagent without skill context — agent won't know the correct pattern
+# BAD: Restarting after interruption — wastes $$ and time, response is still completing
+# Just use: bun llm recover
+
+# BAD: Sleep-polling wastes turns and gets killed
+Bash("sleep 30 && wc -c output.txt")
+
+# BAD: Subagent without skill context
 Task(subagent_type="general-purpose", prompt="run deep research on X")
 ```
 
-**If running from a subagent/Task**: Use Pattern A (foreground with `timeout=600000`). Subagents don't have skill context, so keep it simple.
+**If running from a subagent/Task**: Use foreground with `timeout=600000` as a last resort
+(subagents don't block the user). But prefer background when possible.
 
 ## Context Gathering (CRITICAL for Code Questions)
 

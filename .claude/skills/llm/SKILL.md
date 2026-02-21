@@ -100,16 +100,39 @@ Before calling `bun llm`, use `/recall` to search session history for relevant p
 
 **Deep research**: Include **full source code** — see `/deep` for detailed context gathering workflow.
 
-## Background Execution (for agents)
+## Execution
 
-Response is ALWAYS written to a file. Stderr has the human-readable file path (`Output written to: <path>`). Stdout has JSON metadata (single line with file path, char count, cost). Streaming tokens go to stderr ONLY if it's a TTY — in background tasks, stderr is silent except for the final file path line.
+**ALWAYS run in background** for deep research and debate (2-15 minutes). Foreground blocks
+Claude Code and makes you unresponsive. Quick questions (`/ask`) are fast enough for foreground.
 
-To retrieve results from a background task:
-1. Parse JSON from stdout to get the file path (`{"file": "/tmp/llm-*.txt", ...}`)
-2. Or look for `Output written to: /tmp/llm-*.txt` in stderr
-3. Read the output file with the `Read` tool — that's the actual response content
+```
+# Deep research — ALWAYS background
+Bash(command='bun llm --deep -y "topic"', run_in_background=true)
+# Then: TaskOutput(task_id=<id>, block=true, timeout=600000)
+# Then: ls -lt /tmp/llm-${CLAUDE_SESSION_ID:0:8}-*.txt | head -1
+# Then: Read the output file
 
-Deep research and debate take 2-15 minutes. Use `Task(run_in_background=true)` + `TaskOutput(block=true, timeout=600000)`. See `vendor/beorn-tools/skills/llm/SKILL.md` "Agent Usage" section.
+# Quick question — foreground is fine
+Bash(command='bun llm "question"', timeout=30000)
+```
+
+Response is ALWAYS written to a file (`/tmp/llm-*.txt`). The task output is streaming tokens
+(noisy, truncated) — always read the OUTPUT FILE for the actual response.
+
+## Recovery (CRITICAL)
+
+Deep research runs **server-side at OpenAI**. If the local process is killed (Escape, timeout,
+crash), the research **continues and completes remotely**.
+
+**NEVER restart after interruption** — it wastes $2-5 and 15 minutes. Instead, recover:
+
+```bash
+bun llm recover              # List incomplete responses (shows IDs + status)
+bun llm recover <id>         # Retrieve completed response by ID
+```
+
+If the response isn't ready yet, wait a few minutes and try `recover` again. Recovery writes the
+output file just like a normal completion — read it with the `Read` tool.
 
 ## When to Use
 

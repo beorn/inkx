@@ -107,16 +107,27 @@ DON'T understand.]
 
 ### Phase 4: Execute
 
+Build a context file, then launch in background:
+
 ```bash
-bun llm --deep -y --no-recover --context "$(cat << 'ENDCONTEXT'
+# Build context file (avoids shell quoting issues with code)
+cat > /tmp/fresh-context.md << 'ENDOFFILE'
 [structured context from Phase 3]
-ENDCONTEXT
-)" "[1-line problem description: seeking architectural advice]"
+ENDOFFILE
+cat src/relevant-file.ts >> /tmp/fresh-context.md
 ```
 
-**IMPORTANT**: Always use `--no-recover` to avoid getting stale recovered responses from prior unrelated deep research calls.
+```
+# ALWAYS background — foreground blocks Claude Code for 15 minutes
+Bash(command='bun llm --deep -y --no-recover --context-file /tmp/fresh-context.md "problem description"', run_in_background=true)
+```
 
-Use Pattern A (foreground, `timeout=600000`) or Pattern B (background) per `/deep`.
+**IMPORTANT**: Always use `--no-recover` to avoid getting stale recovered responses from prior
+unrelated deep research calls. Always use `--context-file` (not `--context "$(cat ...)"`) when
+context includes source code — shell quoting breaks on backticks and `$(...)` in code.
+
+If the process is interrupted, don't restart — use `bun llm recover` to retrieve the response
+when it completes server-side. See `/deep` for recovery details.
 
 ### Phase 5: Present and Decide
 
