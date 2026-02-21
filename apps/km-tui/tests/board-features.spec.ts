@@ -6,7 +6,24 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
+import type { StoreApi } from "zustand"
+import type { BoardAppStore } from "../src/board-app-store.ts"
+
+/**
+ * Open the old search dialog (no keybinding anymore — dispatched directly).
+ * After dispatching, press Backspace to flush the inkx render pipeline.
+ * The dialog text input is empty at this point, so Backspace is a no-op.
+ */
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+  act(() => {
+    dispatchCommandById("search", store.getState as () => BoardAppStore)
+    store.setState((s) => s)
+  })
+  board.press("Backspace") // flush inkx render pipeline
+}
 
 describe("Display", () => {
   test("board shows header path on first render", () => {
@@ -235,9 +252,9 @@ describe("Terminal Sizes", () => {
 // Note: Move Mode tests deferred - feature not yet implemented
 
 describe("Search and Filter", () => {
-  test("Cmd+f opens search dialog with title and footer", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.press("Cmd+f")
+  test("search command opens search dialog with title and footer", () => {
+    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
+    openSearchDialog(store, board)
     const output = board.screenshot()
     expect(output).toContain("Search")
     expect(output).toContain("All")
@@ -247,13 +264,13 @@ describe("Search and Filter", () => {
 
   test("search shows multiple results on consecutive lines", () => {
     // Create items with long titles that will be truncated
-    const { board } = testEnv(() =>
+    const { board, store } = testEnv(() =>
       item(
         "board",
         item("col", item("Task Alpha with long title"), item("Task Beta with long title"), item("Task Gamma short")),
       ),
     )
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     // Type query to trigger results (min 2 chars required)
     board.press("T")
     board.press("a")
@@ -265,20 +282,20 @@ describe("Search and Filter", () => {
   })
 
   test("Escape closes search dialog", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"))))
-    board.press("Cmd+f")
+    const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
+    openSearchDialog(store, board)
     expect(board.screenshot()).toContain("Search")
     board.press("\x1b")
     expect(board.screenshot()).not.toContain("Enter go")
   })
 
-  test("typing immediately after / captures all characters", () => {
+  test("typing immediately after search open captures all characters", () => {
     // Bug repro: keypresses are eaten while search dialog opens
     // The lazy loading via useEffect + startTransition should not block input
-    const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
+    const { board, store } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
 
     // Type "/" followed immediately by a query - all characters should be captured
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("a")
     board.press("l")
     board.press("p")
@@ -294,7 +311,7 @@ describe("Search and Filter", () => {
 
   test("search scrolling renders results without artifacts", () => {
     // Create many items to trigger scrolling (>13 visible in default 24-row terminal)
-    const { board } = testEnv(
+    const { board, store } = testEnv(
       () =>
         item(
           "board",
@@ -324,7 +341,7 @@ describe("Search and Filter", () => {
         ),
       {},
     )
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     // Type query to trigger results (min 2 chars required)
     board.press("T")
     board.press("a")
@@ -355,7 +372,7 @@ describe("Search and Filter", () => {
 
   test("Enter navigates to visible node (same view)", () => {
     // Create a board with multiple columns and tasks
-    const { board } = testEnv(() =>
+    const { board, store } = testEnv(() =>
       item(
         "board",
         item("Col1", item("Task Alpha"), item("Task Beta")),
@@ -364,7 +381,7 @@ describe("Search and Filter", () => {
     )
 
     // Open search and type to filter
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "Gamma") board.press(c)
     board.press("Enter")
 
@@ -380,7 +397,7 @@ describe("Search and Filter", () => {
     // board > Projects > Active (column) > Task Deep (card)
     // When viewing board, only Projects is visible as column header
     // Task Deep is 3 levels down (card of Active, which is card of Projects)
-    const { board } = testEnv(() =>
+    const { board, store } = testEnv(() =>
       item("board", item("Projects", item("Active", item("Task Deep")), item("Archive", item("Old Task")))),
     )
 
@@ -389,7 +406,7 @@ describe("Search and Filter", () => {
     let output = board.screenshot()
 
     // Open search and select a deeply nested item
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "Task Deep") board.press(c)
     board.press("Enter")
 
@@ -403,7 +420,7 @@ describe("Search and Filter", () => {
   test("Enter navigates to section within file (deeply nested)", () => {
     // Simulate file > section structure
     // Vault > Notes > Doc1 > Section A
-    const { board } = testEnv(() =>
+    const { board, store } = testEnv(() =>
       item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")), item("Doc2", item("Section X")))),
     )
 
@@ -412,7 +429,7 @@ describe("Search and Filter", () => {
     let output = board.screenshot()
 
     // Search for a deeply nested section
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "Section A") board.press(c)
     board.press("Enter")
 
@@ -433,7 +450,7 @@ describe("Search and Filter", () => {
     board.press("Escape")
 
     // Search for Section A and select it
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "Section A") board.press(c)
     board.press("Enter")
 
@@ -460,7 +477,7 @@ describe("Search and Filter", () => {
 
     // Board root = "board", columns = [col], cards = [card-parent]
     // leaf-target is a grandchild of col, not directly visible as a card
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "leaf-target") board.press(c)
     board.press("Enter")
 
@@ -478,7 +495,7 @@ describe("Search and Filter", () => {
     // Target is already a card in the current view (grandchild of root)
     const { board, store } = testEnv(() => item("board", item("col", item("visible-card"), item("another-card"))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "another-card") board.press(c)
     board.press("Enter")
 
@@ -495,7 +512,7 @@ describe("Search and Filter", () => {
     // making C a column and target a card.
     const { board, store } = testEnv(() => item("root", item("A", item("B", item("C", item("deep-target"))))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "deep-target") board.press(c)
     board.press("Enter")
 
@@ -515,7 +532,7 @@ describe("Search and Filter", () => {
       item("root", item("A", item("B", item("C", item("D", item("very-deep-target")))))),
     )
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "very-deep-target") board.press(c)
     board.press("Enter")
 
@@ -548,7 +565,7 @@ describe("Search and Filter", () => {
     board.press("Escape")
 
     // Search for a paragraph inside a section inside a file
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const c of "China") board.press(c)
     board.press("Enter")
 

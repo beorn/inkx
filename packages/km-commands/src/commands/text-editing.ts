@@ -107,6 +107,22 @@ export const textEditingCommands: CommandDef[] = [
     category: "TextEdit",
     execute: (): CommandAction => ({ type: "TEXT_YANK" }),
   },
+  {
+    id: "text.bold",
+    name: "Bold",
+    description: "Toggle bold formatting on selection (Cmd+B)",
+    category: "TextEdit",
+    shortcuts: ["Cmd+B"],
+    execute: (): CommandAction => ({ type: "TEXT_BOLD" }),
+  },
+  {
+    id: "text.italic",
+    name: "Italic",
+    description: "Toggle italic formatting on selection (Cmd+I)",
+    category: "TextEdit",
+    shortcuts: ["Cmd+I"],
+    execute: (): CommandAction => ({ type: "TEXT_ITALIC" }),
+  },
 ]
 
 /**

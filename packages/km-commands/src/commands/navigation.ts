@@ -348,6 +348,26 @@ const gotoArchive = {
   execute: () => ({ type: "GOTO_BOARD", boardId: "@archive" }),
 } satisfies CommandDef
 
+// Focus board (Cmd+h — kitty)
+const focusBoard = {
+  id: "focus_board",
+  name: "Focus Board",
+  description: "Switch focus to the board pane",
+  category: "Navigation",
+  shortcuts: ["Cmd+H"],
+  execute: () => ({ type: "FOCUS_BOARD" }),
+} satisfies CommandDef
+
+// Focus detail pane (Cmd+l — kitty)
+const focusDetail = {
+  id: "focus_detail",
+  name: "Focus Detail",
+  description: "Switch focus to the detail pane",
+  category: "Navigation",
+  shortcuts: ["Cmd+L"],
+  execute: () => ({ type: "FOCUS_DETAIL" }),
+} satisfies CommandDef
+
 export const navigationCommands: CommandDef[] = [
   cursorPrev,
   cursorNext,
@@ -384,4 +404,6 @@ export const navigationCommands: CommandDef[] = [
   blockNavDown,
   blockNavUp,
   settings,
+  focusBoard,
+  focusDetail,
 ]

@@ -3,7 +3,7 @@
  *
  * Covers:
  * - DatePromptDialog (td chord -> type date -> Enter/Escape)
- * - SearchDialog (Cmd+f -> type query -> Enter/Escape)
+ * - SearchDialog (search command -> type query -> Enter/Escape)
  * - NewItemDialog (gn chord -> type name -> Enter/Escape)
  *
  * Each dialog is tested for:
@@ -14,7 +14,24 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
+import type { StoreApi } from "zustand"
+import type { BoardAppStore } from "../src/board-app-store.ts"
+
+/**
+ * Open the old search dialog (no keybinding anymore — dispatched directly).
+ * After dispatching, press Backspace to flush the inkx render pipeline.
+ * The dialog text input is empty at this point, so Backspace is a no-op.
+ */
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+  act(() => {
+    dispatchCommandById("search", store.getState as () => BoardAppStore)
+    store.setState((s) => s)
+  })
+  board.press("Backspace") // flush inkx render pipeline
+}
 
 // ---------------------------------------------------------------------------
 // DatePromptDialog lifecycle
@@ -120,19 +137,19 @@ describe("DatePromptDialog lifecycle", () => {
 // ---------------------------------------------------------------------------
 
 describe("SearchDialog lifecycle", () => {
-  test("/ opens search dialog — store flag is set and screenshot shows title", () => {
+  test("search command opens search dialog — store flag is set and screenshot shows title", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
 
     expect(store.getState().ui.showSearchDialog).toBe(true)
     expect(board.screenshot()).toContain("Search")
   })
 
-  test("/ -> Escape cancels search dialog", () => {
+  test("search -> Escape cancels search dialog", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     board.press("Escape")
@@ -141,10 +158,10 @@ describe("SearchDialog lifecycle", () => {
     expect(board.screenshot()).not.toContain("Search")
   })
 
-  test("/ -> type query -> Escape cancels without navigating", () => {
+  test("search -> type query -> Escape cancels without navigating", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha"), item.task("Beta"))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
 
     // Type a query
     for (const ch of "Alpha") board.press(ch)
@@ -161,10 +178,10 @@ describe("SearchDialog lifecycle", () => {
     expect(screen).toContain("Beta")
   })
 
-  test("/ -> type query -> Enter confirms search (closes dialog)", () => {
+  test("search -> type query -> Enter confirms search (closes dialog)", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Alpha task"), item.task("Beta task"))))
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type a query
@@ -283,7 +300,7 @@ describe("dialog state isolation", () => {
     board.press("Escape")
 
     // Open search dialog
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
     expect(store.getState().ui.datePrompt).toBeNull()
     expect(store.getState().ui.showNewItemDialog).toBe(false)
@@ -314,7 +331,7 @@ describe("dialog state isolation", () => {
     board.press("Escape")
 
     // Cycle 2: search dialog
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("Escape")
 
     // Cycle 3: new item dialog
@@ -340,7 +357,7 @@ describe("dialog state isolation", () => {
     expect(store.getState().ui.datePrompt).toBeNull()
 
     // Now open search — should work cleanly
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
     expect(board.screenshot()).toContain("Search")
 

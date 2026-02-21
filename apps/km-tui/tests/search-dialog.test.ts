@@ -2,8 +2,25 @@
  * Tests for SearchDialog component
  */
 import { describe, test, expect } from "vitest"
+import { act } from "react"
 import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/search-utils.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
+import type { StoreApi } from "zustand"
+import type { BoardAppStore } from "../src/board-app-store.ts"
+
+/**
+ * Open the old search dialog (no keybinding anymore — dispatched directly).
+ * After dispatching, press Backspace to flush the inkx render pipeline.
+ * The dialog text input is empty at this point, so Backspace is a no-op.
+ */
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+  act(() => {
+    dispatchCommandById("search", store.getState as () => BoardAppStore)
+    store.setState((s) => s)
+  })
+  board.press("Backspace") // flush inkx render pipeline
+}
 
 describe("fuzzyMatch", () => {
   test("matches exact string", () => {
@@ -117,10 +134,10 @@ describe("extractTags", () => {
 describe("Search dialog bugs", () => {
   describe("km-tui.2: [2 after backspace", () => {
     test("backspacing to empty shows placeholder, not [2", () => {
-      const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
+      const { board, store } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
-      board.press("Cmd+f")
+      openSearchDialog(store, board)
       board.press("a")
       board.press("b")
 
@@ -143,9 +160,9 @@ describe("Search dialog bugs", () => {
     })
 
     test("rapid backspace doesn't leave artifacts", () => {
-      const { board } = testEnv(() => item("board", item("col", item("test"))))
+      const { board, store } = testEnv(() => item("board", item("col", item("test"))))
 
-      board.press("Cmd+f")
+      openSearchDialog(store, board)
       board.press("t")
       board.press("e")
       board.press("s")
@@ -168,7 +185,7 @@ describe("Search dialog bugs", () => {
 
   describe("km-tui.3: title visibility during loading", () => {
     test("Search title remains visible with results", () => {
-      const { board } = testEnv(
+      const { board, store } = testEnv(
         () =>
           item(
             "board",
@@ -184,7 +201,7 @@ describe("Search dialog bugs", () => {
         { rows: 20 },
       )
 
-      board.press("Cmd+f")
+      openSearchDialog(store, board)
       board.press("T")
       board.press("a")
 
@@ -217,10 +234,10 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
   }
 
   test("pressing Escape closes the search dialog", () => {
-    const { board } = makeEscapeTestBoard()
+    const { board, store } = makeEscapeTestBoard()
 
     // Open search dialog
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
 
     // Press Escape to close
@@ -231,10 +248,10 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
   })
 
   test("pressing Escape closes search dialog after typing a query", () => {
-    const { board } = makeEscapeTestBoard()
+    const { board, store } = makeEscapeTestBoard()
 
     // Open search, type a query
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("a").press("l")
     expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
 
@@ -246,10 +263,10 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
   })
 
   test("board is navigable after closing search with Escape", () => {
-    const { board } = makeEscapeTestBoard()
+    const { board, store } = makeEscapeTestBoard()
 
     // Open and close search
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("Escape")
 
     // Should be able to navigate normally
@@ -283,8 +300,8 @@ function scopeDialogText(board: ReturnType<typeof testEnv>["board"]): string {
 
 describe("Search scope: UI toggle", () => {
   test("search dialog opens with 'All' scope by default", () => {
-    const { board } = makeScopeBoard()
-    board.press("Cmd+f")
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
     const text = scopeDialogText(board)
     // Scope prompt: "All > "
     expect(text).toContain("All")
@@ -293,8 +310,8 @@ describe("Search scope: UI toggle", () => {
   })
 
   test("Tab toggles scope between All and scoped, back to All", () => {
-    const { board } = makeScopeBoard()
-    board.press("Cmd+f")
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
 
     // Initially "All > " prompt
     let text = scopeDialogText(board)
@@ -316,8 +333,8 @@ describe("Search scope: UI toggle", () => {
 
 describe("Search scope: result filtering", () => {
   test("'All' scope returns results from entire repo", () => {
-    const { board } = makeScopeBoard()
-    board.press("Cmd+f")
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
 
     // Type a query that matches items in both columns
     // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
@@ -332,11 +349,11 @@ describe("Search scope: result filtering", () => {
   })
 
   test("'Subtree' scope restricts results to cursor node descendants", () => {
-    const { board } = makeScopeBoard()
+    const { board, store } = makeScopeBoard()
 
     // Cursor starts on first card ("Alpha project" which has children)
     // Open search, switch to Subtree scope
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("Tab") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
@@ -352,10 +369,10 @@ describe("Search scope: result filtering", () => {
   })
 
   test("'Subtree' scope with query matching nothing in subtree shows no results", () => {
-    const { board } = makeScopeBoard()
+    const { board, store } = makeScopeBoard()
 
     // Cursor starts on "Alpha project"
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("Tab") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
@@ -365,8 +382,8 @@ describe("Search scope: result filtering", () => {
   })
 
   test("switching scope re-filters results", () => {
-    const { board } = makeScopeBoard()
-    board.press("Cmd+f")
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
 
     // Type query matching items across the board
     board.press("p").press("r").press("o").press("j")
@@ -391,13 +408,13 @@ describe("Search scope: result filtering", () => {
 
 describe("Search scope: scope node capture", () => {
   test("scope uses cursor node when search opens", () => {
-    const { board } = makeScopeBoard()
+    const { board, store } = makeScopeBoard()
 
     // Move cursor to second card (Beta project)
     board.press("j")
 
     // Open search with Subtree scope
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("Tab")
 
     // Search for "project" — only Beta should match (it has no descendants with "project")
@@ -428,9 +445,9 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   }
 
   test("typing 'ready-' does not blank the screen", () => {
-    const { board } = makeSearchBoard()
+    const { board, store } = makeSearchBoard()
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     // Type "ready-" character by character
     for (const c of "ready-") board.press(c)
 
@@ -443,9 +460,9 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   })
 
   test("typing backtick does not blank the screen", () => {
-    const { board } = makeSearchBoard()
+    const { board, store } = makeSearchBoard()
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("`")
 
     const output = board.screenshot()
@@ -455,9 +472,9 @@ describe("Bug: special characters in search cause blank screen (km-tui.search-bl
   })
 
   test("typing parentheses in search does not crash", () => {
-    const { board } = makeSearchBoard()
+    const { board, store } = makeSearchBoard()
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     board.press("(").press("t").press("e").press("s").press("t").press(")")
 
     const output = board.screenshot()

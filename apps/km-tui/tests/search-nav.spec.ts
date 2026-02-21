@@ -26,6 +26,20 @@ import type { KNode } from "@km/core"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import type { StoreApi } from "zustand"
 import type { BoardAppStore } from "../src/board-app-store.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
+
+/**
+ * Open the old search dialog (no keybinding anymore — dispatched directly).
+ * After dispatching, press Backspace to flush the inkx render pipeline.
+ * The dialog text input is empty at this point, so Backspace is a no-op.
+ */
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+  act(() => {
+    dispatchCommandById("search", store.getState as () => BoardAppStore)
+    store.setState((s) => s)
+  })
+  board.press("Backspace") // flush inkx render pipeline
+}
 
 // Helper to create li nodes with li children (item() converts parents to oi)
 function makeLiNode(id: string, parentId: string | null, parentIdx: number, children?: string[]): KNode[] {
@@ -725,7 +739,7 @@ describe("search flow via key presses", () => {
     )
 
     // Open search dialog
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type search query
@@ -752,7 +766,7 @@ describe("search flow via key presses", () => {
     )
 
     // Open search dialog
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type search query
@@ -778,7 +792,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search for the deeply nested subtask
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "subtask-xyz") board.press(ch)
     board.press("Enter")
 
@@ -809,7 +823,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search for the depth-3 node
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "my-task") board.press(ch)
     board.press("Enter")
 
@@ -841,7 +855,7 @@ describe("search flow via key presses", () => {
     expect(store.getState().rootId).toBe("projects")
 
     // Now search for taskA2
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "taskA2") board.press(ch)
     board.press("Enter")
 
@@ -860,7 +874,7 @@ describe("search flow via key presses", () => {
       { checkIncremental: false },
     )
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "alpha") board.press(ch)
     board.press("Enter")
 
@@ -898,7 +912,7 @@ describe("search flow via key presses", () => {
       { checkIncremental: false },
     )
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "README") board.press(ch)
     board.press("Enter")
 
@@ -920,7 +934,7 @@ describe("search flow via key presses", () => {
     expect(store.getState().cursorNodeId).toBe("taskA")
 
     // Search for taskC (different card in the same column)
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "taskC") board.press(ch)
     board.press("Enter")
 
@@ -950,7 +964,7 @@ describe("search flow via key presses", () => {
     )
 
     // Search and select taskA2
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "taskA2") board.press(ch)
     board.press("Enter")
 
@@ -978,7 +992,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().rootId).toBe("project")
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "task-beta") board.press(ch)
     board.press("Enter")
 
@@ -1001,7 +1015,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().rootId).toBe("project")
 
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "my-subtask") board.press(ch)
     board.press("Enter")
 
@@ -1029,7 +1043,7 @@ describe("search flow via key presses", () => {
     expect(derivedState(store).selectedNode?.id).toBe("first")
 
     // Search for third (same column, different card)
-    board.press("Cmd+f")
+    openSearchDialog(store, board)
     for (const ch of "third") board.press(ch)
     board.press("Enter")
 
