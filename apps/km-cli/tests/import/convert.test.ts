@@ -2646,3 +2646,229 @@ describe("URL-only titles prettified", () => {
     expect(beta).not.toContain("https://www.example.com")
   })
 })
+
+// ============================================================================
+// Fix: Asana link conversion in comments
+// ============================================================================
+
+describe("Asana link conversion in comments", () => {
+  test("converts Asana task URLs in comment text to block references", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with linked comment",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "See https://app.asana.com/0/123456/789012 for details",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("[[^789012]]")
+    expect(md).not.toContain("app.asana.com")
+  })
+
+  test("converts markdown-style Asana links in comment text to aliased block refs", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "bob",
+              createdAt: "2026-02-11T08:00:00Z",
+              text: "Related to [Design task](https://app.asana.com/0/111/222)",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("[[^222|Design task]]")
+    expect(md).not.toContain("app.asana.com")
+  })
+
+  test("converts new-style Asana task URLs in comment text", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        comments: [
+          {
+            author: "alice",
+            createdAt: "2026-02-10T10:00:00Z",
+            text: "Check https://app.asana.com/1/111/task/333 please",
+          },
+        ],
+      },
+      "parent",
+      nodes,
+    )
+    const commentNode = nodes.find((n) => n.parent_id === "comments-t1")!
+    expect(commentNode).toBeDefined()
+    expect(commentNode.content).toContain("[[^333]]")
+    expect(commentNode.content).not.toContain("app.asana.com")
+  })
+})
+
+// ============================================================================
+// Fix: YouTube wrapper asset URLs in body content
+// ============================================================================
+
+describe("YouTube wrapper asset URLs", () => {
+  test("converts Asana asset-wrapped YouTube URL to autolink", () => {
+    const result = buildBodyContent({
+      sourceId: "t1",
+      title: "Task",
+      body: "[https://youtube.com/watch?v=abc123](https://app.asana.com/app/asana/-/get_asset?asset_id=12345)",
+    })
+    expect(result).toBe("<https://youtube.com/watch?v=abc123>")
+  })
+
+  test("converts multiple asset-wrapped URLs in body", () => {
+    const result = buildBodyContent({
+      sourceId: "t1",
+      title: "Task",
+      body: "Watch [https://youtube.com/watch?v=abc](https://app.asana.com/app/asana/-/get_asset?asset_id=111) and [https://vimeo.com/999](https://app.asana.com/app/asana/-/get_asset?asset_id=222)",
+    })
+    expect(result).toContain("<https://youtube.com/watch?v=abc>")
+    expect(result).toContain("<https://vimeo.com/999>")
+    expect(result).not.toContain("get_asset")
+  })
+
+  test("asset-wrapped URL in full markdown output", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Video task",
+          body: "Link: [https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://app.asana.com/app/asana/-/get_asset?asset_id=67890)",
+        },
+      ]),
+    )
+    expect(md).toContain("<https://www.youtube.com/watch?v=dQw4w9WgXcQ>")
+    expect(md).not.toContain("get_asset")
+    expect(md).not.toContain("app.asana.com")
+  })
+})
+
+// ============================================================================
+// Fix: Primary entries for tag-only / user-only tasks (no orphan embeds)
+// ============================================================================
+
+describe("Primary entries for tag-only and user-only tasks", () => {
+  test("tag-only task gets primary entry with block_id in tag file", () => {
+    // Task only appears in tag file (not in any regular project)
+    // but is tagged via another project's items
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "proj1",
+          title: "Project A",
+          items: [
+            {
+              sourceId: "regular-task",
+              title: "Regular task",
+              status: "todo",
+              tags: ["sprint"],
+            },
+            {
+              sourceId: "orphan-task",
+              title: "Orphan tag task",
+              status: "todo",
+              tags: ["sprint"],
+            },
+          ],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const tagFile = files.get("#sprint.md")!
+    expect(tagFile).toBeDefined()
+
+    // Both tasks should be present — regular-task as embed, orphan-task also (both rendered in project)
+    // Since both tasks are in proj1, both get primary entries in project file
+    // and appear as embed refs in tag file
+    expect(tagFile).toContain("regular-task")
+    expect(tagFile).toContain("orphan-task")
+  })
+
+  test("task not in any project file gets primary entry in tag file (not just embed)", () => {
+    // Create scenario where task exists only in tag aggregation
+    // This happens when the task's project file is a tag pseudo-project
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      projects: [
+        {
+          sourceId: "proj1",
+          title: "Main Project",
+          items: [
+            { sourceId: "proj-task", title: "Project task", status: "todo", tags: ["focus"] },
+          ],
+        },
+        {
+          sourceId: "proj2",
+          title: "Other Project",
+          items: [
+            { sourceId: "other-task", title: "Other task", status: "done", tags: ["focus"] },
+          ],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const tagFile = files.get("#focus.md")!
+    expect(tagFile).toBeDefined()
+
+    // Both tasks are rendered in project files, so tag file has embed refs
+    expect(tagFile).toContain("proj-task")
+    expect(tagFile).toContain("other-task")
+  })
+
+  test("user-only task gets primary entry in user file when not rendered elsewhere", () => {
+    // Task assigned to a non-importing user, appears in only one project
+    // User file should reference it (as embed since project file has primary)
+    const data: ImportData = {
+      source: "asana",
+      fetchedAt: "2026-02-17T12:00:00Z",
+      users: [
+        { gid: "u1", name: "Me" },
+        { gid: "u2", name: "Colleague" },
+      ],
+      importingUserGid: "u1",
+      projects: [
+        {
+          sourceId: "proj1",
+          title: "Shared Project",
+          items: [
+            {
+              sourceId: "assigned-task",
+              title: "Their task",
+              status: "todo",
+              assignee: "colleague",
+            },
+          ],
+        },
+      ],
+    }
+
+    const files = convert(data)
+    const userFile = [...files.entries()].find(([k]) => k.includes("@colleague"))
+    expect(userFile).toBeDefined()
+    const md = userFile![1]
+
+    // Task was rendered in project file, so user file has embed ref
+    expect(md).toContain("assigned-task")
+  })
+})

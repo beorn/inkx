@@ -217,6 +217,8 @@ function buildBodyContent(item: ImportItem): string | null {
   // Clean up HTML artifacts from saved JSON
   text = decodeHtmlEntities(text)
   text = stripHtmlTags(text)
+  // Fix Asana asset URL wrappers: [real-url](asana-asset-url) → <real-url>
+  text = text.replace(/\[(https?:\/\/[^\]]+)\]\(https:\/\/app\.asana\.com\/app\/asana\/-\/get_asset[^)]*\)/g, '<$1>')
   // Fix escaped underscores in URLs (Turndown escapes _ to \_ in text nodes)
   text = text.replace(/\[([^\]]*\\_[^\]]*)\]\(/g, (_match, linkText: string) => {
     return `[${linkText.replace(/\\_/g, "_")}](`
@@ -399,7 +401,7 @@ function itemToNodes(
         const authorSlug = c.author
           ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
           : ""
-        const fullText = c.text.trim()
+        const fullText = convertAsanaLinks(c.text.trim())
         nodes.push(
           mkNode(counter, {
             id: `comment-${item.sourceId}-${counter.value}`,
