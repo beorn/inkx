@@ -31,7 +31,7 @@ describe("detail pane scrolling", () => {
       incremental: false,
     })
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
@@ -48,7 +48,7 @@ describe("detail pane scrolling", () => {
       incremental: false,
     })
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     scrollDown(store)
     scrollDown(store)
     expect(store.getState().ui.detailScrollOffset).toBe(6)
@@ -63,7 +63,7 @@ describe("detail pane scrolling", () => {
       incremental: false,
     })
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
     scrollUp(store) // try to scroll up past top
@@ -76,7 +76,7 @@ describe("detail pane scrolling", () => {
       incremental: false,
     })
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     scrollDown(store)
     expect(store.getState().ui.detailScrollOffset).toBe(3)
 
@@ -91,14 +91,14 @@ describe("detail pane scrolling", () => {
       incremental: false,
     })
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     scrollDown(store)
     expect(store.getState().ui.detailScrollOffset).toBe(3)
 
-    board.press("P") // close detail pane
+    board.press("D") // close detail pane
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
-    board.press("P") // reopen detail pane
+    board.press("D") // reopen detail pane
     expect(store.getState().ui.detailScrollOffset).toBe(0)
   })
 

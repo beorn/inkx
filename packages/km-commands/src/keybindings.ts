@@ -510,8 +510,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "z", commandId: "zoom_in" },
       { key: "Z", commandId: "zoom_outwards" },
 
-      // Smart-P: context-aware pane toggle (open+focus / focus / close) per v2 spec
-      { key: "P", commandId: "toggle_detail_pane" },
+      // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
+      { key: "D", commandId: "toggle_detail_pane" },
       // Cmd+W: always close detail pane regardless of focus state
       { key: "w", super: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
@@ -748,7 +748,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
       { key: "g", super: true, commandId: "filter" },
-      { key: "p", super: true, commandId: "toggle_detail_pane" },
+      { key: "d", super: true, commandId: "toggle_detail_pane" },
       { key: ",", super: true, commandId: "settings" },
 
       // Favorites (0-9) — jump to favorite boards

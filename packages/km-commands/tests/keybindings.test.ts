@@ -858,11 +858,11 @@ describe("chord keybindings", () => {
     // v2: z → zoom_in (focus cursor node as root), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_in")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
-    // v2: e → archive, c → capture_inbox, C → capture_dialog, P → toggle_detail_pane (Smart-P)
+    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
     expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
     expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
-    expect(resolveKeybinding("P", {}, ctx)).toBe("toggle_detail_pane")
+    expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
     // v2: Space → select_toggle
     expect(resolveKeybinding(" ", {}, ctx)).toBe("select_toggle")
     // v2: H → fold_node, L → unfold_node
@@ -880,15 +880,9 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding("/", { ctrl: true }, ctx)).toBe("filter")
   })
 
-  it("D no longer maps to delete_node (v2: D is free)", () => {
+  it("Smart-D: D key maps to toggle_detail_pane", () => {
     const ctx = createContext()
-    // D was removed — should NOT resolve to delete_node
-    expect(resolveKeybinding("D", { shift: true }, ctx)).not.toBe("delete_node")
-  })
-
-  it("Smart-P: P key maps to toggle_detail_pane", () => {
-    const ctx = createContext()
-    expect(resolveKeybinding("P", {}, ctx)).toBe("toggle_detail_pane")
+    expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
   })
 
   it("Escape in detail pane unfocuses (detail_pane.close)", () => {

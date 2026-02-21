@@ -1,10 +1,10 @@
 /**
- * Smart-P detail pane toggle tests
+ * Smart-D detail pane toggle tests
  *
- * Verifies the three-state P key behavior:
- * 1. Pane closed → P → open + focus pane
- * 2. Pane open, board focused → P → focus pane
- * 3. Pane open, pane focused → P → close pane
+ * Verifies the three-state D key behavior:
+ * 1. Pane closed → D → open + focus pane
+ * 2. Pane open, board focused → D → focus pane
+ * 3. Pane open, pane focused → D → close pane
  *
  * Also verifies Escape unfocuses pane (returns to board) without closing,
  * and Cmd+W always closes the pane regardless of focus state.
@@ -12,8 +12,8 @@
 import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
-describe("Smart-P detail pane toggle", () => {
-  test("three-state cycle: P opens+focuses, Escape unfocuses, P refocuses, P closes", () => {
+describe("Smart-D detail pane toggle", () => {
+  test("three-state cycle: D opens+focuses, Escape unfocuses, D refocuses, D closes", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("card1"), item("card2"))),
       { checkIncremental: false, incremental: false },
@@ -24,7 +24,7 @@ describe("Smart-P detail pane toggle", () => {
     expect(store.getState().ui.focusedPane).toBe("board")
 
     // State 1: P opens pane and focuses it
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
@@ -34,12 +34,12 @@ describe("Smart-P detail pane toggle", () => {
     expect(store.getState().ui.focusedPane).toBe("board")
 
     // State 2: P with pane open + board focused → focus pane (not toggle closed)
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
     // State 3: P with pane open + pane focused → close pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })
@@ -52,7 +52,7 @@ describe("Smart-P detail pane toggle", () => {
 
     expect(store.getState().ui.showDetailPane).toBe(false)
 
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
   })
@@ -64,13 +64,13 @@ describe("Smart-P detail pane toggle", () => {
     )
 
     // Open and focus pane, then Escape to return focus to board
-    board.press("P")
+    board.press("D")
     board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("board")
 
     // P should focus the pane, not close it
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
   })
@@ -82,12 +82,12 @@ describe("Smart-P detail pane toggle", () => {
     )
 
     // Open and focus pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
     // P again closes the pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })
@@ -99,7 +99,7 @@ describe("Smart-P detail pane toggle", () => {
     )
 
     // Open pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
     // Simulate scroll (detail pane scroll sets offset directly in store)
@@ -110,11 +110,11 @@ describe("Smart-P detail pane toggle", () => {
     expect(store.getState().ui.detailScrollOffset).toBe(6)
 
     // Close pane with P → offset should reset
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.detailScrollOffset).toBe(0)
 
     // Reopen → offset should be fresh
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.detailScrollOffset).toBe(0)
   })
 
@@ -125,7 +125,7 @@ describe("Smart-P detail pane toggle", () => {
     )
 
     // Open and focus pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.focusedPane).toBe("detail")
 
     // Escape → board focused, pane still open
@@ -146,26 +146,26 @@ describe("Smart-P detail pane toggle", () => {
     )
 
     // Cycle 1: open+focus → close
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
 
     // Cycle 2: open+focus → unfocus → refocus → close
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
     board.press("Escape")
     expect(store.getState().ui.focusedPane).toBe("board")
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.focusedPane).toBe("detail")
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
 
     // Cycle 3: open+focus → close (rapid toggle)
-    board.press("P")
-    board.press("P")
+    board.press("D")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
     expect(store.getState().ui.focusedPane).toBe("board")
   })

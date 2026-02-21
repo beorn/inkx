@@ -712,7 +712,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Navigate down with j — detail pane should stay open
@@ -728,7 +728,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     // Detail pane should contain card1 content
     const screen1 = board.screenshot()
@@ -745,11 +745,11 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Space again should close it
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
   })
 
@@ -757,7 +757,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane (P toggles: closed → open+focused)
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
@@ -775,7 +775,7 @@ describe("Detail Pane Navigation", () => {
     })
 
     // Open detail pane on card1
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // h/l should navigate columns — detail pane stays open

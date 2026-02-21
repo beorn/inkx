@@ -146,7 +146,7 @@ const openDetailPane = {
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 } satisfies CommandDef
 
-// Smart-P: context-aware detail pane toggle (v2 spec)
+// Smart-D: context-aware detail pane toggle (v2 spec)
 // Closed -> open+focus, open+board-focused -> focus pane, open+pane-focused -> close
 const toggleDetailPane = {
   id: "toggle_detail_pane",

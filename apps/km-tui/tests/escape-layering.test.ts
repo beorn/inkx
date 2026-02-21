@@ -72,7 +72,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with P (toggle: closed → open+focused)
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
@@ -86,7 +86,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"))))
 
     // Open+focus detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
     expect(store.getState().ui.focusedPane).toBe("detail")
 
@@ -198,7 +198,7 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Open+focus detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.focusedPane).toBe("detail")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
@@ -240,7 +240,7 @@ describe("Escape Layering", () => {
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Open+focus detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().ui.focusedPane).toBe("detail")
 
     // Escape 1: unfocus pane (pane stays open)
