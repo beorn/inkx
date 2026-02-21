@@ -35,21 +35,43 @@ export interface DetailPaneProps {
   focused?: boolean
 }
 
-export function DetailPane({ node, width, height, scrollOffset = 0, focused = true }: DetailPaneProps): React.ReactElement {
+export function DetailPane({
+  node,
+  width,
+  height,
+  scrollOffset = 0,
+  focused = true,
+}: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Resolve embedded links to show the target node's details
   const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
   if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
-    return <FolderDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
+    return (
+      <FolderDetailPane
+        node={resolvedNode}
+        width={width}
+        height={height}
+        scrollOffset={scrollOffset}
+        focused={focused}
+      />
+    )
   }
-  return <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
+  return (
+    <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
+  )
 }
 
 // =============================================================================
 // Folder Detail Pane — outline of folder contents
 // =============================================================================
 
-function FolderDetailPane({ node, width, height, scrollOffset = 0, focused: detailFocused = true }: DetailPaneProps): React.ReactElement {
+function FolderDetailPane({
+  node,
+  width,
+  height,
+  scrollOffset = 0,
+  focused: detailFocused = true,
+}: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
@@ -142,7 +164,13 @@ function FolderDetailPane({ node, width, height, scrollOffset = 0, focused: deta
 // Task Detail Pane — task/note details
 // =============================================================================
 
-function TaskDetailPane({ node, width, height, scrollOffset = 0, focused: detailFocused = true }: DetailPaneProps): React.ReactElement {
+function TaskDetailPane({
+  node,
+  width,
+  height,
+  scrollOffset = 0,
+  focused: detailFocused = true,
+}: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Wiki link resolver: resolves [[target]] to the node's display title
@@ -230,7 +258,12 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0, focused: detail
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
         {/* Title header — yellow bg when focused, dim yellow text when inactive */}
-        <Box flexDirection="column" width={fullWidth} backgroundColor={detailFocused ? "yellow" : undefined} paddingX={1}>
+        <Box
+          flexDirection="column"
+          width={fullWidth}
+          backgroundColor={detailFocused ? "yellow" : undefined}
+          paddingX={1}
+        >
           {/* Location breadcrumb */}
           {projectPath.length > 0 && (
             <Text color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="truncate">
@@ -281,7 +314,10 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0, focused: detail
               return (
                 <React.Fragment key={`${child.id}-${i}`}>
                   {needsSpace && <Text> </Text>}
-                  <NodeLineView node={resolvedChild} displayName={stripInlineRefs(getNodeDisplayName(repo, resolvedChild))} />
+                  <NodeLineView
+                    node={resolvedChild}
+                    displayName={stripInlineRefs(getNodeDisplayName(repo, resolvedChild))}
+                  />
                 </React.Fragment>
               )
             }
@@ -649,6 +685,28 @@ function DetailSubitems({
             </React.Fragment>
           )
         }
+        // Completed items: fold to single dimmed line with child count
+        if (isDone) {
+          const kidCount = repo.getChildren(displayItem !== item ? (item.link_to ?? item.id) : item.id).length
+          return (
+            <React.Fragment key={`${item.id}-${idx}`}>
+              <Box>
+                <Text dimColor>{"─".repeat(innerWidth)}</Text>
+              </Box>
+              <Box flexDirection="row" width={innerWidth}>
+                <Box width={2} flexShrink={0}>
+                  <Text dimColor>{icon.char}</Text>
+                </Box>
+                <Box flexGrow={1} flexShrink={1}>
+                  <Text dimColor wrap="truncate">
+                    {stripInlineRefs(getNodeDisplayName(repo, displayItem))}
+                    {kidCount > 0 ? ` ··· ${kidCount}` : ""}
+                  </Text>
+                </Box>
+              </Box>
+            </React.Fragment>
+          )
+        }
         // For embeds, get children from the target node (transclusion)
         const resolvedId = displayItem !== item ? displayItem.id : item.id
         const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
@@ -663,8 +721,12 @@ function DetailSubitems({
         const kidItems = [...kidLiItems, ...kidOiItems]
         const dueBadge = displayItem.due_at ? ` ${formatDate(decomposeDatetime(displayItem.due_at)?.date).text}` : ""
         const assigneeBadge = displayItem.assigned_to ? ` @${displayItem.assigned_to}` : ""
+        const isMultiLine = kidBody.length > 0 || kidItems.length > 0
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
+            {/* Extra spacing before multi-line items */}
+            {idx > 0 && isMultiLine && <Text> </Text>}
+
             {/* Separator above each subitem */}
             <Box>
               <Text dimColor>{"─".repeat(innerWidth)}</Text>
@@ -697,17 +759,18 @@ function DetailSubitems({
                 <Box flexDirection="row" width={innerWidth}>
                   <Box width={2} flexShrink={0} />
                   <Box flexGrow={1} flexShrink={1}>
-                    <Text wrap="wrap" dimColor>
-                      {renderRich(b.content ?? "")}
-                    </Text>
+                    <Text wrap="wrap">{renderRich(b.content ?? "")}</Text>
                   </Box>
                 </Box>
               </React.Fragment>
             ))}
 
+            {/* Spacing after body content */}
+            {kidBody.length > 0 && <Text> </Text>}
+
             {/* Sub-subitems — outline tree, single line each */}
             {kidItems.length > 0 && (
-              <Box flexDirection="column" marginTop={kidBody.length > 0 ? 1 : 0}>
+              <Box flexDirection="column">
                 <OutlineTree repo={repo} items={kidItems} depth={1} innerWidth={innerWidth} />
               </Box>
             )}
@@ -750,11 +813,15 @@ function OutlineTree({
         const kidItems = [...kidLiItems, ...kidOiItems]
         const hiddenCount = depth >= 3 ? repo.getChildren(childrenSourceId).length : 0
 
-        // Single-line body preview: first non-empty line, truncated
-        const bodyPreview = bodyNodes
-          .map((b) => (b.content ?? "").split("\n")[0]?.trim())
-          .filter(Boolean)
-          .join(" ")
+        // Single-line body preview: first non-empty line, truncated, URLs stripped
+        const bodyPreview =
+          bodyNodes
+            .map((b) => (b.content ?? "").split("\n")[0]?.trim())
+            .filter(Boolean)
+            .join(" ")
+            .replace(/<(https?:\/\/[^>]+)>/g, "")
+            .replace(/https?:\/\/\S+/g, "")
+            .trim() || undefined
 
         return (
           <React.Fragment key={`${item.id}-${idx}`}>

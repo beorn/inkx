@@ -54,9 +54,6 @@ const STRIKETHROUGH_REGEX = /~~([^~]+)~~/g
  */
 const BARE_URL_REGEX = /(?<!;;)https?:\/\/[^\s<>\[\]()]+[^\s<>\[\]().,;:!?'")\]]/g
 
-/** HTML tags */
-const HTML_TAG_REGEX = /<[^>]+>/g
-
 /** Draft/tentative content patterns */
 const DRAFT_PREFIX_REGEX = /^(Draft|WIP|TODO|FIXME):\s*/i
 
@@ -238,8 +235,10 @@ export function processText(text: string, options: TextPipelineOptions): string 
     result = result.replace(PROP_REGEX, "")
   }
 
-  // ── Step 3: Strip HTML tags ──
-  result = result.replace(HTML_TAG_REGEX, "")
+  // ── Step 2.5: Convert CommonMark autolinks <URL> to bare URLs ──
+  // Autolinks use angle brackets like HTML, but contain URLs — convert to bare form
+  // so Step 6 can style them. Other angle-bracket content (actual HTML) is left as-is.
+  result = result.replace(/<(https?:\/\/[^>]+)>/g, "$1")
 
   // ── Step 4: Handle markdown links [text](url) ──
   // External links: cyan + underline + OSC 8 hyperlink for clickable URLs
