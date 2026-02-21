@@ -14,6 +14,7 @@ import React from "react"
 import { Text } from "inkx"
 import { hyperlink } from "chalkx"
 import { getTermColor } from "./colors.ts"
+import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
 import type {
   BareURLNode,
@@ -55,6 +56,8 @@ export interface InlineRenderContext {
   stripKnownMentions?: boolean
   /** Resolve wiki link targets to display titles */
   resolveWikiLink?: (target: string) => string | null
+  /** Strip all foreground colors (for selected/highlighted items) */
+  noColor?: boolean
 }
 
 const InlineRenderCtx = React.createContext<InlineRenderContext>({})
@@ -98,10 +101,15 @@ export function InlineStrikethrough({ node }: { node: StrikethroughNode }): Reac
 }
 
 export function InlineCode({ node }: { node: CodeNode }): React.ReactElement {
-  return <Text color="cyan">{node.code}</Text>
+  const ctx = useInlineRenderContext()
+  return <Text color={ctx.noColor ? undefined : "cyan"}>{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
+  const ctx = useInlineRenderContext()
+  if (ctx.noColor) {
+    return <Text underline>{node.text}</Text>
+  }
   // OSC 8 hyperlink wrapping for clickable URLs in supporting terminals
   return <Text>{hyperlink(`\x1b[36;4m${node.text}\x1b[0m`, node.url)}</Text>
 }
@@ -110,7 +118,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const ctx = useInlineRenderContext()
   const display = node.alias ?? ctx.resolveWikiLink?.(node.target) ?? node.target
   return (
-    <Text color="green" underline>
+    <Text color={ctx.noColor ? undefined : "green"} underline>
       {display}
     </Text>
   )
@@ -158,10 +166,11 @@ export function InlineProject({ node }: { node: ProjectNode }): React.ReactEleme
 }
 
 export function InlineField({ node }: { node: InlineFieldNode }): React.ReactElement {
-  const styledValue = colorFieldValue(node.value.trim())
+  const ctx = useInlineRenderContext()
+  const styledValue = ctx.noColor ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color="cyan">
+      <Text dim color={ctx.noColor ? undefined : "cyan"}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>
@@ -171,7 +180,11 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
 }
 
 export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactElement {
+  const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
+  if (ctx.noColor) {
+    return <Text underline>{display}</Text>
+  }
   return <Text>{hyperlink(`\x1b[36;2;4m${display}\x1b[0m`, node.url)}</Text>
 }
 
@@ -234,12 +247,45 @@ export function InlineNodeView({ node }: { node: InlineNode }): React.ReactEleme
 /** Render a sigil with its resolved color, or plain if unresolved */
 function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   const ctx = useInlineRenderContext()
+  if (ctx.noColor) return <Text>{sigil}</Text>
   const color = ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil)
 
   if (color) {
     return <Text>{getTermColor(color)(sigil)}</Text>
   }
   return <Text>{sigil}</Text>
+}
+
+// =============================================================================
+// High-level InlineText component
+// =============================================================================
+
+/**
+ * Render inline markdown text as JSX.
+ *
+ * Parses text into an AST and renders via InlineNodes.
+ * Drop-in replacement for `renderRich(text, options)` usage.
+ *
+ * Usage:
+ *   <InlineText text="**bold** @user [[link]]" />
+ *   <InlineText text={title} context={{ excludeSigils: new Set(["@issue"]) }} />
+ */
+export function InlineText({
+  text,
+  context,
+}: {
+  text: string
+  context?: InlineRenderContext
+}): React.ReactElement {
+  const nodes = React.useMemo(() => parseInlineText(text), [text])
+  if (context) {
+    return (
+      <InlineRenderProvider value={context}>
+        <InlineNodes nodes={nodes} />
+      </InlineRenderProvider>
+    )
+  }
+  return <InlineNodes nodes={nodes} />
 }
 
 /** Color an inline field value by its type */

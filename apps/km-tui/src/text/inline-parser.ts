@@ -1,0 +1,285 @@
+/**
+ * Inline Text Parser
+ *
+ * Parses raw inline markdown text into InlineNode[] AST using mdast.
+ * Standard markdown (bold, italic, code, links, strikethrough) is handled
+ * by mdast's parser. km-specific syntax (wikilinks, @mentions, #tags,
+ * +projects, fields, block refs) is recognized in post-processing of
+ * mdast `text` nodes.
+ *
+ * This replaces the regex text pipeline's sequential passes.
+ */
+
+import { fromMarkdown } from "mdast-util-from-markdown"
+import { gfmFromMarkdown } from "mdast-util-gfm"
+import { gfm } from "micromark-extension-gfm"
+import type { PhrasingContent, Root } from "mdast"
+import type { InlineNode } from "./inline-ast-types.ts"
+
+// =============================================================================
+// mdast → InlineNode[] conversion
+// =============================================================================
+
+/**
+ * Convert mdast phrasing content nodes to InlineNode[].
+ * Handles: text, emphasis, strong, delete, inlineCode, link, image, break, html.
+ * Text nodes are post-processed for km-specific syntax.
+ */
+function phrasingToInline(nodes: PhrasingContent[]): InlineNode[] {
+  const result: InlineNode[] = []
+  for (const node of nodes) {
+    switch (node.type) {
+      case "text":
+        result.push(...parseKmSyntax(node.value))
+        break
+      case "strong":
+        result.push({ type: "bold", children: phrasingToInline(node.children) })
+        break
+      case "emphasis":
+        result.push({ type: "italic", children: phrasingToInline(node.children) })
+        break
+      case "delete":
+        result.push({ type: "strikethrough", children: phrasingToInline(node.children) })
+        break
+      case "inlineCode":
+        result.push({ type: "code", code: node.value })
+        break
+      case "link": {
+        const linkText = phrasingToPlainText(node.children)
+        // Bare/auto URLs: when link text equals URL, treat as bareurl for prettified display
+        if (linkText === node.url) {
+          result.push({ type: "bareurl", url: node.url })
+        } else {
+          result.push({ type: "link", text: linkText, url: node.url })
+        }
+        break
+      }
+        break
+      case "image":
+        // Render as a link to the image
+        result.push({
+          type: "link",
+          text: node.alt ?? "image",
+          url: node.url,
+        })
+        break
+      case "html":
+        // Inline HTML: render as plain text (strip tags)
+        result.push({ type: "plain", text: node.value.replace(/<[^>]+>/g, "") })
+        break
+      case "break":
+        result.push({ type: "plain", text: "\n" })
+        break
+    }
+  }
+  return result
+}
+
+/** Extract plain text from phrasing content (for link text) */
+function phrasingToPlainText(nodes: PhrasingContent[]): string {
+  return nodes
+    .map((n) => {
+      switch (n.type) {
+        case "text":
+          return n.value
+        case "inlineCode":
+          return n.value
+        case "strong":
+        case "emphasis":
+        case "delete":
+          return phrasingToPlainText(n.children)
+        case "link":
+          return phrasingToPlainText(n.children)
+        default:
+          return ""
+      }
+    })
+    .join("")
+}
+
+// =============================================================================
+// km-specific syntax: wikilinks, sigils, fields, block refs, autolinks
+// =============================================================================
+
+/** Patterns for km-specific inline syntax, matched in order of priority */
+const KM_PATTERNS = [
+  // Embed block references: ![[^numericId]]
+  { re: /!\[\[\^(\d+)\]\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }) },
+  // Wiki links: ![[target]], [[target]], [[target|alias]]
+  {
+    re: /(!?)\[\[([^\]]+)\]\]/g,
+    make: (m: RegExpExecArray): InlineNode => {
+      const isEmbed = m[1] === "!"
+      const inner = m[2]
+      const pipeIdx = inner.indexOf("|")
+      return {
+        type: "wikilink",
+        target: pipeIdx >= 0 ? inner.slice(0, pipeIdx) : inner,
+        alias: pipeIdx >= 0 ? inner.slice(pipeIdx + 1) : undefined,
+        isEmbed,
+      }
+    },
+  },
+  // Bracketed inline fields: [key:: value]
+  { re: /\[(\w+)::\s*([^\]]*)\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1], value: m[2] }) },
+  // Bare key:: value properties
+  {
+    re: /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi,
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1], value: m[2].trim() }),
+  },
+  // Standalone block refs: ^numericId (10+ digits, outside wikilinks)
+  {
+    re: /\^(\d{10,})/g,
+    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
+    // Skip if inside a wikilink
+    skipIf: (m: RegExpExecArray, text: string) => {
+      const before = text.slice(0, m.index!)
+      const lastOpen = before.lastIndexOf("[[")
+      const lastClose = before.lastIndexOf("]]")
+      return lastOpen > lastClose
+    },
+  },
+]
+
+/** Sigil pattern: @mentions, #tags, +projects */
+const SIGIL_RE = /([@#\+])([\p{L}\p{N}_-]+)/gu
+
+/**
+ * Parse km-specific syntax from a text node.
+ * Finds wikilinks, fields, block refs first, then sigils in remaining text.
+ */
+function parseKmSyntax(text: string): InlineNode[] {
+  // Collect all non-overlapping matches
+  type Match = { start: number; end: number; node: InlineNode }
+  const matches: Match[] = []
+
+  const addIfFree = (start: number, end: number, node: InlineNode) => {
+    for (const m of matches) {
+      if (start < m.end && end > m.start) return
+    }
+    matches.push({ start, end, node })
+  }
+
+  for (const pattern of KM_PATTERNS) {
+    pattern.re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = pattern.re.exec(text)) !== null) {
+      if (pattern.skipIf?.(m, text)) continue
+      addIfFree(m.index, m.index + m[0].length, pattern.make(m))
+    }
+  }
+
+  // Sigils in remaining text
+  SIGIL_RE.lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = SIGIL_RE.exec(text)) !== null) {
+    const prefix = m[1]
+    const name = m[2]
+    const node: InlineNode =
+      prefix === "@" ? { type: "mention", name } : prefix === "#" ? { type: "tag", name } : { type: "project", name }
+    addIfFree(m.index, m.index + m[0].length, node)
+  }
+
+  if (matches.length === 0) {
+    return text ? [{ type: "plain", text }] : []
+  }
+
+  // Sort by position and interleave with plain text
+  matches.sort((a, b) => a.start - b.start)
+  const result: InlineNode[] = []
+  let pos = 0
+  for (const match of matches) {
+    if (match.start > pos) {
+      result.push({ type: "plain", text: text.slice(pos, match.start) })
+    }
+    result.push(match.node)
+    pos = match.end
+  }
+  if (pos < text.length) {
+    result.push({ type: "plain", text: text.slice(pos) })
+  }
+  return result
+}
+
+// =============================================================================
+// Public API
+// =============================================================================
+
+/**
+ * Parse inline markdown text into an AST.
+ *
+ * Uses mdast for standard markdown (bold, italic, code, links, strikethrough),
+ * then post-processes text nodes for km-specific syntax (wikilinks, sigils,
+ * fields, block refs).
+ *
+ * Usage:
+ *   const nodes = parseInlineText("**bold** and @user")
+ *   // → [{ type: "bold", children: [{ type: "plain", text: "bold" }] },
+ *   //    { type: "plain", text: " and " },
+ *   //    { type: "mention", name: "user" }]
+ */
+export function parseInlineText(text: string): InlineNode[] {
+  if (!text) return []
+
+  // Parse as a paragraph using mdast
+  const tree: Root = fromMarkdown(text, {
+    extensions: [gfm()],
+    mdastExtensions: [gfmFromMarkdown()],
+  })
+
+  // The tree contains block-level nodes. For inline text, we expect
+  // a single paragraph with phrasing content children.
+  const para = tree.children[0]
+  if (!para || para.type !== "paragraph" || !("children" in para)) {
+    // Fallback: if mdast doesn't produce a paragraph (e.g., heading, code block),
+    // treat the entire text as plain + km syntax
+    return parseKmSyntax(text)
+  }
+
+  return phrasingToInline(para.children)
+}
+
+/**
+ * Convenience: parse inline text and flatten to plain text in one step.
+ * Replaces `renderPlain(text)` for consumers that just need plain text.
+ */
+export function parseToPlainText(text: string): string {
+  return inlineNodesToPlainText(parseInlineText(text))
+}
+
+/**
+ * Flatten an InlineNode[] to plain text (no formatting, no metadata).
+ * Useful for search indexing and measurement.
+ */
+export function inlineNodesToPlainText(nodes: InlineNode[]): string {
+  return nodes
+    .map((node) => {
+      switch (node.type) {
+        case "plain":
+          return node.text
+        case "bold":
+        case "italic":
+        case "strikethrough":
+          return inlineNodesToPlainText(node.children)
+        case "code":
+          return node.code
+        case "link":
+          return node.text
+        case "wikilink":
+          return node.alias ?? node.target
+        case "mention":
+          return `@${node.name}`
+        case "tag":
+          return `#${node.name}`
+        case "project":
+          return `+${node.name}`
+        case "field":
+          return "" // metadata, not display text
+        case "blockref":
+          return "" // metadata, not display text
+        case "bareurl":
+          return node.url
+      }
+    })
+    .join("")
+}

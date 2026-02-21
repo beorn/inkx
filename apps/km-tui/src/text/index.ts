@@ -66,6 +66,11 @@ export {
   type UnderlineStyle,
 } from "chalkx"
 
+// Inline AST (parser + types + components)
+export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"
+export type { InlineNode } from "./inline-ast-types.ts"
+export { InlineNodes, InlineText, InlineRenderProvider, type InlineRenderContext } from "./InlineComponents.tsx"
+
 // Board color system
 export {
   GTD_BOARD_COLORS,
