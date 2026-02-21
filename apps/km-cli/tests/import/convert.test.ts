@@ -17,9 +17,11 @@ import {
   convert,
   decodeHtmlEntities,
   itemToNodes,
+  normalizeImportText,
   prettifyTitle,
   slugify,
   stripHtmlTags,
+  unescapeTurndownArtifacts,
 } from "../../src/import/convert.ts"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
@@ -2873,5 +2875,363 @@ describe("Primary entries for tag-only and user-only tasks", () => {
 
     // Task was rendered in project file, so user file has embed ref
     expect(md).toContain("assigned-task")
+  })
+})
+
+// ============================================================================
+// #12-#18: Turndown escaping cleanup (unescapeTurndownArtifacts)
+// ============================================================================
+
+describe("unescapeTurndownArtifacts", () => {
+  test("#12: unescapes escaped dashes \\-", () => {
+    expect(unescapeTurndownArtifacts("foo\\-bar")).toBe("foo-bar")
+    expect(unescapeTurndownArtifacts("\\-leading")).toBe("-leading")
+    expect(unescapeTurndownArtifacts("multiple\\-escaped\\-dashes")).toBe("multiple-escaped-dashes")
+  })
+
+  test("#13: unescapes escaped brackets \\[ and \\]", () => {
+    expect(unescapeTurndownArtifacts("see \\[details\\]")).toBe("see [details]")
+    expect(unescapeTurndownArtifacts("\\[link\\](url)")).toBe("[link](url)")
+  })
+
+  test("#14: unescapes escaped underscores \\_", () => {
+    expect(unescapeTurndownArtifacts("pg\\_dump")).toBe("pg_dump")
+    expect(unescapeTurndownArtifacts("some\\_var\\_name")).toBe("some_var_name")
+  })
+
+  test("#16: unescapes escaped HRs \\--- at start of line", () => {
+    expect(unescapeTurndownArtifacts("\\---")).toBe("---")
+    expect(unescapeTurndownArtifacts("text\n\\---\nmore")).toBe("text\n---\nmore")
+  })
+
+  test("#18: unescapes \\*) patterns", () => {
+    expect(unescapeTurndownArtifacts("item \\*)")).toBe("item *)")
+  })
+
+  test("unescapes stray \\* (escaped asterisks)", () => {
+    expect(unescapeTurndownArtifacts("5 \\* 3 = 15")).toBe("5 * 3 = 15")
+  })
+
+  test("handles all escaping patterns in a single string", () => {
+    const input = "pg\\_dump \\-v \\[option\\] \\*)"
+    expect(unescapeTurndownArtifacts(input)).toBe("pg_dump -v [option] *)")
+  })
+
+  test("leaves already-clean text unchanged", () => {
+    expect(unescapeTurndownArtifacts("normal text")).toBe("normal text")
+    expect(unescapeTurndownArtifacts("dash-separated")).toBe("dash-separated")
+    expect(unescapeTurndownArtifacts("[real link](url)")).toBe("[real link](url)")
+  })
+})
+
+// ============================================================================
+// normalizeImportText (asset proxy, redundant links, bullets, whitespace)
+// ============================================================================
+
+describe("normalizeImportText", () => {
+  test("#10: converts asset-wrapped real URLs to autolinks", () => {
+    const input = "[https://youtube.com/watch?v=abc](https://app.asana.com/app/asana/-/get_asset?asset_id=12345)"
+    expect(normalizeImportText(input)).toBe("<https://youtube.com/watch?v=abc>")
+  })
+
+  test("#10: converts descriptive-text asset links to text + placeholder", () => {
+    const input = "[My Document](https://app.asana.com/app/asana/-/get_asset?asset_id=99999)"
+    expect(normalizeImportText(input)).toBe("My Document [Asana asset]")
+  })
+
+  test("#10: replaces bare asset proxy URLs with placeholder", () => {
+    const input = "See https://app.asana.com/app/asana/-/get_asset?asset_id=12345 for file"
+    expect(normalizeImportText(input)).toBe("See [Asana asset] for file")
+  })
+
+  test("#15: converts redundant [url](url) to autolink", () => {
+    const input = "[https://example.com/page](https://example.com/page)"
+    expect(normalizeImportText(input)).toBe("<https://example.com/page>")
+  })
+
+  test("#15: preserves [text](url) when text differs from url", () => {
+    const input = "[click here](https://example.com/page)"
+    expect(normalizeImportText(input)).toBe("[click here](https://example.com/page)")
+  })
+
+  test("normalizes *-bullets to - bullets", () => {
+    const input = "* First\n* Second\n* Third"
+    const result = normalizeImportText(input)
+    expect(result).toContain("- First")
+    expect(result).toContain("- Second")
+    expect(result).not.toMatch(/^\* /m)
+  })
+
+  test("normalizes 4-space list indent to 2-space", () => {
+    const input = "-   First item\n    -   Nested item"
+    const result = normalizeImportText(input)
+    expect(result).toContain("- First item")
+    expect(result).toContain("- Nested item")
+  })
+
+  test("normalizes bare [] checkboxes to [ ]", () => {
+    const input = "- [] unchecked task\n- [x] done task"
+    const result = normalizeImportText(input)
+    expect(result).toContain("- [ ] unchecked task")
+    expect(result).toContain("- [x] done task")
+  })
+
+  test("collapses 3+ blank lines to 2", () => {
+    const input = "first\n\n\n\nsecond"
+    expect(normalizeImportText(input)).toBe("first\n\nsecond")
+  })
+
+  test("applies Turndown unescaping", () => {
+    const input = "pg\\_dump \\-v"
+    expect(normalizeImportText(input)).toBe("pg_dump -v")
+  })
+})
+
+// ============================================================================
+// #9: Project/view URL conversion
+// ============================================================================
+
+describe("Asana project URL conversion (#9)", () => {
+  test("converts project list view URL to block ref", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "See https://app.asana.com/0/1234567890/list for board",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^1234567890]]")
+    expect(md).not.toContain("app.asana.com")
+  })
+
+  test("converts project board view URL to block ref", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "View https://app.asana.com/0/9876543210/board here",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^9876543210]]")
+  })
+
+  test("converts project timeline view URL to block ref", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "Check https://app.asana.com/0/555/timeline",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^555]]")
+  })
+
+  test("converts markdown link with project URL to block ref", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "[Project Board](https://app.asana.com/0/111222/board)",
+        },
+      ]),
+    )
+    expect(md).toContain("[[^111222]]")
+    expect(md).not.toContain("Project Board")
+  })
+
+  test("does not confuse task URL with project URL", () => {
+    // Task URL: /0/{projectGid}/{taskGid} — should capture taskGid, not projectGid
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          body: "See https://app.asana.com/0/111/222",
+        },
+      ]),
+    )
+    // The task URL pattern should match and capture 222 (task GID)
+    expect(md).toContain("[[^222]]")
+  })
+})
+
+// ============================================================================
+// #10: Asset proxy URL handling in full pipeline
+// ============================================================================
+
+describe("Asset proxy URLs in full pipeline (#10)", () => {
+  test("asset proxy URL in body is replaced with placeholder", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with dead asset",
+          body: "Download from https://app.asana.com/app/asana/-/get_asset?asset_id=123456 please",
+        },
+      ]),
+    )
+    expect(md).toContain("[Asana asset]")
+    expect(md).not.toContain("get_asset")
+  })
+
+  test("asset proxy URL in comment is replaced with placeholder", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "See https://app.asana.com/app/asana/-/get_asset?asset_id=999 for the file",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("[Asana asset]")
+    expect(md).not.toContain("get_asset")
+  })
+
+  test("attachment with asset proxy URL and non-URL name shows placeholder", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        attachments: [
+          {
+            name: "Quarterly Report",
+            url: "https://app.asana.com/app/asana/-/get_asset?asset_id=555",
+            type: "file",
+          },
+        ],
+      },
+      "parent",
+      nodes,
+    )
+    const attachNode = nodes.find((n) => n.parent_id === "attachments-t1")!
+    expect(attachNode.content).toBe("Quarterly Report [Asana asset]")
+  })
+
+  test("attachment with asset proxy URL and URL name uses name as href", () => {
+    const nodes: import("@km/core").KNode[] = []
+    const counter = { value: 0 }
+    itemToNodes(
+      counter,
+      {
+        sourceId: "t1",
+        title: "Task",
+        attachments: [
+          {
+            name: "https://youtube.com/watch?v=abc",
+            url: "https://app.asana.com/app/asana/-/get_asset?asset_id=555",
+            type: "link",
+          },
+        ],
+      },
+      "parent",
+      nodes,
+    )
+    const attachNode = nodes.find((n) => n.parent_id === "attachments-t1")!
+    // Name is a URL, so it should become the bare URL (name === href)
+    expect(attachNode.content).toBe("https://youtube.com/watch?v=abc")
+  })
+})
+
+// ============================================================================
+// #17: Comment text cleanup (normalizeImportText applied to comments)
+// ============================================================================
+
+describe("Comment text cleanup (#17)", () => {
+  test("comment text gets Turndown unescaping", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Run pg\\_dump \\-v to export",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("pg_dump -v")
+    expect(md).not.toContain("\\_")
+    expect(md).not.toContain("\\-")
+  })
+
+  test("comment text gets redundant link cleanup", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "bob",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "See [https://example.com/doc](https://example.com/doc)",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("<https://example.com/doc>")
+    expect(md).not.toMatch(/\[https:\/\/example\.com\/doc\]\(https:\/\/example\.com\/doc\)/)
+  })
+
+  test("comment text gets Asana link conversion", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Blocked by https://app.asana.com/0/123/456",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("[[^456]]")
+    expect(md).not.toContain("app.asana.com")
+  })
+
+  test("comment text gets bullet normalization", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Items:\n* First\n* Second",
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("- First")
+    expect(md).toContain("- Second")
   })
 })

@@ -175,7 +175,6 @@ export function buildPrefix(bulletIcon: StatusIcon): PrefixResult {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-const RED = "\x1b[31m"
 const RED_BOLD = "\x1b[1;31m"
 const GREEN = "\x1b[32m"
 const DIM_CYAN = "\x1b[2;36m"

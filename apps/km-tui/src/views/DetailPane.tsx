@@ -468,7 +468,7 @@ interface MetadataTableProps {
 
 function MetadataTable({
   node,
-  isDone,
+  isDone: _isDone,
   statusInfo,
   dueDate,
   dueParts,

@@ -225,18 +225,18 @@ import { FlexRow } from "../constraints"
 **Key principle:** Render styling before truncation.
 
 ```
-Raw markdown → renderRich() → styled ANSI → constrainText() → <Text>
+Raw markdown → parseInlineText(raw) → InlineNode[] → <InlineText text={raw} />
 ```
 
-### Layer 1: Render Rich Text
+### Layer 1: Parse and Render Inline Text
 
-Convert markdown to styled ANSI string:
+Convert markdown to an AST and render as React components:
 
-```typescript
-import { renderRich } from "../text/rich.ts"
+```tsx
+import { InlineText } from "../text/index.ts"
 
-const styled = renderRich("**bold** and _italic_")
-// Returns: "\x1b[1mbold\x1b[22m and \x1b[3mitalic\x1b[23m"
+// In JSX:
+<InlineText text="**bold** and _italic_" />
 ```
 
 ### Layer 2: Constrain Text
@@ -299,7 +299,7 @@ Interactive component catalog with j/k section navigation, q to quit.
 **Important:** The storybook must use production rendering code exclusively. It should never use `chalk` or raw Ink primitives (`<Text color=...>`) to implement styling directly. Instead:
 
 - Use production components: `TreeNode`, `ListView`, `ColumnsView`, `TabsView`
-- Use production functions: `renderRich()`, `getStatusIcon()`, `colorize()`
+- Use production components/functions: `InlineText`, `getStatusIcon()`, `colorize()`
 - Use production layout helpers: `wrapText()`, `truncateText()`, `constrainText()`
 
 **Why?** If storybook implements its own styling, it shows output that doesn't match the actual app. Bugs in production rendering go undetected (e.g., the storybook might claim done tasks have strikethrough while the actual TreeNode doesn't apply it).
