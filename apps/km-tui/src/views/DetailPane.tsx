@@ -31,23 +31,25 @@ export interface DetailPaneProps {
   width: number
   height: number
   scrollOffset?: number
+  /** Whether this pane has keyboard focus (bright cursor when true, dim when false) */
+  focused?: boolean
 }
 
-export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
+export function DetailPane({ node, width, height, scrollOffset = 0, focused = true }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Resolve embedded links to show the target node's details
   const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
   if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
-    return <FolderDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} />
+    return <FolderDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
   }
-  return <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} />
+  return <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
 }
 
 // =============================================================================
 // Folder Detail Pane — outline of folder contents
 // =============================================================================
 
-function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
+function FolderDetailPane({ node, width, height, scrollOffset = 0, focused: detailFocused = true }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
@@ -82,12 +84,13 @@ function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneP
       height={height}
       borderStyle="round"
       borderColor="yellow"
+      borderDimColor={!detailFocused}
       backgroundColor="black"
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title — yellow bg spans full width, text padded */}
-        <Box width={fullWidth} backgroundColor="yellow" paddingX={1}>
-          <Text bold color="black" wrap="wrap">
+        {/* Title — yellow bg spans full width, text padded; dim when detail pane is not focused */}
+        <Box width={fullWidth} backgroundColor={detailFocused ? "yellow" : undefined} paddingX={1}>
+          <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
             {renderRich(title)}
           </Text>
         </Box>
@@ -139,7 +142,7 @@ function FolderDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneP
 // Task Detail Pane — task/note details
 // =============================================================================
 
-function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
+function TaskDetailPane({ node, width, height, scrollOffset = 0, focused: detailFocused = true }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Wiki link resolver: resolves [[target]] to the node's display title
@@ -222,20 +225,21 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
       height={height}
       borderStyle="round"
       borderColor="yellow"
+      borderDimColor={!detailFocused}
       backgroundColor="black"
     >
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title header — yellow bg spans full width, text padded */}
-        <Box flexDirection="column" width={fullWidth} backgroundColor="yellow" paddingX={1}>
+        {/* Title header — yellow bg when focused, dim yellow text when inactive */}
+        <Box flexDirection="column" width={fullWidth} backgroundColor={detailFocused ? "yellow" : undefined} paddingX={1}>
           {/* Location breadcrumb */}
           {projectPath.length > 0 && (
-            <Text color="black" wrap="truncate">
+            <Text color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="truncate">
               {projectPath.join(" / ")}
             </Text>
           )}
 
           {/* Title — renderRich styles sigils but keeps all content visible */}
-          <Text bold color="black" wrap="wrap">
+          <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
             {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
             {renderRich(title)}
           </Text>
@@ -272,16 +276,14 @@ function TaskDetailPane({ node, width, height, scrollOffset = 0 }: DetailPanePro
             const needsSpace = prev != null && (prev.type !== child.type || child.type === "p")
 
             // Context-dependent rendering: embeds resolve to target and render as inline items
-            if (child.link_to) {
-              const target = repo.getNode(child.link_to)
-              if (target) {
-                return (
-                  <React.Fragment key={`${child.id}-${i}`}>
-                    {needsSpace && <Text> </Text>}
-                    <NodeLineView node={target} displayName={stripInlineRefs(getNodeDisplayName(repo, target))} />
-                  </React.Fragment>
-                )
-              }
+            const resolvedChild = resolveEmbed(repo, child)
+            if (resolvedChild !== child) {
+              return (
+                <React.Fragment key={`${child.id}-${i}`}>
+                  {needsSpace && <Text> </Text>}
+                  <NodeLineView node={resolvedChild} displayName={stripInlineRefs(getNodeDisplayName(repo, resolvedChild))} />
+                </React.Fragment>
+              )
             }
 
             return (
@@ -566,6 +568,45 @@ function MetadataTable({
 }
 
 // =============================================================================
+// Embed Resolution Helper
+// =============================================================================
+
+/** Wiki link pattern: ![[target]] or [[target]] with optional alias */
+const WIKI_EMBED_RE = /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/
+
+/**
+ * Resolve a node that might be an unresolved embed.
+ * Heading embeds like `### [x] ![[^GID]]` lose their link_to after parse round-trip
+ * because the heading parser doesn't detect embedding syntax.
+ * This helper checks the node's title/content for ![[...]] and resolves the target.
+ */
+function resolveEmbed(repo: Repo, node: KNode): KNode {
+  // Already resolved via link_to
+  if (node.link_to) {
+    return repo.getNode(node.link_to) ?? node
+  }
+  // Check if title/content is an embed wiki link
+  const text = node.title ?? node.content ?? ""
+  const match = text.match(WIKI_EMBED_RE)
+  if (!match) return node
+
+  const target = match[1]?.trim()
+  if (!target) return node
+
+  // Try resolving: ^blockId → strip ^ and look up by ID
+  if (target.startsWith("^")) {
+    const id = target.slice(1)
+    const resolved = repo.resolveNode(id) ?? repo.getNode(id)
+    if (resolved) return resolved
+  }
+  // Try as-is (path, name, ID)
+  const resolved = repo.resolveNode(target)
+  if (resolved) return resolved
+
+  return node
+}
+
+// =============================================================================
 // Detail Subitems — line-separated items with outline tree for nested children
 // =============================================================================
 
@@ -582,7 +623,7 @@ function DetailSubitems({
     <>
       {items.map((item, idx) => {
         // Context-dependent rendering: resolve embed targets for display
-        const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
+        const displayItem = resolveEmbed(repo, item)
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         // Collapsed sections render muted with just the title + count
@@ -591,11 +632,9 @@ function DetailSubitems({
           const kidCount = repo.getChildren(item.id).length
           return (
             <React.Fragment key={`${item.id}-${idx}`}>
-              <Text> </Text>
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Text> </Text>
               <Box flexDirection="row" width={innerWidth}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
@@ -611,7 +650,8 @@ function DetailSubitems({
           )
         }
         // For embeds, get children from the target node (transclusion)
-        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : item.id
+        const resolvedId = displayItem !== item ? displayItem.id : item.id
+        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
         const allKids = repo.getChildren(childrenSourceId)
         const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
         const kidBody: KNode[] = []
@@ -625,12 +665,10 @@ function DetailSubitems({
         const assigneeBadge = displayItem.assigned_to ? ` @${displayItem.assigned_to}` : ""
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
-            {/* Blank line + separator + blank line above each subitem */}
-            <Text> </Text>
+            {/* Separator above each subitem */}
             <Box>
               <Text dimColor>{"─".repeat(innerWidth)}</Text>
             </Box>
-            <Text> </Text>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
             <Box flexDirection="row" width={innerWidth}>
@@ -699,11 +737,12 @@ function OutlineTree({
         // Collapsed sections are hidden from the outline tree
         if (item.rules?.collapse === true) return null
         // Context-dependent rendering: resolve embed targets for display
-        const displayItem = item.link_to ? (repo.getNode(item.link_to) ?? item) : item
+        const displayItem = resolveEmbed(repo, item)
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const title = stripInlineRefs(getNodeDisplayName(repo, displayItem))
-        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : item.id
+        const resolvedId = displayItem !== item ? displayItem.id : item.id
+        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
         const allKids = depth < 3 ? repo.getChildren(childrenSourceId) : []
         const { body: kidBody, items: kidOiItems } = extractBody(allKids)
         const kidLiItems = kidBody.filter((k) => k.type === "li")
