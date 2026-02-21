@@ -71,13 +71,13 @@ bun km import asana --dry-run
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `asana-api.ts` | Asana REST API client, fetch orchestration, workspace resolution |
-| `asana-client.ts` | Low-level HTTP client with rate limiting and retries |
-| `asana-types.ts` | Asana API type definitions, turndown (HTML to markdown) config |
-| `asana-file.ts` | Parser for Asana's "Export to JSON" file format |
-| `asana-adapter.ts` | ImportAdapter interface implementation |
-| `asana-discovery.ts` | Workspace/project listing for discovery mode |
-| `task-transform.ts` | Asana API task to ImportItem conversion |
-| `comment-filter.ts` | Filters system/audit-log comments from real user comments |
+| File                 | Purpose                                                          |
+| -------------------- | ---------------------------------------------------------------- |
+| `asana-api.ts`       | Asana REST API client, fetch orchestration, workspace resolution |
+| `asana-client.ts`    | Low-level HTTP client with rate limiting and retries             |
+| `asana-types.ts`     | Asana API type definitions, turndown (HTML to markdown) config   |
+| `asana-file.ts`      | Parser for Asana's "Export to JSON" file format                  |
+| `asana-adapter.ts`   | ImportAdapter interface implementation                           |
+| `asana-discovery.ts` | Workspace/project listing for discovery mode                     |
+| `task-transform.ts`  | Asana API task to ImportItem conversion                          |
+| `comment-filter.ts`  | Filters system/audit-log comments from real user comments        |

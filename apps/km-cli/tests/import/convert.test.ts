@@ -1653,8 +1653,8 @@ describe("Dependency mapping", () => {
 // HTML headings in Asana descriptions (km-tui.import-mangled)
 // ============================================================================
 
-describe("HTML headings preserved as markdown headings", () => {
-  test("htmlToMarkdown converts <h1> to # heading", () => {
+describe("HTML headings in body → child sub-items", () => {
+  test("htmlToMarkdown preserves headings (rebased during convert phase)", () => {
     const { htmlToMarkdown } = require("../../src/import/adapters/asana/html-to-md.ts")
     const html = "<h1>Important Section</h1><p>Some details here.</p>"
     const md = htmlToMarkdown(html)
@@ -1662,7 +1662,7 @@ describe("HTML headings preserved as markdown headings", () => {
     expect(md).toContain("Some details here.")
   })
 
-  test("htmlToMarkdown converts <h2> and <h3> to ## and ### headings", () => {
+  test("htmlToMarkdown preserves <h2> and <h3>", () => {
     const { htmlToMarkdown } = require("../../src/import/adapters/asana/html-to-md.ts")
     const html = "<h2>Sub heading</h2><h3>Sub sub heading</h3>"
     const md = htmlToMarkdown(html)
@@ -1677,12 +1677,11 @@ describe("HTML headings preserved as markdown headings", () => {
     expect(md).toContain("After empty heading.")
   })
 
-  test("body with HTML headings creates child sections on re-parse (correct behavior)", () => {
+  test("body headings become child sub-items of the task", () => {
     const { htmlToMarkdown } = require("../../src/import/adapters/asana/html-to-md.ts")
     const html = "<h1>Requirements</h1><p>Must support X and Y.</p><h2>Notes</h2><p>Additional info.</p>"
     const body = htmlToMarkdown(html).trim()
 
-    // Build an ImportItem with this body and convert to markdown
     const md = convertToMd(
       makeData([
         {
@@ -1693,18 +1692,20 @@ describe("HTML headings preserved as markdown headings", () => {
       ]),
     )
 
-    // The task heading should appear exactly once (with task marker)
+    // Task heading appears once
     const taskHeadings = md.match(/## \[[ x]\] Task with HTML headings in body/g)
     expect(taskHeadings).toHaveLength(1)
 
-    // Body headings ARE preserved as markdown headings (correct behavior with mdast)
-    expect(md).toContain("# Requirements")
+    // Body headings become child sub-items (### under the ## task)
+    expect(md).toContain("### Requirements")
     expect(md).toContain("Must support X and Y.")
-    expect(md).toContain("## Notes")
+    expect(md).toContain("### Notes")
     expect(md).toContain("Additional info.")
+    // NOT at their original depth (would break tree)
+    expect(md).not.toMatch(/^# Requirements/m)
   })
 
-  test("roundtrip: task with heading-body splits into child items (correct behavior)", () => {
+  test("roundtrip: body headings split into child items in the tree", () => {
     const { htmlToMarkdown } = require("../../src/import/adapters/asana/html-to-md.ts")
     const html = "<h1>Overview</h1><p>Details about the task.</p><h2>Steps</h2><ul><li>Step 1</li><li>Step 2</li></ul>"
     const body = htmlToMarkdown(html).trim()
@@ -1722,13 +1723,16 @@ describe("HTML headings preserved as markdown headings", () => {
     const { body: parsedBody } = extractFrontmatter(md)
     const tree = parseMarkdown(parsedBody)
 
-    // Task heading is H2, body headings become child headings in the tree
+    // Body headings become child heading nodes in the tree
     const allHeadings = tree.children.filter((n): n is Heading => n.type === "heading")
     const headingTexts = allHeadings.map((h) => h.children.map((c) => ("value" in c ? c.value : "")).join(""))
     expect(headingTexts.filter((t) => t.includes("Roundtrip heading task"))).toHaveLength(1)
-    // Body headings ARE present as headings (correct behavior with mdast)
+    // Body headings ARE present as child headings
     expect(headingTexts.some((t) => t.includes("Overview"))).toBe(true)
     expect(headingTexts.some((t) => t.includes("Steps"))).toBe(true)
+    // Content is preserved
+    expect(md).toContain("Details about the task.")
+    expect(md).toContain("Step 1")
   })
 })
 
@@ -2114,8 +2118,7 @@ describe("HTML cleanup in toImportItem (entity decoding + tag stripping)", () =>
     const task = makeAsanaTask({
       gid: "auto1",
       name: "Autolink task",
-      html_notes:
-        '<body><p>Visit <a href="https://example.com">https://example.com</a> for details</p></body>',
+      html_notes: '<body><p>Visit <a href="https://example.com">https://example.com</a> for details</p></body>',
     })
     const item = toImportItem(task)
     expect(item.body).toContain("https://example.com")
@@ -2598,9 +2601,7 @@ describe("URL-only titles prettified", () => {
   })
 
   test("prettifyTitle leaves mixed content titles unchanged", () => {
-    expect(prettifyTitle("See https://example.com for details")).toBe(
-      "See https://example.com for details",
-    )
+    expect(prettifyTitle("See https://example.com for details")).toBe("See https://example.com for details")
   })
 
   test("URL-only task title is prettified in markdown output", () => {
@@ -2819,16 +2820,12 @@ describe("Primary entries for tag-only and user-only tasks", () => {
         {
           sourceId: "proj1",
           title: "Main Project",
-          items: [
-            { sourceId: "proj-task", title: "Project task", status: "todo", tags: ["focus"] },
-          ],
+          items: [{ sourceId: "proj-task", title: "Project task", status: "todo", tags: ["focus"] }],
         },
         {
           sourceId: "proj2",
           title: "Other Project",
-          items: [
-            { sourceId: "other-task", title: "Other task", status: "done", tags: ["focus"] },
-          ],
+          items: [{ sourceId: "other-task", title: "Other task", status: "done", tags: ["focus"] }],
         },
       ],
     }

@@ -580,7 +580,9 @@ export async function fetchFromAsana(
 
       const orphanCount = allUserTasks.filter((t) => !capturedTaskGids.has(t.gid)).length
       console.log(
-        term.cyan(`  @${userSlug}: ${allUserTasks.length} tasks (${orphanCount} orphan, ${allUserTasks.length - orphanCount} in projects)`),
+        term.cyan(
+          `  @${userSlug}: ${allUserTasks.length} tasks (${orphanCount} orphan, ${allUserTasks.length - orphanCount} in projects)`,
+        ),
       )
 
       const { project: userProject } = await fetchAndSaveTaskList(

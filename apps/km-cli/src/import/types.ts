@@ -33,6 +33,8 @@ export interface ImportItem {
   sourceId: string
   title: string
   body?: string
+  /** Raw HTML from source (for re-conversion with current pipeline) */
+  htmlBody?: string
   status?: "todo" | "done" | "wip" | "blocked" | "dropped"
   createdAt?: string
   modifiedAt?: string

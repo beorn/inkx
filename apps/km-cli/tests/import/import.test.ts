@@ -416,16 +416,19 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(recur.metadata?.parentName).toBe("Weekly standup")
   })
 
-  test("html headings in notes are preserved as markdown headings", async () => {
+  test("html headings in notes are preserved (rebased during convert phase)", async () => {
     const data = await fetchFromAsana({ token: "fake-token", downloadDir })
     const edge = data.projects[2]!
     const htmlH = edge.sections![0]!.items.find((i) => i.sourceId === "task-html-headings")!
     expect(htmlH.body).toBeDefined()
-    // h1/h2 are now preserved as markdown headings (mdast preserves them)
+    // Headings are preserved in body (they'll be rebased to proper depth during convert)
     expect(htmlH.body).toContain("# Requirements")
     expect(htmlH.body).toContain("## Notes")
     expect(htmlH.body).toContain("Must support X.")
     expect(htmlH.body).toContain("Extra info.")
+    // Raw HTML is also preserved for re-conversion
+    expect(htmlH.htmlBody).toBeDefined()
+    expect(htmlH.htmlBody).toContain("<h1>Requirements</h1>")
   })
 
   test("modified_at timestamps are preserved on tasks", async () => {

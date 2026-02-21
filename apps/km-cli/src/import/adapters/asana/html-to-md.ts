@@ -16,7 +16,7 @@ import type { Nodes as MdastNode } from "mdast"
  *
  * Handles Asana-specific quirks:
  * - Bare \n treated as line breaks (Asana convention, not HTML spec)
- * - Headings in body content → bold text (preserves emphasis without breaking tree)
+ * - Headings preserved (rebased to correct depth during convert phase)
  * - Clean list bullets (- not *)
  * - No escaped underscores in URLs
  */
@@ -61,11 +61,9 @@ function preprocessAsanaHtml(html: string): string {
 }
 
 /**
- * Walk mdast tree and apply transformations.
- * Headings are preserved — km's parser will create child sections/items from them,
- * giving proper tree structure to body content.
- * `delete` nodes (from <del>/<s> tags) are unwrapped to plain text since
- * mdast-util-to-markdown doesn't handle them without the GFM extension.
+ * Walk mdast tree and apply transformations:
+ * - `delete` nodes → unwrapped to plain text (no GFM extension)
+ * Headings are preserved — they get rebased to proper depth during the convert phase.
  */
 function transformMdast(node: MdastNode): void {
   if (!("children" in node) || !Array.isArray(node.children)) return

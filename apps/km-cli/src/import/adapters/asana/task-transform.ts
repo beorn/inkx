@@ -31,6 +31,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
 
   // Prefer html_notes (rich text) over plain notes
   if (task.html_notes?.trim()) {
+    item.htmlBody = task.html_notes.trim()
     const md = htmlToMarkdown(task.html_notes)
     if (md) item.body = md.replace(BLOCKREF_INLINE_RE, "")
   } else if (task.notes?.trim()) {
@@ -219,4 +220,3 @@ export async function fetchSubtasks(client: AsanaClient, taskGid: string, opts?:
 
   return Promise.all(subtasks.map((sub) => enrichItem(client, sub, opts)))
 }
-

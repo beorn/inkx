@@ -8,14 +8,9 @@
 import type { KNode, TaskMarker, TaskStatus } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import { nodesToMarkdown } from "@km/markdown"
-import type {
-  ImportData,
-  ImportItem,
-  ImportProject,
-  ImportSection,
-  FileMap,
-} from "./types.ts"
+import type { ImportData, ImportItem, ImportProject, ImportSection, FileMap } from "./types.ts"
 import { filterSystemComment } from "./adapters/asana/comment-filter.ts"
+import { htmlToMarkdown } from "./adapters/asana/html-to-md.ts"
 
 /** Slugify a title for use as filename — preserves Unicode letters (ø, é, ñ) */
 export function slugify(title: string): string {
@@ -32,9 +27,7 @@ export function slugify(title: string): string {
  * Build a map of name → unique slug. If multiple entries produce the same slug,
  * append the GID to disambiguate.
  */
-export function buildUniqueSlugMap(
-  entries: Array<{ name: string; gid: string }>,
-): Map<string, string> {
+export function buildUniqueSlugMap(entries: Array<{ name: string; gid: string }>): Map<string, string> {
   const bySlug = new Map<string, Array<{ name: string; gid: string }>>()
   for (const e of entries) {
     const slug = slugify(e.name)
@@ -56,10 +49,7 @@ export function buildUniqueSlugMap(
 }
 
 /** Resolve a user reference to its slug — handles both display names and pre-slugified values */
-export function resolveUserSlug(
-  ref: string,
-  userSlugMap: Map<string, string>,
-): string {
+export function resolveUserSlug(ref: string, userSlugMap: Map<string, string>): string {
   // Try display name first (e.g., "Bjørn Stabell")
   const direct = userSlugMap.get(ref)
   if (direct) return direct
@@ -149,18 +139,12 @@ function mkNode(counter: IdxCounter, fields: Partial<KNode> & Pick<KNode, "id" |
  * Title + @assignee + #tags + +projects are inline text.
  * Metadata (created::, completed::) is set on data.metadata — the serializer handles formatting.
  */
-function buildTaskContent(
-  item: ImportItem,
-  currentProject?: string,
-  userSlugMap?: Map<string, string>,
-): string {
+function buildTaskContent(item: ImportItem, currentProject?: string, userSlugMap?: Map<string, string>): string {
   const prettyTitle = prettifyTitle(item.title)
   const title = item.milestone ? `◆ ${prettyTitle}` : prettyTitle
   const parts: string[] = [title]
   if (item.assignee) {
-    const slug = userSlugMap
-      ? resolveUserSlug(item.assignee, userSlugMap)
-      : slugify(item.assignee)
+    const slug = userSlugMap ? resolveUserSlug(item.assignee, userSlugMap) : slugify(item.assignee)
     parts.push(`@${slug}`)
   }
   if (item.tags?.length) parts.push(...new Set(item.tags.map((t) => `#${slugify(t)}`)))
@@ -207,13 +191,13 @@ function stripHtmlTags(text: string): string {
  */
 function unescapeTurndownArtifacts(text: string): string {
   // Unescape Turndown legacy artifacts
-  text = text.replace(/^\\---$/gm, "---")         // \--- → --- (before \- to avoid partial match)
-  text = text.replace(/\\-/g, "-")                // \- → - (all occurrences)
-  text = text.replace(/\\\[/g, "[")               // \[ → [
-  text = text.replace(/\\\]/g, "]")               // \] → ]
-  text = text.replace(/\\_/g, "_")                // \_ → _ (all occurrences, not just URLs)
-  text = text.replace(/\\\*\)/g, "*)")            // \*) → *)
-  text = text.replace(/\\\*/g, "*")               // \* → * (stray escaped asterisks)
+  text = text.replace(/^\\---$/gm, "---") // \--- → --- (before \- to avoid partial match)
+  text = text.replace(/\\-/g, "-") // \- → - (all occurrences)
+  text = text.replace(/\\\[/g, "[") // \[ → [
+  text = text.replace(/\\\]/g, "]") // \] → ]
+  text = text.replace(/\\_/g, "_") // \_ → _ (all occurrences, not just URLs)
+  text = text.replace(/\\\*\)/g, "*)") // \*) → *)
+  text = text.replace(/\\\*/g, "*") // \* → * (stray escaped asterisks)
   return text
 }
 
@@ -236,6 +220,8 @@ function normalizeImportText(text: string): string {
   text = text.replace(/^(\s*)\\?\*(\s{1,3})/gm, "$1-$2")
   // Normalize 4-space list indent to 2-space (from mdast pipeline with tab listItemIndent)
   text = text.replace(/^(\s*)-   /gm, "$1- ")
+  // Normalize bare checkboxes: [] → [ ], [x] stays [x] (standard markdown task list syntax)
+  text = text.replace(/^(\s*- )\[\]/gm, "$1[ ]")
   // Collapse 3+ consecutive blank lines to 2 (one blank line between paragraphs)
   text = text.replace(/\n{3,}/g, "\n\n")
   return text
@@ -243,6 +229,16 @@ function normalizeImportText(text: string): string {
 
 /** Build body content string (paragraph body text, not blockquote) */
 function buildBodyContent(item: ImportItem): string | null {
+  // Prefer raw HTML (re-convert with current pipeline for best quality)
+  if (item.htmlBody?.trim()) {
+    let text = htmlToMarkdown(item.htmlBody)
+    if (text) {
+      text = convertAsanaLinks(text)
+      text = normalizeImportText(text)
+      return text
+    }
+  }
+  // Fallback: pre-converted body (may have lost structure from old converters)
   if (!item.body?.trim()) return null
   let text = convertAsanaLinks(item.body.trim())
   // Clean up HTML artifacts from saved JSON
@@ -252,11 +248,43 @@ function buildBodyContent(item: ImportItem): string | null {
   return text
 }
 
+/** Split body text at markdown headings into typed sections */
+function splitBodyAtHeadings(text: string): Array<{ type: "text" | "heading"; content: string }> {
+  const lines = text.split("\n")
+  const sections: Array<{ type: "text" | "heading"; content: string }> = []
+  let currentLines: string[] = []
+  let currentType: "text" | "heading" = "text"
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^#{1,6}\s+(.+)$/)
+    if (headingMatch) {
+      // Flush accumulated text
+      if (currentLines.length > 0) {
+        const content = currentLines.join("\n").trim()
+        if (content) sections.push({ type: currentType, content })
+        currentLines = []
+      }
+      // Push heading as its own section
+      sections.push({ type: "heading", content: headingMatch[1]! })
+      currentType = "text"
+    } else {
+      currentLines.push(line)
+    }
+  }
+  // Flush remaining text
+  if (currentLines.length > 0) {
+    const content = currentLines.join("\n").trim()
+    if (content) sections.push({ type: currentType, content })
+  }
+  return sections
+}
+
 /** Prettify URL-only titles: strip protocol, www., trailing /, truncate to ~60 chars */
 export function prettifyTitle(title: string): string {
   // Only transform if the entire title is a URL
   if (!/^https?:\/\/\S+$/.test(title.trim())) return title
-  let pretty = title.trim()
+  let pretty = title
+    .trim()
     .replace(/^https?:\/\//, "")
     .replace(/^www\./, "")
     .replace(/\/+$/, "")
@@ -386,19 +414,42 @@ function itemToNodes(
   })
   nodes.push(taskNode)
 
-  // Body as paragraph child node (.body content, not blockquote)
+  // Body as child nodes — split at headings to create proper sub-items
   const bodyContent = buildBodyContent(item)
   if (bodyContent) {
-    nodes.push(
-      mkNode(counter, {
-        id: `body-${item.sourceId}`,
-        type: "p",
-        parent_id: item.sourceId,
-        content: bodyContent,
-        created_at: itemCreatedAt,
-        updated_at: itemUpdatedAt,
-      }),
-    )
+    const sections = splitBodyAtHeadings(bodyContent)
+    let sectionIdx = 0
+    let parentForBody = item.sourceId
+    for (const section of sections) {
+      if (section.type === "text") {
+        nodes.push(
+          mkNode(counter, {
+            id: `body-${item.sourceId}${sectionIdx > 0 ? `-${sectionIdx}` : ""}`,
+            type: "p",
+            parent_id: parentForBody,
+            content: section.content,
+            created_at: itemCreatedAt,
+            updated_at: itemUpdatedAt,
+          }),
+        )
+      } else {
+        // Heading → oi node (child of the task, gets correct depth from serializer)
+        const sectionId = `body-h-${item.sourceId}-${sectionIdx}`
+        nodes.push(
+          mkNode(counter, {
+            id: sectionId,
+            type: "oi",
+            parent_id: item.sourceId,
+            content: section.content,
+            created_at: itemCreatedAt,
+            updated_at: itemUpdatedAt,
+          }),
+        )
+        // Subsequent text goes under this heading section
+        parentForBody = sectionId
+      }
+      sectionIdx++
+    }
   }
 
   // Comments as child list nodes under a "Comments" parent
@@ -493,9 +544,7 @@ function itemToNodes(
     )
     for (const a of item.activityLog) {
       const date = a.createdAt.slice(0, 10)
-      const authorSlug = a.author
-        ? `@${userSlugMap ? resolveUserSlug(a.author, userSlugMap) : slugify(a.author)}`
-        : ""
+      const authorSlug = a.author ? `@${userSlugMap ? resolveUserSlug(a.author, userSlugMap) : slugify(a.author)}` : ""
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
@@ -512,7 +561,17 @@ function itemToNodes(
   // Recursive children (subtasks)
   if (item.children?.length) {
     for (const child of item.children) {
-      itemToNodes(counter, child, item.sourceId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
+      itemToNodes(
+        counter,
+        child,
+        item.sourceId,
+        nodes,
+        rendered,
+        primaryMap,
+        currentProject,
+        localRendered,
+        userSlugMap,
+      )
     }
   }
 }
@@ -569,9 +628,7 @@ function projectToNodes(
   const fileId = `file-${project.sourceId}`
   const frontmatter: Record<string, unknown> = {}
   if (project.owner) {
-    const ownerSlug = userSlugMap
-      ? resolveUserSlug(project.owner, userSlugMap)
-      : slugify(project.owner)
+    const ownerSlug = userSlugMap ? resolveUserSlug(project.owner, userSlugMap) : slugify(project.owner)
     frontmatter.owner = `@${ownerSlug}`
   }
 
@@ -623,9 +680,7 @@ function projectToNodes(
       const metaParts: string[] = []
       if (su.color) metaParts.push(`Status: ${su.color}`)
       if (su.author) {
-        const authorSlug = userSlugMap
-          ? resolveUserSlug(su.author, userSlugMap)
-          : slugify(su.author)
+        const authorSlug = userSlugMap ? resolveUserSlug(su.author, userSlugMap) : slugify(su.author)
         metaParts.push(`Author: @${authorSlug}`)
       }
       if (su.createdAt) metaParts.push(`Date: ${su.createdAt.slice(0, 10)}`)
@@ -738,12 +793,8 @@ function buildPrimaryMap(data: ImportData): {
   const filenames: (string | undefined)[] = []
 
   // Build slug maps for users and teams
-  const userSlugMap = buildUniqueSlugMap(
-    (data.users ?? []).map((u) => ({ name: u.name, gid: u.gid })),
-  )
-  const teamSlugMap = buildUniqueSlugMap(
-    (data.teams ?? []).map((t) => ({ name: t.name, gid: t.gid })),
-  )
+  const userSlugMap = buildUniqueSlugMap((data.users ?? []).map((u) => ({ name: u.name, gid: u.gid })))
+  const teamSlugMap = buildUniqueSlugMap((data.teams ?? []).map((t) => ({ name: t.name, gid: t.gid })))
 
   const wsSlug = data.workspace ? slugify(data.workspace) : undefined
 
@@ -789,9 +840,7 @@ function buildPrimaryMap(data: ImportData): {
     } else if (isUser) {
       const userName = project.title.replace(/^@/, "").trim()
       const userSlug = userSlugMap.get(userName) ?? slugify(userName)
-      const isImportingUser =
-        data.importingUserGid != null &&
-        project.sourceId === `user-${data.importingUserGid}`
+      const isImportingUser = data.importingUserGid != null && project.sourceId === `user-${data.importingUserGid}`
 
       if (isImportingUser) {
         // Importing user's My Tasks at top level (spans workspaces)
@@ -829,9 +878,7 @@ function buildPrimaryMap(data: ImportData): {
 
     // For tag projects, point cross-references to the tag file path
     const tagSlug = slugify(project.title.replace(/^#/, "").replace(/^@/, ""))
-    const mapTarget = isTag
-      ? (wsSlug ? `${wsSlug}/tags/#${tagSlug}.md` : `#${tagSlug}.md`)
-      : (filename ?? "")
+    const mapTarget = isTag ? (wsSlug ? `${wsSlug}/tags/#${tagSlug}.md` : `#${tagSlug}.md`) : (filename ?? "")
     for (const id of ids) {
       if (!primaryMap.has(id)) primaryMap.set(id, mapTarget)
     }
