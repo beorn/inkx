@@ -49,7 +49,7 @@ const PANE_HINTS: KeyHint[] = [
   { key: "j/k", action: "\u2195" },
   { key: "Enter", action: "edit" },
   { key: "Space", action: "sel" },
-  { key: "P", action: "close" },
+  { key: "D", action: "close" },
   { key: "t\u2026", action: "task" },
   { key: "?", action: "help" },
 ]
@@ -68,7 +68,7 @@ function getKeyBarMode(ui: UIState): KeyBarMode {
   const editMode = getEditMode(ui)
   if (editMode === "text") return "TEXT"
   if (ui.visualMode) return "VISUAL"
-  if (ui.showDetailPane) return "PANE"
+  if (ui.focusedPane === "detail") return "PANE"
   return "NODE"
 }
 

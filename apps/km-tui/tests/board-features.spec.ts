@@ -402,7 +402,7 @@ describe("Search and Filter", () => {
     )
 
     // Board shows columns at top level - zoom out first to test
-    board.press("Escape") // Zoom out
+    board.press("Z") // Zoom out
     let output = board.screenshot()
 
     // Open search and select a deeply nested item
@@ -424,8 +424,8 @@ describe("Search and Filter", () => {
       item("Vault", item("Notes", item("Doc1", item("Section A"), item("Section B")), item("Doc2", item("Section X")))),
     )
 
-    // Zoom out to vault level first (Escape goes back in history)
-    board.press("Escape")
+    // Zoom out to vault level first
+    board.press("Z")
     let output = board.screenshot()
 
     // Search for a deeply nested section

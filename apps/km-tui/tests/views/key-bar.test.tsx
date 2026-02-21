@@ -95,8 +95,8 @@ describe("KeyBar", () => {
     expect(text).toContain("cancel")
   })
 
-  it("shows PANE mode when detail pane is open", () => {
-    const app = render(<KeyBar ui={makeUI({ showDetailPane: true })} termWidth={80} />)
+  it("shows PANE mode when detail pane is focused", () => {
+    const app = render(<KeyBar ui={makeUI({ showDetailPane: true, focusedPane: "detail" })} termWidth={80} />)
     const text = app.text
     expect(text).toContain("PANE")
     expect(text).toContain("Enter")

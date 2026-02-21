@@ -146,7 +146,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(repo.getNode("Another critical item here")?.content).toBe(originalContent2)
   })
 
-  test("zoom in/out (e/Escape) with navigation does not corrupt card text", () => {
+  test("zoom in/out (z/Z) with navigation does not corrupt card text", () => {
     // This test matches the exact reproduction: navigate, then zoom in with 'e',
     // and verify content before and after zoom
     const { board, repo } = testEnv(
@@ -188,7 +188,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // Content should still be intact after zoom
     expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")
 
-    board.press("Escape") // exit zoom
+    board.press("Z") // exit zoom (zoom out)
 
     // Navigate more after zoom
     board.press("h").press("j").press("l").press("k")

@@ -207,8 +207,8 @@ export function getHelpScreenData(): HelpSection[] {
       const key = formatKey(binding)
       const existing = commandKeys.get(binding.commandId)
       if (existing) {
-        // Avoid duplicate display keys
-        if (!existing.includes(key)) {
+        // Avoid duplicate display keys; cap at 2 alternatives to prevent overflow
+        if (existing.length < 2 && !existing.includes(key)) {
           existing.push(key)
         }
       } else {

@@ -100,7 +100,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain("parent")
   })
 
-  test("breadcrumb updates when zooming out with Escape", () => {
+  test("breadcrumb updates when zooming out with Z", () => {
     const { board } = testEnv(
       () => item("board", item("col", item("level1", item("level2", item("level3", item("deep")))))),
       { columns: 120, rows: 24 },
@@ -113,7 +113,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(topBar).toContain("level2")
 
     // Zoom out
-    board.press("\x1B") // Escape
+    board.press("Z")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
     // level2 should still be visible as it's now a column

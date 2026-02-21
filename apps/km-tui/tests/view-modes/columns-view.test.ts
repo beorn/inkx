@@ -366,11 +366,11 @@ describe("Columns View", () => {
       board.expect("#col2").not.toExist()
     })
 
-    test("Escape after zoom returns to parent", () => {
+    test("Z after zoom returns to parent", () => {
       const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
       board.press("z")
       board.expect("#subcard").toExist()
-      board.press("\x1B")
+      board.press("Z")
       board.expect("#card[data-cursor]").toExist()
     })
   })

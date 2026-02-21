@@ -33,17 +33,17 @@ describe("Layout", () => {
 })
 
 describe("Zooming", () => {
-  test("e zooms into card with children, Escape returns to previous level", () => {
+  test("z zooms into card with children, Z returns to previous level", () => {
     const { board } = testEnv(() => item("board", item("col", item("card", item("subcard")))))
 
-    // e zooms in
+    // z zooms in
     board.expect("#card").toExist()
     board.expect("#subcard").toExist()
     board.press("z")
     board.expect("#subcard").toExist()
 
-    // Escape returns to previous level
-    board.press("\x1B")
+    // Z (zoom out) returns to previous level
+    board.press("Z")
     board.expect("#col").toExist()
     board.expect("#card").toExist()
   })
@@ -104,23 +104,23 @@ describe("Zooming", () => {
     board.expect("#deepest").toExist()
   })
 
-  test("Escape after multiple zooms - returns to previous level", () => {
+  test("Z after multiple zooms - returns to previous level", () => {
     const { board } = testEnv(() => item("board", item("col", item("level1", item("level2", item("level3"))))))
     board.press("z") // Zoom to level1
     board.expect("#level2").toExist()
     board.press("z") // Zoom to level2
     board.expect("#level3").toExist()
 
-    // Escape once - back to level1
+    // Z (zoom out) once - back to level1
     // At level1: level2 is a column, level3 is a card (grandchild visible)
-    board.press("\x1B")
+    board.press("Z")
     board.expect("#level2").toExist()
     // Note: level3 IS visible at level1 (as a card in level2 column)
     board.expect("#level3").toExist()
 
-    // Escape again - back to board
+    // Z again - back to board
     // At board: col is a column, level1 is a card
-    board.press("\x1B")
+    board.press("Z")
     board.expect("#level1").toExist()
     // Note: level2 IS visible at board level (as a grandchild card)
     board.expect("#level2").toExist()
@@ -141,7 +141,7 @@ describe("Zooming", () => {
     board.expect("#sub1").toExist()
 
     // Zoom out - should still be at card2
-    board.press("\x1B")
+    board.press("Z")
     board.expect("#card2[data-cursor]").toExist()
 
     // --- u zooms out one level ---
@@ -233,7 +233,7 @@ describe("Zooming", () => {
       board.expect("#c2[data-cursor]").toExist()
 
       // Zoom out - cursor returns to parent (preserved from history)
-      board.press("\x1B")
+      board.press("Z")
       board.expect("#parent[data-cursor]").toExist()
     })
   })

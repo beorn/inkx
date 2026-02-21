@@ -104,7 +104,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(output).not.toContain("Error loading")
   })
 
-  test("search navigate → zoom back with Escape → no error", () => {
+  test("search navigate → zoom back with Z → no error", () => {
     const { board, store } = testEnv(
       () =>
         item.root(
@@ -126,8 +126,8 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(store.getState().rootId).not.toBe(originalRoot)
     expect(store.getState().cursorNodeId).toBe("task-beta")
 
-    // Escape to zoom back
-    board.press("Escape")
+    // Z to zoom back
+    board.press("Z")
 
     // Navigate
     board.press("j")
@@ -238,7 +238,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("Enter")
     expect(store.getState().cursorNodeId).toBe("card-3a")
     board.press("D") // open detail
-    board.press("Escape") // close detail with Escape (zooms out instead)
+    board.press("Escape") // close detail with Escape (unfocuses detail pane)
     board.press("j")
     board.press("l")
 

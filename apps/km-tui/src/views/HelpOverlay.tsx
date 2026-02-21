@@ -21,45 +21,71 @@ interface HelpOverlayProps {
 // Each section is a flat array of React elements (one per line).
 // We assemble them all, then slice for scrolling.
 
-/** Section header with box-drawing decoration */
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text>
-      <Text dimColor>{"── "}</Text>
-      <Text bold color="cyan">
-        {title}
-      </Text>
-      <Text dimColor>{" " + "─".repeat(Math.max(0, 56 - title.length))}</Text>
-    </Text>
-  )
-}
-
 /** Format keys for display: join with / separator, pad to fixed width */
 function KeyColumn({ keys, width }: { keys: string[]; width: number }) {
   const display = keys.join("/")
   return <Text color="yellow">{display.padEnd(width)}</Text>
 }
 
+/** Chord-heavy sections that benefit from two-column layout */
+const TWO_COL_SECTIONS = new Set(["Fold & Chords", "Task", "System"])
+
 /** Build content lines from auto-generated help data */
-function buildContentLines(sections: HelpSection[]): React.ReactElement[] {
+function buildContentLines(sections: HelpSection[], contentWidth: number): React.ReactElement[] {
   const lines: React.ReactElement[] = []
-  const KEY_WIDTH = 14
-  const DESC_WIDTH = 48
+  const headerWidth = contentWidth - 5 // "── " prefix + " " after title
 
   for (const section of sections) {
-    // Section header
-    lines.push(<SectionHeader key={`s-${section.category}`} title={section.category.toUpperCase()} />)
+    const title = section.category.toUpperCase()
+    const lineLen = Math.max(0, headerWidth - title.length)
 
-    // Single-column layout: one item per line (fits in 64-char content area)
-    for (let i = 0; i < section.items.length; i++) {
-      const item = section.items[i]
-      lines.push(
-        <Text key={`${section.category}-${i}`}>
-          {"  "}
-          <KeyColumn keys={item.keys} width={KEY_WIDTH} />
-          <Text dimColor>{item.description.slice(0, DESC_WIDTH)}</Text>
-        </Text>,
-      )
+    // Section header spanning full width
+    lines.push(
+      <Text key={`s-${section.category}`}>
+        <Text dimColor>{"── "}</Text>
+        <Text bold color="cyan">
+          {title}
+        </Text>
+        <Text dimColor>{" " + "─".repeat(lineLen)}</Text>
+      </Text>,
+    )
+
+    // Use two-column layout for compact sections when wide enough
+    const useTwoCols = TWO_COL_SECTIONS.has(section.category) && contentWidth >= 76
+    if (useTwoCols) {
+      const colKeyW = 12
+      const colDescW = Math.floor((contentWidth - 8) / 2) - colKeyW // 2+key+desc + 4gap + 2+key+desc
+      for (let i = 0; i < section.items.length; i += 2) {
+        const left = section.items[i]
+        const right = section.items[i + 1]
+        lines.push(
+          <Text key={`${section.category}-${i}`}>
+            {"  "}
+            <KeyColumn keys={left.keys} width={colKeyW} />
+            <Text dimColor>{left.description.slice(0, colDescW).padEnd(colDescW)}</Text>
+            {right ? (
+              <>
+                {"    "}
+                <KeyColumn keys={right.keys} width={colKeyW} />
+                <Text dimColor>{right.description.slice(0, colDescW)}</Text>
+              </>
+            ) : null}
+          </Text>,
+        )
+      }
+    } else {
+      const KEY_WIDTH = 14
+      const DESC_WIDTH = contentWidth - KEY_WIDTH - 2
+      for (let i = 0; i < section.items.length; i++) {
+        const item = section.items[i]
+        lines.push(
+          <Text key={`${section.category}-${i}`}>
+            {"  "}
+            <KeyColumn keys={item.keys} width={KEY_WIDTH} />
+            <Text dimColor>{item.description.slice(0, DESC_WIDTH)}</Text>
+          </Text>,
+        )
+      }
     }
 
     // Blank line after section
@@ -67,7 +93,17 @@ function buildContentLines(sections: HelpSection[]): React.ReactElement[] {
   }
 
   // Add favorites/columns note at the end
-  lines.push(<SectionHeader key="s-extra" title="FAVORITES & COLUMNS" />)
+  const favTitle = "FAVORITES & COLUMNS"
+  const favLineLen = Math.max(0, headerWidth - favTitle.length)
+  lines.push(
+    <Text key="s-extra">
+      <Text dimColor>{"── "}</Text>
+      <Text bold color="cyan">
+        {favTitle}
+      </Text>
+      <Text dimColor>{" " + "─".repeat(favLineLen)}</Text>
+    </Text>,
+  )
   lines.push(
     <Text key="fav-1">
       {"  "}
@@ -103,16 +139,18 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
     )
   }
 
+  // Calculate content dimensions
+  const boxWidth = Math.max(MIN_WIDTH, Math.min(90, width - 8))
+  // Content area = boxWidth - border(2) - paddingX(4)
+  const contentWidth = boxWidth - 6
+
   // Generate content from registry (memoized since data is static)
   const contentLines = useMemo(() => {
     const sections = getHelpScreenData()
-    return buildContentLines(sections)
-  }, [])
+    return buildContentLines(sections, contentWidth)
+  }, [contentWidth])
 
   const totalLines = contentLines.length
-
-  // Calculate content dimensions
-  const boxWidth = Math.max(MIN_WIDTH, Math.min(70, width - 8))
   // ModalDialog: border (2) + paddingY (2) + title (1) + title spacer (1) + footer spacer (1) + footer (1) = 8 lines of chrome
   const chromeLines = 8
   const boxHeight = Math.max(MIN_HEIGHT, Math.min(totalLines + chromeLines, height - 6))

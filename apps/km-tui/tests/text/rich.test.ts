@@ -201,6 +201,49 @@ describe("renderRich", () => {
     })
   })
 
+  describe("CommonMark autolinks", () => {
+    it("converts <URL> autolinks to bare URLs in rich mode", () => {
+      const result = renderRich("See <https://example.com/page> for info")
+      const plain = stripAnsi(result)
+      // Should show prettified URL, not be deleted
+      expect(plain).toContain("example.com/page")
+      // Should NOT contain angle brackets
+      expect(plain).not.toContain("<")
+      expect(plain).not.toContain(">")
+    })
+
+    it("converts <URL> autolinks to bare URLs in plain mode", () => {
+      const result = renderPlain("See <https://example.com/page> for info")
+      expect(result).toContain("example.com/page")
+      expect(result).not.toContain("<")
+      expect(result).not.toContain(">")
+    })
+
+    it("does not silently delete autolink URLs", () => {
+      // Regression: HTML_TAG_REGEX was stripping <https://...> as HTML tags
+      const result = renderPlain("Link: <https://app.asana.com/0/12345>")
+      expect(result).toContain("app.asana.com")
+    })
+
+    it("handles multiple autolinks", () => {
+      const result = renderPlain("<https://one.com> and <https://two.com>")
+      expect(result).toContain("one.com")
+      expect(result).toContain("two.com")
+    })
+
+    it("wraps autolink URLs in OSC 8 hyperlink in rich mode", () => {
+      const result = renderRich("See <https://example.com/page>")
+      // The autolink should be converted to a bare URL, then wrapped in OSC 8
+      expect(result).toContain("\x1b]8;;https://example.com/page\x1b\\")
+    })
+
+    it("preserves non-URL angle bracket content as-is", () => {
+      // Non-URL angle brackets are not converted (only <https://...> is)
+      const result = renderPlain("Use <em> tags")
+      expect(result).toContain("<em>")
+    })
+  })
+
   describe("link type differentiation", () => {
     it("uses different colors for internal vs external links", () => {
       const wikiResult = renderRich("See [[internal note]]")

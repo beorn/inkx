@@ -1394,12 +1394,8 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  // --- Layer 5: Navigate back (zoom out) if we have history ---
-  if (ui.navHistoryIndex > 0) {
-    return handleNavBack(ctx)
-  }
-
-  // --- Layer 6: Nothing -> no-op (visual bell) ---
+  // --- Layer 5: Nothing -> no-op (visual bell) ---
+  // Escape does NOT zoom out — use Z (ZOOM_OUT) for that.
   return boundary("escape", "nothing to close")
 }
 
