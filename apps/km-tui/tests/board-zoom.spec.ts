@@ -131,7 +131,7 @@ describe("Zooming", () => {
       item("board", item("col", item("card1"), item("card2", item("sub1"), item("sub2")))),
     )
 
-    // --- cursor position preserved when zooming in and out ---
+    // --- cursor position preserved when zooming in and out (nav_back) ---
     // Move to card2
     board.press("j")
     board.expect("#card2[data-cursor]").toExist()
@@ -140,32 +140,32 @@ describe("Zooming", () => {
     board.press("z")
     board.expect("#sub1").toExist()
 
-    // Zoom out - should still be at card2
-    board.press("Z")
+    // Nav back (history) - should restore cursor to card2
+    board.press("{")
     board.expect("#card2[data-cursor]").toExist()
 
-    // --- u zooms out one level ---
+    // --- Z zooms out one level ---
     // Zoom back in to card2
     board.press("z")
     board.expect("#sub1").toExist()
     board.expect("#col").not.toExist()
 
-    // u zooms out one level (back to col as root)
+    // Z zooms out one level (back to col as root)
     // Cursor stays on sub1 (visible as card under card2 column)
     board.press("Z")
     board.expect("#card1").toExist()
     board.expect("#card2").toExist()
     board.expect("#sub1[data-cursor]").toExist()
 
-    // --- zoom out returns cursor to parent ---
+    // --- nav_back returns cursor to parent ---
     // Navigate to card2 column header via k, then zoom in.
     board.press("k") // sub1 → card2 column header
     board.expect("#card2[data-cursor]").toExist()
     board.press("z")
     board.expect("#sub1[data-cursor]").toExist()
 
-    // Zoom out - cursor should return to card2
-    board.press("\x1B")
+    // Nav back (history) - cursor should return to card2
+    board.press("{")
     board.expect("#card2[data-cursor]").toExist()
   })
 
@@ -218,7 +218,7 @@ describe("Zooming", () => {
       board.expect("#child1[data-cursor]").toExist()
     })
 
-    test("navigate in zoomed view, then zoom out", () => {
+    test("navigate in zoomed view, then nav back", () => {
       // Fixture: child1 and child2 are folders (have children)
       // so they become columns with cards when zoomed to parent
       const { board } = testEnv(() =>
@@ -232,8 +232,8 @@ describe("Zooming", () => {
       board.press("l")
       board.expect("#c2[data-cursor]").toExist()
 
-      // Zoom out - cursor returns to parent (preserved from history)
-      board.press("Z")
+      // Nav back (history) - cursor returns to parent (preserved from history)
+      board.press("{")
       board.expect("#parent[data-cursor]").toExist()
     })
   })

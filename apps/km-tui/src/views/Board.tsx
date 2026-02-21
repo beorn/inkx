@@ -437,7 +437,6 @@ export function BoardCore({
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
-          <Box testID="board-area" flexGrow={1}>
           {ui.viewMode === "cards" ? (
             <ErrorBoundary
               fallback={<Text color="red">Error loading cards view</Text>}
@@ -499,9 +498,8 @@ export function BoardCore({
               <TabsView columns={columns} width={boardWidth} height={contentHeight} />
             </ErrorBoundary>
           )}
-          </Box>
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && <Box testID="detail-pane"><CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} /></Box>}
+          {ui.showDetailPane && <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox
