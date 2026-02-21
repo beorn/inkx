@@ -68,9 +68,8 @@ import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { readBoardIgnored, isIgnored } from "../ignored.ts"
-import { createLogger } from "@beorn/logger"
-
-const _log = createLogger("km:tui:board")
+import { findMatchingNodeIds } from "../board/board-actions-find.ts"
+import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -90,16 +89,12 @@ export interface BoardCoreProps {
   colIndex: number
   /** Current card index (derived from cursorNodeId) */
   cardIndex: number
-  /** Whether cursor is at card level (vs column/board) */
-  isAtCardLevel: boolean
   /** UI state (dialogs, view mode, etc.) */
   ui: UIState
   /** Derived selection level from cursor depth */
   derivedSelectionLevel: "board" | "column" | "card"
   /** Terminal dimensions */
   dimensions: { columns: number; rows: number }
-  /** Layout registry for card position tracking */
-  navigator: GridNavigator
   /** Direct UI state setter */
   setUI: BoardAppStore["setUI"]
   /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
@@ -167,14 +162,12 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
  * Also shows compact filter indicator in the right side when filters are active.
  */
 function BoardTopBar({
-  columns: _columns,
   rootId,
   termWidth,
   filterProperties,
   filterText,
   isBoardSelected,
 }: {
-  columns: ColumnView[]
   rootId: string | null
   termWidth: number
   filterProperties: FilterProperties
@@ -234,11 +227,9 @@ function BoardTopBar({
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
 function CursorAwareDetailPane({
-  columns: _columns,
   width,
   height,
 }: {
-  columns: ColumnView[]
   width: number
   height: number
 }): React.ReactElement | null {
@@ -277,13 +268,11 @@ function CursorAwareDetailPane({
  * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
  */
 function CursorAwareNewItemDialog({
-  columns: _columns,
   onCreate,
   onCancel,
   width,
   height,
 }: {
-  columns: ColumnView[]
   onCreate: (newNodeId: string) => void
   onCancel: () => void
   width: number
@@ -308,11 +297,9 @@ export function BoardCore({
   columns,
   colIndex,
   cardIndex,
-  isAtCardLevel: _isAtCardLevel,
   ui,
   derivedSelectionLevel,
   dimensions,
-  navigator: _navigator,
   setUI,
   dialogHandlers,
   collapsedNodes,
@@ -350,25 +337,10 @@ export function BoardCore({
     // The resetKey mechanism auto-recovers, and DEBUG_LOG captures errors via React's own logging.
   }, [])
 
-  // Local find: query change callback — compute matches from visible columns
+  // Local find: query change callback — delegates to shared matching logic
   const handleFindQueryChange = useCallback(
     (query: string) => {
-      if (!query) {
-        setUI({
-          localSearch: { query: "", isInputActive: true, matchIndex: 0, matchCount: 0, matchNodeIds: [] },
-        })
-        return
-      }
-      const lowerQuery = query.toLowerCase()
-      const matchNodeIds: string[] = []
-      for (const col of columns) {
-        for (const card of col.cardNodes) {
-          const text = (card.content ?? card.name ?? "").toLowerCase()
-          if (text.includes(lowerQuery)) {
-            matchNodeIds.push(card.id)
-          }
-        }
-      }
+      const matchNodeIds = findMatchingNodeIds(columns, query)
       // Navigate cursor to first match
       if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
         dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
@@ -386,69 +358,19 @@ export function BoardCore({
     [columns, setUI, dispatchBoard],
   )
 
-  // Search & replace: search query change callback
+  // Search & replace: search query change callback — delegates to shared matching logic
+  const searchReplaceRef = useRef(ui.searchReplace)
+  searchReplaceRef.current = ui.searchReplace
   const handleSearchReplaceSearchChange = useCallback(
     (searchQuery: string) => {
-      const sr = ui.searchReplace
+      const sr = searchReplaceRef.current
       if (!sr) return
 
-      if (!searchQuery) {
-        setUI({
-          searchReplace: {
-            ...sr,
-            searchQuery: "",
-            matchIndex: 0,
-            matchCount: 0,
-            matchNodeIds: [],
-          },
-        })
-        return
-      }
-
-      let regex: RegExp | null = null
-      if (sr.useRegex) {
-        try {
-          regex = new RegExp(searchQuery, "gi")
-        } catch {
-          // Invalid regex — show no matches
-          setUI({
-            searchReplace: {
-              ...sr,
-              searchQuery,
-              matchIndex: 0,
-              matchCount: 0,
-              matchNodeIds: [],
-            },
-          })
-          return
-        }
-      }
-
-      const lowerQuery = searchQuery.toLowerCase()
-      const matchNodeIds: string[] = []
-      for (const col of columns) {
-        for (const card of col.cardNodes) {
-          const text = (card.content ?? card.name ?? "").toLowerCase()
-          if (sr.useRegex && regex) {
-            regex.lastIndex = 0
-            // Test against original-case text for regex
-            const origText = card.content ?? card.name ?? ""
-            if (regex.test(origText)) {
-              matchNodeIds.push(card.id)
-            }
-          } else {
-            if (text.includes(lowerQuery)) {
-              matchNodeIds.push(card.id)
-            }
-          }
-        }
-      }
-
+      const matchNodeIds = searchReplaceMatchingNodeIds(columns, repo, searchQuery, sr.useRegex)
       // Navigate cursor to first match
       if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
         dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
       }
-
       setUI({
         searchReplace: {
           ...sr,
@@ -459,19 +381,19 @@ export function BoardCore({
         },
       })
     },
-    [columns, setUI, dispatchBoard, ui.searchReplace],
+    [columns, setUI, dispatchBoard, repo],
   )
 
   // Search & replace: replace query change callback (just stores the value)
   const handleSearchReplaceReplaceChange = useCallback(
     (replaceQuery: string) => {
-      const sr = ui.searchReplace
+      const sr = searchReplaceRef.current
       if (!sr) return
       setUI({
         searchReplace: { ...sr, replaceQuery },
       })
     },
-    [setUI, ui.searchReplace],
+    [setUI],
   )
 
   // Column width calculation — uniform expanded width with space reserved for separators
@@ -512,7 +434,6 @@ export function BoardCore({
       >
         {/* Top bar — subscribes to cursor position independently */}
         <BoardTopBar
-          columns={columns}
           rootId={rootId}
           termWidth={termWidth}
           filterProperties={ui.filterProperties}
@@ -585,7 +506,7 @@ export function BoardCore({
           )}
           {/* Detail pane — subscribes to cursor position independently */}
           {ui.showDetailPane && (
-            <CursorAwareDetailPane columns={columns} width={detailPaneWidth} height={contentHeight} />
+            <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />
           )}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
@@ -615,7 +536,6 @@ export function BoardCore({
               data-dialog="new-item"
             >
               <CursorAwareNewItemDialog
-                columns={columns}
                 onCreate={dialogHandlers.handleNewItemCreate}
                 onCancel={dialogHandlers.handleNewItemCancel}
                 width={Math.min(70, Math.floor(termWidth / 2))}
@@ -810,7 +730,6 @@ export function Board({ patchedConsole }: BoardProps) {
   const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
-  const navigator = useAppStore<BoardAppStore, GridNavigator>((s) => s.navigator)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   // Layout is derived on demand — no store sync needed
@@ -1066,11 +985,9 @@ export function Board({ patchedConsole }: BoardProps) {
           columns={filteredColumns}
           colIndex={visibleColIndex}
           cardIndex={columnsLayout.cardIndex}
-          isAtCardLevel={columnsLayout.isAtCardLevel}
           ui={ui}
           derivedSelectionLevel={derivedSelectionLevel}
           dimensions={ui.dimensions}
-          navigator={navigator}
           setUI={setUI}
           dialogHandlers={dialogHandlers}
           collapsedNodes={collapsedNodes}

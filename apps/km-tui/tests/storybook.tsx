@@ -80,7 +80,6 @@ import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
 import type { Toast } from "@km/core"
@@ -1204,7 +1203,6 @@ function makeBoardCoreProps(
     ui,
     derivedSelectionLevel: selectionLevel,
     dimensions: dims,
-    navigator: createGridNavigator(),
     setUI: () => {},
     dispatch: noopDispatch,
     dialogHandlers: noopDialogHandlers,

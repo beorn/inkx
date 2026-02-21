@@ -80,21 +80,28 @@ export function resolveUserSlug(
  * - Bare URL → [[^GID]]
  * km's smart resolver provides display titles dynamically from the target node.
  */
-const ASANA_URL_PATTERNS = [
+const ASANA_TASK_URL_PATTERNS = [
   /https?:\/\/app\.asana\.com\/0\/\d+\/(\d+)(?:\/f)?/,
   /https?:\/\/app\.asana\.com\/1\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
   /https?:\/\/app\.asana\.com\/1\/\d+\/project\/\d+\/task\/(\d+)(?:\?[^\S)]*)?/,
 ]
 
+/** Match project/view URLs: /0/{GID}/list, /0/{GID}/board, /0/{GID}/timeline, /0/{GID} (no task suffix) */
+const ASANA_PROJECT_URL_PATTERNS = [
+  /https?:\/\/app\.asana\.com\/0\/(\d+)\/(?:list|board|timeline|calendar|overview|files|progress|messages|workflow)(?:[?#]\S*)?/,
+  /https?:\/\/app\.asana\.com\/0\/(\d+)(?=[)\s\]]|$)/,
+]
+
 function convertAsanaLinks(text: string): string {
+  const allPatterns = [...ASANA_TASK_URL_PATTERNS, ...ASANA_PROJECT_URL_PATTERNS]
   // First pass: convert markdown links [text](asana-url) → [[^GID]]
   // No aliases — smart resolver provides display titles dynamically
-  for (const pattern of ASANA_URL_PATTERNS) {
+  for (const pattern of allPatterns) {
     const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
     text = text.replace(mdLinkRe, (_match, _linkText: string, gid: string) => `[[^${gid}]]`)
   }
   // Second pass: convert bare Asana URLs (not in markdown link syntax)
-  for (const pattern of ASANA_URL_PATTERNS) {
+  for (const pattern of allPatterns) {
     text = text.replace(new RegExp(pattern.source, "g"), "[[^$1]]")
   }
   return text
@@ -194,6 +201,46 @@ function stripHtmlTags(text: string): string {
   })
 }
 
+/**
+ * Unescape Turndown legacy artifacts in cached JSON text.
+ * Shared by buildBodyContent and comment text processing.
+ */
+function unescapeTurndownArtifacts(text: string): string {
+  // Unescape Turndown legacy artifacts
+  text = text.replace(/^\\---$/gm, "---")         // \--- → --- (before \- to avoid partial match)
+  text = text.replace(/\\-/g, "-")                // \- → - (all occurrences)
+  text = text.replace(/\\\[/g, "[")               // \[ → [
+  text = text.replace(/\\\]/g, "]")               // \] → ]
+  text = text.replace(/\\_/g, "_")                // \_ → _ (all occurrences, not just URLs)
+  text = text.replace(/\\\*\)/g, "*)")            // \*) → *)
+  text = text.replace(/\\\*/g, "*")               // \* → * (stray escaped asterisks)
+  return text
+}
+
+/**
+ * Normalize text shared between body content and comment text.
+ * Handles: asset proxy URLs, Turndown artifacts, bullet normalization, list indent, whitespace.
+ */
+function normalizeImportText(text: string): string {
+  // Fix Asana asset URL wrappers: [real-url](asana-asset-url) → <real-url>
+  text = text.replace(/\[(https?:\/\/[^\]]+)\]\(https:\/\/app\.asana\.com\/app\/asana\/-\/get_asset[^)]*\)/g, "<$1>")
+  // Fix markdown links with descriptive text pointing to asset proxy: [text](asset-url) → text [Asana asset]
+  text = text.replace(/\[([^\]]+)\]\(https:\/\/app\.asana\.com\/app\/asana\/-\/get_asset[^)]*\)/g, "$1 [Asana asset]")
+  // Replace bare Asana asset proxy URLs with placeholder
+  text = text.replace(/https?:\/\/app\.asana\.com\/app\/asana\/-\/get_asset\?asset_id=\d+/g, "[Asana asset]")
+  // Unescape Turndown legacy artifacts (must come before URL-specific fixes)
+  text = unescapeTurndownArtifacts(text)
+  // Clean up redundant [url](url) → <url> autolinks
+  text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
+  // Normalize Turndown-style *-bullets and \*-bullets to - (from cached JSON with old Turndown output)
+  text = text.replace(/^(\s*)\\?\*(\s{1,3})/gm, "$1-$2")
+  // Normalize 4-space list indent to 2-space (from mdast pipeline with tab listItemIndent)
+  text = text.replace(/^(\s*)-   /gm, "$1- ")
+  // Collapse 3+ consecutive blank lines to 2 (one blank line between paragraphs)
+  text = text.replace(/\n{3,}/g, "\n\n")
+  return text
+}
+
 /** Build body content string (paragraph body text, not blockquote) */
 function buildBodyContent(item: ImportItem): string | null {
   if (!item.body?.trim()) return null
@@ -201,19 +248,7 @@ function buildBodyContent(item: ImportItem): string | null {
   // Clean up HTML artifacts from saved JSON
   text = decodeHtmlEntities(text)
   text = stripHtmlTags(text)
-  // Fix Asana asset URL wrappers: [real-url](asana-asset-url) → <real-url>
-  text = text.replace(/\[(https?:\/\/[^\]]+)\]\(https:\/\/app\.asana\.com\/app\/asana\/-\/get_asset[^)]*\)/g, '<$1>')
-  // Fix escaped underscores in URLs (Turndown escapes _ to \_ in text nodes)
-  text = text.replace(/\[([^\]]*\\_[^\]]*)\]\(/g, (_match, linkText: string) => {
-    return `[${linkText.replace(/\\_/g, "_")}](`
-  })
-  text = text.replace(/https?:\/\/\S+/g, (match) => match.replace(/\\_/g, "_"))
-  // Clean up redundant [url](url) → <url> autolinks
-  text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
-  // Normalize Turndown-style *-bullets to - (from cached JSON with old Turndown output)
-  text = text.replace(/^(\s*)\*(\s{1,3})/gm, "$1-$2")
-  // Collapse 3+ consecutive blank lines to 2 (one blank line between paragraphs)
-  text = text.replace(/\n{3,}/g, "\n\n")
+  text = normalizeImportText(text)
   return text
 }
 
@@ -387,7 +422,7 @@ function itemToNodes(
         const authorSlug = c.author
           ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
           : ""
-        const fullText = convertAsanaLinks(c.text.trim())
+        const fullText = normalizeImportText(convertAsanaLinks(c.text.trim()))
         nodes.push(
           mkNode(counter, {
             id: `comment-${item.sourceId}-${counter.value}`,
@@ -419,7 +454,18 @@ function itemToNodes(
       const isAssetProxy = att.url.includes("app.asana.com/app/asana/-/get_asset")
       const nameIsUrl = /^https?:\/\//.test(att.name)
       const href = att.localPath ?? (isAssetProxy && nameIsUrl ? att.name : att.url)
-      const linkMd = att.type === "image" ? `![${att.name}](${href})` : `[${att.name}](${href})`
+      // Build attachment link markdown:
+      // - Dead asset proxy with descriptive name → "name [Asana asset]"
+      // - [url](url) where name === href → bare URL
+      // - Otherwise → standard markdown link
+      const linkMd =
+        !att.localPath && isAssetProxy && !nameIsUrl
+          ? `${att.name} [Asana asset]`
+          : att.type === "image"
+            ? `![${att.name}](${href})`
+            : att.name === href
+              ? href
+              : `[${att.name}](${href})`
       nodes.push(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
@@ -665,7 +711,15 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
 }
 
 /** Export for testing: convert a single ImportItem to KNode, slug helpers */
-export { itemToNodes, buildTaskContent, buildBodyContent, decodeHtmlEntities, stripHtmlTags }
+export {
+  itemToNodes,
+  buildTaskContent,
+  buildBodyContent,
+  decodeHtmlEntities,
+  stripHtmlTags,
+  unescapeTurndownArtifacts,
+  normalizeImportText,
+}
 
 /**
  * Build the primaryMap (task sourceId → filename) and filename list.

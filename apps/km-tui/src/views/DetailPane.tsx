@@ -831,16 +831,21 @@ function OutlineTree({
             .replace(/https?:\/\/\S+/g, "")
             .trim() || undefined
 
+        // Completed items: one-liner only (no body preview, no children)
+        const showKids = !isDone && kidItems.length > 0
+        const showBody = !isDone && bodyPreview
+
         return (
           <React.Fragment key={`${item.id}-${idx}`}>
             <Text wrap="truncate" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
               {renderRich(title)}
-              {bodyPreview && <Text dimColor> \u2025 {bodyPreview}</Text>}
-              {hiddenCount > 0 && <Text dimColor>{` +${hiddenCount}`}</Text>}
+              {isDone && kidItems.length > 0 && <Text dimColor>{` ··· ${kidItems.length}`}</Text>}
+              {showBody && <Text dimColor> \u2025 {bodyPreview}</Text>}
+              {!isDone && hiddenCount > 0 && <Text dimColor>{` +${hiddenCount}`}</Text>}
             </Text>
-            {kidItems.length > 0 && (
+            {showKids && (
               <OutlineTree repo={repo} items={kidItems} depth={depth + 1} innerWidth={innerWidth} />
             )}
           </React.Fragment>
