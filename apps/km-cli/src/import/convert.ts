@@ -429,7 +429,10 @@ function itemToNodes(
       }),
     )
     for (const att of item.attachments) {
-      const href = att.localPath ?? att.url
+      // When attachment name IS a URL and href is an Asana asset proxy, use the name as href
+      const isAssetProxy = att.url.includes("app.asana.com/app/asana/-/get_asset")
+      const nameIsUrl = /^https?:\/\//.test(att.name)
+      const href = att.localPath ?? (isAssetProxy && nameIsUrl ? att.name : att.url)
       const linkMd = att.type === "image" ? `![${att.name}](${href})` : `[${att.name}](${href})`
       nodes.push(
         mkNode(counter, {
