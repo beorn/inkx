@@ -140,6 +140,7 @@ export {
   inVisualMode,
   localFindActive,
   omniboxOpen,
+  searchReplaceOpen,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,

@@ -54,6 +54,7 @@ import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { FindBar } from "./FindBar.tsx"
+import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -385,6 +386,94 @@ export function BoardCore({
     [columns, setUI, dispatchBoard],
   )
 
+  // Search & replace: search query change callback
+  const handleSearchReplaceSearchChange = useCallback(
+    (searchQuery: string) => {
+      const sr = ui.searchReplace
+      if (!sr) return
+
+      if (!searchQuery) {
+        setUI({
+          searchReplace: {
+            ...sr,
+            searchQuery: "",
+            matchIndex: 0,
+            matchCount: 0,
+            matchNodeIds: [],
+          },
+        })
+        return
+      }
+
+      let regex: RegExp | null = null
+      if (sr.useRegex) {
+        try {
+          regex = new RegExp(searchQuery, "gi")
+        } catch {
+          // Invalid regex — show no matches
+          setUI({
+            searchReplace: {
+              ...sr,
+              searchQuery,
+              matchIndex: 0,
+              matchCount: 0,
+              matchNodeIds: [],
+            },
+          })
+          return
+        }
+      }
+
+      const lowerQuery = searchQuery.toLowerCase()
+      const matchNodeIds: string[] = []
+      for (const col of columns) {
+        for (const card of col.cardNodes) {
+          const text = (card.content ?? card.name ?? "").toLowerCase()
+          if (sr.useRegex && regex) {
+            regex.lastIndex = 0
+            // Test against original-case text for regex
+            const origText = card.content ?? card.name ?? ""
+            if (regex.test(origText)) {
+              matchNodeIds.push(card.id)
+            }
+          } else {
+            if (text.includes(lowerQuery)) {
+              matchNodeIds.push(card.id)
+            }
+          }
+        }
+      }
+
+      // Navigate cursor to first match
+      if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
+        dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+      }
+
+      setUI({
+        searchReplace: {
+          ...sr,
+          searchQuery,
+          matchIndex: 0,
+          matchCount: matchNodeIds.length,
+          matchNodeIds,
+        },
+      })
+    },
+    [columns, setUI, dispatchBoard, ui.searchReplace],
+  )
+
+  // Search & replace: replace query change callback (just stores the value)
+  const handleSearchReplaceReplaceChange = useCallback(
+    (replaceQuery: string) => {
+      const sr = ui.searchReplace
+      if (!sr) return
+      setUI({
+        searchReplace: { ...sr, replaceQuery },
+      })
+    },
+    [setUI, ui.searchReplace],
+  )
+
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = 3
   // Count collapsed columns — they take much less space, so more total columns can fit
@@ -615,6 +704,24 @@ export function BoardCore({
                 onCancel={dialogHandlers.handleOmniboxCancel}
                 width={Math.min(80, Math.floor((termWidth * 2) / 3))}
                 maxHeight={Math.floor((contentHeight * 2) / 3)}
+              />
+            </DialogBox>
+          )}
+          {/* Search & replace dialog */}
+          {ui.searchReplace && (
+            <DialogBox
+              termWidth={termWidth}
+              contentHeight={contentHeight}
+              maxWidth={70}
+              widthFraction={0.6}
+              topFraction={1 / 6}
+              data-dialog="search-replace"
+            >
+              <SearchReplaceDialog
+                state={ui.searchReplace}
+                width={Math.min(70, Math.floor(termWidth * 0.6))}
+                onSearchChange={handleSearchReplaceSearchChange}
+                onReplaceChange={handleSearchReplaceReplaceChange}
               />
             </DialogBox>
           )}

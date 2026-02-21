@@ -13,6 +13,7 @@ import {
   hasActiveToast,
   inVisualMode,
   localFindActive,
+  searchReplaceOpen,
   not,
   and,
 } from "./when.ts"
@@ -58,6 +59,8 @@ export interface KeybindingContext {
   localFindActive?: boolean
   /** True when the omnibox/command palette is open */
   omniboxOpen?: boolean
+  /** True when the search/replace dialog is open */
+  searchReplaceOpen?: boolean
 }
 
 // Internal binding with registration order for priority interleaving
@@ -309,6 +312,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "`", commandId: "console.toggle" },
       { key: "t", ctrl: true, commandId: "dev.test_toast" },
       { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
+      { key: "k", super: true, commandId: "command_palette" },
     ],
   },
 
@@ -332,7 +336,26 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 3b: Local find (inline search bar) ---
+  // --- Layer 3b: Search & replace dialog ---
+  // When dialog is open: Tab switches fields, Enter finds next, Escape closes.
+  // These bindings intercept before the generic dialog layer.
+  {
+    name: "search-replace",
+    bindings: [
+      { key: "Escape", commandId: "search_replace.close", when: searchReplaceOpen },
+      { key: "Tab", commandId: "search_replace.tab_field", when: searchReplaceOpen },
+      { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
+      { key: "Enter", shift: true, commandId: "search_replace.prev", when: searchReplaceOpen },
+      { key: "r", ctrl: true, commandId: "search_replace.replace", when: searchReplaceOpen },
+      { key: "r", super: true, commandId: "search_replace.replace", when: searchReplaceOpen },
+      { key: "r", ctrl: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
+      { key: "r", super: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
+      { key: "x", ctrl: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+      { key: "x", super: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+    ],
+  },
+
+  // --- Layer 3c: Local find (inline search bar) ---
   // When find bar input is active: intercept Enter/Escape before generic dialog layer.
   // When find bar is closed but matches exist: n/N navigate matches, Escape clears.
   {
@@ -407,6 +430,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
+      // Text formatting (Cmd+b/i — kitty protocol, text edit only)
+      { key: "b", super: true, commandId: "text.bold", when: isInlineEditing },
+      { key: "i", super: true, commandId: "text.italic", when: isInlineEditing },
       { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
     ],
   },
@@ -495,6 +521,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "l", ctrl: true, commandId: "add_link", when: not(textInputFocused) },
       { key: "r", ctrl: true, commandId: "reparent_picker", when: not(textInputFocused) },
       { key: "o", ctrl: true, commandId: "open_in_system", when: not(textInputFocused) },
+
+      // Cmd shortcuts (kitty protocol — macOS native feel)
+      // Focus switching: Cmd+h = board, Cmd+l = detail pane
+      { key: "h", super: true, commandId: "focus_board" },
+      { key: "l", super: true, commandId: "focus_detail" },
+      // History: Cmd+[/] = back/forward
+      { key: "[", super: true, commandId: "nav_back" },
+      { key: "]", super: true, commandId: "nav_forward" },
+      // Smart open: Cmd+o = system open, Cmd+Shift+o = terminal/editor open
+      { key: "o", super: true, commandId: "open_in_system" },
+      { key: "o", super: true, shift: true, commandId: "open_in_terminal" },
     ],
   },
 
@@ -508,6 +545,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "A", commandId: "select_all_progressive" },
       // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
       { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
+      // Cmd+A selects all (kitty protocol)
+      { key: "a", super: true, commandId: "select_all" },
 
       // Extend selection with Shift+arrows (xterm modified arrow sequences)
       { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
@@ -552,8 +591,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "ArrowRight", super: true, commandId: "shift_right" },
       { key: "k", super: true, commandId: "shift_up" },
       { key: "j", super: true, commandId: "shift_down" },
-      { key: "h", super: true, commandId: "shift_left" },
-      { key: "l", super: true, commandId: "shift_right" },
+      // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
+      // Use Alt/Meta+h/l for shifting instead
       { key: "ArrowUp", meta: true, commandId: "shift_up" },
       { key: "ArrowDown", meta: true, commandId: "shift_down" },
       { key: "ArrowLeft", meta: true, commandId: "shift_left" },
@@ -576,6 +615,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
       { key: "d", super: true, commandId: "duplicate_node" },
+      // Cmd+n = capture new to inbox (kitty)
+      { key: "n", super: true, commandId: "capture_inbox" },
     ],
   },
 
@@ -604,6 +645,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // </> = fold/unfold all (board-wide)
       { key: "<", commandId: "fold_all" },
       { key: ">", commandId: "unfold_all" },
+
+      // Bare symbol shortcuts (convenience aliases for common chord actions)
+      // These only fire in node mode (not text edit, not dialog)
+      { key: "@", commandId: "add_assignee", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "#", commandId: "add_tag", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
       // g/m/a/t standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
@@ -693,8 +741,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
-      { key: "f", super: true, commandId: "search" },
+      { key: "f", super: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
+      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
+
+      // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
+      { key: "t", super: true, commandId: "task_dialog" },
+      { key: "g", super: true, commandId: "filter" },
+      { key: "p", super: true, commandId: "toggle_detail_pane" },
+      { key: ",", super: true, commandId: "settings" },
 
       // Favorites (0-9) — jump to favorite boards
       { key: "0", commandId: "favorite_1" },

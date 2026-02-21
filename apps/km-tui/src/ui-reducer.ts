@@ -42,7 +42,8 @@ export function getEditMode(ui: UIState): EditMode {
     ui.datePrompt ||
     ui.deleteConfirm ||
     ui.localSearch ||
-    ui.showOmnibox
+    ui.showOmnibox ||
+    ui.searchReplace
   ) {
     return "dialog"
   }
@@ -189,6 +190,27 @@ export interface UIState {
 
   // Omnibox / command palette state
   showOmnibox: boolean
+
+  // Search & replace dialog state
+  searchReplace: SearchReplaceState | null
+}
+
+/** State for the search & replace dialog */
+export interface SearchReplaceState {
+  /** Current search query */
+  searchQuery: string
+  /** Current replace query */
+  replaceQuery: string
+  /** Whether to use regex matching */
+  useRegex: boolean
+  /** 0-based index of the currently focused match */
+  matchIndex: number
+  /** Total number of matches found */
+  matchCount: number
+  /** Node IDs that contain matches, in visual order */
+  matchNodeIds: string[]
+  /** Which input field has focus */
+  focusedField: "search" | "replace"
 }
 
 /** State for the inline local find/search bar */
@@ -367,5 +389,7 @@ export function createInitialUIState(
     localSearch: null,
 
     showOmnibox: false,
+
+    searchReplace: null,
   }
 }

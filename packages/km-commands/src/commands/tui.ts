@@ -220,6 +220,16 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "DEV_TEST_TOAST" }),
   },
 
+  // Task dialog (Cmd+T / tt — v2 spec)
+  {
+    id: "task_dialog",
+    name: "Task Dialog",
+    description: "Open task properties dialog",
+    category: "Edit",
+    shortcuts: ["Cmd+T", "tt"],
+    execute: (): CommandAction => ({ type: "SHOW_TASK_DIALOG" }),
+  },
+
   // Noop — absorb key without action
   {
     id: "noop",
@@ -269,5 +279,68 @@ export const tuiCommands: CommandDef[] = [
     category: "Navigation",
     shortcuts: ["Enter"],
     execute: (): CommandAction => ({ type: "LOCAL_FIND_CONFIRM" }),
+  },
+
+  // Search & replace dialog
+  {
+    id: "search_replace",
+    name: "Search & Replace",
+    description: "Open search and replace dialog",
+    category: "Edit",
+    shortcuts: ["F", "Cmd+F"],
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_OPEN" }),
+  },
+  {
+    id: "search_replace.close",
+    name: "Close Search & Replace",
+    description: "Close search and replace dialog",
+    category: "Edit",
+    shortcuts: ["Escape"],
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_CLOSE" }),
+  },
+  {
+    id: "search_replace.next",
+    name: "Search Replace Next",
+    description: "Go to next search match",
+    category: "Edit",
+    shortcuts: ["Enter"],
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_NEXT" }),
+  },
+  {
+    id: "search_replace.prev",
+    name: "Search Replace Previous",
+    description: "Go to previous search match",
+    category: "Edit",
+    shortcuts: ["Shift+Enter"],
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_PREV" }),
+  },
+  {
+    id: "search_replace.replace",
+    name: "Replace",
+    description: "Replace current match",
+    category: "Edit",
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_DO_REPLACE" }),
+  },
+  {
+    id: "search_replace.replace_all",
+    name: "Replace All",
+    description: "Replace all matches",
+    category: "Edit",
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_DO_REPLACE_ALL" }),
+  },
+  {
+    id: "search_replace.toggle_regex",
+    name: "Toggle Regex",
+    description: "Toggle regex mode for search",
+    category: "Edit",
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_TOGGLE_REGEX" }),
+  },
+  {
+    id: "search_replace.tab_field",
+    name: "Switch Field",
+    description: "Switch between search and replace fields",
+    category: "Edit",
+    shortcuts: ["Tab"],
+    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_TAB_FIELD" }),
   },
 ]

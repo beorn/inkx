@@ -561,6 +561,29 @@ interface SettingsAction {
   type: "SETTINGS"
 }
 
+// Focus switching (Cmd+h/l — kitty protocol)
+interface FocusBoardAction {
+  type: "FOCUS_BOARD"
+}
+
+interface FocusDetailAction {
+  type: "FOCUS_DETAIL"
+}
+
+// Text formatting (Cmd+b/i — kitty protocol, text edit only)
+interface TextBoldAction {
+  type: "TEXT_BOLD"
+}
+
+interface TextItalicAction {
+  type: "TEXT_ITALIC"
+}
+
+// Task dialog (Cmd+t — kitty protocol)
+interface ShowTaskDialogAction {
+  type: "SHOW_TASK_DIALOG"
+}
+
 // Local find (inline search bar)
 interface LocalFindOpenAction {
   type: "LOCAL_FIND_OPEN"
@@ -588,6 +611,49 @@ type LocalFindAction =
   | LocalFindPrevAction
   | LocalFindCloseAction
   | LocalFindConfirmAction
+
+// Search & replace dialog actions
+interface SearchReplaceOpenAction {
+  type: "SEARCH_REPLACE_OPEN"
+}
+
+interface SearchReplaceCloseAction {
+  type: "SEARCH_REPLACE_CLOSE"
+}
+
+interface SearchReplaceNextAction {
+  type: "SEARCH_REPLACE_NEXT"
+}
+
+interface SearchReplacePrevAction {
+  type: "SEARCH_REPLACE_PREV"
+}
+
+interface SearchReplaceDoReplaceAction {
+  type: "SEARCH_REPLACE_DO_REPLACE"
+}
+
+interface SearchReplaceDoReplaceAllAction {
+  type: "SEARCH_REPLACE_DO_REPLACE_ALL"
+}
+
+interface SearchReplaceToggleRegexAction {
+  type: "SEARCH_REPLACE_TOGGLE_REGEX"
+}
+
+interface SearchReplaceTabFieldAction {
+  type: "SEARCH_REPLACE_TAB_FIELD"
+}
+
+type SearchReplaceAction =
+  | SearchReplaceOpenAction
+  | SearchReplaceCloseAction
+  | SearchReplaceNextAction
+  | SearchReplacePrevAction
+  | SearchReplaceDoReplaceAction
+  | SearchReplaceDoReplaceAllAction
+  | SearchReplaceToggleRegexAction
+  | SearchReplaceTabFieldAction
 
 export type TUIAction =
   | QuitAction
@@ -661,7 +727,13 @@ export type TUIAction =
   | CaptureInboxAction
   | CaptureDialogAction
   | SettingsAction
+  | FocusBoardAction
+  | FocusDetailAction
+  | TextBoldAction
+  | TextItalicAction
+  | ShowTaskDialogAction
   | LocalFindAction
+  | SearchReplaceAction
 
 export type UIAction =
   | ZoomOutwardsAction

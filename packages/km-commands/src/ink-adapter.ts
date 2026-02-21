@@ -254,6 +254,8 @@ export function buildKeybindingContext(options: {
   omniboxOpen?: boolean
   /** True when the local find bar is active (has matches or input) */
   localFindActive?: boolean
+  /** True when the search/replace dialog is open */
+  searchReplaceOpen?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -281,6 +283,7 @@ export function buildKeybindingContext(options: {
     visualMode: options.visualMode ?? false,
     omniboxOpen: options.omniboxOpen ?? false,
     localFindActive: options.localFindActive ?? false,
+    searchReplaceOpen: options.searchReplaceOpen ?? false,
   }
 }
 

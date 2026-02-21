@@ -29,6 +29,7 @@ type Modifiers = {
   shift?: boolean
   alt?: boolean
   meta?: boolean
+  super?: boolean
 }
 
 /** Create minimal TNode for context */
@@ -919,6 +920,50 @@ describe("chord keybindings", () => {
     const ctx = createContext()
     expect(resolveKeybinding("a", {}, ctx)).toBe("noop")
   })
+
+  describe("bare symbol shortcuts (convenience aliases)", () => {
+    it("@ in node mode → add_assignee (same as a@)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("@", {}, ctx)).toBe("add_assignee")
+      expect(resolveChord("a", "@", {}, ctx)).toBe("add_assignee")
+    })
+
+    it("# in node mode → add_tag (same as a#)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("#", {}, ctx)).toBe("add_tag")
+      expect(resolveChord("a", "#", {}, ctx)).toBe("add_tag")
+    })
+
+    it("+ in node mode → add_project (same as a+)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("+", {}, ctx)).toBe("add_project")
+      expect(resolveChord("a", "+", {}, ctx)).toBe("add_project")
+    })
+
+    it("[ in node mode → add_backlink (same as a[)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("[", {}, ctx)).toBe("add_backlink")
+      expect(resolveChord("a", "[", {}, ctx)).toBe("add_backlink")
+    })
+
+    it("bare symbols are blocked during text input", () => {
+      const ctx = createContext({ textInputFocused: true, isInlineEditing: true })
+      // All should resolve to noop (wildcard catch-all in inline-edit-barrier)
+      expect(resolveKeybinding("@", {}, ctx)).toBe("noop")
+      expect(resolveKeybinding("#", {}, ctx)).toBe("noop")
+      expect(resolveKeybinding("+", {}, ctx)).toBe("noop")
+      expect(resolveKeybinding("[", {}, ctx)).toBe("noop")
+    })
+
+    it("bare symbols are blocked when dialog is open", () => {
+      const ctx = createContext({ searchDialogOpen: true })
+      // Should not resolve to the shortcut commands
+      expect(resolveKeybinding("@", {}, ctx)).not.toBe("add_assignee")
+      expect(resolveKeybinding("#", {}, ctx)).not.toBe("add_tag")
+      expect(resolveKeybinding("+", {}, ctx)).not.toBe("add_project")
+      expect(resolveKeybinding("[", {}, ctx)).not.toBe("add_backlink")
+    })
+  })
 })
 
 describe("text mode keybinding separation", () => {
@@ -1053,6 +1098,144 @@ describe("text mode keybinding separation", () => {
     it("Meta+ArrowDown (shift down) is blocked", () => {
       expect(resolveKeybinding("ArrowDown", { meta: true }, nodeCtx)).toBe("shift_down")
       expect(resolveKeybinding("ArrowDown", { meta: true }, inlineCtx)).toBe("noop")
+    })
+  })
+})
+
+describe("Cmd shortcuts (kitty protocol, super modifier)", () => {
+  beforeEach(() => {
+    clearKeybindings()
+    initDefaultKeybindings()
+  })
+
+  // Helper for super modifier
+  const sup = { super: true }
+
+  describe("already-wired Cmd shortcuts", () => {
+    it("Cmd+z → undo", () => {
+      expectKey("z", "undo", sup)
+    })
+
+    it("Cmd+Shift+z → redo", () => {
+      expectKey("z", "redo", { super: true, shift: true })
+    })
+
+    it("Cmd+w → close_detail_pane", () => {
+      expectKey("w", "close_detail_pane", sup)
+    })
+
+    it("Cmd+c/x/v → clipboard (in node mode)", () => {
+      expectKey("c", "clipboard_copy", sup)
+      expectKey("x", "clipboard_cut", sup)
+      expectKey("v", "clipboard_paste", sup)
+    })
+
+    it("Cmd+d → duplicate_node", () => {
+      expectKey("d", "duplicate_node", sup)
+    })
+
+    it("Cmd+f → search_replace (search/replace dialog)", () => {
+      expectKey("f", "search_replace", sup)
+    })
+  })
+
+  describe("newly-wired Cmd shortcuts", () => {
+    it("Cmd+a → select_all", () => {
+      expectKey("a", "select_all", sup)
+    })
+
+    it("Cmd+o → open_in_system (smart open)", () => {
+      expectKey("o", "open_in_system", sup)
+    })
+
+    it("Cmd+Shift+o → open_in_terminal (alt open / dev)", () => {
+      expectKey("o", "open_in_terminal", { super: true, shift: true })
+    })
+
+    it("Cmd+n → capture_inbox (capture new)", () => {
+      expectKey("n", "capture_inbox", sup)
+    })
+
+    it("Cmd+k → command_palette (omnibox)", () => {
+      expectKey("k", "command_palette", sup)
+    })
+
+    it("Cmd+h → focus_board", () => {
+      expectKey("h", "focus_board", sup)
+    })
+
+    it("Cmd+l → focus_detail", () => {
+      expectKey("l", "focus_detail", sup)
+    })
+
+    it("Cmd+[ → nav_back (history)", () => {
+      expectKey("[", "nav_back", sup)
+    })
+
+    it("Cmd+] → nav_forward (history)", () => {
+      expectKey("]", "nav_forward", sup)
+    })
+
+    it("Cmd+, → settings", () => {
+      expectKey(",", "settings", sup)
+    })
+
+    it("Cmd+t → task_dialog", () => {
+      expectKey("t", "task_dialog", sup)
+    })
+
+    it("Cmd+g → filter", () => {
+      expectKey("g", "filter", sup)
+    })
+
+    it("Cmd+p → toggle_detail_pane", () => {
+      expectKey("p", "toggle_detail_pane", sup)
+    })
+  })
+
+  describe("Cmd+b/i (bold/italic) in text edit mode only", () => {
+    it("Cmd+b → text.bold during inline editing", () => {
+      const ctx = createContext({ isInlineEditing: true, textInputFocused: true })
+      expect(resolveKeybinding("b", sup, ctx)).toBe("text.bold")
+    })
+
+    it("Cmd+i → text.italic during inline editing", () => {
+      const ctx = createContext({ isInlineEditing: true, textInputFocused: true })
+      expect(resolveKeybinding("i", sup, ctx)).toBe("text.italic")
+    })
+
+    it("Cmd+b is not text.bold in node mode (no isInlineEditing)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("b", sup, ctx)).not.toBe("text.bold")
+    })
+
+    it("Cmd+i is not text.italic in node mode (no isInlineEditing)", () => {
+      const ctx = createContext()
+      expect(resolveKeybinding("i", sup, ctx)).not.toBe("text.italic")
+    })
+  })
+
+  describe("Cmd+h/l no longer shift nodes (reserved for focus)", () => {
+    it("Cmd+h is focus_board, not shift_left", () => {
+      expectKey("h", "focus_board", sup)
+    })
+
+    it("Cmd+l is focus_detail, not shift_right", () => {
+      expectKey("l", "focus_detail", sup)
+    })
+
+    it("Cmd+j still shifts down (no conflict)", () => {
+      expectKey("j", "shift_down", sup)
+    })
+
+    it("Cmd+k still shifts up (no conflict — global Cmd+k command_palette is higher priority)", () => {
+      // Cmd+k resolves to command_palette because global layer is higher priority
+      expectKey("k", "command_palette", sup)
+    })
+
+    it("Meta+h/l still shift nodes (Alt fallback)", () => {
+      expectKey("h", "shift_left", { meta: true })
+      expectKey("l", "shift_right", { meta: true })
     })
   })
 })

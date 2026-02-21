@@ -639,6 +639,25 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       return ok()
 
+    // === Search & replace dialog ===
+    case "SEARCH_REPLACE_OPEN":
+      return handleSearchReplaceOpen(ctx)
+    case "SEARCH_REPLACE_CLOSE":
+      ctx.setUI({ searchReplace: null })
+      return ok()
+    case "SEARCH_REPLACE_NEXT":
+      return handleSearchReplaceNext(ctx)
+    case "SEARCH_REPLACE_PREV":
+      return handleSearchReplacePrev(ctx)
+    case "SEARCH_REPLACE_DO_REPLACE":
+      return handleSearchReplaceDoReplace(ctx)
+    case "SEARCH_REPLACE_DO_REPLACE_ALL":
+      return handleSearchReplaceDoReplaceAll(ctx)
+    case "SEARCH_REPLACE_TOGGLE_REGEX":
+      return handleSearchReplaceToggleRegex(ctx)
+    case "SEARCH_REPLACE_TAB_FIELD":
+      return handleSearchReplaceTabField(ctx)
+
     // === UI stubs (future features) ===
     case "ARCHIVE_NODE":
     case "CAPTURE_INBOX":
@@ -1329,6 +1348,10 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     ctx.setUI({ showOmnibox: false })
     return ok()
   }
+  if (ui.searchReplace) {
+    ctx.setUI({ searchReplace: null })
+    return ok()
+  }
   if (ui.localSearch) {
     ctx.setUI({ localSearch: null })
     return ok()
@@ -1876,6 +1899,273 @@ export function updateLocalSearchMatches(ctx: ActionCtx, query: string): void {
       query,
       isInputActive: true,
       matchIndex,
+      matchCount,
+      matchNodeIds,
+    },
+  })
+}
+
+// =============================================================================
+// Search & Replace Dialog
+// =============================================================================
+
+/** Open the search & replace dialog */
+function handleSearchReplaceOpen(ctx: ActionCtx): ActionResult {
+  ctx.setUI({
+    searchReplace: {
+      searchQuery: "",
+      replaceQuery: "",
+      useRegex: false,
+      matchIndex: 0,
+      matchCount: 0,
+      matchNodeIds: [],
+      focusedField: "search",
+    },
+    // Close other overlays
+    inlineEditBlock: null,
+    localSearch: null,
+  })
+  clearSelection(ctx)
+  return ok()
+}
+
+/** Navigate to the next search/replace match */
+function handleSearchReplaceNext(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr || sr.matchCount === 0) return boundary("search-replace", "No matches")
+
+  const nextIndex = (sr.matchIndex + 1) % sr.matchCount
+  const nodeId = sr.matchNodeIds[nextIndex]
+  if (nodeId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  }
+  ctx.setUI({
+    searchReplace: { ...sr, matchIndex: nextIndex },
+  })
+  return ok()
+}
+
+/** Navigate to the previous search/replace match */
+function handleSearchReplacePrev(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr || sr.matchCount === 0) return boundary("search-replace", "No matches")
+
+  const prevIndex = (sr.matchIndex - 1 + sr.matchCount) % sr.matchCount
+  const nodeId = sr.matchNodeIds[prevIndex]
+  if (nodeId) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  }
+  ctx.setUI({
+    searchReplace: { ...sr, matchIndex: prevIndex },
+  })
+  return ok()
+}
+
+/** Replace the current match and advance to next */
+function handleSearchReplaceDoReplace(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr || sr.matchCount === 0 || !sr.searchQuery) return boundary("search-replace", "No matches to replace")
+
+  const nodeId = sr.matchNodeIds[sr.matchIndex]
+  if (!nodeId) return boundary("search-replace", "No current match")
+
+  const replaced = replaceInNode(ctx, nodeId, sr.searchQuery, sr.replaceQuery, sr.useRegex, false)
+  if (!replaced) return boundary("search-replace", "Replace failed")
+
+  // Recompute matches after replacement
+  const updatedMatches = searchReplaceMatchingNodeIds(ctx, sr.searchQuery, sr.useRegex)
+  const newMatchIndex = Math.min(sr.matchIndex, Math.max(0, updatedMatches.length - 1))
+
+  // Navigate to current match position
+  if (updatedMatches.length > 0 && updatedMatches[newMatchIndex]) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: updatedMatches[newMatchIndex] })
+  }
+
+  ctx.setUI({
+    searchReplace: {
+      ...sr,
+      matchIndex: newMatchIndex,
+      matchCount: updatedMatches.length,
+      matchNodeIds: updatedMatches,
+    },
+  })
+
+  ctx.toastQueue.success("Replaced 1 match")
+  return ok()
+}
+
+/** Replace all matches */
+function handleSearchReplaceDoReplaceAll(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr || sr.matchCount === 0 || !sr.searchQuery) return boundary("search-replace", "No matches to replace")
+
+  let replaceCount = 0
+  // Replace in all matching nodes
+  for (const nodeId of sr.matchNodeIds) {
+    const replaced = replaceInNode(ctx, nodeId, sr.searchQuery, sr.replaceQuery, sr.useRegex, true)
+    if (replaced) replaceCount++
+  }
+
+  // Recompute matches (should be 0 after replace all)
+  const updatedMatches = searchReplaceMatchingNodeIds(ctx, sr.searchQuery, sr.useRegex)
+
+  ctx.setUI({
+    searchReplace: {
+      ...sr,
+      matchIndex: 0,
+      matchCount: updatedMatches.length,
+      matchNodeIds: updatedMatches,
+    },
+  })
+
+  ctx.toastQueue.success(`Replaced in ${replaceCount} node${replaceCount !== 1 ? "s" : ""}`)
+  return ok()
+}
+
+/** Toggle regex mode and recompute matches */
+function handleSearchReplaceToggleRegex(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr) return ok()
+
+  const newUseRegex = !sr.useRegex
+  const matches = sr.searchQuery ? searchReplaceMatchingNodeIds(ctx, sr.searchQuery, newUseRegex) : []
+
+  // Navigate to first match
+  if (matches.length > 0 && matches[0]) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: matches[0] })
+  }
+
+  ctx.setUI({
+    searchReplace: {
+      ...sr,
+      useRegex: newUseRegex,
+      matchIndex: 0,
+      matchCount: matches.length,
+      matchNodeIds: matches,
+    },
+  })
+  return ok()
+}
+
+/** Toggle between search and replace fields */
+function handleSearchReplaceTabField(ctx: ActionCtx): ActionResult {
+  const sr = ctx.ui.searchReplace
+  if (!sr) return ok()
+
+  ctx.setUI({
+    searchReplace: {
+      ...sr,
+      focusedField: sr.focusedField === "search" ? "replace" : "search",
+    },
+  })
+  return ok()
+}
+
+/** Search visible nodes for matches (used by search/replace dialog) */
+function searchReplaceMatchingNodeIds(ctx: ActionCtx, query: string, useRegex: boolean): string[] {
+  if (!query) return []
+  const visibleIds = collectVisibleNodeIds(ctx)
+  const matches: string[] = []
+
+  let regex: RegExp | null = null
+  if (useRegex) {
+    try {
+      regex = new RegExp(query, "gi")
+    } catch {
+      // Invalid regex — no matches
+      return []
+    }
+  }
+
+  const lowerQuery = query.toLowerCase()
+
+  for (const nodeId of visibleIds) {
+    const node = ctx.repo.getNode(nodeId)
+    if (!node) continue
+    const text = getNodeText(node)
+    if (useRegex && regex) {
+      regex.lastIndex = 0
+      if (regex.test(text)) {
+        matches.push(nodeId)
+      }
+    } else {
+      if (text.toLowerCase().includes(lowerQuery)) {
+        matches.push(nodeId)
+      }
+    }
+  }
+  return matches
+}
+
+/** Replace text in a single node. Returns true if replacement was made. */
+function replaceInNode(
+  ctx: ActionCtx,
+  nodeId: string,
+  searchQuery: string,
+  replaceQuery: string,
+  useRegex: boolean,
+  replaceAll: boolean,
+): boolean {
+  const node = ctx.repo.getNode(nodeId)
+  if (!node) return false
+
+  const text = getNodeText(node)
+  let newText: string
+
+  if (useRegex) {
+    try {
+      const flags = replaceAll ? "gi" : "i"
+      const regex = new RegExp(searchQuery, flags)
+      newText = text.replace(regex, replaceQuery)
+    } catch {
+      return false
+    }
+  } else {
+    if (replaceAll) {
+      // Replace all occurrences (case-insensitive)
+      const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      newText = text.replace(new RegExp(escaped, "gi"), replaceQuery)
+    } else {
+      // Replace first occurrence (case-insensitive)
+      const idx = text.toLowerCase().indexOf(searchQuery.toLowerCase())
+      if (idx === -1) return false
+      newText = text.slice(0, idx) + replaceQuery + text.slice(idx + searchQuery.length)
+    }
+  }
+
+  if (newText === text) return false
+
+  // Apply the change via the repo
+  const newContent = setNodeText(node, newText)
+  if (node.type === "oi") {
+    ctx.repo.updateNode(nodeId, { name: newContent })
+  } else {
+    ctx.repo.updateNode(nodeId, { content: newContent })
+  }
+  return true
+}
+
+/**
+ * Update search/replace results based on search query change.
+ * Called from Board.tsx when the search input changes.
+ */
+export function updateSearchReplaceMatches(ctx: ActionCtx, searchQuery: string): void {
+  const sr = ctx.ui.searchReplace
+  if (!sr) return
+
+  const matchNodeIds = searchReplaceMatchingNodeIds(ctx, searchQuery, sr.useRegex)
+  const matchCount = matchNodeIds.length
+
+  // Navigate to first match if available
+  if (matchCount > 0 && matchNodeIds[0]) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+  }
+
+  ctx.setUI({
+    searchReplace: {
+      ...sr,
+      searchQuery,
+      matchIndex: 0,
       matchCount,
       matchNodeIds,
     },

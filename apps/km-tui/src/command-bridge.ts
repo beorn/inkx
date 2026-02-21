@@ -55,7 +55,8 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showSearchDialog ||
       ui.showFilterDialog ||
       !!ui.datePrompt ||
-      ui.showOmnibox,
+      ui.showOmnibox ||
+      !!ui.searchReplace,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ui.focusedPane === "detail",
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
@@ -67,7 +68,8 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showProjectPicker ||
       !!ui.datePrompt ||
       ui.showOmnibox ||
-      !!ui.localSearch?.isInputActive,
+      !!ui.localSearch?.isInputActive ||
+      !!ui.searchReplace,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: ui.showProjectPicker,
@@ -82,6 +84,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     visualMode: ui.visualMode,
     localFindActive: !!ui.localSearch,
     omniboxOpen: ui.showOmnibox,
+    searchReplaceOpen: !!ui.searchReplace,
   })
 
   const { colIndex, cardIndex, columns } = ctx

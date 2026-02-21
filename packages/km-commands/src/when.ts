@@ -52,7 +52,7 @@ export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectP
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
-/** Any text-input dialog is open (search, project picker, new item, date prompt, omnibox) */
+/** Any text-input dialog is open (search, project picker, new item, date prompt, omnibox, search/replace) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
   (ctx) =>
@@ -60,7 +60,8 @@ export const anyDialogOpen = when(
     ctx.projectPickerOpen ||
     ctx.newItemDialogOpen ||
     ctx.datePromptOpen ||
-    !!ctx.omniboxOpen,
+    !!ctx.omniboxOpen ||
+    !!ctx.searchReplaceOpen,
 )
 
 /** Filter dialog is open (separate from text-input dialogs — has its own key handling) */
@@ -78,7 +79,8 @@ export const anyOverlayOpen = when(
     ctx.newItemDialogOpen ||
     ctx.datePromptOpen ||
     ctx.filterDialogOpen ||
-    !!ctx.omniboxOpen,
+    !!ctx.omniboxOpen ||
+    !!ctx.searchReplaceOpen,
 )
 
 export const helpOverlayOpen = when("helpOverlayOpen", (ctx) => ctx.helpOverlayOpen)
@@ -92,6 +94,8 @@ export const hasActiveToast = when("hasActiveToast", (ctx) => ctx.hasActiveToast
 export const inVisualMode = when("inVisualMode", (ctx) => !!ctx.visualMode)
 
 export const localFindActive = when("localFindActive", (ctx) => !!ctx.localFindActive)
+
+export const searchReplaceOpen = when("searchReplaceOpen", (ctx) => !!ctx.searchReplaceOpen)
 
 // === Mode stack predicates ===
 // These check the inputMode field populated from the ModeStack.
