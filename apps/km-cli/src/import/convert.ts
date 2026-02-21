@@ -928,7 +928,26 @@ function* generateUserFiles(
       }),
     )
 
+    // Group items by assignee section (preserving order of first appearance)
+    const sectionOrder: string[] = []
+    const sectionGroups = new Map<string, ImportItem[]>()
+    const unsectioned: ImportItem[] = []
     for (const item of items) {
+      const sectionName = item.metadata?.assigneeSectionName as string | undefined
+      if (sectionName) {
+        let group = sectionGroups.get(sectionName)
+        if (!group) {
+          group = []
+          sectionGroups.set(sectionName, group)
+          sectionOrder.push(sectionName)
+        }
+        group.push(item)
+      } else {
+        unsectioned.push(item)
+      }
+    }
+
+    const emitUserItem = (item: ImportItem, parentId: string): void => {
       if (rendered.has(item.sourceId)) {
         const status = toTaskStatus(item.status)
         const marker = status === "done" ? "[x]" : "[ ]"
@@ -936,7 +955,7 @@ function* generateUserFiles(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "oi",
-            parent_id: fileId,
+            parent_id: parentId,
             task_marker: marker as TaskMarker,
             task_status: status,
             content: `![[^${item.sourceId}]]`,
@@ -945,8 +964,31 @@ function* generateUserFiles(
           }),
         )
       } else {
-        itemToNodes(counter, item, fileId, nodes, rendered, primaryMap)
+        itemToNodes(counter, item, parentId, nodes, rendered, primaryMap)
       }
+    }
+
+    // Emit sectioned items under section headings
+    for (const sectionName of sectionOrder) {
+      const sectionId = `usersec-${userSlug}-${slugify(sectionName)}`
+      nodes.push(
+        mkNode(counter, {
+          id: sectionId,
+          type: "oi",
+          parent_id: fileId,
+          fstype: "mdsection",
+          content: sectionName,
+          title: sectionName,
+        }),
+      )
+      for (const item of sectionGroups.get(sectionName)!) {
+        emitUserItem(item, sectionId)
+      }
+    }
+
+    // Emit unsectioned items directly under file root
+    for (const item of unsectioned) {
+      emitUserItem(item, fileId)
     }
 
     const markdown = nodesToMarkdown(nodes)

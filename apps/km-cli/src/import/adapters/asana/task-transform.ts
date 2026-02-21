@@ -141,6 +141,11 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
     item.metadata = { ...item.metadata, isSeparator: true }
   }
 
+  // Assignee section (for My Tasks grouping)
+  if (task.assignee_section?.name) {
+    item.metadata = { ...item.metadata, assigneeSectionName: task.assignee_section.name }
+  }
+
   // External integration data
   if (task.external) {
     item.metadata = { ...item.metadata, external: task.external }
