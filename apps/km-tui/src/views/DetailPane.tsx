@@ -7,7 +7,7 @@
 /* oxlint-disable complexity/complexity -- React component — node detail display with many conditionals */
 
 import React from "react"
-import { Box, Text, ErrorBoundary } from "inkx"
+import { Box, Text, ErrorBoundary, useFocusable } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { extractBody } from "@km/tree"
@@ -42,6 +42,19 @@ export function DetailPane({
   focused = true,
 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
+
+  // Register with the tree-based focus system. The hook reads the testID from
+  // the nearest parent Box's NodeContext. Once the focus tree is fully wired
+  // (testID="detail-pane" on the wrapping Box), `hookFocused` will reflect
+  // the true focus state. Until then, the `focused` prop drives the UI.
+  const { focused: hookFocused, focus, blur } = useFocusable()
+
+  // Prefer the hook's focus state when available (non-null NodeContext),
+  // fall back to the prop for backward compatibility.
+  const detailFocused = hookFocused || focused
+  void focus // available for programmatic focus
+  void blur // available for programmatic blur
+
   // Resolve embedded links to show the target node's details
   const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
   if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
@@ -51,12 +64,18 @@ export function DetailPane({
         width={width}
         height={height}
         scrollOffset={scrollOffset}
-        focused={focused}
+        focused={detailFocused}
       />
     )
   }
   return (
-    <TaskDetailPane node={resolvedNode} width={width} height={height} scrollOffset={scrollOffset} focused={focused} />
+    <TaskDetailPane
+      node={resolvedNode}
+      width={width}
+      height={height}
+      scrollOffset={scrollOffset}
+      focused={detailFocused}
+    />
   )
 }
 
