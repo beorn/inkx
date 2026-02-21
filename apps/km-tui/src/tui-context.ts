@@ -9,6 +9,7 @@
  */
 
 import type { KNode, ToastQueue } from "@km/core"
+import type { FocusManager } from "inkx"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
 import type { ColumnView } from "./types.ts"
@@ -78,6 +79,12 @@ export interface ActionCtx {
   // === Lifecycle ===
   /** Exit the application */
   exit: () => void
+
+  // === Focus ===
+  /** The tree-based focus manager */
+  focusManager: FocusManager
+  /** Convenience: focus a node by testID */
+  focus: (testID: string) => void
 
   // === Utilities ===
   /** Count visible descendants for outline mode */

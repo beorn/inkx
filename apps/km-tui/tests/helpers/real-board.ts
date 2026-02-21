@@ -26,6 +26,7 @@ import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "inkx/testing"
 import { StoreContext, parseKey } from "inkx/runtime"
+import { createFocusManager, FocusManagerContext } from "inkx"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
@@ -151,6 +152,9 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create focus manager for focus tree (matches create-app.tsx production setup)
+  const focusManager = createFocusManager()
+
   // Render Board with StoreContext.Provider for L3 mode
   const render = createRenderer({ cols: columns, rows })
   const boardElement = React.createElement(Board, {
@@ -164,9 +168,35 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     React.createElement(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(RepoProvider, { repo, children: boardElement }),
+      React.createElement(
+        FocusManagerContext.Provider,
+        { value: focusManager },
+        React.createElement(RepoProvider, { repo, children: boardElement }),
+      ),
     ),
   )
+
+  // Focus-aware event handler context
+  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
+  function getFakeNode(testID: string) {
+    let node = fakeNodes.get(testID)
+    if (!node) {
+      node = { props: { testID }, children: [], parent: null }
+      fakeNodes.set(testID, node)
+    }
+    return node
+  }
+  const eventCtx = {
+    get: store.getState,
+    set: store.setState,
+    focusManager,
+    focus(testID: string) {
+      focusManager.focus(getFakeNode(testID) as any, "programmatic")
+    },
+    getFocusPath() {
+      return []
+    },
+  }
 
   // Override press to route through handleKey (same path as production)
   const originalPress = result.press.bind(result)
@@ -174,7 +204,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      handleKey({ input, key: parsedKey }, eventCtx, () => {})
       store.setState((s) => s)
     })
     void originalPress(key)

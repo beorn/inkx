@@ -175,9 +175,6 @@ export interface UIState {
   // Pending chord prefix (for which-key popup)
   pendingChord: string | null
 
-  // Focus state — which pane has keyboard focus (board vs detail)
-  focusedPane: "board" | "detail"
-
   // Filter state — persistent property-based + text filter across views
   showFilterDialog: boolean
   filterText: string
@@ -377,8 +374,6 @@ export function createInitialUIState(
     bellState: null,
     status: null,
     pendingChord: null,
-
-    focusedPane: "board",
 
     showFilterDialog: false,
     filterText: "",

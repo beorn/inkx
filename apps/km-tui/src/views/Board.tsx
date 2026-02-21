@@ -11,7 +11,7 @@
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
+import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, useFocusManager, type PatchedConsole } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -230,7 +230,8 @@ function CursorAwareDetailPane({ width, height }: { width: number; height: numbe
   // NODE MODEL V2: Use node-based cursor position for detail pane
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
-  const detailFocused = useAppStore<BoardAppStore, boolean>((s) => s.ui.focusedPane === "detail")
+  const { activeId } = useFocusManager()
+  const detailFocused = activeId === "detail-pane"
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
   // Show detail for card, column, or board node (whichever cursor level)
@@ -436,6 +437,7 @@ export function BoardCore({
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Cards, Columns, or List view */}
+          <Box testID="board-area" flexGrow={1}>
           {ui.viewMode === "cards" ? (
             <ErrorBoundary
               fallback={<Text color="red">Error loading cards view</Text>}
@@ -497,8 +499,9 @@ export function BoardCore({
               <TabsView columns={columns} width={boardWidth} height={contentHeight} />
             </ErrorBoundary>
           )}
+          </Box>
           {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />}
+          {ui.showDetailPane && <Box testID="detail-pane"><CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} /></Box>}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox

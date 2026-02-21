@@ -270,20 +270,23 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
       }
       // No children, or folder — open detail pane and focus it
-      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0, focusedPane: "detail" })
+      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
+      ctx.focus("detail-pane")
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0, focusedPane: "board" })
+      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
+      ctx.focus("board-area")
       return ok()
     case "TOGGLE_DETAIL_PANE":
       // Simple toggle: open/close, focus stays on board.
       // Detail pane follows cursor selection. Pane focus (interactive mode) is future work.
       if (!ctx.ui.showDetailPane) {
-        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0, focusedPane: "board" })
+        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
       } else {
-        ctx.setUI({ showDetailPane: false, detailScrollOffset: 0, focusedPane: "board" })
+        ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
       }
+      ctx.focus("board-area")
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
@@ -966,7 +969,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
       // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
-      ctx.setUI({ focusedPane: "board" })
+      ctx.focus("board-area")
       return ok()
     case "DETAIL_PANE_SCROLL_DOWN":
       ctx.setUI((prev) => ({ detailScrollOffset: prev.detailScrollOffset + 3 }))
@@ -1343,14 +1346,15 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   }
 
   // --- Layer 2: Pane focused -> focus board (pane stays open) ---
-  if (ui.showDetailPane && ui.focusedPane === "detail") {
-    ctx.setUI({ focusedPane: "board" })
+  if (ui.showDetailPane && ctx.focusManager.getSnapshot().activeId === "detail-pane") {
+    ctx.focus("board-area")
     return ok()
   }
 
   // --- Layer 2b: Pane open but unfocused -> close pane ---
   if (ui.showDetailPane) {
-    ctx.setUI({ showDetailPane: false, focusedPane: "board" })
+    ctx.setUI({ showDetailPane: false })
+    ctx.focus("board-area")
     return ok()
   }
 

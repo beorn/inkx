@@ -69,17 +69,17 @@ describe("Escape Layering", () => {
   // ---------------------------------------------------------------------------
 
   test("Escape closes detail pane (focus stays on board)", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+    const { board, store, focusManager } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with D (focus stays on board)
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Escape closes pane
     board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Second Escape: nothing left → bell
     board.press("Escape")
@@ -176,7 +176,7 @@ describe("Escape Layering", () => {
   })
 
   test("Escape closes detail pane before clearing selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    const { board, store, focusManager } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Select items
     board.press("Shift+ArrowDown")
@@ -184,7 +184,7 @@ describe("Escape Layering", () => {
 
     // Open detail pane (focus stays on board)
     board.press("D")
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Escape closes pane first (higher priority than clearing selection)
@@ -215,7 +215,7 @@ describe("Escape Layering", () => {
   })
 
   test("pane open + selection: Escape closes pane, clears selection, then bells", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    const { board, store, focusManager } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Create selection
     board.press("Shift+ArrowDown")
@@ -223,7 +223,7 @@ describe("Escape Layering", () => {
 
     // Open detail pane (focus stays on board)
     board.press("D")
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Escape 1: close pane (selection still active)
     board.press("Escape")

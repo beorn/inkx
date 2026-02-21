@@ -43,7 +43,7 @@
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "inkx/testing"
-import { withCommands } from "inkx"
+import { withCommands, createFocusManager, FocusManagerContext } from "inkx"
 import type { AppWithCommands, AppState } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
@@ -210,6 +210,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create focus manager for focus tree (matches create-app.tsx production setup)
+  const focusManager = createFocusManager()
+
   // Create command registry
   const registry = createCommandRegistry()
   registry.registerAll(allCommands)
@@ -228,10 +231,14 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     React.createElement(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(RepoProvider, {
-        repo,
-        children: boardElement,
-      }),
+      React.createElement(
+        FocusManagerContext.Provider,
+        { value: focusManager },
+        React.createElement(RepoProvider, {
+          repo,
+          children: boardElement,
+        }),
+      ),
     ),
     incremental === false ? { incremental: false } : undefined,
   )
@@ -274,6 +281,29 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     getKeybindings,
   })
 
+  // Focus-aware event handler context (same shape as EventHandlerContext from create-app.tsx)
+  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
+  function getFakeNode(testID: string) {
+    let node = fakeNodes.get(testID)
+    if (!node) {
+      node = { props: { testID }, children: [], parent: null }
+      fakeNodes.set(testID, node)
+    }
+    return node
+  }
+  const eventCtx = {
+    get: store.getState,
+    set: store.setState,
+    focusManager,
+    focus(testID: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- synthetic nodes for focus tracking
+      focusManager.focus(getFakeNode(testID) as any, "programmatic")
+    },
+    getFocusPath() {
+      return []
+    },
+  }
+
   // Override press() to route through handleKey (same path as production)
   const originalPress = baseApp.press.bind(baseApp)
   const driverPress = async (key: string): Promise<App> => {
@@ -283,7 +313,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      handleKey({ input, key: parsedKey }, eventCtx, () => {})
       // Trigger a no-op Zustand store update to ensure any pending
       // useSyncExternalStore updates (from CursorStore mutations done by
       // handleKey's SELECT fast path) get flushed during this act() cycle.

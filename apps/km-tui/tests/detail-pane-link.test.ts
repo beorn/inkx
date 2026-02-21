@@ -32,7 +32,7 @@ describe("detail pane on link-type nodes", () => {
   })
 
   test("Escape unfocuses detail pane (v2: pane stays open)", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store, focusManager } = testEnv(
       () =>
         item(
           "board",
@@ -45,12 +45,12 @@ describe("detail pane on link-type nodes", () => {
     // Open detail pane with D (focus stays on board)
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Escape closes pane
     board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("link node whose target has children: Enter zooms instead of detail pane", { timeout: 5000 }, () => {
@@ -121,7 +121,7 @@ describe("detail pane on link-type nodes", () => {
   })
 
   test("detail pane stays closeable after navigating to different column", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
+    const { board, store, focusManager } = testEnv(
       () =>
         item(
           "board",
@@ -143,7 +143,7 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().ui.showDetailPane).toBe(true)
     board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("detail pane closes on link node pointing to existing target", { timeout: 5000 }, () => {

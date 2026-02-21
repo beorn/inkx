@@ -7,10 +7,27 @@
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
+import { createFocusManager, FocusManagerContext } from "inkx"
 import { KeyBar } from "../../src/views/key-bar.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
 
 const render = createRenderer()
+
+/** Render KeyBar with a FocusManager that has the given testID focused */
+function renderWithFocus(ui: UIState, termWidth: number, focusedId?: string) {
+  const fm = createFocusManager()
+  if (focusedId) {
+    // Create a synthetic node to set active focus
+    fm.focus({ props: { testID: focusedId }, children: [], parent: null } as any, "programmatic")
+  }
+  return render(
+    React.createElement(
+      FocusManagerContext.Provider,
+      { value: fm },
+      React.createElement(KeyBar, { ui, termWidth }),
+    ),
+  )
+}
 
 // Minimal UIState for testing — only fields the KeyBar reads
 function makeUI(overrides: Partial<UIState> = {}): UIState {
@@ -96,7 +113,7 @@ describe("KeyBar", () => {
   })
 
   it("shows PANE mode when detail pane is focused", () => {
-    const app = render(<KeyBar ui={makeUI({ showDetailPane: true, focusedPane: "detail" })} termWidth={80} />)
+    const app = renderWithFocus(makeUI({ showDetailPane: true }), 80, "detail-pane")
     const text = app.text
     expect(text).toContain("PANE")
     expect(text).toContain("Enter")

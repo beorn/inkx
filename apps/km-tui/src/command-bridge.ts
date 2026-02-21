@@ -58,7 +58,7 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showOmnibox ||
       !!ui.searchReplace,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
-    isInDetailPane: ui.focusedPane === "detail",
+    isInDetailPane: ctx.focusManager.getSnapshot().activeId === "detail-pane",
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
     textInputFocused:

@@ -46,7 +46,6 @@ const baseUI: UIState = {
   bellState: null,
   showConsole: false,
   status: null,
-  focusedPane: "board",
 }
 
 const testRootPath = "/tmp/test"

@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback } from "inkx"
+import { Box, Text, useScreenRectCallback, useFocusManager } from "inkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { ColumnView } from "../types.ts"
@@ -20,7 +20,7 @@ import type { KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
-import { renderPlain } from "../text/index.ts"
+import { parseToPlainText, InlineText } from "../text/index.ts"
 import { displayLength } from "../text/rich.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
@@ -164,7 +164,8 @@ const Card = React.memo(
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
 
     // Dual cursor: dim the cursor when board is not focused
-    const boardFocused = useUISelector((state) => state.focusedPane === "board")
+    const { activeId: focusActiveId } = useFocusManager()
+    const boardFocused = focusActiveId !== "detail-pane"
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -189,7 +190,7 @@ const Card = React.memo(
       // Include extra title lines in the overflow count.
       const titleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const textWidth = Math.max(10, treeConfig.cardInnerWidth - 2) // matches TreeNode prefix width
-      const titleDisplayWidth = displayLength(renderPlain(titleText))
+      const titleDisplayWidth = displayLength(parseToPlainText(titleText))
       const titleExtraLines = Math.min(1, Math.max(0, Math.ceil(titleDisplayWidth / textWidth) - 1))
       total += titleExtraLines
       return { hasOverflow: total > 0, hiddenCount: total }
@@ -291,7 +292,7 @@ const Card = React.memo(
     // Uses dotted border to visually distinguish from normal cards.
     const isCardCollapsed = card.rules?.collapse === true
     if (isCardCollapsed) {
-      const title = renderPlain(getNodeDisplayName(repo, card) ?? card.content ?? "")
+      const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "yellow" : "gray"
       return (
         <Box
@@ -313,7 +314,7 @@ const Card = React.memo(
             })}
           >
             <Text dimColor={(!isSelected && !isMultiSelected) || (isSelected && !boardFocused)} wrap="truncate">
-              {title}
+              <InlineText text={collapsedTitleText} />
               {childCount > 0 ? ` ··· ${childCount}` : " ···"}
             </Text>
           </Box>
@@ -544,7 +545,7 @@ export const Column = React.memo(function Column({
   )
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = renderPlain(getNodeDisplayName(repo, column.node))
+  const name = parseToPlainText(getNodeDisplayName(repo, column.node))
   const untitled = isNodeUntitled(repo, column.node)
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
@@ -598,7 +599,8 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && selectionLevel === "column"
 
   // Dual cursor: dim the cursor when board is not focused
-  const boardFocused = useUISelector((state) => state.focusedPane === "board")
+  const { activeId: colFocusActiveId } = useFocusManager()
+  const boardFocused = colFocusActiveId !== "detail-pane"
   const colCursorDim = isColumnSelected && !boardFocused
 
   // Derive column header presentation props (icon, colors, style)

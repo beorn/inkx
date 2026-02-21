@@ -7,7 +7,7 @@
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
-import type { Key, ParsedMouse } from "inkx"
+import type { Key, ParsedMouse, FocusManager } from "inkx"
 import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -29,6 +29,10 @@ let lastKeyTime = 0
 
 // Singleton — stateless, so one instance suffices for all key events
 const cardsViewNavigation = createCardsViewNavigation()
+
+// Focus manager cached from EventHandlerContext (singleton, set on first key/mouse event).
+let cachedFocusManager: FocusManager | null = null
+let cachedFocus: ((testID: string) => void) | null = null
 
 // =============================================================================
 // Key Handler
@@ -77,6 +81,9 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     setUI: (partial) => s.setUI(partial),
     setFoldedNodes: (nodes) => s.setFoldedNodes(nodes),
     exit,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
+    focusManager: cachedFocusManager!,
+    focus: cachedFocus ?? (() => {}),
     countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldedNodes),
     getVisibleDescendantIds: (cardNode, maxDepth, foldedNodes) =>
@@ -121,6 +128,12 @@ export function handleKey(
 ): void | "exit" | "flush" {
   const { input, key } = data
   const { get } = ctx
+
+  // Cache focus manager from EventHandlerContext (singleton, set once)
+  if (!cachedFocusManager) {
+    cachedFocusManager = ctx.focusManager
+    cachedFocus = ctx.focus.bind(ctx)
+  }
 
   // Track inter-event gap
   const now = performance.now()
@@ -478,6 +491,12 @@ function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number
 // oxlint-disable-next-line complexity/complexity -- mouse handler with necessary branching
 export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
+
+  // Cache focus manager from EventHandlerContext (singleton, set once)
+  if (!cachedFocusManager) {
+    cachedFocusManager = ctx.focusManager
+    cachedFocus = ctx.focus.bind(ctx)
+  }
 
   if (mouse.action === "wheel") {
     // Scroll wheel → scroll the column or detail pane under the mouse pointer

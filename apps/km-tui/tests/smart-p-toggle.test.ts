@@ -10,24 +10,24 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Detail pane toggle", () => {
   test("D opens pane, D again closes it (focus stays on board)", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
       checkIncremental: false,
       incremental: false,
     })
 
     // Initial: pane closed, board focused
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // D opens pane, focus stays on board
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(true)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // D again closes pane
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("cursor movement works while detail pane is open", () => {
@@ -86,7 +86,7 @@ describe("Detail pane toggle", () => {
   })
 
   test("Escape closes detail pane", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
+    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -96,7 +96,7 @@ describe("Detail pane toggle", () => {
 
     board.press("Escape")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("scroll offset resets on each transition", () => {
@@ -126,7 +126,7 @@ describe("Detail pane toggle", () => {
   })
 
   test("multiple D cycles work correctly", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
+    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -142,6 +142,6 @@ describe("Detail pane toggle", () => {
     expect(store.getState().ui.showDetailPane).toBe(true)
     board.press("D")
     expect(store.getState().ui.showDetailPane).toBe(false)
-    expect(store.getState().ui.focusedPane).toBe("board")
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 })

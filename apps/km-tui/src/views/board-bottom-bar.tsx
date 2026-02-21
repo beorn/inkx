@@ -4,7 +4,7 @@
 /* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
 
 import React, { useState, useEffect } from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, useFocusManager } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type UIState, getEditMode } from "../ui-reducer.ts"
@@ -156,8 +156,9 @@ export function BottomBar({
     modeColor = undefined // default/dim
   }
 
-  // Pane: board or detail
-  const paneLabel = ui.focusedPane === "detail" ? "detail" : "board"
+  // Pane: board or detail (from focus tree)
+  const { activeId: focusedActiveId } = useFocusManager()
+  const paneLabel = focusedActiveId === "detail-pane" ? "detail" : "board"
 
   // Chord prefix (only when pending)
   const chordSuffix = ui.pendingChord ? ` ${ui.pendingChord}…` : ""

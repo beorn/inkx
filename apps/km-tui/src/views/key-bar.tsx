@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, useFocusManager } from "inkx"
 import { type UIState, getEditMode } from "../ui-reducer.ts"
 
 /** A single key hint: key label + action description */
@@ -64,11 +64,11 @@ const MULTI_HINTS: KeyHint[] = [
   { key: "Esc", action: "clear" },
 ]
 
-function getKeyBarMode(ui: UIState): KeyBarMode {
+function getKeyBarMode(ui: UIState, isDetailPaneFocused: boolean): KeyBarMode {
   const editMode = getEditMode(ui)
   if (editMode === "text") return "TEXT"
   if (ui.visualMode) return "VISUAL"
-  if (ui.focusedPane === "detail") return "PANE"
+  if (isDetailPaneFocused) return "PANE"
   return "NODE"
 }
 
@@ -92,7 +92,8 @@ interface KeyBarProps {
 }
 
 export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
-  const mode = getKeyBarMode(ui)
+  const { activeId } = useFocusManager()
+  const mode = getKeyBarMode(ui, activeId === "detail-pane")
   const hints = getHints(mode, ui.multiSelected.size > 0)
 
   return (

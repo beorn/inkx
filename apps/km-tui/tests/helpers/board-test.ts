@@ -60,6 +60,7 @@ import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } f
 import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
+import { createFocusManager, FocusManagerContext } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
@@ -338,6 +339,37 @@ function standardBoard() {
  *   viewMode: "list"
  * });
  */
+
+/** Build an EventHandlerContext with focus support for tests */
+function buildTestEventHandlerCtx(
+  store: StoreApi<BoardAppStore>,
+  fm: ReturnType<typeof createFocusManager>,
+) {
+  // Fake node cache: focus("board-area") creates a synthetic node with that testID
+  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
+  function getOrCreateFakeNode(testID: string) {
+    let node = fakeNodes.get(testID)
+    if (!node) {
+      node = { props: { testID }, children: [], parent: null }
+      fakeNodes.set(testID, node)
+    }
+    return node
+  }
+
+  return {
+    get: store.getState,
+    set: store.setState,
+    focusManager: fm,
+    focus(testID: string) {
+      // biome-ignore lint: test helper — synthetic nodes for focus tracking
+      fm.focus(getOrCreateFakeNode(testID) as any, "programmatic")
+    },
+    getFocusPath() {
+      return []
+    },
+  }
+}
+
 export function testEnv(
   treeBuilder: () => KNode[],
   options?: {
@@ -397,6 +429,9 @@ export function testEnv(
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create focus manager for focus tree (matches create-app.tsx production setup)
+  const focusManager = createFocusManager()
+
   // Render Board with StoreContext.Provider for L3 mode
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
@@ -411,7 +446,11 @@ export function testEnv(
     React.createElement(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(RepoProvider, { repo, children: boardElement }),
+      React.createElement(
+        FocusManagerContext.Provider,
+        { value: focusManager },
+        React.createElement(RepoProvider, { repo, children: boardElement }),
+      ),
     ),
     { incremental: options?.incremental ?? true },
   )
@@ -419,11 +458,12 @@ export function testEnv(
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const doCheckIncremental = options?.checkIncremental !== false
+  const eventCtx = buildTestEventHandlerCtx(store, focusManager)
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      handleKey({ input, key: parsedKey }, eventCtx, () => {})
       // Trigger a no-op Zustand store update to ensure any pending
       // useSyncExternalStore updates (from repo mutations done outside
       // of press) get flushed during this act() cycle. Without this,
@@ -461,7 +501,7 @@ export function testEnv(
   // Send a mouse event through handleMouse (same path as production)
   const sendMouseEvent = (mouse: ParsedMouse) => {
     act(() => {
-      handleMouse(mouse, { get: store.getState, set: store.setState } as Parameters<typeof handleMouse>[1])
+      handleMouse(mouse, eventCtx as Parameters<typeof handleMouse>[1])
       store.setState((s) => s)
     })
     // Flush React effects via a no-op press
@@ -1366,7 +1406,7 @@ export function testEnv(
       return board
     },
   }
-  return { board, repo, registry, toastQueue, store }
+  return { board, repo, registry, toastQueue, store, focusManager }
 }
 
 /**
@@ -1439,6 +1479,9 @@ export function testEnvWithRepo(
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create focus manager for focus tree (matches create-app.tsx production setup)
+  const focusManager = createFocusManager()
+
   // Render Board with StoreContext.Provider for L3 mode
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
@@ -1453,7 +1496,11 @@ export function testEnvWithRepo(
     React.createElement(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(RepoProvider, { repo, children: boardElement }),
+      React.createElement(
+        FocusManagerContext.Provider,
+        { value: focusManager },
+        React.createElement(RepoProvider, { repo, children: boardElement }),
+      ),
     ),
     { incremental: options?.incremental ?? true },
   )
@@ -1461,11 +1508,12 @@ export function testEnvWithRepo(
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const doCheckIncremental = options?.checkIncremental !== false
+  const eventCtx = buildTestEventHandlerCtx(store, focusManager)
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
-      handleKey({ input, key: parsedKey }, { get: store.getState, set: store.setState }, () => {})
+      handleKey({ input, key: parsedKey }, eventCtx, () => {})
       // Trigger a no-op Zustand store update to ensure any pending
       // useSyncExternalStore updates (from repo mutations done outside
       // of press) get flushed during this act() cycle. Without this,
@@ -1557,7 +1605,7 @@ export function testEnvWithRepo(
       result.unmount()
     },
   }
-  return { board, registry, toastQueue, store }
+  return { board, registry, toastQueue, store, focusManager }
 }
 
 // =============================================================================

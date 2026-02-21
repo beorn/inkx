@@ -13,13 +13,12 @@ import { decomposeDatetime } from "@km/core"
 import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { renderRich, getNodeIcon, getStatusIcon, hyperlink, prettifyUrl } from "../text/index.ts"
+import { InlineText, getNodeIcon, getStatusIcon, hyperlink, prettifyUrl } from "../text/index.ts"
 import {
   formatDate,
   getStatusDisplay,
   extractReferences,
   getProjectPath,
-  stripInlineRefs,
   capitalize,
   resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
@@ -120,7 +119,7 @@ function FolderDetailPane({
             <Text dimColor bold={false}>
               ]
             </Text>{" "}
-            {renderRich(title)}
+            <InlineText text={title} />
           </Text>
         </Box>
 
@@ -278,7 +277,7 @@ function TaskDetailPane({
             </Text>
           )}
 
-          {/* Title — renderRich styles sigils but keeps all content visible */}
+          {/* Title — InlineText styles sigils but keeps all content visible */}
           <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
             <Text dimColor bold={false}>
               [
@@ -288,7 +287,7 @@ function TaskDetailPane({
               ]
             </Text>{" "}
             {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
-            {renderRich(title)}
+            <InlineText text={title} />
           </Text>
         </Box>
 
@@ -330,7 +329,7 @@ function TaskDetailPane({
                   {needsSpace && <Text> </Text>}
                   <NodeLineView
                     node={resolvedChild}
-                    displayName={stripInlineRefs(getNodeDisplayName(repo, resolvedChild))}
+                    displayName={getNodeDisplayName(repo, resolvedChild)}
                   />
                 </React.Fragment>
               )
@@ -360,13 +359,13 @@ function TaskDetailPane({
               </Text>
               {backlinkNodes.slice(0, maxBacklinks).map((bl) => {
                 const path = getProjectPath(repo, bl)
-                const title = stripInlineRefs(getNodeDisplayName(repo, bl))
+                const blTitle = getNodeDisplayName(repo, bl)
                 const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
                 return (
                   <Text key={bl.id} wrap="truncate">
                     {"  "}
                     <Text dimColor>{breadcrumb}</Text>
-                    <Text bold>{renderRich(title, { resolveWikiLink })}</Text>
+                    <Text bold><InlineText text={blTitle} context={{ resolveWikiLink }} /></Text>
                   </Text>
                 )
               })}
@@ -691,7 +690,7 @@ function DetailSubitems({
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
                   <Text dimColor wrap="truncate">
-                    {stripInlineRefs(getNodeDisplayName(repo, displayItem))}
+                    <InlineText text={getNodeDisplayName(repo, displayItem)} />
                     {kidCount > 0 ? ` ··· ${kidCount}` : " ···"}
                   </Text>
                 </Box>
@@ -713,7 +712,7 @@ function DetailSubitems({
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
                   <Text dimColor wrap="truncate">
-                    {stripInlineRefs(getNodeDisplayName(repo, displayItem))}
+                    <InlineText text={getNodeDisplayName(repo, displayItem)} />
                     {kidCount > 0 ? ` ··· ${kidCount}` : ""}
                   </Text>
                 </Box>
@@ -755,7 +754,7 @@ function DetailSubitems({
               </Box>
               <Box flexGrow={1} flexShrink={1}>
                 <Text bold wrap="wrap" dimColor={isDone}>
-                  {renderRich(stripInlineRefs(getNodeDisplayName(repo, displayItem)))}
+                  <InlineText text={getNodeDisplayName(repo, displayItem)} />
                   {(dueBadge || assigneeBadge) && (
                     <Text dimColor bold={false}>
                       {dueBadge}
@@ -773,7 +772,7 @@ function DetailSubitems({
                 <Box flexDirection="row" width={innerWidth}>
                   <Box width={2} flexShrink={0} />
                   <Box flexGrow={1} flexShrink={1}>
-                    <Text wrap="wrap">{renderRich(b.content ?? "")}</Text>
+                    <Text wrap="wrap"><InlineText text={b.content ?? ""} /></Text>
                   </Box>
                 </Box>
               </React.Fragment>
@@ -817,7 +816,7 @@ function OutlineTree({
         const displayItem = resolveEmbed(repo, item)
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
-        const title = stripInlineRefs(getNodeDisplayName(repo, displayItem))
+        const title = getNodeDisplayName(repo, displayItem)
         const resolvedId = displayItem !== item ? displayItem.id : item.id
         const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
         const allKids = depth < 3 ? repo.getChildren(childrenSourceId) : []
@@ -846,7 +845,7 @@ function OutlineTree({
             <Text wrap="truncate" dimColor={isDone}>
               {indent}
               <Text color={isDone ? undefined : icon.color}>{icon.char} </Text>
-              {renderRich(title)}
+              <InlineText text={title} />
               {isDone && kidItems.length > 0 && <Text dimColor>{` ··· ${kidItems.length}`}</Text>}
               {showBody && <Text dimColor> \u2025 {bodyPreview}</Text>}
               {!isDone && hiddenCount > 0 && <Text dimColor>{` +${hiddenCount}`}</Text>}
@@ -915,7 +914,7 @@ function BodyBlock({
           return (
             <Text key={`line-${i}`} wrap="wrap">
               <Text dimColor>{prefix}</Text>
-              {renderRich(rest ?? "", richOpts)}
+              <InlineText text={rest ?? ""} context={richOpts} />
             </Text>
           )
         }
@@ -925,13 +924,13 @@ function BodyBlock({
           return (
             <Text key={`line-${i}`} wrap="wrap">
               <Text dimColor>{prefix}</Text>
-              {renderRich(rest ?? "", richOpts)}
+              <InlineText text={rest ?? ""} context={richOpts} />
             </Text>
           )
         }
         return (
           <Text key={`line-${i}`} wrap="wrap">
-            {renderRich(line, richOpts)}
+            <InlineText text={line} context={richOpts} />
           </Text>
         )
       })}

@@ -7,11 +7,23 @@
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
+import { createFocusManager, FocusManagerContext } from "inkx"
 import { BottomBar } from "../../src/views/board-bottom-bar.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
 import type { ColumnView } from "../../src/types.ts"
 
-const render = createRenderer()
+const baseRender = createRenderer()
+
+/** Render wrapped with FocusManagerContext (including rerender) */
+function render(element: React.ReactElement) {
+  const fm = createFocusManager()
+  const wrap = (el: React.ReactElement) =>
+    React.createElement(FocusManagerContext.Provider, { value: fm }, el)
+  const app = baseRender(wrap(element))
+  const originalRerender = app.rerender.bind(app)
+  app.rerender = (el: React.ReactElement) => originalRerender(wrap(el))
+  return app
+}
 
 describe("BottomBar", () => {
   const mockUIState: UIState = {
@@ -75,9 +87,6 @@ describe("BottomBar", () => {
 
     // Status message
     status: null,
-
-    // Focus state
-    focusedPane: "board",
   }
 
   const mockRootPath = "/tmp/test-repo"
