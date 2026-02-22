@@ -111,8 +111,10 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
         <Text dimColor>{"─".repeat(width)}</Text>
       </Box>
 
-      {/* Content area with virtualized rendering */}
-      <Box flexDirection="column" width={width} flexGrow={1} minHeight={1}>
+      {/* Content area with virtualized rendering — explicit height avoids
+          flexGrow + parent overflow="hidden" layout bug where the child only
+          gets minHeight instead of remaining space */}
+      <Box flexDirection="column" width={width} height={height - 3}>
         {currentColumn ? (
           count > 0 ? (
             <VirtualList
