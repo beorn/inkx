@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback, useFocusManager, useFocusWithin } from "inkx"
+import { Box, Text, useScreenRectCallback, useFocusWithin } from "inkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { ColumnView } from "../types.ts"
@@ -28,7 +28,7 @@ import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderConte
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
-import { isHRContent } from "./tree-node-helpers.ts"
+import { isHRContent } from "./tree-node-helpers.tsx"
 
 // =============================================================================
 // Virtualization Constants
@@ -164,11 +164,11 @@ const Card = React.memo(
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
 
     // Dual cursor: dim the cursor when board is not focused.
-    // useFocusWithin checks the render tree for a testID="board-area" ancestor.
-    // Falls back to the existing activeId check until the focus tree is fully wired.
+    // Board is "focused" when it has explicit focus OR the detail pane doesn't
+    // (covers initial render before autoFocus fires, when nothing has focus yet).
     const focusWithinBoard = useFocusWithin("board-area")
-    const { activeId: focusActiveId } = useFocusManager()
-    const boardFocused = focusWithinBoard || focusActiveId !== "detail-pane"
+    const focusWithinDetail = useFocusWithin("detail-pane")
+    const boardFocused = focusWithinBoard || !focusWithinDetail
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -602,12 +602,11 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && selectionLevel === "column"
 
   // Dual cursor: dim the cursor when board is not focused.
-  // useFocusWithin checks the render tree for a testID="board-area" ancestor.
-  // Once the board area Box has testID="board-area" and focusable, this will
-  // replace the manual activeId check. Until then, fall back to the existing logic.
+  // Board is "focused" when it has explicit focus OR the detail pane doesn't
+  // (covers initial render before autoFocus fires, when nothing has focus yet).
   const focusWithinBoard = useFocusWithin("board-area")
-  const { activeId: colFocusActiveId } = useFocusManager()
-  const boardFocused = focusWithinBoard || colFocusActiveId !== "detail-pane"
+  const focusWithinDetail = useFocusWithin("detail-pane")
+  const boardFocused = focusWithinBoard || !focusWithinDetail
   const colCursorDim = isColumnSelected && !boardFocused
 
   // Derive column header presentation props (icon, colors, style)

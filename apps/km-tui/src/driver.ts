@@ -282,25 +282,18 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   })
 
   // Focus-aware event handler context (same shape as EventHandlerContext from create-app.tsx)
-  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
-  function getFakeNode(testID: string) {
-    let node = fakeNodes.get(testID)
-    if (!node) {
-      node = { props: { testID }, children: [], parent: null }
-      fakeNodes.set(testID, node)
-    }
-    return node
-  }
   const eventCtx = {
     get: store.getState,
     set: store.setState,
     focusManager,
     focus(testID: string) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- synthetic nodes for focus tracking
-      focusManager.focus(getFakeNode(testID) as any, "programmatic")
+      // Use focusById with the render tree root. If a real focusable node with
+      // this testID exists, it gets focused. Otherwise focusById falls through
+      // to virtual focus (sets activeId without a DOM node).
+      focusManager.focusById(testID, baseApp.getContainer(), "programmatic")
     },
     getFocusPath() {
-      return []
+      return focusManager.getFocusPath(baseApp.getContainer())
     },
   }
 

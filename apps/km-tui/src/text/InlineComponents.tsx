@@ -57,6 +57,8 @@ export interface InlineRenderContext {
   resolveWikiLink?: (target: string) => string | null
   /** Strip all foreground colors (for selected/highlighted items) */
   noColor?: boolean
+  /** Hide inline fields from display */
+  hideFields?: boolean
 }
 
 const InlineRenderCtx = React.createContext<InlineRenderContext>({})
@@ -164,8 +166,9 @@ export function InlineProject({ node }: { node: ProjectNode }): React.ReactEleme
   return <SigilText sigil={sigil} />
 }
 
-export function InlineField({ node }: { node: InlineFieldNode }): React.ReactElement {
+export function InlineField({ node }: { node: InlineFieldNode }): React.ReactElement | null {
   const ctx = useInlineRenderContext()
+  if (ctx.hideFields) return null
   const styledValue = ctx.noColor ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>

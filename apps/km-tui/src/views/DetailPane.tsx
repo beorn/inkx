@@ -22,7 +22,7 @@ import {
   capitalize,
   resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
-import { shortName, parseDepsRefs } from "./tree-node-helpers.ts"
+import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
 
 export interface DetailPaneProps {
@@ -30,8 +30,6 @@ export interface DetailPaneProps {
   width: number
   height: number
   scrollOffset?: number
-  /** Whether this pane has keyboard focus (bright cursor when true, dim when false) */
-  focused?: boolean
 }
 
 export function DetailPane({
@@ -39,19 +37,15 @@ export function DetailPane({
   width,
   height,
   scrollOffset = 0,
-  focused = true,
 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
-  // Register with the tree-based focus system. The hook reads the testID from
-  // the nearest parent Box's NodeContext. Once the focus tree is fully wired
-  // (testID="detail-pane" on the wrapping Box), `hookFocused` will reflect
-  // the true focus state. Until then, the `focused` prop drives the UI.
+  // Tree-based focus: useFocusable reads the testID from the nearest parent
+  // Box's NodeContext. The wrapping Box has testID="detail-pane" and focusable,
+  // so `hookFocused` reflects the true focus state.
   const { focused: hookFocused, focus, blur } = useFocusable()
 
-  // Prefer the hook's focus state when available (non-null NodeContext),
-  // fall back to the prop for backward compatibility.
-  const detailFocused = hookFocused || focused
+  const detailFocused = hookFocused
   void focus // available for programmatic focus
   void blur // available for programmatic blur
 

@@ -177,24 +177,18 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   )
 
   // Focus-aware event handler context
-  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
-  function getFakeNode(testID: string) {
-    let node = fakeNodes.get(testID)
-    if (!node) {
-      node = { props: { testID }, children: [], parent: null }
-      fakeNodes.set(testID, node)
-    }
-    return node
-  }
   const eventCtx = {
     get: store.getState,
     set: store.setState,
     focusManager,
     focus(testID: string) {
-      focusManager.focus(getFakeNode(testID) as any, "programmatic")
+      // Use focusById with the render tree root. If a real focusable node with
+      // this testID exists, it gets focused. Otherwise focusById falls through
+      // to virtual focus (sets activeId without a DOM node).
+      focusManager.focusById(testID, result.getContainer(), "programmatic")
     },
     getFocusPath() {
-      return []
+      return focusManager.getFocusPath(result.getContainer())
     },
   }
 

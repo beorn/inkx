@@ -344,28 +344,20 @@ function standardBoard() {
 function buildTestEventHandlerCtx(
   store: StoreApi<BoardAppStore>,
   fm: ReturnType<typeof createFocusManager>,
+  app: App,
 ) {
-  // Fake node cache: focus("board-area") creates a synthetic node with that testID
-  const fakeNodes = new Map<string, { props: { testID: string }; children: never[]; parent: null }>()
-  function getOrCreateFakeNode(testID: string) {
-    let node = fakeNodes.get(testID)
-    if (!node) {
-      node = { props: { testID }, children: [], parent: null }
-      fakeNodes.set(testID, node)
-    }
-    return node
-  }
-
   return {
     get: store.getState,
     set: store.setState,
     focusManager: fm,
     focus(testID: string) {
-      // biome-ignore lint: test helper — synthetic nodes for focus tracking
-      fm.focus(getOrCreateFakeNode(testID) as any, "programmatic")
+      // Use focusById with the render tree root. If a real focusable node with
+      // this testID exists, it gets focused. Otherwise focusById falls through
+      // to virtual focus (sets activeId without a DOM node).
+      fm.focusById(testID, app.getContainer(), "programmatic")
     },
     getFocusPath() {
-      return []
+      return fm.getFocusPath(app.getContainer())
     },
   }
 }
@@ -458,7 +450,7 @@ export function testEnv(
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const doCheckIncremental = options?.checkIncremental !== false
-  const eventCtx = buildTestEventHandlerCtx(store, focusManager)
+  const eventCtx = buildTestEventHandlerCtx(store, focusManager, result)
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
@@ -1508,7 +1500,7 @@ export function testEnvWithRepo(
   // Override press to route through handleKey (same path as driver/production)
   const originalPress = result.press.bind(result)
   const doCheckIncremental = options?.checkIncremental !== false
-  const eventCtx = buildTestEventHandlerCtx(store, focusManager)
+  const eventCtx = buildTestEventHandlerCtx(store, focusManager, result)
   const pressKey = (key: string) => {
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
