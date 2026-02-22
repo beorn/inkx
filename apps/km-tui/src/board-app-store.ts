@@ -16,7 +16,8 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, NavHistoryEntry } from "./board-types.ts"
+import type { BoardAction, BoardState, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
+import { createPaneState } from "./board-types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
@@ -36,9 +37,17 @@ import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-rep
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
  * demand by the key handler (buildActionCtx) and by React (useColumns hook).
+ *
+ * Phase 1 Windowing: `workspace` holds the pane structure (single pane).
+ * Flat board fields remain as the canonical source — workspace.panes[focusedPaneId]
+ * mirrors them. Future phases will invert this: workspace becomes canonical,
+ * flat fields become derived.
  */
 export interface BoardAppState {
-  // --- Board navigation (flat — source of truth) ---
+  // --- Workspace (Phase 1: single pane, mirrors flat fields) ---
+  workspace: WorkspaceState
+
+  // --- Board navigation (flat — source of truth for Phase 1) ---
   rootId: string | null
   rootPath: string | null
   cursorNodeId: string | null
@@ -77,6 +86,15 @@ export interface BoardAppState {
 
   // --- Zoom loading (deferred fold computation for large boards) ---
   isZoomLoading: boolean
+}
+
+/**
+ * Get the focused pane's state from the workspace.
+ * Convenience accessor for consumers that want to read from the workspace structure.
+ * In Phase 1, the returned PaneState mirrors the flat store fields.
+ */
+export function getFocusedPane(state: BoardAppState): PaneState {
+  return state.workspace.panes.get(state.workspace.focusedPaneId)!
 }
 
 /**
@@ -196,8 +214,31 @@ export function createBoardAppStoreState(
     const undoStack = createUndoStack()
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
 
+    // Phase 1 workspace: single pane mirroring the flat board state.
+    // The pane's foldedNodes uses the computed initial folds.
+    const initialPaneBoard: BoardState = {
+      ...bs,
+      foldedNodes: initialFoldedNodes,
+    }
+    const defaultPaneId = "main"
+    const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
+      viewMode: params.initialUIState.viewMode,
+      showDetailPane: params.initialUIState.showDetailPane,
+      detailScrollOffset: params.initialUIState.detailScrollOffset,
+      cursorStore: params.cursorStore,
+      isZoomLoading: false,
+    })
+    const workspace: WorkspaceState = {
+      panes: new Map([[defaultPaneId, initialPane]]),
+      focusedPaneId: defaultPaneId,
+      layout: { type: "leaf", paneId: defaultPaneId },
+    }
+
     return {
-      // Board navigation (flat — source of truth)
+      // Workspace (Phase 1: single pane mirrors flat fields)
+      workspace,
+
+      // Board navigation (flat — source of truth for Phase 1)
       rootId: bs.rootId,
       rootPath: bs.rootPath,
       cursorNodeId: bs.cursorNodeId,

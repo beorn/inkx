@@ -9,6 +9,7 @@
 
 import type { TNode } from "@km/core"
 import type { TPath } from "@km/tree"
+import type { CursorStore } from "./cursor-store.ts"
 
 // Re-export common types for convenience
 export type { TNode } from "@km/core"
@@ -179,5 +180,97 @@ export function createBoardState(
     moveSourceCursorNodeId: null,
     curswantX: null,
     curswantY: null,
+  }
+}
+
+// ===== Workspace / Pane Types (Phase 1: Windowing) =====
+
+/**
+ * Per-pane state — everything that becomes independent when a second pane is added.
+ * In Phase 1 (single pane), a single PaneState mirrors the flat BoardAppState fields.
+ */
+export interface PaneState {
+  id: string
+
+  // Board navigation (mirrors flat BoardAppState fields)
+  rootId: string | null
+  rootPath: string | null
+  cursorNodeId: string | null
+  selectedNodes: Set<string>
+  foldedNodes: Set<string>
+  collapsedNodes: Set<string>
+  navHistory: NavHistoryEntry[]
+  navHistoryIndex: number
+  moveMode: boolean
+  moveSourceNodes: string[]
+  moveSourceCursorNodeId: string | null
+  curswantX: number | null
+  curswantY: number | null
+
+  // Per-pane view config (subset of UIState)
+  viewMode: ViewMode
+  showDetailPane: boolean
+  detailScrollOffset: number
+
+  // Per-pane cursor store
+  cursorStore: CursorStore
+
+  // Per-pane zoom loading
+  isZoomLoading: boolean
+}
+
+/**
+ * Layout tree for workspace pane arrangement.
+ * Phase 1: always a single leaf node.
+ */
+export type LayoutNode =
+  | { type: "leaf"; paneId: string }
+  | { type: "split"; direction: "h" | "v"; ratio: number; left: LayoutNode; right: LayoutNode }
+
+/**
+ * Workspace state — contains all panes and their layout.
+ * Phase 1: single pane, simple leaf layout.
+ */
+export interface WorkspaceState {
+  panes: Map<string, PaneState>
+  focusedPaneId: string
+  layout: LayoutNode
+}
+
+/**
+ * Create a PaneState from the flat board navigation fields.
+ * Used during store initialization to populate the workspace's initial pane.
+ */
+export function createPaneState(
+  id: string,
+  board: BoardState,
+  opts: {
+    viewMode: ViewMode
+    showDetailPane: boolean
+    detailScrollOffset: number
+    cursorStore: CursorStore
+    isZoomLoading: boolean
+  },
+): PaneState {
+  return {
+    id,
+    rootId: board.rootId,
+    rootPath: board.rootPath,
+    cursorNodeId: board.cursorNodeId,
+    selectedNodes: board.selectedNodes,
+    foldedNodes: board.foldedNodes,
+    collapsedNodes: board.collapsedNodes,
+    navHistory: board.navHistory,
+    navHistoryIndex: board.navHistoryIndex,
+    moveMode: board.moveMode,
+    moveSourceNodes: board.moveSourceNodes,
+    moveSourceCursorNodeId: board.moveSourceCursorNodeId,
+    curswantX: board.curswantX,
+    curswantY: board.curswantY,
+    viewMode: opts.viewMode,
+    showDetailPane: opts.showDetailPane,
+    detailScrollOffset: opts.detailScrollOffset,
+    cursorStore: opts.cursorStore,
+    isZoomLoading: opts.isZoomLoading,
   }
 }
