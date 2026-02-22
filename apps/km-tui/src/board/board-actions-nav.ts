@@ -48,11 +48,16 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return result
   }
 
+  // Block navigation (J/K) — structural drill-in/drill-out
+  if (dir === "block_down" || dir === "block_up") {
+    const result = handleBlockNav(ctx, dir)
+    ctx.navigator.clearStickyY()
+    return result
+  }
+
   // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
-  // block_up/block_down are stubs that map to regular up/down for now (TODO: auto-unfold + block jump)
-  if (dir === "up" || dir === "down" || dir === "block_up" || dir === "block_down") {
-    const effectiveDir = dir === "block_up" ? "up" : dir === "block_down" ? "down" : dir
-    const result = handleVerticalNav(ctx, effectiveDir as "up" | "down")
+  if (dir === "up" || dir === "down") {
+    const result = handleVerticalNav(ctx, dir)
     ctx.navigator.clearStickyY()
     return result
   }
@@ -112,7 +117,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
         // itemIndex from findItemAtY maps to the correct node.
         const targetNode = ctx.repo.getNode(targetId)
         const columnId = targetNode?.parent_id
-        const isBodyCard = columnId === ctx.rootId && targetNode && !isOutline(targetNode.type)
+        const isBodyCard = columnId === ctx.rootId && targetNode && !isOutline(targetNode.type, targetNode.item)
         navigator.setDeferredResolve((itemIndex) => {
           if (columnId) {
             let children: { id: string; type: string; content?: string }[]
@@ -154,6 +159,42 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
+}
+
+/** Block navigation (J/K) — structural drill-in/drill-out. */
+function handleBlockNav(ctx: ActionCtx, dir: "block_down" | "block_up"): ActionResult {
+  const { dispatchBoard } = ctx
+
+  if (!ctx.cursorNodeId) {
+    return boundary(dir, "no cursor")
+  }
+
+  if (dir === "block_down") {
+    // Drill in: auto-unfold if folded, then move to first child.
+    // We must pass the updated foldedNodes to handleTreeNavigation because
+    // ctx.foldedNodes won't reflect the setFoldedNodes call until next render.
+    let foldedNodes = ctx.foldedNodes
+    if (foldedNodes.has(ctx.cursorNodeId)) {
+      foldedNodes = new Set(foldedNodes)
+      foldedNodes.delete(ctx.cursorNodeId)
+      ctx.setFoldedNodes(foldedNodes)
+    }
+    const navState = { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId, foldedNodes }
+    const targetId = handleTreeNavigation("child", navState, ctx.repo)
+    if (targetId && targetId !== ctx.cursorNodeId) {
+      dispatchBoard({ type: "SELECT", nodeId: targetId })
+      return ok()
+    }
+    return boundary(dir, "no children")
+  }
+
+  // block_up: drill out to parent
+  const targetId = handleTreeNavigation("parent", ctx, ctx.repo)
+  if (targetId && targetId !== ctx.cursorNodeId) {
+    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    return ok()
+  }
+  return boundary(dir, "at root")
 }
 
 /** Default tree navigation (first, last, prev, next, in, out). */

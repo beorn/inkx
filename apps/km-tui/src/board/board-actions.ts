@@ -36,6 +36,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
+import { isOutline, isListItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -258,8 +259,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const curNodeId = card?.id ?? col?.node.id
       const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
       // Resolve embedded links to get the actual target node type
-      const resolvedNode = curNode?.link_to ? ctx.repo.getNode(curNode.link_to) : curNode
-      const isFolder = resolvedNode?.type === "oi" && resolvedNode?.fstype === "folder"
+      const embedTarget = curNode?.embed_source
+      const resolvedNode = embedTarget ? ctx.repo.getNode(embedTarget) : curNode
+      const isFolder = resolvedNode ? isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder" : false
       log.debug?.(`OPEN_DETAIL_PANE: curNodeId=${curNodeId} isFolder=${isFolder}`)
       if (curNodeId && !isFolder) {
         const children = ctx.repo.getChildren(curNodeId)
@@ -497,20 +499,66 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SELECT_ALL":
       return unimplemented("selection")
 
-    // === Fold operations (single-node) ===
+    // === Fold operations (progressive per-level) ===
     case "FOLD_NODE": {
       if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.add(card.id)
-      ctx.setFoldedNodes(newFolded)
-      return ok()
+      // Walk subtree to find the deepest unfolded level with children
+      let deepestDepth = -1
+      const nodesAtDepth = new Map<number, string[]>()
+      const walk = (nodeId: string, depth: number) => {
+        const children = ctx.repo.getChildren(nodeId)
+        if (children.length === 0) return
+        // This node has children — it's foldable
+        if (!newFolded.has(nodeId)) {
+          // Unfolded and foldable: candidate for folding
+          const list = nodesAtDepth.get(depth)
+          if (list) list.push(nodeId)
+          else nodesAtDepth.set(depth, [nodeId])
+          if (depth > deepestDepth) deepestDepth = depth
+          // Continue walking children (they're visible since parent is unfolded)
+          for (const child of children) walk(child.id, depth + 1)
+        }
+        // If folded, don't walk deeper — those levels are already hidden
+      }
+      walk(card.id, 0)
+      if (deepestDepth >= 0) {
+        for (const id of nodesAtDepth.get(deepestDepth)!) newFolded.add(id)
+        ctx.setFoldedNodes(newFolded)
+        return ok()
+      }
+      // No foldable unfolded descendants (leaf node) — boundary
+      return boundary("fold", "no children to fold")
     }
     case "UNFOLD_NODE": {
       if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
-      newFolded.delete(card.id)
-      ctx.setFoldedNodes(newFolded)
-      return ok()
+      // Walk subtree to find the shallowest folded level
+      let shallowestDepth = Infinity
+      const nodesAtDepth = new Map<number, string[]>()
+      const walk = (nodeId: string, depth: number) => {
+        const children = ctx.repo.getChildren(nodeId)
+        if (children.length === 0) return
+        // This node has children — it's foldable
+        if (newFolded.has(nodeId)) {
+          // Folded: candidate for unfolding (don't walk deeper — children hidden)
+          const list = nodesAtDepth.get(depth)
+          if (list) list.push(nodeId)
+          else nodesAtDepth.set(depth, [nodeId])
+          if (depth < shallowestDepth) shallowestDepth = depth
+        } else {
+          // Unfolded: walk children to find deeper folded nodes
+          for (const child of children) walk(child.id, depth + 1)
+        }
+      }
+      walk(card.id, 0)
+      if (shallowestDepth < Infinity) {
+        for (const id of nodesAtDepth.get(shallowestDepth)!) newFolded.delete(id)
+        ctx.setFoldedNodes(newFolded)
+        return ok()
+      }
+      // Nothing folded in subtree — boundary
+      return boundary("fold", "nothing to unfold")
     }
     case "UNFOLD_RECURSIVE": {
       if (!card) return boundary("fold", "no card selected")
@@ -755,24 +803,25 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             // Build repo update with type change + correctly formatted content
             const changes: Partial<typeof node> = { ...conversion.nodeChanges }
             // Set content formatted for the new type
-            if (changes.type === "oi") {
+            if (isOutline(changes.type ?? node.type, changes.item ?? node.item)) {
               changes.name = remainingText
               changes.content = remainingText
             } else if (changes.task_marker) {
               // Task: format content with checkbox prefix
               const fakeNode = { ...node, ...changes } as typeof node
               changes.content = setNodeText(fakeNode, remainingText)
-              // Ensure type is li for tasks
-              if (!changes.type) changes.type = "li"
+              // Ensure item flag is set for tasks
+              if (!changes.type) changes.type = "p"
+              if (changes.item === undefined) changes.item = true
             } else {
               changes.content = remainingText
             }
             // Clear fields that don't apply to the new type
-            if (changes.type && changes.type !== "oi" && node.type === "oi") {
+            if (changes.type && !isOutline(changes.type, changes.item) && isOutline(node.type, node.item)) {
               changes.name = undefined
               changes.fstype = undefined
             }
-            if (changes.type && changes.type !== "li" && node.type === "li") {
+            if (changes.type && !isListItem(changes.type, changes.item) && isListItem(node.type, node.item)) {
               changes.list_marker = undefined
             }
             ctx.repo.updateNode(nodeId, changes)
@@ -804,13 +853,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             if (node.task_marker && degradation.task_marker === undefined) {
               degradation.content = content // content from edit field is already stripped
             }
-            // When converting oi → p, move name to content
-            if (degradation.type === "p" && node.type === "oi") {
+            // When converting outline → p, move name to content
+            if (degradation.type === "p" && isOutline(node.type, node.item)) {
               degradation.content = content
               degradation.name = undefined
             }
-            // When converting li → p, ensure content is plain text
-            if (degradation.type === "p" && node.type === "li") {
+            // When converting list item → p, ensure content is plain text
+            if (degradation.type === "p" && isListItem(node.type, node.item)) {
               degradation.content = content
             }
             ctx.repo.updateNode(nodeId, degradation)
@@ -856,13 +905,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               if (nextNode.task_marker && degradation.task_marker === undefined) {
                 degradation.content = getNodeText(nextNode)
               }
-              // When converting oi → p, move name to content
-              if (degradation.type === "p" && nextNode.type === "oi") {
+              // When converting outline → p, move name to content
+              if (degradation.type === "p" && isOutline(nextNode.type, nextNode.item)) {
                 degradation.content = getNodeText(nextNode)
                 degradation.name = undefined
               }
-              // When converting li → p, ensure content is plain text
-              if (degradation.type === "p" && nextNode.type === "li") {
+              // When converting list item → p, ensure content is plain text
+              if (degradation.type === "p" && isListItem(nextNode.type, nextNode.item)) {
                 degradation.content = getNodeText(nextNode)
               }
               ctx.repo.updateNode(nextNode.id, degradation)
@@ -1414,7 +1463,7 @@ function resolveNodeFsPath(repo: ActionCtx["repo"], nodeId: string): { fsPath: s
       const absPath = join(repo.path, current.fs_path)
       return {
         fsPath: absPath,
-        isFolder: current.type === "oi" && current.fstype === "folder",
+        isFolder: isOutline(current.type, current.item) && current.fstype === "folder",
       }
     }
     if (!current.parent_id) break
