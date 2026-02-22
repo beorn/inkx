@@ -120,10 +120,6 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   }
 
   switch (node.type) {
-    case "h": {
-      const depth = (node.data?.depth as number) ?? 1
-      return prefix + style.dim("#".repeat(depth) + " ") + oneLine(node.content ?? "")
-    }
     case "p":
       return prefix + style.dim("¶ ") + oneLine(node.content ?? "")
     case "hr":

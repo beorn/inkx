@@ -58,11 +58,11 @@ describe("getChildrenByType", () => {
   test("returns only children matching the given types", () => {
     insertNode("parent", "oi", null, 0)
     insertNode("c1", "p", "parent", 0, "paragraph")
-    insertNode("c2", "h", "parent", 1, "heading")
+    insertNode("c2", "code", "parent", 1, "code block")
     insertNode("c3", "oi", "parent", 2, "section")
     insertNode("c4", "li", "parent", 3, "list item")
 
-    const blocks = getChildrenByType(db, "parent", ["p", "h"])
+    const blocks = getChildrenByType(db, "parent", ["p", "code"])
     expect(blocks).toHaveLength(2)
     expect(blocks[0]!.id).toBe("c1")
     expect(blocks[1]!.id).toBe("c2")
@@ -86,7 +86,7 @@ describe("getChildrenByType", () => {
     insertNode("c1", "oi", "parent", 0)
     insertNode("c2", "li", "parent", 1)
 
-    const result = getChildrenByType(db, "parent", ["p", "h", "code"])
+    const result = getChildrenByType(db, "parent", ["p", "code"])
     expect(result).toEqual([])
   })
 
@@ -108,17 +108,16 @@ describe("getBodyChildren", () => {
   test("returns all block-type children", () => {
     insertNode("parent", "oi", null, 0)
     insertNode("c1", "p", "parent", 0, "paragraph")
-    insertNode("c2", "h", "parent", 1, "heading")
-    insertNode("c3", "code", "parent", 2, "code block")
-    insertNode("c4", "quote", "parent", 3, "blockquote")
-    insertNode("c5", "table", "parent", 4, "table")
-    insertNode("c6", "hr", "parent", 5, "---")
-    insertNode("c7", "html", "parent", 6, "<div>html</div>")
-    insertNode("c8", "math", "parent", 7, "x^2")
+    insertNode("c2", "code", "parent", 1, "code block")
+    insertNode("c3", "quote", "parent", 2, "blockquote")
+    insertNode("c4", "table", "parent", 3, "table")
+    insertNode("c5", "hr", "parent", 4, "---")
+    insertNode("c6", "html", "parent", 5, "<div>html</div>")
+    insertNode("c7", "math", "parent", 6, "x^2")
 
     const result = getBodyChildren(db, "parent")
-    expect(result).toHaveLength(8)
-    expect(result.map((n) => n.type)).toEqual(["p", "h", "code", "quote", "table", "hr", "html", "math"])
+    expect(result).toHaveLength(7)
+    expect(result.map((n) => n.type)).toEqual(["p", "code", "quote", "table", "hr", "html", "math"])
   })
 
   test("excludes item and link types", () => {
@@ -127,12 +126,12 @@ describe("getBodyChildren", () => {
     insertNode("c2", "oi", "parent", 1, "outline item")
     insertNode("c3", "li", "parent", 2, "list item")
     insertNode("c4", "link", "parent", 3, "link")
-    insertNode("c5", "h", "parent", 4, "heading")
+    insertNode("c5", "code", "parent", 4, "code block")
 
     const result = getBodyChildren(db, "parent")
     expect(result).toHaveLength(2)
     expect(result[0]!.type).toBe("p")
-    expect(result[1]!.type).toBe("h")
+    expect(result[1]!.type).toBe("code")
   })
 
   test("returns empty array when parent has no block children", () => {
@@ -165,10 +164,9 @@ describe("getSubitems", () => {
   test("excludes block and link types", () => {
     insertNode("parent", "oi", null, 0)
     insertNode("c1", "p", "parent", 0)
-    insertNode("c2", "h", "parent", 1)
-    insertNode("c3", "code", "parent", 2)
-    insertNode("c4", "link", "parent", 3)
-    insertNode("c5", "oi", "parent", 4)
+    insertNode("c2", "code", "parent", 1)
+    insertNode("c3", "link", "parent", 2)
+    insertNode("c4", "oi", "parent", 3)
 
     const result = getSubitems(db, "parent")
     expect(result).toHaveLength(1)
@@ -178,7 +176,7 @@ describe("getSubitems", () => {
   test("returns empty array when no items exist", () => {
     insertNode("parent", "oi", null, 0)
     insertNode("c1", "p", "parent", 0)
-    insertNode("c2", "h", "parent", 1)
+    insertNode("c2", "code", "parent", 1)
 
     const result = getSubitems(db, "parent")
     expect(result).toEqual([])
@@ -195,18 +193,17 @@ describe("mixed node types under same parent", () => {
     insertNode("c1", "p", "parent", 0, "paragraph")
     insertNode("c2", "oi", "parent", 1, "outline")
     insertNode("c3", "li", "parent", 2, "list")
-    insertNode("c4", "h", "parent", 3, "heading")
-    insertNode("c5", "code", "parent", 4, "code")
-    insertNode("c6", "link", "parent", 5, "link ref")
+    insertNode("c4", "code", "parent", 3, "code")
+    insertNode("c5", "link", "parent", 4, "link ref")
 
     const body = getBodyChildren(db, "parent")
     const items = getSubitems(db, "parent")
     const all = getChildren(db, "parent")
 
     // Body + items should cover all non-link children
-    expect(body).toHaveLength(3) // p, h, code
+    expect(body).toHaveLength(2) // p, code
     expect(items).toHaveLength(2) // oi, li
-    expect(all).toHaveLength(6) // all types including link
+    expect(all).toHaveLength(5) // all types including link
 
     // No overlap between body and items
     const bodyIds = new Set(body.map((n) => n.id))
@@ -221,7 +218,7 @@ describe("mixed node types under same parent", () => {
     // Interleave block and item types
     insertNode("c1", "p", "parent", 0, "para 1")
     insertNode("c2", "oi", "parent", 1, "section 1")
-    insertNode("c3", "h", "parent", 2, "heading")
+    insertNode("c3", "quote", "parent", 2, "blockquote")
     insertNode("c4", "li", "parent", 3, "task")
     insertNode("c5", "code", "parent", 4, "snippet")
     insertNode("c6", "oi", "parent", 5, "section 2")
@@ -229,7 +226,7 @@ describe("mixed node types under same parent", () => {
     const body = getBodyChildren(db, "parent")
     const items = getSubitems(db, "parent")
 
-    // Body nodes maintain relative order: p(0) < h(2) < code(4)
+    // Body nodes maintain relative order: p(0) < quote(2) < code(4)
     expect(body.map((n) => n.id)).toEqual(["c1", "c3", "c5"])
 
     // Item nodes maintain relative order: oi(1) < li(3) < oi(5)

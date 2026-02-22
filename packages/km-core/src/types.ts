@@ -24,7 +24,7 @@ export type NotificationLevel = "info" | "success" | "warning" | "error"
 // =============================================================================
 
 /** Content leaf nodes with a content string */
-export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"
+export type BlockType = "p" | "code" | "quote" | "table" | "hr" | "html" | "math"
 
 /** Structural nodes: outline items and list items */
 export type ItemType = "oi" | "li"

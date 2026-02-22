@@ -5,18 +5,18 @@ One unified tree stored in SQLite. All content (markdown files, folders, list it
 ## Types
 
 ```typescript
-// 11 node types, 3 categories
-type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"  // 8
-type ItemType  = "oi" | "li"                                                       // 2
-type LinkType  = "link"                                                            // 1
-type NodeType  = BlockType | ItemType | LinkType                                   // 11
+// 10 node types, 3 categories
+type BlockType = "p" | "code" | "quote" | "table" | "hr" | "html" | "math"  // 7
+type ItemType  = "oi" | "li"                                                 // 2
+type LinkType  = "link"                                                      // 1
+type NodeType  = BlockType | ItemType | LinkType                             // 10
 ```
 
 ## Two Categories
 
 **Items** (oi, li) — containers. Can have children, are zoomable, recursive. Title stored in `.content` field.
 
-**Blocks** (p, h, code, quote, table, hr, html, math) — leaf content. Not zoomable. No children (except `quote`, which can contain blocks).
+**Blocks** (p, code, quote, table, hr, html, math) — leaf content. Not zoomable. No children (except `quote`, which can contain blocks).
 
 **Link** — reference to another node. Lightweight pointer; transclusion resolved at render time.
 
@@ -52,7 +52,7 @@ Creates the document hierarchy: repo → folders → files → sections.
 
 No `.blocks[]` or `.subitems[]` split in the model. Children are flat, ordered. The view decides what becomes columns vs body.
 
-Title is `.content` — no `h` child node needed. Heading level is derived from tree depth.
+Title is `.content`. Heading level is derived from tree depth.
 
 ### ListItem (li)
 
@@ -66,6 +66,8 @@ Title is `.content` — no `h` child node needed. Heading level is derived from 
 
 Same structure as oi. The one structural difference: li's children can interleave blocks and sub-li items in any order (markdown indentation disambiguates). For oi, blocks must come before subitems (markdown heading parsing cannot disambiguate trailing blocks).
 
+Headings inside list items are parsed as child `li` nodes, not as a separate `h` block type. There is no `h` node type in km-ast.
+
 ### Block
 
 Content leaf. Has a `content` string. No children (except `quote`).
@@ -73,7 +75,6 @@ Content leaf. Has a `content` string. No children (except `quote`).
 | Type    | Content                          |
 |---------|----------------------------------|
 | `p`     | Paragraph text (inline markdown) |
-| `h`     | Heading text (inside body/li/quote, not as oi title) |
 | `code`  | Code block (lang in data)        |
 | `quote` | Blockquote text (can contain child blocks) |
 | `table` | Raw markdown table               |
@@ -259,13 +260,13 @@ What can contain what:
 ```
 oi    → any node types as children (blocks, li, link; subitems are oi)
 li    → any node types as children (blocks, link; subitems are li; can interleave)
-quote → blocks (p, h, code, math, table, hr, html, link, li)
+quote → blocks (p, code, math, table, hr, html, link, li)
 link  → blocks (p) — alias only
-p, h, code, math, table, hr, html → no children (leaf nodes)
+p, code, math, table, hr, html → no children (leaf nodes)
 ```
 
 Key constraints:
-- **oi only inside oi**: A heading inside a blockquote or list item stays as an `h` block, not a new `oi`
+- **oi only inside oi**: A heading inside a list item becomes a child `li`, not an `oi`
 - **li anywhere a block can**: Lists can appear inside oi children, li children, or blockquotes
 - **link is a leaf**: Never contains subitems — transclusion resolved at render time
 
@@ -281,7 +282,7 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 |---|---|
 | **Block-level** | |
 | Paragraph | `p` |
-| ATX heading (`# text`) | `oi(content:"text")` — title in `.content`, no child `h` node |
+| ATX heading (`# text`) | `oi(content:"text")` — title in `.content` |
 | Setext heading (`text\n===`) | `oi` (normalized to ATX on round-trip) |
 | Fenced code block (` ``` `) | `code` (lang in `data.lang`) |
 | Indented code block | `code` |
@@ -342,7 +343,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 |----------|-----------|-----------|
 | Flat children (no .blocks/.subitems split) | Simpler model, matches Notion/Roam/Logseq. View decides columns vs body. | View must split children by type for board rendering |
 | li ≈ oi (structurally identical) | One navigation model, one tree. Differ only in serialization and default rendering. | Code must handle interleaving (li) vs ordered (oi) |
-| Title in `.content` (no `h` child for oi) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on oi node, not as child |
+| Title in `.content` (no `h` child) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on oi node, not as child |
 | Rendering is context-dependent | Embedded nodes take host's style. Decouples model from view. | View layer more complex |
 | Navigation is spatial (hjkl) | Decoupled from content type. Works in any layout. | Rendering must produce navigable spatial layout |
 | Lazy loading via SQL type filter | No body container node needed. `WHERE type IN ('oi','li')` for subitems. | Slightly more complex queries than skipping a body subtree |
@@ -360,7 +361,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 
 Changes from the previous model:
 
-1. **`h` child removed from oi** — title stored in `.content`, not as `blocks[0]`
+1. **`h` node type removed** — oi titles stored in `.content`; headings inside list items become child `li` nodes
 2. **`.blocks[]` / `.subitems[]` removed** — replaced by flat `.children`. View-level helpers may exist but model doesn't split.
 3. **"Two Hierarchies" removed** — one tree, items vs blocks is the only structural distinction
 4. **Ordering constraint relaxed in model** — blocks-before-subitems is a serialization concern for oi, enforced by parser/serializer, not the model

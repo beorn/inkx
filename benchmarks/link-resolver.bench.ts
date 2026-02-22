@@ -74,7 +74,7 @@ function createTestDb(
       sectionNames.push(sectionName)
       db.run(
         `INSERT INTO nodes (id, type, parent_id, parent_idx, name, title, content, data, created_at, updated_at)
-         VALUES (?, 'section', ?, ?, ?, ?, ?, '{"depth":2}', ?, ?)`,
+         VALUES (?, 'section', ?, ?, ?, ?, ?, '{}', ?, ?)`,
         [
           ulid(),
           fileId,

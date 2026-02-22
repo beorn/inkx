@@ -148,7 +148,7 @@ export function getAncestors(db: Database, nodeId: string): KNode[] {
 // =============================================================================
 
 /** Block types: content leaf nodes */
-const BLOCK_TYPES: ReadonlySet<string> = new Set(["p", "h", "code", "quote", "table", "hr", "html", "math"])
+const BLOCK_TYPES: ReadonlySet<string> = new Set(["p", "code", "quote", "table", "hr", "html", "math"])
 
 /** Item types: structural nodes */
 const ITEM_TYPES: ReadonlySet<string> = new Set(["oi", "li"])

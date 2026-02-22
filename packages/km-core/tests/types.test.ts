@@ -111,7 +111,6 @@ describe("type predicates", () => {
 
   test("isBlock", () => {
     expect(isBlock("p")).toBe(true)
-    expect(isBlock("h")).toBe(true)
     expect(isBlock("code")).toBe(true)
     expect(isBlock("oi")).toBe(false)
     expect(isBlock("li")).toBe(false)

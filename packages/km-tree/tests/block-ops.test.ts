@@ -719,24 +719,25 @@ describe("detectPrefixConversion", () => {
     expect(result!.nodeChanges.list_marker).toBe("42.")
   })
 
-  test("heading h1: '# ' → oi with depth 1", () => {
+  test("heading h1: '# ' → oi section", () => {
     const result = detectPrefixConversion("# ")
     expect(result).not.toBeNull()
     expect(result!.nodeChanges.type).toBe("oi")
     expect(result!.nodeChanges.fstype).toBe("mdsection")
-    expect((result!.nodeChanges.data as Record<string, number>).depth).toBe(1)
   })
 
-  test("heading h2: '## ' → oi with depth 2", () => {
+  test("heading h2: '## ' → oi section", () => {
     const result = detectPrefixConversion("## ")
     expect(result).not.toBeNull()
-    expect((result!.nodeChanges.data as Record<string, number>).depth).toBe(2)
+    expect(result!.nodeChanges.type).toBe("oi")
+    expect(result!.nodeChanges.fstype).toBe("mdsection")
   })
 
-  test("heading h3: '### ' → oi with depth 3", () => {
+  test("heading h3: '### ' → oi section", () => {
     const result = detectPrefixConversion("### ")
     expect(result).not.toBeNull()
-    expect((result!.nodeChanges.data as Record<string, number>).depth).toBe(3)
+    expect(result!.nodeChanges.type).toBe("oi")
+    expect(result!.nodeChanges.fstype).toBe("mdsection")
   })
 
   test("task todo: '[] ' → task marker [ ]", () => {

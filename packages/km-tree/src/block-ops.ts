@@ -386,7 +386,6 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
       nodeChanges: {
         type: "oi",
         fstype: "mdsection",
-        data: { depth: headingMatch[1].length },
       },
     }
   }

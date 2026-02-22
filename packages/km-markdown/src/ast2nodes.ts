@@ -452,7 +452,22 @@ function convertListItem(
         const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++)
         nodes.push(...nestedNodes)
       }
-    } else if (child.type === "blockquote" || child.type === "code" || child.type === "heading") {
+    } else if (child.type === "heading") {
+      // Headings inside list items become li children (not sections — oi only inside oi)
+      const heading = child as Heading
+      const liNode: KNode = {
+        id: ulid(),
+        type: "li",
+        parent_id: node.id,
+        parent_idx: childSort++,
+        link_to: null,
+        content: nodeToText(heading),
+        created_at: now,
+        updated_at: now,
+        version: "",
+      }
+      nodes.push(liNode)
+    } else if (child.type === "blockquote" || child.type === "code") {
       const blockNode = convertBlock(child, node, childSort++)
       if (blockNode) nodes.push(blockNode)
     }
@@ -533,14 +548,6 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
       type = "html"
       content = block.value
       break
-
-    case "heading": {
-      // Headings inside list items or blockquotes stay as h blocks (not oi)
-      type = "h"
-      content = nodeToText(block as Heading)
-      data.depth = (block as Heading).depth
-      break
-    }
 
     default:
       // Skip unknown types

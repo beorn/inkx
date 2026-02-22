@@ -130,7 +130,7 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
  * Serialize a file node (top-level document)
  *
  * The file node may have H1 properties merged in (content, title, rules).
- * We serialize the H1 heading first, then frontmatter (minus depth), then children.
+ * We serialize the H1 heading first, then frontmatter, then children.
  */
 function serializeFile(node: KNode, ctx: SerializeContext): string {
   let md = ""
@@ -138,7 +138,6 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   // Frontmatter - exclude internal/computed fields
   // Original frontmatter values (tags, mentions, projects, title) are preserved
   const frontmatterData = { ...node.data }
-  delete frontmatterData.depth // Internal: H1 merge tracking
   delete frontmatterData.rules // Internal: heading rules
   delete frontmatterData._h1Title // Internal: H1 heading title (distinct from frontmatter title)
   delete frontmatterData._allMentions // Computed: aggregated from content
@@ -200,13 +199,6 @@ function serializeNode(
       let paraContent = node.content ?? ""
       if (node.block_id) paraContent += ` ^${node.block_id}`
       return paraContent + "\n\n"
-    }
-
-    case "h": {
-      // Heading block (inside list items or blockquotes — not the oi title heading)
-      const hDepth = (node.data?.depth as number) ?? 2
-      const hPrefix = "#".repeat(hDepth)
-      return `${hPrefix} ${node.content ?? ""}\n\n`
     }
 
     case "quote":
@@ -441,10 +433,6 @@ function serializeLi(
         md += `${indentStr}  ${cl}\n`
       }
       md += `${indentStr}  \`\`\`\n`
-    } else if (child.type === "h") {
-      const hDepth = (child.data?.depth as number) ?? 2
-      const hPrefix = "#".repeat(hDepth)
-      md += `${indentStr}  ${hPrefix} ${child.content ?? ""}\n`
     } else {
       // table, hr, html, math — indent each line
       const content = child.content ?? (child.type === "hr" ? "---" : "")
