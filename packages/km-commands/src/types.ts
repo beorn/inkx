@@ -557,6 +557,16 @@ interface SettingsAction {
   type: "SETTINGS"
 }
 
+// Pane operations (Ctrl+W chords — windowing)
+interface PaneSplitAction {
+  type: "PANE_SPLIT"
+  direction: "vertical" | "horizontal"
+}
+
+interface PaneCloseAction {
+  type: "PANE_CLOSE"
+}
+
 // Focus switching (Cmd+h/l — kitty protocol)
 interface FocusBoardAction {
   type: "FOCUS_BOARD"
@@ -722,6 +732,8 @@ export type TUIAction =
   | CaptureInboxAction
   | CaptureDialogAction
   | SettingsAction
+  | PaneSplitAction
+  | PaneCloseAction
   | FocusBoardAction
   | FocusDetailAction
   | TextBoldAction

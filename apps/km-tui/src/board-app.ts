@@ -114,6 +114,8 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     openDetailPane: () => s.openDetailPane(),
     closeDetailPane: () => s.closeDetailPane(),
     toggleDetailPane: () => s.toggleDetailPane(),
+    splitFocusedPane: (direction) => s.splitFocusedPane(direction),
+    closeFocusedPane: () => s.closeFocusedPane(),
     exit,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: cachedFocusManager!,

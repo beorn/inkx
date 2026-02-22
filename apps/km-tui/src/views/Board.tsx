@@ -48,6 +48,7 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
+import { WorkspaceView } from "./WorkspaceView.tsx"
 import { BottomBar } from "./board-bottom-bar.tsx"
 import { KeyBar } from "./key-bar.tsx"
 import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
@@ -1014,12 +1015,13 @@ export interface BoardAppProps {
 export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
   const { exit } = useApp()
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
+  const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
 
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
 
-  return (
-    <Box flexDirection="column" height={storeDimensions.rows}>
+  const renderBoard = useCallback(
+    () => (
       <Board
         initialViewMode={initialViewMode}
         dimensions={storeDimensions}
@@ -1027,6 +1029,28 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         toastQueue={toastQueue}
         navigator={navigator}
         patchedConsole={patchedConsole}
+      />
+    ),
+    [initialViewMode, storeDimensions, exit, toastQueue, navigator, patchedConsole],
+  )
+
+  // Single pane (common case) — render Board directly, no wrapper overhead
+  if (workspace.panes.size <= 1) {
+    return (
+      <Box flexDirection="column" height={storeDimensions.rows}>
+        {renderBoard()}
+      </Box>
+    )
+  }
+
+  // Multiple panes — use WorkspaceView for split layout
+  return (
+    <Box flexDirection="column" height={storeDimensions.rows}>
+      <WorkspaceView
+        layout={workspace.layout}
+        panes={workspace.panes}
+        focusedPaneId={workspace.focusedPaneId}
+        renderBoard={renderBoard}
       />
     </Box>
   )

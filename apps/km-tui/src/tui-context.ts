@@ -94,6 +94,12 @@ export interface ActionCtx {
   /** Toggle the detail pane open/closed */
   toggleDetailPane: () => void
 
+  // === Workspace pane operations (Phase 3: splitting) ===
+  /** Split the focused pane in the given layout direction ("h" = side by side, "v" = stacked) */
+  splitFocusedPane: (direction: "h" | "v") => void
+  /** Close the focused pane (if more than one pane exists) */
+  closeFocusedPane: () => void
+
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number

@@ -49,6 +49,10 @@ const SHORT_LABELS: Record<string, string> = {
   toggle_collapse: "collapse",
   cycle_view_mode: "view",
   toggle_hide_done: "done",
+  // Ctrl+W-prefix (pane operations)
+  pane_split_vertical: "vsplit",
+  pane_split_horizontal: "hsplit",
+  pane_close: "close",
 }
 
 function getLabel(commandId: string): string {

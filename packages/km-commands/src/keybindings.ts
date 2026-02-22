@@ -702,6 +702,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "r", commandId: "set_recurring" },
       { chord: "t", key: "c", commandId: "toggle_hide_done" },
       { chord: "t", key: "l", commandId: "set_label" },
+
+      // Ctrl+W-prefix chords (pane operations — windowing)
+      { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
+      { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
+      { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
     ],
   },
 

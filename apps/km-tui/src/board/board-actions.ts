@@ -1000,6 +1000,19 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Stub: yank (paste kill ring) — not yet implemented
       return unimplemented("text.yank")
 
+    // === Pane operations (windowing) ===
+    case "PANE_SPLIT": {
+      // "split vertical" = divider is vertical = panes side by side = layout direction "h"
+      // "split horizontal" = divider is horizontal = panes stacked = layout direction "v"
+      const layoutDir = action.direction === "vertical" ? "h" : "v"
+      ctx.splitFocusedPane(layoutDir)
+      return ok()
+    }
+    case "PANE_CLOSE": {
+      ctx.closeFocusedPane()
+      return ok()
+    }
+
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
       // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open

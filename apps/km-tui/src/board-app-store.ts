@@ -16,7 +16,7 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
+import type { BoardAction, BoardState, LayoutNode, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
 import { createBoardState, createPaneState } from "./board-types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
@@ -118,6 +118,10 @@ export interface BoardAppActions {
   openDetailPane(): void
   closeDetailPane(): void
   toggleDetailPane(): void
+
+  // Workspace pane operations (Phase 3: splitting)
+  splitFocusedPane(direction: "h" | "v"): void
+  closeFocusedPane(): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -606,6 +610,152 @@ export function createBoardAppStoreState(
           state.openDetailPane()
         }
       },
+
+      // --- Workspace pane operations (Phase 3: splitting) ---
+
+      splitFocusedPane(direction: "h" | "v") {
+        set((state) => {
+          const { workspace } = state
+          const focusedId = workspace.focusedPaneId
+
+          // Generate unique pane ID
+          const existingIds = new Set(workspace.panes.keys())
+          let counter = existingIds.size + 1
+          let newPaneId = `pane-${counter}`
+          while (existingIds.has(newPaneId)) {
+            counter++
+            newPaneId = `pane-${counter}`
+          }
+
+          // Create an empty pane
+          const emptyPane = createPaneState(
+            newPaneId,
+            createBoardState(),
+            {
+              viewType: "empty",
+              viewMode: state.ui.viewMode,
+              showDetailPane: false,
+              detailScrollOffset: 0,
+              cursorStore: state.cursorStore,
+              isZoomLoading: false,
+            },
+          )
+
+          // Split the layout tree at the focused pane
+          const newLayout = splitLayoutNode(workspace.layout, focusedId, direction, newPaneId)
+
+          const newPanes = new Map(workspace.panes)
+          newPanes.set(newPaneId, emptyPane)
+
+          return {
+            workspace: {
+              ...workspace,
+              panes: newPanes,
+              layout: newLayout,
+              // Keep focus on the original pane
+              focusedPaneId: focusedId,
+            },
+          }
+        })
+      },
+
+      closeFocusedPane() {
+        set((state) => {
+          const { workspace } = state
+
+          // Don't close the last pane
+          if (workspace.panes.size <= 1) {
+            return state
+          }
+
+          const focusedId = workspace.focusedPaneId
+
+          // Remove from layout tree
+          const newLayout = removeLayoutNode(workspace.layout, focusedId)
+          if (!newLayout) return state // Should not happen (we checked size > 1)
+
+          // Remove from panes map
+          const newPanes = new Map(workspace.panes)
+          newPanes.delete(focusedId)
+
+          // Pick a new focused pane (first available)
+          const newFocusedId = getLayoutPaneIds(newLayout)[0] ?? "main"
+
+          return {
+            workspace: {
+              ...workspace,
+              panes: newPanes,
+              layout: newLayout,
+              focusedPaneId: newFocusedId,
+            },
+          }
+        })
+      },
     }
   }
+}
+
+// =============================================================================
+// Layout Tree Helpers (Pure Functions)
+// =============================================================================
+
+/** Split a leaf in the layout tree, creating a new split node */
+function splitLayoutNode(
+  layout: LayoutNode,
+  targetPaneId: string,
+  direction: "h" | "v",
+  newPaneId: string,
+  ratio = 0.5,
+): LayoutNode {
+  if (layout.type === "leaf") {
+    if (layout.paneId === targetPaneId) {
+      return {
+        type: "split",
+        direction,
+        ratio,
+        left: { type: "leaf", paneId: targetPaneId },
+        right: { type: "leaf", paneId: newPaneId },
+      }
+    }
+    return layout
+  }
+
+  const newLeft = splitLayoutNode(layout.left, targetPaneId, direction, newPaneId, ratio)
+  const newRight = splitLayoutNode(layout.right, targetPaneId, direction, newPaneId, ratio)
+
+  if (newLeft === layout.left && newRight === layout.right) return layout
+
+  return { ...layout, left: newLeft, right: newRight }
+}
+
+/** Remove a pane from the layout tree. The sibling takes the full space. Returns null if last pane. */
+function removeLayoutNode(layout: LayoutNode, paneId: string): LayoutNode | null {
+  if (layout.type === "leaf") {
+    return layout.paneId === paneId ? null : layout
+  }
+
+  // Check if either direct child is the target leaf
+  if (layout.left.type === "leaf" && layout.left.paneId === paneId) {
+    return layout.right
+  }
+  if (layout.right.type === "leaf" && layout.right.paneId === paneId) {
+    return layout.left
+  }
+
+  // Recurse
+  const newLeft = removeLayoutNode(layout.left, paneId)
+  const newRight = removeLayoutNode(layout.right, paneId)
+
+  if (newLeft === null) return newRight
+  if (newRight === null) return newLeft
+
+  if (newLeft === layout.left && newRight === layout.right) return layout
+
+  return { ...layout, left: newLeft, right: newRight }
+}
+
+/** Get all pane IDs from a layout tree in depth-first left-to-right order */
+function getLayoutPaneIds(layout: LayoutNode): string[] {
+  if (layout.type === "leaf") return [layout.paneId]
+  return [...getLayoutPaneIds(layout.left), ...getLayoutPaneIds(layout.right)]
 }

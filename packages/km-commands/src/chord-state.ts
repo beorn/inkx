@@ -49,6 +49,24 @@ export interface ChordState {
   timeout(): string | null
 }
 
+/**
+ * Build a composite chord prefix string from a key + modifiers.
+ * Returns null if no modifiers are present (caller should use bare key).
+ * Format: "Ctrl+w", "Ctrl+Shift+x", etc.
+ */
+function buildChordPrefix(
+  key: string,
+  modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
+): string | null {
+  const parts: string[] = []
+  if (modifiers.ctrl) parts.push("Ctrl")
+  if (modifiers.meta) parts.push("Alt")
+  if (modifiers.shift) parts.push("Shift")
+  if (parts.length === 0) return null
+  parts.push(key)
+  return parts.join("+")
+}
+
 export function createChordState(): ChordState {
   let pendingPrefix: string | null = null
 
@@ -80,7 +98,12 @@ export function createChordState(): ChordState {
       }
 
       // No pending prefix — check if this key starts a chord
-      // Only unmodified keys can be chord prefixes
+      // Try composite prefix first (e.g., "Ctrl+w"), then bare key (unmodified only)
+      const compositePrefix = buildChordPrefix(key, modifiers)
+      if (compositePrefix && cb.isChordPrefix(compositePrefix)) {
+        pendingPrefix = compositePrefix
+        return { type: "pending", prefix: compositePrefix }
+      }
       if (!hasModifiers && cb.isChordPrefix(key)) {
         pendingPrefix = key
         return { type: "pending", prefix: key }
