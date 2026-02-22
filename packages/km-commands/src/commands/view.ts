@@ -82,7 +82,7 @@ const unfoldRecursive = {
 const foldAll = {
   id: "fold_all",
   name: "Fold All",
-  description: "Fold all nodes at depth 1",
+  description: "Fold all cards board-wide",
   category: "Fold",
   shortcuts: ["<"],
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
@@ -91,7 +91,7 @@ const foldAll = {
 const unfoldAll = {
   id: "unfold_all",
   name: "Unfold All",
-  description: "Unfold all nodes",
+  description: "Unfold all cards board-wide",
   category: "Fold",
   shortcuts: [">"],
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),

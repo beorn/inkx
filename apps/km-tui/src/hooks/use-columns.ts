@@ -95,6 +95,8 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
   return useMemo(() => {
+    // Preload children cache for the visible subtree in one SQL query
+    repo.preloadSubtree(rootId, 4)
     return deriveColumnsFromRepo(repo, rootId, foldedNodes)
   }, [repoVersion, rootId, foldedNodes])
 }
@@ -108,6 +110,7 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
 export function buildNodeIndex(
   columns: ColumnView[],
   getChildren?: (parentId: string) => { id: string }[],
+  foldedNodes?: Set<string>,
 ): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
@@ -121,7 +124,7 @@ export function buildNodeIndex(
       if (!card) continue
       index.set(card.id, { colIndex: colIdx, cardIndex: cardIdx })
       if (getChildren) {
-        mapDescendants(card.id, colIdx, cardIdx, index, getChildren)
+        mapDescendants(card.id, colIdx, cardIdx, index, getChildren, foldedNodes)
       }
     }
   }
@@ -134,11 +137,15 @@ function mapDescendants(
   cardIndex: number,
   index: Map<string, { colIndex: number; cardIndex: number }>,
   getChildren: (parentId: string) => { id: string }[],
+  foldedNodes?: Set<string>,
 ): void {
   for (const child of getChildren(parentId)) {
     if (!index.has(child.id)) {
       index.set(child.id, { colIndex, cardIndex })
-      mapDescendants(child.id, colIndex, cardIndex, index, getChildren)
+      // Don't recurse into folded nodes — their descendants are invisible
+      if (!foldedNodes?.has(child.id)) {
+        mapDescendants(child.id, colIndex, cardIndex, index, getChildren, foldedNodes)
+      }
     }
   }
 }
@@ -262,7 +269,7 @@ function kNodeToColumnView(
   repo: Repo,
   node: KNode,
   wipLimits: Map<string, number>,
-  foldedNodes: Set<string>,
+  _foldedNodes: Set<string>,
 ): ColumnView {
   // Use node.rules if available, otherwise parse from title
   const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || "").rules

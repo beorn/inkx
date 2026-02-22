@@ -336,20 +336,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleCursorMove(ctx, action.dir)
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
-    case "FOLD_LEVEL":
-      if (col) {
-        const newFolded = new Set(ctx.foldedNodes)
-        for (const c of col.cardNodes) newFolded.add(c.id)
-        ctx.setFoldedNodes(newFolded)
-      }
+    case "FOLD_LEVEL": {
+      const newFolded = new Set(ctx.foldedNodes)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newFolded.add(c.id)
+      ctx.setFoldedNodes(newFolded)
       return ok()
-    case "UNFOLD_LEVEL":
-      if (col) {
-        const newFolded = new Set(ctx.foldedNodes)
-        for (const c of col.cardNodes) newFolded.delete(c.id)
-        ctx.setFoldedNodes(newFolded)
-      }
+    }
+    case "UNFOLD_LEVEL": {
+      const newFolded = new Set(ctx.foldedNodes)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newFolded.delete(c.id)
+      ctx.setFoldedNodes(newFolded)
       return ok()
+    }
     case "TOGGLE_COLLAPSE": {
       // Collapse the column (not the card) — use column node ID
       const collapseNodeId = col?.node.id

@@ -19,6 +19,7 @@ import { getModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import type { ActionCtx } from "./tui-context.ts"
+import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 
@@ -38,15 +39,44 @@ let cachedFocus: ((testID: string) => void) | null = null
 // Key Handler
 // =============================================================================
 
+// Layout cache — avoids recomputing columns+nodeIndex on every keypress when state hasn't changed.
+// Uses Set reference equality for foldedNodes (each mutation creates a new Set).
+let layoutCache: {
+  rootId: string | null
+  foldedNodes: Set<string>
+  repoVersion: number
+  columns: ColumnView[]
+  nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+} | null = null
+
 /**
  * Build an ActionCtx from store state.
  * Called on each key event to get fresh state.
+ * Caches columns/nodeIndex between calls when state is unchanged.
  */
 function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   const s = get()
-  // Derive layout fresh — no store cache, no feedback loop
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-  const nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id))
+  const repoVersion = s.repo.getSnapshot()
+
+  // Reuse cached layout if state inputs haven't changed
+  // foldedNodes uses reference equality — each fold/unfold creates a new Set
+  let columns: ColumnView[]
+  let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+  if (
+    layoutCache &&
+    layoutCache.rootId === s.rootId &&
+    layoutCache.foldedNodes === s.foldedNodes &&
+    layoutCache.repoVersion === repoVersion
+  ) {
+    columns = layoutCache.columns
+    nodeIndex = layoutCache.nodeIndex
+  } else {
+    // Preload children cache for the entire visible subtree in one SQL query
+    s.repo.preloadSubtree(s.rootId, 4)
+    columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+    nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id), s.foldedNodes)
+    layoutCache = { rootId: s.rootId, foldedNodes: s.foldedNodes, repoVersion, columns, nodeIndex }
+  }
   const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const column = columns[cursor.colIndex]
   const card = column?.cardNodes[cursor.cardIndex]

@@ -107,20 +107,43 @@ export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: u
 /** Depth threshold for initial folds: fold nodes with children at this depth or deeper inside each card. */
 const DEFAULT_FOLD_DEPTH = 2
 
+/** Above this column count, fold ALL cards aggressively (fold at depth 0) to stay responsive. */
+const AGGRESSIVE_FOLD_THRESHOLD = 20
+
 /**
  * Compute default fold set for a given root.
  * Folds all non-leaf nodes at depth >= DEFAULT_FOLD_DEPTH within each card.
  * If existingFolds is non-empty, returns it unchanged (user has explicit folds).
+ *
+ * For large boards (>AGGRESSIVE_FOLD_THRESHOLD columns), folds all cards at depth 0
+ * to avoid expensive tree traversal. The user can unfold specific areas with >.
  */
 function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: Set<string>): Set<string> {
   const foldedNodes = new Set(existingFolds)
   if (!rootId || foldedNodes.size > 0) return foldedNodes
 
-  // Preload entire subtree in a single SQL query to avoid N+1 getChildren calls.
-  // Depth: root(0) → columns(1) → cards(2) → card children through DEFAULT_FOLD_DEPTH+2(4)
+  const columns = repo.getChildren(rootId)
+
+  // For large boards, fold ALL cards aggressively to keep zoom instant.
+  // Only need columns(depth 1) + cards(depth 2) — no deeper walk needed.
+  if (columns.length > AGGRESSIVE_FOLD_THRESHOLD) {
+    repo.preloadSubtree(rootId, 2)
+    for (const col of columns) {
+      const cards = repo.getChildren(col.id)
+      for (const card of cards) {
+        // Fold every card that has children (fold at depth 0)
+        const children = repo.getChildren(card.id)
+        if (children.length > 0) {
+          foldedNodes.add(card.id)
+        }
+      }
+    }
+    return foldedNodes
+  }
+
+  // Normal boards: preload deeper subtree and use standard fold depth
   repo.preloadSubtree(rootId, DEFAULT_FOLD_DEPTH + 2)
 
-  const columns = repo.getChildren(rootId)
   for (const col of columns) {
     const cards = repo.getChildren(col.id)
     for (const card of cards) {

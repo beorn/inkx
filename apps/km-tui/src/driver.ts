@@ -247,7 +247,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const getContext = (): CommandContext => {
     const s = store.getState()
     const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-    const ni = buildNodeIndex(cols, (id) => s.repo.getChildren(id))
+    const ni = buildNodeIndex(cols, (id) => s.repo.getChildren(id), s.foldedNodes)
     const cursor = deriveCursorIndices(cols, s.cursorNodeId, ni)
     const column = cols[cursor.colIndex]
     const card = column?.cardNodes[cursor.cardIndex]
@@ -331,7 +331,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
 
     // Derive layout on demand
     const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-    const ni = buildNodeIndex(cols, (id) => s.repo.getChildren(id))
+    const ni = buildNodeIndex(cols, (id) => s.repo.getChildren(id), s.foldedNodes)
     const cursor = deriveCursorIndices(cols, s.cursorNodeId, ni)
     const col = cols[cursor.colIndex]
     const card = col?.cardNodes[cursor.cardIndex]

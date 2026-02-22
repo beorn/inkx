@@ -772,7 +772,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
   const columns = useColumns(repo, rootId, foldedNodes)
   const getChildren = useCallback((id: string) => repo.getChildren(id), [repo])
-  const nodeIndex = useMemo(() => buildNodeIndex(columns, getChildren), [columns, getChildren])
+  const nodeIndex = useMemo(() => buildNodeIndex(columns, getChildren, foldedNodes), [columns, getChildren, foldedNodes])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks

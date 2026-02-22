@@ -51,17 +51,17 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub3").toExist()
   })
 
-  test("z only affects current column", () => {
+  test("< folds all columns board-wide", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a", item("sub1"))), item("col2", item("2a", item("sub2")))),
     )
     board.expect("#sub1").toExist()
     board.expect("#sub2").toExist()
 
-    // z folds col1 only (cursor starts in col1)
+    // < folds all columns across the entire board
     board.press("<")
     board.expect("#sub1").not.toExist()
-    board.expect("#sub2").toExist() // col2 unaffected
+    board.expect("#sub2").not.toExist() // col2 also folded
   })
 
   test("c toggles column collapse", () => {
