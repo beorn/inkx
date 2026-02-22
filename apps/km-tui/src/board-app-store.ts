@@ -135,6 +135,10 @@ export interface BoardAppActions {
   zoomFocusedPane(): void
   closeAllButFocused(): void
   swapPaneInDirection(direction: "left" | "right" | "up" | "down"): void
+
+  // Workspace pane operations (Phase 6: pane-aware navigation)
+  /** Change the focused pane's viewType from "empty" to "board" */
+  activateEmptyPane(): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -898,6 +902,24 @@ export function createBoardAppStoreState(
 
           return {
             workspace: { ...workspace, layout: newLayout },
+          }
+        })
+      },
+
+      // --- Workspace pane operations (Phase 6: pane-aware navigation) ---
+
+      activateEmptyPane() {
+        set((state) => {
+          const { workspace } = state
+          const focusedPane = workspace.panes.get(workspace.focusedPaneId)
+          if (!focusedPane || focusedPane.viewType !== "empty") return state
+
+          const updatedPane: PaneState = { ...focusedPane, viewType: "board" }
+          const newPanes = new Map(workspace.panes)
+          newPanes.set(workspace.focusedPaneId, updatedPane)
+
+          return {
+            workspace: { ...workspace, panes: newPanes },
           }
         })
       },

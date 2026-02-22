@@ -122,6 +122,12 @@ export interface ActionCtx {
   /** Swap the focused pane with its neighbor in the given direction */
   swapPaneInDirection: (direction: "left" | "right" | "up" | "down") => void
 
+  // === Workspace pane operations (Phase 6: pane-aware navigation) ===
+  /** Change the focused pane's viewType from "empty" to "board" */
+  activateEmptyPane: () => void
+  /** Get the focused pane's viewType */
+  focusedPaneViewType: () => "board" | "detail" | "empty"
+
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number

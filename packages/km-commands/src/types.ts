@@ -613,6 +613,10 @@ interface PaneSwapAction {
   direction: "left" | "right" | "up" | "down"
 }
 
+interface PaneSplitAndPickAction {
+  type: "PANE_SPLIT_AND_PICK"
+}
+
 // Focus switching (Cmd+h/l — kitty protocol)
 interface FocusBoardAction {
   type: "FOCUS_BOARD"
@@ -790,6 +794,7 @@ export type TUIAction =
   | PaneZoomAction
   | PaneOnlyAction
   | PaneSwapAction
+  | PaneSplitAndPickAction
   | FocusBoardAction
   | FocusDetailAction
   | TextBoldAction

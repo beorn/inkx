@@ -125,6 +125,12 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     zoomFocusedPane: () => s.zoomFocusedPane(),
     closeAllButFocused: () => s.closeAllButFocused(),
     swapPaneInDirection: (direction) => s.swapPaneInDirection(direction),
+    activateEmptyPane: () => s.activateEmptyPane(),
+    focusedPaneViewType: () => {
+      const ws = get().workspace
+      const pane = ws.panes.get(ws.focusedPaneId)
+      return pane?.viewType ?? "board"
+    },
     exit,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: cachedFocusManager!,

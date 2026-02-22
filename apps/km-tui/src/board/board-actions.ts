@@ -124,7 +124,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       clearSelection(ctx)
       return ok()
     case "SHOW_PROJECT_PICKER":
-      if (card) {
+      // Allow project picker in empty panes (no card required) or when a card is selected
+      if (card || ctx.focusedPaneViewType() === "empty") {
         pushDialogMode("dialog:projectPicker")
         ctx.closeDetailPane()
         ctx.setUI({
@@ -1052,6 +1053,19 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.swapPaneInDirection(action.direction)
       return ok()
     }
+    case "PANE_SPLIT_AND_PICK": {
+      // Split vertical (side by side) then show project picker in the new (empty) pane
+      ctx.splitFocusedPane("h")
+      // Focus moves to the new pane on next cycle; for now, show the project picker
+      // which will navigate when the user picks a board
+      pushDialogMode("dialog:projectPicker")
+      ctx.closeDetailPane()
+      ctx.setUI({
+        showProjectPicker: true,
+      })
+      clearSelection(ctx)
+      return ok()
+    }
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
@@ -1307,6 +1321,11 @@ function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
 }
 
 function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
+  // If focused pane is empty, activate it as a board pane first
+  if (ctx.focusedPaneViewType() === "empty") {
+    ctx.activateEmptyPane()
+  }
+
   if (boardId === "@home") {
     // Go to root — zoom all the way out
     saveNavHistory(ctx)

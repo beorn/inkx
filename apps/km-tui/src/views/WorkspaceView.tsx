@@ -3,6 +3,7 @@
  *
  * For a single pane, renders children directly (no wrapper overhead).
  * For multiple panes, recursively splits using flexbox, with divider lines.
+ * Each pane shows a number label: [1], [2], [1d] (detail linked to pane 1).
  */
 
 import React from "react"
@@ -19,6 +20,48 @@ export interface WorkspaceViewProps {
 }
 
 /**
+ * Derive display labels for panes based on layout tab order.
+ *
+ * Top-level panes (board/empty) get sequential numbers: [1], [2], [3]
+ * Detail panes get their parent's number + "d": [1d], [2d]
+ */
+function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Map<string, string> {
+  const labels = new Map<string, string>()
+  const tabOrder = getLayoutPaneIds(layout)
+  let boardNumber = 0
+
+  for (const paneId of tabOrder) {
+    const pane = panes.get(paneId)
+    if (!pane) continue
+
+    if (pane.viewType === "detail") {
+      // Detail pane — find parent board pane's number
+      // Convention: detail pane IDs end with "-detail" (e.g., "main-detail", "pane-2-detail")
+      const parentId = paneId.replace(/-detail$/, "")
+      const parentLabel = labels.get(parentId)
+      if (parentLabel) {
+        labels.set(paneId, `${parentLabel}d`)
+      } else {
+        // Fallback: use current count
+        labels.set(paneId, `${boardNumber}d`)
+      }
+    } else {
+      // Board or empty pane — assign next number
+      boardNumber++
+      labels.set(paneId, `${boardNumber}`)
+    }
+  }
+
+  return labels
+}
+
+/** Collect pane IDs in left-to-right / top-to-bottom layout order */
+function getLayoutPaneIds(layout: LayoutNode): string[] {
+  if (layout.type === "leaf") return [layout.paneId]
+  return [...getLayoutPaneIds(layout.left), ...getLayoutPaneIds(layout.right)]
+}
+
+/**
  * Render the workspace layout.
  *
  * - Single pane: renders board directly, no wrapper
@@ -30,12 +73,15 @@ export function WorkspaceView({ layout, panes, focusedPaneId, renderBoard }: Wor
     return <>{renderBoard()}</>
   }
 
+  const paneLabels = derivePaneLabels(layout, panes)
+
   return (
     <Box flexGrow={1}>
       <LayoutNodeView
         node={layout}
         panes={panes}
         focusedPaneId={focusedPaneId}
+        paneLabels={paneLabels}
         renderBoard={renderBoard}
       />
     </Box>
@@ -47,11 +93,13 @@ function LayoutNodeView({
   node,
   panes,
   focusedPaneId,
+  paneLabels,
   renderBoard,
 }: {
   node: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
+  paneLabels: Map<string, string>
   renderBoard: () => React.ReactNode
 }): React.ReactElement {
   if (node.type === "leaf") {
@@ -60,11 +108,20 @@ function LayoutNodeView({
 
     const isFocused = node.paneId === focusedPaneId
     const borderColor = isFocused ? "green" : "gray"
+    const label = paneLabels.get(node.paneId)
 
-    // For multi-pane layouts, wrap each pane in a bordered box
+    // For multi-pane layouts, wrap each pane in a bordered box with number label
     return (
       <Box flexGrow={1} flexDirection="column" borderStyle="single" borderColor={borderColor}>
-        {pane.viewType === "board" ? renderBoard() : <EmptyPaneWelcome />}
+        {label && (
+          <Box>
+            <Text color={borderColor} bold={isFocused}>[{label}]</Text>
+            {pane.viewType === "empty" && <Text dimColor> empty</Text>}
+          </Box>
+        )}
+        <Box flexGrow={1} flexDirection="column">
+          {pane.viewType === "board" ? renderBoard() : <EmptyPaneWelcome />}
+        </Box>
       </Box>
     )
   }
@@ -81,6 +138,7 @@ function LayoutNodeView({
           node={node.left}
           panes={panes}
           focusedPaneId={focusedPaneId}
+          paneLabels={paneLabels}
           renderBoard={renderBoard}
         />
       </Box>
@@ -89,6 +147,7 @@ function LayoutNodeView({
           node={node.right}
           panes={panes}
           focusedPaneId={focusedPaneId}
+          paneLabels={paneLabels}
           renderBoard={renderBoard}
         />
       </Box>

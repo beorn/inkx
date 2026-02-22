@@ -196,9 +196,19 @@ const paneSwapRight = {
   execute: () => ({ type: "PANE_SWAP", direction: "right" }),
 } satisfies CommandDef
 
+const paneSplitAndPick = {
+  id: "pane_split_and_pick",
+  name: "New Pane + Board Picker",
+  description: "Split to new pane and open board picker",
+  category: "Navigation",
+  shortcuts: ["gn"],
+  execute: () => ({ type: "PANE_SPLIT_AND_PICK" }),
+} satisfies CommandDef
+
 export const paneCommands: CommandDef[] = [
   splitVertical,
   splitHorizontal,
+  paneSplitAndPick,
   closePane,
   paneFocusLeft,
   paneFocusDown,
