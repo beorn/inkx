@@ -52,7 +52,7 @@ import {
   renderParentPath,
   type PathSegment,
 } from "../src/layout/index.ts"
-import { formatDateBadge } from "../src/views/tree-node-helpers.ts"
+import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore } from "../src/views/Board.tsx"
 import { BottomBar } from "../src/views/board-bottom-bar.tsx"

@@ -2,8 +2,11 @@
  * Helper functions for TreeNode component
  *
  * Pure functions extracted from TreeNode for testability and clarity.
+ * Includes both string-based formatters (ANSI) and React component equivalents.
  */
 
+import React from "react"
+import { Text } from "inkx"
 import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
@@ -398,4 +401,179 @@ export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | 
 export function truncateContext(context: string | null, maxLen: number): string | null {
   if (!context) return null
   return context.length > maxLen ? context.slice(0, maxLen - 1) + "⋯" : context
+}
+
+// =============================================================================
+// React Component Equivalents
+// =============================================================================
+
+// Priority colors: P1=red, P2=yellow, P3=yellowBright, P4=dim (no color)
+const PRIORITY_TEXT_COLORS = ["red", "yellow", "yellowBright", undefined] as const
+
+/**
+ * React component version of formatDateBadge.
+ * Uses <Text color="..."> props instead of raw ANSI escape codes.
+ */
+export function DateBadge({
+  node,
+  noColor,
+}: {
+  node: KNode
+  noColor?: boolean
+}): React.ReactElement | null {
+  const parts: React.ReactElement[] = []
+
+  // Priority badge
+  if (node.priority && node.priority >= 1 && node.priority <= 4) {
+    const color = noColor ? undefined : PRIORITY_TEXT_COLORS[node.priority - 1]
+    const dim = node.priority === 4 && !noColor
+    parts.push(
+      <Text key="p" color={color} dimColor={dim}>
+        P{node.priority}
+      </Text>,
+    )
+  }
+
+  const dueDate = decomposeDatetime(node.due_at)?.date
+  const startDate = decomposeDatetime(node.start_at)?.date
+
+  // Hide past start dates for WIP tasks (already started, not useful info)
+  const startInPast = startDate ? daysFromToday(startDate) < 0 : false
+  const visibleStart = startDate && !(startInPast && node.task_status === "wip") ? startDate : undefined
+
+  if (visibleStart && dueDate) {
+    parts.push(
+      <React.Fragment key="sd">
+        <ScheduledDateText dateStr={visibleStart} noColor={noColor} />
+        <Text> → </Text>
+        <DueDateText dateStr={dueDate} noColor={noColor} />
+      </React.Fragment>,
+    )
+  } else if (visibleStart) {
+    parts.push(
+      <React.Fragment key="s">
+        <ScheduledDateText dateStr={visibleStart} noColor={noColor} />
+        <Text> →</Text>
+      </React.Fragment>,
+    )
+  } else if (dueDate) {
+    parts.push(<DueDateText key="d" dateStr={dueDate} noColor={noColor} />)
+  }
+
+  // Recurrence
+  if (node.recurrence) {
+    parts.push(<Text key="r">↻</Text>)
+  }
+
+  if (parts.length === 0) return null
+  return (
+    <Text>
+      {parts.map((p, i) => (
+        <React.Fragment key={i}>
+          {i > 0 ? " " : ""}
+          {p}
+        </React.Fragment>
+      ))}
+    </Text>
+  )
+}
+
+/** Due date with urgency coloring: overdue=red bold, today/tomorrow=green, future=dim cyan */
+function DueDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean }): React.ReactElement {
+  const diff = daysFromToday(dateStr)
+  const text = formatRelativeDate(dateStr)
+  if (noColor) return <Text>{text}</Text>
+  if (diff < 0) return <Text color="red" bold>{text}</Text>
+  if (diff <= 1) return <Text color="green">{text}</Text>
+  return <Text color="cyan" dimColor>{text}</Text>
+}
+
+/** Scheduled date with coloring: today/tomorrow=green, future=dim cyan, past=no color */
+function ScheduledDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean }): React.ReactElement {
+  const diff = daysFromToday(dateStr)
+  const text = formatRelativeDate(dateStr)
+  if (noColor) return <Text>{text}</Text>
+  if (diff >= 0 && diff <= 1) return <Text color="green">{text}</Text>
+  if (diff > 1) return <Text color="cyan" dimColor>{text}</Text>
+  return <Text>{text}</Text>
+}
+
+/**
+ * React component version of formatBoardPills.
+ * Uses <Text color="..."> props instead of ANSI colorize().
+ */
+export function BoardPillsView({
+  pills,
+  compact,
+  noColor,
+}: {
+  pills: BoardPill[]
+  compact: boolean
+  noColor?: boolean
+}): React.ReactElement | null {
+  if (pills.length === 0) return null
+  if (compact) {
+    return (
+      <>
+        {pills.map((p, i) => (
+          <Text key={i} color={noColor ? undefined : (p.color as any)}>
+            ●
+          </Text>
+        ))}
+      </>
+    )
+  }
+  return (
+    <>
+      {pills.map((p, i) => (
+        <React.Fragment key={i}>
+          {i > 0 ? " " : ""}
+          <Text color={noColor ? undefined : (p.color as any)}>@{p.name}</Text>
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
+
+/**
+ * React component version of formatInfoSuffix.
+ * Shows assignee + board pills using <Text> color props.
+ */
+export function InfoSuffix({
+  node,
+  isCompact,
+  excludeBoardIds,
+  getBoardPills,
+  noColor,
+}: {
+  node: KNode
+  isCompact: boolean
+  excludeBoardIds: Set<string>
+  getBoardPills: GetBoardPillsFn
+  noColor?: boolean
+}): React.ReactElement | null {
+  const boardPills = isTask(node) ? getBoardPills(node, excludeBoardIds) : []
+
+  if (!isCompact) {
+    const hasAssignee = !!node.assigned_to
+    const hasPills = boardPills.length > 0
+    if (!hasAssignee && !hasPills) return null
+
+    return (
+      <Text>
+        {"  "}
+        {hasAssignee && <Text>@{shortName(node.assigned_to!)}</Text>}
+        {hasAssignee && hasPills && " "}
+        {hasPills && <BoardPillsView pills={boardPills} compact={false} noColor={noColor} />}
+      </Text>
+    )
+  }
+
+  if (boardPills.length === 0) return null
+  return (
+    <Text>
+      {" "}
+      <BoardPillsView pills={boardPills} compact noColor={noColor} />
+    </Text>
+  )
 }

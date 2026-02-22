@@ -5,7 +5,7 @@
  * CLI commands and TUI components.
  *
  * ## Modules
- * - `rich` - ANSI string utilities (stripFgColor, displayLength, stripAnsi)
+ * - `rich` - ANSI string utilities (displayLength, stripAnsi)
  * - `icons` - Status and type icons
  * - `format` - Node formatting for display
  * - `inline-parser` - Markdown text → InlineNode[] AST

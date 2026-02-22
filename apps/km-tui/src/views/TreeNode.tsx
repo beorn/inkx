@@ -29,7 +29,7 @@ import {
   getParentContext as getParentContextFromState,
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
-import { extractBody, splitNode, mergeWithPrevious, stripForDisplay } from "@km/tree"
+import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import {
   getTypeBullet,
   getCircleBullet,
@@ -39,7 +39,6 @@ import {
   type InlineRenderContext,
   type StatusIcon,
 } from "../text/index.ts"
-import { stripFgColor } from "../text/rich.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
@@ -48,8 +47,8 @@ import { BodyEditField } from "./BodyEditField.tsx"
 import {
   getNodeStyle,
   buildPrefix,
-  formatInfoSuffix,
-  formatDateBadge,
+  InfoSuffix,
+  DateBadge,
   formatSubtaskBadge,
   hasUnresolvedDeps,
   truncateContext,
@@ -57,7 +56,7 @@ import {
   isHRContent,
   VARIANT_CONFIG,
   type GetBoardPillsFn,
-} from "./tree-node-helpers.ts"
+} from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { stripKnownMentions } from "./detail-pane-helpers.ts"
 
@@ -543,13 +542,18 @@ function TreeNodeImpl({
       sigilColors,
       resolveSigilColor,
       resolveWikiLink,
+      hideFields: true,
     }
   }, [excludedSigils, sigilColors, resolveSigilColor, repo])
 
-  // Memoize info suffix - only recalc when node metadata changes
-  // Use displayNode for metadata (assigned_to, board pills)
-  const infoSuffix = useMemo(
-    () => formatInfoSuffix(displayNode, !isOneliner, excludeBoardIds, getBoardPills),
+  // Info suffix props — rendered as React component below
+  const infoSuffixProps = useMemo(
+    () => ({
+      node: displayNode,
+      isCompact: !isOneliner,
+      excludeBoardIds,
+      getBoardPills,
+    }),
     [displayNode.id, displayNode.assigned_to, displayNode.task_status, isOneliner, rootBoardId, getBoardPills],
   )
 
@@ -576,11 +580,8 @@ function TreeNodeImpl({
     return hasUnresolvedDeps(displayNode, repo.getNode.bind(repo))
   }, [depth, isOneliner, displayNode.id, displayNode.data])
 
-  // Memoize date badge (priority, recurrence, scheduled, due) - shown right-aligned
-  const dateBadge = useMemo(
-    () => formatDateBadge(displayNode),
-    [displayNode.due_at, displayNode.start_at, displayNode.priority, displayNode.recurrence],
-  )
+  // Date badge check — rendered as React component below
+  const hasDateBadge = !!(displayNode.priority || displayNode.due_at || displayNode.start_at || displayNode.recurrence)
 
   // Parent context for embedded tasks - use prop or default implementation
   const resolvedGetParentContext = useCallback(
@@ -746,8 +747,10 @@ function TreeNodeImpl({
                     <Text dimColor={style.shouldDim}>{sigilName}</Text>
                   </>
                 )}
-                {!childrenHidden && infoSuffix && (
-                  <Text dimColor={style.shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>
+                {!childrenHidden && (
+                  <Text dimColor={style.shouldDim}>
+                    <InfoSuffix {...infoSuffixProps} noColor={shouldStripColor} />
+                  </Text>
                 )}
                 {showInlineChildCount && <Text dimColor> {childCount}</Text>}
                 {!childrenHidden && showInlineContext && (
@@ -783,11 +786,11 @@ function TreeNodeImpl({
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
           {/* Hidden during inline editing — metadata is shown in the editable text */}
           {/* Rightmost element in the row — dates are the last thing on the line */}
-          {dateBadge && !isInlineEditing && !style.isDoneOrDropped && (
+          {hasDateBadge && !isInlineEditing && !style.isDoneOrDropped && (
             <Box flexShrink={0}>
               <Text color={style.textColor} wrap="truncate">
                 {" "}
-                {shouldStripColor ? stripFgColor(dateBadge) : dateBadge}
+                <DateBadge node={displayNode} noColor={shouldStripColor} />
               </Text>
             </Box>
           )}
@@ -926,17 +929,15 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 // Display Content Helper
 // =============================================================================
 
-/** Strip metadata/block IDs from content, preserving multi-line structure. */
-function stripContentForDisplay(content: string | undefined): string {
+/** Clean content for display, preserving multi-line structure.
+ * Metadata stripping (fields, block refs) is handled by the inline AST
+ * system via InlineRenderContext.hideFields. */
+function cleanContentForDisplay(content: string | undefined): string {
   if (!content) return ""
   // Strip Asana-style "#@mention" tag syntax — the "#" is an orphan prefix
   // that doesn't form a valid sigil with the following "@". Strip it before
   // further processing so it doesn't leave trailing "#" characters.
-  let cleaned = content.replace(/#@/g, "@")
-  const nlIdx = cleaned.indexOf("\n")
-  if (nlIdx === -1) return stripForDisplay(cleaned)
-  // Only strip metadata from first line; keep rest intact
-  return stripForDisplay(cleaned.slice(0, nlIdx)) + cleaned.slice(nlIdx)
+  return content.replace(/#@/g, "@")
 }
 
 /** Try to resolve an embed reference (block_id or filename) to a human-readable title.
@@ -950,7 +951,7 @@ function tryResolveEmbedRef(
   const resolveAndFormat = (query: string): string | null => {
     const target = repo.resolveNode!(query)
     if (!target) return null
-    const content = stripContentForDisplay(target.content)
+    const content = cleanContentForDisplay(target.content)
     // Guard: don't return content that's itself an embed reference
     if (!content || EMBED_EXTRACT_RE.test(content)) return null
     return content
@@ -986,7 +987,7 @@ function getDisplayContent(
     if (resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection") {
       return getNodeDisplayName(repo, resolvedNode)
     }
-    return stripContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
+    return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
   }
   if (isEmbedded) {
     // Unresolved embed — extract target name from ![[target]] syntax
@@ -1023,7 +1024,7 @@ function getDisplayContent(
   // Bare block references (e.g., "^1153379636232754" — Asana recurring task instances).
   // These are regular li nodes whose content is just a numeric block ref.
   // Show a human-readable label instead of the raw ID.
-  const stripped = stripContentForDisplay(displayNode.content)
+  const stripped = cleanContentForDisplay(displayNode.content)
   if (/^\^[\d]+$/.test(stripped.trim())) {
     // If the node has a link_to, resolve to target's display name
     if (node.link_to) {

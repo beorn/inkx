@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { shortName, formatInfoSuffix } from "../src/views/tree-node-helpers.ts"
+import { shortName, formatInfoSuffix } from "../src/views/tree-node-helpers.tsx"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 // =============================================================================

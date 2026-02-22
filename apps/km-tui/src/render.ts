@@ -14,7 +14,6 @@
 
 import { createTerm, type StyleChain } from "inkx"
 import type { TaskStatus } from "@km/core"
-import { stripForDisplay } from "@km/tree"
 import type { Repo } from "./repo-context.tsx"
 import type { InitialBoardData, RenderOptions } from "./types.ts"
 import type { KNode } from "@km/core"
@@ -150,11 +149,11 @@ export function renderCard(
   const displayNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card
   const statusIcon = renderStatusIcon(displayNode.task_status)
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
-  const rawContent = (stripForDisplay(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)
+  const rawContent = (parseToPlainText(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)
 
   // Apply plain text conversion, then dim+strikethrough for done/dropped
   const isDoneOrDropped = displayNode.task_status === "done" || displayNode.task_status === "dropped"
-  const styledContent = parseToPlainText(rawContent)
+  const styledContent = rawContent
   const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`
 

@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { formatDateBadge } from "../src/views/tree-node-helpers.ts"
+import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 import { stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
 

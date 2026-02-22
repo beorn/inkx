@@ -39,9 +39,7 @@ import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "chalkx"
 import { extractBody } from "@km/tree"
-import { stripForDisplay } from "@km/tree"
-import { formatDateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.ts"
-import { stripFgColor } from "../text/rich.ts"
+import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 
 // =============================================================================
 // Types
@@ -220,7 +218,7 @@ export interface NodeLineViewProps {
   ancestorDone?: boolean
   /** Width available for rendering */
   width?: number
-  /** Override display name (pre-computed, skips stripForDisplay/stripTaskMark) */
+  /** Override display name (pre-computed, skips stripTaskMark) */
   displayName?: string
   /** Indentation level (rendered as 2-space increments before icon) */
   indent?: number
@@ -253,7 +251,7 @@ export function NodeLineView({
   // Title: use displayName override or derive from content
   const titleText = displayName
     ?? (() => {
-        const rawContent = node.content ? stripForDisplay(node.content) : ""
+        const rawContent = node.content ?? ""
         return nodeIsTask ? stripTaskMark(rawContent) : rawContent
       })()
 
@@ -266,7 +264,7 @@ export function NodeLineView({
     <Box width={width} height={1} backgroundColor={bgColor}>
       <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
         {indentStr}
-        <Text color={iconColor}>{icon.char}</Text> <InlineText text={titleText} />
+        <Text color={iconColor}>{icon.char}</Text> <InlineText text={titleText} context={{ hideFields: true }} />
       </Text>
     </Box>
   )
@@ -289,8 +287,6 @@ export interface NodeCardViewProps {
   maxSubitems?: number
   /** Width available for rendering */
   width?: number
-  /** Optional info suffix (assignee, board pills) — appended after title */
-  infoSuffix?: string
   /** Whether the node has unresolved dependencies (shows "blocked" indicator) */
   isBlocked?: boolean
   /** Parent context string for embedded tasks (shown above title, dimmed italic) */
@@ -310,7 +306,6 @@ export function NodeCardView({
   ancestorDone = false,
   maxSubitems = 5,
   width,
-  infoSuffix,
   isBlocked = false,
   parentContext,
 }: NodeCardViewProps): React.ReactElement {
@@ -324,7 +319,7 @@ export function NodeCardView({
     : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   // Title
-  const rawContent = node.content ? stripForDisplay(node.content) : ""
+  const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
   const textColor = isSelected ? "black" : undefined
@@ -335,8 +330,8 @@ export function NodeCardView({
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
   const subtaskBadge = formatSubtaskBadge(children)
 
-  // Date badge (priority, recurrence, scheduled, due) — right-aligned, hidden for done/dropped
-  const dateBadge = !isDoneOrDropped ? formatDateBadge(node) : ""
+  // Date badge — rendered as React component
+  const hasDateBadge = !isDoneOrDropped && !!(node.priority || node.due_at || node.start_at || node.recurrence)
 
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
@@ -359,8 +354,7 @@ export function NodeCardView({
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
-            <Text color={iconColor}>{icon.char}</Text> <InlineText text={displayContent} context={{ noColor: shouldStripColor }} />
-            {infoSuffix && <Text dimColor={shouldDim}>{shouldStripColor ? stripFgColor(infoSuffix) : infoSuffix}</Text>}
+            <Text color={iconColor}>{icon.char}</Text> <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
             {subtaskBadge && <Text color={isSelected ? "black" : "gray"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
@@ -370,11 +364,11 @@ export function NodeCardView({
             <Text color={isSelected ? "black" : "red"}>{" blocked"}</Text>
           </Box>
         )}
-        {dateBadge && (
+        {hasDateBadge && (
           <Box flexShrink={0}>
             <Text color={textColor} wrap="truncate">
               {" "}
-              {shouldStripColor ? stripFgColor(dateBadge) : dateBadge}
+              <DateBadge node={node} noColor={shouldStripColor} />
             </Text>
           </Box>
         )}
@@ -546,7 +540,7 @@ export function NodeDetailView({
   isSelected: _isSelected = false,
 }: NodeDetailViewProps): React.ReactElement {
   const nodeIsTask = isTask(node)
-  const rawContent = node.content ? stripForDisplay(node.content) : ""
+  const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
   const statusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
@@ -580,7 +574,7 @@ export function NodeDetailView({
       <Box flexDirection="column" width={width - 2} backgroundColor="yellow" paddingX={1}>
         <Text bold color="black" wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
-          <InlineText text={displayContent} context={{ noColor: true }} />
+          <InlineText text={displayContent} context={{ noColor: true, hideFields: true }} />
         </Text>
       </Box>
 
@@ -637,7 +631,7 @@ export function NodeDetailView({
             {backlinks.slice(0, maxBacklinks).map((bl) => (
               <Text key={bl.id} wrap="truncate">
                 {"  "}
-                <Text bold><InlineText text={bl.content ? stripForDisplay(bl.content) : ""} /></Text>
+                <Text bold><InlineText text={bl.content ?? ""} context={{ hideFields: true }} /></Text>
               </Text>
             ))}
             {backlinks.length > maxBacklinks && <Text dimColor> +{backlinks.length - maxBacklinks} more</Text>}

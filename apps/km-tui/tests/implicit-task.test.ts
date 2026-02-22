@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { hasTaskProperties } from "@km/core"
-import { formatDateBadge, formatInfoSuffix, getNodeStyle } from "../src/views/tree-node-helpers.ts"
+import { formatDateBadge, formatInfoSuffix, getNodeStyle } from "../src/views/tree-node-helpers.tsx"
 import type { KNode } from "@km/core"
 
 // =============================================================================

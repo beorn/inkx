@@ -323,16 +323,6 @@ describe("NodeCardView (card style)", () => {
     expect(output).not.toContain("P2")
   })
 
-  test("renders info suffix when provided", async () => {
-    const node = makeNode({ content: "Task with info" })
-    const output = await renderString(<NodeCardView node={node} children={[]} infoSuffix="  @BS" width={60} />, {
-      plain: true,
-      width: 60,
-    })
-    expect(output).toContain("Task with info")
-    expect(output).toContain("@BS")
-  })
-
   test("shows recurrence indicator", async () => {
     const node = makeNode({
       content: "Recurring task",
