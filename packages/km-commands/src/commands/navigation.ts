@@ -268,7 +268,7 @@ const gotoNext = {
   name: "Go to Next Actions",
   description: "Navigate to next actions board",
   category: "Navigation",
-  shortcuts: ["ge"],
+  shortcuts: ["gN"],
   execute: () => ({ type: "GOTO_BOARD", boardId: "@next" }),
 } satisfies CommandDef
 

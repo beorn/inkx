@@ -111,8 +111,6 @@ export interface TUIDriverState extends AppState {
   detailPaneOpen: boolean
   /** Move mode active */
   moveMode: boolean
-  /** Scroll offset for columns */
-  scrollOffset: number
   /** Layout data (columns, colIndex, cardIndex) */
   columns: import("./types.ts").ColumnView[]
   colIndex: number
@@ -355,7 +353,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       },
       detailPaneOpen: s.ui.showDetailPane,
       moveMode: s.moveMode,
-      scrollOffset: 0,
       columns: cols,
       colIndex: cursor.colIndex,
       cardIndex: cursor.cardIndex,

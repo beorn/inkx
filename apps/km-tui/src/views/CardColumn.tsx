@@ -3,9 +3,6 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  *
- * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
- * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.
- * No CardState wrapper — cards are plain KNode objects.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
@@ -148,13 +145,11 @@ const Card = React.memo(
     const nodeId = card.id
 
     // Get selection state exclusively from CursorStore (self-subscription via nodeId).
-    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
     const isSelected = useIsCursorAtNode(nodeId)
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
-    // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
     const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
 
     // Check if this card is in inline edit mode (for border color)
@@ -521,7 +516,6 @@ export const Column = React.memo(function Column({
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
-  // NODE MODEL V2: Self-select by nodeId instead of positional index.
   // ScrollTrackingVirtualList handles cardIndex subscription.
   const columnSelected = useIsColumnSelectedByNode(nodeId)
   const isSelected = columnSelected.isSelected

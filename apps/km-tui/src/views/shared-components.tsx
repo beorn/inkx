@@ -58,7 +58,6 @@ export const MemoizedTreeCard = React.memo(
     extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
     // Self-subscribe to CursorStore for selection state (by nodeId)
-    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     const cursorIsSelected = useIsCursorAtNode(card.id)
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.id)

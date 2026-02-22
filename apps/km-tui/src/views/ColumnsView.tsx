@@ -64,7 +64,6 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
-  // NODE MODEL V2: Self-select by nodeId instead of positional index.
   const columnSelected = useIsColumnSelectedByNode(column.node.id)
   const isSelected = columnSelected.isSelected
   const selectionLevel = columnSelected.selectionLevel
@@ -179,7 +178,6 @@ interface ColumnsViewProps {
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
 export function ColumnsView({ columns, width, height }: ColumnsViewProps): React.ReactElement {
-  // NODE MODEL V2: Use cursorColumnNodeId to derive colIndex from columns array
   const cursorColumnNodeId = useCursorColumnNodeId()
   const colIndex = useMemo(() => {
     if (!cursorColumnNodeId) return 0

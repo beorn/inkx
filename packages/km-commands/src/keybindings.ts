@@ -673,6 +673,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "h", commandId: "goto_home" },
       { chord: "g", key: "/", commandId: "zoom_to_root" },
       { chord: "g", key: "e", commandId: "goto_archive" },
+      { chord: "g", key: "N", commandId: "goto_next" },
       { chord: "g", key: "G", commandId: "cursor_last" },
 
       // m-prefix chords (move to board)

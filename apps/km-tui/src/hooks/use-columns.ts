@@ -48,7 +48,6 @@ export interface CursorIndices {
 
 /**
  * Derive cursor indices from cursorNodeId using nodeIndex for O(1) lookup.
- * Replaces the old deriveCursorPosition from use-cursor-position.ts.
  */
 export function deriveCursorIndices(
   columns: ColumnView[],

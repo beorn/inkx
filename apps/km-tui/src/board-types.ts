@@ -63,9 +63,6 @@ export interface BoardState {
   moveSourceNodes: string[] // Node IDs being moved
   moveSourceCursorNodeId: string | null // Original cursor node
 
-  // View configuration
-  maxContentLines: number
-
   // Sticky cursor coordinates (curswant)
   // See bead km-jm2r for details on the curswant pattern
   curswantX: number | null // Sticky column index for board↔column navigation
@@ -78,15 +75,7 @@ export interface BoardState {
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
-  // NODE MODEL V2: colIndex/cardIndex are view model artifacts — they leak grid
-  // position into what should be a pure data model action. Target: SELECT takes
-  // only nodeId; grid position derived from nodeId by the cursor store.
-  | {
-      type: "SELECT"
-      nodeId: string | null
-      colIndex?: number
-      cardIndex?: number
-    }
+  | { type: "SELECT"; nodeId: string | null }
 
   // Fold/unfold (just toggles Sets)
   | { type: "TOGGLE_FOLD"; nodeId: string }
@@ -113,10 +102,6 @@ export type BoardAction =
   | { type: "ENTER_MOVE_MODE"; nodeIds: string[]; cursorNodeId: string | null }
   | { type: "CONFIRM_MOVE" }
   | { type: "CANCEL_MOVE" }
-
-  // View configuration
-  | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" }
 
   // Sticky cursor (set by navigation handlers)
   | { type: "SET_CURSWANT"; x?: number | null; y?: number | null }
@@ -192,7 +177,6 @@ export function createBoardState(
     moveMode: false,
     moveSourceNodes: [],
     moveSourceCursorNodeId: null,
-    maxContentLines: 2,
     curswantX: null,
     curswantY: null,
   }

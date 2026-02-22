@@ -435,11 +435,6 @@ export function createBoardAppStoreState(
               break
             }
 
-            // View config: kept in UIState only via setUI.
-            case "INCREASE_CONTENT_LINES":
-            case "DECREASE_CONTENT_LINES":
-              return state
-
             default: {
               const unhandled = action as { type: string }
               throw new Error(`[km:board] Unhandled board action: ${unhandled.type}`)

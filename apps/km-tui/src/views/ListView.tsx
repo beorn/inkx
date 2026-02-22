@@ -56,7 +56,6 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const { rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
 
-  // NODE MODEL V2: Use node-based cursor position instead of indices
   const cursorPos = useCursorNodePosition()
   const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
 

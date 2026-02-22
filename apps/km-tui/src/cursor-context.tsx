@@ -84,7 +84,6 @@ const defaultNodeState = {
 
 /**
  * Subscribe to whether a specific card node is the cursor target (by nodeId).
- * NODE MODEL V2: Self-selecting cards — no positional indices needed.
  * Only re-renders when this card's selection status changes.
  */
 export function useIsCursorAtNode(nodeId: string): boolean {
@@ -100,7 +99,6 @@ export function useIsCursorAtNode(nodeId: string): boolean {
 
 /**
  * Subscribe to whether a specific column node is the cursor's active column (by nodeId).
- * NODE MODEL V2: Self-selecting columns — no positional indices needed.
  * Returns selection state and level. Does NOT include cardIndex.
  */
 export function useIsColumnSelectedByNode(nodeId: string): {
@@ -130,7 +128,6 @@ export function useIsColumnSelectedByNode(nodeId: string): {
 
 /**
  * Subscribe to the cursor's card nodeId.
- * NODE MODEL V2: Replacement for useCursorCardIndex — returns nodeId instead of index.
  * Components can look up position in their own items array.
  * Only re-renders when the card nodeId changes (same as j/k within same column).
  */
@@ -142,7 +139,6 @@ export function useCursorCardNodeId(): string | null {
 
 /**
  * Subscribe to the cursor's column nodeId.
- * NODE MODEL V2: Replacement for useCursorColIndex — returns nodeId instead of index.
  * Only re-renders when the column nodeId changes (h/l movement).
  */
 export function useCursorColumnNodeId(): string | null {
@@ -153,7 +149,6 @@ export function useCursorColumnNodeId(): string | null {
 
 /**
  * Subscribe to the full node-based cursor position.
- * NODE MODEL V2: Replacement for useCursorPosition() — returns nodeIds instead of indices.
  * Re-renders on every cursor change (cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel).
  */
 export function useCursorNodePosition(): {

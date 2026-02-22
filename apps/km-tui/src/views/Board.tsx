@@ -177,7 +177,6 @@ function BoardTopBar({
   isBoardSelected: boolean
 }): React.ReactElement {
   const repo = useRepo()
-  // NODE MODEL V2: Use node-based cursor position for path display
   const cursorPos = useCursorNodePosition()
   const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
 
@@ -229,7 +228,6 @@ function BoardTopBar({
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
 function CursorAwareDetailPane({ width, height }: { width: number; height: number }): React.ReactElement | null {
-  // NODE MODEL V2: Use node-based cursor position for detail pane
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
@@ -272,7 +270,6 @@ function CursorAwareNewItemDialog({
   width: number
   height: number
 }): React.ReactElement {
-  // NODE MODEL V2: Use node-based cursor position for cursor node
   const cursorPos = useCursorNodePosition()
   const repo = useRepo()
   const cursorNode = cursorPos.cursorCardNodeId ? (repo.getNode(cursorPos.cursorCardNodeId) ?? null) : null

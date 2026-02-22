@@ -146,15 +146,6 @@ export const invariants = {
   },
 
   /**
-   * Scroll offset should be non-negative
-   */
-  validScrollOffset(state: FuzzState, action: string): void {
-    expect(state.scrollOffset, `Negative scroll offset (${state.scrollOffset}) after ${action}`).toBeGreaterThanOrEqual(
-      0,
-    )
-  },
-
-  /**
    * State consistency - captured state should match derived state
    */
   stateConsistency(state: FuzzState, action: string): void {
@@ -249,7 +240,6 @@ export function checkAllInvariants(state: FuzzState, action: string, before?: Fu
   // Additional checks
   invariants.noSerializationBugs(state, action)
   invariants.mutuallyExclusiveDialogs(state, action)
-  invariants.validScrollOffset(state, action)
   invariants.stateConsistency(state, action)
   invariants.noScreenFlicker(state, action, before)
 }

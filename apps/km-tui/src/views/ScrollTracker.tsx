@@ -5,9 +5,6 @@
  * This isolates cursor-driven re-renders: Column doesn't re-render, only this
  * wrapper + VirtualList. Cards self-subscribe via CursorStore.
  *
- * NODE MODEL V2: Uses cursorCardNodeId to find scroll position in items array,
- * eliminating the colIndex dependency.
- *
  * The wrapper approach avoids the cross-component effect timing issue where
  * setScrollOffset from a sibling's useEffect doesn't get flushed by act().
  */

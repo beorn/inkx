@@ -133,6 +133,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         clearSelection(ctx)
       }
       return ok()
+    case "SHOW_TASK_DIALOG":
+      // Stub: task properties dialog — not yet implemented
+      ctx.toastQueue.info("Task dialog not yet implemented")
+      ctx.setUI({})
+      return ok()
     case "SHOW_SEARCH_DIALOG":
       pushDialogMode("dialog:search")
       ctx.setUI({
@@ -280,6 +285,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CLOSE_DETAIL_PANE":
       ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
       ctx.focus("board-area")
+      return ok()
+    case "FOCUS_BOARD":
+      ctx.focus("board-area")
+      return ok()
+    case "FOCUS_DETAIL":
+      if (!ctx.ui.showDetailPane) {
+        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
+      }
+      ctx.focus("detail-pane")
       return ok()
     case "TOGGLE_DETAIL_PANE":
       // Simple toggle: open/close, focus stays on board.
@@ -728,8 +742,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SET_ASSIGNEE":
       return unimplemented("properties")
 
-    // Legacy navigation actions removed (were in BoardAction, not in CommandAction)
-
     // === Move mode actions ===
     // Commands return minimal actions; TUI augments with context before dispatching
     case "ENTER_MOVE_MODE": {
@@ -984,6 +996,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       return ok()
     }
+    case "TEXT_BOLD":
+    case "TEXT_ITALIC":
+      // Stub: rich text formatting — not yet implemented (needs rich text editor)
+      return unimplemented("text.formatting")
     case "TEXT_YANK":
       // Stub: yank (paste kill ring) — not yet implemented
       return unimplemented("text.yank")

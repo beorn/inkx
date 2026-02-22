@@ -32,7 +32,6 @@ interface TabsViewProps {
 export function TabsView({ columns: columnsProp, width, height }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
 
-  // NODE MODEL V2: Use node-based cursor position instead of indices
   const cursorPos = useCursorNodePosition()
   const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
 

@@ -104,7 +104,6 @@ export function BottomBar({
   consoleStats,
   toastQueue,
 }: BottomBarProps): React.ReactElement {
-  // NODE MODEL V2: Use node-based cursor position instead of indices
   const cursorPos = useCursorNodePosition()
   const colIndex = columns.findIndex((c) => c.node.id === cursorPos.cursorColumnNodeId)
   const layout = {
