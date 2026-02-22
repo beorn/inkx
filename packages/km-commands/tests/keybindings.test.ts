@@ -677,7 +677,7 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
     expect(resolveKeybinding("`", {}, ctx)).toBe("console.toggle")
   })
 
-  it("Ctrl+T fires dev toast", () => {
+  it("Ctrl+T fires task dialog", () => {
     const ctx = createContext()
     expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("task_dialog")
   })

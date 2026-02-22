@@ -8,6 +8,12 @@
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
+/** Open and close filter dialog to flush Zustand → React render cycle */
+function flushFilter(board: { press: (key: string) => void }) {
+  board.press("ctrl+g")
+  board.press("Escape")
+}
+
 describe("filter hidden count indicator", () => {
   test("shows +N hidden when text filter hides cards", () => {
     const { board, store } = testEnv(
@@ -31,8 +37,7 @@ describe("filter hidden count indicator", () => {
 
     // Apply text filter that hides 2 of 4 cards
     store.getState().setUI({ filterText: "Fix" })
-    board.press("ctrl+/")
-    board.press("Escape")
+    flushFilter(board)
 
     screen = board.screenshot()
     // 2 of 4 cards match "Fix", so 2 are hidden
@@ -51,16 +56,14 @@ describe("filter hidden count indicator", () => {
 
     // Apply filter
     store.getState().setUI({ filterText: "Fix" })
-    board.press("ctrl+/")
-    board.press("Escape")
+    flushFilter(board)
 
     let screen = board.screenshot()
     expect(screen).toContain("+2 hidden")
 
     // Clear filter
     store.getState().setUI({ filterText: "" })
-    board.press("ctrl+/")
-    board.press("Escape")
+    flushFilter(board)
 
     screen = board.screenshot()
     expect(screen).not.toContain("hidden")
@@ -78,8 +81,7 @@ describe("filter hidden count indicator", () => {
 
     // Apply filter that matches all cards
     store.getState().setUI({ filterText: "Fix" })
-    board.press("ctrl+/")
-    board.press("Escape")
+    flushFilter(board)
 
     const screen = board.screenshot()
     expect(screen).not.toContain("hidden")
@@ -98,8 +100,7 @@ describe("filter hidden count indicator", () => {
 
     // Apply filter "Fix" — Tasks: 1 hidden (Buy milk), Notes: 1 hidden (Meeting notes)
     store.getState().setUI({ filterText: "Fix" })
-    board.press("ctrl+/")
-    board.press("Escape")
+    flushFilter(board)
 
     const screen = board.screenshot()
     // Both columns should show "+1 hidden"
