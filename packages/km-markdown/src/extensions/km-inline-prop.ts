@@ -17,9 +17,11 @@ export function kmInlinePropTransform(tree: Root): void {
     if (entries.length === 0) return
 
     // Build propsRaw from ALL entries (including km.* for headings)
+    // Duplicate keys are concatenated with ", " (supports repeated km.add:: syntax)
     const propsRaw: Record<string, string> = {}
     for (const { key, value } of entries) {
-      propsRaw[key.toLowerCase()] = value
+      const k = key.toLowerCase()
+      propsRaw[k] = propsRaw[k] !== undefined ? `${propsRaw[k]}, ${value}` : value
     }
 
     // Build typed props (excluding km.* system properties)

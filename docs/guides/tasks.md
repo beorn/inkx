@@ -169,14 +169,16 @@ Columns can have rules that control task membership:
 
 ## wip km.limit:: 3
 
-## review km.default:: true
+## review
 ```
 
-| Attribute          | Effect                     |
-| ------------------ | -------------------------- |
-| `km.collapse:: true` | Collapsed in UI            |
-| `km.limit:: N`       | WIP limit (visual warning) |
-| `km.default:: true`  | New items go here          |
+The first non-collapsed, non-removed column is the default target for `km add`. Override with `km.default:: true`.
+
+| Attribute            | Effect                                          |
+| -------------------- | ----------------------------------------------- |
+| `km.collapse:: true` | Collapsed in UI                                 |
+| `km.limit:: N`       | WIP limit (visual warning)                      |
+| `km.default:: true`  | Override: new items go here instead of first col |
 
 ### Embeddings (Symlinks)
 
@@ -391,7 +393,7 @@ km init gtd --dry-run      # Preview what would be created
 
 ## Today km.add:: due:today status:todo km.add:: start:past status:todo km.color:: yellow
 
-## inbox km.add:: ./inbox/\*\* km.default:: true
+## inbox km.add:: ./inbox/\*\*
 
 ## processing
 

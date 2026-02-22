@@ -43,9 +43,50 @@ import {
   parseTaskMetadata,
   parseWikiLinks,
   extractAllRefs,
-  parseHeadingRules,
 } from "./parser.ts"
-import type { WikiLink, PropertyValue } from "./parser.ts"
+import type { WikiLink, PropertyValue, SectionRules } from "./parser.ts"
+
+/**
+ * Interpret heading rules from propsRaw (already extracted by kmInlinePropTransform).
+ * Reads km.* keys from propsRaw and builds SectionRules.
+ * km.add values are comma-separated in propsRaw (concatenated by the transform).
+ */
+function interpretHeadingRules(propsRaw: Record<string, string>): SectionRules {
+  const rules: SectionRules = {}
+  for (const [fullKey, value] of Object.entries(propsRaw)) {
+    if (!fullKey.startsWith("km.")) continue
+    const key = fullKey.slice(3)
+    switch (key) {
+      case "add": {
+        const parts = value.split(", ").map((s) => s.trim())
+        rules.add = parts.length === 1 ? parts[0] : parts
+        break
+      }
+      case "sync":
+        rules.sync = value
+        break
+      case "collapse":
+        if (value === "true") rules.collapse = true
+        break
+      case "hidden":
+        if (value === "true") rules.hidden = true
+        break
+      case "limit":
+        rules.limit = parseInt(value, 10)
+        break
+      case "default":
+        if (value === "true") rules.default = true
+        break
+      case "removed":
+        if (value === "true") rules.removed = true
+        break
+      case "color":
+        rules.color = value
+        break
+    }
+  }
+  return rules
+}
 
 /**
  * Parse warning for structural issues
@@ -213,11 +254,13 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
       // - tags/mentions/projects: kmRefsTransform
       const sectionBlockId = heading.data?.blockId as string | undefined
       const taskMark = heading.data?.taskMark as string | undefined
-      const headingText = nodeToText(heading) // Full text (block ID and task mark already stripped by transforms)
+      const propsRaw = (heading.data?.propsRaw as Record<string, string> | undefined) ?? {}
+      const cleanText = (heading.data?.cleanText as string | undefined) ?? nodeToText(heading)
 
-      // Heading rules: km.* props need array-based parsing (km.add:: can repeat)
-      const { title, rules } = parseHeadingRules(headingText)
+      // Heading rules from kmast propsRaw (km.* keys extracted by kmInlinePropTransform)
+      const rules = interpretHeadingRules(propsRaw)
       const hasRules = Object.keys(rules).length > 0
+      const title = cleanText
       const sectionName = slugify(title)
 
       const taskMarker = taskMark !== undefined ? markToMarker(taskMark) : undefined
@@ -234,7 +277,7 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         block_id: sectionBlockId,
-        content: headingText, // Clean content (block-id and task mark stripped by transforms)
+        content: cleanText, // Clean content (block-id, task mark, and props stripped by transforms)
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist

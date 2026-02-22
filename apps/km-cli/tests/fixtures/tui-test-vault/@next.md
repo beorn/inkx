@@ -2,7 +2,7 @@
 
 Tasks ready to work on now.
 
-## Work km.default:: true
+## Work
 
 - [ ] Code review for PR #123 @alice
 - [/] Write unit tests for auth module

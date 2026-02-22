@@ -21,9 +21,10 @@ kmFromMarkdown()     ──── fromMarkdown handlers + tree transforms
   │                         ├── kmTaskMarkFromMarkdown()   ← sets listItem.data.taskMark
   │                         ├── kmWikilinkFromMarkdown()   ← creates KmWikilink nodes
   │                         └── transforms (run in order):
-  │                              1. kmBlockIdTransform     ← strips ` ^id`, sets data.blockId
-  │                              2. kmInlinePropTransform  ← extracts key:: value, sets data.props
-  │                              3. kmRefsTransform        ← extracts #tag @mention +project
+  │                              1. kmBlockIdTransform          ← strips ` ^id`, sets data.blockId
+  │                              2. kmHeadingTaskMarkTransform  ← strips `[x] ` prefix, sets heading.data.taskMark
+  │                              3. kmInlinePropTransform       ← extracts key:: value, sets data.props/propsRaw/cleanText
+  │                              4. kmRefsTransform             ← extracts #tag @mention +project
   ▼
 kmast tree (enriched mdast)
   │
@@ -45,13 +46,14 @@ KNode[]
 
 ### mdast transforms (enrich existing text nodes with metadata)
 
-| Transform | What it does | Data fields set |
-|-----------|--------------|-----------------|
-| `kmBlockIdTransform` | Strips ` ^blockId` suffix from text | `node.data.blockId` |
-| `kmInlinePropTransform` | Extracts `key:: value` pairs | `node.data.props`, `.propsRaw`, `.cleanText` |
-| `kmRefsTransform` | Extracts `#tag`, `@mention`, `+project` | `node.data.tags`, `.mentions`, `.projects` |
+| Transform | Applies to | What it does | Data fields set |
+|-----------|------------|--------------|-----------------|
+| `kmBlockIdTransform` | paragraphs, headings, listItems | Strips ` ^blockId` suffix from text | `node.data.blockId` |
+| `kmHeadingTaskMarkTransform` | headings | Strips `[x] ` prefix from heading text | `heading.data.taskMark` |
+| `kmInlinePropTransform` | paragraphs, headings | Extracts `key:: value` pairs; duplicate keys comma-concatenated | `node.data.props`, `.propsRaw`, `.cleanText` |
+| `kmRefsTransform` | paragraphs, headings, listItems | Extracts `#tag`, `@mention`, `+project` | `node.data.tags`, `.mentions`, `.projects` |
 
-Transform order matters: block-id modifies text first, then inline-prop, then refs reads remaining text.
+Transform order matters: block-id strips suffix first, heading-task-mark strips prefix, inline-prop extracts and strips properties, refs reads remaining text.
 
 ## Type Extensions (module augmentation)
 
@@ -61,16 +63,14 @@ All types are in `packages/km-markdown/src/kmast/types.ts`. Uses mdast's module 
 // Extended Data fields (on existing mdast nodes)
 declare module 'mdast' {
   interface Data {
-    blockId?: string
-    props?: Record<string, PropertyValue>
-    propsRaw?: Record<string, string>
-    cleanText?: string
-    tags?: string[]
-    mentions?: string[]
-    projects?: string[]
-  }
-  interface ListItemData extends Data {
-    taskMark?: string   // '/', '-', '!', ' ', 'x', 'X'
+    blockId?: string                         // km-block-id transform
+    taskMark?: string                        // km-task-mark (listItem) or km-heading-task-mark (heading)
+    props?: Record<string, PropertyValue>    // km-inline-prop: typed property values
+    propsRaw?: Record<string, string>        // km-inline-prop: raw strings (including km.*)
+    cleanText?: string                       // km-inline-prop: text with all key:: value stripped
+    tags?: string[]                          // km-refs: #tag references
+    mentions?: string[]                      // km-refs: @mention references
+    projects?: string[]                      // km-refs: +project references
   }
   interface PhrasingContentMap { kmWikilink: KmWikilink }
 }
@@ -111,8 +111,9 @@ packages/km-markdown/src/
   extensions/
     km-task-mark.ts       ← Micromark tokenizer + fromMarkdown handler
     km-wikilink.ts        ← Micromark tokenizer + fromMarkdown handler
-    km-block-id.ts        ← mdast tree transform
-    km-inline-prop.ts     ← mdast tree transform
-    km-refs.ts            ← mdast tree transform
+    km-block-id.ts            ← mdast tree transform
+    km-heading-task-mark.ts   ← mdast tree transform
+    km-inline-prop.ts         ← mdast tree transform
+    km-refs.ts                ← mdast tree transform
     index.ts              ← Combined: km() + kmFromMarkdown()
 ```

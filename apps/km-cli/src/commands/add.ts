@@ -188,27 +188,28 @@ export const addCommand = new Command("add")
       process.exit(0)
     }
 
-    // Find the default column (section with data.rules.default=true)
-    // Falls back to the first section if no explicit default is set
+    // Find the default column: explicit km.default:: true wins,
+    // otherwise first non-collapsed, non-removed section.
+    // If no sections exist, items are added directly to the target node.
     t0 = Date.now()
     let actualTarget = targetNode
     const findDefaultSection = (parentId: string): KNode | undefined => {
       const children = repo.getChildren(parentId)
-      let firstSection: KNode | undefined
+      let firstEligible: KNode | undefined
       for (const child of children) {
         if (child.type === "oi" && child.fstype === "mdsection") {
-          if (!firstSection) {
-            firstSection = child
-          }
-          const rules = child.data?.rules as { default?: boolean } | undefined
+          const rules = child.data?.rules as { default?: boolean; collapse?: boolean; removed?: boolean } | undefined
           if (rules?.default) {
-            return child
+            return child // explicit override
+          }
+          if (!firstEligible && !rules?.collapse && !rules?.removed) {
+            firstEligible = child
           }
           const found = findDefaultSection(child.id)
           if (found) return found
         }
       }
-      return firstSection
+      return firstEligible
     }
     const defaultColumn = findDefaultSection(targetNode.id)
     if (defaultColumn) {

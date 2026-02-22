@@ -864,7 +864,7 @@ describe("Section title and rules parsing", () => {
     const today = sections.find((s) => s.title === "Today")
     expect(today).toBeDefined()
     expect(today?.rules?.add).toBe("due:past status:open")
-    expect(today?.content).toBe("Today km.add:: due:past status:open") // Original content preserved
+    expect(today?.content).toBe("Today") // Clean content (props stripped by kmast transforms)
 
     // Done column
     const done = sections.find((s) => s.title === "Done")
