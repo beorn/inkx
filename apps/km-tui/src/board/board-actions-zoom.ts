@@ -85,7 +85,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
 
   // Close overlays first
   if (ui.showDetailPane) {
-    ctx.setUI({ showDetailPane: false })
+    ctx.closeDetailPane()
     return ok()
   }
   // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)

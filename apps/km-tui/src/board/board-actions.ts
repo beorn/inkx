@@ -117,18 +117,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "SHOW_NEW_ITEM_DIALOG":
       pushDialogMode("dialog:newItem")
+      ctx.closeDetailPane()
       ctx.setUI({
         showNewItemDialog: true,
-        showDetailPane: false,
       })
       clearSelection(ctx)
       return ok()
     case "SHOW_PROJECT_PICKER":
       if (card) {
         pushDialogMode("dialog:projectPicker")
+        ctx.closeDetailPane()
         ctx.setUI({
           showProjectPicker: true,
-          showDetailPane: false,
         })
         clearSelection(ctx)
       }
@@ -140,12 +140,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "SHOW_SEARCH_DIALOG":
       pushDialogMode("dialog:search")
+      ctx.closeDetailPane()
       ctx.setUI({
         showSearchDialog: true,
         searchDialogInitialInput: "",
         searchScope: "all",
         searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
-        showDetailPane: false,
       })
       clearSelection(ctx)
       return ok()
@@ -277,13 +277,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           return handleZoomInNode(ctx, curNodeId)
         }
       }
-      // No children, or folder — open detail pane and focus it
-      ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
+      // No children, or folder — open detail pane via workspace and focus it
+      ctx.openDetailPane()
       ctx.focus("detail-pane")
       return ok()
     }
     case "CLOSE_DETAIL_PANE":
-      ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
+      ctx.closeDetailPane()
       ctx.focus("board-area")
       return ok()
     case "FOCUS_BOARD":
@@ -291,18 +291,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "FOCUS_DETAIL":
       if (!ctx.ui.showDetailPane) {
-        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
+        ctx.openDetailPane()
       }
       ctx.focus("detail-pane")
       return ok()
     case "TOGGLE_DETAIL_PANE":
-      // Simple toggle: open/close, focus stays on board.
+      // Simple toggle: open/close via workspace pane operations.
       // Detail pane follows cursor selection. Pane focus (interactive mode) is future work.
-      if (!ctx.ui.showDetailPane) {
-        ctx.setUI({ showDetailPane: true, detailScrollOffset: 0 })
-      } else {
-        ctx.setUI({ showDetailPane: false, detailScrollOffset: 0 })
-      }
+      ctx.toggleDetailPane()
       ctx.focus("board-area")
       return ok()
     case "ZOOM_OUTWARDS":
@@ -593,10 +589,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       } else {
         pushDialogMode("dialog:filter")
       }
+      ctx.closeDetailPane()
       ctx.setUI({
         showFilterDialog: !ctx.ui.showFilterDialog,
         inlineEditBlock: null,
-        showDetailPane: false,
       })
       return ok()
     case "SET_FILTER":
@@ -1372,7 +1368,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
 
   // --- Layer 2b: Pane open but unfocused -> close pane ---
   if (ui.showDetailPane) {
-    ctx.setUI({ showDetailPane: false })
+    ctx.closeDetailPane()
     ctx.focus("board-area")
     return ok()
   }

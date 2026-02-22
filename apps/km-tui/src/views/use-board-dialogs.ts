@@ -39,6 +39,8 @@ interface UseBoardDialogsParams {
   repo: Repo
   setUI: SetUI
   dispatchBoard: (action: BoardAction) => void
+  /** Open detail pane via workspace operations (Phase 2 windowing) */
+  openDetailPane: () => void
   /** Current cursor node ID (from board state) */
   cursorNodeId: string | null
   /** Current root node ID (from board state) */
@@ -72,6 +74,7 @@ export function useBoardDialogs({
   repo,
   setUI,
   dispatchBoard,
+  openDetailPane,
   cursorNodeId,
   rootId,
   undoHandle,
@@ -175,7 +178,7 @@ export function useBoardDialogs({
           nodeId: nav.zoomTarget,
           cursorNodeId: nav.cursorTarget,
         })
-        setUI({ showDetailPane: true, detailScrollOffset: 0 })
+        openDetailPane()
       } else {
         // Target is deeper — zoom to make it a visible card.
         // Dispatch zoom synchronously with dialog close so both state changes
@@ -187,7 +190,7 @@ export function useBoardDialogs({
         })
       }
     },
-    [repo, setUI, dispatchBoard, rootId],
+    [repo, setUI, dispatchBoard, openDetailPane, rootId],
   )
 
   const handleSearchCancel = useCallback(() => {

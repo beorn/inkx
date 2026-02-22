@@ -17,7 +17,7 @@ import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction, BoardState, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
-import { createPaneState } from "./board-types.ts"
+import { createBoardState, createPaneState } from "./board-types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
@@ -113,6 +113,11 @@ export interface BoardAppActions {
   // Direct setters
   setTextEditTarget(target: EditTarget | null): void
   setDimensions(dims: { columns: number; rows: number }): void
+
+  // Workspace pane operations (Phase 2: detail pane as workspace pane)
+  openDetailPane(): void
+  closeDetailPane(): void
+  toggleDetailPane(): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -518,6 +523,88 @@ export function createBoardAppStoreState(
           dimensions: dims,
           ui: { ...state.ui, dimensions: dims },
         }))
+      },
+
+      // --- Workspace pane operations (Phase 2: detail pane as workspace pane) ---
+
+      openDetailPane() {
+        set((state) => {
+          const detailPaneId = "main-detail"
+          // Already open? No-op.
+          if (state.workspace.panes.has(detailPaneId)) {
+            return { ui: { ...state.ui, showDetailPane: true, detailScrollOffset: 0 } }
+          }
+
+          // Create a detail pane with an empty board state (detail doesn't navigate).
+          const detailPane = createPaneState(
+            detailPaneId,
+            createBoardState(),
+            {
+              viewType: "detail",
+              viewMode: state.ui.viewMode,
+              showDetailPane: false,
+              detailScrollOffset: 0,
+              cursorStore: state.cursorStore,
+              isZoomLoading: false,
+            },
+          )
+
+          const newPanes = new Map(state.workspace.panes)
+          newPanes.set(detailPaneId, detailPane)
+
+          const newLayout: WorkspaceState["layout"] = {
+            type: "split",
+            direction: "h",
+            ratio: 0.65,
+            left: { type: "leaf", paneId: "main" },
+            right: { type: "leaf", paneId: detailPaneId },
+          }
+
+          return {
+            workspace: {
+              ...state.workspace,
+              panes: newPanes,
+              layout: newLayout,
+            },
+            ui: { ...state.ui, showDetailPane: true, detailScrollOffset: 0 },
+          }
+        })
+      },
+
+      closeDetailPane() {
+        set((state) => {
+          const detailPaneId = "main-detail"
+          // Not open? Just ensure flat state is consistent.
+          if (!state.workspace.panes.has(detailPaneId)) {
+            return { ui: { ...state.ui, showDetailPane: false, detailScrollOffset: 0 } }
+          }
+
+          const newPanes = new Map(state.workspace.panes)
+          newPanes.delete(detailPaneId)
+
+          const newLayout: WorkspaceState["layout"] = {
+            type: "leaf",
+            paneId: "main",
+          }
+
+          return {
+            workspace: {
+              ...state.workspace,
+              panes: newPanes,
+              layout: newLayout,
+            },
+            ui: { ...state.ui, showDetailPane: false, detailScrollOffset: 0 },
+          }
+        })
+      },
+
+      toggleDetailPane() {
+        const state = _get()
+        if (state.workspace.panes.has("main-detail")) {
+          state.closeDetailPane()
+        } else {
+          state.openDetailPane()
+        }
       },
     }
   }

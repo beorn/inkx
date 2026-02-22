@@ -183,14 +183,19 @@ export function createBoardState(
   }
 }
 
-// ===== Workspace / Pane Types (Phase 1: Windowing) =====
+// ===== Workspace / Pane Types (Phase 1–2: Windowing) =====
+
+/** Discriminator for what a pane displays. */
+export type PaneViewType = "board" | "detail" | "empty"
 
 /**
  * Per-pane state — everything that becomes independent when a second pane is added.
  * In Phase 1 (single pane), a single PaneState mirrors the flat BoardAppState fields.
+ * In Phase 2, the detail pane is a separate PaneState with viewType "detail".
  */
 export interface PaneState {
   id: string
+  viewType: PaneViewType
 
   // Board navigation (mirrors flat BoardAppState fields)
   rootId: string | null
@@ -245,6 +250,7 @@ export function createPaneState(
   id: string,
   board: BoardState,
   opts: {
+    viewType?: PaneViewType
     viewMode: ViewMode
     showDetailPane: boolean
     detailScrollOffset: number
@@ -254,6 +260,7 @@ export function createPaneState(
 ): PaneState {
   return {
     id,
+    viewType: opts.viewType ?? "board",
     rootId: board.rootId,
     rootPath: board.rootPath,
     cursorNodeId: board.cursorNodeId,

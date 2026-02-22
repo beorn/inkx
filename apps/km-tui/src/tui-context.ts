@@ -86,6 +86,14 @@ export interface ActionCtx {
   /** Convenience: focus a node by testID */
   focus: (testID: string) => void
 
+  // === Workspace pane operations (Phase 2: detail pane as workspace pane) ===
+  /** Open the detail pane (adds pane to workspace, updates layout + flat UI) */
+  openDetailPane: () => void
+  /** Close the detail pane (removes pane from workspace, restores layout + flat UI) */
+  closeDetailPane: () => void
+  /** Toggle the detail pane open/closed */
+  toggleDetailPane: () => void
+
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number

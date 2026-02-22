@@ -861,10 +861,12 @@ export function Board({ patchedConsole }: BoardProps) {
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
     (s) => s.undoHandle,
   )
+  const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const baseDialogHandlers = useBoardDialogs({
     repo,
     setUI,
     dispatchBoard,
+    openDetailPane,
     cursorNodeId: dialogCursorNodeId,
     rootId,
     undoHandle,
