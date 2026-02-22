@@ -3,8 +3,7 @@
  *
  * Pipeline: HTML → hast (HTML AST) → mdast (markdown AST) → markdown string
  *
- * Replaces Turndown, which was lossy (escaped underscores in URLs, formatting quirks,
- * lost semantics). The mdast approach gives full AST control and clean output.
+ * Uses mdast for full AST control and clean output.
  */
 import { fromHtml } from "hast-util-from-html"
 import { toMdast } from "hast-util-to-mdast"

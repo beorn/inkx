@@ -595,7 +595,7 @@ export function minimalFixtures(): FakeAsanaOptions {
               { project: { gid: "proj-3", name: "Edge Cases" }, section: { gid: "sec-active", name: "Active" } },
             ],
           },
-          // Edge case 9: HTML headings in notes (tests turndown headings→bold rule)
+          // Edge case 9: HTML headings in notes (tests headings→bold conversion)
           {
             gid: "task-html-headings",
             name: "Task with headings in description",

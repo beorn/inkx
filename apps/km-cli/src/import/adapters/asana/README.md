@@ -75,7 +75,7 @@ bun km import asana --dry-run
 | -------------------- | ---------------------------------------------------------------- |
 | `asana-api.ts`       | Asana REST API client, fetch orchestration, workspace resolution |
 | `asana-client.ts`    | Low-level HTTP client with rate limiting and retries             |
-| `asana-types.ts`     | Asana API type definitions, turndown (HTML to markdown) config   |
+| `asana-types.ts`     | Asana API type definitions                                       |
 | `asana-file.ts`      | Parser for Asana's "Export to JSON" file format                  |
 | `asana-adapter.ts`   | ImportAdapter interface implementation                           |
 | `asana-discovery.ts` | Workspace/project listing for discovery mode                     |

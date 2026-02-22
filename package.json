@@ -100,7 +100,6 @@
     "@types/node": "^25.2.2",
     "@types/react": "^19.2.13",
     "@types/sinonjs__fake-timers": "^15.0.1",
-    "@types/turndown": "^5.0.6",
     "@vitest/ui": "^4.0.18",
     "chalkx": "workspace:*",
     "inkx": "workspace:*",
@@ -132,7 +131,6 @@
     "micromark-extension-gfm": "^3.0.0",
     "rehype-parse": "^9.0.1",
     "rrule": "^2.8.1",
-    "turndown": "^7.2.2",
     "ulid": "^3.0.2"
   }
 }

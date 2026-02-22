@@ -186,24 +186,8 @@ function stripHtmlTags(text: string): string {
 }
 
 /**
- * Unescape Turndown legacy artifacts in cached JSON text.
- * Shared by buildBodyContent and comment text processing.
- */
-function unescapeTurndownArtifacts(text: string): string {
-  // Unescape Turndown legacy artifacts
-  text = text.replace(/^\\---$/gm, "---") // \--- → --- (before \- to avoid partial match)
-  text = text.replace(/\\-/g, "-") // \- → - (all occurrences)
-  text = text.replace(/\\\[/g, "[") // \[ → [
-  text = text.replace(/\\\]/g, "]") // \] → ]
-  text = text.replace(/\\_/g, "_") // \_ → _ (all occurrences, not just URLs)
-  text = text.replace(/\\\*\)/g, "*)") // \*) → *)
-  text = text.replace(/\\\*/g, "*") // \* → * (stray escaped asterisks)
-  return text
-}
-
-/**
  * Normalize text shared between body content and comment text.
- * Handles: asset proxy URLs, Turndown artifacts, bullet normalization, list indent, whitespace.
+ * Handles: asset proxy URLs, bullet normalization, list indent, whitespace.
  */
 function normalizeImportText(text: string): string {
   // Fix Asana asset URL wrappers: [real-url](asana-asset-url) → <real-url>
@@ -212,12 +196,10 @@ function normalizeImportText(text: string): string {
   text = text.replace(/\[([^\]]+)\]\(https:\/\/app\.asana\.com\/app\/asana\/-\/get_asset[^)]*\)/g, "$1 [Asana asset]")
   // Replace bare Asana asset proxy URLs with placeholder
   text = text.replace(/https?:\/\/app\.asana\.com\/app\/asana\/-\/get_asset\?asset_id=\d+/g, "[Asana asset]")
-  // Unescape Turndown legacy artifacts (must come before URL-specific fixes)
-  text = unescapeTurndownArtifacts(text)
   // Clean up redundant [url](url) → <url> autolinks
   text = text.replace(/\[([^\]]+)\]\(\1\)/g, "<$1>")
-  // Normalize Turndown-style *-bullets and \*-bullets to - (from cached JSON with old Turndown output)
-  text = text.replace(/^(\s*)\\?\*(\s{1,3})/gm, "$1-$2")
+  // Normalize *-bullets to - (standard markdown uses - for lists)
+  text = text.replace(/^(\s*)\*(\s{1,3})/gm, "$1-$2")
   // Normalize 4-space list indent to 2-space (from mdast pipeline with tab listItemIndent)
   text = text.replace(/^(\s*)-   /gm, "$1- ")
   // Normalize bare checkboxes: [] → [ ], [x] stays [x] (standard markdown task list syntax)
@@ -772,7 +754,6 @@ export {
   buildBodyContent,
   decodeHtmlEntities,
   stripHtmlTags,
-  unescapeTurndownArtifacts,
   normalizeImportText,
 }
 

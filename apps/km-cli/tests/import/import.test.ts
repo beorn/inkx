@@ -271,11 +271,11 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(htmlTask.body).toContain("Additional context here.")
   })
 
-  test("preserves Asana internal links in html_notes after turndown", async () => {
+  test("preserves Asana internal links in html_notes after HTML→MD conversion", async () => {
     const data = await fetchFromAsana({ token: "fake-token", downloadDir })
     const edge = data.projects[2]!
     const linkTask = edge.sections![0]!.items.find((i) => i.sourceId === "task-links")!
-    // turndown converts <a> to markdown links; Asana URLs stay as-is until convert stage
+    // HTML→MD converts <a> to markdown links; Asana URLs stay as-is until convert stage
     expect(linkTask.body).toContain("Related task")
     expect(linkTask.body).toContain("app.asana.com")
   })

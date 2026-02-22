@@ -21,7 +21,6 @@ import {
   prettifyTitle,
   slugify,
   stripHtmlTags,
-  unescapeTurndownArtifacts,
 } from "../../src/import/convert.ts"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
@@ -2109,8 +2108,7 @@ describe("HTML cleanup in toImportItem (entity decoding + tag stripping)", () =>
       html_notes: "<body><p>Hello<br>world <em>emphasis</em> and <strong>bold</strong> leftover</p></body>",
     })
     const item = toImportItem(task)
-    // Turndown should handle most tags, but if any survive as remnants they should be stripped.
-    // The key assertion: no raw HTML tags in the output
+    // The mdast pipeline handles HTML→MD conversion; verify no raw HTML tags in the output
     expect(item.body).not.toMatch(/<br\s*\/?>/)
     expect(item.body).not.toMatch(/<\/?em>/)
     expect(item.body).not.toMatch(/<\/?strong>/)
@@ -2133,8 +2131,7 @@ describe("HTML cleanup in toImportItem (entity decoding + tag stripping)", () =>
       html_notes: "<body><p>Use <code>&lt;div&gt;</code> for layout</p></body>",
     })
     const item = toImportItem(task)
-    // Turndown converts <code> tags to backtick inline code, and entities inside
-    // get decoded, so the result should be `<div>` preserved in inline code
+    // HTML entities inside <code> get decoded, result should be `<div>` in inline code
     expect(item.body).toContain("`<div>`")
   })
 })
@@ -2879,52 +2876,6 @@ describe("Primary entries for tag-only and user-only tasks", () => {
 })
 
 // ============================================================================
-// #12-#18: Turndown escaping cleanup (unescapeTurndownArtifacts)
-// ============================================================================
-
-describe("unescapeTurndownArtifacts", () => {
-  test("#12: unescapes escaped dashes \\-", () => {
-    expect(unescapeTurndownArtifacts("foo\\-bar")).toBe("foo-bar")
-    expect(unescapeTurndownArtifacts("\\-leading")).toBe("-leading")
-    expect(unescapeTurndownArtifacts("multiple\\-escaped\\-dashes")).toBe("multiple-escaped-dashes")
-  })
-
-  test("#13: unescapes escaped brackets \\[ and \\]", () => {
-    expect(unescapeTurndownArtifacts("see \\[details\\]")).toBe("see [details]")
-    expect(unescapeTurndownArtifacts("\\[link\\](url)")).toBe("[link](url)")
-  })
-
-  test("#14: unescapes escaped underscores \\_", () => {
-    expect(unescapeTurndownArtifacts("pg\\_dump")).toBe("pg_dump")
-    expect(unescapeTurndownArtifacts("some\\_var\\_name")).toBe("some_var_name")
-  })
-
-  test("#16: unescapes escaped HRs \\--- at start of line", () => {
-    expect(unescapeTurndownArtifacts("\\---")).toBe("---")
-    expect(unescapeTurndownArtifacts("text\n\\---\nmore")).toBe("text\n---\nmore")
-  })
-
-  test("#18: unescapes \\*) patterns", () => {
-    expect(unescapeTurndownArtifacts("item \\*)")).toBe("item *)")
-  })
-
-  test("unescapes stray \\* (escaped asterisks)", () => {
-    expect(unescapeTurndownArtifacts("5 \\* 3 = 15")).toBe("5 * 3 = 15")
-  })
-
-  test("handles all escaping patterns in a single string", () => {
-    const input = "pg\\_dump \\-v \\[option\\] \\*)"
-    expect(unescapeTurndownArtifacts(input)).toBe("pg_dump -v [option] *)")
-  })
-
-  test("leaves already-clean text unchanged", () => {
-    expect(unescapeTurndownArtifacts("normal text")).toBe("normal text")
-    expect(unescapeTurndownArtifacts("dash-separated")).toBe("dash-separated")
-    expect(unescapeTurndownArtifacts("[real link](url)")).toBe("[real link](url)")
-  })
-})
-
-// ============================================================================
 // normalizeImportText (asset proxy, redundant links, bullets, whitespace)
 // ============================================================================
 
@@ -2981,10 +2932,6 @@ describe("normalizeImportText", () => {
     expect(normalizeImportText(input)).toBe("first\n\nsecond")
   })
 
-  test("applies Turndown unescaping", () => {
-    const input = "pg\\_dump \\-v"
-    expect(normalizeImportText(input)).toBe("pg_dump -v")
-  })
 })
 
 // ============================================================================
@@ -3154,27 +3101,6 @@ describe("Asset proxy URLs in full pipeline (#10)", () => {
 // ============================================================================
 
 describe("Comment text cleanup (#17)", () => {
-  test("comment text gets Turndown unescaping", () => {
-    const md = convertToMd(
-      makeData([
-        {
-          sourceId: "t1",
-          title: "Task",
-          comments: [
-            {
-              author: "alice",
-              createdAt: "2026-02-10T10:00:00Z",
-              text: "Run pg\\_dump \\-v to export",
-            },
-          ],
-        },
-      ]),
-    )
-    expect(md).toContain("pg_dump -v")
-    expect(md).not.toContain("\\_")
-    expect(md).not.toContain("\\-")
-  })
-
   test("comment text gets redundant link cleanup", () => {
     const md = convertToMd(
       makeData([
