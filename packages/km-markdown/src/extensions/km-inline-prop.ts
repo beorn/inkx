@@ -2,25 +2,34 @@
 
 import type { Root } from "mdast"
 import { visit } from "unist-util-visit"
-import { parseInlineProperties } from "../parser.ts"
+import { extractKVProperties, parseInlineProperties } from "../parser.ts"
 import { nodeToText } from "../parser.ts"
 
 export function kmInlinePropTransform(tree: Root): void {
   visit(tree, (node, _index, parent) => {
-    // Only process paragraphs
-    if (node.type !== "paragraph") return
+    // Process paragraphs and headings
+    if (node.type !== "paragraph" && node.type !== "heading") return
 
     const text = nodeToText(node as any)
-    const parsed = parseInlineProperties(text)
+    const { entries, cleanText } = extractKVProperties(text)
 
     // Skip if no properties found
-    if (Object.keys(parsed.props).length === 0) return
+    if (entries.length === 0) return
 
-    // Store on the paragraph's data
+    // Build propsRaw from ALL entries (including km.* for headings)
+    const propsRaw: Record<string, string> = {}
+    for (const { key, value } of entries) {
+      propsRaw[key.toLowerCase()] = value
+    }
+
+    // Build typed props (excluding km.* system properties)
+    const parsed = parseInlineProperties(text)
+
+    // Store on the node's data
     node.data = node.data || {}
     node.data.props = parsed.props
-    node.data.propsRaw = parsed.propsRaw
-    node.data.cleanText = parsed.cleanText
+    node.data.propsRaw = propsRaw
+    node.data.cleanText = cleanText
 
     // If this paragraph is inside a listItem, hoist to the listItem too
     // (only for the FIRST paragraph in the list item)
@@ -30,8 +39,8 @@ export function kmInlinePropTransform(tree: Root): void {
       if (firstPara === node) {
         parent.data = parent.data || {}
         parent.data.props = parsed.props
-        parent.data.propsRaw = parsed.propsRaw
-        parent.data.cleanText = parsed.cleanText
+        parent.data.propsRaw = propsRaw
+        parent.data.cleanText = cleanText
       }
     }
   })

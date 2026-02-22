@@ -30,7 +30,6 @@ import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
 import {
   getStatusForMarker,
   markToMarker,
-  extractTitleTaskMarker,
   parseTaskMetadataFromText,
 } from "@km/core"
 import {
@@ -42,10 +41,9 @@ import {
   listItemToText,
   slugify,
   parseTaskMetadata,
-  extractAllRefs,
   parseWikiLinks,
+  extractAllRefs,
   parseHeadingRules,
-  parseInlineProperties,
 } from "./parser.ts"
 import type { WikiLink, PropertyValue } from "./parser.ts"
 
@@ -208,15 +206,21 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
         }
       }
 
-      // Block ID already extracted by kmBlockIdTransform (in heading.data.blockId)
+      // All heading data extracted by kmast transforms:
+      // - blockId: kmBlockIdTransform (strips ^id suffix)
+      // - taskMark: kmHeadingTaskMarkTransform (strips [x] prefix)
+      // - props/cleanText: kmInlinePropTransform (extracts key:: value)
+      // - tags/mentions/projects: kmRefsTransform
       const sectionBlockId = heading.data?.blockId as string | undefined
-      const headingText = nodeToText(heading)
+      const taskMark = heading.data?.taskMark as string | undefined
+      const headingText = nodeToText(heading) // Full text (block ID and task mark already stripped by transforms)
 
-      const { title: titleWithRules, rules } = parseHeadingRules(headingText)
-      const { marker: taskMarker, cleanText: title } = extractTitleTaskMarker(titleWithRules)
+      // Heading rules: km.* props need array-based parsing (km.add:: can repeat)
+      const { title, rules } = parseHeadingRules(headingText)
       const hasRules = Object.keys(rules).length > 0
       const sectionName = slugify(title)
 
+      const taskMarker = taskMark !== undefined ? markToMarker(taskMark) : undefined
       const taskStatus = getStatusForMarker(taskMarker)
 
       const parentSection = sectionStack[sectionStack.length - 1]
@@ -230,7 +234,7 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         block_id: sectionBlockId,
-        content: headingText, // Clean content (block-id already stripped by transform)
+        content: headingText, // Clean content (block-id and task mark stripped by transforms)
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
@@ -301,9 +305,15 @@ function convertListItem(
 
   // Parse task metadata from text
   const metadata = isTask ? parseTaskMetadata(text) : {}
-  // km-load-perf.1: Single-pass extraction for refs
-  const { tags, mentions, projects } = extractAllRefs(text)
-  const parsedProps = parseInlineProperties(text)
+  // Read refs and props from kmast data (set by kmRefsTransform and kmInlinePropTransform)
+  const tags = (item.data?.tags as string[] | undefined) ?? []
+  const mentions = (item.data?.mentions as string[] | undefined) ?? []
+  const projects = (item.data?.projects as string[] | undefined) ?? []
+  const parsedProps = {
+    props: (item.data?.props as Record<string, unknown> | undefined) ?? {},
+    propsRaw: (item.data?.propsRaw as Record<string, string> | undefined) ?? {},
+    cleanText: (item.data?.cleanText as string | undefined) ?? text,
+  }
 
   // Priority from metadata only
   const priority: number | undefined = metadata.priority

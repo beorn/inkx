@@ -27,6 +27,7 @@ import type { Extension as FromMarkdownExtension } from "mdast-util-from-markdow
 import { kmTaskMark, kmTaskMarkFromMarkdown } from "./km-task-mark.ts"
 import { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
 import { kmBlockIdTransform } from "./km-block-id.ts"
+import { kmHeadingTaskMarkTransform } from "./km-heading-task-mark.ts"
 import { kmInlinePropTransform } from "./km-inline-prop.ts"
 import { kmRefsTransform } from "./km-refs.ts"
 
@@ -50,8 +51,9 @@ export function km(): Extension {
  *
  * Transform ordering matters:
  * 1. block-id — modifies text (strips ` ^blockId` suffix)
- * 2. inline-prop — modifies text (extracts `key:: value` pairs)
- * 3. refs — reads remaining text (extracts #tag @mention +project)
+ * 2. heading-task-mark — modifies text (strips `[x] ` prefix from headings)
+ * 3. inline-prop — reads text (extracts `key:: value` pairs)
+ * 4. refs — reads remaining text (extracts #tag @mention +project)
  */
 export function kmFromMarkdown(): FromMarkdownExtension[] {
   return [
@@ -61,7 +63,7 @@ export function kmFromMarkdown(): FromMarkdownExtension[] {
     gfmTableFromMarkdown(),
     kmTaskMarkFromMarkdown(),
     kmWikilinkFromMarkdown(),
-    { transforms: [kmBlockIdTransform, kmInlinePropTransform, kmRefsTransform] },
+    { transforms: [kmBlockIdTransform, kmHeadingTaskMarkTransform, kmInlinePropTransform, kmRefsTransform] },
   ]
 }
 
@@ -69,5 +71,6 @@ export function kmFromMarkdown(): FromMarkdownExtension[] {
 export { kmTaskMark, kmTaskMarkFromMarkdown } from "./km-task-mark.ts"
 export { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
 export { kmBlockIdTransform } from "./km-block-id.ts"
+export { kmHeadingTaskMarkTransform } from "./km-heading-task-mark.ts"
 export { kmInlinePropTransform } from "./km-inline-prop.ts"
 export { kmRefsTransform } from "./km-refs.ts"

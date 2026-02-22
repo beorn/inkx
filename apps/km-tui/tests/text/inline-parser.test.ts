@@ -57,14 +57,14 @@ describe("parseInlineText", () => {
 
   it("parses embed block references ![[^GID]]", () => {
     const nodes = parseInlineText("![[^1201889996442258]]")
-    expect(nodes).toEqual([{ type: "blockref", id: "1201889996442258" }])
+    expect(nodes).toEqual([{ type: "wikilink", target: "", alias: undefined, isEmbed: true }])
   })
 
   it("parses text before and after embed block ref", () => {
     const nodes = parseInlineText("Monthly updates ![[^1201889996442258]]")
-    expect(types(nodes)).toEqual(["plain", "blockref"])
+    expect(types(nodes)).toEqual(["plain", "wikilink"])
     expect(nodes[0]).toEqual({ type: "plain", text: "Monthly updates " })
-    expect(nodes[1]).toEqual({ type: "blockref", id: "1201889996442258" })
+    expect(nodes[1]).toEqual({ type: "wikilink", target: "", alias: undefined, isEmbed: true })
   })
 
   // ── Bare URLs ───────────────────────────────────────────────────────────
@@ -95,15 +95,17 @@ describe("parseInlineText", () => {
 
   // ── Block references ────────────────────────────────────────────────────
 
-  it("parses standalone block refs ^numericId", () => {
+  it("block ID suffix is stripped by kmast transform", () => {
+    // kmBlockIdTransform strips " ^blockId" from text and stores in node.data.blockId
+    // So the inline parser sees only "Task" — the block ID is metadata, not display text
     const nodes = parseInlineText("Task ^1201889996442258")
-    expect(types(nodes)).toEqual(["plain", "blockref"])
-    expect(nodes[1]).toEqual({ type: "blockref", id: "1201889996442258" })
+    expect(types(nodes)).toEqual(["plain"])
+    expect(nodes[0]).toEqual({ type: "plain", text: "Task" })
   })
 
-  it("does not parse block ref inside wikilink", () => {
+  it("parses block ref wikilink [[^GID]]", () => {
     const nodes = parseInlineText("[[^1201889996442258]]")
-    expect(nodes).toEqual([{ type: "wikilink", target: "^1201889996442258", alias: undefined, isEmbed: false }])
+    expect(nodes).toEqual([{ type: "wikilink", target: "", alias: undefined, isEmbed: false }])
   })
 
   // ── Formatting ──────────────────────────────────────────────────────────
@@ -169,8 +171,9 @@ describe("parseInlineText", () => {
 
   it("parses real Asana heading with embed ref", () => {
     const nodes = parseInlineText("Monthly investor updates to LA ![[^1201889996442258]]")
-    expect(types(nodes)).toEqual(["plain", "blockref"])
+    expect(types(nodes)).toEqual(["plain", "wikilink"])
     expect(nodes[0]).toEqual({ type: "plain", text: "Monthly investor updates to LA " })
+    expect(nodes[1]).toEqual({ type: "wikilink", target: "", alias: undefined, isEmbed: true })
   })
 
   it("parses heading with sigils and properties", () => {

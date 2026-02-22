@@ -11,8 +11,8 @@
  */
 
 import { fromMarkdown } from "mdast-util-from-markdown"
-import { gfmFromMarkdown } from "mdast-util-gfm"
-import { gfm } from "micromark-extension-gfm"
+import { km, kmFromMarkdown } from "@km/markdown"
+import type { KmWikilink } from "@km/markdown"
 import type { PhrasingContent, Root } from "mdast"
 import type { InlineNode } from "./inline-ast-types.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
@@ -70,6 +70,16 @@ function phrasingToInline(nodes: PhrasingContent[]): InlineNode[] {
       case "break":
         result.push({ type: "plain", text: "\n" })
         break
+      case "kmWikilink": {
+        const wl = node as unknown as KmWikilink
+        result.push({
+          type: "wikilink",
+          target: wl.target,
+          alias: wl.alias,
+          isEmbed: wl.embedded,
+        })
+        break
+      }
     }
   }
   return result
@@ -225,8 +235,8 @@ export function parseInlineText(text: string): InlineNode[] {
 
   // Parse as a paragraph using mdast
   const tree: Root = fromMarkdown(text, {
-    extensions: [gfm()],
-    mdastExtensions: [gfmFromMarkdown()],
+    extensions: [km()],
+    mdastExtensions: kmFromMarkdown(),
   })
 
   // The tree contains block-level nodes. Process all paragraphs,

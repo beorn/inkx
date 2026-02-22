@@ -2,7 +2,6 @@
 export {
   parseMarkdown,
   extractFrontmatter,
-  extractTaskMark,
   extractTitleTaskMarker,
   parseWikiLinks,
   extractTags,
@@ -44,6 +43,7 @@ export {
   kmWikilink,
   kmWikilinkFromMarkdown,
   kmBlockIdTransform,
+  kmHeadingTaskMarkTransform,
   kmInlinePropTransform,
   kmRefsTransform,
 } from "./extensions/index.ts"

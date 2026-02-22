@@ -2,7 +2,7 @@
  * Markdown Parser - Pure Parsing Utilities
  *
  * This module contains pure text/AST parsing functions that:
- * - Have NO dependency on @km/core types (except TASK_MARK_REGEX_CLASS)
+ * - Have NO dependency on @km/core types (except extractTitleTaskMarker, extractTaskMetadata)
  * - Work with raw text, mdast nodes, or regex patterns
  * - Can be used independently of the km storage layer
  *
@@ -11,7 +11,7 @@
  * Exports:
  * - parseMarkdown: string → mdast Root
  * - extractFrontmatter: string → { frontmatter, body }
- * - extractTaskMark/extractTitleTaskMarker: text → task marker
+ * - extractTitleTaskMarker: text → task marker
  * - parseWikiLinks: text → WikiLink[]
  * - extractTags/Mentions/Projects: text → string[]
  * - parseTaskMetadata: text → { dueDate, priority, ... }
@@ -24,7 +24,7 @@
 import { fromMarkdown } from "mdast-util-from-markdown"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
 import { km, kmFromMarkdown } from "./extensions/index.ts"
-import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
+import { extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
@@ -32,9 +32,6 @@ export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 // =============================================================================
 // km-fast-md.1: Module-level compiled regexes (compile once, use many times)
 // =============================================================================
-
-/** Task mark from list item (e.g., "- [x]") */
-const TASK_MARK_REGEX = new RegExp(`^\\s*[-*+]\\s*\\[(${TASK_MARK_REGEX_CLASS})\\]`)
 
 // TITLE_TASK_MARK_REGEX moved to @km/core (extractTitleTaskMarker)
 
@@ -152,19 +149,6 @@ export function extractFrontmatter(content: string): {
     frontmatter: null,
     body: content,
   }
-}
-
-/**
- * Extract the task mark from a list item's source text
- * km-fast-md.1: Uses module-level compiled regex
- */
-export function extractTaskMark(content: string, position?: { start: { offset: number } }): string | undefined {
-  if (!position) return undefined
-
-  const slice = content.slice(position.start.offset, position.start.offset + 20)
-  const match = slice.match(TASK_MARK_REGEX)
-
-  return match?.[1]
 }
 
 // Re-export from @km/core

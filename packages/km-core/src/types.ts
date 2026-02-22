@@ -85,12 +85,9 @@ export type TaskStatus =
 export type TaskMarker = "[ ]" | "[x]" | "[X]" | "[/]" | "[!]" | "[-]"
 
 /**
- * Inner characters of non-standard task markers.
- * Used by the markdown parser for detection (GFM only handles space/x/X).
+ * Regex character class matching any task mark inner character.
+ * Used by extractTitleTaskMarker() for heading task mark detection.
  */
-export const CUSTOM_TASK_MARKS = ["/", "-", "!"] as const
-
-/** Regex character class matching any task mark inner character */
 export const TASK_MARK_REGEX_CLASS = "[ xX/\\-!]"
 
 /**

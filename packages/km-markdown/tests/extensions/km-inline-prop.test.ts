@@ -45,10 +45,12 @@ describe("kmInlinePropTransform", () => {
     expect(para.data?.props?.status).toEqual({ type: "text", value: "active" })
   })
 
-  test("km.* keys are skipped", () => {
+  test("km.* keys are skipped in props but included in propsRaw", () => {
     const tree = parse("Title km.add:: query")
     const para = tree.children[0]!
-    expect(para.data?.props).toBeUndefined()
+    expect(para.data?.props).toEqual({}) // km.* keys not in typed props
+    expect(para.data?.propsRaw).toEqual({ "km.add": "query" }) // but in propsRaw for heading rules
+    expect(para.data?.cleanText).toBe("Title")
   })
 
   test("no properties in plain text", () => {
