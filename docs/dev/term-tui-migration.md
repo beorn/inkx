@@ -80,7 +80,7 @@ Currently also uses @beorn/tui for components (Box, Text, useTerm), but this cre
 
 A few files use chalkx for extended underlines:
 
-- apps/km-tui/src/text/rich.ts
+- apps/km-tui/src/text/rich.ts (displayLength, stripAnsi only)
 - apps/km-tui/src/text/index.ts
 - apps/km-tui/src/views/CardColumn.tsx
 

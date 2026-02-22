@@ -250,7 +250,6 @@ export function parseInlineText(text: string): InlineNode[] {
 
 /**
  * Convenience: parse inline text and flatten to plain text in one step.
- * Replaces `renderPlain(text)` for consumers that just need plain text.
  */
 export function parseToPlainText(text: string): string {
   return inlineNodesToPlainText(parseInlineText(text))

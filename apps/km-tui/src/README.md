@@ -105,7 +105,7 @@ Key principle: **AST before rendering** — parse to structured nodes, then rend
 | `views/DetailPane.tsx`        | Task detail view with fields                   |
 | `text/inline-parser.ts`       | Markdown → InlineNode[] AST parser             |
 | `text/InlineComponents.tsx`   | InlineNode[] → React JSX rendering             |
-| `text/rich.ts`                | ANSI utilities (stripFgColor, displayLength)   |
+| `text/rich.ts`                | ANSI utilities (displayLength, stripAnsi)      |
 | `state.ts`                    | BoardState building and manipulation           |
 | `types.ts`                    | Type definitions for all TUI components        |
 

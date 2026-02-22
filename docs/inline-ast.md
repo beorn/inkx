@@ -1,6 +1,6 @@
 # Inline AST
 
-The inline AST represents the parsed structure of inline markdown content. It replaces the regex-based text pipeline (`processText()` in `text-pipeline.ts`) with a typed tree of nodes that can be rendered to JSX or plain text.
+The inline AST represents the parsed structure of inline markdown content. It provides a typed tree of nodes that can be rendered to JSX via `<InlineText>` or to plain text via `parseToPlainText()`.
 
 ## Node Types
 

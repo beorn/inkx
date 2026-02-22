@@ -267,7 +267,6 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
  * Render inline markdown text as JSX.
  *
  * Parses text into an AST and renders via InlineNodes.
- * Drop-in replacement for `renderRich(text, options)` usage.
  *
  * Usage:
  *   <InlineText text="**bold** @user [[link]]" />
