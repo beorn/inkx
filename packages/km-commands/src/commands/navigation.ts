@@ -142,7 +142,7 @@ const zoomToRoot = {
   name: "Zoom to Board Root",
   description: "Zoom all the way out to the board root in one step",
   category: "Navigation",
-  shortcuts: ["gR"],
+  shortcuts: ["g/"],
   execute: () => ({ type: "ZOOM_TO_ROOT" }),
 } satisfies CommandDef
 

@@ -671,7 +671,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
-      { chord: "g", key: "R", commandId: "zoom_to_root" },
+      { chord: "g", key: "/", commandId: "zoom_to_root" },
       { chord: "g", key: "e", commandId: "goto_archive" },
       { chord: "g", key: "G", commandId: "cursor_last" },
 
