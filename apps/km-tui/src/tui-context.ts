@@ -110,6 +110,18 @@ export interface ActionCtx {
   /** Jump focus to pane by number (1-indexed, based on tab order) */
   focusPaneByNumber: (number: number) => void
 
+  // === Workspace pane operations (Phase 5: resize, zoom, close-all, swap) ===
+  /** Resize the focused pane by delta on the given axis */
+  resizeFocusedPane: (delta: number, axis: "h" | "v") => void
+  /** Set all pane splits to equal sizes */
+  equalizePanes: () => void
+  /** Toggle zoom/maximize the focused pane */
+  zoomFocusedPane: () => void
+  /** Close all panes except the focused one */
+  closeAllButFocused: () => void
+  /** Swap the focused pane with its neighbor in the given direction */
+  swapPaneInDirection: (direction: "left" | "right" | "up" | "down") => void
+
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number

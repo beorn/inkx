@@ -241,6 +241,10 @@ export interface WorkspaceState {
   focusedPaneId: string
   previousFocusedPaneId: string | null
   layout: LayoutNode
+  /** Saved layout before zoom/maximize — null when not zoomed */
+  preZoomLayout: LayoutNode | null
+  /** Saved panes map before zoom/maximize — null when not zoomed */
+  preZoomPanes: Map<string, PaneState> | null
 }
 
 /**

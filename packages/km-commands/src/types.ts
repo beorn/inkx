@@ -586,6 +586,33 @@ interface PaneFocusNumberAction {
   number: number
 }
 
+interface PaneResizeAction {
+  type: "PANE_RESIZE"
+  delta: number
+}
+
+interface PaneResizeVerticalAction {
+  type: "PANE_RESIZE_VERTICAL"
+  delta: number
+}
+
+interface PaneEqualizeAction {
+  type: "PANE_EQUALIZE"
+}
+
+interface PaneZoomAction {
+  type: "PANE_ZOOM"
+}
+
+interface PaneOnlyAction {
+  type: "PANE_ONLY"
+}
+
+interface PaneSwapAction {
+  type: "PANE_SWAP"
+  direction: "left" | "right" | "up" | "down"
+}
+
 // Focus switching (Cmd+h/l — kitty protocol)
 interface FocusBoardAction {
   type: "FOCUS_BOARD"
@@ -757,6 +784,12 @@ export type TUIAction =
   | PaneFocusPreviousAction
   | PaneFocusCycleAction
   | PaneFocusNumberAction
+  | PaneResizeAction
+  | PaneResizeVerticalAction
+  | PaneEqualizeAction
+  | PaneZoomAction
+  | PaneOnlyAction
+  | PaneSwapAction
   | FocusBoardAction
   | FocusDetailAction
   | TextBoldAction

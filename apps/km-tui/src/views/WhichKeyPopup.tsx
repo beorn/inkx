@@ -53,6 +53,17 @@ const SHORT_LABELS: Record<string, string> = {
   pane_split_vertical: "vsplit",
   pane_split_horizontal: "hsplit",
   pane_close: "close",
+  pane_resize_grow: "grow",
+  pane_resize_shrink: "shrink",
+  pane_resize_grow_vertical: "taller",
+  pane_resize_shrink_vertical: "shorter",
+  pane_equalize: "equalize",
+  pane_zoom: "zoom",
+  pane_only: "only",
+  pane_swap_left: "swap left",
+  pane_swap_down: "swap down",
+  pane_swap_up: "swap up",
+  pane_swap_right: "swap right",
 }
 
 function getLabel(commandId: string): string {

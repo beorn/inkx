@@ -1028,6 +1028,30 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.focusPaneByNumber(action.number)
       return ok()
     }
+    case "PANE_RESIZE": {
+      ctx.resizeFocusedPane(action.delta, "h")
+      return ok()
+    }
+    case "PANE_RESIZE_VERTICAL": {
+      ctx.resizeFocusedPane(action.delta, "v")
+      return ok()
+    }
+    case "PANE_EQUALIZE": {
+      ctx.equalizePanes()
+      return ok()
+    }
+    case "PANE_ZOOM": {
+      ctx.zoomFocusedPane()
+      return ok()
+    }
+    case "PANE_ONLY": {
+      ctx.closeAllButFocused()
+      return ok()
+    }
+    case "PANE_SWAP": {
+      ctx.swapPaneInDirection(action.direction)
+      return ok()
+    }
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":

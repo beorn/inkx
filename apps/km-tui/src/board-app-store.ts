@@ -128,6 +128,13 @@ export interface BoardAppActions {
   focusPreviousPane(): void
   cyclePaneFocus(direction: "next" | "prev"): void
   focusPaneByNumber(number: number): void
+
+  // Workspace pane operations (Phase 5: resize, zoom, close-all, swap)
+  resizeFocusedPane(delta: number, axis: "h" | "v"): void
+  equalizePanes(): void
+  zoomFocusedPane(): void
+  closeAllButFocused(): void
+  swapPaneInDirection(direction: "left" | "right" | "up" | "down"): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -248,6 +255,8 @@ export function createBoardAppStoreState(
       focusedPaneId: defaultPaneId,
       previousFocusedPaneId: null,
       layout: { type: "leaf", paneId: defaultPaneId },
+      preZoomLayout: null,
+      preZoomPanes: null,
     }
 
     return {
@@ -787,6 +796,111 @@ export function createBoardAppStoreState(
           }
         })
       },
+
+      // --- Workspace pane operations (Phase 5: resize, zoom, close-all, swap) ---
+
+      resizeFocusedPane(delta: number, axis: "h" | "v") {
+        set((state) => {
+          const { workspace } = state
+          const newLayout = resizeSplitForPane(workspace.layout, workspace.focusedPaneId, delta, axis)
+          if (newLayout === workspace.layout) return state
+          return {
+            workspace: { ...workspace, layout: newLayout },
+          }
+        })
+      },
+
+      equalizePanes() {
+        set((state) => {
+          const { workspace } = state
+          const newLayout = equalizeLayout(workspace.layout)
+          if (newLayout === workspace.layout) return state
+          return {
+            workspace: { ...workspace, layout: newLayout },
+          }
+        })
+      },
+
+      zoomFocusedPane() {
+        set((state) => {
+          const { workspace } = state
+
+          // Already zoomed — restore
+          if (workspace.preZoomLayout && workspace.preZoomPanes) {
+            // Restore the pre-zoom panes, but update the focused pane with its current state
+            const restoredPanes = new Map(workspace.preZoomPanes)
+            const currentFocused = workspace.panes.get(workspace.focusedPaneId)
+            if (currentFocused) {
+              restoredPanes.set(workspace.focusedPaneId, currentFocused)
+            }
+            return {
+              workspace: {
+                ...workspace,
+                layout: workspace.preZoomLayout,
+                panes: restoredPanes,
+                preZoomLayout: null,
+                preZoomPanes: null,
+              },
+            }
+          }
+
+          // Only one pane — nothing to zoom
+          if (workspace.panes.size <= 1) return state
+
+          // Save current state and zoom to a single leaf
+          return {
+            workspace: {
+              ...workspace,
+              preZoomLayout: workspace.layout,
+              preZoomPanes: new Map(workspace.panes),
+              layout: { type: "leaf", paneId: workspace.focusedPaneId },
+            },
+          }
+        })
+      },
+
+      closeAllButFocused() {
+        set((state) => {
+          const { workspace } = state
+
+          // Only one pane — nothing to close
+          if (workspace.panes.size <= 1) return state
+
+          const focusedId = workspace.focusedPaneId
+          const focusedPane = workspace.panes.get(focusedId)
+          if (!focusedPane) return state
+
+          const newPanes = new Map<string, PaneState>()
+          newPanes.set(focusedId, focusedPane)
+
+          return {
+            workspace: {
+              ...workspace,
+              panes: newPanes,
+              layout: { type: "leaf", paneId: focusedId },
+              previousFocusedPaneId: null,
+              // Clear zoom state since we're now down to a single pane
+              preZoomLayout: null,
+              preZoomPanes: null,
+            },
+          }
+        })
+      },
+
+      swapPaneInDirection(direction: "left" | "right" | "up" | "down") {
+        set((state) => {
+          const { workspace } = state
+          const targetPaneId = findAdjacentPaneInLayout(workspace.layout, workspace.focusedPaneId, direction)
+          if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
+
+          const newLayout = swapLeaves(workspace.layout, workspace.focusedPaneId, targetPaneId)
+          if (newLayout === workspace.layout) return state
+
+          return {
+            workspace: { ...workspace, layout: newLayout },
+          }
+        })
+      },
     }
   }
 }
@@ -932,4 +1046,78 @@ function findAdjacentPaneInLayout(
   }
 
   return null
+}
+
+// =============================================================================
+// Phase 5 Layout Helpers
+// =============================================================================
+
+/**
+ * Resize the nearest split containing the given pane on the specified axis.
+ * Walks from the pane up the layout tree and adjusts the first split matching the axis.
+ * Clamps ratio to [0.1, 0.9].
+ */
+function resizeSplitForPane(layout: LayoutNode, paneId: string, delta: number, axis: "h" | "v"): LayoutNode {
+  const path = findLayoutPath(layout, paneId)
+  if (!path) return layout
+
+  // Find the nearest split matching the axis
+  let targetIndex = -1
+  for (let i = path.length - 1; i >= 0; i--) {
+    if (path[i]!.node.direction === axis) {
+      targetIndex = i
+      break
+    }
+  }
+  if (targetIndex < 0) return layout
+
+  const targetStep = path[targetIndex]!
+  // If pane is on the right side, invert the delta (growing the right pane = shrinking the ratio)
+  const adjustedDelta = targetStep.side === "left" ? delta : -delta
+
+  return adjustSplitRatio(layout, targetStep.node, adjustedDelta)
+}
+
+/** Adjust the ratio of a specific split node in the tree, clamping to [0.1, 0.9] */
+function adjustSplitRatio(layout: LayoutNode, target: LayoutNode & { type: "split" }, delta: number): LayoutNode {
+  if (layout.type === "leaf") return layout
+
+  if (layout === target) {
+    const newRatio = Math.max(0.1, Math.min(0.9, layout.ratio + delta))
+    if (newRatio === layout.ratio) return layout
+    return { ...layout, ratio: newRatio }
+  }
+
+  const newLeft = adjustSplitRatio(layout.left, target, delta)
+  const newRight = adjustSplitRatio(layout.right, target, delta)
+
+  if (newLeft === layout.left && newRight === layout.right) return layout
+  return { ...layout, left: newLeft, right: newRight }
+}
+
+/** Set all split ratios to 0.5 (equalize) */
+function equalizeLayout(layout: LayoutNode): LayoutNode {
+  if (layout.type === "leaf") return layout
+
+  const newLeft = equalizeLayout(layout.left)
+  const newRight = equalizeLayout(layout.right)
+
+  if (layout.ratio === 0.5 && newLeft === layout.left && newRight === layout.right) return layout
+
+  return { ...layout, ratio: 0.5, left: newLeft, right: newRight }
+}
+
+/** Swap two leaf pane IDs in the layout tree */
+function swapLeaves(layout: LayoutNode, paneIdA: string, paneIdB: string): LayoutNode {
+  if (layout.type === "leaf") {
+    if (layout.paneId === paneIdA) return { type: "leaf", paneId: paneIdB }
+    if (layout.paneId === paneIdB) return { type: "leaf", paneId: paneIdA }
+    return layout
+  }
+
+  const newLeft = swapLeaves(layout.left, paneIdA, paneIdB)
+  const newRight = swapLeaves(layout.right, paneIdA, paneIdB)
+
+  if (newLeft === layout.left && newRight === layout.right) return layout
+  return { ...layout, left: newLeft, right: newRight }
 }
