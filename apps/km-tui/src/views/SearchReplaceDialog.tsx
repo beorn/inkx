@@ -108,6 +108,7 @@ export function SearchReplaceDialog({
       width={width}
       borderStyle="round"
       borderColor="cyan"
+      backgroundColor="black"
       paddingLeft={1}
       paddingRight={1}
       data-dialog="search-replace"

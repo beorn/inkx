@@ -21,12 +21,21 @@ const SHORT_LABELS: Record<string, string> = {
   goto_journal: "journal",
   goto_home: "home",
   goto_archive: "archive",
+  goto_project: "project",
+  goto_node: "node",
+  goto_tag: "tag",
+  cursor_last: "last",
   // m-prefix (move)
   enter_move_mode: "move",
   move_to_inbox: "inbox",
   move_to_journal: "journal",
   move_to_home: "home",
   reparent_picker: "reparent",
+  move_to_project: "project",
+  move_to_node: "node",
+  move_to_tag: "tag",
+  move_to_first: "first",
+  move_to_last: "last",
   // a-prefix (add)
   add_tag: "tag",
   add_assignee: "assignee",
@@ -37,11 +46,17 @@ const SHORT_LABELS: Record<string, string> = {
   insert_at_parent: "parent",
   // t-prefix (task properties)
   noop: "...",
+  task_dialog: "task",
   set_assignee: "assignee",
   set_due_date: "due date",
   set_priority: "priority",
   set_start_date: "start",
   set_label: "label",
+  set_recurring: "recurring",
+  // toggle commands
+  toggle_collapse: "collapse",
+  cycle_view_mode: "view",
+  toggle_hide_done: "done",
 }
 
 function getLabel(commandId: string): string {
@@ -106,6 +121,7 @@ export function WhichKeyPopup({ prefix, termWidth }: WhichKeyPopupProps): React.
       flexDirection="column"
       borderStyle="round"
       borderColor="gray"
+      backgroundColor="black"
       paddingLeft={1}
       paddingRight={1}
     >
