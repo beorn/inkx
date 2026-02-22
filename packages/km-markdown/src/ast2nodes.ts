@@ -238,12 +238,42 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
     if (child.type === "heading") {
       const heading = child as Heading
 
-      // Clamp heading depth so it can't escape above the root section.
-      // An H1 inside an H3 section becomes H4 (root section depth + 1).
-      // At root level (no sections on stack), trust the markdown depth.
+      // A heading inside a deeper section whose markdown depth is shallower
+      // than the section's allowed child depth is "out-of-order" (e.g., # inside
+      // ###). This typically happens when content is pasted from external sources.
+      // Demote such headings to body blocks instead of creating sections.
+      //
+      // Exception: at root level (depth 1 sections), clamp instead of demoting.
+      // Multiple H1s in a file are normal (first merged into file, rest become H2).
+      const rootDepth = sectionStack.length > 0 ? sectionStack[0]!.depth : 0
+      const minChildDepth = rootDepth + 1
+      if (heading.depth < rootDepth) {
+        // Treat as body block under currentParent
+        const text = (heading.data?.cleanText as string | undefined) ?? nodeToText(heading)
+        const blockId = heading.data?.blockId as string | undefined
+        const bodyNode: KNode = {
+          id: ulid(),
+          type: "h",
+          item: false,
+          parent_id: currentParent.id,
+          parent_idx: sortOrder++,
+          md_pos: heading.position?.start.offset,
+          block_id: blockId,
+          content: text,
+          content_hash: undefined,
+          data: { md_heading_depth: heading.depth },
+          created_at: now,
+          updated_at: now,
+          version: "",
+        }
+        nodes.push(bodyNode)
+        continue
+      }
+
+      // At root level, clamp depth (e.g., second H1 after merge → H2)
       const effectiveDepth =
         sectionStack.length > 0
-          ? Math.max(heading.depth, sectionStack[0]!.depth + 1)
+          ? Math.max(heading.depth, minChildDepth)
           : heading.depth
 
       // Pop stack until we find a shallower heading (using effective depth)

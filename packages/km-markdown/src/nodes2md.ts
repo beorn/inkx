@@ -199,6 +199,16 @@ function serializeNode(
     return serializeLi(node, children, ctx, indent, addTrailingNewline)
   }
 
+  // Body heading blocks (type: "h", item: false) — out-of-order headings
+  // preserved as markdown headings using their original depth from data.
+  if (node.type === "h" && !node.item) {
+    const hdepth = (node.data?.md_heading_depth as number) ?? 1
+    const prefix = "#".repeat(hdepth)
+    let line = `${prefix} ${node.content ?? ""}`
+    if (node.block_id) line += ` ^${node.block_id}`
+    return line + "\n\n"
+  }
+
   switch (node.type) {
 
     case "p": {
