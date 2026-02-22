@@ -125,7 +125,6 @@ function mkNode(counter: IdxCounter, fields: Partial<KNode> & Pick<KNode, "id" |
   return {
     parent_id: null,
     parent_idx: counter.value++,
-    link_to: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -303,7 +302,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: refNodeId,
-        type: "oi",
+        type: "h", item: true,
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
@@ -366,7 +365,7 @@ function itemToNodes(
   if (item.metadata?.parentName) nodeData.asana_parent_name = item.metadata.parentName
   if (item.metadata?.customFields) nodeData.custom_fields = item.metadata.customFields
 
-  // Resolve parentTaskGid (from → ^numericId in title) to link_to if target exists
+  // Resolve parentTaskGid (from → ^numericId in title) to embed_source if target exists
   const parentTaskGid = item.metadata?.parentTaskGid as string | undefined
   const linkTo = parentTaskGid && primaryMap?.has(parentTaskGid) ? `^${parentTaskGid}` : null
 
@@ -376,7 +375,7 @@ function itemToNodes(
 
   const taskNode = mkNode(counter, {
     id: item.sourceId,
-    type: "oi",
+    type: "h", item: true,
     parent_id: parentId,
     task_marker: getMarkerForStatus(status),
     task_status: status,
@@ -391,7 +390,7 @@ function itemToNodes(
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
     created_at: itemCreatedAt,
     updated_at: itemUpdatedAt,
-    ...(linkTo && { link_to: linkTo }),
+    ...(linkTo && { embed_source: linkTo }),
     data: Object.keys(nodeData).length > 0 ? nodeData : undefined,
   })
   nodes.push(taskNode)
@@ -420,7 +419,7 @@ function itemToNodes(
         nodes.push(
           mkNode(counter, {
             id: sectionId,
-            type: "oi",
+            type: "h", item: true,
             parent_id: item.sourceId,
             content: section.content,
             created_at: itemCreatedAt,
@@ -443,7 +442,7 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `comments-${item.sourceId}`,
-          type: "oi",
+          type: "h", item: true,
           parent_id: item.sourceId,
           content: "Comments km.collapse:: true",
           created_at: itemCreatedAt,
@@ -459,7 +458,7 @@ function itemToNodes(
         nodes.push(
           mkNode(counter, {
             id: `comment-${item.sourceId}-${counter.value}`,
-            type: "li",
+            type: "p", item: true,
             parent_id: `comments-${item.sourceId}`,
             content: `${date} ${authorSlug}: ${fullText}`.trim(),
             created_at: new Date(c.createdAt).getTime(),
@@ -475,7 +474,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `attachments-${item.sourceId}`,
-        type: "oi",
+        type: "h", item: true,
         parent_id: item.sourceId,
         content: "Attachments km.collapse:: true",
         created_at: itemCreatedAt,
@@ -502,7 +501,7 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
-          type: "li",
+          type: "p", item: true,
           parent_id: `attachments-${item.sourceId}`,
           content: linkMd,
           created_at: att.createdAt ? new Date(att.createdAt).getTime() : itemCreatedAt,
@@ -517,7 +516,7 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `activity-${item.sourceId}`,
-        type: "oi",
+        type: "h", item: true,
         parent_id: item.sourceId,
         content: "Activity km.collapse:: true",
         created_at: itemCreatedAt,
@@ -530,7 +529,7 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
-          type: "li",
+          type: "p", item: true,
           parent_id: `activity-${item.sourceId}`,
           content: `${date} ${authorSlug}: ${a.text}`.trim(),
           created_at: new Date(a.createdAt).getTime(),
@@ -580,7 +579,7 @@ function sectionToNodes(
     nodes.push(
       mkNode(counter, {
         id: itemParentId,
-        type: "oi",
+        type: "h", item: true,
         parent_id: parentId,
         fstype: "mdsection",
         content: section.title,
@@ -618,7 +617,7 @@ function projectToNodes(
   nodes.push(
     mkNode(counter, {
       id: fileId,
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       content: projectTitle,
       data: frontmatter,
@@ -647,7 +646,7 @@ function projectToNodes(
     nodes.push(
       mkNode(counter, {
         id: statusSectionId,
-        type: "oi",
+        type: "h", item: true,
         parent_id: fileId,
         fstype: "mdsection",
         content: "Status Updates",
@@ -673,7 +672,7 @@ function projectToNodes(
       nodes.push(
         mkNode(counter, {
           id: statusId,
-          type: "li",
+          type: "p", item: true,
           parent_id: statusSectionId,
           content: su.title || "Status update",
         }),
@@ -697,7 +696,7 @@ function projectToNodes(
     nodes.push(
       mkNode(counter, {
         id: cfSectionId,
-        type: "oi",
+        type: "h", item: true,
         parent_id: fileId,
         fstype: "mdsection",
         content: "Custom Fields",
@@ -716,7 +715,7 @@ function projectToNodes(
       nodes.push(
         mkNode(counter, {
           id: cfId,
-          type: "li",
+          type: "p", item: true,
           parent_id: cfSectionId,
           content: cf.name,
         }),
@@ -949,7 +948,7 @@ function* generateTagFiles(
     nodes.push(
       mkNode(counter, {
         id: fileId,
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdfile",
         content: `#${tagSlug}`,
       }),
@@ -961,7 +960,7 @@ function* generateTagFiles(
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
-            type: "oi",
+            type: "h", item: true,
             parent_id: fileId,
             content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -1043,7 +1042,7 @@ function* generateUserFiles(
     nodes.push(
       mkNode(counter, {
         id: fileId,
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdfile",
         content: `@${userSlug}`,
       }),
@@ -1074,7 +1073,7 @@ function* generateUserFiles(
         nodes.push(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
-            type: "oi",
+            type: "h", item: true,
             parent_id: parentId,
             content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -1092,7 +1091,7 @@ function* generateUserFiles(
       nodes.push(
         mkNode(counter, {
           id: sectionId,
-          type: "oi",
+          type: "h", item: true,
           parent_id: fileId,
           fstype: "mdsection",
           content: sectionName,

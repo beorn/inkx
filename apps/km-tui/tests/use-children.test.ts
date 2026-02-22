@@ -64,7 +64,7 @@ describe("useChildren", () => {
     expect(app.text).toBe("task1")
 
     // Mutate and trigger re-render via rerender
-    repo.addNode("col1", { type: "li", content: "task2" })
+    repo.addNode("col1", { type: "p", item: true, content: "task2" })
     act(() => {
       app.rerender(el)
     })

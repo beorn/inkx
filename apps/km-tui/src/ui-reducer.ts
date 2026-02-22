@@ -230,7 +230,7 @@ export interface FilterProperties {
   priority: Set<string> // "1" | "2" | "3" | "4"
   dueDate: Set<string> // "overdue" | "today" | "this-week" | "no-date"
   assignedTo: Set<string>
-  nodeType: Set<string> // "li" | "oi" | "h" | "p" | "code" | "quote" | "hr"
+  nodeType: Set<string> // "h" | "p" | "code" | "quote" | "hr" | "embed" | "table"
 }
 
 export function createEmptyFilterProperties(): FilterProperties {

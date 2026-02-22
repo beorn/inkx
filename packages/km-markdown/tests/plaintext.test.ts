@@ -19,7 +19,8 @@ describe("parsePlainTextToNodes", () => {
     expect(result.warnings).toHaveLength(0)
 
     const fileNode = result.nodes[0]!
-    expect(fileNode.type).toBe("oi")
+    expect(fileNode.type).toBe("h")
+    expect(fileNode.item).toBe(true)
     expect(fileNode.fstype).toBe("txtfile")
     expect(fileNode.content).toBe("Hello, this is plain text.")
     expect(fileNode.name).toBe("notes")

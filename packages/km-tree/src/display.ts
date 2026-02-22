@@ -6,7 +6,7 @@
  */
 
 import type { KNode } from "@km/core"
-import { extractMetadata } from "@km/core"
+import { extractMetadata, isOutline } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
 
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
@@ -87,9 +87,9 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   }
 
   // 3. For file/mdfile nodes, use first section's title or content (H1 heading)
-  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
+  if (isOutline(node.type, node.item) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => c.type === "oi" && c.fstype === "mdsection")
+    const firstSection = children.find((c: KNode) => isOutline(c.type, c.item) && c.fstype === "mdsection")
     if (firstSection) {
       // Use pre-parsed title if available (node.title takes precedence over data.title)
       if (firstSection.title) {
@@ -139,9 +139,9 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
   if (node.title) return false
   // Only check data.title when node.title is undefined (not just empty "")
   if (node.title == null && node.data?.title) return false
-  if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
+  if (isOutline(node.type, node.item) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => c.type === "oi" && c.fstype === "mdsection")
+    const firstSection = children.find((c: KNode) => isOutline(c.type, c.item) && c.fstype === "mdsection")
     if (firstSection?.title || firstSection?.data?.title || firstSection?.content) return false
   }
   if (node.content) return false
@@ -155,8 +155,8 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
  * - file/mdfile: .md
  * - mdsection: #
  */
-export function getTypeIndicator(type: string, fstype?: string): string {
-  if (type !== "oi") return ""
+export function getTypeIndicator(type: string, fstype?: string, item?: boolean): string {
+  if (!isOutline(type, item)) return ""
   switch (fstype) {
     case "folder":
     case "repo":
@@ -212,7 +212,7 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
   const indicators: string[] = []
 
   // Add this node's type indicator
-  const thisIndicator = getTypeIndicator(node.type, node.fstype)
+  const thisIndicator = getTypeIndicator(node.type, node.fstype, node.item)
   if (thisIndicator) {
     indicators.push(thisIndicator)
   }
@@ -234,7 +234,7 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
     )
     if (!matchingChild) break
 
-    const childIndicator = getTypeIndicator(matchingChild.type, matchingChild.fstype)
+    const childIndicator = getTypeIndicator(matchingChild.type, matchingChild.fstype, matchingChild.item)
     if (childIndicator) {
       indicators.push(childIndicator)
     }
@@ -289,7 +289,7 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
       const candidateName = normalizeName(getNodeDisplayName(candidate))
       if (candidateName !== currentName) break
 
-      const indicator = getTypeIndicator(candidate.type, (candidate as KNode).fstype)
+      const indicator = getTypeIndicator(candidate.type, (candidate as KNode).fstype, (candidate as KNode).item)
       if (indicator) {
         collapsedTypes.push(indicator)
       }
@@ -313,7 +313,7 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
  * Get parent context for a node (for board card display)
  *
  * Walks up the parent chain to find meaningful context:
- * - For linked nodes (transclusions), follows link_to to get original context
+ * - For embed nodes (transclusions), follows embed_source to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file's display name
  *
@@ -365,17 +365,17 @@ export function getParentContextEx(
  * Shared traversal logic for getParentContext and getParentContextEx.
  *
  * Walks up the parent chain to find meaningful context:
- * - For linked nodes (transclusions), follows link_to to get original context
+ * - For embed nodes (transclusions), follows embed_source to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file/section node
  */
 function findParentContextNode(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): KNode | null {
   if (!getNode) return null
 
-  // For linked nodes (transclusions), follow the link to get original context
+  // For embed nodes (transclusions), follow embed_source to get original context
   let targetNode = node
-  if (node.link_to) {
-    const originalNode = getNode(node.link_to)
+  if (node.embed_source) {
+    const originalNode = getNode(node.embed_source)
     if (originalNode) {
       targetNode = originalNode
     }
@@ -396,12 +396,12 @@ function findParentContextNode(node: KNode, skipParentId?: string | null, getNod
     if (!parent) break
 
     // File/mdfile node — meaningful context
-    if (parent.type === "oi" && (parent.fstype === "file" || parent.fstype === "mdfile")) {
+    if (isOutline(parent.type, parent.item) && (parent.fstype === "file" || parent.fstype === "mdfile")) {
       return parent
     }
 
     // Meaningful section (not a board column — those have rules)
-    if (parent.type === "oi" && parent.fstype === "mdsection" && !parent.rules) {
+    if (isOutline(parent.type, parent.item) && parent.fstype === "mdsection" && !parent.rules) {
       return parent
     }
 

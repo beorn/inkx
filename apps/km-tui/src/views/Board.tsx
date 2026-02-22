@@ -838,8 +838,9 @@ export function Board({ patchedConsole }: BoardProps) {
       ...col,
       totalCardCount: col.cardNodes.length,
       cardNodes: col.cardNodes.filter((card) => {
-        // For embeds (link_to), resolve to source node for filtering
-        const filterNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card
+        // For embeds, resolve to source node for filtering
+        const embedSource = card.embed_source
+        const filterNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
         // Text filter: match card content (use source node content for embeds)
         if (hasTextFilter) {
           const name = (filterNode.content ?? "").toLowerCase()

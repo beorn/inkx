@@ -68,7 +68,7 @@ describe("due date persistence", () => {
       data.updateNode(task!.id, { due_at: "2026-02-14" })
 
       // Serialize back to markdown
-      const fileNode = allNodes.find((n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "file"))
+      const fileNode = allNodes.find((n) => n.type === "h" && n.item === true && (n.fstype === "mdfile" || n.fstype === "file"))
       expect(fileNode).toBeDefined()
 
       // Re-read all nodes from DB (to get updated due_at)

@@ -1,3 +1,5 @@
+import { isOutline } from "@km/core"
+
 /**
  * CursorStore — Lightweight pub/sub for cursor state.
  *
@@ -32,7 +34,7 @@ export interface CursorStore {
   getSnapshot(): number
 }
 
-/** Virtual body column ID prefix. Body cards (non-oi direct children of root)
+/** Virtual body column ID prefix. Body cards (non-outline direct children of root)
  * belong to a virtual column with ID `__body__<rootId>`. */
 const BODY_COL_PREFIX = "__body__"
 
@@ -42,23 +44,23 @@ const BODY_COL_PREFIX = "__body__"
  * Returns the card-level node (grandchild of root), column-level node (child of root),
  * and selection level based on where cursorNodeId sits in the hierarchy.
  *
- * Handles virtual body columns: non-oi direct children of root that appear
- * BEFORE the first oi sibling are body cards, grouped under a virtual column
- * `__body__<rootId>`. Non-oi nodes that appear AFTER the first oi sibling are
+ * Handles virtual body columns: non-outline direct children of root that appear
+ * BEFORE the first outline sibling are body cards, grouped under a virtual column
+ * `__body__<rootId>`. Non-outline nodes that appear AFTER the first outline sibling are
  * structural items (treated as columns), matching extractBody's logic.
  *
  * @param getNode - Lookup function returning { parent_id, type } (repo.getNode)
  * @param rootId - Current zoom root
  * @param cursorNodeId - The cursor's current node
  * @param getChildren - Lookup function returning children of a node (repo.getChildren).
- *   Required for distinguishing body cards from structural non-oi nodes.
- *   When omitted, all non-oi direct children of root are treated as body cards.
+ *   Required for distinguishing body cards from structural non-outline nodes.
+ *   When omitted, all non-outline direct children of root are treated as body cards.
  */
 export function deriveCursorAncestors(
-  getNode: (id: string) => { parent_id: string | null; type: string } | null,
+  getNode: (id: string) => { parent_id: string | null; type: string; item?: boolean } | null,
   rootId: string | null,
   cursorNodeId: string | null,
-  getChildren?: (parentId: string | null) => { id: string; type: string }[],
+  getChildren?: (parentId: string | null) => { id: string; type: string; item?: boolean }[],
 ): { cursorCardNodeId: string | null; cursorColumnNodeId: string | null; selectionLevel: "board" | "column" | "card" } {
   if (!cursorNodeId) {
     return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
@@ -94,9 +96,9 @@ export function deriveCursorAncestors(
   }
 
   // Determine if the child-of-root is a body card or structural item.
-  // Body cards are non-oi nodes that appear BEFORE the first oi sibling
-  // (matching extractBody's logic). Non-oi nodes AFTER the first oi are structural.
-  const isBodyCard = childOfRootNode.type !== "oi" && isInBodyRegion(childOfRootId, rootId, getChildren)
+  // Body cards are non-outline nodes that appear BEFORE the first outline sibling
+  // (matching extractBody's logic). Non-outline nodes AFTER the first outline are structural.
+  const isBodyCard = !isOutline(childOfRootNode.type, childOfRootNode.item) && isInBodyRegion(childOfRootId, rootId, getChildren)
 
   if (isBodyCard) {
     // Body cards are direct children of root but displayed as cards in a virtual body column.
@@ -111,7 +113,7 @@ export function deriveCursorAncestors(
     return { cursorCardNodeId: childOfRootId, cursorColumnNodeId: virtualColId, selectionLevel: "card" }
   }
 
-  // Structural node: either oi, or non-oi that appears after the first oi sibling.
+  // Structural node: either outline, or non-outline that appears after the first outline sibling.
   // Both are treated as columns at the board level.
   if (depth === 1) {
     // Cursor IS the column/structural node → column level
@@ -124,20 +126,20 @@ export function deriveCursorAncestors(
 }
 
 /**
- * Check if a non-oi child of root is in the "body" region (before the first oi sibling).
- * Matches extractBody's logic: body = non-oi nodes before first oi.
+ * Check if a non-outline child of root is in the "body" region (before the first outline sibling).
+ * Matches extractBody's logic: body = non-outline nodes before first outline.
  * When getChildren is not available, defaults to true (conservative: treat as body).
  */
 function isInBodyRegion(
   nodeId: string,
   rootId: string | null,
-  getChildren?: (parentId: string | null) => { id: string; type: string }[],
+  getChildren?: (parentId: string | null) => { id: string; type: string; item?: boolean }[],
 ): boolean {
   if (!getChildren) return true // Conservative default: no children → assume body
   const siblings = getChildren(rootId)
   for (const sibling of siblings) {
-    if (sibling.type === "oi") return false // Found an oi before this node → structural region
-    if (sibling.id === nodeId) return true // Found our node before any oi → body region
+    if (isOutline(sibling.type, sibling.item)) return false // Found an outline item before this node → structural region
+    if (sibling.id === nodeId) return true // Found our node before any outline item → body region
   }
   return true // Node not found in siblings (shouldn't happen) → default to body
 }
@@ -148,8 +150,8 @@ function isInBodyRegion(
  */
 export function createCursorStoreFromRepo(
   repo: {
-    getNode(id: string): { parent_id: string | null; type: string } | undefined
-    getChildren(parentId: string | null): { id: string; type: string }[]
+    getNode(id: string): { parent_id: string | null; type: string; item?: boolean } | null | undefined
+    getChildren(parentId: string | null): { id: string; type: string; item?: boolean }[]
   },
   rootId: string | null,
   cursorNodeId: string | null,

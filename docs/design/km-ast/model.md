@@ -1,123 +1,184 @@
-# km-ast: Knowledge Tree Model
+# km-ast: Knowledge Tree Model (v2)
 
 One unified tree stored in SQLite. All content (markdown files, folders, list items) lives in it. No separate "outline" — just the tree.
 
-## Types
+## Core Idea: Block + Trait
+
+Every node IS a block (has a content type). Orthogonal traits add capabilities:
 
 ```typescript
-// 10 node types, 3 categories
-type BlockType = "p" | "code" | "quote" | "table" | "hr" | "html" | "math"  // 7
-type ItemType  = "oi" | "li"                                                 // 2
-type LinkType  = "link"                                                      // 1
-type NodeType  = BlockType | ItemType | LinkType                             // 10
+type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math" | "embed"  // 9
+
+interface KNode {
+  id: string
+  type: BlockType               // Content type — always present
+  content: string | null         // Text content
+  name?: string                  // Display identifier (slug, alias, filename)
+
+  // Trait: item (navigable, can have children)
+  item?: boolean                 // true = structural item, false/undefined = leaf block
+
+  // Trait: task (only valid when item = true)
+  task_status?: TaskStatus       // "todo" | "done" | "wip" | "blocked" | "dropped"
+  task_marker?: TaskMarker       // "[ ]" | "[x]" | "[/]" | "[!]" | "[-]"
+
+  // Embed (only valid when type = "embed")
+  embed_source?: string | null   // Target node ID (null = unresolved)
+
+  // Tree
+  parent_id: string | null
+  parent_idx: number
+
+  // Filesystem (orthogonal)
+  fstype?: FsType                // "repo" | "folder" | "mdfile" | "mdsection" | "file" | "txtfile"
+  fs_path?: string
+
+  // Metadata
+  data?: Record<string, unknown>
+  created_at: number
+  updated_at: number
+}
 ```
 
-## Two Categories
+## Derivation Rules
 
-**Items** (oi, li) — containers. Can have children, are zoomable, recursive. Title stored in `.content` field.
+The old categorical types (oi, li, link) are derived from block type + traits:
 
-**Blocks** (p, code, quote, table, hr, html, math) — leaf content. Not zoomable. No children (except `quote`, which can contain blocks).
+| Combination | Derived Category | Markdown Serialization |
+|---|---|---|
+| `type:"h", item:true` | Outline item (was `oi`) | `## Title` |
+| `type:"p", item:true` | List item (was `li`) | `- content` |
+| `type:"quote", item:true` | Quote list item | `- > content` |
+| `type:"code", item:true` | Code list item | `- \`\`\`code\`\`\`` |
+| `type:"embed"` | Embed (was `link`) | `![[target]]` |
+| `type:"p"` (no item) | Paragraph block | `content` |
+| `type:"code"` (no item) | Code block | ` ```code``` ` |
+| etc. | Leaf block | Various |
 
-**Link** — reference to another node. Lightweight pointer; transclusion resolved at render time.
+## Type Predicates
 
-## Terminology
+```typescript
+isOutline(type, item?)  // type === "h" && item === true
+isListItem(type, item?) // type !== "h" && item === true
+isItem(type, item?)     // item === true
+isEmbed(type)           // type === "embed"
+isBlock(type, item?)    // !item (leaf node)
+```
 
-- **title**: display text for an item. Resolution: `content → name → id`. Every item resolves to something.
-- **name**: stored identity string (filename, slug). May or may not match title.
-- **marker**: prefix decoration. Both list style (`list_marker`) and task checkbox (`task_marker`) are markers.
+`isItem` is the primary structural predicate — items are containers, blocks are leaves.
 
-## Items: oi and li
+## Constraints
 
-Structurally almost identical. Both recursive, both navigable, both use `.content` as title. The differences are serialization and default rendering:
+| Constraint | Rule |
+|---|---|
+| h requires item | `type === "h"` implies `item === true` |
+| task requires item | `task_status` or `task_marker` implies `item === true` |
+| embed requires embed_source | `type === "embed"` implies `embed_source` field present (null = unresolved) |
+| embed not an item | `type === "embed"` implies `item !== true` |
+| embed no children | `type === "embed"` cannot have children |
+| item-allowed types | h, p, quote, code can be items; table, hr, html, math, embed cannot |
+| h-children ordering | `body*, h*` — body content first, sub-sections last, no interleaving |
+| li-children ordering | `(body|li)*` — free interleaving |
 
-| | **oi** (outline item) | **li** (list item) |
+Validated by `validateNode()` in `@km/core`.
+
+## Items: Outline and List
+
+Structurally almost identical. Both recursive, navigable, use `.content` as title. Differences are serialization and default rendering:
+
+| | **Outline** (`type:"h", item:true`) | **List** (`type:"p", item:true`) |
 |---|---|---|
 | Markdown | Headings (`# Title`, `## Sub`) | List items (`- text`, `- [ ] task`) |
 | Default rendering | Card / column | Checklist row |
-| Interleaving | Blocks before subitems only (heading parsing limitation) | Blocks and sub-li can interleave freely |
+| Interleaving | Blocks before subitems only (heading parsing limitation) | Blocks and sub-items can interleave freely |
 | Heading level | Derived from tree depth (never stored) | N/A |
+| fstype | repo, folder, mdfile, mdsection | N/A |
 
-### OutlineItem (oi)
+### Outline Item (type:"h", item:true)
 
 Creates the document hierarchy: repo → folders → files → sections.
 
-| Field           | Type         | Notes                                          |
-|-----------------|--------------|------------------------------------------------|
-| `type`          | `"oi"`       | Always "oi"                                    |
-| `content`       | `string?`    | Title text. Empty is valid (item has body but no title) |
-| `fstype`        | `FsType`     | repo, folder, file, mdfile, mdsection          |
-| `name`          | `string?`    | Filesystem identity / heading slug             |
-| `task_marker`   | `string?`    | Checkbox: `"[ ]"`, `"[x]"`, `"[/]"`, `"[!]"`, `"[-]"` |
-| `children`      | `Node[]`     | Ordered list of any node types                 |
-
-No `.blocks[]` or `.subitems[]` split in the model. Children are flat, ordered. The view decides what becomes columns vs body.
+| Field | Type | Notes |
+|---|---|---|
+| `type` | `"h"` | Heading block type |
+| `item` | `true` | Always true for outline items |
+| `content` | `string?` | Title text. Empty is valid (item has body but no title) |
+| `fstype` | `FsType` | repo, folder, file, mdfile, txtfile, mdsection |
+| `name` | `string?` | Filesystem identity / heading slug |
+| `task_marker` | `string?` | Checkbox: `"[ ]"`, `"[x]"`, `"[/]"`, `"[!]"`, `"[-]"` |
 
 Title is `.content`. Heading level is derived from tree depth.
 
-### ListItem (li)
+### List Item (type:"p", item:true)
 
-| Field           | Type         | Notes                                          |
-|-----------------|--------------|------------------------------------------------|
-| `type`          | `"li"`       | Always "li"                                    |
-| `content`       | `string?`    | Title text (rendered as checkbox text)         |
-| `list_marker`   | `string`     | `"-"`, `"*"`, `"+"`, `"1."`, `"1)"`, `"[^1]"` |
-| `task_marker`   | `string?`    | Checkbox: `"[ ]"`, `"[x]"`, etc. (optional)   |
-| `children`      | `Node[]`     | Ordered list of any node types (interleaved)   |
+| Field | Type | Notes |
+|---|---|---|
+| `type` | `"p"` | Paragraph block type (or `"quote"`, `"code"` for first-block items) |
+| `item` | `true` | Always true for list items |
+| `content` | `string?` | Title text (rendered as checkbox text) |
+| `list_marker` | `string` | `"-"`, `"*"`, `"+"`, `"1."`, `"1)"`, `"[^1]"` |
+| `task_marker` | `string?` | Checkbox: `"[ ]"`, `"[x]"`, etc. (optional) |
 
-Same structure as oi. The one structural difference: li's children can interleave blocks and sub-li items in any order (markdown indentation disambiguates). For oi, blocks must come before subitems (markdown heading parsing cannot disambiguate trailing blocks).
+Same structure as outline items. One structural difference: list item children can interleave blocks and sub-items in any order (markdown indentation disambiguates). For outline items, blocks must come before sub-items (markdown heading parsing cannot disambiguate trailing blocks).
 
-Headings inside list items are parsed as child `li` nodes, not as a separate `h` block type. There is no `h` node type in km-ast.
+Headings inside list items are parsed as child list items (`type:"p", item:true`), not as outline items. Outline items only exist at the document structure level.
 
 ### Block
 
 Content leaf. Has a `content` string. No children (except `quote`).
 
-| Type    | Content                          |
-|---------|----------------------------------|
-| `p`     | Paragraph text (inline markdown) |
-| `code`  | Code block (lang in data)        |
+| Type | Content |
+|---|---|
+| `p` | Paragraph text (inline markdown) |
+| `h` | Heading (always item:true — bare h is invalid) |
+| `code` | Code block (lang in data) |
 | `quote` | Blockquote text (can contain child blocks) |
-| `table` | Raw markdown table               |
-| `hr`    | Empty (horizontal rule)          |
-| `html`  | Raw HTML                         |
-| `math`  | Block math (LaTeX)               |
+| `table` | Raw markdown table |
+| `hr` | Empty (horizontal rule) |
+| `html` | Raw HTML |
+| `math` | Block math (LaTeX) |
+| `embed` | Transclusion reference |
 
-### Link
+### Embed (type:"embed")
 
-References another node. Can appear anywhere a block can.
+References another node. Block-level transclusion.
 
-| Field           | Type         | Notes                                          |
-|-----------------|--------------|------------------------------------------------|
-| `type`          | `"link"`     | Always "link"                                  |
-| `link_to`       | `string`     | Target node ID                                 |
-| `embed`         | `boolean`    | true = transclude content, false = reference   |
-| `children`      | `Node[]`     | Optional: alias content (children[0] = alias p) |
+| Field | Type | Notes |
+|---|---|---|
+| `type` | `"embed"` | Always "embed" |
+| `embed_source` | `string?` | Target node ID (null = unresolved) |
+| `name` | `string?` | Alias (from `![[target|alias]]`) |
+| `content` | `string?` | Display text / reference name |
 
-`![[target|alias]]` → link with a `p` child as alias. When absent, display falls back to target's title.
+`![[target|alias]]` → embed with `name` as alias. When absent, display falls back to target's title.
+
+**Links vs Embeds**:
+- `[[wikilink]]` is **inline text** — NOT a node. Tracked in `links` table for graph queries.
+- `![[embed]]` is `type:"embed"` — a **block-level transclusion**.
 
 ## Children Model
 
-Items have `.children` — a flat, ordered list of any node types. No `.blocks[]` / `.subitems[]` split in the model. Children are just children.
+Items have children — a flat, ordered list of any node types. No `.blocks[]` / `.subitems[]` split in the model. Children are just children.
 
 ```
-oi (content="Project")
-  p "Description"              # children[0]
-  p "More details"             # children[1]
-  oi (content="Phase 1")       # children[2]
-  oi (content="Phase 2")       # children[3]
+h item (content="Project")
+  p "Description"                   # children[0]
+  p "More details"                  # children[1]
+  h item (content="Phase 1")       # children[2]
+  h item (content="Phase 2")       # children[3]
 
-li (content="Buy groceries")
-  p "From the store"           # children[0]
-  li (content="Milk")          # children[1]
-  li (content="Eggs")          # children[2]
-  p "Check prices first"       # children[3]
-  li (content="Bread")         # children[4]
+p item (content="Buy groceries")
+  p "From the store"                # children[0]
+  p item (content="Milk")          # children[1]
+  p item (content="Eggs")          # children[2]
+  p "Check prices first"            # children[3]
+  p item (content="Bread")         # children[4]
 ```
 
-For oi: blocks come before subitems (serialization constraint from markdown heading parsing).
-For li: blocks and sub-li can interleave in any order (indentation disambiguates in markdown).
+For outline items: blocks come before sub-items (serialization constraint from markdown heading parsing).
+For list items: blocks and sub-items can interleave in any order (indentation disambiguates in markdown).
 
-This is a model constraint for oi, not just a convention — the markdown parser cannot round-trip blocks after sub-headings. For li, full interleaving is supported.
+This is a model constraint for outline items, not just a convention — the markdown parser cannot round-trip blocks after sub-headings. For list items, full interleaving is supported.
 
 ## Title Resolution
 
@@ -135,12 +196,12 @@ Heading level is implicit from tree depth (never stored).
 
 ### Name ↔ Title by fstype
 
-| fstype     | name source       | content                | Sync               |
-|------------|-------------------|------------------------|---------------------|
-| repo       | repo name         | from index .md if any  | name → display      |
-| folder     | dirname           | from index .md if any  | name → display      |
-| file/mdfile| filename sans .md | H1 text                | name ↔ title        |
-| mdsection  | slugified heading | heading text           | title → name        |
+| fstype | name source | content | Sync |
+|---|---|---|---|
+| repo | repo name | from index .md if any | name → display |
+| folder | dirname | from index .md if any | name → display |
+| file/mdfile | filename sans .md | H1 text | name ↔ title |
+| mdsection | slugified heading | heading text | title → name |
 
 Folders can have an associated index file (`folder/folder.md`, `README.md`, or `.md`) that provides body content and metadata (frontmatter).
 
@@ -152,7 +213,7 @@ Rendering is context-dependent. A node's type is a serialization identity and de
 
 The view splits an item's children for display:
 
-**Zoomed into oi**: same-type (oi) children → columns. Everything else (blocks, li, links) → body pane.
+**Zoomed into outline item**: same-type (outline) children → columns. Everything else (blocks, list items, embeds) → body pane.
 
 ```
 ┌─── body ────────┬─── Phase 1 ────┬─── Phase 2 ────┐
@@ -162,9 +223,9 @@ The view splits an item's children for display:
 └──────────────────┴────────────────┴────────────────┘
 ```
 
-li children in the body render as checklist rows within the body pane.
+List item children in the body render as checklist rows within the body pane.
 
-**Zoomed into li**: renders as a list view. Everything in order — blocks as content, sub-li as checklist rows. Interleaving preserved.
+**Zoomed into list item**: renders as a list view. Everything in order — blocks as content, sub-items as checklist rows. Interleaving preserved.
 
 ```
 ┌─────────────────────────────┐
@@ -177,57 +238,50 @@ li children in the body render as checklist rows within the body pane.
 └─────────────────────────────┘
 ```
 
-**Open question**: li MAY also render as a board with columns (sub-li as columns). Use case: large outlines of li items. Decision deferred.
-
 **Fallback**: item with no same-type children → detail/list view (body content only).
 
 ### Embedding rule
 
 When embedded or placed in a different context, a node takes on the rendering style of its position:
 
-- oi at column position → card (native)
-- li at column position → card (takes on host style)
-- oi in body → body content
-- li in body → checklist row (native)
+- Outline item at column position → card (native)
+- List item at column position → card (takes on host style)
+- Outline item in body → body content
+- List item in body → checklist row (native)
 
 ### Navigation
 
 Navigation is **purely spatial** (hjkl = left/down/up/right on screen). Navigation does not know about node types. It only knows about visual positions.
 
-Rendering determines layout. Layout determines what spatial navigation does:
-- Board layout: h/l moves between columns, j/k moves within
-- List layout: j/k moves between items, h/l may collapse/expand
-- Same keys, same spatial behavior — the content type only affects layout
-
 ## Lazy Loading (SQL)
 
 ```sql
--- Subitems only (board columns — title is .content on each node)
-SELECT * FROM nodes WHERE parent_id = ? AND type IN ('oi', 'li')
+-- Items only (board columns — title is .content on each node)
+SELECT * FROM nodes WHERE parent_id = ?
+  AND ((type = 'h' AND item = 1) OR type = 'oi')
 
 -- Body blocks only (detail pane, on demand)
-SELECT * FROM nodes WHERE parent_id = ? AND type NOT IN ('oi', 'li')
+SELECT * FROM nodes WHERE parent_id = ?
+  AND NOT ((type = 'h' AND item = 1) OR type = 'oi')
 
--- Title (already on the item node itself — no query needed)
--- Just use node.content
+-- Dual-match pattern: supports both v2 and legacy data during migration
+-- (type = 'oi' OR (type = 'h' AND item = 1))
 ```
-
-No body container node needed. Type-based SQL filtering provides lazy loading.
 
 ## Task Trait
 
-Any Item (oi or li) can be a task via `task_marker`. Task status is **derived** from the marker:
+Any item can be a task via `task_marker`. Task status is **derived** from the marker:
 
-| task_marker | Status    |
-|-------------|-----------|
-| `"[ ]"`     | todo      |
+| task_marker | Status |
+|---|---|
+| `"[ ]"` | todo |
 | `"[x]"` `"[X]"` | done |
-| `"[/]"`     | wip       |
-| `"[!]"`     | blocked   |
-| `"[-]"`     | dropped   |
-| absent      | not a task|
+| `"[/]"` | wip |
+| `"[!]"` | blocked |
+| `"[-]"` | dropped |
+| absent | not a task |
 
-`task_marker` is the stored value. `task_status` is a computed getter.
+`task_marker` is the stored value. `task_status` is a computed/derived field.
 
 ## List Markers
 
@@ -237,42 +291,47 @@ Ordered:    "1.", "1)", "3."   (start number + delimiter)
 Footnote:   "[^1]", "[^note]"
 ```
 
-Ordered vs unordered derived from `list_marker`. Actual numbers computed from sibling position. Consecutive lis with compatible markers serialize to one markdown list.
+Ordered vs unordered derived from `list_marker`. Actual numbers computed from sibling position. Consecutive list items with compatible markers serialize to one markdown list.
 
-Footnote definitions (`[^1]: text`) are li nodes with footnote markers. References (`[^1]`) stay inline in content strings.
-
-## Predicates
-
-```typescript
-const isItem     = (t: NodeType) => t === "oi" || t === "li"  // primary structural check
-const isOutline  = (t: NodeType) => t === "oi"
-const isListItem = (t: NodeType) => t === "li"
-const isLink     = (t: NodeType) => t === "link"
-const isBlock    = (t: NodeType) => !isItem(t) && !isLink(t)
-```
-
-`isItem` is the primary structural predicate — items are containers, blocks are leaves.
+Footnote definitions (`[^1]: text`) are list items with footnote markers. References (`[^1]`) stay inline in content strings.
 
 ## Content Model (Parent Constraints)
 
 What can contain what:
 
 ```
-oi    → any node types as children (blocks, li, link; subitems are oi)
-li    → any node types as children (blocks, link; subitems are li; can interleave)
-quote → blocks (p, code, math, table, hr, html, link, li)
-link  → blocks (p) — alias only
+h item   → any node types as children (blocks, list items, embeds; sub-items are h items)
+p item   → any node types as children (blocks, embeds; sub-items are p items; can interleave)
+quote    → blocks (p, code, math, table, hr, html, embed, list items)
+embed    → no children (content transcluded from source)
 p, code, math, table, hr, html → no children (leaf nodes)
 ```
 
 Key constraints:
-- **oi only inside oi**: A heading inside a list item becomes a child `li`, not an `oi`
-- **li anywhere a block can**: Lists can appear inside oi children, li children, or blockquotes
-- **link is a leaf**: Never contains subitems — transclusion resolved at render time
+- **h items only under h items**: A heading inside a list item becomes a child list item, not an h item
+- **list items anywhere a block can**: Lists can appear inside h item children, list item children, or blockquotes
+- **embed is a leaf**: Never contains children — transclusion resolved at render time
+
+## Full Example Tree
+
+```
+h item  name:"vault"           fstype:"repo"
+  h item  name:"projects"     fstype:"folder"
+    h item  name:"doc-title"  fstype:"mdfile"
+      h item  name:"section"  fstype:"mdsection"
+        p "paragraph"
+        code "let x = 1"
+        p item  marker:"-"  "Buy milk"
+          p item  marker:"-"  status:"todo"  "Eggs"
+          quote "note"
+        quote item  marker:"-"  "quote list item"
+        embed  embed_source:"<id>"
+        h item  name:"sub"   fstype:"mdsection"
+```
 
 ## Skipped Heading Levels
 
-On parse: `H1 → H3` (skipping H2) inserts a synthetic oi at the missing level. On serialize: heading level = tree depth. Round-trip normalizes: `H1 → H3` becomes `H1 → H2 → H3`. No serialization hints stored.
+On parse: `H1 → H3` (skipping H2) inserts a synthetic h item at the missing level. On serialize: heading level = tree depth. Round-trip normalizes: `H1 → H3` becomes `H1 → H2 → H3`. No serialization hints stored.
 
 ## Markdown Coverage
 
@@ -282,8 +341,8 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 |---|---|
 | **Block-level** | |
 | Paragraph | `p` |
-| ATX heading (`# text`) | `oi(content:"text")` — title in `.content` |
-| Setext heading (`text\n===`) | `oi` (normalized to ATX on round-trip) |
+| ATX heading (`# text`) | `h item (content:"text")` — title in `.content` |
+| Setext heading (`text\n===`) | `h item` (normalized to ATX on round-trip) |
 | Fenced code block (` ``` `) | `code` (lang in `data.lang`) |
 | Indented code block | `code` |
 | Blockquote (`> text`) | `quote` (children are blocks) |
@@ -293,29 +352,28 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 | HTML block | `html` |
 | Block math (`$$...$$`) | `math` (LaTeX in content) |
 | **Lists** | |
-| Unordered list item (`- text`) | `li(list_marker:"-")` |
-| Ordered list item (`1. text`) | `li(list_marker:"1.")` |
-| Task list item (`- [ ] text`) | `li(list_marker:"-", task_marker:"[ ]")` |
-| Nested list | `li` containing child `li` |
-| Multi-paragraph list item | `li` containing multiple `p` children |
-| Footnote def (`[^1]: text`) | `li(list_marker:"[^1]")` |
+| Unordered list item (`- text`) | `p item (list_marker:"-")` |
+| Ordered list item (`1. text`) | `p item (list_marker:"1.")` |
+| Task list item (`- [ ] text`) | `p item (list_marker:"-", task_marker:"[ ]")` |
+| Nested list | `p item` containing child `p item` |
+| Multi-paragraph list item | `p item` containing multiple `p` children |
+| Footnote def (`[^1]: text`) | `p item (list_marker:"[^1]")` |
 | **Outline structure** | |
-| Directory | `oi(fstype:"folder")` |
-| Markdown file | `oi(fstype:"mdfile")` |
-| Non-markdown file | `oi(fstype:"file")` |
-| Section (H2+ heading) | `oi(fstype:"mdsection")` — title in `.content` |
-| Repository root | `oi(fstype:"repo")` |
+| Directory | `h item (fstype:"folder")` |
+| Markdown file | `h item (fstype:"mdfile")` |
+| Non-markdown file | `h item (fstype:"file")` |
+| Section (H2+ heading) | `h item (fstype:"mdsection")` — title in `.content` |
+| Repository root | `h item (fstype:"repo")` |
 | **Links & embeds** | |
-| `![[target]]` (embed) | `link(embed:true)` |
-| `![[target\|alias]]` | `link(embed:true)` with `p("alias")` as child |
-| `[[target]]` standalone | `link(embed:false)` |
+| `![[target]]` (embed) | `embed (embed_source:"<id>")` |
+| `![[target\|alias]]` | `embed (embed_source:"<id>", name:"alias")` |
 | `[[target]]` inline | Stays in `p.content`, indexed in `links` table |
 | `[text](url)` | Stays in `p.content` (inline) |
 | `![alt](url)` | Stays in `p.content` (inline image) |
-| `![[image.png]]` (vault image) | `link(embed:true)` pointing to image node |
+| `![[image.png]]` (vault image) | `embed (embed_source:"<image-node-id>")` |
 | `[^1]` reference | Stays in `p.content` (inline) |
 | **Metadata** | |
-| YAML frontmatter (`---`) | `data` JSON field on file's `oi` node |
+| YAML frontmatter (`---`) | `data` JSON field on file's h item node |
 | **Extensions** | |
 | Callout (`> [!NOTE]`) | `quote` with `data.callout_type` |
 | Inline math (`$...$`) | Stays in `p.content` |
@@ -325,7 +383,7 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 
 ## Frontmatter
 
-YAML frontmatter (`---` delimited) is not a node type. Parsed into the `data` JSON field on the file's oi node. Round-trip: serialized back from `data` when writing to `.md`.
+YAML frontmatter (`---` delimited) is not a node type. Parsed into the `data` JSON field on the file's h item node. Round-trip: serialized back from `data` when writing to `.md`.
 
 ## Inline Content
 
@@ -333,37 +391,43 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 
 - `**bold**` → stored as-is in `p.content`
 - `![alt](url)` → stored as-is in `p.content` (standard MD images)
-- `![[vault-image.png]]` → becomes a `link(embed:true)` node (Obsidian-style)
+- `![[vault-image.png]]` → becomes an `embed` node (Obsidian-style)
 - `[[wiki-link]]` inline → stays in content string, extracted to `links` table
 - `[^1]` reference → stays in content string
 
 ## Design Decisions
 
 | Decision | Rationale | Trade-off |
-|----------|-----------|-----------|
+|---|---|---|
+| Block + trait (not categories) | Extensible — new traits added orthogonally. No type explosion. | Slightly more complex predicates |
 | Flat children (no .blocks/.subitems split) | Simpler model, matches Notion/Roam/Logseq. View decides columns vs body. | View must split children by type for board rendering |
 | li ≈ oi (structurally identical) | One navigation model, one tree. Differ only in serialization and default rendering. | Code must handle interleaving (li) vs ordered (oi) |
-| Title in `.content` (no `h` child) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on oi node, not as child |
+| Title in `.content` (no separate h child) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on item node, not as child |
 | Rendering is context-dependent | Embedded nodes take host's style. Decouples model from view. | View layer more complex |
 | Navigation is spatial (hjkl) | Decoupled from content type. Works in any layout. | Rendering must produce navigable spatial layout |
-| Lazy loading via SQL type filter | No body container node needed. `WHERE type IN ('oi','li')` for subitems. | Slightly more complex queries than skipping a body subtree |
+| Lazy loading via SQL type filter | No body container node needed. `WHERE type = 'h' AND item = 1` for items. | Slightly more complex queries than skipping a body subtree |
 | Heading level from tree depth | Enforces well-formed outline hierarchy | Normalizes skipped levels on round-trip |
 | `task_marker` as full bracket string | Round-trip fidelity for bidirectional MD sync | Slightly more parsing than a boolean `checked` |
 | `list_marker` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
-| Footnotes as `li` with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
-| No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive `li` siblings |
-| `link` as third category (not Item) | Keeps transclusion as lightweight pointer | Resolved at render time |
+| Footnotes as list items with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
+| No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive item siblings |
+| Embeds as block type (not separate category) | Consistent with block+trait model. One fewer type category. | Must check `type === "embed"` instead of category |
 | Block-level AST only | Sufficient for TUI outline/kanban views | No inline node manipulation |
 | Callouts as `quote` + data | Syntactically they ARE blockquotes | Requires `data.callout_type` check |
 | Frontmatter as `data` field | Metadata, not content | Must serialize back from JSON |
 
 ## Migration Notes (v1 → v2)
 
-Changes from the previous model:
+| v1 | v2 |
+|---|---|
+| `type: "oi"` | `type: "h", item: true` |
+| `type: "li"` | `type: "p", item: true` (or actual block type) |
+| `type: "link"` | `type: "embed"` |
+| `link_to` field | `embed_source` field |
+| `link_alias` field | `name` field |
+| `embed` boolean | Derived from `type === "embed"` |
+| `data.depth` | Derived from tree nesting |
 
-1. **`h` node type removed** — oi titles stored in `.content`; headings inside list items become child `li` nodes
-2. **`.blocks[]` / `.subitems[]` removed** — replaced by flat `.children`. View-level helpers may exist but model doesn't split.
-3. **"Two Hierarchies" removed** — one tree, items vs blocks is the only structural distinction
-4. **Ordering constraint relaxed in model** — blocks-before-subitems is a serialization concern for oi, enforced by parser/serializer, not the model
-5. **Lazy loading via SQL** — type-based filtering replaces body-node approach
-6. **Rendering rules moved to view** — model doesn't prescribe board vs list layout
+Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`embed`+embed_source.
+
+The old types (`"oi"`, `"li"`, `"link"`) and fields (`link_to`, `link_alias`, `embed` boolean) have been fully removed from the codebase.

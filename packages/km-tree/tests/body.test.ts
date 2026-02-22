@@ -5,11 +5,11 @@ import { extractBody } from "../src/body.ts"
 const paragraph = { type: "p", id: "p1" }
 const code = { type: "code", id: "c1" }
 const quote = { type: "quote", id: "q1" }
-const listItem = { type: "li", id: "t1" }
-const section1 = { type: "oi", id: "s1" }
-const section2 = { type: "oi", id: "s2" }
-const file = { type: "oi", id: "f1" }
-const folder = { type: "oi", id: "d1" }
+const listItem = { type: "p", item: true, id: "t1" }
+const section1 = { type: "h", item: true, id: "s1" }
+const section2 = { type: "h", item: true, id: "s2" }
+const file = { type: "h", item: true, id: "f1" }
+const folder = { type: "h", item: true, id: "d1" }
 
 describe("extractBody", () => {
   test("empty children returns empty body and items", () => {

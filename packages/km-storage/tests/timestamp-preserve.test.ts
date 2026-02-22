@@ -25,11 +25,12 @@ function createTestDb(): Database {
 function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
   return {
     id,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -162,7 +163,8 @@ describe("applyNodes() timestamp preservation", () => {
           createNode("child1", {
             parent_id: "file2",
             parent_idx: 1,
-            type: "li",
+            type: "p",
+            item: true,
             created_at: childCreated,
             updated_at: childUpdated,
           }),

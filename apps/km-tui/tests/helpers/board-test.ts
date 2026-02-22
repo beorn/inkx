@@ -185,7 +185,8 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
 
   const node: KNode = {
     id: content,
-    type: hasChildren ? "oi" : "li",
+    type: hasChildren ? "h" : "p",
+    item: true,
     ...(hasChildren
       ? { fstype: "folder" as const }
       : { list_marker: "-", task_marker: "[ ]", task_status: "todo" as const }),
@@ -193,7 +194,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -220,7 +221,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
 function makeNodeWithType(
   content: string,
   type: NodeType,
-  props: { is_repo_root?: boolean; fstype?: KNode["fstype"]; list_marker?: string },
+  props: { is_repo_root?: boolean; fstype?: KNode["fstype"]; list_marker?: string; item?: boolean },
   ...childArrays: KNode[][]
 ): KNode[] {
   const hasChildren = childArrays.length > 0
@@ -228,6 +229,7 @@ function makeNodeWithType(
   const node: KNode = {
     id: content,
     type,
+    ...(props.item !== undefined ? { item: props.item } : {}),
     ...(props.fstype ? { fstype: props.fstype } : {}),
     ...(props.list_marker ? { list_marker: props.list_marker } : {}),
     // Set name for mdsection nodes to match production (ast2nodes sets name: slugified heading)
@@ -239,7 +241,7 @@ function makeNodeWithType(
     },
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -260,18 +262,18 @@ function makeNodeWithType(
 
 // Type-specific factories attached to item()
 item.root = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "oi", { is_repo_root: true, fstype: "repo" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: true, is_repo_root: true, fstype: "repo" }, ...childArrays)
 
 item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "oi", { fstype: "folder" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: true, fstype: "folder" }, ...childArrays)
 
 item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "oi", { fstype: "mdsection" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: true, fstype: "mdsection" }, ...childArrays)
 
 item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "p", {})
 
 item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "oi", { fstype: "mdfile" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: true, fstype: "mdfile" }, ...childArrays)
 
 item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 
@@ -284,7 +286,7 @@ item.hr = (id?: string): KNode[] => {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -295,7 +297,7 @@ item.hr = (id?: string): KNode[] => {
 item.quote = (content: string): KNode[] => makeNodeWithType(content, "quote", {})
 
 item.task = (content: string, status?: string): KNode[] => {
-  const nodes = makeNodeWithType(content, "li", { list_marker: "-" })
+  const nodes = makeNodeWithType(content, "p", { item: true, list_marker: "-" })
   if (nodes[0]) {
     nodes[0].task_status = (status ?? "todo") as KNode["task_status"]
     nodes[0].task_marker = "[ ]"
@@ -304,9 +306,9 @@ item.task = (content: string, status?: string): KNode[] => {
 }
 
 item.link = (content: string, linkTo: string): KNode[] => {
-  const nodes = makeNodeWithType(content, "link", {})
+  const nodes = makeNodeWithType(content, "embed", {})
   if (nodes[0]) {
-    nodes[0].link_to = linkTo
+    nodes[0].embed_source = linkTo
   }
   return nodes
 }
@@ -2308,13 +2310,14 @@ export function column(title: string, cards: (string | { title: string; children
     }
     const children = (card.children ?? []).map((childContent, childIdx) => ({
       id: `child-${idx}-${childIdx}`,
-      type: "li" as const,
+      type: "p" as const,
+      item: true,
       list_marker: "-" as const,
       parent_id: `card-${idx}`,
       parent_idx: childIdx,
       content: childContent,
       data: {},
-      link_to: null,
+      embed_source: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",

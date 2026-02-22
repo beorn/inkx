@@ -145,8 +145,9 @@ export function renderCard(
   const children = repo.getChildren(card.id)
 
   // Status icon and content - compact format: "○ Content"
-  // For embedded links (link_to), resolve the target node and show its content
-  const displayNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card
+  // For embedded nodes, resolve the target node and show its content
+  const embedSource = card.embed_source
+  const displayNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
   const statusIcon = renderStatusIcon(displayNode.task_status)
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
   const rawContent = (parseToPlainText(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)

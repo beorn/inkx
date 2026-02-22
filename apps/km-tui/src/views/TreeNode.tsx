@@ -15,6 +15,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
+import { isOutline, isEmbed, isItem } from "@km/core"
 import {
   extractTitleTaskMarker,
   isTask,
@@ -148,7 +149,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Node content that affects display (includes implicit task properties)
   if (
     prev.node.content !== next.node.content ||
-    prev.node.link_to !== next.node.link_to ||
+    prev.node.embed_source !== next.node.embed_source ||
     prev.node.task_status !== next.node.task_status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
@@ -247,11 +248,12 @@ function TreeNodeImpl({
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
-  const isEmbedded = node.link_to != null
+  const embedSource = node.embed_source
+  const isEmbedded = embedSource != null
 
   // For embedded nodes, resolve the target for display purposes
   // The embed node's content is just "![[target]]" - we want to show the linked node's data
-  const resolvedNode = isEmbedded && node.link_to ? repo.getNode(node.link_to) : null
+  const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
   const displayNode = resolvedNode ?? node
 
   // Use provided children or fetch from repo
@@ -447,7 +449,7 @@ function TreeNodeImpl({
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
       const hrMatch = isHRContent(newContent)
       const currentType = displayNode.type
-      if (hrMatch && (currentType === "p" || currentType === "li")) {
+      if (hrMatch && (currentType === "p" || currentType === "li") && !isOutline(currentType, displayNode.item)) {
         repo.updateNode(displayNode.id, { type: "hr" })
       } else if (!hrMatch && currentType === "hr") {
         repo.updateNode(displayNode.id, { type: "p" })
@@ -981,10 +983,10 @@ function getDisplayContent(
   isEmbedded: boolean,
 ): string {
   if (isEmbedded && resolvedNode) {
-    if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
+    if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
       return getNodeDisplayName(repo, resolvedNode) + "/"
     }
-    if (resolvedNode.type === "oi" && resolvedNode.fstype === "mdsection") {
+    if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "mdsection") {
       return getNodeDisplayName(repo, resolvedNode)
     }
     return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
@@ -1003,7 +1005,7 @@ function getDisplayContent(
     // Bare block ref (^id) or no content — show short ID fallback
     return `(${node.id.slice(0, 8)})`
   }
-  // Content with embed syntax ![[target]] but link_to not set (unresolved embed)
+  // Content with embed syntax ![[target]] but embed_source not set (unresolved embed)
   // Strip the ![[...]] wrapper so it doesn't render as "!Target" in the TUI
   const trimmed = displayNode.content?.trim()
   if (trimmed && EMBED_EXTRACT_RE.test(trimmed)) {
@@ -1014,7 +1016,7 @@ function getDisplayContent(
     // Clean block-ID references; bare block refs fall through to short ID
     return cleanEmbedRef(raw) || `(${displayNode.id.slice(0, 8)})`
   }
-  if (displayNode.type === "oi" && displayNode.fstype === "mdsection") {
+  if (isOutline(displayNode.type, displayNode.item) && displayNode.fstype === "mdsection") {
     const name = getNodeDisplayName(repo, displayNode)
     // Untitled sections (empty Asana sections) show "(shortId)" fallback from getNodeDisplayName.
     // Replace with a human-readable label instead of a raw GID like "(01KHW5W9)".
@@ -1026,9 +1028,10 @@ function getDisplayContent(
   // Show a human-readable label instead of the raw ID.
   const stripped = cleanContentForDisplay(displayNode.content)
   if (/^\^[\d]+$/.test(stripped.trim())) {
-    // If the node has a link_to, resolve to target's display name
-    if (node.link_to) {
-      const target = repo.getNode(node.link_to)
+    // If the node has an embed_source, resolve to target's display name
+    const nodeEmbedSource = node.embed_source
+    if (nodeEmbedSource) {
+      const target = repo.getNode(nodeEmbedSource)
       if (target) return getNodeDisplayName(repo, target)
     }
     // If Asana parent name is available in data, show that

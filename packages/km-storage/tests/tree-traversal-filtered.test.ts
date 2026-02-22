@@ -17,17 +17,25 @@ import { getChildrenByType, getBodyChildren, getSubitems, getChildren } from "..
 let db: Database
 
 /** Insert a node with minimal required fields */
-function insertNode(id: string, type: string, parentId: string | null, parentIdx: number, content?: string): void {
+function insertNode(
+  id: string,
+  type: string,
+  parentId: string | null,
+  parentIdx: number,
+  content?: string,
+  item?: boolean,
+): void {
   const pid = parentId ?? "."
   const now = Date.now()
   db.run(
-    `INSERT INTO nodes (id, type, parent_id, parent_idx, content, data, created_at, updated_at, version)
-     VALUES (?, ?, ?, ?, ?, '{}', ?, ?, 'v1')`,
+    `INSERT INTO nodes (id, type, parent_id, parent_idx, content, item, data, created_at, updated_at, version)
+     VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?, 'v1')`,
     id,
     type,
     pid,
     parentIdx,
     content ?? "",
+    item ? 1 : 0,
     now,
     now,
   )
@@ -48,7 +56,7 @@ afterEach(() => {
 
 describe("getChildrenByType", () => {
   test("returns empty array for empty types list", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("child1", "p", "parent", 0)
 
     const result = getChildrenByType(db, "parent", [])
@@ -56,11 +64,11 @@ describe("getChildrenByType", () => {
   })
 
   test("returns only children matching the given types", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0, "paragraph")
     insertNode("c2", "code", "parent", 1, "code block")
-    insertNode("c3", "oi", "parent", 2, "section")
-    insertNode("c4", "li", "parent", 3, "list item")
+    insertNode("c3", "h", "parent", 2, "section", true)
+    insertNode("c4", "quote", "parent", 3, "blockquote")
 
     const blocks = getChildrenByType(db, "parent", ["p", "code"])
     expect(blocks).toHaveLength(2)
@@ -69,7 +77,7 @@ describe("getChildrenByType", () => {
   })
 
   test("returns children ordered by parent_idx then created_at", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 2, "second")
     insertNode("c2", "p", "parent", 0, "first")
     insertNode("c3", "p", "parent", 1, "middle")
@@ -82,9 +90,9 @@ describe("getChildrenByType", () => {
   })
 
   test("returns empty array when no children match types", () => {
-    insertNode("parent", "oi", null, 0)
-    insertNode("c1", "oi", "parent", 0)
-    insertNode("c2", "li", "parent", 1)
+    insertNode("parent", "h", null, 0, undefined, true)
+    insertNode("c1", "h", "parent", 0, undefined, true)
+    insertNode("c2", "quote", "parent", 1)
 
     const result = getChildrenByType(db, "parent", ["p", "code"])
     expect(result).toEqual([])
@@ -92,7 +100,7 @@ describe("getChildrenByType", () => {
 
   test("handles null parentId (root children)", () => {
     insertNode("c1", "p", null, 0, "root paragraph")
-    insertNode("c2", "oi", null, 1, "root section")
+    insertNode("c2", "h", null, 1, "root section", true)
 
     const result = getChildrenByType(db, null, ["p"])
     expect(result).toHaveLength(1)
@@ -106,7 +114,7 @@ describe("getChildrenByType", () => {
 
 describe("getBodyChildren", () => {
   test("returns all block-type children", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0, "paragraph")
     insertNode("c2", "code", "parent", 1, "code block")
     insertNode("c3", "quote", "parent", 2, "blockquote")
@@ -120,24 +128,27 @@ describe("getBodyChildren", () => {
     expect(result.map((n) => n.type)).toEqual(["p", "code", "quote", "table", "hr", "html", "math"])
   })
 
-  test("excludes item and link types", () => {
-    insertNode("parent", "oi", null, 0)
+  test("excludes item and embed types", () => {
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0, "paragraph")
-    insertNode("c2", "oi", "parent", 1, "outline item")
-    insertNode("c3", "li", "parent", 2, "list item")
-    insertNode("c4", "link", "parent", 3, "link")
+    insertNode("c2", "h", "parent", 1, "outline item", true)
+    insertNode("c3", "p", "parent", 2, "list item", true)
+    insertNode("c4", "embed", "parent", 3, "embed")
     insertNode("c5", "code", "parent", 4, "code block")
 
     const result = getBodyChildren(db, "parent")
-    expect(result).toHaveLength(2)
+    // getBodyChildren filters by type IN (p, code, quote, ...) — excludes h and embed
+    // Note: p items (item=1) are also returned since getBodyChildren filters by type only
+    expect(result).toHaveLength(3)
     expect(result[0]!.type).toBe("p")
-    expect(result[1]!.type).toBe("code")
+    expect(result[1]!.type).toBe("p")
+    expect(result[2]!.type).toBe("code")
   })
 
   test("returns empty array when parent has no block children", () => {
-    insertNode("parent", "oi", null, 0)
-    insertNode("c1", "oi", "parent", 0)
-    insertNode("c2", "li", "parent", 1)
+    insertNode("parent", "h", null, 0, undefined, true)
+    insertNode("c1", "h", "parent", 0, undefined, true)
+    insertNode("c2", "h", "parent", 1, undefined, true)
 
     const result = getBodyChildren(db, "parent")
     expect(result).toEqual([])
@@ -149,32 +160,32 @@ describe("getBodyChildren", () => {
 // =============================================================================
 
 describe("getSubitems", () => {
-  test("returns oi and li children", () => {
-    insertNode("parent", "oi", null, 0)
-    insertNode("c1", "oi", "parent", 0, "section")
-    insertNode("c2", "li", "parent", 1, "list item")
+  test("returns item children (h and p with item=true)", () => {
+    insertNode("parent", "h", null, 0, undefined, true)
+    insertNode("c1", "h", "parent", 0, "section", true)
+    insertNode("c2", "p", "parent", 1, "list item", true)
     insertNode("c3", "p", "parent", 2, "paragraph")
 
     const result = getSubitems(db, "parent")
     expect(result).toHaveLength(2)
-    expect(result[0]!.type).toBe("oi")
-    expect(result[1]!.type).toBe("li")
+    expect(result[0]!.type).toBe("h")
+    expect(result[1]!.type).toBe("p")
   })
 
-  test("excludes block and link types", () => {
-    insertNode("parent", "oi", null, 0)
+  test("excludes block and embed types", () => {
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0)
     insertNode("c2", "code", "parent", 1)
-    insertNode("c3", "link", "parent", 2)
-    insertNode("c4", "oi", "parent", 3)
+    insertNode("c3", "embed", "parent", 2)
+    insertNode("c4", "h", "parent", 3, undefined, true)
 
     const result = getSubitems(db, "parent")
     expect(result).toHaveLength(1)
-    expect(result[0]!.type).toBe("oi")
+    expect(result[0]!.type).toBe("h")
   })
 
   test("returns empty array when no items exist", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0)
     insertNode("c2", "code", "parent", 1)
 
@@ -188,22 +199,22 @@ describe("getSubitems", () => {
 // =============================================================================
 
 describe("mixed node types under same parent", () => {
-  test("getBodyChildren + getSubitems cover all non-link children from getChildren", () => {
-    insertNode("parent", "oi", null, 0)
+  test("getBodyChildren + getSubitems cover all non-embed children from getChildren", () => {
+    insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0, "paragraph")
-    insertNode("c2", "oi", "parent", 1, "outline")
-    insertNode("c3", "li", "parent", 2, "list")
-    insertNode("c4", "code", "parent", 3, "code")
-    insertNode("c5", "link", "parent", 4, "link ref")
+    insertNode("c2", "h", "parent", 1, "outline", true)
+    insertNode("c3", "code", "parent", 2, "code")
+    insertNode("c4", "embed", "parent", 3, "embed ref")
 
     const body = getBodyChildren(db, "parent")
     const items = getSubitems(db, "parent")
     const all = getChildren(db, "parent")
 
-    // Body + items should cover all non-link children
-    expect(body).toHaveLength(2) // p, code
-    expect(items).toHaveLength(2) // oi, li
-    expect(all).toHaveLength(5) // all types including link
+    // Body: p, code (getBodyChildren filters by BLOCK_TYPES)
+    expect(body).toHaveLength(2)
+    // Items: h with item=1 (getSubitems filters by item=1)
+    expect(items).toHaveLength(1)
+    expect(all).toHaveLength(4) // all types including embed
 
     // No overlap between body and items
     const bodyIds = new Set(body.map((n) => n.id))
@@ -214,22 +225,23 @@ describe("mixed node types under same parent", () => {
   })
 
   test("filtered queries preserve parent_idx ordering", () => {
-    insertNode("parent", "oi", null, 0)
+    insertNode("parent", "h", null, 0, undefined, true)
     // Interleave block and item types
     insertNode("c1", "p", "parent", 0, "para 1")
-    insertNode("c2", "oi", "parent", 1, "section 1")
+    insertNode("c2", "h", "parent", 1, "section 1", true)
     insertNode("c3", "quote", "parent", 2, "blockquote")
-    insertNode("c4", "li", "parent", 3, "task")
+    insertNode("c4", "p", "parent", 3, "task", true)
     insertNode("c5", "code", "parent", 4, "snippet")
-    insertNode("c6", "oi", "parent", 5, "section 2")
+    insertNode("c6", "h", "parent", 5, "section 2", true)
 
     const body = getBodyChildren(db, "parent")
     const items = getSubitems(db, "parent")
 
-    // Body nodes maintain relative order: p(0) < quote(2) < code(4)
-    expect(body.map((n) => n.id)).toEqual(["c1", "c3", "c5"])
+    // Body nodes maintain relative order: p(0) < quote(2) < p-item(3) < code(4)
+    // Note: p items (item=1) are included since getBodyChildren filters by type only
+    expect(body.map((n) => n.id)).toEqual(["c1", "c3", "c4", "c5"])
 
-    // Item nodes maintain relative order: oi(1) < li(3) < oi(5)
+    // Item nodes maintain relative order: h-item(1) < p-item(3) < h-item(5)
     expect(items.map((n) => n.id)).toEqual(["c2", "c4", "c6"])
   })
 })

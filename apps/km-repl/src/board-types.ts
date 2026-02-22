@@ -23,8 +23,8 @@ export interface TNode {
   type: string
   parent_id: string | null
   parent_idx: number
-  link_to: string | null
-  link_alias?: string
+  item?: boolean
+  embed_source?: string | null
   name?: string
   title: string | null
   task_status?: TaskStatus

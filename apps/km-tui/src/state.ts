@@ -5,6 +5,7 @@
  */
 
 import type { KNode } from "@km/core"
+import { isEmbed } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
@@ -35,10 +36,10 @@ function buildColumnCards(
   const virtualCardIds = new Set<string>()
 
   // Each body node becomes its own navigable card.
-  // Embed links (link_to) are discrete items — not virtual.
+  // Embed nodes are discrete items — not virtual.
   for (const node of bodyNodes) {
     cardNodes.push(node)
-    if (!node.link_to) {
+    if (!isEmbed(node.type)) {
       virtualCardIds.add(node.id)
     }
   }
@@ -186,7 +187,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   if (meaningfulBody.length > 0) {
     const bodyVirtualIds = new Set<string>()
     for (const n of meaningfulBody) {
-      if (!n.link_to) bodyVirtualIds.add(n.id)
+      if (!isEmbed(n.type)) bodyVirtualIds.add(n.id)
     }
     columns.push({
       node: createVirtualBodyNode(rootId),
@@ -244,14 +245,14 @@ function createVirtualBodyNode(parentId: string): KNode {
   const now = Date.now()
   return {
     id: `__body__${parentId}`,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     parent_id: parentId,
     parent_idx: 0,
     title: "Description",
     content: "",
     data: {},
-    link_to: null,
     created_at: now,
     updated_at: now,
     version: "",

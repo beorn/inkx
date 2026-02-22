@@ -6,7 +6,7 @@
  */
 
 import { createTerm, type StyleChain } from "inkx"
-import { getStatusForMarker, type KNode } from "@km/core"
+import { getStatusForMarker, isOutline, type KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
 
@@ -18,7 +18,7 @@ import type { Repo } from "../repo-context.tsx"
 function computeSectionDepth(node: KNode, getNode: (id: string) => KNode | undefined): number {
   let depth = 2 // Direct file children are H2
   let current = node.parent_id ? getNode(node.parent_id) : undefined
-  while (current?.type === "oi" && current.fstype === "mdsection") {
+  while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {
     depth++
     current = current.parent_id ? getNode(current.parent_id) : undefined
   }
@@ -55,7 +55,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
     return prefix + name + style.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator based on fstype
-  if (ca.node.type === "oi") {
+  if (isOutline(ca.node.type, ca.node.item)) {
     switch (ca.node.fstype) {
       case "folder":
         return prefix + name + style.gray("/")
@@ -84,7 +84,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   const name = getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 
   // Handle outline items by fstype
-  if (node.type === "oi") {
+  if (isOutline(node.type, node.item)) {
     switch (node.fstype) {
       case "folder":
         return prefix + style.blue(name) + style.gray("/")
@@ -100,7 +100,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
     }
   }
 
-  // Handle tasks (li with task_marker)
+  // Handle tasks (items with task_marker)
   if (node.task_marker != null) {
     const marker = node.task_marker
     // Extract inner character from bracket marker: "[x]" → "x"

@@ -20,10 +20,11 @@ describe("FakeRepo", () => {
 
     it("accepts initial nodes", () => {
       const nodes: KNode[] = [
-        createNode({ id: "1", type: "oi", content: "Section 1" }),
+        createNode({ id: "1", type: "h", item: true, content: "Section 1" }),
         createNode({
           id: "2",
-          type: "li",
+          type: "p",
+          item: true,
           content: "Task 1",
           parent_id: "1",
         }),
@@ -101,10 +102,10 @@ describe("FakeRepo", () => {
     it("getAllTasks returns only task nodes", () => {
       const repo = createFakeRepo({
         nodes: [
-          createNode({ id: "1", type: "oi" }),
-          createNode({ id: "2", type: "li", task_status: "todo", task_marker: "[ ]" }),
+          createNode({ id: "1", type: "h", item: true }),
+          createNode({ id: "2", type: "p", item: true, task_status: "todo", task_marker: "[ ]" }),
           createNode({ id: "3", type: "p" }),
-          createNode({ id: "4", type: "li", task_status: "done", task_marker: "[x]" }),
+          createNode({ id: "4", type: "p", item: true, task_status: "done", task_marker: "[x]" }),
         ],
       })
 
@@ -116,9 +117,9 @@ describe("FakeRepo", () => {
     it("getTasksByStatus filters by task_status", () => {
       const repo = createFakeRepo({
         nodes: [
-          createNode({ id: "1", type: "li", task_status: "todo" }),
-          createNode({ id: "2", type: "li", task_status: "done" }),
-          createNode({ id: "3", type: "li", task_status: "todo" }),
+          createNode({ id: "1", type: "p", item: true, task_status: "todo" }),
+          createNode({ id: "2", type: "p", item: true, task_status: "done" }),
+          createNode({ id: "3", type: "p", item: true, task_status: "todo" }),
         ],
       })
 
@@ -187,7 +188,8 @@ describe("FakeRepo", () => {
       const repo = createFakeRepo()
 
       const id = repo.addNode(null, {
-        type: "oi",
+        type: "h",
+        item: true,
         content: "New section",
       })
 
@@ -201,7 +203,7 @@ describe("FakeRepo", () => {
     it("addNode sets task_status for tasks", () => {
       const repo = createFakeRepo()
 
-      const id = repo.addNode(null, { type: "li", task_marker: "[ ]", content: "New task" })
+      const id = repo.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "New task" })
 
       const node = repo.getNode(id)
       expect(node!.task_status).toBe("todo")
@@ -240,7 +242,7 @@ describe("FakeRepo", () => {
       })
 
       repo.updateNode("1", { content: "Modified" })
-      repo.addNode(null, { type: "oi", content: "New" })
+      repo.addNode(null, { type: "h", item: true, content: "New" })
 
       repo.reset()
 
@@ -283,12 +285,13 @@ describe("FakeRepo", () => {
 // Helper to create minimal valid KNode
 function createNode(overrides: Partial<KNode> & { id: string }): KNode {
   const now = Date.now()
-  const isTask = overrides.type === "li"
+  const isTask = overrides.type === "p" && overrides.item === true
   return {
-    type: "oi",
+    type: "h",
+    item: true,
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     content: "",
     data: {},
     created_at: now,

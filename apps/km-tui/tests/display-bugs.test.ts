@@ -16,7 +16,8 @@ describe("km-tui.raw-section-ids — untitled section shows label not raw ID", (
         // Mutate task-2 to be an empty mdsection with a long GID-like ID
         const emptySection = nodes.find((n) => n.id === "task-2")!
         emptySection.id = "01KHW5W9JJHE7ZS2DTDBN0X0YQ"
-        emptySection.type = "oi"
+        emptySection.type = "h"
+        emptySection.item = true
         emptySection.fstype = "mdsection"
         emptySection.content = ""
         emptySection.title = ""

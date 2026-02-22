@@ -169,7 +169,7 @@ export abstract class BaseStore implements NodeStore {
   protected getFilePathForNode(node: KNode): string | null {
     let current: KNode | null = node
     while (current) {
-      if (current.fs_path && current.type === "oi" && (current.fstype === "file" || current.fstype === "mdfile")) {
+      if (current.fs_path && current.type === "h" && current.item && (current.fstype === "file" || current.fstype === "mdfile")) {
         return current.fs_path
       }
       if (!current.parent_id) break

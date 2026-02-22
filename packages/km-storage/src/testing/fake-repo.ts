@@ -55,14 +55,14 @@ export interface FakeRepo extends Repo {
  * // With canned data
  * const repo = createFakeRepo({
  *   nodes: [
- *     { id: "1", type: "oi", fstype: "mdsection", content: "Tasks", parentId: null, ... },
- *     { id: "2", type: "li", task_marker: "[ ]", content: "Do something", parentId: "1", ... },
+ *     { id: "1", type: "h", item: true, fstype: "mdsection", content: "Tasks", parentId: null, ... },
+ *     { id: "2", type: "p", item: true, task_marker: "[ ]", content: "Do something", parentId: "1", ... },
  *   ],
  * });
  *
  * // Empty repo
  * const repo = createFakeRepo();
- * repo.addNode(null, { type: "oi", fstype: "mdsection", content: "New section" });
+ * repo.addNode(null, { type: "h", item: true, fstype: "mdsection", content: "New section" });
  *
  * @param options - Configuration with initial data
  * @returns FakeRepo instance
@@ -321,7 +321,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       ensureNotClosed()
       // Find the folder node with no parent (repo root)
       for (const node of nodes.values()) {
-        if (node.parent_id === null && node.type === "oi" && node.fstype === "folder") {
+        if (node.parent_id === null && node.type === "h" && node.item === true && node.fstype === "folder") {
           return node
         }
       }
@@ -374,13 +374,13 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         id,
         parent_id: parentId,
         parent_idx: nodeData.parent_idx ?? position,
-        link_to: null,
+        embed_source: null,
         data: nodeData.data ?? {},
         created_at: now,
         updated_at: now,
         version: "fake-0",
-        task_status: nodeData.task_status ?? (nodeData.type === "li" ? ("todo" as TaskStatus) : undefined),
-        task_marker: nodeData.task_marker ?? (nodeData.type === "li" ? "[ ]" : undefined),
+        task_status: nodeData.task_status ?? (nodeData.item === true && nodeData.type !== "h" ? ("todo" as TaskStatus) : undefined),
+        task_marker: nodeData.task_marker ?? (nodeData.item === true && nodeData.type !== "h" ? "[ ]" : undefined),
       } as KNode
 
       nodes.set(id, node)

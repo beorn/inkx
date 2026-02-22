@@ -1,10 +1,15 @@
 /**
- * km Node Types — km-ast domain model
+ * km Node Types — km-ast v2 trait-based model
  *
- * 11 node types in 3 categories:
- * - Block (8): p, h, code, quote, table, hr, html, math — content leaves
- * - Item (2): oi, li — structural nodes with children
- * - Link (1): link — references to other nodes
+ * Every node IS a block (has a content type). Orthogonal traits add capabilities:
+ * - Block type (10): p, h, code, quote, table, hr, html, math, embed
+ * - Item trait: item=true makes a node navigable with children
+ * - Task trait: status field on items
+ *
+ * Derivation rules:
+ * - item && type === "h" → outline item (oi) — serializes as ## Title
+ * - item && type !== "h" → list item (li) — serializes as - content
+ * - !item → leaf block
  *
  * See docs/design/km-ast/model.md for the full specification.
  */
@@ -20,51 +25,45 @@
 export type NotificationLevel = "info" | "success" | "warning" | "error"
 
 // =============================================================================
-// Node Type Hierarchy (km-ast: 11 types, 3 categories)
+// Node Type Hierarchy (km-ast v2: trait-based)
 // =============================================================================
 
-/** Content leaf nodes with a content string */
-export type BlockType = "p" | "code" | "quote" | "table" | "hr" | "html" | "math"
+/** Block content types — every node has one */
+export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math" | "embed"
 
-/** Structural nodes: outline items and list items */
-export type ItemType = "oi" | "li"
+/** Node type = block type */
+export type NodeType = BlockType
 
-/** Reference nodes pointing to other nodes */
-export type LinkType = "link"
-
-/** All 11 node types */
-export type NodeType = BlockType | ItemType | LinkType
-
-/** Filesystem subtype for oi (outline item) nodes */
+/** Filesystem subtype for outline item nodes (type:"h", item:true) */
 export type FsType = "repo" | "folder" | "file" | "mdfile" | "txtfile" | "mdsection"
 
 // =============================================================================
-// Type Predicates
+// Type Predicates (v2 trait-based)
 // =============================================================================
 
-/** oi — creates outline hierarchy (replaces STRUCTURAL_TYPES / extractBody checks) */
-export function isOutline(type: string): boolean {
-  return type === "oi"
+/** Outline item — heading item that creates outline hierarchy. */
+export function isOutline(type: string, item?: boolean): boolean {
+  return type === "h" && item === true
 }
 
-/** li — list/task item in body content */
-export function isListItem(type: string): boolean {
-  return type === "li"
+/** List item — non-heading item in body content. */
+export function isListItem(type: string, item?: boolean): boolean {
+  return type !== "h" && item === true
 }
 
-/** oi or li — structural item with children */
-export function isItem(type: string): boolean {
-  return type === "oi" || type === "li"
+/** Any item — structural node with children (outline or list item). */
+export function isItem(type: string, item?: boolean): boolean {
+  return item === true
 }
 
-/** link — reference to another node */
-export function isLink(type: string): boolean {
-  return type === "link"
+/** Embed — block-level transclusion. */
+export function isEmbed(type: string): boolean {
+  return type === "embed"
 }
 
-/** Block — content leaf (p, h, code, quote, table, hr, html, math) */
-export function isBlock(type: string): boolean {
-  return !isItem(type) && !isLink(type)
+/** Block — leaf node (not an item). */
+export function isBlock(type: string, item?: boolean): boolean {
+  return !item
 }
 
 // =============================================================================
@@ -218,6 +217,63 @@ export function isTask(
 }
 
 // =============================================================================
+// Node Validation (kmast v2 constraints)
+// =============================================================================
+
+/** Block types that can be items */
+const ITEM_ALLOWED_BLOCK_TYPES = new Set(["h", "p", "quote", "code"])
+/** Block types that can never be items */
+const ITEM_FORBIDDEN_BLOCK_TYPES = new Set(["table", "hr", "html", "math", "embed"])
+
+export interface ValidationError {
+  field: string
+  message: string
+}
+
+/**
+ * Validate a node against kmast v2 constraints.
+ * Returns an array of validation errors (empty = valid).
+ *
+ * Constraints checked:
+ * - h requires item: type === "h" implies item === true
+ * - task requires item: task_status/task_marker implies item === true
+ * - embed requires embed_source field: type === "embed" implies embed_source present
+ * - embed not an item: type === "embed" implies item !== true
+ * - embed no children (checked at tree level, not here)
+ * - item-allowed block types: table/hr/html/math/embed cannot be items
+ */
+export function validateNode(node: Pick<KNode, "type" | "item" | "task_status" | "task_marker" | "embed_source">): ValidationError[] {
+  const errors: ValidationError[] = []
+
+  // h requires item
+  if (node.type === "h" && node.item !== true) {
+    errors.push({ field: "item", message: "type 'h' requires item = true" })
+  }
+
+  // task requires item
+  if ((node.task_status != null || node.task_marker != null) && node.item !== true) {
+    errors.push({ field: "item", message: "task (task_status/task_marker) requires item = true" })
+  }
+
+  // embed requires embed_source field present (can be null for unresolved)
+  if (node.type === "embed" && node.embed_source === undefined) {
+    errors.push({ field: "embed_source", message: "type 'embed' requires embed_source field (null = unresolved)" })
+  }
+
+  // embed not an item
+  if (node.type === "embed" && node.item === true) {
+    errors.push({ field: "item", message: "type 'embed' cannot be an item" })
+  }
+
+  // item-allowed block types
+  if (node.item === true && ITEM_FORBIDDEN_BLOCK_TYPES.has(node.type)) {
+    errors.push({ field: "type", message: `type '${node.type}' cannot be an item` })
+  }
+
+  return errors
+}
+
+// =============================================================================
 // Source Type - Where a node comes from
 // =============================================================================
 
@@ -260,20 +316,27 @@ export interface NodeRules {
 // =============================================================================
 
 /**
- * KNode - the unified node type for km (km-ast model)
+ * KNode - the unified node type for km (km-ast v2 trait-based model)
  *
  * Flat record stored in SQLite. Extended with `children[]` as TNode for tree ops.
  *
- * ## Node Categories
+ * ## Trait-Based Model
  *
- * - **Blocks** (p, h, code, quote, table, hr, html, math): content leaves
- * - **Items** (oi, li): structural nodes with children
- * - **Links** (link): references to other nodes
+ * Every node IS a block (has a content type). Orthogonal traits add capabilities:
+ * - **Block type**: p, h, code, quote, table, hr, html, math, embed
+ * - **Item trait**: item=true → navigable, can have children
+ * - **Task trait**: status field on items
+ *
+ * ## Derivation Rules
+ *
+ * - `item && type === "h"` → outline item — serializes as `## Title`
+ * - `item && type !== "h"` → list item — serializes as `- content`
+ * - `!item` → leaf block
+ * - `type === "embed"` → block-level transclusion (`![[target]]`)
  *
  * ## Task Definition
  *
- * Any item (oi or li) with `task_marker` set is a task.
- * `task_status` is derived from `task_marker`.
+ * Any item with `task_marker` set is a task. `task_status` is derived from `task_marker`.
  */
 export interface KNode {
   id: string // ULID
@@ -281,23 +344,24 @@ export interface KNode {
   parent_id: string | null
   parent_idx: number
 
+  // Trait: item (navigable, can have children in outline/list hierarchy)
+  item?: boolean // true = item, false/undefined = leaf block
+
   // km-ast: subtype and marker fields
-  fstype?: FsType // For oi: repo, folder, file, mdfile, mdsection
-  list_marker?: string // For li: "-", "*", "+", "1.", "1)", "[^1]", etc.
-  task_marker?: TaskMarker // For oi/li: "[ ]", "[x]", "[/]", "[!]", "[-]"
+  fstype?: FsType // For outline items (type:"h", item:true): repo, folder, file, mdfile, mdsection
+  list_marker?: string // For list items: "-", "*", "+", "1.", "1)", "[^1]", etc.
+  task_marker?: TaskMarker // For items: "[ ]", "[x]", "[/]", "[!]", "[-]"
 
-  // Link fields (meaningful for type: "link")
-  link_to: string | null // Target node ID
-  link_alias?: string // Display alias from |alias syntax
-  embed?: boolean // true = transclude, false = reference
+  // Embed fields (meaningful for type: "embed")
+  embed_source?: string | null // Target node ID whose content is transcluded (null = unresolved)
 
-  // Filesystem mapping (for oi with fstype folder/file/mdfile)
+  // Filesystem mapping (for outline items with fstype folder/file/mdfile)
   fs_path?: string
   fs_ino?: number // Inode for rename detection
   fs_mtime?: number // File modification time at last sync (milliseconds)
 
   // Identity
-  name?: string // Slug/identifier (filename without .md, heading slug)
+  name?: string // Universal: slug/heading-slug/embed-alias/filename. Not fs-only.
   block_id?: string // On-demand block identifier (^block-id) for stable embed references
 
   // Markdown source mapping
@@ -392,14 +456,13 @@ export interface Event {
 export interface NodeCreatedData {
   id: string
   type: NodeType
+  item?: boolean
   parent_id?: string | null
   parent_idx?: number
   fstype?: FsType
   list_marker?: string
   task_marker?: TaskMarker
-  link_to?: string | null
-  link_alias?: string
-  embed?: boolean
+  embed_source?: string | null
   fs_path?: string
   fs_ino?: number
   fs_mtime?: number

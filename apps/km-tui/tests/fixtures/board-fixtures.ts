@@ -15,16 +15,18 @@ import { createEmptyState } from "../../src/state.ts"
  */
 function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNode {
   const id = overrides.id ?? ulid()
-  const type = overrides.type ?? "li"
+  const type = overrides.type ?? "p"
+  const isItemNode = overrides.item ?? (type === "p" || type === "h")
   return {
     id,
     type,
-    ...(type === "li" ? { list_marker: "-" } : {}),
+    ...(isItemNode ? { item: true } : {}),
+    ...(type === "p" && isItemNode ? { list_marker: "-" } : {}),
     parent_id: overrides.parent_id ?? null,
     parent_idx: overrides.parent_idx ?? 0,
     content: overrides.content ?? `Test Node ${id.slice(0, 4)}`,
     data: overrides.data ?? {},
-    link_to: overrides.link_to ?? null,
+    embed_source: overrides.embed_source ?? null,
     created_at: overrides.created_at ?? Date.now(),
     updated_at: overrides.updated_at ?? Date.now(),
     version: overrides.version ?? "v1",
@@ -44,7 +46,8 @@ export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KN
  */
 export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): ColumnView {
   const node = createTestKNode({
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "folder",
     ...nodeOverrides,
   })
@@ -93,7 +96,8 @@ function createSimpleTestBoard(): {
     id: card1Id,
     parent_id: col1Id,
     content: "Task 1",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const card2 = createCardNode({
@@ -101,14 +105,16 @@ function createSimpleTestBoard(): {
     parent_id: col1Id,
     parent_idx: 1,
     content: "Task 2",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const card3 = createCardNode({
     id: card3Id,
     parent_id: col2Id,
     content: "Task 3",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const col1 = createColumnView({ id: col1Id, parent_id: rootId, content: "Todo" }, [card1, card2])
@@ -156,7 +162,8 @@ function createNestedTestBoard(): {
     id: subCard1Id,
     parent_id: subColId,
     content: "Sub-task 1",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const _subCard2 = createCardNode({
@@ -164,14 +171,16 @@ function createNestedTestBoard(): {
     parent_id: subColId,
     parent_idx: 1,
     content: "Sub-task 2",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const card = createCardNode({
     id: cardId,
     parent_id: colId,
     content: "Card with children",
-    type: "li",
+    type: "p",
+    item: true,
   })
 
   const col = createColumnView({ id: colId, parent_id: rootId, content: "Column" }, [card])
@@ -196,31 +205,36 @@ function createStatusTestBoard(): InitialBoardData {
   const col = createColumnView({ content: "Tasks" }, [
     createCardNode({
       content: "Todo task",
-      type: "li",
+      type: "p",
+    item: true,
       task_status: "todo",
       task_marker: "[ ]",
     }),
     createCardNode({
       content: "In progress task",
-      type: "li",
+      type: "p",
+    item: true,
       task_status: "wip",
       task_marker: "[/]",
     }),
     createCardNode({
       content: "Blocked task",
-      type: "li",
+      type: "p",
+    item: true,
       task_status: "blocked",
       task_marker: "[!]",
     }),
     createCardNode({
       content: "Done task",
-      type: "li",
+      type: "p",
+    item: true,
       task_status: "done",
       task_marker: "[x]",
     }),
     createCardNode({
       content: "Dropped task",
-      type: "li",
+      type: "p",
+    item: true,
       task_status: "dropped",
       task_marker: "[-]",
     }),

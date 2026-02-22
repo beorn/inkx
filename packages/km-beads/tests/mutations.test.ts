@@ -6,7 +6,8 @@ describe("createIssueNode", () => {
   test("creates a basic issue node", () => {
     const { node, shortId } = createIssueNode("Fix the login bug")
 
-    expect(node.type).toBe("li")
+    expect(node.type).toBe("p")
+    expect(node.item).toBe(true)
     expect(node.task_status).toBe("todo")
     expect(node.task_marker).toBe("[ ]")
     expect(node.content).toContain("Fix the login bug")

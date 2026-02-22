@@ -41,7 +41,7 @@ describe("plain text file discovery", () => {
     expect(rows).toHaveLength(1)
 
     const txtNode = rows[0]!
-    expect(txtNode.type).toBe("oi")
+    expect(txtNode.type).toBe("h")
     expect(txtNode.fstype).toBe("txtfile")
     expect(txtNode.content).toBe("Hello, plain text world!")
     expect(txtNode.name).toBe("notes")

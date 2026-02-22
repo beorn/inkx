@@ -11,6 +11,7 @@ import { resolvePathArg, type Repo } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
 import type { KNode } from "@km/core"
+import { isOutline, isItem } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import {
@@ -92,7 +93,7 @@ function resolveFromPathOrId(
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
-    if (rootNode.type === "li" && rootNode.task_marker !== undefined) return null
+    if (isItem(rootNode.type, rootNode.item) && !isOutline(rootNode.type, rootNode.item) && rootNode.task_marker !== undefined) return null
 
     // Get tasks under this root, then apply status filter.
     // Root-scoped listing defaults to active tasks only (todo + wip).
@@ -183,7 +184,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
     let fsDepth = 0
     for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
       const ca = collapsedAncestors[i]
-      if (ca && !(ca.node.type === "oi" && ca.node.fstype === "mdsection")) {
+      if (ca && !(isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")) {
         fsDepth++
       }
     }
@@ -197,7 +198,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
       if (!ca) continue
       const prefix = " ".repeat(fsDepth)
       console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
-      if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
+      if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
         hasSection = true
       } else {
         // Only folders/files increase the depth
@@ -207,7 +208,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
 
     // Check if any ancestor was a section (for task indent)
     if (!hasSection) {
-      hasSection = collapsedAncestors.some((ca) => ca.node.type === "oi" && ca.node.fstype === "mdsection")
+      hasSection = collapsedAncestors.some((ca) => isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")
     }
 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)

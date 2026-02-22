@@ -108,14 +108,14 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
       SELECT n.id FROM nodes n
       JOIN descendants d ON n.parent_id = d.id
     )
-    SELECT link_to FROM nodes
+    SELECT embed_source AS target FROM nodes
     WHERE id IN (SELECT id FROM descendants)
-    AND link_to IS NOT NULL
+    AND embed_source IS NOT NULL
   `,
     )
-    .all(boardRootId) as { link_to: string }[]
+    .all(boardRootId) as { target: string }[]
 
-  return new Set(result.map((r) => r.link_to))
+  return new Set(result.map((r) => r.target))
 }
 
 /**
@@ -150,8 +150,7 @@ export function getAncestors(db: Database, nodeId: string): KNode[] {
 /** Block types: content leaf nodes */
 const BLOCK_TYPES: ReadonlySet<string> = new Set(["p", "code", "quote", "table", "hr", "html", "math"])
 
-/** Item types: structural nodes */
-const ITEM_TYPES: ReadonlySet<string> = new Set(["oi", "li"])
+// Items are identified by item=1 trait, not by type (v2 trait-based model)
 
 /**
  * Get children of a node filtered by type.
@@ -183,9 +182,20 @@ export function getBodyChildren(db: Database, parentId: string | null): KNode[] 
 }
 
 /**
- * Get subitem children of a node (item-type nodes: oi, li).
- * Convenience wrapper around getChildrenByType for the common "get structural items" pattern.
+ * Get subitem children of a node (nodes with item=true trait).
+ * In v2 trait-based model, items are identified by item=1, not by type.
  */
 export function getSubitems(db: Database, parentId: string | null): KNode[] {
-  return getChildrenByType(db, parentId, [...ITEM_TYPES])
+  const pid = parentId ?? "."
+  const rows = db
+    .query(
+      `
+      SELECT * FROM nodes
+      WHERE parent_id = ? AND item = 1
+      ORDER BY parent_idx, created_at
+    `,
+    )
+    .all(pid) as Record<string, unknown>[]
+
+  return rows.map(rowToNode)
 }

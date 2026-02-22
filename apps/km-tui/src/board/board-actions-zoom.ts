@@ -20,13 +20,13 @@ import type { ActionCtx } from "../tui-context.ts"
  * Falls back to column header if the column is empty.
  */
 function firstCardId(
-  children: { id: string; type: string; content?: string }[],
+  children: { id: string; type: string; item?: boolean; content?: string }[],
   repo: ActionCtx["repo"],
 ): string | null {
   if (children.length === 0) return null
 
   // Split children into body (before first oi) and structural (oi).
-  const firstOiIdx = children.findIndex((c) => isOutline(c.type))
+  const firstOiIdx = children.findIndex((c) => isOutline(c.type, c.item))
   const bodyNodes = firstOiIdx === -1 ? children : firstOiIdx === 0 ? [] : children.slice(0, firstOiIdx)
   const structuralNodes = firstOiIdx === -1 ? [] : children.slice(firstOiIdx)
 
@@ -211,10 +211,10 @@ export function handleZoomInNode(ctx: ActionCtx, nodeId: string): ActionResult {
 export function handleFollowLink(ctx: ActionCtx): ActionResult {
   const { dispatchBoard } = ctx
   const card = ctx.card
-  // Read link_to fresh from the repo — the cached layout may have stale null
+  // Read embed_source fresh from the repo — the cached layout may have stale null
   // values if background link resolution completed after layout was derived.
   const freshNode = card ? ctx.repo.getNode(card.id) : null
-  const linkTo = freshNode?.link_to ?? card?.link_to
+  const linkTo = freshNode?.embed_source ?? card?.embed_source
   if (!linkTo) return boundary("follow_link", "not an embed")
 
   const target = ctx.repo.getNode(linkTo)

@@ -146,8 +146,8 @@ describe("State", () => {
     expect(state.columns[0]!.isVirtual).toBe(true)
     expect(state.columns[0]!.cardNodes).toHaveLength(1)
     expect(state.columns[0]!.cardNodes[0]!.type).toBe("p")
-    expect(state.columns[1]!.node.type).toBe("oi")
-    expect(state.columns[2]!.node.type).toBe("oi")
+    expect(state.columns[1]!.node.type).toBe("h")
+    expect(state.columns[2]!.node.type).toBe("h")
   })
 
   test("buildBoardState filters out code and quote nodes as columns", () => {
@@ -192,11 +192,11 @@ describe("Render", () => {
     const repo = createFakeRepo()
     const card: KNode = {
       id: "test-card",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "My Test Task",
       data: {},
       created_at: Date.now(),
@@ -212,11 +212,11 @@ describe("Render", () => {
       nodes: [
         {
           id: "test-card",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Parent Task",
           data: {},
           created_at: Date.now(),
@@ -225,11 +225,11 @@ describe("Render", () => {
         },
         {
           id: "child-1",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Child Task 1",
           data: {},
           created_at: Date.now(),
@@ -248,11 +248,11 @@ describe("Render", () => {
       nodes: [
         {
           id: "test-card",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Parent Task",
           data: {},
           created_at: Date.now(),
@@ -261,11 +261,11 @@ describe("Render", () => {
         },
         {
           id: "child-1",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Child 1",
           data: {},
           created_at: Date.now(),
@@ -274,11 +274,11 @@ describe("Render", () => {
         },
         {
           id: "child-2",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 1,
-          link_to: null,
+          embed_source: null,
           content: "Child 2",
           data: {},
           created_at: Date.now(),

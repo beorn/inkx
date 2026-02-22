@@ -28,7 +28,7 @@ export function findFileByName(db: Database, name: string): KNode | null {
       `
     SELECT * FROM nodes
     WHERE LOWER(name) = ?
-       OR (type = 'oi' AND fstype IN ('file', 'mdfile') AND LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%')
+       OR (type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%')
     ORDER BY CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END
     LIMIT 1
   `,

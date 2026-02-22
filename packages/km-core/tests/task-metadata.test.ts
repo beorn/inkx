@@ -15,7 +15,8 @@ import type { KNode } from "../src/types.ts"
 function makeNode(overrides: Partial<KNode> = {}): KNode {
   return {
     id: "test-node",
-    type: "li",
+    type: "p",
+    item: true,
     name: "",
     content: "",
     parent_id: "parent",

@@ -10,7 +10,7 @@ const render = createRenderer({ cols: 40, rows: 30 })
 
 const nodeDefaults = {
   parent_idx: 0,
-  link_to: null,
+  embed_source: null,
   data: {},
   created_at: Date.now(),
   updated_at: Date.now(),
@@ -42,7 +42,7 @@ function assertNoMidWordBreaks(lines: string[]) {
 describe("DetailPane word wrapping", () => {
   test("body text wraps at word boundaries, not mid-word", () => {
     const nodes = [
-      createTestNode({ id: "task1", type: "li", content: "Test task" }),
+      createTestNode({ id: "task1", type: "p", item: true, content: "Test task" }),
       createTestNode({
         id: "body1",
         type: "p",
@@ -75,7 +75,7 @@ describe("DetailPane word wrapping", () => {
     const nodes = [
       createTestNode({
         id: "task1",
-        type: "li",
+        type: "p", item: true,
         content: "Test",
         task_status: "todo",
         data: {
@@ -97,10 +97,10 @@ describe("DetailPane word wrapping", () => {
 
   test("subitem body wraps at word boundaries", () => {
     const nodes = [
-      createTestNode({ id: "parent1", type: "oi", content: "Parent task" }),
+      createTestNode({ id: "parent1", type: "h", item: true, content: "Parent task" }),
       createTestNode({
         id: "sub1",
-        type: "li",
+        type: "p", item: true,
         content: "Subtask one",
         parent_id: "parent1",
         task_status: "todo",
@@ -130,7 +130,7 @@ describe("DetailPane word wrapping", () => {
   test("narrow detail pane still wraps at word boundaries", () => {
     const narrowRender = createRenderer({ cols: 30, rows: 30 })
     const nodes = [
-      createTestNode({ id: "task1", type: "li", content: "Important project review meeting" }),
+      createTestNode({ id: "task1", type: "p", item: true, content: "Important project review meeting" }),
       createTestNode({
         id: "body1",
         type: "p",

@@ -16,6 +16,7 @@ import { createTerm } from "inkx"
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { isOutline } from "@km/core"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
@@ -251,7 +252,7 @@ function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boole
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth)
           console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca, options.showId)))
-          if (!(ca.node.type === "oi" && ca.node.fstype === "mdsection")) {
+          if (!(isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")) {
             depth++
           }
         }

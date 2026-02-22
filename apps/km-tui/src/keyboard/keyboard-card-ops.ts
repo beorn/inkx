@@ -72,7 +72,7 @@ function calculateSortOrder(col: { cardNodes: KNode[] }, targetIndex: number, di
 function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<SelectionKey>()
   const allChildren = ctx.repo.getChildren(ctx.rootId)
-  const columns = allChildren.filter((n) => !isBlock(n.type))
+  const columns = allChildren.filter((n) => !isBlock(n.type, n.item))
   const newCol = columns[colIndex]
   if (newCol) {
     const cards = ctx.repo.getChildren(newCol.id)
@@ -247,7 +247,7 @@ export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
 
 /** Check if a card can be indented (has a previous sibling to nest under) */
 function canIndent(ctx: ActionCtx, card: KNode): boolean {
-  if (!isItem(card.type)) return false
+  if (!isItem(card.type, card.item)) return false
 
   const parentId = card.parent_id
   if (!parentId) return false
@@ -259,7 +259,7 @@ function canIndent(ctx: ActionCtx, card: KNode): boolean {
 
 /** Check if a card can be outdented (has a grandparent to move to) */
 function canOutdent(ctx: ActionCtx, card: KNode): boolean {
-  if (!isItem(card.type)) return false
+  if (!isItem(card.type, card.item)) return false
 
   const parentId = card.parent_id
   if (!parentId) return false

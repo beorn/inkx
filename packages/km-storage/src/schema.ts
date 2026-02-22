@@ -12,9 +12,8 @@ CREATE TABLE IF NOT EXISTS nodes (
   type TEXT NOT NULL,
   fstype TEXT,
   parent_id TEXT,
-  link_to TEXT,
-  link_alias TEXT,
-  embed INTEGER DEFAULT 0,
+  item INTEGER DEFAULT 0,
+  embed_source TEXT,
   parent_idx REAL DEFAULT 0,
 
   -- Filesystem
@@ -61,6 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_path ON nodes(fs_path);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_ino ON nodes(fs_ino);
 CREATE INDEX IF NOT EXISTS idx_nodes_fstype ON nodes(fstype);
+CREATE INDEX IF NOT EXISTS idx_nodes_type_item ON nodes(type, item);
 CREATE INDEX IF NOT EXISTS idx_nodes_task_status ON nodes(task_status);
 CREATE INDEX IF NOT EXISTS idx_nodes_assigned ON nodes(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_nodes_due_at ON nodes(due_at);
@@ -132,6 +132,22 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   missing("fstype")
   missing("due_at")
   missing("start_at")
+  missing("item", "INTEGER DEFAULT 0")
+  missing("embed_source")
+
+  // kmast v2: convert old type values to trait-based model
+  // oi → h + item:true, li → p + item:true, link → embed + embed_source from link_to
+  const hasOldTypes = (db.query("SELECT COUNT(*) as cnt FROM nodes WHERE type IN ('oi', 'li', 'link')").get() as { cnt: number }).cnt
+  if (hasOldTypes > 0) {
+    db.run("UPDATE nodes SET type = 'h', item = 1 WHERE type = 'oi'")
+    db.run("UPDATE nodes SET type = 'p', item = 1 WHERE type = 'li'")
+    // Copy link_to → embed_source if link_to column exists
+    if (columnNames.has("link_to")) {
+      db.run("UPDATE nodes SET type = 'embed', embed_source = link_to WHERE type = 'link'")
+    } else {
+      db.run("UPDATE nodes SET type = 'embed' WHERE type = 'link'")
+    }
+  }
 }
 
 /**
@@ -144,9 +160,8 @@ export const NODE_COLUMNS = new Set([
   "type",
   "fstype",
   "parent_id",
-  "link_to",
-  "link_alias",
-  "embed",
+  "item",
+  "embed_source",
   "parent_idx",
   "fs_path",
   "fs_ino",

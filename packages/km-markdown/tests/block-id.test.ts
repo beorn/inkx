@@ -22,7 +22,7 @@ import { roundtrip, parse, makeTestNode, normalizeMarkdown } from "./helpers/tes
 describe("Parser: block_id extraction", () => {
   test("task with block_id", () => {
     const nodes = parse(`- [ ] Buy groceries ^k7m2`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBe("k7m2")
@@ -31,7 +31,7 @@ describe("Parser: block_id extraction", () => {
 
   test("task with metadata and block_id", () => {
     const nodes = parse(`- [ ] Buy groceries 📅 2025-03-15 ^k7m2`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBe("k7m2")
@@ -43,7 +43,7 @@ describe("Parser: block_id extraction", () => {
 
   test("unordered list item with block_id", () => {
     const nodes = parse(`- Some item ^abc1`)
-    const ul = nodes.find((n) => n.type === "li" && !n.task_marker)
+    const ul = nodes.find((n) => n.type === "p" && n.item === true && !n.task_marker)
 
     expect(ul).toBeDefined()
     expect(ul!.block_id).toBe("abc1")
@@ -61,7 +61,7 @@ describe("Parser: block_id extraction", () => {
 
   test("heading/section with block_id", () => {
     const nodes = parse(`# Doc\n\n## My Section ^def3\n\nContent here.`)
-    const section = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")
+    const section = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
 
     expect(section).toBeDefined()
     expect(section!.block_id).toBe("def3")
@@ -72,7 +72,7 @@ describe("Parser: block_id extraction", () => {
 
   test("no block_id when ^ has no space before it (math expression)", () => {
     const nodes = parse(`- [ ] Math: x^2 + y^2`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBeUndefined()
@@ -81,7 +81,7 @@ describe("Parser: block_id extraction", () => {
 
   test("no block_id when ^word is not at end of line", () => {
     const nodes = parse(`- [ ] Use ^caret in text then more words`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBeUndefined()
@@ -90,7 +90,7 @@ describe("Parser: block_id extraction", () => {
 
   test("no block_id when none present", () => {
     const nodes = parse(`- [ ] Just a task`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBeUndefined()
@@ -99,7 +99,7 @@ describe("Parser: block_id extraction", () => {
 
   test("block_id with hyphens and underscores", () => {
     const nodes = parse(`- [ ] Task ^my-block_id`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBe("my-block_id")
@@ -108,7 +108,7 @@ describe("Parser: block_id extraction", () => {
 
   test("completed task with block_id", () => {
     const nodes = parse(`- [x] Done task ^d0n3`)
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.block_id).toBe("d0n3")
@@ -118,7 +118,7 @@ describe("Parser: block_id extraction", () => {
 
   test("ordered list item with block_id", () => {
     const nodes = parse(`1. First item ^ol01`)
-    const ol = nodes.find((n) => n.type === "li" && n.list_marker === "1.")
+    const ol = nodes.find((n) => n.type === "p" && n.item === true && n.list_marker === "1.")
 
     expect(ol).toBeDefined()
     expect(ol!.block_id).toBe("ol01")
@@ -134,7 +134,8 @@ describe("Serializer: block_id output", () => {
   test("task with block_id appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
@@ -142,7 +143,8 @@ describe("Serializer: block_id output", () => {
     })
     const task = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
@@ -159,7 +161,8 @@ describe("Serializer: block_id output", () => {
   test("ul with block_id appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
@@ -167,7 +170,8 @@ describe("Serializer: block_id output", () => {
     })
     const ul = makeTestNode({
       id: "ul-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
@@ -182,7 +186,8 @@ describe("Serializer: block_id output", () => {
   test("paragraph with block_id appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
@@ -204,7 +209,8 @@ describe("Serializer: block_id output", () => {
   test("section/heading with block_id appends ^id to heading line", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Doc",
@@ -212,7 +218,8 @@ describe("Serializer: block_id output", () => {
     })
     const section = makeTestNode({
       id: "sec-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -229,7 +236,8 @@ describe("Serializer: block_id output", () => {
   test("node without block_id has no ^ suffix", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
@@ -237,7 +245,8 @@ describe("Serializer: block_id output", () => {
     })
     const task = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
@@ -254,7 +263,8 @@ describe("Serializer: block_id output", () => {
   test("ol with block_id appends ^id to output", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
@@ -262,7 +272,8 @@ describe("Serializer: block_id output", () => {
     })
     const ol = makeTestNode({
       id: "ol-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "1.",
       parent_id: "file-1",
       parent_idx: 1,
@@ -283,7 +294,8 @@ describe("On-demand block ID generation", () => {
   test("assignBlockId callback is called for target without block_id", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -291,14 +303,16 @@ describe("On-demand block ID generation", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -307,11 +321,12 @@ describe("On-demand block ID generation", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -336,7 +351,8 @@ describe("On-demand block ID generation", () => {
   test("assignBlockId callback is NOT called when target has block_id", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -344,14 +360,16 @@ describe("On-demand block ID generation", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -361,11 +379,12 @@ describe("On-demand block ID generation", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -387,7 +406,8 @@ describe("On-demand block ID generation", () => {
   test("without assignBlockId callback, embed falls back to content-based reference", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -395,14 +415,16 @@ describe("On-demand block ID generation", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -411,11 +433,12 @@ describe("On-demand block ID generation", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -432,7 +455,8 @@ describe("On-demand block ID generation", () => {
   test("generated block_id avoids collisions with existing IDs", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -440,7 +464,8 @@ describe("On-demand block ID generation", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
@@ -448,7 +473,8 @@ describe("On-demand block ID generation", () => {
     // First task has an existing block_id
     const task1 = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Task one",
@@ -459,7 +485,8 @@ describe("On-demand block ID generation", () => {
     // Second task needs a generated block_id
     const task2 = makeTestNode({
       id: "task-2",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Task two",
@@ -468,22 +495,24 @@ describe("On-demand block ID generation", () => {
     })
     const embed1 = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Task one",
       task_status: "todo",
       task_marker: "[ ]",
     })
     const embed2 = makeTestNode({
       id: "embed-2",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 2,
-      link_to: "task-2",
+      embed_source: "task-2",
       content: "Task two",
       task_status: "todo",
       task_marker: "[ ]",
@@ -636,7 +665,8 @@ describe("Embed references with block_id", () => {
   test("task with block_id produces ![[filename#^blockid]] embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -644,14 +674,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -661,11 +693,12 @@ describe("Embed references with block_id", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -680,7 +713,8 @@ describe("Embed references with block_id", () => {
   test("section with block_id produces ![[filename#^blockid]] embed", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -688,14 +722,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "notes.md",
       content: "Notes",
     })
     const targetSection = makeTestNode({
       id: "section-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdsection",
       parent_id: "target-file",
       parent_idx: 1,
@@ -709,7 +745,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "section-1",
+      embed_source: "section-1",
       content: "![[notes#My Section]]",
     })
 
@@ -720,7 +756,8 @@ describe("Embed references with block_id", () => {
   test("ul with block_id produces embed with ^blockid", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -728,14 +765,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "notes.md",
       content: "Notes",
     })
     const targetUl = makeTestNode({
       id: "ul-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Important item",
@@ -743,11 +782,12 @@ describe("Embed references with block_id", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "ul-1",
+      embed_source: "ul-1",
       content: "Important item",
     })
 
@@ -758,7 +798,8 @@ describe("Embed references with block_id", () => {
   test("embed prefers block_id over content-based reference", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -766,14 +807,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -783,11 +826,12 @@ describe("Embed references with block_id", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -803,7 +847,8 @@ describe("Embed references with block_id", () => {
   test("embed without block_id and no callback uses content-based reference", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -811,14 +856,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const targetTask = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Buy groceries",
@@ -828,11 +875,12 @@ describe("Embed references with block_id", () => {
     })
     const embedNode = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Buy groceries",
       task_status: "todo",
       task_marker: "[ ]",
@@ -847,7 +895,8 @@ describe("Embed references with block_id", () => {
   test("multiple embeds: some targets with block_id, some without", () => {
     const fileNode = makeTestNode({
       id: "file-1",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
@@ -855,14 +904,16 @@ describe("Embed references with block_id", () => {
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       fs_path: "inbox.md",
       content: "Inbox",
     })
     const taskWithId = makeTestNode({
       id: "task-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Task with ID",
@@ -872,7 +923,8 @@ describe("Embed references with block_id", () => {
     })
     const taskWithoutId = makeTestNode({
       id: "task-2",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "target-file",
       content: "Task without ID",
@@ -881,22 +933,24 @@ describe("Embed references with block_id", () => {
     })
     const embed1 = makeTestNode({
       id: "embed-1",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
-      link_to: "task-1",
+      embed_source: "task-1",
       content: "Task with ID",
       task_status: "todo",
       task_marker: "[ ]",
     })
     const embed2 = makeTestNode({
       id: "embed-2",
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: "file-1",
       parent_idx: 2,
-      link_to: "task-2",
+      embed_source: "task-2",
       content: "Task without ID",
       task_status: "todo",
       task_marker: "[ ]",

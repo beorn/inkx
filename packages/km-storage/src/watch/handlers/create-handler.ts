@@ -86,7 +86,8 @@ export function handleCreate(options: CreateHandlerOptions): void {
     const folderName = basename(op.path)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "folder",
       fs_path: folderRelPath,
       fs_ino: op.ino,
@@ -109,7 +110,8 @@ export function handleCreate(options: CreateHandlerOptions): void {
     // Non-parseable file - create simple file node
     emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "file",
       fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
@@ -189,15 +191,14 @@ function handleMarkdownCreate(
   for (const link of resolvedLinks) {
     addLink(db, link)
 
-    // Emit link_to update so the in-memory store stays in sync.
-    // addLink sets link_to on the DB node directly (no events),
-    // but the node was already emitted via emitNodeCreated with link_to: null.
+    // Emit embed_source update so the in-memory store stays in sync.
+    // addLink sets embed_source on the DB node directly (no events),
+    // but the node was already emitted via emitNodeCreated with embed_source: null.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", link.source_id, {
-        type: "link",
-        embed: true,
-        link_to: link.target_id,
-        link_alias: link.alias,
+        type: "embed",
+        embed_source: link.target_id,
+        name: link.alias,
       })
     }
   }
@@ -303,7 +304,8 @@ function ensureFolderHierarchy(
     const folderName = basename(parentPath)
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "folder",
       fs_path: relPath,
       fs_ino: stat.ino,

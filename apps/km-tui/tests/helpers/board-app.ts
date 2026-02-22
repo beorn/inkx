@@ -125,11 +125,12 @@ export const parentLinks: Invariant = (app) => {
   }
 }
 
-/** All link_to references are valid */
+/** All embed_source references are valid */
 export const nodeLinks: Invariant = (app) => {
   for (const node of app.repo.getAllNodes()) {
-    if (node.link_to) {
-      expect(app.repo.getNode(node.link_to), `Link "${node.link_to}" missing for "${node.id}"`).toBeDefined()
+    const embedSrc = node.embed_source
+    if (embedSrc) {
+      expect(app.repo.getNode(embedSrc), `Embed source "${embedSrc}" missing for "${node.id}"`).toBeDefined()
     }
   }
 }

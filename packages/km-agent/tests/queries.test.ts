@@ -15,12 +15,13 @@ function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0)
   const now = Date.now()
   return {
     id: ulid(),
-    type: "oi",
+    type: "h",
+    item: true,
     name,
     content: name,
     parent_id: null,
     parent_idx: parentIdx,
-    link_to: null,
+    embed_source: null,
     data: { kind: "agent", ...data },
     created_at: now,
     updated_at: now,
@@ -31,12 +32,13 @@ function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0)
 describe("nodeToAgent", () => {
   const baseNode: KNode = {
     id: "01ABCDEFGHIJKL",
-    type: "oi",
+    type: "h",
+    item: true,
     name: "Test Agent",
     content: "Test Agent",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     version: "01ABCDEFGHIJKL",
     created_at: Date.now(),
     updated_at: Date.now(),

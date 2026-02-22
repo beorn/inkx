@@ -5,7 +5,7 @@
  *   write file → parse → DB → serialize → write file → parse → verify
  *
  * This catches regressions where re-parsing a file loses data that was
- * originally set programmatically (e.g., link_to from `km add`).
+ * originally set programmatically (e.g., embed_source from `km add`).
  */
 
 import { describe, test, expect } from "vitest"
@@ -136,7 +136,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("km.limit:: 5")
 
         // Section node should have rules in data
-        const section = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection")
+        const section = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
         expect(section?.title).toBe("Todo")
         expect(section?.data?.rules).toBeDefined()
       }))
@@ -157,7 +157,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("tags:")
 
         // File node should have frontmatter data
-        const fileNode = nodes.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNode = nodes.find((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode?.data?.tags).toContain("project")
         expect(fileNode?.data?.author).toBe("test")
       }))
@@ -177,7 +177,7 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("### Subsection")
         expect(fileContent).toContain("## Section B")
 
-        const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+        const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
         expect(sections).toHaveLength(3) // H2, H3, H2
 
         const h3 = sections.find((n) => n.content?.includes("Subsection"))
@@ -249,7 +249,7 @@ describe("E2E Round-Trip Features", () => {
       }))
   })
 
-  describe("embeddings (link_to)", () => {
+  describe("embeddings (embed_source)", () => {
     test("embedding nodes survive re-parse after serialize", () =>
       withTestEnv(async ({ repoDir, data }) => {
         const manager = createSyncManager(data.database, repoDir)
@@ -261,7 +261,7 @@ describe("E2E Round-Trip Features", () => {
         // Find source tasks
         const allNodes = getAllNodes(data.database)
         const sourceFile = allNodes.find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("source"),
+          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("source"),
         )!
         const sourceTasks = allNodes.filter((n) => n.task_status != null && n.parent_id === sourceFile.id)
         expect(sourceTasks).toHaveLength(2)
@@ -271,7 +271,7 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         const targetFile = getAllNodes(data.database).find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("target"),
+          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("target"),
         )!
 
         // Step 3: Create embedding nodes programmatically (simulating `km add`)
@@ -282,10 +282,10 @@ describe("E2E Round-Trip Features", () => {
           timestamp: Date.now(),
           data: {
             id: "embed-alpha",
-            type: "p",
+            type: "embed",
             parent_id: targetFile.id,
             parent_idx: 0,
-            link_to: taskAlpha.id,
+            embed_source: taskAlpha.id,
             content: null,
             created_at: Date.now(),
             updated_at: Date.now(),
@@ -295,7 +295,7 @@ describe("E2E Round-Trip Features", () => {
 
         // Verify embedding exists in DB
         const embedBefore = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
-        expect(embedBefore?.link_to).toBe(taskAlpha.id)
+        expect(embedBefore?.embed_source).toBe(taskAlpha.id)
 
         // Step 4: Serialize to filesystem (writes ![[source]] in target.md)
         await manager.syncToFs()
@@ -307,10 +307,10 @@ describe("E2E Round-Trip Features", () => {
         // Step 5: Re-sync from filesystem (simulates reconcile after external edit)
         await manager.syncFromFs()
 
-        // Step 6: ASSERT: link_to is preserved
+        // Step 6: ASSERT: embed_source is preserved
         const embedAfter = getAllNodes(data.database).find((n) => n.id === "embed-alpha")
         expect(embedAfter).toBeDefined()
-        expect(embedAfter?.link_to).toBe(taskAlpha.id)
+        expect(embedAfter?.embed_source).toBe(taskAlpha.id)
       }))
 
     test("embedding with alias survives re-parse", () =>
@@ -323,7 +323,7 @@ describe("E2E Round-Trip Features", () => {
 
         const nodes = getAllNodes(data.database)
         const srcFile = nodes.find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("src"),
+          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("src"),
         )!
         const srcTask = nodes.find((n) => n.task_status != null && n.parent_id === srcFile.id)!
 
@@ -332,7 +332,7 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         const tgtFile = getAllNodes(data.database).find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("tgt"),
+          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("tgt"),
         )!
 
         // Create embedding with alias
@@ -342,11 +342,11 @@ describe("E2E Round-Trip Features", () => {
           timestamp: Date.now(),
           data: {
             id: "embed-alias",
-            type: "p",
+            type: "embed",
             parent_id: tgtFile.id,
             parent_idx: 0,
-            link_to: srcTask.id,
-            link_alias: "My Custom Name",
+            embed_source: srcTask.id,
+            name: "My Custom Name",
             content: null,
             created_at: Date.now(),
             updated_at: Date.now(),
@@ -363,10 +363,10 @@ describe("E2E Round-Trip Features", () => {
 
         await manager.syncFromFs()
 
-        // Both link_to and link_alias must survive
+        // Both embed_source and name must survive
         const embed = getAllNodes(data.database).find((n) => n.id === "embed-alias")
-        expect(embed?.link_to).toBe(srcTask.id)
-        expect(embed?.link_alias).toBe("My Custom Name")
+        expect(embed?.embed_source).toBe(srcTask.id)
+        expect(embed?.name).toBe("My Custom Name")
       }))
   })
 })

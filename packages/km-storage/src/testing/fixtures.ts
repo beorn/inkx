@@ -28,6 +28,7 @@ import { ulid } from "ulid"
 
 interface NodeBuilder {
   _type: NodeType
+  _item?: boolean
   _title?: string
   _content?: string
   _done?: boolean
@@ -55,7 +56,8 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
   nodes.push(
     makeNode({
       id: rootId,
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdfile",
       title,
       parent_id: null,
@@ -79,7 +81,8 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
  */
 export function column(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
-    _type: "oi",
+    _type: "h",
+    _item: true,
     _title: title,
     _children: children,
   }
@@ -90,7 +93,8 @@ export function column(title: string, children: NodeBuilder[] = []): NodeBuilder
  */
 export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
   return {
-    _type: "li",
+    _type: "p",
+    _item: true,
     _content: content,
     _done: opts?.done,
   }
@@ -101,7 +105,8 @@ export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
  */
 export function section(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
-    _type: "oi",
+    _type: "h",
+    _item: true,
     _title: title,
     _children: children,
   }
@@ -131,8 +136,9 @@ function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: K
     parent_idx: idx,
     title: builder._title,
     content: builder._content,
-    task_status: builder._type === "li" ? (builder._done ? "done" : "todo") : undefined,
-    task_marker: builder._type === "li" ? (builder._done ? "[x]" : "[ ]") : undefined,
+    item: builder._item === true ? true : undefined,
+    task_status: (builder._type === "p" && builder._item) ? (builder._done ? "done" : "todo") : undefined,
+    task_marker: (builder._type === "p" && builder._item) ? (builder._done ? "[x]" : "[ ]") : undefined,
     created_at: now,
     updated_at: now,
   })
@@ -154,10 +160,11 @@ function makeNode(partial: Partial<KNode> & { id: string; type: NodeType }): KNo
   return {
     id: partial.id,
     type: partial.type,
+    item: partial.item,
     fstype: partial.fstype,
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
-    link_to: null,
+    embed_source: null,
     title: partial.title,
     content: partial.content,
     task_status: partial.task_status,

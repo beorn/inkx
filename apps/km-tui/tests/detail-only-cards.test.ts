@@ -16,12 +16,13 @@ import type { KNode } from "@km/core"
 function detailOnlyItem(id: string, content: string, ...childArrays: KNode[][]): KNode[] {
   const node: KNode = {
     id,
-    type: "li",
+    type: "p",
+    item: true,
     content,
     data: { detailOnly: true },
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",

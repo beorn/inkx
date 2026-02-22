@@ -2,7 +2,7 @@
  * Body Content Utilities
  *
  * Body = leading non-outline content (blocks, list items) that appears
- * before any outline items (oi nodes).
+ * before any outline items (type:"h", item:true).
  *
  * These utilities support the "virtual body" pattern where body content
  * is grouped at display time for rendering as virtual columns/cards.
@@ -13,10 +13,10 @@ import { isOutline } from "@km/core"
 /**
  * Result of extracting body content from children.
  */
-export interface BodyExtraction<T extends { type: string }> {
-  /** Leading non-outline content (before first oi node) */
+export interface BodyExtraction<T extends { type: string; item?: boolean }> {
+  /** Leading non-outline content (before first outline item) */
   body: T[]
-  /** Outline item children (oi nodes) */
+  /** Outline item children */
   items: T[]
 }
 
@@ -25,7 +25,7 @@ export interface BodyExtraction<T extends { type: string }> {
  * When provided, body children come from the pre-fetched array
  * (e.g. from getBodyChildren query) instead of in-memory filtering.
  */
-export interface ExtractBodyDbOpts<T extends { type: string }> {
+export interface ExtractBodyDbOpts<T extends { type: string; item?: boolean }> {
   /** Pre-fetched body children (block-type nodes from DB query) */
   bodyChildren: T[]
 }
@@ -33,7 +33,7 @@ export interface ExtractBodyDbOpts<T extends { type: string }> {
 /**
  * Extract body content from a node's children.
  *
- * Body = all children before the first outline item (oi).
+ * Body = all children before the first outline item.
  * Items = all outline item children.
  *
  * Content appearing AFTER outline items is included in body
@@ -56,12 +56,12 @@ export interface ExtractBodyDbOpts<T extends { type: string }> {
  * // body = bodyNodes, items = [section1, section2]
  * ```
  */
-export function extractBody<T extends { type: string }>(
+export function extractBody<T extends { type: string; item?: boolean }>(
   children: T[],
   dbOpts?: ExtractBodyDbOpts<T>,
 ): BodyExtraction<T> {
   // Items are always derived from the children array (outline nodes)
-  const firstStructuralIdx = children.findIndex((c) => isOutline(c.type))
+  const firstStructuralIdx = children.findIndex((c) => isOutline(c.type, c.item))
   const items = firstStructuralIdx === -1 ? [] : children.slice(firstStructuralIdx)
 
   // When pre-fetched body children are provided, use them directly

@@ -533,12 +533,12 @@ function makeNode(partial: Partial<KNode> & { id: string; type: KNode["type"] })
   return {
     id: partial.id,
     type: partial.type,
+    ...(partial.item !== undefined ? { item: partial.item } : {}),
     ...(partial.fstype ? { fstype: partial.fstype } : {}),
     ...(partial.list_marker ? { list_marker: partial.list_marker } : {}),
-    ...(partial.embed ? { embed: partial.embed } : {}),
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
-    link_to: partial.link_to ?? null,
+    embed_source: partial.embed_source ?? null,
     title: partial.title,
     content: partial.content ?? partial.title ?? "",
     data: {},
@@ -558,10 +558,10 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Next Actions", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Next Actions", parent_id: null }),
       makeNode({
         id: sectionId,
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "Processing",
         parent_id: rootId,
@@ -569,24 +569,22 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       }),
       makeNode({
         id: embed1Id,
-        type: "link",
-        embed: true,
-        content: "Embed 1",
+        type: "embed",
+                content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
-        link_to: targetId,
+        embed_source: targetId,
       }),
       makeNode({
         id: embed2Id,
-        type: "link",
-        embed: true,
-        content: "Embed 2",
+        type: "embed",
+                content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
-        link_to: targetId,
+        embed_source: targetId,
       }),
       // Target node for embeds
-      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Some task", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Some task", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -617,8 +615,8 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const para2Id = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Notes", parent_id: null }),
-      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Intro", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Notes", parent_id: null }),
+      makeNode({ id: sectionId, type: "h", item: true, fstype: "mdsection", title: "Intro", parent_id: rootId, parent_idx: 0 }),
       makeNode({ id: para1Id, type: "p", content: "First paragraph", parent_id: sectionId, parent_idx: 0 }),
       makeNode({ id: para2Id, type: "p", content: "Second paragraph", parent_id: sectionId, parent_idx: 1 }),
     ]
@@ -645,19 +643,18 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Mixed", parent_id: null }),
-      makeNode({ id: sectionId, type: "oi", fstype: "mdsection", title: "Section", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Mixed", parent_id: null }),
+      makeNode({ id: sectionId, type: "h", item: true, fstype: "mdsection", title: "Section", parent_id: rootId, parent_idx: 0 }),
       makeNode({ id: paraId, type: "p", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
       makeNode({
         id: embedId,
-        type: "link",
-        embed: true,
-        content: "Embed ref",
+        type: "embed",
+                content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
-        link_to: targetId,
+        embed_source: targetId,
       }),
-      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Target", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Target", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -673,7 +670,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const paraCard = col.cardNodes.find((c) => c.id === paraId)
     const embedCard = col.cardNodes.find((c) => c.id === embedId)
 
-    // After fix: embed should not be virtual (link_to nodes are not added to virtualCardIds)
+    // After fix: embed should not be virtual (embed_source nodes are not added to virtualCardIds)
     expect(col.virtualCardIds.has(embedId)).toBeFalsy()
   })
 })
@@ -688,11 +685,11 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const cardId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
-      makeNode({ id: taskId, type: "li", list_marker: "-", content: "Leading task", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: taskId, type: "p", item: true, list_marker: "-", content: "Leading task", parent_id: rootId, parent_idx: 0 }),
       makeNode({
         id: sectionId,
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
@@ -700,7 +697,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       }),
       makeNode({
         id: cardId,
-        type: "li",
+        type: "p", item: true,
         list_marker: "-",
         content: "Card in section",
         parent_id: sectionId,
@@ -735,25 +732,24 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const sectionId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
       makeNode({
         id: embedId,
-        type: "link",
-        embed: true,
-        content: "Leading embed",
+        type: "embed",
+                content: "Leading embed",
         parent_id: rootId,
         parent_idx: 0,
-        link_to: targetId,
+        embed_source: targetId,
       }),
       makeNode({
         id: sectionId,
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
         parent_idx: 1,
       }),
-      makeNode({ id: targetId, type: "li", list_marker: "-", title: "Target task", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Target task", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -775,11 +771,11 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const task2Id = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "oi", fstype: "mdfile", title: "Board", parent_id: null }),
-      makeNode({ id: sec1Id, type: "oi", fstype: "mdsection", title: "Todo", parent_id: rootId, parent_idx: 0 }),
-      makeNode({ id: sec2Id, type: "oi", fstype: "mdsection", title: "Done", parent_id: rootId, parent_idx: 1 }),
-      makeNode({ id: task1Id, type: "li", list_marker: "-", content: "Task 1", parent_id: sec1Id, parent_idx: 0 }),
-      makeNode({ id: task2Id, type: "li", list_marker: "-", content: "Task 2", parent_id: sec2Id, parent_idx: 0 }),
+      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: sec1Id, type: "h", item: true, fstype: "mdsection", title: "Todo", parent_id: rootId, parent_idx: 0 }),
+      makeNode({ id: sec2Id, type: "h", item: true, fstype: "mdsection", title: "Done", parent_id: rootId, parent_idx: 1 }),
+      makeNode({ id: task1Id, type: "p", item: true, list_marker: "-", content: "Task 1", parent_id: sec1Id, parent_idx: 0 }),
+      makeNode({ id: task2Id, type: "p", item: true, list_marker: "-", content: "Task 2", parent_id: sec2Id, parent_idx: 0 }),
     ]
 
     const repo = createFakeRepo({ nodes })

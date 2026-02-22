@@ -270,10 +270,11 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const newSortOrder = (currentIdx + adjacentIdx) / 2
 
   // Inherit type + depth from current node
-  // Tasks (li with task_marker) create new tasks; outline items create new outline items
+  // Tasks (items with task_marker) create new tasks; outline items create new outline items
   const isCurrentTask = currentNode.task_marker !== undefined
   const newNode: Partial<KNode> = {
-    type: isCurrentTask ? "li" : "oi",
+    type: isCurrentTask ? "p" : "h",
+    item: true,
     content: "",
     parent_idx: newSortOrder,
   }
@@ -281,7 +282,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
     newNode.task_status = "todo"
     newNode.task_marker = "[ ]"
     newNode.list_marker = currentNode.list_marker ?? "-"
-  } else if (newNode.type === "oi") {
+  } else {
     newNode.fstype = "mdsection"
   }
   // No need to store depth in data — it's derived from tree position during serialization
@@ -314,7 +315,8 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
   const newSortOrder = lastChild ? (lastChild.parent_idx ?? 0) + 1 : 0
 
   const newNode: Partial<KNode> = {
-    type: "oi",
+    type: "h",
+    item: true,
     content: "",
     parent_idx: newSortOrder,
     data: {},
@@ -354,7 +356,8 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
 
   // No need to store depth in data — it's derived from tree position during serialization
   const newNode: Partial<KNode> = {
-    type: "oi",
+    type: "h",
+    item: true,
     content: "",
     parent_idx: newSortOrder,
     data: {},
@@ -464,8 +467,9 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   for (const c of cards) {
-    const targetId = c.link_to || c.id
-    const targetNode = c.link_to ? ctx.repo.getNode(c.link_to) : c
+    const embedSource = c.embed_source
+    const targetId = embedSource || c.id
+    const targetNode = embedSource ? ctx.repo.getNode(embedSource) : c
     const currentStatus = targetNode?.task_status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
     const nextIndex = (currentIndex + 1) % statusCycle.length

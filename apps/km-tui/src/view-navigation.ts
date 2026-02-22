@@ -103,7 +103,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   // layer (see extractBody). The navigation layer must treat them as card-level,
   // not column-level, even though their parent_id === rootId.
   const isDirectChildOfRoot = cursorNode.parent_id === rootId && !isAtBoardLevel
-  const isBodyContent = isDirectChildOfRoot && !isOutline(cursorNode.type)
+  const isBodyContent = isDirectChildOfRoot && !isOutline(cursorNode.type, cursorNode.item)
 
   const isAtColumnLevel = isDirectChildOfRoot && !isBodyContent
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
@@ -124,7 +124,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
     const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
     if (directChildOfRoot) {
       const directChildNode = repo.getNode(directChildOfRoot)
-      if (directChildNode && !isOutline(directChildNode.type)) {
+      if (directChildNode && !isOutline(directChildNode.type, directChildNode.item)) {
         // Descendant of a body card — resolve to the body card itself
         cardNodeId = directChildOfRoot
         isBodyCardDescendant = true
@@ -257,11 +257,11 @@ function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
  * Body nodes are filtered to match the view layer's meaningfulBody filter,
  * so navigation indices align with rendered card indices.
  */
-function splitBodyAndColumns(allChildren: { id: string; type: string; content?: string }[]): {
-  bodyNodes: { id: string; type: string; content?: string }[]
-  structuralCols: { id: string; type: string; content?: string }[]
+function splitBodyAndColumns(allChildren: { id: string; type: string; item?: boolean; content?: string }[]): {
+  bodyNodes: { id: string; type: string; item?: boolean; content?: string }[]
+  structuralCols: { id: string; type: string; item?: boolean; content?: string }[]
 } {
-  const firstStructuralIdx = allChildren.findIndex((c) => isOutline(c.type))
+  const firstStructuralIdx = allChildren.findIndex((c) => isOutline(c.type, c.item))
   if (firstStructuralIdx === -1) return { bodyNodes: filterMeaningfulBody(allChildren), structuralCols: [] }
   if (firstStructuralIdx === 0) return { bodyNodes: [], structuralCols: allChildren }
   return {

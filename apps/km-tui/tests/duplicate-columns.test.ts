@@ -17,7 +17,7 @@ function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNo
     parent_idx: 0,
     content: "",
     data: {},
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -29,10 +29,10 @@ describe("duplicate column deduplication", () => {
   test("deduplicates columns with same fs_path, keeping the one with children", () => {
     // Simulate the Asana import bug: two oi nodes for @next.md,
     // one with children (populated) and one empty
-    const root = makeNode({ id: "root", type: "oi", fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const nextPopulated = makeNode({
       id: "next-1",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -42,7 +42,7 @@ describe("duplicate column deduplication", () => {
     })
     const nextEmpty = makeNode({
       id: "next-2",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -52,21 +52,21 @@ describe("duplicate column deduplication", () => {
     })
     const task1 = makeNode({
       id: "task-1",
-      type: "li",
+      type: "p", item: true,
       parent_id: "next-1",
       parent_idx: 0,
       content: "Do something",
     })
     const task2 = makeNode({
       id: "task-2",
-      type: "li",
+      type: "p", item: true,
       parent_id: "next-1",
       parent_idx: 1,
       content: "Do something else",
     })
     const otherCol = makeNode({
       id: "other-col",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 2,
@@ -90,10 +90,10 @@ describe("duplicate column deduplication", () => {
   })
 
   test("deduplicates when empty column comes first", () => {
-    const root = makeNode({ id: "root", type: "oi", fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const nextEmpty = makeNode({
       id: "next-empty",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -103,7 +103,7 @@ describe("duplicate column deduplication", () => {
     })
     const nextPopulated = makeNode({
       id: "next-pop",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -113,7 +113,7 @@ describe("duplicate column deduplication", () => {
     })
     const task = makeNode({
       id: "task-1",
-      type: "li",
+      type: "p", item: true,
       parent_id: "next-pop",
       parent_idx: 0,
       content: "Task",
@@ -132,10 +132,10 @@ describe("duplicate column deduplication", () => {
   })
 
   test("does not deduplicate nodes without fs_path", () => {
-    const root = makeNode({ id: "root", type: "oi", fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const col1 = makeNode({
       id: "col-1",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 0,
@@ -143,7 +143,7 @@ describe("duplicate column deduplication", () => {
     })
     const col2 = makeNode({
       id: "col-2",
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 1,

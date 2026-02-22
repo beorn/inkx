@@ -566,7 +566,7 @@ describe("File & Folder Renames", () => {
         await syncManager.syncFromFs()
 
         // Find the file node
-        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNode = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
         expect(fileNode!.content).toBe("Old Name")
 
@@ -612,7 +612,7 @@ describe("File & Folder Renames", () => {
         await syncManager.syncFromFs()
 
         const fileNode = getAllNodes(db).find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("draft"),
+          (n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("draft"),
         )
         expect(fileNode).toBeDefined()
 
@@ -644,7 +644,7 @@ describe("File & Folder Renames", () => {
         writeFileSync(join(repoDir, "safe.md"), "# Safe\n")
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNode = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
 
         // Title with filesystem-unsafe chars
@@ -674,7 +674,7 @@ describe("File & Folder Renames", () => {
         writeFileSync(join(repoDir, "My Note.md"), "# My Note\n\nBody text.\n")
         await syncManager.syncFromFs()
 
-        const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNode = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNode).toBeDefined()
 
         // Update content to same value as existing filename
@@ -707,7 +707,7 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const folderNode = getAllNodes(db).find((n) => n.type === "oi" && n.fstype === "folder")
+        const folderNode = getAllNodes(db).find((n) => n.type === "h" && n.fstype === "folder")
         expect(folderNode).toBeDefined()
         expect(folderNode!.content).toBe("projects")
 
@@ -729,7 +729,7 @@ describe("File & Folder Renames", () => {
 
         // Child nodes should have updated fs_path
         const childFile = getAllNodes(db).find(
-          (n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("readme"),
+          (n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("readme"),
         )
         expect(childFile!.fs_path).toBe("archive/readme.md")
       }))
@@ -754,7 +754,7 @@ describe("File & Folder Renames", () => {
 
         await syncManager.syncFromFs()
 
-        const folderNode = getAllNodes(db).find((n) => n.type === "oi" && n.fstype === "folder")
+        const folderNode = getAllNodes(db).find((n) => n.type === "h" && n.fstype === "folder")
         expect(folderNode).toBeDefined()
 
         repo.updateNode(folderNode!.id, { content: "processed" })

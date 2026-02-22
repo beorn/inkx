@@ -10,6 +10,7 @@ const term = createTerm(process)
 import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { isOutline } from "@km/core"
 
 /**
  * Get display name for a node (using repo for children lookup)
@@ -27,16 +28,16 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
     return name + term.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
-  if (ca.node.type === "oi" && ca.node.fstype === "folder") {
+  if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "folder") {
     return name + term.gray("/")
-  } else if (ca.node.type === "oi" && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
+  } else if (isOutline(ca.node.type, ca.node.item) && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
     // Only add .md if name doesn't already end with it
     return name.endsWith(".md") ? name : name + term.gray(".md")
-  } else if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
+  } else if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
     // Compute depth from tree nesting (direct file children = H2)
     let depth = 2
     let current: KNode | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
-    while (current?.type === "oi" && current.fstype === "mdsection") {
+    while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {
       depth++
       current = current.parent_id ? repo.getNode(current.parent_id) : undefined
     }
@@ -70,7 +71,7 @@ export function formatTaskWithPath(
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
       lines.push(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
-      if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
+      if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
         hasSection = true
       } else {
         // Only folders/files increase the depth

@@ -66,14 +66,14 @@ function getBoardForLink(repo: Repo, linkNode: KNode): KNode | null {
 
   // The link's parent is typically the board column (an outline item)
   // If the parent is an outline item (section/file/folder), that's our board
-  if (isOutline(parent.type)) {
+  if (isOutline(parent.type, parent.item)) {
     return parent
   }
 
   // Otherwise, look up ancestors to find the board
   const ancestors = repo.getAncestors(linkNode.id)
   for (const ancestor of ancestors) {
-    if (isOutline(ancestor.type)) {
+    if (isOutline(ancestor.type, ancestor.item)) {
       return ancestor
     }
   }

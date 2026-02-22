@@ -158,7 +158,8 @@ describe.sequential("createChaosHooks", () => {
     const rootChildren = repo.getChildren(null)
     const fileNode = rootChildren[0]!
     const newId = repo.addNode(fileNode.id, {
-      type: "li",
+      type: "p",
+      item: true,
       content: "New task",
     })
     expect(newId).toBeDefined()

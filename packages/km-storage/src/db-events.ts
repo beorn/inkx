@@ -73,14 +73,14 @@ function applyNodeCreated(db: Database, event: Event): void {
   db.run(
     `
     INSERT OR IGNORE INTO nodes (
-      id, type, fstype, parent_id, link_to, link_alias, embed, parent_idx,
+      id, type, fstype, parent_id, item, embed_source, parent_idx,
       fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line,
       list_marker, task_marker,
       task_status, assigned_to, due_at, start_at, priority,
       content, content_hash, data,
       created_at, updated_at, version
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?,
       ?, ?, ?, ?, ?,
@@ -93,9 +93,8 @@ function applyNodeCreated(db: Database, event: Event): void {
       data.type as string,
       (data.fstype as string) ?? null,
       (data.parent_id as string) ?? null,
-      (data.link_to as string) ?? null,
-      (data.link_alias as string) ?? null,
-      data.embed ? 1 : 0,
+      data.item ? 1 : 0,
+      (data.embed_source as string) ?? null,
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,
@@ -175,13 +174,13 @@ function applyNodeUpdated(db: Database, event: Event): void {
           .query(
             `
             WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path, type, fstype FROM nodes WHERE id = ?
+              SELECT id, parent_id, fs_path, type, fstype, item FROM nodes WHERE id = ?
               UNION ALL
-              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype
+              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype, n.item
               FROM nodes n
               JOIN ancestors a ON n.id = a.parent_id
             )
-            SELECT fs_path FROM ancestors WHERE type = 'oi' AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1
+            SELECT fs_path FROM ancestors WHERE type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1
           `,
           )
           .get(task.parent_id) as { fs_path: string } | null
@@ -203,12 +202,12 @@ function applyNodeUpdated(db: Database, event: Event): void {
         const file = db
           .query(
             `WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path, type, fstype FROM nodes WHERE id = ?
+              SELECT id, parent_id, fs_path, type, fstype, item FROM nodes WHERE id = ?
               UNION ALL
-              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype
+              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype, n.item
               FROM nodes n JOIN ancestors a ON n.id = a.parent_id
             )
-            SELECT fs_path FROM ancestors WHERE type = 'oi' AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1`,
+            SELECT fs_path FROM ancestors WHERE type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1`,
           )
           .get(task.parent_id as string) as { fs_path: string } | null
         fsPath = file?.fs_path ?? null

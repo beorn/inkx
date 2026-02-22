@@ -40,7 +40,8 @@ export async function createTask(
   }
 
   const nodeId = repo.addNode(parentId, {
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[ ]",
     content: content,

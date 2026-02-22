@@ -58,7 +58,7 @@ This is a paragraph.
 
         const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
-        expect(fileNode!.type).toBe("oi")
+        expect(fileNode!.type).toBe("h")
         expect(fileNode!.fs_path).toBe(toRel(repoDir, testFile))
 
         const tasks = allNodes.filter((n) => n.task_status != null)
@@ -90,7 +90,7 @@ This is a paragraph.
         expect(result.processed).toBeGreaterThan(0)
 
         const allNodes = getAllNodes(db)
-        const fileNodes = allNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNodes = allNodes.filter((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
         expect(fileNodes.length).toBeGreaterThan(0)
 
         const fileNode = fileNodes.find((n) => n.fs_path === toRel(repoDir, testFile))
@@ -126,7 +126,7 @@ Some content here.
 
         const fileNode = getNodeByPath(db, toRel(repoDir, testFile))
         expect(fileNode).not.toBeNull()
-        expect(fileNode!.type).toBe("oi")
+        expect(fileNode!.type).toBe("h")
         expect(fileNode!.data).toBeDefined()
         expect(fileNode!.data.title).toBe("Test Document")
         expect(fileNode!.data.type).toBe("daily")
@@ -227,7 +227,7 @@ code
 
         const allNodes = getAllNodes(db)
 
-        const validTypes = ["oi", "li", "p", "code", "quote", "table", "hr", "html", "math", "h", "link"]
+        const validTypes = ["p", "h", "code", "quote", "table", "hr", "html", "math", "embed"]
 
         for (const node of allNodes) {
           expect(node.type).toBeDefined()
@@ -326,17 +326,17 @@ code
 
         const allNodes = getAllNodes(db)
 
-        const folderNodes = allNodes.filter((n) => n.type === "oi" && n.fstype === "folder")
+        const folderNodes = allNodes.filter((n) => n.type === "h" && n.fstype === "folder")
         expect(folderNodes.length).toBeGreaterThanOrEqual(2)
 
         const projectsFolder = getNodeByPath(db, toRel(repoDir, subFolder))
         const activeFolder = getNodeByPath(db, toRel(repoDir, deepFolder))
 
         expect(projectsFolder).not.toBeNull()
-        expect(projectsFolder!.type).toBe("oi")
+        expect(projectsFolder!.type).toBe("h")
 
         expect(activeFolder).not.toBeNull()
-        expect(activeFolder!.type).toBe("oi")
+        expect(activeFolder!.type).toBe("h")
       }))
 
     test("should link files to their parent folder via parent_id", () =>
@@ -436,15 +436,15 @@ code
 
         expect(ancestors.length).toBeGreaterThanOrEqual(3)
 
-        const folderAncestor = ancestors.find((a) => a.type === "oi" && a.fstype === "folder")
+        const folderAncestor = ancestors.find((a) => a.type === "h" && a.fstype === "folder")
         expect(folderAncestor).toBeDefined()
         expect(folderAncestor!.fs_path).toBe(toRel(repoDir, subFolder))
 
-        const fileAncestor = ancestors.find((a) => a.type === "oi" && (a.fstype === "file" || a.fstype === "mdfile"))
+        const fileAncestor = ancestors.find((a) => a.type === "h" && (a.fstype === "file" || a.fstype === "mdfile"))
         expect(fileAncestor).toBeDefined()
         expect(fileAncestor!.fs_path).toBe(toRel(repoDir, testFile))
 
-        const sectionAncestors = ancestors.filter((a) => a.type === "oi" && a.fstype === "mdsection")
+        const sectionAncestors = ancestors.filter((a) => a.type === "h" && a.fstype === "mdsection")
         expect(sectionAncestors.length).toBeGreaterThanOrEqual(1)
       }))
 
@@ -471,13 +471,13 @@ code
 
         const relSubFolder = toRel(repoDir, subFolder)
         const folderNodes = allNodes.filter(
-          (n) => n.type === "oi" && n.fstype === "folder" && n.fs_path === relSubFolder,
+          (n) => n.type === "h" && n.fstype === "folder" && n.fs_path === relSubFolder,
         )
         expect(folderNodes.length).toBe(1)
 
         const fileNodes = allNodes.filter(
           (n) =>
-            n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.startsWith(relSubFolder),
+            n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.startsWith(relSubFolder),
         )
         expect(fileNodes.length).toBe(3)
 
@@ -523,7 +523,7 @@ code
 
         // Find Column A section
         const allNodes = getAllNodes(db)
-        const colA = allNodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.content === "Column A")
+        const colA = allNodes.find((n) => n.type === "h" && n.fstype === "mdsection" && n.content === "Column A")
         expect(colA).toBeDefined()
 
         // Simulate TUI creating a new section (like handleAddNodeAfter)
@@ -534,7 +534,8 @@ code
           actor: "user",
           data: {
             id: "new-section-1",
-            type: "oi",
+            type: "h",
+            item: true,
             parent_id: fileNode!.id,
             parent_idx: (colA!.parent_idx ?? 0) + 0.5,
             content: "",
@@ -544,11 +545,12 @@ code
 
         // Insert the node into DB first (emitter normally does this)
         db.run(
-          `INSERT INTO nodes (id, type, fstype, parent_id, parent_idx, content, data, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO nodes (id, type, item, fstype, parent_id, parent_idx, content, data, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             "new-section-1",
-            "oi",
+            "h",
+            1,
             "mdsection",
             fileNode!.id,
             (colA!.parent_idx ?? 0) + 0.5,

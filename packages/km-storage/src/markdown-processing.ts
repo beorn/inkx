@@ -187,7 +187,7 @@ export function toResolvedLinks(processed: ProcessedMarkdown, resolver: LinkReso
  */
 export function getFileNode(processed: ProcessedMarkdown): KNode | undefined {
   const fileNode = processed.nodes[0]
-  return fileNode?.type === "oi" &&
+  return (fileNode?.type === "h" && fileNode.item) &&
     (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
     ? fileNode
     : undefined

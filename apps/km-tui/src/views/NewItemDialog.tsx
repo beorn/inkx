@@ -35,7 +35,7 @@ export interface NewItemDialogProps {
  */
 function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null
-  return isOutline(cursorNode.type) ? cursorNode.id : cursorNode.parent_id
+  return isOutline(cursorNode.type, cursorNode.item) ? cursorNode.id : cursorNode.parent_id
 }
 
 /**
@@ -123,7 +123,8 @@ export function NewItemDialog({
       }
       undoHandle.setCursor(cursorNode?.id ?? null)
       const nodeId = repo.addNode(parentId, {
-        type: isTask ? "li" : "p",
+        type: isTask ? "p" : "p",
+        item: isTask ? true : undefined,
         content: content.trim(),
         task_status: isTask ? "todo" : undefined,
         task_marker: isTask ? "[ ]" : undefined,

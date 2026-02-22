@@ -62,11 +62,11 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
 
   const node: KNode = {
     id,
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     parent_id: null, // Will be set based on path
     parent_idx: 0,
-    link_to: null,
     content,
     task_status: "todo",
     task_marker: "[ ]",

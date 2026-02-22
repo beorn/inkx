@@ -8,12 +8,12 @@ describe("cursor ancestors after outdent", () => {
 
     board.press("Shift+Tab") // outdent A to board level
 
-    // A is now type "li" at board level, placed after col1 (oi)
+    // A is now type "p" at board level, placed after col1 (h)
     const nodeA = repo.getNode("A")
     expect(nodeA?.parent_id).toBe("board")
-    expect(nodeA?.type).toBe("li")
+    expect(nodeA?.type).toBe("p")
 
-    // CursorStore: A is after col1 (oi) in sibling order → structural column
+    // CursorStore: A is after col1 (h) in sibling order → structural column
     const cs = store.getState().cursorStore.getState()
     expect(cs.cursorNodeId).toBe("A")
     expect(cs.cursorCardNodeId).toBeNull()

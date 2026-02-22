@@ -254,7 +254,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("link property stored in data.props after parse", () => {
     const original = "# Test\n\n- [ ] Task blocks:: [[km-a1b2]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data).toBeDefined()
@@ -270,7 +270,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("number property stored in data.props after parse", () => {
     const original = "# Test\n\n- [ ] Task rating:: 5\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
@@ -285,7 +285,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("date property stored in data.props after parse", () => {
     const original = "# Test\n\n- [ ] Task reviewed:: 2026-01-21\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
@@ -300,7 +300,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("text property stored in data.props after parse", () => {
     const original = "# Test\n\n- [ ] Task note:: This is a note\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
@@ -315,7 +315,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("list property stored in data.props after parse", () => {
     const original = "# Test\n\n- [ ] Task deps:: [[a]], [[b]], [[c]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()
@@ -335,7 +335,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("propsRaw stored for round-trip preservation", () => {
     const original = "# Test\n\n- [ ] Task blocks:: [[km-a1b2]] rating:: 5\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.propsRaw).toBeDefined()
@@ -348,7 +348,7 @@ describe("Properties: Parsed Values in data.props", () => {
   test("multiple properties all stored correctly", () => {
     const original = "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
-    const task = nodes.find((n) => n.type === "li" && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(task).toBeDefined()
     expect(task!.data!.props).toBeDefined()

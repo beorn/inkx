@@ -31,14 +31,15 @@ function buildCommandContexts(ctx: ActionCtx) {
   const { ui, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
-  // For embedded links, resolve through link_to to check if the target is a task,
-  // so that task commands (x, Space) work on links pointing to tasks.
+  // For embed nodes, resolve through embed_source to check if the target is a task,
+  // so that task commands (x, Space) work on embeds pointing to tasks.
+  const embedSource = selectedNode?.embed_source
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,
         isTask:
           selectedNode.task_status != null ||
-          (selectedNode.link_to != null && ctx.repo.getNode(selectedNode.link_to)?.task_status != null),
+          (embedSource != null && ctx.repo.getNode(embedSource)?.task_status != null),
         children: [],
         depth: 0,
         childCount: 0,

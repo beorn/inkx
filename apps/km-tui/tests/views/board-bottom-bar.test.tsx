@@ -94,11 +94,11 @@ describe("BottomBar", () => {
     {
       node: {
         id: "section-1",
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         parent_id: "root-123",
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         title: "Todo",
         content: "",
         data: {},
@@ -112,11 +112,11 @@ describe("BottomBar", () => {
     {
       node: {
         id: "section-2",
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         parent_id: "root-123",
         parent_idx: 1,
-        link_to: null,
+        embed_source: null,
         title: "Done",
         content: "",
         data: {},

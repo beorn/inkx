@@ -87,7 +87,7 @@ export function navigateToNode(targetId: string, rootId: string | null, repo: Na
   // We still zoom so the node becomes visible, but signal the caller to also
   // open the detail pane.
   const zoomChildren = repo.getChildren(zoomTarget)
-  const hasStructure = zoomChildren.some((c) => isOutline(c.type))
+  const hasStructure = zoomChildren.some((c) => isOutline(c.type, c.item))
   if (!hasStructure) {
     log.debug?.(
       `navigateToNode: DETAIL_VIEW for ${cursorTarget.slice(-8)} (zoom target ${zoomTarget.slice(-8)} is flat)`,
@@ -143,7 +143,7 @@ export function resolveZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarg
 
     // If the zoom target has no oi children, it will produce a body-only board.
     const zoomChildren = repo.getChildren(grandparent.id)
-    const hasOiChildren = zoomChildren.some((c) => isOutline(c.type))
+    const hasOiChildren = zoomChildren.some((c) => isOutline(c.type, c.item))
     if (!hasOiChildren && parent && parent.parent_id === grandparent.id) {
       // Grandparent is a body-only board (no oi children).
       // If there's a great-grandparent, zoom there instead so grandparent

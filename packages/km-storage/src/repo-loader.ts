@@ -349,12 +349,13 @@ export function ensureRepoRootNode(db: Database, repoRoot: string): void {
   const now = Date.now()
   db.prepare(`
     INSERT INTO nodes (
-      id, type, fstype, parent_id, parent_idx, fs_path, content, data,
+      id, type, item, fstype, parent_id, parent_idx, fs_path, content, data,
       created_at, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     ".",
-    "oi",
+    "h",
+    1,
     "folder",
     null,
     0,
@@ -669,7 +670,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "oi",
+          type: "h",
+          item: true,
           fstype: "folder",
           parent_id: parentId,
           parent_idx: 0,
@@ -689,7 +691,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "oi",
+          type: "h",
+          item: true,
           fstype: isTxt ? "txtfile" : "mdfile",
           parent_id: parentId,
           parent_idx: 0,
@@ -709,7 +712,8 @@ function* reconcileFilesystem(
         ts: now,
         data: {
           id: nodeId,
-          type: "oi",
+          type: "h",
+          item: true,
           fstype: "file",
           parent_id: parentId,
           parent_idx: 0,
@@ -779,8 +783,8 @@ function* applyEvents(
             data.type as string,
             (data.fstype as string) ?? null,
             parentId,
-            (data.link_to as string) ?? null,
-            (data.link_alias as string) ?? null,
+            data.item ? 1 : 0,
+            (data.embed_source as string) ?? null,
             (data.parent_idx as number) ?? 0,
             fsPath,
             (data.fs_ino as number) ?? null,

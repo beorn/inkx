@@ -121,11 +121,11 @@ function translateBaseType(baseType: string): { sql: string; params: (string | n
     case "task":
       return { sql: " AND task_status IS NOT NULL", params: [] }
     case "section":
-      return { sql: " AND type = 'oi' AND fstype IS NULL", params: [] }
+      return { sql: " AND type = 'h' AND item = 1 AND fstype IS NULL", params: [] }
     case "file":
-      return { sql: " AND type = 'oi' AND fstype IN ('file', 'mdfile')", params: [] }
+      return { sql: " AND type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile')", params: [] }
     case "folder":
-      return { sql: " AND type = 'oi' AND fstype = 'folder'", params: [] }
+      return { sql: " AND type = 'h' AND item = 1 AND fstype = 'folder'", params: [] }
     default:
       return { sql: " AND type = ?", params: [baseType] }
   }
@@ -137,16 +137,16 @@ function translateTypeCondition(value: string, op: string, params: (string | num
   switch (value) {
     case "task":
       return negated
-        ? " AND NOT (type = 'li' AND task_marker IS NOT NULL)"
-        : " AND type = 'li' AND task_marker IS NOT NULL"
+        ? " AND NOT (item = 1 AND task_marker IS NOT NULL)"
+        : " AND item = 1 AND task_marker IS NOT NULL"
     case "section":
-      return negated ? " AND NOT (type = 'oi' AND fstype IS NULL)" : " AND type = 'oi' AND fstype IS NULL"
+      return negated ? " AND NOT (type = 'h' AND item = 1 AND fstype IS NULL)" : " AND type = 'h' AND item = 1 AND fstype IS NULL"
     case "file":
       return negated
-        ? " AND NOT (type = 'oi' AND fstype IN ('file', 'mdfile'))"
-        : " AND type = 'oi' AND fstype IN ('file', 'mdfile')"
+        ? " AND NOT (type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile'))"
+        : " AND type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile')"
     case "folder":
-      return negated ? " AND NOT (type = 'oi' AND fstype = 'folder')" : " AND type = 'oi' AND fstype = 'folder'"
+      return negated ? " AND NOT (type = 'h' AND item = 1 AND fstype = 'folder')" : " AND type = 'h' AND item = 1 AND fstype = 'folder'"
     default:
       params.push(value)
       return negated ? ` AND (type != ? OR type IS NULL)` : ` AND type = ?`

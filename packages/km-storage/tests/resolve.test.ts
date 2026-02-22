@@ -24,7 +24,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id, type: "li", content: "Test task" },
+        data: { id, type: "p", item: true, content: "Test task" },
       })
 
       const node = resolveNode(db, id)
@@ -38,7 +38,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id, type: "li", content: "Test task" },
+        data: { id, type: "p", item: true, content: "Test task" },
       })
 
       const prefix = id.slice(0, 8)
@@ -53,7 +53,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id, type: "li", content: "Test task" },
+        data: { id, type: "p", item: true, content: "Test task" },
       })
 
       const suffix = id.slice(-8)
@@ -68,7 +68,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       const node = resolveNode(db, fsPath)
@@ -82,7 +82,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       const node = resolveNode(db, "@next.md")
@@ -96,7 +96,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       const node = resolveNode(db, "@next")
@@ -110,7 +110,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       const node = resolveNode(db, "./test-file.md")
@@ -124,7 +124,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id, type: "oi", content: "My Section" },
+        data: { id, type: "h", item: true, content: "My Section" },
       })
 
       const node = resolveNode(db, "My Section")
@@ -139,12 +139,12 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: taskId, type: "li", content: "Test" },
+        data: { id: taskId, type: "p", item: true, content: "Test" },
       })
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: fileId, type: "oi", fstype: "mdfile", fs_path: join(repoDir, "Test.md") },
+        data: { id: fileId, type: "h", item: true, fstype: "mdfile", fs_path: join(repoDir, "Test.md") },
       })
 
       // Without type filter, could match either
@@ -152,9 +152,9 @@ describe("resolveNode", () => {
       expect(anyNode).not.toBeNull()
 
       // With type filter, only matches li
-      const taskNode = resolveNode(db, "Test", "li")
+      const taskNode = resolveNode(db, "Test", "p")
       expect(taskNode).not.toBeNull()
-      expect(taskNode?.type).toBe("li")
+      expect(taskNode?.type).toBe("p")
     }))
 
   test("returns null for non-existent node", () =>
@@ -170,7 +170,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       const node = resolveNode(db, "subdir/test.md")
@@ -184,7 +184,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: fsPath },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: fsPath },
       })
 
       // Note: resolveNode adds .md extension for paths
@@ -199,7 +199,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "folder", fs_path: fsPath, name: "inbox" },
+        data: { id: ulid(), type: "h", item: true, fstype: "folder", fs_path: fsPath, name: "inbox" },
       })
 
       const node = resolveNode(db, "inbox")
@@ -214,7 +214,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "folder", fs_path: fsPath, name: "projects" },
+        data: { id: ulid(), type: "h", item: true, fstype: "folder", fs_path: fsPath, name: "projects" },
       })
 
       // Trailing slash is normalized
@@ -233,7 +233,7 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi",
+          type: "h", item: true,
           fstype: "folder",
           fs_path: folderPath,
           name: "inbox",
@@ -244,7 +244,7 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi",
+          type: "h", item: true,
           fstype: "mdfile",
           fs_path: filePath,
           name: "inbox.md",
@@ -265,7 +265,7 @@ describe("resolveNode", () => {
         actor: "test",
         data: {
           id: ulid(),
-          type: "oi",
+          type: "h", item: true,
           fstype: "folder",
           fs_path: fsPath,
           name: "projects",
@@ -287,7 +287,7 @@ describe("resolveNode", () => {
       emitter.emit({
         type: "node_created",
         actor: "test",
-        data: { id: ulid(), type: "oi", fstype: "mdfile", fs_path: "test.md" },
+        data: { id: ulid(), type: "h", item: true, fstype: "mdfile", fs_path: "test.md" },
       })
 
       // repoDir is under /tmp which is a symlink to /private/tmp on macOS.

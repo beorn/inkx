@@ -139,7 +139,7 @@ export type MapDataStore = DataStore
  *
  * @example
  * const data = createMapDataStore()
- * const id = data.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })
+ * const id = data.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
  * const node = data.getNode(id)
  *
  * @returns MapDataStore (pure DataStore, no extras)
@@ -188,10 +188,9 @@ export function createMapDataStore(): MapDataStore {
       const node: KNode = {
         ...nodeData,
         id,
-        type: nodeData.type ?? "li",
+        type: nodeData.type ?? "p",
         parent_id: parentId ?? ".",
         parent_idx: nodeData.parent_idx ?? now,
-        link_to: nodeData.link_to ?? null,
         task_status: nodeData.task_status ?? (nodeData.task_marker !== undefined ? "todo" : undefined),
         task_marker: nodeData.task_marker,
         data: nodeData.data ?? {},
@@ -258,7 +257,7 @@ export function createMapDataStore(): MapDataStore {
  *
  * @example
  * const data = createMemDataStore()
- * const id = data.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })
+ * const id = data.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
  * // Full SQL queries work (search, etc.)
  *
  * @returns DBDataStore (DataStore + HasDatabase)

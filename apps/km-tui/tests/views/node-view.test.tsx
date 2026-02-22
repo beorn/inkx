@@ -25,7 +25,8 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
   return {
     id: overrides.id ?? "test-node-1",
     content: overrides.content ?? "Test Node",
-    type: overrides.type ?? "li",
+    type: overrides.type ?? "p",
+    item: overrides.item ?? true,
     name: overrides.name ?? null,
     parent_id: overrides.parent_id ?? null,
     fs_path: overrides.fs_path ?? null,
@@ -41,7 +42,7 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
     priority: overrides.priority ?? null,
     recurrence: overrides.recurrence ?? null,
     assigned_to: overrides.assigned_to ?? null,
-    link_to: overrides.link_to ?? null,
+    embed_source: overrides.embed_source ?? null,
     data: overrides.data ?? null,
   } as KNode
 }
@@ -259,7 +260,7 @@ describe("NodeCardView (card style)", () => {
     const parent = makeNode({ content: "Card with body" })
     const children = [
       makeNode({ id: "b1", type: "p", content: "A paragraph of body content" }),
-      makeNode({ id: "c1", type: "oi", content: "Structural child" }),
+      makeNode({ id: "c1", type: "h", item: true, content: "Structural child" }),
     ]
     const output = await renderString(<NodeCardView node={parent} children={children} />, { plain: true, width: 50 })
     // Body children are rendered as subitems, so ··· should NOT show
@@ -269,8 +270,8 @@ describe("NodeCardView (card style)", () => {
   test("no body indicator when node has only structural children", async () => {
     const parent = makeNode({ content: "Card without body" })
     const children = [
-      makeNode({ id: "c1", type: "oi", content: "Column 1" }),
-      makeNode({ id: "c2", type: "oi", content: "Column 2" }),
+      makeNode({ id: "c1", type: "h", item: true, content: "Column 1" }),
+      makeNode({ id: "c2", type: "h", item: true, content: "Column 2" }),
     ]
     const output = await renderString(<NodeCardView node={parent} children={children} />, { plain: true, width: 50 })
     expect(output).not.toContain("···")
@@ -358,10 +359,10 @@ describe("NodeCardView (card style)", () => {
   test("shows subtask progress badge", async () => {
     const node = makeNode({ content: "Parent task" })
     const children = [
-      makeNode({ id: "t1", content: "Done task", type: "li", task_status: "done", task_marker: "x" }),
-      makeNode({ id: "t2", content: "Todo task", type: "li", task_status: "todo", task_marker: " " }),
-      makeNode({ id: "t3", content: "WIP task", type: "li", task_status: "wip", task_marker: "/" }),
-      makeNode({ id: "n1", content: "Not a task", type: "li" }),
+      makeNode({ id: "t1", content: "Done task", type: "p", item: true, task_status: "done", task_marker: "x" }),
+      makeNode({ id: "t2", content: "Todo task", type: "p", item: true, task_status: "todo", task_marker: " " }),
+      makeNode({ id: "t3", content: "WIP task", type: "p", item: true, task_status: "wip", task_marker: "/" }),
+      makeNode({ id: "n1", content: "Not a task", type: "p", item: true }),
     ]
     const output = await renderString(<NodeCardView node={node} children={children} width={60} />, {
       plain: true,
@@ -506,8 +507,8 @@ describe("NodeDetailView (detail style)", () => {
   test("renders structural children", async () => {
     const node = makeNode({ content: "Parent Task" })
     const children = [
-      makeNode({ id: "s1", content: "Subtask 1", type: "li" }),
-      makeNode({ id: "s2", content: "Subtask 2", type: "li" }),
+      makeNode({ id: "s1", content: "Subtask 1", type: "p", item: true }),
+      makeNode({ id: "s2", content: "Subtask 2", type: "p", item: true }),
     ]
     const output = await renderString(<NodeDetailView node={node} children={children} width={50} height={20} />, {
       plain: true,
@@ -606,8 +607,8 @@ describe("NodeDetailView (detail style)", () => {
     const node = makeNode({ content: "Mixed Node" })
     const children = [
       makeNode({ id: "p1", content: "Body paragraph text", type: "p" }),
-      makeNode({ id: "s1", content: "Subtask A", type: "li" }),
-      makeNode({ id: "s2", content: "Subtask B", type: "li" }),
+      makeNode({ id: "s1", content: "Subtask A", type: "p", item: true }),
+      makeNode({ id: "s2", content: "Subtask B", type: "p", item: true }),
     ]
     const output = await renderString(<NodeDetailView node={node} children={children} width={50} height={25} />, {
       plain: true,

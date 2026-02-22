@@ -1,7 +1,7 @@
 /**
  * Strip parent sigil from embedded node titles
  *
- * When viewing embedded nodes (transclusions with link_to), the sigil badge
+ * When viewing embedded nodes (transclusions with embed_source), the sigil badge
  * after the title should be suppressed if it matches the board or column context.
  * E.g., a task with name "@next" displayed on the @next board should not show
  * the redundant "@next" sigil badge.
@@ -32,7 +32,8 @@ describe("strip embed sigil", () => {
         for (const n of nodes) {
           // Make @next column a proper section
           if (n.id === "@next") {
-            n.type = "oi"
+            n.type = "h"
+            n.item = true
             n.fstype = "mdsection"
             n.data = { depth: 2, name: "@next" }
             n.name = "@next"
@@ -41,7 +42,7 @@ describe("strip embed sigil", () => {
           // Make embed-a link to a target with name "@next"
           if (n.id === "embed-a") {
             n.type = "p"
-            n.link_to = "target-a"
+            n.embed_source = "target-a"
             n.content = "![[target-a]]"
             n.task_status = undefined
             n.task_marker = undefined
@@ -51,7 +52,7 @@ describe("strip embed sigil", () => {
           // Make embed-b link to a target with a different sigil
           if (n.id === "embed-b") {
             n.type = "p"
-            n.link_to = "target-b"
+            n.embed_source = "target-b"
             n.content = "![[target-b]]"
             n.task_status = undefined
             n.task_marker = undefined
@@ -60,7 +61,8 @@ describe("strip embed sigil", () => {
 
           // Make other column a section
           if (n.id === "other") {
-            n.type = "oi"
+            n.type = "h"
+            n.item = true
             n.fstype = "mdsection"
             n.data = { depth: 2, name: "Other" }
           }
@@ -69,11 +71,11 @@ describe("strip embed sigil", () => {
         // Target A: task with name "@next" (sigil should be stripped in @next column)
         nodes.push({
           id: "target-a",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Buy groceries",
@@ -87,11 +89,11 @@ describe("strip embed sigil", () => {
         // Target B: task with name "@waiting" (different sigil, should NOT be stripped in @next column)
         nodes.push({
           id: "target-b",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 1,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Wait for reply",
@@ -135,7 +137,8 @@ describe("strip embed sigil", () => {
 
         for (const n of nodes) {
           if (n.id === "@next") {
-            n.type = "oi"
+            n.type = "h"
+            n.item = true
             n.fstype = "mdsection"
             n.data = { depth: 2, name: "@next" }
             n.name = "@next"
@@ -182,7 +185,8 @@ describe("strip embed sigil", () => {
 
         for (const n of nodes) {
           if (n.id === "@next") {
-            n.type = "oi"
+            n.type = "h"
+            n.item = true
             n.fstype = "mdsection"
             n.data = { depth: 2, name: "@next" }
             n.name = "@next"
@@ -190,7 +194,7 @@ describe("strip embed sigil", () => {
 
           if (n.id === "embed-c") {
             n.type = "p"
-            n.link_to = "target-c"
+            n.embed_source = "target-c"
             n.content = "![[target-c]]"
             n.task_status = undefined
             n.task_marker = undefined
@@ -201,11 +205,12 @@ describe("strip embed sigil", () => {
         // Create file node "@next" that is the parent of the target task
         nodes.push({
           id: "next-file",
-          type: "oi",
+          type: "h",
+          item: true,
           fstype: "mdfile",
           parent_id: null,
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "",
           name: "@next",
           fs_path: "/vault/@next.md",
@@ -218,11 +223,11 @@ describe("strip embed sigil", () => {
         // Target task that lives inside @next.md — parent context would be "@next"
         nodes.push({
           id: "target-c",
-          type: "li",
+          type: "p", item: true,
           list_marker: "-",
           parent_id: "next-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Call dentist",

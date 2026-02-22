@@ -490,7 +490,7 @@ export class SyncManager extends EventEmitter {
     const changes = event.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (node.type === "oi" && node.fstype === "folder" && node.fs_path && changes.content) {
+    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path && changes.content) {
       this.handleFolderRename(node, changes.content, event.id)
       return
     }
@@ -653,7 +653,7 @@ export class SyncManager extends EventEmitter {
   private handleNodeCreated(event: Event): void {
     const data = event.data as Partial<KNode>
 
-    if (data.type === "oi" && data.fstype === "folder" && data.fs_path) {
+    if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
       // Create directory — resolve relative path for FS operation
       const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       try {
@@ -661,7 +661,7 @@ export class SyncManager extends EventEmitter {
       } catch (err) {
         this.emit("error", err instanceof Error ? err : new Error(String(err)))
       }
-    } else if (data.type === "oi" && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
+    } else if (data.type === "h" && data.item && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       // Create file — resolve relative path for FS operation
       const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
       this.writeQueue.queue({
@@ -705,7 +705,7 @@ export class SyncManager extends EventEmitter {
     const fsPath = data?.fs_path
     const nodeType = data?.type
 
-    if (fsPath && nodeType === "oi") {
+    if (fsPath && nodeType === "h" && data?.item) {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
       this.writeQueue.queueDelete(absPath, event.id)
@@ -935,7 +935,7 @@ export class SyncManager extends EventEmitter {
 
     const nodes = getAllNodes(this.db)
     // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-    const fileNodes = nodes.filter((n) => n.type === "oi" && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"))
+    const fileNodes = nodes.filter((n) => n.type === "h" && n.item && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"))
 
     log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
 

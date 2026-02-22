@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest"
 import { deriveCursorAncestors } from "../src/cursor-store.ts"
 
 describe("deriveCursorAncestors", () => {
-  const nodes: Record<string, { parent_id: string | null; type: string }> = {
-    board: { parent_id: null, type: "oi" },
-    col1: { parent_id: "board", type: "oi" },
-    A: { parent_id: "board", type: "oi" }, // After outdent
-    B: { parent_id: "col1", type: "oi" },
-    deep: { parent_id: "B", type: "oi" },
+  const nodes: Record<string, { parent_id: string | null; type: string; item?: boolean }> = {
+    board: { parent_id: null, type: "h", item: true },
+    col1: { parent_id: "board", type: "h", item: true },
+    A: { parent_id: "board", type: "h", item: true }, // After outdent
+    B: { parent_id: "col1", type: "h", item: true },
+    deep: { parent_id: "B", type: "h", item: true },
     para: { parent_id: "board", type: "p" }, // Body card
   }
   const getNode = (id: string) => nodes[id] ?? null

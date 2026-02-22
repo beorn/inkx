@@ -22,11 +22,12 @@ import type { TNode } from "../src/types.ts"
 function createNode(id: string, children: TNode[] = []): TNode {
   return {
     id,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     title: id,
     children,
     childCount: children.length,

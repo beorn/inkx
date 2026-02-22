@@ -23,7 +23,7 @@ export function getNode(db: Database, id: string): KNode | null {
 }
 
 interface LookupOptions {
-  /** Filter by node type (e.g., 'li') */
+  /** Filter by node type (e.g., 'p', 'h') */
   type?: string
   /** Only return nodes with task_status set */
   taskOnly?: boolean
@@ -116,8 +116,8 @@ export function getNodesUnderPath(db: Database, dirPath: string): KNode[] {
   // For subdirectories, use prefix match (e.g., "sub" matches "sub/file.md").
   const query =
     dirPath === "."
-      ? `SELECT * FROM nodes WHERE fs_path IS NOT NULL AND id != '.' AND type = 'oi'`
-      : `SELECT * FROM nodes WHERE (fs_path LIKE ? || '/%' OR fs_path = ?) AND type = 'oi'`
+      ? `SELECT * FROM nodes WHERE fs_path IS NOT NULL AND id != '.' AND type = 'h' AND item = 1`
+      : `SELECT * FROM nodes WHERE (fs_path LIKE ? || '/%' OR fs_path = ?) AND type = 'h' AND item = 1`
 
   const rows =
     dirPath === "."

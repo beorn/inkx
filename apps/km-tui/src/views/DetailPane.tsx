@@ -9,7 +9,7 @@
 import React from "react"
 import { Box, Text, ErrorBoundary, useFocusable } from "inkx"
 import type { KNode } from "@km/core"
-import { decomposeDatetime } from "@km/core"
+import { decomposeDatetime, isOutline, isItem } from "@km/core"
 import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -50,8 +50,9 @@ export function DetailPane({
   void blur // available for programmatic blur
 
   // Resolve embedded links to show the target node's details
-  const resolvedNode = node.link_to ? (repo.getNode(node.link_to) ?? node) : node
-  if (resolvedNode.type === "oi" && resolvedNode.fstype === "folder") {
+  const embedSrc = node.embed_source
+  const resolvedNode = embedSrc ? (repo.getNode(embedSrc) ?? node) : node
+  if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
     return (
       <FolderDetailPane
         node={resolvedNode}
@@ -242,7 +243,7 @@ function TaskDetailPane({
   const bodyChildren: KNode[] = []
   const liItems: KNode[] = []
   for (const child of rawBody) {
-    if (child.type === "li") {
+    if (isItem(child.type, child.item) && !isOutline(child.type, child.item)) {
       liItems.push(child)
     } else {
       bodyChildren.push(child)
@@ -326,7 +327,7 @@ function TaskDetailPane({
           {bodyChildren.length === 0 && structuralChildren.length === 0 && <Text dimColor>(empty)</Text>}
 
           {/* Body content — compact for consecutive same-type items, spaced between different types */}
-          {/* Embedded nodes (link_to) resolve to the target and render as inline items */}
+          {/* Embedded nodes resolve to the target and render as inline items */}
           {bodyChildren.length > 2 && <Text> </Text>}
           {bodyChildren.map((child, i) => {
             const prev = i > 0 ? bodyChildren[i - 1] : undefined
@@ -638,14 +639,15 @@ const WIKI_EMBED_RE = /^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^([^\]|]+))?(?:\|([^
 
 /**
  * Resolve a node that might be an unresolved embed.
- * Heading embeds like `### [x] ![[^GID]]` lose their link_to after parse round-trip
+ * Heading embeds like `### [x] ![[^GID]]` lose their embed_source after parse round-trip
  * because the heading parser doesn't detect embedding syntax.
  * This helper checks the node's title/content for ![[...]] and resolves the target.
  */
 function resolveEmbed(repo: Repo, node: KNode): KNode {
-  // Already resolved via link_to
-  if (node.link_to) {
-    return repo.getNode(node.link_to) ?? node
+  // Already resolved via embed_source
+  const embedSrc = node.embed_source
+  if (embedSrc) {
+    return repo.getNode(embedSrc) ?? node
   }
   // Check if title/content is an embed wiki link
   const text = node.title ?? node.content ?? ""
@@ -713,7 +715,7 @@ function DetailSubitems({
         }
         // Completed items: fold to single dimmed line with child count
         if (isDone) {
-          const kidCount = repo.getChildren(displayItem !== item ? (item.link_to ?? item.id) : item.id).length
+          const kidCount = repo.getChildren(displayItem !== item ? (item.embed_source ?? item.id) : item.id).length
           return (
             <React.Fragment key={`${item.id}-${idx}`}>
               <Box>
@@ -735,13 +737,14 @@ function DetailSubitems({
         }
         // For embeds, get children from the target node (transclusion)
         const resolvedId = displayItem !== item ? displayItem.id : item.id
-        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
+        const embedTarget = item.embed_source
+        const childrenSourceId = embedTarget && repo.getNode(embedTarget) ? embedTarget : resolvedId
         const allKids = repo.getChildren(childrenSourceId)
         const { body: rawKidBody, items: kidOiItems } = extractBody(allKids)
         const kidBody: KNode[] = []
         const kidLiItems: KNode[] = []
         for (const k of rawKidBody) {
-          if (k.type === "li") kidLiItems.push(k)
+          if (isItem(k.type, k.item) && !isOutline(k.type, k.item)) kidLiItems.push(k)
           else kidBody.push(k)
         }
         const kidItems = [...kidLiItems, ...kidOiItems]
@@ -831,11 +834,12 @@ function OutlineTree({
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const title = getNodeDisplayName(repo, displayItem)
         const resolvedId = displayItem !== item ? displayItem.id : item.id
-        const childrenSourceId = item.link_to && repo.getNode(item.link_to) ? item.link_to : resolvedId
+        const embedTarget = item.embed_source
+        const childrenSourceId = embedTarget && repo.getNode(embedTarget) ? embedTarget : resolvedId
         const allKids = depth < 3 ? repo.getChildren(childrenSourceId) : []
         const { body: kidBody, items: kidOiItems } = extractBody(allKids)
-        const kidLiItems = kidBody.filter((k) => k.type === "li")
-        const bodyNodes = kidBody.filter((k) => k.type !== "li")
+        const kidLiItems = kidBody.filter((k) => isItem(k.type, k.item) && !isOutline(k.type, k.item))
+        const bodyNodes = kidBody.filter((k) => !isItem(k.type, k.item) || isOutline(k.type, k.item))
         const kidItems = [...kidLiItems, ...kidOiItems]
         const hiddenCount = depth >= 3 ? repo.getChildren(childrenSourceId).length : 0
 

@@ -26,11 +26,12 @@ describe("embed create depth", () => {
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
-        // Embeds have no depth — simulate by setting link_to
+        // Embeds have no depth — simulate by setting embed_source
         // (what makes them embeds in the real app)
         if (n.id === "embed-a" || n.id === "embed-b") {
-          n.link_to = "some-target"
-          n.type = "oi"
+          n.embed_source = "some-target"
+          n.type = "h"
+          n.item = true
           n.data = {} // no depth, like real embeds
         }
       }
@@ -62,7 +63,8 @@ describe("embed create depth", () => {
       const nodes = item("board", item("col1", item("sec-a"), item("sec-b")))
       for (const n of nodes) {
         if (n.id === "sec-a" || n.id === "sec-b") {
-          n.type = "oi"
+          n.type = "h"
+          n.item = true
         }
       }
       return nodes
@@ -90,7 +92,8 @@ describe("embed create depth", () => {
       const nodes = item("board", item("col1", item("child-a"), item("child-b")))
       for (const n of nodes) {
         if (n.id === "child-a" || n.id === "child-b") {
-          n.type = "oi"
+          n.type = "h"
+          n.item = true
           n.data = {} // no depth
         }
       }
@@ -117,8 +120,9 @@ describe("embed create depth", () => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
         if (n.id === "embed-a" || n.id === "embed-b") {
-          n.link_to = "some-target"
-          n.type = "oi"
+          n.embed_source = "some-target"
+          n.type = "h"
+          n.item = true
           n.data = {}
         }
       }
@@ -148,18 +152,18 @@ describe("embed create depth", () => {
 // =============================================================================
 
 describe("embed display", () => {
-  test("unresolved embed with link_to=null does not show ! prefix", () => {
+  test("unresolved embed with embed_source=null does not show ! prefix", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Paragraph embed where link resolver didn't find target (link_to=null)
+        // Paragraph embed where link resolver didn't find target (embed_source=null)
         // This happens for file references like ![[some-file.pdf]]
         nodes.push({
           id: "unresolved-embed",
           type: "p" as const,
           content: "![[Target File.pdf]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: { embeddingTarget: "Target File.pdf" },
@@ -191,7 +195,7 @@ describe("embed display", () => {
           id: "block-embed",
           type: "p" as const,
           content: "![[SomeFile#^abc123]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: { embeddingTarget: "SomeFile" },
@@ -219,12 +223,12 @@ describe("embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Bare block reference embed ![[^1203128650780856]] with link_to=null
+        // Bare block reference embed ![[^1203128650780856]] with embed_source=null
         nodes.push({
           id: "bare-block-embed",
           type: "p" as const,
           content: "![[^1203128650780856]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -253,11 +257,12 @@ describe("embed display", () => {
         // Target node exists
         nodes.push({
           id: "target-node",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Buy groceries",
@@ -272,7 +277,7 @@ describe("embed display", () => {
           id: "resolved-embed",
           type: "p" as const,
           content: "![[target-node]]",
-          link_to: "target-node",
+          embed_source: "target-node",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -308,7 +313,7 @@ describe("embed display", () => {
             id: `embed-${idx}`,
             type: "p" as const,
             content,
-            link_to: null,
+            embed_source: null,
             parent_id: "col1",
             parent_idx: idx + 1,
             data: {},
@@ -352,11 +357,12 @@ describe("link title resolution", () => {
         // Target node: a task with content (like an Asana-imported task)
         nodes.push({
           id: "target-task-1",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Tax projects",
@@ -367,14 +373,14 @@ describe("link title resolution", () => {
           version: "v1",
         } as KNode)
 
-        // Embed node: link_to is set, content has block reference format
+        // Embed node: embed_source is set, content has block reference format
         // This simulates what the rules engine creates + markdown serialization round-trip
         nodes.push({
           id: "embed-1",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[^1203128650780856]]",
-          link_to: "target-task-1",
-          embed: true,
+          embed_source: "target-task-1",
+
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -403,11 +409,12 @@ describe("link title resolution", () => {
         // Target node
         nodes.push({
           id: "target-task-2",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Buy groceries",
@@ -421,10 +428,10 @@ describe("link title resolution", () => {
         // Embed with file#^blockid path format
         nodes.push({
           id: "embed-2",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[shopping#^abc123]]",
-          link_to: "target-task-2",
-          embed: true,
+          embed_source: "target-task-2",
+
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -446,19 +453,19 @@ describe("link title resolution", () => {
   })
 
   test("unresolved embed with ^blockid content shows blockid without caret", () => {
-    // When link_to is set but target doesn't exist (stale reference),
+    // When embed_source is set but target doesn't exist (stale reference),
     // at minimum strip the ^ prefix from the display
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed with link_to pointing to nonexistent target
+        // Embed with embed_source pointing to nonexistent target
         nodes.push({
           id: "stale-embed",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[^9999999999999999]]",
-          link_to: "nonexistent-target",
-          embed: true,
+          embed_source: "nonexistent-target",
+
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -492,11 +499,12 @@ describe("unresolved Asana embed display", () => {
         // Use block_id value as the node ID so fakeRepo.resolveNode finds it
         nodes.push({
           id: "1209600947800994",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Review quarterly report",
@@ -507,13 +515,13 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as KNode)
 
-        // Unresolved embed: link_to is null (block_id not found during import)
+        // Unresolved embed: embed_source is null (block_id not found during import)
         // Content is in the Asana file#^blockId format
         nodes.push({
           id: "asana-embed-a",
           type: "p" as const,
           content: "![[688309546998762-pers-prod#^1209600947800994]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -544,11 +552,12 @@ describe("unresolved Asana embed display", () => {
         // Target node (ID matches the block_id for fakeRepo resolution)
         nodes.push({
           id: "1k4a",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Weekly standup notes",
@@ -559,12 +568,12 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as KNode)
 
-        // Unresolved embed: bare block ref with link_to=null
+        // Unresolved embed: bare block ref with embed_source=null
         nodes.push({
           id: "bare-embed",
           type: "p" as const,
           content: "![[^1k4a]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -597,7 +606,7 @@ describe("unresolved Asana embed display", () => {
           id: "orphan-embed",
           type: "p" as const,
           content: "![[my-notes#^nonexistent]]",
-          link_to: null,
+          embed_source: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -633,11 +642,12 @@ describe("context-dependent rendering", () => {
         // Target li task
         nodes.push({
           id: "target-li",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Embedded todo task",
@@ -650,10 +660,10 @@ describe("context-dependent rendering", () => {
         // Embed link pointing to the li task, placed in a column
         nodes.push({
           id: "embed-link",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[target-li]]",
-          link_to: "target-li",
-          embed: true,
+          embed_source: "target-li",
+
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -684,11 +694,12 @@ describe("context-dependent rendering", () => {
         // Target oi section
         nodes.push({
           id: "target-section",
-          type: "oi" as const,
+          type: "h" as const,
+          item: true,
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Architecture Notes",
           name: "architecture-notes",
           data: {},
@@ -703,7 +714,7 @@ describe("context-dependent rendering", () => {
           id: "body-embed",
           type: "p" as const,
           content: "![[target-section]]",
-          link_to: "target-section",
+          embed_source: "target-section",
           parent_id: "board",
           parent_idx: -1, // before col1 (parent_idx=0)
           data: {},
@@ -731,11 +742,12 @@ describe("context-dependent rendering", () => {
         // Target: done task
         nodes.push({
           id: "done-target",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "done",
           task_marker: "[x]",
           content: "Completed task",
@@ -748,10 +760,10 @@ describe("context-dependent rendering", () => {
         // Embed in column
         nodes.push({
           id: "embed-done",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[done-target]]",
-          link_to: "done-target",
-          embed: true,
+          embed_source: "done-target",
+
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -779,11 +791,12 @@ describe("context-dependent rendering", () => {
         // Target oi with children
         nodes.push({
           id: "target-parent",
-          type: "oi" as const,
+          type: "h" as const,
+          item: true,
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           content: "Parent Section",
           name: "parent-section",
           data: {},
@@ -795,11 +808,12 @@ describe("context-dependent rendering", () => {
         // Child of target
         nodes.push({
           id: "target-child",
-          type: "li" as const,
+          type: "p" as const,
+          item: true,
           list_marker: "-",
           parent_id: "target-parent",
           parent_idx: 0,
-          link_to: null,
+          embed_source: null,
           task_status: "todo",
           task_marker: "[ ]",
           content: "Child subtask",
@@ -812,10 +826,10 @@ describe("context-dependent rendering", () => {
         // Embed in column pointing to the parent
         nodes.push({
           id: "embed-parent",
-          type: "link" as const,
+          type: "embed" as const,
           content: "![[target-parent]]",
-          link_to: "target-parent",
-          embed: true,
+          embed_source: "target-parent",
+
           parent_id: "col1",
           parent_idx: 0,
           data: {},
@@ -848,28 +862,30 @@ describe("embed task status cycling (km-79kld)", () => {
         item("col1", item("embed-a"), item("embed-b"), item("regular-task")),
         item("col2", item("task-x")),
       )
-      // Set up embed-a and embed-b as link nodes pointing to task targets
+      // Set up embed-a and embed-b as embed nodes pointing to task targets
       for (const n of nodes) {
         if (n.id === "embed-a") {
-          n.type = "p"
-          n.link_to = "target-a"
+          n.type = "embed"
+          n.embed_source = "target-a"
           n.task_status = undefined
           n.data = {}
         }
         if (n.id === "embed-b") {
-          n.type = "p"
-          n.link_to = "target-b"
+          n.type = "embed"
+          n.embed_source = "target-b"
           n.task_status = undefined
           n.data = {}
         }
         if (n.id === "regular-task") {
-          n.type = "li"
+          n.type = "p"
+          n.item = true
           n.list_marker = "-"
           n.task_status = "todo"
           n.task_marker = "[ ]"
         }
         if (n.id === "col1" || n.id === "col2") {
-          n.type = "oi"
+          n.type = "h"
+          n.item = true
           n.fstype = "mdsection"
         }
       }
@@ -877,11 +893,12 @@ describe("embed task status cycling (km-79kld)", () => {
       // Add the target nodes (tasks that the embeds point to)
       nodes.push({
         id: "target-a",
-        type: "li",
+        type: "p",
+        item: true,
         list_marker: "-",
         parent_id: "some-other-parent",
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         task_status: "todo",
         task_marker: "[ ]",
         content: "Target task A",
@@ -892,11 +909,12 @@ describe("embed task status cycling (km-79kld)", () => {
       })
       nodes.push({
         id: "target-b",
-        type: "li",
+        type: "p",
+        item: true,
         list_marker: "-",
         parent_id: "some-other-parent",
         parent_idx: 1,
-        link_to: null,
+        embed_source: null,
         task_status: "done",
         task_marker: "[x]",
         content: "Target task B",

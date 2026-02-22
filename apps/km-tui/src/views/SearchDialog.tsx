@@ -7,6 +7,7 @@
 import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
+import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -52,9 +53,9 @@ function searchNodes(repo: Repo, query: string, scopeNodeIds?: string[]): Search
   const results: SearchResult[] = []
   for (const node of nodes) {
     // Skip folders (not meaningful for search)
-    if (node.type === "oi" && node.fstype === "folder") continue
-    // Skip links (search target instead)
-    if (node.link_to) continue
+    if (isOutline(node.type, node.item) && node.fstype === "folder") continue
+    // Skip embeds (search target instead)
+    if (isEmbed(node.type)) continue
     // Skip nodes outside scope
     if (scopeSet && !scopeSet.has(node.id)) continue
 

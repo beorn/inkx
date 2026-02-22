@@ -579,22 +579,22 @@ describe("Outliner Enter — save + new sibling", () => {
 })
 
 // =============================================================================
-// Enter on link_to (transclusion) nodes — mimics @next board
+// Enter on embed_source (transclusion) nodes — mimics @next board
 // =============================================================================
 
-describe("Outliner Enter — link_to nodes (transclusion)", () => {
-  /** Build a board with a column containing link_to nodes, like @next */
+describe("Outliner Enter — embed_source nodes (transclusion)", () => {
+  /** Build a board with a column containing embed_source nodes, like @next */
   function linkBoard() {
     const nodes = item("board", item("col1", item("link-a"), item("link-b"), item("link-c")))
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       task_status: "todo",
       task_marker: "[ ]",
       data: {},
@@ -606,13 +606,13 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
       parent_id: ".",
       parent_idx: 100,
-      link_to: null,
+      embed_source: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -621,19 +621,19 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     // Make the card nodes into links
     for (const n of nodes) {
       if (n.id === "link-a") {
-        n.link_to = "target-a"
+        n.embed_source = "target-a"
         n.content = "Target task A"
         n.task_status = "todo"
         n.task_marker = "[ ]"
       }
       if (n.id === "link-b") {
-        n.link_to = "target-b"
+        n.embed_source = "target-b"
         n.content = "Target task B"
         n.task_status = "todo"
         n.task_marker = "[ ]"
       }
       if (n.id === "link-c") {
-        n.link_to = "target-c"
+        n.embed_source = "target-c"
         n.content = "Target task C"
         n.task_status = "todo"
         n.task_marker = "[ ]"
@@ -643,7 +643,7 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     return [...nodes, otherFile, targetA, targetB, targetC]
   }
 
-  test("Enter on link_to card creates new sibling and shows it", () => {
+  test("Enter on embed_source card creates new sibling and shows it", () => {
     const { board, repo } = testEnv(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
@@ -655,7 +655,7 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     board.expect(colItems("col1")).toHaveCount(4)
   })
 
-  test("Enter on link_to card: new sibling is a regular node, not a link", () => {
+  test("Enter on embed_source card: new sibling is a regular node, not a link", () => {
     const { board, repo } = testEnv(linkBoard)
 
     board.press("Enter") // edit
@@ -669,11 +669,11 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     const newNodeId = items.nth(1).getAttribute("id")!
     const newNode = repo.getNode(newNodeId)
     expect(newNode).toBeTruthy()
-    expect(newNode!.link_to).toBeNull()
+    expect(newNode!.embed_source).toBeNull()
     expect(newNode!.content).toBe("") // empty new node
   })
 
-  test("Multiple Enters on link_to board create chain of siblings", () => {
+  test("Multiple Enters on embed_source board create chain of siblings", () => {
     const { board } = testEnv(linkBoard)
 
     board.expect(colItems("col1")).toHaveCount(3)
@@ -687,7 +687,7 @@ describe("Outliner Enter — link_to nodes (transclusion)", () => {
     board.expect(colItems("col1")).toHaveCount(6)
   })
 
-  test("keybindings work after Enter on link_to node", () => {
+  test("keybindings work after Enter on embed_source node", () => {
     const { board } = testEnv(linkBoard)
 
     board.press("Enter") // edit
@@ -708,7 +708,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
   /**
    * Build a board that mimics a real @next vault:
    * - Embed nodes have type "paragraph" (from markdown parser)
-   * - link_to points to resolved target
+   * - embed_source points to resolved target
    * - Content is the ![[...]] syntax
    */
   function paragraphLinkBoard() {
@@ -716,12 +716,12 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       task_status: "todo",
       task_marker: "[ ]",
       data: {},
@@ -733,13 +733,13 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
       parent_id: ".",
       parent_idx: 100,
-      link_to: null,
+      embed_source: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
@@ -749,17 +749,17 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     for (const n of nodes) {
       if (n.id === "link-a") {
         n.type = "p"
-        n.link_to = "target-a"
+        n.embed_source = "target-a"
         n.content = "![[Other File#^a1]]"
       }
       if (n.id === "link-b") {
         n.type = "p"
-        n.link_to = "target-b"
+        n.embed_source = "target-b"
         n.content = "![[Other File#^b2]]"
       }
       if (n.id === "link-c") {
         n.type = "p"
-        n.link_to = "target-c"
+        n.embed_source = "target-c"
         n.content = "![[Other File#^c3]]"
       }
     }

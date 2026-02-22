@@ -152,11 +152,10 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
   // Remove embeds that no longer match the query
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "link" && n.embed && n.link_to)
+  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "embed" && n.embed_source)
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
-    // link_to is guaranteed by the filter above, but TypeScript doesn't narrow through filter
-    const linkTo = embed.link_to
+    const linkTo = embed.embed_source
     if (linkTo && !matchingIds.has(linkTo)) {
       db.run("DELETE FROM nodes WHERE id = ?", [embed.id])
       removedCount++
@@ -171,11 +170,10 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   const existingOnBoard = getEmbedTargetsOnBoard(db, boardRootId)
   log.debug?.(`evaluateAddRule: existing embeds on board: ${existingOnBoard.size}`)
 
-  // Get existing embed children in this section (by link_to) - refresh after cleanup
-  // Include both link-type embeds (from rule engine) and oi/li nodes with link_to (from markdown parse)
+  // Get existing embed children in this section (by embed_source) - refresh after cleanup
   const existingEmbeds = getChildren(db, sectionId)
-    .filter((n) => n.link_to)
-    .map((n) => n.link_to as string)
+    .filter((n) => n.embed_source)
+    .map((n) => n.embed_source as string)
 
   // Get next parent_idx for new embeds
   const existingChildren = getChildren(db, sectionId)
@@ -207,15 +205,14 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     const embedId = ulid()
     const now = Date.now()
     db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, link_to, embed, content, data, created_at, updated_at, version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, embed_source, content, data, created_at, updated_at, version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         embedId,
-        "link",
+        "embed",
         sectionId,
         nextIdx++,
         match.id,
-        1, // embed = true
         `![[${targetPath}]]`,
         JSON.stringify({ targetPath }),
         now,
@@ -256,7 +253,7 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
   // Fallback to tree walk for incremental updates
   let current = getNode(db, nodeId)
   while (current) {
-    if (current.type === "oi" && (current.fstype === "file" || current.fstype === "mdfile")) {
+    if (current.type === "h" && current.item && (current.fstype === "file" || current.fstype === "mdfile")) {
       return current
     }
     if (!current.parent_id) {
@@ -333,7 +330,7 @@ function buildFileAncestorCache(db: Database): Map<string, KNode | null> {
   const cache = new Map<string, KNode | null>()
 
   // Get all file nodes first
-  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'oi' AND fstype IN ('file', 'mdfile')").all() as Record<
+  const fileRows = db.query("SELECT * FROM nodes WHERE type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile')").all() as Record<
     string,
     unknown
   >[]

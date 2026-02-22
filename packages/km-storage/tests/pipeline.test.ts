@@ -34,11 +34,12 @@ function createTestDb(): Database {
 function createNode(id: string, overrides: Partial<ParsedFile["nodes"][0]> = {}): ParsedFile["nodes"][0] {
   return {
     id,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -435,7 +436,7 @@ describe("applyLinks()", () => {
     expect(dbLinks).toHaveLength(1)
   })
 
-  test("updates node link_to for embedded links", async () => {
+  test("updates node embed_source for embedded links", async () => {
     const db = createTestDb()
 
     // Insert source node
@@ -454,13 +455,13 @@ describe("applyLinks()", () => {
 
     await runPipeline(applyLinks(fromArray(links), db))
 
-    // Verify link_to was updated on node
-    const node = db.query("SELECT link_to, link_alias FROM nodes WHERE id = ?").get("src1") as {
-      link_to: string
-      link_alias: string
+    // Verify embed_source was updated on node
+    const node = db.query("SELECT embed_source, name FROM nodes WHERE id = ?").get("src1") as {
+      embed_source: string
+      name: string
     }
-    expect(node.link_to).toBe("tgt1")
-    expect(node.link_alias).toBe("My Alias")
+    expect(node.embed_source).toBe("tgt1")
+    expect(node.name).toBe("My Alias")
   })
 
   test("handles empty input", async () => {

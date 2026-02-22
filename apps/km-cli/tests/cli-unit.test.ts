@@ -20,7 +20,8 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
 
   const node: KNode = {
     id,
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[ ]",
     content,

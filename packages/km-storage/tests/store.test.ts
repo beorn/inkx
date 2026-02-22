@@ -91,11 +91,11 @@ describe("MemoryStore", () => {
     expect(allNodes.length).toBeGreaterThan(0)
 
     // Should have files (3 .md + 3 non-md)
-    const files = allNodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+    const files = allNodes.filter((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
     expect(files.length).toBe(6) // tasks.md, notes.md, project-a.md, document.pdf, image.png, readme.txt
 
     // Should have folders (includes repo root node ".")
-    const folders = allNodes.filter((n) => n.type === "oi" && n.fstype === "folder")
+    const folders = allNodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "folder")
     expect(folders.length).toBe(3) // "." (root), projects/, inbox/
   })
 
@@ -105,7 +105,7 @@ describe("MemoryStore", () => {
 
     const allNodes = store.getAllNodes()
     const fileNames = allNodes
-      .filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+      .filter((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
       .map((n) => n.content)
 
     // Non-markdown files should be included with full filename
@@ -161,7 +161,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
-    const sections = store.getAllNodes().filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const sections = store.getAllNodes().filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
     expect(sections.length).toBeGreaterThan(0)
 
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
@@ -179,7 +179,8 @@ describe("MemoryStore", () => {
 
     const tasksFile = store.getNodeByPath(join(rootDir, "tasks.md"))
     expect(tasksFile).not.toBeNull()
-    expect(tasksFile!.type).toBe("oi")
+    expect(tasksFile!.type).toBe("h")
+    expect(tasksFile!.item).toBe(true)
     expect(tasksFile!.fstype === "file" || tasksFile!.fstype === "mdfile").toBe(true)
     // File content is the H1 title (merged into file node)
     expect(tasksFile!.content).toBe("Tasks")
@@ -214,8 +215,8 @@ describe("MemoryStore", () => {
     expect(ancestors.length).toBeGreaterThan(0)
 
     // Should have section and file as ancestors
-    // Should have oi ancestors (sections and file)
-    const ancestorFsTypes = ancestors.filter((a) => a.type === "oi").map((a) => a.fstype)
+    // Should have outline item ancestors (sections and file)
+    const ancestorFsTypes = ancestors.filter((a) => a.type === "h" && a.item === true).map((a) => a.fstype)
     expect(ancestorFsTypes).toContain("mdsection")
     expect(ancestorFsTypes.some((t) => t === "file" || t === "mdfile")).toBe(true)
   })

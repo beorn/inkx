@@ -5,6 +5,8 @@
  * Used by both CLI commands and TUI components.
  */
 
+import { isOutline, isItem } from "@km/core"
+
 /** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
 export const SIGIL_RE = /^[@#+]/
 
@@ -109,8 +111,8 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
  * Note: code and quote blocks don't need icons - rich text rendering
  * handles their visual distinction (backticks for code, italics for quotes).
  */
-export function getTypeIcon(type: string, fstype?: string): string {
-  if (type === "oi") {
+export function getTypeIcon(type: string, fstype?: string, item?: boolean): string {
+  if (isOutline(type, item)) {
     switch (fstype) {
       case "folder":
         return "\uD83D\uDCC1" // folder 📁
@@ -148,13 +150,13 @@ export function getTypeIcon(type: string, fstype?: string): string {
  * @returns StatusIcon with char and color, or null for tasks
  */
 export function getTypeBullet(
-  node: { type: string; fstype?: string; task_status?: string | null; task_marker?: string },
+  node: { type: string; item?: boolean; fstype?: string; task_status?: string | null; task_marker?: string },
   hasChildren: boolean,
 ): StatusIcon | null {
   // Tasks don't use a type bullet — their checkbox serves as the bullet
   if (node.task_status != null || node.task_marker !== undefined) return null
 
-  if (node.type === "oi") {
+  if (isOutline(node.type, node.item)) {
     switch (node.fstype) {
       case "folder":
         return { char: "\uF114", color: "white" } //  folder-o (nerdfont)
@@ -168,7 +170,7 @@ export function getTypeBullet(
     }
   }
 
-  if (node.type === "li") {
+  if (isItem(node.type, node.item) && !isOutline(node.type, node.item)) {
     // List items with children get a bullet
     if (hasChildren) return { char: "\u2022", color: "white" } // • bullet
     return { char: "\u00B7", color: "gray" } // · middle dot

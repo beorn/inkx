@@ -12,7 +12,8 @@ describe("createAgentNode", () => {
   test("creates agent with default options", () => {
     const { node, shortId } = createAgentNode("Test Agent")
 
-    expect(node.type).toBe("oi")
+    expect(node.type).toBe("h")
+    expect(node.item).toBe(true)
     expect(node.data?.kind).toBe("agent")
     expect(node.name).toBe("Test Agent")
     expect(node.content).toBe("Test Agent")

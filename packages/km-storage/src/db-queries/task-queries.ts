@@ -60,7 +60,7 @@ export function getLinksTo(db: Database, nodeId: string): KNode[] {
     .query(
       `
     SELECT * FROM nodes
-    WHERE link_to = ?
+    WHERE embed_source = ?
     ORDER BY parent_idx ASC
   `,
     )
@@ -168,7 +168,7 @@ export function findProject(db: Database, name: string): KNode | null {
     .query(
       `
     SELECT * FROM nodes
-    WHERE type = 'oi'
+    WHERE type = 'h' AND item = 1
     AND (
       LOWER(content) = ?
       OR LOWER(content) LIKE ?

@@ -102,7 +102,7 @@ describe("E2E Sync Safety", () => {
 
         // Should have markdown file nodes
         const nodes = getAllNodes(data.database)
-        const fileNodes = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNodes = nodes.filter((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
 
         // Should have exactly 2 markdown files (README.md and notes/daily.md)
         const mdFiles = fileNodes.filter((n) => n.fs_path?.endsWith(".md"))

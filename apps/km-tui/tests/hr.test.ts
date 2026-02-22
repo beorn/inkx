@@ -26,7 +26,7 @@ function hrWithContent(id: string, content: string): KNode[] {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",

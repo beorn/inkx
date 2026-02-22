@@ -53,11 +53,12 @@ const testColumns: ColumnView[] = [
   {
     node: {
       id: "col-1",
-      type: "oi" as const,
+      type: "h" as const,
+      item: true,
       fstype: "mdsection" as const,
       parent_id: "root-1",
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       title: "Col",
       content: "",
       data: {},

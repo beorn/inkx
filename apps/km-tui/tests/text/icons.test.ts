@@ -42,15 +42,15 @@ describe("getStatusIcon", () => {
 })
 
 describe("getTypeIcon", () => {
-  const oiTypes: Array<[string, string]> = [
+  const outlineTypes: Array<[string, string]> = [
     ["folder", "📁"],
     ["mdfile", "📄"],
     ["mdsection", "#"],
   ]
 
-  for (const [fstype, icon] of oiTypes) {
-    it(`returns ${icon} for oi ${fstype}`, () => {
-      expect(getTypeIcon("oi", fstype)).toBe(icon)
+  for (const [fstype, icon] of outlineTypes) {
+    it(`returns ${icon} for outline (h, item=true) ${fstype}`, () => {
+      expect(getTypeIcon("h", fstype, true)).toBe(icon)
     })
   }
 

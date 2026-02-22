@@ -20,12 +20,12 @@ export function createAgentNode(name: string, options: CreateAgentOptions = {}):
 
   const node: KNode = {
     id,
-    type: "oi",
+    type: "h",
+    item: true,
     name,
     content: name,
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
     version: id, // Use creation ULID as initial version
     created_at: now,
     updated_at: now,

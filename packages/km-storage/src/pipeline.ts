@@ -313,10 +313,10 @@ export async function* applyLinks(
       yield // Progress indication
     }
 
-    // Batch UPDATE for embedded links (update source node's link_to)
+    // Batch UPDATE for embedded links (update source node's embed_source)
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE nodes SET link_to = ?, link_alias = ?, updated_at = ? WHERE id = ?
+        UPDATE nodes SET embed_source = ?, name = ?, updated_at = ? WHERE id = ?
       `)
       for (const update of embeddedUpdates) {
         updateStmt.run(update.target_id, update.alias, now, update.source_id)
@@ -410,8 +410,8 @@ function insertFileNodes(
       node.type,
       node.fstype ?? null,
       node.parent_id ?? null,
-      node.link_to ?? null,
-      node.link_alias ?? null,
+      node.item ? 1 : 0,
+      node.embed_source ?? null,
       node.parent_idx ?? 0,
       node.fs_path ?? null,
       node.fs_ino ?? null,

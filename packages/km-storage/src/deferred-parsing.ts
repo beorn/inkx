@@ -93,7 +93,7 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string): boo
       const fileNode = nodes[0]
       const originalFileId = fileNode?.id
       if (
-        fileNode?.type === "oi" &&
+        fileNode?.type === "h" && fileNode.item &&
         (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
       ) {
         fileNode.id = nodeId
@@ -195,7 +195,7 @@ function parseOneFile(
 
   const fileNode = nodes[0]
   if (
-    fileNode?.type === "oi" &&
+    fileNode?.type === "h" && fileNode.item &&
     (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
   ) {
     fileNode.id = nodeId

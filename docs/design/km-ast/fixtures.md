@@ -18,19 +18,18 @@ Here is another paragraph.
 ### AST
 
 ```
-oi(fstype:mdfile, name:"my-project")
-  h(content:"My Project")                    ← blocks[0] = title
+h item(fstype:mdfile, name:"my-project", content:"My Project")
   p(content:"This is the introduction paragraph.")
   p(content:"Here is another paragraph.")
 ```
 
 **Key points:**
 
-- H1 becomes blocks[0] with type "h" — it IS the title
-- Paragraphs are blocks[1..n]
+- H1 content goes into the item's content field — no child h node
+- Paragraphs are children[0..n]
 - name derived from filename (not shown in markdown)
-- No subitems (no sub-headings)
-- Title resolution: blocks[0].content → name → id
+- No sub-items (no sub-headings)
+- Title resolution: content → name → id
 
 ## Fixture 2: File with sections
 
@@ -59,27 +58,22 @@ Blocked on Stripe.
 ### AST
 
 ```
-oi(fstype:mdfile, name:"todo-board")
-  h(content:"Todo Board")                    ← blocks[0] = title
-  p(content:"Some intro text.")              ← blocks[1]
-  oi(fstype:mdsection, name:"backlog")       ← subitems[0]
-    h(content:"Backlog")
+h item(fstype:mdfile, name:"todo-board", content:"Todo Board")
+  p(content:"Some intro text.")                           ← children[0]
+  h item(fstype:mdsection, name:"backlog", content:"Backlog")       ← sub-items[0]
     p(content:"Write docs for the API.")
-  oi(fstype:mdsection, name:"in-progress")   ← subitems[1]
-    h(content:"In Progress")
-    oi(fstype:mdsection, name:"auth-module")
-      h(content:"Auth module")
+  h item(fstype:mdsection, name:"in-progress", content:"In Progress") ← sub-items[1]
+    h item(fstype:mdsection, name:"auth-module", content:"Auth module")
       p(content:"Almost done.")
-    oi(fstype:mdsection, name:"payment-integration")
-      h(content:"Payment integration")
+    h item(fstype:mdsection, name:"payment-integration", content:"Payment integration")
       p(content:"Blocked on Stripe.")
 ```
 
 **Key points:**
 
 - Heading level is implicit from depth (H1=depth 0, H2=depth 1, H3=depth 2)
-- Each section's heading text is blocks[0]
-- "In Progress" has no blocks other than its heading — its children are subitems
+- Each section's title is in the item's content field
+- "In Progress" has no children other than sub-items
 - name is slugified from heading text for mdsection
 
 ## Fixture 3: Lists (unordered, ordered, nested)
@@ -103,33 +97,24 @@ oi(fstype:mdfile, name:"todo-board")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"shopping")
-  h(content:"Shopping")
-  li(list_marker:"-")                        ← blocks[1]
-    p(content:"Apples")                        ← li.blocks[0]
-  li(list_marker:"-")                        ← blocks[2]
-    p(content:"Bananas")
-    li(list_marker:"-")                        ← nested li (subitem of parent li)
-      p(content:"Green ones")
-    li(list_marker:"-")
-      p(content:"Ripe ones")
-  li(list_marker:"-")                        ← blocks[3]
-    p(content:"Milk")
-  li(list_marker:"1.")                       ← blocks[4] — new list (different marker)
-    p(content:"Wake up")
-  li(list_marker:"2.")
-    p(content:"Brush teeth")
-  li(list_marker:"3.")
-    p(content:"Make coffee")
+h item(fstype:mdsection, name:"shopping", content:"Shopping")
+  p item(list_marker:"-", content:"Apples")               ← children[0]
+  p item(list_marker:"-", content:"Bananas")               ← children[1]
+    p item(list_marker:"-", content:"Green ones")            ← nested (child item of parent item)
+    p item(list_marker:"-", content:"Ripe ones")
+  p item(list_marker:"-", content:"Milk")                  ← children[2]
+  p item(list_marker:"1.", content:"Wake up")              ← children[3] — new list (different marker)
+  p item(list_marker:"2.", content:"Brush teeth")
+  p item(list_marker:"3.", content:"Make coffee")
 ```
 
 **Key points:**
 
-- li has .blocks[] not .content — the text is in blocks[0] (a p block)
-- Nested list items are subitems of the parent li
+- p item has .content directly — the text is in the content field
+- Nested list items are child items of the parent p item
 - list_marker preserves original style ("-" vs "1.")
 - Ordered numbering stored as-is in list_marker
-- Consecutive lis with compatible list_markers serialize back to one markdown list
+- Consecutive p items with compatible list_markers serialize back to one markdown list
 
 ## Fixture 4: Tasks (checkbox items)
 
@@ -151,18 +136,12 @@ Completed last week.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"sprint-3")
-  h(content:"Sprint 3")
-  li(list_marker:"-", task_marker:"[x]")
-    p(content:"Deploy staging")
-  li(list_marker:"-", task_marker:"[ ]")
-    p(content:"Write migration")
-  li(list_marker:"-", task_marker:"[/]")
-    p(content:"Code review")
-  li(list_marker:"-", task_marker:"[!]")
-    p(content:"Waiting on design")
-  oi(fstype:mdsection, name:"auth-overhaul", task_marker:"[x]")
-    h(content:"Auth overhaul")
+h item(fstype:mdsection, name:"sprint-3", content:"Sprint 3")
+  p item(list_marker:"-", task_marker:"[x]", content:"Deploy staging")
+  p item(list_marker:"-", task_marker:"[ ]", content:"Write migration")
+  p item(list_marker:"-", task_marker:"[/]", content:"Code review")
+  p item(list_marker:"-", task_marker:"[!]", content:"Waiting on design")
+  h item(fstype:mdsection, name:"auth-overhaul", task_marker:"[x]", content:"Auth overhaul")
     p(content:"Completed last week.")
 ```
 
@@ -172,7 +151,7 @@ oi(fstype:mdsection, name:"sprint-3")
 - task_status is derived: "[x]"→done, "[ ]"→todo, "[/]"→wip, "[!]"→blocked, "[-]"→dropped
 - list_marker ("-") and task_marker ("[x]") are independent — both are "markers"
 - The checkbox is NOT part of the content string — it's extracted to task_marker
-- Section headings with `[x]` prefix → oi with task_marker
+- Section headings with `[x]` prefix → h item with task_marker
 
 ## Fixture 5: Code blocks and quotes
 
@@ -199,8 +178,7 @@ Or use the script:
 ### AST
 
 ```
-oi(fstype:mdsection, name:"setup")
-  h(content:"Setup")
+h item(fstype:mdsection, name:"setup", content:"Setup")
   p(content:"Install dependencies:")
   code(content:"npm install")
   p(content:"Or use the script:")
@@ -214,7 +192,7 @@ oi(fstype:mdsection, name:"setup")
 - Indented code blocks and fenced blocks both become `code` type
 - Quote blocks preserve internal paragraph structure in content
 
-## Fixture 6: Embeds (link nodes)
+## Fixture 6: Embeds
 
 ### Markdown
 
@@ -231,19 +209,17 @@ Some commentary on the report.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"dashboard")
-  h(content:"Dashboard")
-  link(link_to:"weekly-report", embed:true)  ← blocks[1]
+h item(fstype:mdsection, name:"dashboard", content:"Dashboard")
+  embed(embed_source:"weekly-report")                  ← children[0]
   p(content:"Some commentary on the report.")
-  link(link_to:"monthly-metrics", embed:true)
-    p(content:"Q4 Metrics")                    ← alias as blocks[0]
+  embed(embed_source:"monthly-metrics", name:"Q4 Metrics")
 ```
 
 **Key points:**
 
-- Embeds are `link` nodes with `embed:true`
-- No alias → link has no blocks, display falls back to target's title
-- With alias → alias text is a block (blocks[0]) of the link node
+- Embeds are `embed` nodes with `embed_source` specifying the target
+- No alias → display falls back to target's title
+- With alias → name field holds the alias text
 - `[[references]]` (without !) stay inline in content strings, not nodes
 
 ## Fixture 7: Embed as section title
@@ -259,16 +235,16 @@ The project is going well.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"project-overview")
-  link(link_to:"project-overview", embed:true) ← blocks[0] = title
+h item(fstype:mdsection, name:"project-overview")
+  embed(embed_source:"project-overview")               ← children[0] = title position
   p(content:"The project is going well.")
 ```
 
 **Key points:**
 
-- A link node can be blocks[0] (the title position)
+- An embed node can be children[0] (the title position)
 - name derived from embed target
-- View layer shows target's title (or alias if link has blocks)
+- View layer shows target's title (or alias if embed has name)
 
 ## Fixture 8: Folder structure
 
@@ -287,30 +263,26 @@ projects/
 ### AST
 
 ```
-oi(fstype:folder, name:"projects")
-  oi(fstype:mdfile, name:"projects")         ← index file (collapsible with folder)
-    h(content:"Projects")
-  oi(fstype:folder, name:"alpha")
-    oi(fstype:mdfile, name:"alpha")
-      h(content:"Project Alpha")
-    oi(fstype:mdfile, name:"notes")
-      h(content:"Notes")
-  oi(fstype:folder, name:"beta")
-    oi(fstype:mdfile, name:"beta")
-      h(content:"Project Beta")
-      oi(fstype:mdsection, name:"...")
+h item(fstype:folder, name:"projects")
+  h item(fstype:mdfile, name:"projects", content:"Projects")  ← index file (collapsible with folder)
+  h item(fstype:folder, name:"alpha")
+    h item(fstype:mdfile, name:"alpha", content:"Project Alpha")
+    h item(fstype:mdfile, name:"notes", content:"Notes")
+  h item(fstype:folder, name:"beta")
+    h item(fstype:mdfile, name:"beta", content:"Project Beta")
+      h item(fstype:mdsection, name:"...")
         ...
 ```
 
 **Key points:**
 
-- Folders have no blocks by default (name only)
+- Folders have no content by default (name only)
 - Folders can have an index file (same-name .md, README.md, or .md) providing body content and metadata
 - View layer collapses folder + index file into one display node
-- Files have H1 as blocks[0]
-- Only oi inside oi
+- Files have title in content field
+- Only h item inside h item
 
-## Fixture 9: ListItem with blocks (rich list items)
+## Fixture 9: List item with children (rich list items)
 
 ### Markdown
 
@@ -333,24 +305,21 @@ oi(fstype:folder, name:"projects")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"api-endpoints")
-  h(content:"API Endpoints")
-  li(list_marker:"-")
-    p(content:"**GET /users**")              ← li.blocks[0] (item text)
+h item(fstype:mdsection, name:"api-endpoints", content:"API Endpoints")
+  p item(list_marker:"-", content:"**GET /users**")
     p(content:"Returns all users. Supports pagination.")
     code(content:"{\"users\": [...], \"total\": 42}", data:{lang:"json"})
-  li(list_marker:"-")
-    p(content:"**POST /users**")
+  p item(list_marker:"-", content:"**POST /users**")
     p(content:"Creates a new user.")
 ```
 
 **Key points:**
 
-- li has multiple blocks (same as oi)
-- blocks[0] is the "title" of the list item (rendered inline, not as heading)
+- p item has multiple children (same as h item)
+- content holds the "title" of the list item (rendered inline, not as heading)
 - Rich content (code blocks, multiple paragraphs) under a list item
 
-## Fixture 10: Mixed content (li inside oi body alongside blocks)
+## Fixture 10: Mixed content (p item inside h item body alongside children)
 
 ### Markdown
 
@@ -372,24 +341,20 @@ Deep dive results here.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"notes")
-  h(content:"Notes")                         ← blocks[0]
-  p(content:"Remember to check the logs.")   ← blocks[1]
-  li(list_marker:"-")                        ← blocks[2] (li is a block in oi context)
-    p(content:"First finding")
-  li(list_marker:"-")                        ← blocks[3]
-    p(content:"Second finding")
-  p(content:"Also review the dashboard.")    ← blocks[4]
-  oi(fstype:mdsection, name:"analysis")      ← subitems[0]
-    h(content:"Analysis")
+h item(fstype:mdsection, name:"notes", content:"Notes")
+  p(content:"Remember to check the logs.")              ← children[0]
+  p item(list_marker:"-", content:"First finding")       ← children[1] (p item is a child in h item context)
+  p item(list_marker:"-", content:"Second finding")      ← children[2]
+  p(content:"Also review the dashboard.")                ← children[3]
+  h item(fstype:mdsection, name:"analysis", content:"Analysis")  ← sub-items[0]
     p(content:"Deep dive results here.")
 ```
 
 **Key points:**
 
-- li appears among p blocks — it's a block in oi context
-- Blocks come before subitems in parent_idx
-- The paragraph after the list is still a block, before the subitem section
+- p item appears among p children — it's a child in h item context
+- Body children come before sub-items in parent_idx
+- The paragraph after the list is still a child, before the sub-item section
 
 ## Fixture 11: Content between sibling sections
 
@@ -414,15 +379,12 @@ In progress.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"project")
-  h(content:"Project")
+h item(fstype:mdsection, name:"project", content:"Project")
   p(content:"Some intro.")
-  oi(fstype:mdsection, name:"phase-1")
-    h(content:"Phase 1")
+  h item(fstype:mdsection, name:"phase-1", content:"Phase 1")
     p(content:"Done.")
-    p(content:"More text here about the project.")  ← part of Phase 1 (before next heading)
-  oi(fstype:mdsection, name:"phase-2")
-    h(content:"Phase 2")
+    p(content:"More text here about the project.")       ← part of Phase 1 (before next heading)
+  h item(fstype:mdsection, name:"phase-2", content:"Phase 2")
     p(content:"In progress.")
 ```
 
@@ -430,8 +392,8 @@ oi(fstype:mdsection, name:"project")
 
 - In markdown, content after `### Phase 1` and before `### Phase 2` belongs to Phase 1
 - There's no way to "close" a section in markdown — content goes to the preceding heading
-- This is NOT "content after subitems" — it's normal section body content
-- The blocks-before-subitems rule applies to parent's children, not within sibling boundaries
+- This is NOT "content after sub-items" — it's normal section body content
+- The children-before-sub-items rule applies to parent's children, not within sibling boundaries
 
 ## Fixture 12: Skipped heading levels
 
@@ -446,16 +408,14 @@ oi(fstype:mdsection, name:"project")
 ### AST
 
 ```
-oi(fstype:mdfile, name:"deep-doc")
-  h(content:"Deep Doc")
-  oi(fstype:mdsection, name:"(synthetic)")   ← inserted for missing H2 level
-    oi(fstype:mdsection, name:"jumped-to-h3")
-      h(content:"Jumped to H3")
+h item(fstype:mdfile, name:"deep-doc", content:"Deep Doc")
+  h item(fstype:mdsection, name:"(synthetic)")          ← inserted for missing H2 level
+    h item(fstype:mdsection, name:"jumped-to-h3", content:"Jumped to H3")
 ```
 
 **Key points:**
 
-- H1 → H3 (skipping H2) inserts a synthetic oi at the missing level
+- H1 → H3 (skipping H2) inserts a synthetic h item at the missing level
 - Parse issues a warning
 - Round-trip normalizes: serializes as H1 → H2 → H3
 - No serialization hints — heading level always equals tree depth
@@ -480,8 +440,7 @@ Legacy notes below.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"status")
-  h(content:"Status")
+h item(fstype:mdsection, name:"status", content:"Status")
   table(content:"| Feature | Status |\n|---------|--------|\n| Auth    | Done   |\n| Search  | WIP    |")
   hr()
   p(content:"Legacy notes below.")
@@ -489,29 +448,29 @@ oi(fstype:mdsection, name:"status")
 
 **Key points:**
 
-- `---` in body = hr block. `---` at file start = YAML frontmatter (parsed into oi.data)
+- `---` in body = hr block. `---` at file start = YAML frontmatter (parsed into item's data)
 - table content preserves raw markdown format
 
 ## Fixture 14: Section without heading (name-only)
 
-An outline item with no heading block, just a name (auto-generated or imported):
+An item with no heading, just a name (auto-generated or imported):
 
 ### AST
 
 ```
-oi(fstype:mdsection, name:"untitled-section")
+h item(fstype:mdsection, name:"untitled-section")
   p(content:"Some content here.")
   p(content:"More content.")
 ```
 
 **Key points:**
 
-- No blocks[0] of type "h" — no heading
-- Title resolution: blocks[0].content ("Some content here.") → name → id
+- No content field — no heading
+- Title resolution: children[0].content ("Some content here.") → name → id
 - View-mode dependent display:
-  - Outliner: shows name or blocks[0].content
-  - Doc view: shows blocks[0] as regular text (no heading style)
-- If no blocks AND no name: shows id (distinctly styled)
+  - Outliner: shows name or children[0].content
+  - Doc view: shows children[0] as regular text (no heading style)
+- If no children AND no name: shows id (distinctly styled)
 
 ## Fixture 15: Empty file (H1 only)
 
@@ -524,8 +483,7 @@ oi(fstype:mdsection, name:"untitled-section")
 ### AST
 
 ```
-oi(fstype:mdfile, name:"new-document")
-  h(content:"New Document")
+h item(fstype:mdfile, name:"new-document", content:"New Document")
 ```
 
 **Key points:**
@@ -538,18 +496,16 @@ oi(fstype:mdfile, name:"new-document")
 ### AST
 
 ```
-oi(fstype:repo, name:"my-vault")
-  oi(fstype:folder, name:"projects")
-    oi(fstype:mdfile, name:"readme")
-      h(content:"README")
-  oi(fstype:mdfile, name:"index")
-    h(content:"Welcome")
+h item(fstype:repo, name:"my-vault")
+  h item(fstype:folder, name:"projects")
+    h item(fstype:mdfile, name:"readme", content:"README")
+  h item(fstype:mdfile, name:"index", content:"Welcome")
 ```
 
 **Key points:**
 
 - repo is the top-level fstype, always exactly one
-- repo has no blocks (name only)
+- repo has no content (name only)
 - Direct children can be folders or files
 
 ## Fixture 17: Embed as list item
@@ -567,22 +523,19 @@ oi(fstype:repo, name:"my-vault")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"references")
-  h(content:"References")
-  li(list_marker:"-")
-    link(link_to:"design-doc", embed:true)   ← li.blocks[0]
-  li(list_marker:"-")
-    link(link_to:"api-spec", embed:true)
-      p(content:"API Specification")           ← alias as blocks[0] of link
-  li(list_marker:"-")
-    p(content:"Regular item")
+h item(fstype:mdsection, name:"references", content:"References")
+  p item(list_marker:"-")
+    embed(embed_source:"design-doc")                     ← children[0]
+  p item(list_marker:"-")
+    embed(embed_source:"api-spec", name:"API Specification")
+  p item(list_marker:"-", content:"Regular item")
 ```
 
 **Key points:**
 
-- link node can be blocks[0] of a li (same as oi)
-- Display uses alias (link's blocks[0]) or target's title
-- The link node itself lives inside the li's blocks
+- embed node can be children[0] of a p item (same as h item)
+- Display uses alias (embed's name) or target's title
+- The embed node itself lives inside the p item's children
 
 ## Fixture 18: Deeply nested list with rich content
 
@@ -610,28 +563,21 @@ oi(fstype:mdsection, name:"references")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"architecture")
-  h(content:"Architecture")
-  li(list_marker:"-")                        ← "Frontend"
-    p(content:"Frontend")
-    li(list_marker:"-")                      ← nested: "React components"
-      p(content:"React components")
+h item(fstype:mdsection, name:"architecture", content:"Architecture")
+  p item(list_marker:"-", content:"Frontend")
+    p item(list_marker:"-", content:"React components")
       p(content:"Each component has its own directory.")
       code(content:"export function App() { ... }", data:{lang:"tsx"})
-    li(list_marker:"-")                      ← nested: "State management"
-      p(content:"State management")
-      li(list_marker:"-")                    ← doubly nested
-        p(content:"Redux store")
-      li(list_marker:"-")
-        p(content:"Local state")
-  li(list_marker:"-")                        ← "Backend"
-    p(content:"Backend")
+    p item(list_marker:"-", content:"State management")
+      p item(list_marker:"-", content:"Redux store")
+      p item(list_marker:"-", content:"Local state")
+  p item(list_marker:"-", content:"Backend")
 ```
 
 **Key points:**
 
-- li nests to arbitrary depth (li → li → li)
-- Each li level follows the same split: blocks (non-li) before subitems (li)
+- p item nests to arbitrary depth (p item → p item → p item)
+- Each p item level follows the same split: children (non-item) before child items (p item)
 - Rich content (paragraphs, code) at any nesting level
 
 ## Fixture 19: Ordered task list
@@ -650,16 +596,11 @@ oi(fstype:mdsection, name:"architecture")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"release-checklist")
-  h(content:"Release Checklist")
-  li(list_marker:"1.", task_marker:"[x]")
-    p(content:"Tag release")
-  li(list_marker:"2.", task_marker:"[/]")
-    p(content:"Run CI pipeline")
-  li(list_marker:"3.", task_marker:"[ ]")
-    p(content:"Deploy to staging")
-  li(list_marker:"4.", task_marker:"[ ]")
-    p(content:"Smoke test")
+h item(fstype:mdsection, name:"release-checklist", content:"Release Checklist")
+  p item(list_marker:"1.", task_marker:"[x]", content:"Tag release")
+  p item(list_marker:"2.", task_marker:"[/]", content:"Run CI pipeline")
+  p item(list_marker:"3.", task_marker:"[ ]", content:"Deploy to staging")
+  p item(list_marker:"4.", task_marker:"[ ]", content:"Smoke test")
 ```
 
 **Key points:**
@@ -685,8 +626,7 @@ Some text after.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"widget")
-  h(content:"Widget")
+h item(fstype:mdsection, name:"widget", content:"Widget")
   html(content:"<div class=\"custom-widget\">\n  <span>Hello</span>\n</div>")
   p(content:"Some text after.")
 ```
@@ -707,20 +647,17 @@ This claim needs a source[^1]. See also the extended discussion[^note].
 ### AST
 
 ```
-oi(fstype:mdsection, name:"research")
-  h(content:"Research")
+h item(fstype:mdsection, name:"research", content:"Research")
   p(content:"This claim needs a source[^1]. See also the extended discussion[^note].")
-  li(list_marker:"[^1]")
-    p(content:"Smith et al., 2024")
-  li(list_marker:"[^note]")
-    p(content:"The full analysis is available in the appendix.")
+  p item(list_marker:"[^1]", content:"Smith et al., 2024")
+  p item(list_marker:"[^note]", content:"The full analysis is available in the appendix.")
 ```
 
 **Key points:**
 
 - Footnote references (`[^1]`) stay inline in content strings
-- Footnote definitions become li nodes with footnote-style list_marker
-- Visible, editable, deletable — same as any other li
+- Footnote definitions become p item nodes with footnote-style list_marker
+- Visible, editable, deletable — same as any other p item
 - list_marker format: `"[^1]"`, `"[^note]"` etc.
 
 ## Fixture 22: Non-embed link reference
@@ -737,20 +674,18 @@ oi(fstype:mdsection, name:"research")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"see-also")
-  h(content:"See Also")
-  li(list_marker:"-")
-    link(link_to:"related-project", embed:false)  ← reference, not transclusion
-  li(list_marker:"-")
-    link(link_to:"other-doc", embed:false)
-      p(content:"See this doc")
+h item(fstype:mdsection, name:"see-also", content:"See Also")
+  p item(list_marker:"-")
+    embed(embed_source:"related-project")                ← reference, not transclusion
+  p item(list_marker:"-")
+    embed(embed_source:"other-doc", name:"See this doc")
 ```
 
 **Key points:**
 
-- `[[ref]]` as standalone block → link node with embed:false
+- `[[ref]]` as standalone block → embed node
 - `[[ref]]` inline in text → stays in content string, indexed in links table
-- embed:false = show as a clickable reference card, don't transclude content
+- References display as clickable reference cards, don't transclude content
 
 ## Fixture 23: Frontmatter
 
@@ -771,14 +706,13 @@ Tasks for this sprint.
 ### AST
 
 ```
-oi(fstype:mdfile, name:"sprint-plan", data:{tags:["project","active"], priority:2, due:"2026-03-01"})
-  h(content:"Sprint Plan")
+h item(fstype:mdfile, name:"sprint-plan", content:"Sprint Plan", data:{tags:["project","active"], priority:2, due:"2026-03-01"})
   p(content:"Tasks for this sprint.")
 ```
 
 **Key points:**
 
-- Frontmatter is NOT a node — it's parsed into the `data` JSON field on the file's oi
+- Frontmatter is NOT a node — it's parsed into the `data` JSON field on the file's h item
 - Round-trip: `data` is serialized back to YAML frontmatter on write
 - Frontmatter fields can be queried (`priority:2`, `tags:active`)
 
@@ -801,8 +735,7 @@ And inline math like $E = mc^2$ stays in text.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"derivation")
-  h(content:"Derivation")
+h item(fstype:mdsection, name:"derivation", content:"Derivation")
   p(content:"The integral is:")
   math(content:"\\int_0^1 f(x) \\, dx = F(1) - F(0)")
   p(content:"And inline math like $E = mc^2$ stays in text.")
@@ -831,8 +764,7 @@ Follow the steps below.
 ### AST
 
 ```
-oi(fstype:mdsection, name:"setup")
-  h(content:"Setup")
+h item(fstype:mdsection, name:"setup", content:"Setup")
   quote(data:{callout_type:"WARNING", callout_title:"Requires admin access"})
     p(content:"This operation modifies system files.\nMake sure you have a backup.")
   p(content:"Follow the steps below.")
@@ -865,8 +797,7 @@ oi(fstype:mdsection, name:"setup")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"discussion")
-  h(content:"Discussion")
+h item(fstype:mdsection, name:"discussion", content:"Discussion")
   quote
     p(content:"Alice said:")
     quote
@@ -900,28 +831,22 @@ oi(fstype:mdsection, name:"discussion")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"requirements")
-  h(content:"Requirements")
+h item(fstype:mdsection, name:"requirements", content:"Requirements")
   quote
     p(content:"The system must:")
-    li(list_marker:"-")
-      p(content:"Handle 1000 requests/sec")
-    li(list_marker:"-")
-      p(content:"Support graceful degradation")
-      li(list_marker:"-")
-        p(content:"Fallback to cache")
-      li(list_marker:"-")
-        p(content:"Show stale data indicator")
-    li(list_marker:"-", task_marker:"[ ]")
-      p(content:"Implement rate limiting")
+    p item(list_marker:"-", content:"Handle 1000 requests/sec")
+    p item(list_marker:"-", content:"Support graceful degradation")
+      p item(list_marker:"-", content:"Fallback to cache")
+      p item(list_marker:"-", content:"Show stale data indicator")
+    p item(list_marker:"-", task_marker:"[ ]", content:"Implement rate limiting")
 ```
 
 **Key points:**
 
-- Lists inside blockquotes work — `li` can appear in `quote` children
-- Nested lists inside blockquotes also work (li within li within quote)
+- Lists inside blockquotes work — `p item` can appear in `quote` children
+- Nested lists inside blockquotes also work (p item within p item within quote)
 - Task items in blockquotes preserve their markers
-- Heading inside a blockquote stays as `h` block (not a new `oi`)
+- Heading inside a blockquote stays as `h` block (not a new `h item`)
 
 ## Fixture 28: Multi-paragraph list item
 
@@ -944,18 +869,15 @@ oi(fstype:mdsection, name:"requirements")
 ### AST
 
 ```
-oi(fstype:mdsection, name:"notes")
-  h(content:"Notes")
-  li(list_marker:"-")
-    p(content:"First point with a long explanation.")
+h item(fstype:mdsection, name:"notes", content:"Notes")
+  p item(list_marker:"-", content:"First point with a long explanation.")
     p(content:"This continues the first point with a second paragraph.")
     code(content:"print(\"still part of first item\")", data:{lang:"python"})
-  li(list_marker:"-")
-    p(content:"Second point.")
+  p item(list_marker:"-", content:"Second point.")
 ```
 
 **Key points:**
 
-- Multi-paragraph list items have multiple `p` blocks as children of `li`
+- Multi-paragraph list items have multiple `p` children of the `p item`
 - Code blocks, quotes, etc. can also appear inside a list item
 - Indented continuation (4 spaces or 1 tab) signals same list item

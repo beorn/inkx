@@ -19,7 +19,7 @@ import { realpathSync } from "fs"
 import { resolve } from "path"
 import { resolvePathArg } from "@km/storage"
 import type { KNode } from "@km/core"
-import { getMarkerForStatus } from "@km/core"
+import { getMarkerForStatus, isOutline, isEmbed } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -197,7 +197,7 @@ export const addCommand = new Command("add")
       const children = repo.getChildren(parentId)
       let firstEligible: KNode | undefined
       for (const child of children) {
-        if (child.type === "oi" && child.fstype === "mdsection") {
+        if (isOutline(child.type, child.item) && child.fstype === "mdsection") {
           const rules = child.data?.rules as { default?: boolean; collapse?: boolean; removed?: boolean } | undefined
           if (rules?.default) {
             return child // explicit override
@@ -229,8 +229,8 @@ export const addCommand = new Command("add")
       : new Set(
           repo
             .getSubtree(targetNode.id)
-            .filter((n): n is typeof n & { link_to: string } => n.link_to != null)
-            .map((n) => n.link_to),
+            .filter((n): n is typeof n & { embed_source: string } => n.embed_source != null)
+            .map((n) => n.embed_source),
         )
 
     const tasksToLink: KNode[] = []
@@ -312,11 +312,11 @@ export const addCommand = new Command("add")
       // Create link nodes
       for (const task of tasksToLink) {
         repo.addNode(actualTarget.id, {
-          type: "li",
+          type: "embed",
           list_marker: "-",
           task_marker: task.task_marker ?? getMarkerForStatus(task.task_status ?? "todo"),
           parent_idx: nextIdx++,
-          link_to: task.id,
+          embed_source: task.id,
           content: task.content,
           task_status: task.task_status,
         })
@@ -326,8 +326,8 @@ export const addCommand = new Command("add")
       if (sigilStr && sigilPrefix && sigilName) {
         const dataKey = SIGIL_DATA_KEY[sigilPrefix]
         for (const task of tasksToSigil) {
-          // Skip link nodes — they mirror the source, don't tag them
-          if (task.link_to) continue
+          // Skip embed nodes — they mirror the source, don't tag them
+          if (isEmbed(task.type)) continue
 
           // Re-check dedup (content may have changed since we checked)
           if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) {
@@ -365,7 +365,7 @@ export const addCommand = new Command("add")
       phaseOk("Sync to disk", `${syncCount} file${syncCount !== 1 ? "s" : ""}`, t0)
     }
 
-    const sigilCount = tasksToSigil.filter((t) => !t.link_to).length
+    const sigilCount = tasksToSigil.filter((t) => !isEmbed(t.type)).length
 
     if (options.json) {
       console.log(

@@ -14,6 +14,7 @@
 import { useMemo, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { isEmbed } from "@km/core"
 import { createLogger } from "@beorn/logger"
 import { extractBody } from "@km/tree"
 import type { ColumnView } from "../types.ts"
@@ -147,13 +148,13 @@ function mapDescendants(
  * Can be used outside of React for testing and in the store for synchronous layout.
  *
  * Uses extractBody to split root children into leading body content and
- * structural (oi) columns -- matching buildBoardState's logic so that
+ * structural (outline) columns -- matching buildBoardState's logic so that
  * zoomed-in views render identically to the board root.
  */
 export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnView[] {
   using span = log.span("derive-columns")
   // Split root children into leading body content and structural columns.
-  // Only oi nodes become columns; li/link/block nodes before the first oi
+  // Only outline nodes become columns; list items/embeds/block nodes before the first outline
   // are leading body content (displayed as a virtual "Description" column).
   const allChildren = repo.getChildren(rootId)
   const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
@@ -172,7 +173,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   if (filteredBody.length > 0) {
     const virtualCardIds = new Set<string>()
     for (const n of filteredBody) {
-      if (!n.link_to) virtualCardIds.add(n.id)
+      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
     }
     columns.push({
       node: createVirtualBodyNode(rootId),
@@ -270,7 +271,7 @@ function kNodeToColumnView(
   const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
-  // Split children into body (paragraphs) and structural (oi) cards
+  // Split children into body (paragraphs) and structural (outline) cards
   const allCardNodes = repo.getChildren(node.id)
   const { body: bodyNodes, items: structuralNodes } = extractBody(allCardNodes)
 
@@ -280,7 +281,7 @@ function kNodeToColumnView(
   for (const child of bodyNodes) {
     if (isCollapsedChild(child)) continue
     cardNodes.push(child)
-    if (!child.link_to) virtualCardIds.add(child.id)
+    if (!isEmbed(child.type)) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
     // Collapsed structural nodes are kept but rendered folded (compact card)
@@ -299,14 +300,14 @@ function createVirtualBodyNode(parentId: string | null): KNode {
   const now = Date.now()
   return {
     id: `__body__${parentId ?? "root"}`,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     parent_id: parentId,
     parent_idx: 0,
     title: "Description",
     content: "",
     data: {},
-    link_to: null,
     created_at: now,
     updated_at: now,
     version: "",

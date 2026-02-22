@@ -15,8 +15,6 @@ export type {
   Source,
   NodeType,
   BlockType,
-  ItemType,
-  LinkType,
   FsType,
   NodeRules,
   TaskStatus,
@@ -38,8 +36,9 @@ export type {
 export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"
 export type { BuildInfo } from "./build-info.gen.ts"
 
-// Type predicates (km-ast)
-export { isOutline, isListItem, isItem, isLink, isBlock } from "./types.ts"
+// Type predicates (km-ast v2)
+export { isOutline, isListItem, isItem, isEmbed, isBlock, validateNode } from "./types.ts"
+export type { ValidationError } from "./types.ts"
 
 // Task utilities (new names)
 export {

@@ -34,7 +34,7 @@ export interface DiffResult {
 function computeOrdinals(nodes: KNode[]): Map<string, number> {
   const byParent = new Map<string, KNode[]>()
   for (const node of nodes) {
-    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
     const parentId = node.parent_id ?? "root"
     let group = byParent.get(parentId)
     if (!group) {
@@ -61,7 +61,11 @@ function computeOrdinals(nodes: KNode[]): Map<string, number> {
  * which normalizes fractional and integer indices.
  */
 function makeStructuralKey(parentId: string | null, ordinal: number, type: string): string {
-  return `${parentId ?? "root"}:${ordinal}:${type}`
+  // Normalize embed → p for matching. The parser always creates embed content as "p" paragraphs;
+  // link resolution later promotes them to "embed". Without normalization, re-parse would fail
+  // to match existing embed nodes back to their parsed "p" counterparts.
+  const normalizedType = type === "embed" ? "p" : type
+  return `${parentId ?? "root"}:${ordinal}:${normalizedType}`
 }
 
 /**
@@ -77,7 +81,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const existingOrdinals = computeOrdinals(existing)
   const existingByKey = new Map<string, KNode>()
   for (const node of existing) {
-    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
     const ordinal = existingOrdinals.get(node.id) ?? 0
     const key = makeStructuralKey(node.parent_id, ordinal, node.type)
     existingByKey.set(key, node)
@@ -87,8 +91,8 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const idMap = new Map<string, string>()
 
   // First pass: match file nodes by type (always root)
-  const existingFile = existing.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
-  const newFile = newNodes.find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+  const existingFile = existing.find((n) => n.type === "h" && n.item && (n.fstype === "file" || n.fstype === "mdfile"))
+  const newFile = newNodes.find((n) => n.type === "h" && n.item && (n.fstype === "file" || n.fstype === "mdfile"))
   if (existingFile && newFile) {
     idMap.set(newFile.id, existingFile.id)
   }
@@ -96,7 +100,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   // Process non-file nodes with remapped parent IDs
   const newOrdinals = computeOrdinals(newNodes)
   for (const node of newNodes) {
-    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
 
     // Remap parent_id for key lookup
     const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
@@ -125,13 +129,10 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
       // Check for changes
       const nodeChanges = diffNodeFields(existingNode, node, CHILD_DIFF_FIELDS)
 
-      // Preserve link_to/link_alias from existing node — parser can't resolve
-      // ![[...]] to link_to, so re-parsing would clear programmatic embeddings
-      if (existingNode.link_to && !node.link_to) {
-        delete nodeChanges.link_to
-      }
-      if (existingNode.link_alias && !node.link_alias) {
-        delete nodeChanges.link_alias
+      // Preserve embed_source from existing node — parser can't resolve
+      // ![[...]] to embed_source, so re-parsing would clear programmatic embeddings
+      if (existingNode.embed_source && !node.embed_source) {
+        delete nodeChanges.embed_source
       }
 
       if (Object.keys(nodeChanges).length > 0) {
@@ -162,7 +163,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   // Remaining existing nodes were deleted
   for (const [, node] of existingByKey) {
     // Don't delete file nodes
-    if (node.type === "oi" && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
     changes.push({
       type: "deleted",
       nodeId: node.id,
@@ -181,8 +182,8 @@ const CHILD_DIFF_FIELDS = [
   "due_at",
   "start_at",
   "priority",
-  "link_to",
-  "link_alias",
+  "embed_source",
+  "name",
   "title",
 ] as const
 

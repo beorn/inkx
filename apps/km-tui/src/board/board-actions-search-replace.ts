@@ -6,6 +6,7 @@
  */
 
 import { type ActionResult, boundary, ok } from "@km/commands"
+import { isOutline } from "@km/core"
 import { getNodeText, setNodeText } from "@km/tree"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -253,7 +254,7 @@ function replaceInNode(
 
   // Apply the change via the repo
   const newContent = setNodeText(node, newText)
-  if (node.type === "oi") {
+  if (isOutline(node.type, node.item)) {
     ctx.repo.updateNode(nodeId, { name: newContent })
   } else {
     ctx.repo.updateNode(nodeId, { content: newContent })

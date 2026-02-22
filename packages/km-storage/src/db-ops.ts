@@ -43,11 +43,11 @@ export interface DbOps {
  * @example
  * // Memory mode - direct SQL
  * const ops = createDbOps(db)
- * ops.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })
+ * ops.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
  *
  * // Disk mode - emit events
  * const ops = createDbOps(db, emitter)
- * ops.addNode(null, { type: "li", task_marker: "[ ]", content: "Test" })  // emits node_created
+ * ops.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })  // emits node_created
  */
 export function createDbOps(db: Database, emitter?: Emitter): DbOps {
   return {
@@ -163,7 +163,7 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
 
 function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>, emitter?: Emitter): string {
   const nodeId = node.id ?? ulid()
-  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "li"} parent=${parentId} emitter=${!!emitter}`)
+  log.debug?.(`addNode: ${nodeId} type=${node.type ?? "p"} item=${node.item} parent=${parentId} emitter=${!!emitter}`)
   const now = Date.now()
 
   // Merge non-column fields into data blob
@@ -174,9 +174,10 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     }
   }
 
-  // Default type: "li" with task_marker "[ ]" (replaces old "task" default)
-  const defaultType = node.type ?? "li"
-  const isTask = node.task_marker !== undefined || (defaultType === "li" && node.type === undefined)
+  // Default type: "p" with item:true and task_marker "[ ]" (v2 trait model)
+  const defaultType = node.type ?? "p"
+  const defaultItem = node.item ?? (node.type === undefined ? true : undefined)
+  const isTask = node.task_marker !== undefined || (defaultType === "p" && defaultItem && node.type === undefined)
 
   const nodeData = {
     id: nodeId,
@@ -184,9 +185,8 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     fstype: node.fstype ?? null,
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
-    link_to: node.link_to ?? null,
-    link_alias: node.link_alias ?? null,
-    embed: node.embed ? 1 : 0,
+    item: defaultItem ? 1 : 0,
+    embed_source: node.embed_source ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
     name: node.name ?? null,
@@ -219,13 +219,13 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   } else {
     db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
+        id, type, fstype, parent_id, parent_idx, item, embed_source,
         fs_path, fs_ino, name, title, md_pos, md_line,
         list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
         content, content_hash, data, created_at, updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?,
         ?, ?, ?, ?, ?,
@@ -237,9 +237,8 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         nodeData.fstype,
         nodeData.parent_id,
         nodeData.parent_idx,
-        nodeData.link_to,
-        nodeData.link_alias,
-        nodeData.embed,
+        nodeData.item,
+        nodeData.embed_source,
         nodeData.fs_path,
         nodeData.fs_ino,
         nodeData.name,

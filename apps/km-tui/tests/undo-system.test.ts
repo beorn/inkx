@@ -45,7 +45,7 @@ describe("undo: add node", () => {
 
     // Add a new node
     const newId = repo.addNode("col1", {
-      type: "li",
+      type: "p", item: true,
       content: "new-task",
       task_marker: "[ ]",
       task_status: "todo",
@@ -68,7 +68,7 @@ describe("undo: add node", () => {
     const { repo, handle } = setupBoard()
 
     const newId = repo.addNode("col1", {
-      type: "li",
+      type: "p", item: true,
       content: "new-task",
       task_marker: "[ ]",
       task_status: "todo",
@@ -368,7 +368,7 @@ describe("invertOperation", () => {
       nodeId: "n1",
       parentId: "p1",
       parentIdx: 0,
-      snapshot: { id: "n1", type: "li" } as Partial<KNode>,
+      snapshot: { id: "n1", type: "p", item: true } as Partial<KNode>,
     })
     expect(inv.type).toBe("remove_node")
     expect(inv.nodeId).toBe("n1")
@@ -380,7 +380,7 @@ describe("invertOperation", () => {
       nodeId: "n1",
       parentId: "p1",
       parentIdx: 5,
-      snapshot: { id: "n1", type: "li" } as KNode,
+      snapshot: { id: "n1", type: "p", item: true } as KNode,
       descendants: [],
     })
     expect(inv.type).toBe("add_node")

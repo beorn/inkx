@@ -92,7 +92,7 @@ describe("Links and Backlinks", () => {
       using store = new MemoryStore(testDir)
       const node = store.getNodeByPath(join(testDir, "target.md"))
       expect(node).toBeDefined()
-      expect(node?.type).toBe("oi")
+      expect(node?.type).toBe("h")
       expect(node?.fstype === "file" || node?.fstype === "mdfile").toBe(true)
     })
 
@@ -129,8 +129,8 @@ describe("Links and Backlinks", () => {
       const targetTask = nodes.find((n) => n.task_status != null && n.content?.includes("Review PR @work"))
       expect(targetTask).toBeDefined()
 
-      // The embedding should have link_to pointing to the specific task, not the file
-      expect(embedNode?.link_to).toBe(targetTask?.id)
+      // The embedding should have embed_source pointing to the specific task, not the file
+      expect(embedNode?.embed_source).toBe(targetTask?.id)
     })
 
     test("should resolve embedding to file when no section match", () => {
@@ -147,11 +147,11 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the source file
-      const sourceFile = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile" && n.fs_path?.endsWith("source.md"))
+      const sourceFile = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile" && n.fs_path?.endsWith("source.md"))
       expect(sourceFile).toBeDefined()
 
       // The embedding should fall back to the file since section doesn't exist
-      expect(embedNode?.link_to).toBe(sourceFile?.id)
+      expect(embedNode?.embed_source).toBe(sourceFile?.id)
     })
 
     test("should resolve embedding to section by title", () => {
@@ -172,12 +172,12 @@ describe("Links and Backlinks", () => {
 
       // Find the Conclusion section
       const conclusionSection = nodes.find(
-        (n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Conclusion",
+        (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.title === "Conclusion",
       )
       expect(conclusionSection).toBeDefined()
 
       // The embedding should point to the specific section
-      expect(embedNode?.link_to).toBe(conclusionSection?.id)
+      expect(embedNode?.embed_source).toBe(conclusionSection?.id)
     })
   })
 
@@ -199,19 +199,19 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the inbox folder
-      const inboxFolder = nodes.find((n) => n.type === "oi" && n.fstype === "folder" && n.name === "inbox")
+      const inboxFolder = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "inbox")
       expect(inboxFolder).toBeDefined()
 
       // The embedding should point to the folder
-      expect(embedNode?.link_to).toBe(inboxFolder?.id)
+      expect(embedNode?.embed_source).toBe(inboxFolder?.id)
     })
 
-    test("should resolve embedded folder link_to", () => {
+    test("should resolve embedded folder embed_source", () => {
       const testDir = createTestDir()
       mkdirSync(join(testDir, "projects"), { recursive: true })
       writeFileSync(join(testDir, "projects", "proj1.md"), "# Project 1\n\nContent")
 
-      // Use embedding syntax to test link_to resolution
+      // Use embedding syntax to test embed_source resolution
       writeFileSync(join(testDir, "index.md"), "# Index\n\n![[projects]]")
 
       using store = new MemoryStore(testDir)
@@ -222,11 +222,11 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the projects folder
-      const projectsFolder = nodes.find((n) => n.type === "oi" && n.fstype === "folder" && n.name === "projects")
+      const projectsFolder = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "projects")
       expect(projectsFolder).toBeDefined()
 
-      // The embedding's link_to should point to the folder
-      expect(embedNode?.link_to).toBe(projectsFolder?.id)
+      // The embedding's embed_source should point to the folder
+      expect(embedNode?.embed_source).toBe(projectsFolder?.id)
     })
 
     test("folders should have name field populated", () => {
@@ -237,7 +237,7 @@ describe("Links and Backlinks", () => {
       using store = new MemoryStore(testDir)
       const folder = store
         .getAllNodes()
-        .find((n) => n.type === "oi" && n.fstype === "folder" && n.fs_path?.endsWith("my-folder"))
+        .find((n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.fs_path?.endsWith("my-folder"))
 
       expect(folder).toBeDefined()
       expect(folder?.name).toBe("my-folder")
@@ -307,7 +307,7 @@ describe("Links and Backlinks", () => {
       expect(resolved).toBeNull()
     })
 
-    test("![[ULID]] embed resolves link_to within same DB", () => {
+    test("![[ULID]] embed resolves embed_source within same DB", () => {
       const testDir = createTestDir()
       // Create the task file
       writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries")
@@ -377,7 +377,7 @@ describe("Links and Backlinks", () => {
       // Verify it points to the correct section
       const section = store
         .getAllNodes()
-        .find((n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Section")
+        .find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.title === "Section")
       expect(section).toBeDefined()
       expect(resolved).toBe(section!.id)
     })
@@ -400,8 +400,8 @@ describe("Links and Backlinks", () => {
       const targetTask = nodes.find((n) => n.task_status != null && n.content?.includes("Buy groceries"))
       expect(targetTask).toBeDefined()
 
-      // The embed should have link_to pointing to the Buy groceries task
-      expect(embedNode?.link_to).toBe(targetTask?.id)
+      // The embed should have embed_source pointing to the Buy groceries task
+      expect(embedNode?.embed_source).toBe(targetTask?.id)
     })
 
     test("should resolve embed with block_id to target section", () => {
@@ -417,11 +417,11 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the Introduction section
-      const introSection = nodes.find((n) => n.type === "oi" && n.fstype === "mdsection" && n.title === "Introduction")
+      const introSection = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.title === "Introduction")
       expect(introSection).toBeDefined()
 
-      // The embed's link_to should point to the Introduction section
-      expect(embedNode?.link_to).toBe(introSection?.id)
+      // The embed's embed_source should point to the Introduction section
+      expect(embedNode?.embed_source).toBe(introSection?.id)
     })
   })
 
@@ -470,7 +470,7 @@ describe("Links and Backlinks", () => {
       expect(targetTask).toBeDefined()
 
       // Verify the embed resolves to the correct task by block_id
-      expect(embedNode?.link_to).toBe(targetTask?.id)
+      expect(embedNode?.embed_source).toBe(targetTask?.id)
     })
   })
 })

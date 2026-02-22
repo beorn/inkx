@@ -189,11 +189,11 @@ export function parsePlainTextToNodes(content: string, fsPath: string, fsIno?: n
 
   const fileNode: KNode = {
     id: ulid(),
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "txtfile",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
     fs_mtime: fsMtime,
@@ -282,11 +282,11 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
       const nodeId = ulid()
       const sectionNode: KNode = {
         id: nodeId,
-        type: "oi",
+        type: "h",
+        item: true,
         fstype: "mdsection",
         parent_id: parentSection ? parentSection.node.id : fileNode.id,
         parent_idx: sortOrder++,
-        link_to: null,
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         block_id: sectionBlockId,
@@ -411,12 +411,12 @@ function convertListItem(
 
   const node: KNode = {
     id: ulid(),
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: ordered ? "1." : "-",
     task_marker: taskMarker,
     parent_id: parent.id,
     parent_idx: sortOrder,
-    link_to: null,
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
     block_id: blockId,
@@ -457,11 +457,12 @@ function convertListItem(
       const heading = child as Heading
       const liNode: KNode = {
         id: ulid(),
-        type: "li",
+        type: "p",
+        item: true,
         parent_id: node.id,
         parent_idx: childSort++,
-        link_to: null,
         content: nodeToText(heading),
+        data: {},
         created_at: now,
         updated_at: now,
         version: "",
@@ -559,7 +560,6 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
     type,
     parent_id: parent.id,
     parent_idx: sortOrder,
-    link_to: null,
     md_pos: block.position?.start.offset,
     block_id: blockId,
     content: content ?? undefined,
@@ -617,11 +617,11 @@ function createFileNode(
 
   return {
     id: ulid(),
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdfile",
     parent_id: null, // Will be set based on folder structure
     parent_idx: 0,
-    link_to: null,
     fs_path: fsPath,
     fs_ino: fsIno,
     fs_mtime: fsMtime,

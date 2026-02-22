@@ -179,7 +179,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
-      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'oi' AND fstype = 'folder'").get() as
+      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'h' AND item = 1 AND fstype = 'folder'").get() as
         | Record<string, unknown>
         | undefined
       if (!row) return null
@@ -187,6 +187,7 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return {
         id: row.id as string,
         type: row.type as string,
+        item: !!(row.item as number),
         fstype: row.fstype as string | null,
         parent_id: row.parent_id as string | null,
         parent_idx: row.parent_idx as number,
@@ -194,8 +195,6 @@ function createQueryMethods(deps: RepoMethodDeps) {
         name: row.name as string | null,
         content: row.content as string | null,
         task_status: row.task_status as TaskStatus | null,
-        link_to: row.link_to as string | null,
-        link_alias: row.link_alias as string | null,
         data: row.data ? (JSON.parse(row.data as string) as KNode["data"]) : {},
       } as KNode
     },
@@ -896,7 +895,7 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
 
   // Check root's structural children (files and folders that should map to fs entries)
   const rootStructural = (
-    db.prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'oi'").get() as {
+    db.prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'h' AND item = 1").get() as {
       cnt: number
     }
   ).cnt

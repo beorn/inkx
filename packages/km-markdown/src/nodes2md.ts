@@ -7,7 +7,7 @@
 import { createLogger } from "@beorn/logger"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
+import { getMarkerForStatus, isOutline, isItem, isEmbed, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 import { serializeRules } from "./parser.ts"
 
@@ -68,9 +68,9 @@ export function nodesToMarkdown(
     existingBlockIds,
   }
 
-  // Find root node (file node: oi with fstype mdfile, txtfile, or file)
+  // Find root node (file node: outline item with fstype mdfile, txtfile, or file)
   const fileNode = nodes.find(
-    (n) => n.type === "oi" && (n.fstype === "mdfile" || n.fstype === "txtfile" || n.fstype === "file"),
+    (n) => isOutline(n.type, n.item) && (n.fstype === "mdfile" || n.fstype === "txtfile" || n.fstype === "file"),
   )
   if (!fileNode) {
     // No file node, serialize all nodes flat
@@ -100,15 +100,16 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
     const nextChild = children[i + 1]
 
     // Deduplicate embed references pointing to the same target
-    if (child.link_to && seenEmbedTargets.has(child.link_to)) {
+    const embedTarget = child.embed_source
+    if (embedTarget && seenEmbedTargets.has(embedTarget)) {
       continue
     }
-    if (child.link_to) {
-      seenEmbedTargets.add(child.link_to)
+    if (embedTarget) {
+      seenEmbedTargets.add(embedTarget)
     }
 
-    const isCurrentList = child.type === "li"
-    const isNextList = nextChild?.type === "li"
+    const isCurrentList = isItem(child.type, child.item) && !isOutline(child.type, child.item)
+    const isNextList = nextChild ? isItem(nextChild.type, nextChild.item) && !isOutline(nextChild.type, nextChild.item) : false
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
@@ -175,25 +176,30 @@ function serializeNode(
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
-  // Link nodes with embed flag or any node with link_to is a transclusion
-  if (node.type === "link" || node.link_to) {
+  // Embed nodes (type === "embed" or any node with embed_source)
+  if (isEmbed(node.type) || node.embed_source) {
     return serializeEmbedding(node, ctx)
   }
 
-  switch (node.type) {
-    case "oi":
-      // Dispatch by fstype
-      if (node.fstype === "txtfile") {
-        return node.content ?? ""
-      }
-      if (node.fstype === "mdfile" || node.fstype === "file") {
-        return serializeFile(node, ctx)
-      }
-      // mdsection or other oi types
-      return serializeSection(node, children, ctx, depth)
+  // Outline items (type === "h" && item === true)
+  if (isOutline(node.type, node.item)) {
+    // Dispatch by fstype
+    if (node.fstype === "txtfile") {
+      return node.content ?? ""
+    }
+    if (node.fstype === "mdfile" || node.fstype === "file") {
+      return serializeFile(node, ctx)
+    }
+    // mdsection or other outline items
+    return serializeSection(node, children, ctx, depth)
+  }
 
-    case "li":
-      return serializeLi(node, children, ctx, indent, addTrailingNewline)
+  // List items (item === true && not outline)
+  if (isItem(node.type, node.item) && !isOutline(node.type, node.item)) {
+    return serializeLi(node, children, ctx, indent, addTrailingNewline)
+  }
+
+  switch (node.type) {
 
     case "p": {
       let paraContent = node.content ?? ""
@@ -247,16 +253,17 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
  * Serialize an embedding node back to ![[path|alias]] syntax
  */
 function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
-  if (!node.link_to) {
-    // Fallback to content if no link_to
+  const target = node.embed_source
+  if (!target) {
+    // Fallback to content if no target
     return (node.content ?? "") + "\n\n"
   }
 
   // Look up target node to get its path
-  const targetNode = ctx.nodeMap.get(node.link_to)
+  const targetNode = ctx.nodeMap.get(target)
   if (!targetNode) {
     // Target not found - fallback to content
-    log.debug?.(`serializeEmbedding: target not found ${node.link_to}`)
+    log.debug?.(`serializeEmbedding: target not found ${target}`)
     return (node.content ?? "") + "\n\n"
   }
 
@@ -265,7 +272,7 @@ function serializeEmbedding(node: KNode, ctx: SerializeContext): string {
   const path = getEmbedPath(targetNode, ctx)
 
   // Add alias if present and different from path
-  const alias = node.link_alias
+  const alias = node.name
   if (alias && alias !== path) {
     return `![[${path}|${alias}]]\n\n`
   }
@@ -344,7 +351,7 @@ function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null
     const parent = ctx.nodeMap.get(current.parent_id)
     if (!parent) return null
     if (
-      parent.type === "oi" &&
+      isOutline(parent.type, parent.item) &&
       (parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "txtfile") &&
       parent.fs_path
     ) {
@@ -412,7 +419,7 @@ function serializeLi(
 
   // Child nodes: list items nested, block content indented under this item
   for (const child of children) {
-    if (child.type === "li") {
+    if (isItem(child.type, child.item) && !isOutline(child.type, child.item)) {
       md += serializeNode(child, ctx, indent + 1)
     } else if (child.type === "quote") {
       const content = child.content ?? ""

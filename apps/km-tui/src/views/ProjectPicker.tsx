@@ -27,7 +27,7 @@ function getProjectPath(
 
   while (current) {
     if (
-      current.type === "oi" &&
+      isOutline(current.type, current.item) &&
       (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")
     ) {
       parts.unshift(getDisplayName(current))
@@ -60,7 +60,7 @@ function loadProjectOptions(repo: RepoContextValue, recentIds: string[]): Projec
 
   for (const node of allNodes) {
     // Only show outline items (sections, files, folders) as valid targets
-    if (isOutline(node.type)) {
+    if (isOutline(node.type, node.item)) {
       const title = getDisplayName(node)
       const parentContext = getParentName(node, repo.getNode.bind(repo), getDisplayName)
       const path = getProjectPath(node, repo.getNode.bind(repo), getDisplayName)

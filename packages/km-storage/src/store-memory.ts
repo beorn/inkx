@@ -207,7 +207,8 @@ export class MemoryStore extends BaseStore {
         const folderId = this.generateId(fullPath)
         this.insertNode({
           id: folderId,
-          type: "oi",
+          type: "h",
+          item: true,
           fstype: "folder",
           parent_id: parentId,
           fs_path: toRelativeFsPath(this.rootPath, fullPath),
@@ -234,7 +235,8 @@ export class MemoryStore extends BaseStore {
           const fileId = this.generateId(fullPath)
           this.insertNode({
             id: fileId,
-            type: "oi",
+            type: "h",
+            item: true,
             fstype: "file",
             parent_id: parentId,
             fs_path: toRelativeFsPath(this.rootPath, fullPath),
@@ -263,7 +265,7 @@ export class MemoryStore extends BaseStore {
 
       // The first node is always the file node
       const fileNode = nodes[0]
-      if (fileNode?.type !== "oi" || (fileNode.fstype !== "file" && fileNode.fstype !== "mdfile")) {
+      if (!(fileNode?.type === "h" && fileNode?.item) || (fileNode.fstype !== "file" && fileNode.fstype !== "mdfile")) {
         return
       }
 
@@ -383,21 +385,20 @@ export class MemoryStore extends BaseStore {
 
     this.db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, link_to, link_alias, embed,
+        id, type, fstype, parent_id, parent_idx, item, embed_source,
         fs_path, md_pos, md_line, name, block_id,
         content, content_hash, title, list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
         data, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id ?? null,
         node.type ?? null,
         node.fstype ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
-        node.link_to ?? null,
-        node.link_alias ?? null,
-        node.embed ? 1 : 0,
+        node.item ? 1 : 0,
+        node.embed_source ?? null,
         node.fs_path ?? null,
         node.md_pos ?? null,
         node.md_line ?? null,

@@ -68,7 +68,7 @@ function compareSnapshots(
   // Check node IDs survived
   for (const [id, bSnap] of before) {
     // Skip root node (parent_id = null, type = folder) — it's the repo root
-    if (bSnap.parent_id === "." && bSnap.type === "oi") continue
+    if (bSnap.parent_id === "." && bSnap.type === "h") continue
 
     const aSnap = after.get(id)
     if (!aSnap) {
@@ -158,7 +158,7 @@ type Mutation =
 /** Pick a random valid mutation given current DB state */
 function pickMutation(rng: SeededRandom, nodes: KNode[], opts?: { allowAdd?: boolean }): Mutation | null {
   const tasks = nodes.filter((n) => n.task_status != null)
-  const sections = nodes.filter((n) => n.type === "oi" && !n.fstype)
+  const sections = nodes.filter((n) => n.type === "h" && !n.fstype)
   const allowAdd = opts?.allowAdd ?? false
 
   if (tasks.length === 0 && sections.length === 0) return null
@@ -223,7 +223,8 @@ function applyMutation(
     }
     case "add_task": {
       repo.addNode(mutation.parentId, {
-        type: "li",
+        type: "p",
+        item: true,
         content: mutation.content,
         parent_idx: mutation.afterIdx,
         task_status: "todo",
@@ -405,7 +406,7 @@ describe("Content Round-Trip Fuzz", () => {
       await syncManager.syncFromFs()
 
       const before = snapshot(getAllNodes(db))
-      const sections = getAllNodes(db).filter((n) => n.type === "oi" && !n.fstype)
+      const sections = getAllNodes(db).filter((n) => n.type === "h" && !n.fstype)
       const taskSection = sections.find((s) => s.content === "Tasks")
       expect(taskSection).toBeDefined()
 
@@ -413,7 +414,8 @@ describe("Content Round-Trip Fuzz", () => {
       const taskA = getAllNodes(db).find((n) => n.content === "Task A")
       expect(taskA).toBeDefined()
       repo.addNode(taskSection!.id, {
-        type: "li",
+        type: "p",
+        item: true,
         content: "Task A.5",
         parent_idx: (taskA!.parent_idx ?? 0) + 0.5,
         task_status: "todo",
@@ -509,7 +511,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Get per-file task counts
       const getFileTaskCounts = () => {
         const nodes = getAllNodes(db)
-        const files = nodes.filter((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+        const files = nodes.filter((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
         const counts = new Map<string, number>()
         for (const file of files) {
           const children = getChildren(db, file.id)
@@ -590,7 +592,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Record section tree structure (parent_id encodes nesting, not data.depth)
       const getSectionStructure = () => {
         const nodes = getAllNodes(db)
-        const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+        const sections = nodes.filter((n) => n.type === "h" && n.fstype === "mdsection")
         return new Map(sections.map((n) => [n.id, n.parent_id]))
       }
 
@@ -645,7 +647,7 @@ type: daily
       await syncManager.syncFromFs()
 
       // Find file node and verify frontmatter
-      const fileNode = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+      const fileNode = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
       expect(fileNode).toBeDefined()
       expect(fileNode!.data?.title).toBe("My Document")
       expect(fileNode!.data?.tags).toEqual(["project", "work"])
@@ -665,7 +667,7 @@ type: daily
 
       // Re-parse and verify frontmatter in DB
       await syncManager.syncFromFs()
-      const updatedFile = getAllNodes(db).find((n) => n.type === "oi" && (n.fstype === "file" || n.fstype === "mdfile"))
+      const updatedFile = getAllNodes(db).find((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile"))
       expect(updatedFile!.data?.title).toBe("My Document")
       expect(updatedFile!.data?.tags).toEqual(["project", "work"])
     }))

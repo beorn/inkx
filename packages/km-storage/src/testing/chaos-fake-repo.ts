@@ -371,7 +371,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
         }
 
         // Check for missing content on content-bearing types
-        if (["li", "p", "oi"].includes(node.type) && node.content === undefined && node.content_hash === undefined) {
+        if (["p", "h"].includes(node.type) && node.content === undefined && node.content_hash === undefined) {
           issues.push({
             type: "missing_content",
             nodeId: node.id,
@@ -538,9 +538,10 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
 function createMinimalNode(partial: Partial<KNode> & { id: string; parent_id: string | null }): KNode {
   const now = Date.now()
   return {
-    type: "oi",
+    type: "h",
+    item: true,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     content: "",
     data: {},
     created_at: now,

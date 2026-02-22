@@ -49,11 +49,11 @@ describe("Board Pure Rendering", () => {
     const repo = createMockRepo()
     const card: KNode = {
       id: "test-card",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "My Test Task",
       data: {},
       created_at: Date.now(),
@@ -68,11 +68,11 @@ describe("Board Pure Rendering", () => {
   test("renderCard shows children when not folded", () => {
     const childNode: KNode = {
       id: "child-1",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: "test-card",
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "Child Task 1",
       data: {},
       created_at: Date.now(),
@@ -83,11 +83,11 @@ describe("Board Pure Rendering", () => {
     const repo = createMockRepo(childrenMap)
     const card: KNode = {
       id: "test-card",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "Parent Task",
       data: {},
       created_at: Date.now(),
@@ -102,11 +102,11 @@ describe("Board Pure Rendering", () => {
   test("renderCard shows item count when folded", () => {
     const child1: KNode = {
       id: "child-1",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: "test-card",
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "Child 1",
       data: {},
       created_at: Date.now(),
@@ -115,11 +115,11 @@ describe("Board Pure Rendering", () => {
     }
     const child2: KNode = {
       id: "child-2",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: "test-card",
       parent_idx: 1,
-      link_to: null,
+      embed_source: null,
       content: "Child 2",
       data: {},
       created_at: Date.now(),
@@ -130,11 +130,11 @@ describe("Board Pure Rendering", () => {
     const repo = createMockRepo(childrenMap)
     const card: KNode = {
       id: "test-card",
-      type: "li",
+      type: "p", item: true,
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
-      link_to: null,
+      embed_source: null,
       content: "Parent Task",
       data: {},
       created_at: Date.now(),
@@ -152,7 +152,7 @@ describe("Board Pure Rendering", () => {
     // createCardNode returns KNode directly
     const card = createCardNode({
       content: "Fixture Card",
-      type: "li",
+      type: "p", item: true,
     })
 
     const output = renderCard(repo, card, 40, false, false, false)

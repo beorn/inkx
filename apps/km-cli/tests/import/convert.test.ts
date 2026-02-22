@@ -1827,7 +1827,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(item.body).toContain("\\_italic\\_")
   })
 
-  test("convert resolves parentTaskGid to link_to when target exists", () => {
+  test("convert resolves parentTaskGid to embed_source when target exists", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-19T00:00:00Z",
@@ -1853,7 +1853,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(md).not.toContain("→ ^688222992104100")
   })
 
-  test("convert sets link_to on node when parentTaskGid target exists", () => {
+  test("convert sets embed_source on node when parentTaskGid target exists", () => {
     const nodes: KNode[] = []
     const counter = { value: 0 }
     const primaryMap = new Map([["99999", "test.md"]])
@@ -1870,10 +1870,10 @@ describe("Block reference stripping (→ ^numericId)", () => {
       primaryMap,
     )
     const taskNode = nodes.find((n) => n.id === "child-1")!
-    expect(taskNode.link_to).toBe("^99999")
+    expect(taskNode.embed_source).toBe("^99999")
   })
 
-  test("convert omits link_to when parentTaskGid target does not exist", () => {
+  test("convert omits embed_source when parentTaskGid target does not exist", () => {
     const nodes: KNode[] = []
     const counter = { value: 0 }
     const primaryMap = new Map<string, string>()
@@ -1890,7 +1890,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
       primaryMap,
     )
     const taskNode = nodes.find((n) => n.id === "child-1")!
-    expect(taskNode.link_to).toBeNull()
+    expect(taskNode.embed_source).toBeUndefined()
   })
 
   test("handles multiple spaces around arrow in → ^numericId", () => {

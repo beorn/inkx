@@ -15,7 +15,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   /**
    * Build a board where:
    * - Board root is "board"
-   * - Column "@next" contains embedded links (link_to) to tasks
+   * - Column "@next" contains embedded links (embed_source) to tasks
    * - Tasks' original parent is a file called "@next.md"
    *   with display name "Next Actions" (via data.name)
    *
@@ -38,7 +38,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         // Set up embed nodes as links pointing to target tasks
         if (n.id === "embed-a") {
           n.type = "p"
-          n.link_to = "target-a"
+          n.embed_source = "target-a"
           n.task_status = undefined
           n.task_marker = undefined
           n.content = "![[target-a]]"
@@ -46,7 +46,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         }
         if (n.id === "embed-b") {
           n.type = "p"
-          n.link_to = "target-b"
+          n.embed_source = "target-b"
           n.task_status = undefined
           n.task_marker = undefined
           n.content = "![[target-b]]"
@@ -58,11 +58,11 @@ describe("hide redundant parent sigil on embedded links", () => {
       // This represents the file where the tasks originally live
       nodes.push({
         id: "next-file",
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         content: undefined,
         data: { name: parentName },
         name: "@next",
@@ -75,11 +75,11 @@ describe("hide redundant parent sigil on embedded links", () => {
       // Add the target task nodes (what the embeds point to)
       nodes.push({
         id: "target-a",
-        type: "li",
+        type: "p", item: true,
         list_marker: "-",
         parent_id: "next-file",
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         task_status: "todo",
         task_marker: "[ ]",
         content: "Buy groceries",
@@ -91,11 +91,11 @@ describe("hide redundant parent sigil on embedded links", () => {
 
       nodes.push({
         id: "target-b",
-        type: "li",
+        type: "p", item: true,
         list_marker: "-",
         parent_id: "next-file",
         parent_idx: 1,
-        link_to: null,
+        embed_source: null,
         task_status: "wip",
         task_marker: "[-]",
         content: "Write report @next",

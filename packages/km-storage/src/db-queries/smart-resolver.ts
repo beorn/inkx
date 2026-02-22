@@ -23,7 +23,7 @@ const log = createLogger("km:storage:db:queries")
 // =============================================================================
 
 interface ResolveOptions {
-  /** Filter by node type (e.g., "oi", "li", "p") */
+  /** Filter by node type (e.g., "h", "p", "code") */
   type?: string
   /** Only return nodes with task_status set */
   taskOnly?: boolean

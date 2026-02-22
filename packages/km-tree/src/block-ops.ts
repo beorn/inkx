@@ -10,6 +10,7 @@
  */
 
 import type { KNode, TaskMarker, TaskStatus } from "@km/core"
+import { isOutline } from "@km/core"
 
 // =============================================================================
 // Minimal Interface (subset of Repo that these operations need)
@@ -93,6 +94,16 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
     type: node.type,
     content: setNodeText(node, afterText),
     parent_idx: newSortOrder,
+  }
+
+  // Inherit item trait
+  if (node.item) {
+    newNode.item = true
+  }
+
+  // Inherit list marker
+  if (node.list_marker) {
+    newNode.list_marker = node.list_marker
   }
 
   // Inherit task properties if the original is a task
@@ -274,13 +285,13 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
 
 /**
  * Get the display/edit text of a node.
- * For outline items (oi), this is the name (heading text).
+ * For outline items (type:"h", item:true), this is the name (heading text).
  * For list items with task markers, strips the checkbox prefix.
  * For other types, this is the content.
  */
 export function getNodeText(node: KNode): string {
   // Outline items use name as their heading text
-  if (node.type === "oi") return node.name ?? node.content ?? ""
+  if (isOutline(node.type, node.item)) return node.name ?? node.content ?? ""
   // Tasks (list items with task_marker): content includes the checkbox prefix "- [x] ..."
   // Strip exactly the prefix "- [.] " (dash, space, bracket, mark, bracket, space)
   if (node.task_marker && node.content) {
@@ -294,7 +305,7 @@ export function getNodeText(node: KNode): string {
  * Returns the new content string (does NOT mutate).
  */
 export function setNodeText(node: KNode, text: string): string {
-  if (node.type === "oi") return text
+  if (isOutline(node.type, node.item)) return text
   if (node.task_marker) {
     // Extract inner character from marker: "[x]" → "x"
     const inner = node.task_marker.length === 3 ? node.task_marker[1] : " "
@@ -351,9 +362,9 @@ export interface PrefixConversion {
  * Triggered after the user types a space following a markdown prefix.
  *
  * Supported prefixes:
- * - `- `, `* `, `+ ` → li (bullet list)
- * - `1. ` → li (numbered list)
- * - `# `, `## `, `### ` etc. → oi (heading/section)
+ * - `- `, `* `, `+ ` → list item (type:"p", item:true)
+ * - `1. ` → list item (type:"p", item:true)
+ * - `# `, `## `, `### ` etc. → outline item (type:"h", item:true)
  * - `[] `, `[ ] ` → task trait (todo)
  * - `[x] `, `[X] ` → task trait (done)
  * - `[/] ` → task trait (wip)
@@ -366,7 +377,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
   if (content === "- " || content === "* " || content === "+ ") {
     return {
       prefixLength: 2,
-      nodeChanges: { type: "li", list_marker: content[0] },
+      nodeChanges: { type: "p", item: true, list_marker: content[0] },
     }
   }
 
@@ -374,7 +385,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
   if (/^\d+\. $/.test(content)) {
     return {
       prefixLength: content.length,
-      nodeChanges: { type: "li", list_marker: content.slice(0, -1) },
+      nodeChanges: { type: "p", item: true, list_marker: content.slice(0, -1) },
     }
   }
 
@@ -384,7 +395,8 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
     return {
       prefixLength: content.length,
       nodeChanges: {
-        type: "oi",
+        type: "h",
+        item: true,
         fstype: "mdsection",
       },
     }
@@ -449,7 +461,17 @@ export function backspaceDegradation(node: KNode): Partial<KNode> | null {
     }
   }
 
-  // Step 2: Convert non-paragraph type to p
+  // Step 2: Strip item trait (p+item → p, h+item → p)
+  if (node.item) {
+    return {
+      type: "p",
+      item: undefined,
+      list_marker: undefined,
+      fstype: undefined,
+    }
+  }
+
+  // Step 3: Convert non-paragraph type to p
   if (node.type !== "p") {
     return {
       type: "p",

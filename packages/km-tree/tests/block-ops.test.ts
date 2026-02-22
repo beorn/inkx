@@ -29,7 +29,8 @@ function setupTaskTree() {
 
   // Create parent outline item (section)
   const parentId = repo.addNode(null, {
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "Tasks",
     content: "Tasks",
@@ -37,7 +38,8 @@ function setupTaskTree() {
 
   // Create three task children (list items with task markers)
   const task1Id = repo.addNode(parentId, {
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     content: "- [ ] Alpha bravo",
     task_status: "todo",
@@ -46,7 +48,8 @@ function setupTaskTree() {
   })
 
   const task2Id = repo.addNode(parentId, {
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     content: "- [ ] Charlie delta",
     task_status: "todo",
@@ -55,7 +58,8 @@ function setupTaskTree() {
   })
 
   const task3Id = repo.addNode(parentId, {
-    type: "li",
+    type: "p",
+    item: true,
     list_marker: "-",
     content: "- [ ] Echo foxtrot",
     task_status: "todo",
@@ -71,14 +75,16 @@ function setupSectionTree() {
   const repo = createTestRepo()
 
   const rootId = repo.addNode(null, {
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "Root",
     content: "Root",
   })
 
   const sec1Id = repo.addNode(rootId, {
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "Section One",
     content: "Section One",
@@ -86,7 +92,8 @@ function setupSectionTree() {
   })
 
   const sec2Id = repo.addNode(rootId, {
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "Section Two",
     content: "Section Two",
@@ -103,7 +110,8 @@ function setupSectionTree() {
 describe("getNodeText", () => {
   test("returns task content without checkbox prefix", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[ ]",
       content: "- [ ] Buy groceries",
     } as any
@@ -112,7 +120,8 @@ describe("getNodeText", () => {
 
   test("returns outline item name", () => {
     const node = {
-      type: "oi",
+      type: "h",
+      item: true,
       name: "My Section",
       content: "My Section",
     } as any
@@ -126,7 +135,8 @@ describe("getNodeText", () => {
 
   test("handles done task marker", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[x]",
       content: "- [x] Completed item",
     } as any
@@ -142,7 +152,8 @@ describe("getNodeText", () => {
 describe("setNodeText", () => {
   test("wraps task text with checkbox prefix", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[ ]",
     } as any
     expect(setNodeText(node, "New text")).toBe("- [ ] New text")
@@ -150,14 +161,15 @@ describe("setNodeText", () => {
 
   test("preserves done task marker", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[x]",
     } as any
     expect(setNodeText(node, "Done item")).toBe("- [x] Done item")
   })
 
   test("returns plain text for outline items", () => {
-    const node = { type: "oi" } as any
+    const node = { type: "h", item: true } as any
     expect(setNodeText(node, "Section Name")).toBe("Section Name")
   })
 
@@ -183,12 +195,14 @@ describe("splitNode", () => {
     // Original node should have "Charlie"
     const before = repo.getNode(result.beforeId)!
     expect(getNodeText(before)).toBe("Charlie")
-    expect(before.type).toBe("li")
+    expect(before.type).toBe("p")
+    expect(before.item).toBe(true)
 
     // New node should have " delta"
     const after = repo.getNode(result.afterId)!
     expect(getNodeText(after)).toBe(" delta")
-    expect(after.type).toBe("li")
+    expect(after.type).toBe("p")
+    expect(after.item).toBe(true)
     expect(after.task_status).toBe("todo")
 
     // Both should be children of the parent
@@ -238,7 +252,8 @@ describe("splitNode", () => {
 
     // Add children to task2
     const childId = repo.addNode(task2Id, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Sub task",
       task_status: "todo",
@@ -269,7 +284,8 @@ describe("splitNode", () => {
 
     const after = repo.getNode(result.afterId)!
     expect(after.content).toBe(" One")
-    expect(after.type).toBe("oi")
+    expect(after.type).toBe("h")
+    expect(after.item).toBe(true)
   })
 
   test("new node sort order is between current and next sibling", () => {
@@ -338,7 +354,8 @@ describe("mergeWithPrevious", () => {
 
     // Add empty task after task1
     const emptyId = repo.addNode(parentId, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] ",
       task_status: "todo",
@@ -379,7 +396,8 @@ describe("mergeWithPrevious", () => {
 
     // Add a child to task1
     repo.addNode(task1Id, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Sub task",
       task_status: "todo",
@@ -403,7 +421,8 @@ describe("mergeWithPrevious", () => {
 
     // Add a child to sec1
     const childId = repo.addNode(sec1Id, {
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdsection",
       name: "Child",
       content: "Child",
@@ -425,14 +444,16 @@ describe("mergeWithPrevious", () => {
 
     // Single root node with child
     const rootId = repo.addNode(null, {
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdsection",
       name: "Root",
       content: "Root",
     })
 
     const childId = repo.addNode(rootId, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Only child",
       task_status: "todo",
@@ -480,7 +501,8 @@ describe("mergeWithNext", () => {
 
     // Add empty task after task2
     const emptyId = repo.addNode(parentId, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] ",
       task_status: "todo",
@@ -519,7 +541,8 @@ describe("mergeWithNext", () => {
 
     // Add children to task3
     const childId = repo.addNode(task3Id, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Sub task",
       task_status: "todo",
@@ -588,7 +611,7 @@ describe("mergeWithNext", () => {
     expect(survivor.task_marker).toBe("[ ]")
   })
 
-  test("works with section (oi) nodes", () => {
+  test("works with section (h+item) nodes", () => {
     const { repo, sec1Id, sec2Id } = setupSectionTree()
 
     const result = mergeWithNext(repo, sec1Id)
@@ -598,7 +621,7 @@ describe("mergeWithNext", () => {
     expect(result!.cursorOffset).toBe(11) // "Section One" length
 
     const merged = repo.getNode(sec1Id)!
-    // oi nodes use name field via getNodeText, but content is set via setNodeText
+    // h+item nodes use name field via getNodeText, but content is set via setNodeText
     expect(merged.content).toBe("Section OneSection Two")
 
     expect(repo.getNode(sec2Id)).toBeNull()
@@ -609,7 +632,8 @@ describe("mergeWithNext", () => {
 
     // Add a child to task2 (the surviving node)
     const existingChildId = repo.addNode(task2Id, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Existing child",
       task_status: "todo",
@@ -619,7 +643,8 @@ describe("mergeWithNext", () => {
 
     // Add a child to task3 (the consumed node)
     const incomingChildId = repo.addNode(task3Id, {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "- [ ] Incoming child",
       task_status: "todo",
@@ -684,59 +709,64 @@ describe("getNextSibling", () => {
 // =============================================================================
 
 describe("detectPrefixConversion", () => {
-  test("dash bullet: '- ' → li with marker '-'", () => {
+  test("dash bullet: '- ' → p+item with marker '-'", () => {
     const result = detectPrefixConversion("- ")
     expect(result).not.toBeNull()
     expect(result!.prefixLength).toBe(2)
-    expect(result!.nodeChanges.type).toBe("li")
+    expect(result!.nodeChanges.type).toBe("p")
+    expect(result!.nodeChanges.item).toBe(true)
     expect(result!.nodeChanges.list_marker).toBe("-")
   })
 
-  test("asterisk bullet: '* ' → li with marker '*'", () => {
+  test("asterisk bullet: '* ' → p+item with marker '*'", () => {
     const result = detectPrefixConversion("* ")
     expect(result).not.toBeNull()
     expect(result!.nodeChanges.list_marker).toBe("*")
   })
 
-  test("plus bullet: '+ ' → li with marker '+'", () => {
+  test("plus bullet: '+ ' → p+item with marker '+'", () => {
     const result = detectPrefixConversion("+ ")
     expect(result).not.toBeNull()
     expect(result!.nodeChanges.list_marker).toBe("+")
   })
 
-  test("numbered list: '1. ' → li with marker '1.'", () => {
+  test("numbered list: '1. ' → p+item with marker '1.'", () => {
     const result = detectPrefixConversion("1. ")
     expect(result).not.toBeNull()
     expect(result!.prefixLength).toBe(3)
-    expect(result!.nodeChanges.type).toBe("li")
+    expect(result!.nodeChanges.type).toBe("p")
+    expect(result!.nodeChanges.item).toBe(true)
     expect(result!.nodeChanges.list_marker).toBe("1.")
   })
 
-  test("numbered list: '42. ' → li with marker '42.'", () => {
+  test("numbered list: '42. ' → p+item with marker '42.'", () => {
     const result = detectPrefixConversion("42. ")
     expect(result).not.toBeNull()
     expect(result!.prefixLength).toBe(4)
     expect(result!.nodeChanges.list_marker).toBe("42.")
   })
 
-  test("heading h1: '# ' → oi section", () => {
+  test("heading h1: '# ' → h+item section", () => {
     const result = detectPrefixConversion("# ")
     expect(result).not.toBeNull()
-    expect(result!.nodeChanges.type).toBe("oi")
+    expect(result!.nodeChanges.type).toBe("h")
+    expect(result!.nodeChanges.item).toBe(true)
     expect(result!.nodeChanges.fstype).toBe("mdsection")
   })
 
-  test("heading h2: '## ' → oi section", () => {
+  test("heading h2: '## ' → h+item section", () => {
     const result = detectPrefixConversion("## ")
     expect(result).not.toBeNull()
-    expect(result!.nodeChanges.type).toBe("oi")
+    expect(result!.nodeChanges.type).toBe("h")
+    expect(result!.nodeChanges.item).toBe(true)
     expect(result!.nodeChanges.fstype).toBe("mdsection")
   })
 
-  test("heading h3: '### ' → oi section", () => {
+  test("heading h3: '### ' → h+item section", () => {
     const result = detectPrefixConversion("### ")
     expect(result).not.toBeNull()
-    expect(result!.nodeChanges.type).toBe("oi")
+    expect(result!.nodeChanges.type).toBe("h")
+    expect(result!.nodeChanges.item).toBe(true)
     expect(result!.nodeChanges.fstype).toBe("mdsection")
   })
 
@@ -819,7 +849,8 @@ describe("detectPrefixConversion", () => {
 describe("backspaceDegradation", () => {
   test("strips task marker from task node", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[ ]",
       task_status: "todo",
       list_marker: "-",
@@ -833,9 +864,10 @@ describe("backspaceDegradation", () => {
     expect(result!.list_marker).toBeUndefined()
   })
 
-  test("converts li to p after task marker already stripped", () => {
+  test("converts p+item to p after task marker already stripped", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       list_marker: "-",
     } as any
     const result = backspaceDegradation(node)
@@ -844,9 +876,10 @@ describe("backspaceDegradation", () => {
     expect(result!.list_marker).toBeUndefined()
   })
 
-  test("converts oi to p", () => {
+  test("converts h+item to p", () => {
     const node = {
-      type: "oi",
+      type: "h",
+      item: true,
       fstype: "mdsection",
       name: "Heading",
     } as any
@@ -876,9 +909,10 @@ describe("backspaceDegradation", () => {
     expect(result).toBeNull()
   })
 
-  test("task with done marker strips to li first", () => {
+  test("task with done marker strips task first", () => {
     const node = {
-      type: "li",
+      type: "p",
+      item: true,
       task_marker: "[x]",
       task_status: "done",
       list_marker: "-",
@@ -887,7 +921,7 @@ describe("backspaceDegradation", () => {
     expect(result).not.toBeNull()
     expect(result!.task_marker).toBeUndefined()
     expect(result!.task_status).toBeUndefined()
-    // Type should stay li — next backspace converts li → p
+    // Type should stay p — next backspace strips item trait
     expect(result!.type).toBeUndefined()
   })
 })

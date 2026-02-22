@@ -19,7 +19,7 @@ import { RepoProvider } from "../src/repo-context.tsx"
 /** Default node fields that most tests don't care about */
 const nodeDefaults = {
   parent_idx: 0,
-  link_to: null,
+  embed_source: null,
   data: {},
   created_at: Date.now(),
   updated_at: Date.now(),
@@ -163,7 +163,7 @@ describe("getStatusDisplay", () => {
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "task1", type: "li", content: "Standalone task" }]),
+      nodes: createTestNodes([{ id: "task1", type: "p", item: true, content: "Standalone task" }]),
     })
     const node = repo.getNode("task1")!
     expect(getProjectPath(repo, node)).toEqual([])
@@ -172,17 +172,17 @@ describe("getProjectPath", () => {
   test("returns folder names in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
+        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "oi",
+          type: "h", item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -195,11 +195,11 @@ describe("getProjectPath", () => {
   test("includes files in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Projects" },
-        { id: "file1", type: "oi", fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
+        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Projects" },
+        { id: "file1", type: "h", item: true, fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Do something",
           parent_id: "file1",
         },
@@ -214,8 +214,8 @@ describe("resolveProjectDisplayNames", () => {
   test("resolves slugs to node display names", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "p1", type: "oi", fstype: "mdfile" as const, content: "FAMILY SPRINT" },
-        { id: "p2", type: "oi", fstype: "mdfile" as const, content: "[Fam] Estate" },
+        { id: "p1", type: "h", item: true, fstype: "mdfile" as const, content: "FAMILY SPRINT" },
+        { id: "p2", type: "h", item: true, fstype: "mdfile" as const, content: "[Fam] Estate" },
       ]),
     })
     const resolved = resolveProjectDisplayNames(repo, ["family-sprint", "fam-estate"])
@@ -236,7 +236,7 @@ describe("resolveProjectDisplayNames", () => {
 
   test("handles mixed resolved and unresolved slugs", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "p1", type: "oi", fstype: "mdfile" as const, content: "My Project" }]),
+      nodes: createTestNodes([{ id: "p1", type: "h", item: true, fstype: "mdfile" as const, content: "My Project" }]),
     })
     const resolved = resolveProjectDisplayNames(repo, ["my-project", "missing-one"])
     expect(resolved).toEqual(["My Project", "missing-one"])
@@ -249,7 +249,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review Q1 budget",
           task_status: "todo",
           due_at: "2026-01-10",
@@ -273,7 +273,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Test task",
           task_status: "todo",
           assigned_to: "bjorn",
@@ -307,10 +307,10 @@ describe("DetailPane", () => {
   test("shows subtasks as outline items", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "oi", content: "Parent task" },
+        { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "oi",
+          type: "h", item: true,
           content: "Subtask 1",
           parent_id: "parent1",
           task_status: "done",
@@ -318,7 +318,7 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "oi",
+          type: "h", item: true,
           content: "Subtask 2",
           parent_id: "parent1",
           parent_idx: 1,
@@ -338,7 +338,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Talk to @john about #budget for +work project [[Meeting Notes]]",
         },
       ]),
@@ -354,17 +354,17 @@ describe("DetailPane", () => {
   test("shows project path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
+        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "oi",
+          type: "h", item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -378,7 +378,7 @@ describe("DetailPane", () => {
 
   test("shows keybindings hint", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "task1", type: "li", content: "Simple task" }]),
+      nodes: createTestNodes([{ id: "task1", type: "p", item: true, content: "Simple task" }]),
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 50, 24)
@@ -392,7 +392,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Completed task",
           task_status: "done",
         },
@@ -408,7 +408,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Immigration paperwork",
           task_status: "todo",
           data: {
@@ -435,7 +435,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Simple task",
           task_status: "todo",
           data: {
@@ -457,13 +457,13 @@ describe("DetailPane", () => {
         // Project file nodes (as created by import) — their content is the project title
         {
           id: "proj1",
-          type: "oi",
+          type: "h", item: true,
           fstype: "mdfile" as const,
           content: "FAMILY SPRINT",
         },
         {
           id: "proj2",
-          type: "oi",
+          type: "h", item: true,
           fstype: "mdfile" as const,
           content: "[Fam] Estate",
         },
@@ -471,7 +471,7 @@ describe("DetailPane", () => {
         // (simulates post-parse state where projectMemberships was lost)
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review docs +family-sprint +fam-estate",
           task_status: "todo",
         },
@@ -489,7 +489,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review docs +unknown-project",
           task_status: "todo",
         },
@@ -504,10 +504,10 @@ describe("DetailPane", () => {
   test("renders subtask children recursively in detail pane", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "oi", content: "Parent task" },
+        { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "li",
+          type: "p", item: true,
           content: "Subtask with kids",
           parent_id: "parent1",
           task_status: "todo",
@@ -515,14 +515,14 @@ describe("DetailPane", () => {
         },
         {
           id: "grandchild1",
-          type: "li",
+          type: "p", item: true,
           content: "Grandchild 1",
           parent_id: "sub1",
           task_marker: "[ ]",
         },
         {
           id: "grandchild2",
-          type: "li",
+          type: "p", item: true,
           content: "Grandchild 2",
           parent_id: "sub1",
           parent_idx: 1,
@@ -530,7 +530,7 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "li",
+          type: "p", item: true,
           content: "Subtask no kids",
           parent_id: "parent1",
           parent_idx: 1,
@@ -553,14 +553,14 @@ describe("DetailPane", () => {
     // Structure: parent1 > d1(depth0) > d2(depth1) > d3(depth2) > d4(depth3) > d5a,d5b(hidden)
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "oi", content: "Root task" },
-        { id: "d1", type: "li", content: "Depth 1", parent_id: "parent1", task_marker: "[ ]" },
-        { id: "d2", type: "li", content: "Depth 2", parent_id: "d1", task_marker: "[ ]" },
-        { id: "d3", type: "li", content: "Depth 3", parent_id: "d2", task_marker: "[ ]" },
-        { id: "d4", type: "li", content: "Depth 4", parent_id: "d3", task_marker: "[ ]" },
+        { id: "parent1", type: "h", item: true, content: "Root task" },
+        { id: "d1", type: "p", item: true, content: "Depth 1", parent_id: "parent1", task_marker: "[ ]" },
+        { id: "d2", type: "p", item: true, content: "Depth 2", parent_id: "d1", task_marker: "[ ]" },
+        { id: "d3", type: "p", item: true, content: "Depth 3", parent_id: "d2", task_marker: "[ ]" },
+        { id: "d4", type: "p", item: true, content: "Depth 4", parent_id: "d3", task_marker: "[ ]" },
         // d4 is at depth 3, so its children are not fetched
-        { id: "d5a", type: "li", content: "Hidden child A", parent_id: "d4", task_marker: "[ ]" },
-        { id: "d5b", type: "li", content: "Hidden child B", parent_id: "d4", parent_idx: 1, task_marker: "[ ]" },
+        { id: "d5a", type: "p", item: true, content: "Hidden child A", parent_id: "d4", task_marker: "[ ]" },
+        { id: "d5b", type: "p", item: true, content: "Hidden child B", parent_id: "d4", parent_idx: 1, task_marker: "[ ]" },
       ]),
     })
     const parent = repo.getNode("parent1")!
@@ -579,7 +579,7 @@ describe("DetailPane", () => {
   test("renders body content with attachment links", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "task1", type: "li", content: "Task with attachments" },
+        { id: "task1", type: "p", item: true, content: "Task with attachments" },
         // Body content (non-structural: p type)
         {
           id: "body1",
@@ -617,13 +617,13 @@ describe("DetailPane", () => {
   test("renders mixed body and subtask children", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "task1", type: "li", content: "Parent with body and subtasks" },
+        { id: "task1", type: "p", item: true, content: "Parent with body and subtasks" },
         // Body content first
         { id: "b1", type: "p", content: "Description paragraph", parent_id: "task1" },
         // Then subtask items
         {
           id: "sub1",
-          type: "li",
+          type: "p", item: true,
           content: "Subtask A",
           parent_id: "task1",
           parent_idx: 1,
@@ -631,7 +631,7 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "li",
+          type: "p", item: true,
           content: "Subtask B",
           parent_id: "task1",
           parent_idx: 2,
@@ -652,10 +652,10 @@ describe("DetailPane", () => {
   test("shows backlinks when present", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "target1", type: "li", content: "Target task" },
+        { id: "target1", type: "p", item: true, content: "Target task" },
         {
           id: "source1",
-          type: "oi",
+          type: "h", item: true,
           fstype: "mdfile" as const,
           content: "Meeting Notes",
           parent_idx: 1,
@@ -686,7 +686,7 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Clean task",
           task_status: "todo",
         },
@@ -704,17 +704,17 @@ describe("DetailPane", () => {
   test("shows location on the title line, not as a metadata row", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "oi", fstype: "folder" as const, content: "Work" },
+        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "oi",
+          type: "h", item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "li",
+          type: "p", item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -744,17 +744,17 @@ describe("DetailPane", () => {
   test("no dot separators between top-level subitems", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "parent1", type: "oi", content: "Parent task" },
+        { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "li",
+          type: "p", item: true,
           content: "First subtask",
           parent_id: "parent1",
           task_marker: "[ ]",
         },
         {
           id: "sub2",
-          type: "li",
+          type: "p", item: true,
           content: "Second subtask",
           parent_id: "parent1",
           parent_idx: 1,
@@ -762,7 +762,7 @@ describe("DetailPane", () => {
         },
         {
           id: "sub3",
-          type: "li",
+          type: "p", item: true,
           content: "Third subtask",
           parent_id: "parent1",
           parent_idx: 2,
@@ -783,7 +783,7 @@ describe("DetailPane", () => {
   test("body text preserves paragraph breaks as blank lines", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "task1", type: "li", content: "Task with paragraphs" },
+        { id: "task1", type: "p", item: true, content: "Task with paragraphs" },
         {
           id: "body1",
           type: "p",

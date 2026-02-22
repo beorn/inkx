@@ -39,18 +39,18 @@ function derivedState(store: StoreApi<BoardAppStore>) {
 
 /**
  * Helper: create an empty column node (oi/folder type) with no card children.
- * item() creates "li" when no children — we need "oi" for it to be treated as a column.
+ * item() creates "p" when no children — we need "h" for it to be treated as a column.
  */
 function emptyColumn(id: string): KNode {
   return {
     id,
-    type: "oi",
+    type: "h", item: true,
     fstype: "folder",
     content: undefined,
     data: { name: id },
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -97,13 +97,13 @@ describe("Skeleton loading", () => {
       const colB = emptyColumn("col-empty-b")
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -146,13 +146,13 @@ describe("Skeleton loading", () => {
       const colA = emptyColumn("col-empty-a")
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -177,13 +177,13 @@ describe("Skeleton loading", () => {
       const colA = emptyColumn("col-empty-a")
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -221,13 +221,13 @@ describe("Skeleton loading", () => {
       const colB = emptyColumn("col-empty-b")
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -291,13 +291,13 @@ describe("Skeleton loading", () => {
     const { board, store, repo } = testEnv(() => {
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -324,7 +324,7 @@ describe("Skeleton loading", () => {
 
     // Background parse completes: add card to col1, clear isLoading
     act(() => {
-      repo.addNode("col1", { content: "Parsed Task A1", type: "li" })
+      repo.addNode("col1", { content: "Parsed Task A1", type: "p", item: true })
       store.setState((s) => ({ ...s, ui: { ...s.ui, isLoading: false, loadingStartTime: null } }))
     })
     board.press("F20")
@@ -340,13 +340,13 @@ describe("Skeleton loading", () => {
     const { board, store, repo } = testEnv(() => {
       const boardNode: KNode = {
         id: "board",
-        type: "oi",
+        type: "h", item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
         parent_id: null,
         parent_idx: 0,
-        link_to: null,
+        embed_source: null,
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
@@ -401,8 +401,8 @@ describe("Skeleton loading", () => {
 
     // Simulate background parse completing: add parsed content to col3
     act(() => {
-      repo.addNode("col3", { content: "Parsed Task C1", type: "li" })
-      repo.addNode("col3", { content: "Parsed Task C2", type: "li" })
+      repo.addNode("col3", { content: "Parsed Task C1", type: "p", item: true })
+      repo.addNode("col3", { content: "Parsed Task C2", type: "p", item: true })
     })
     board.press("F20")
 

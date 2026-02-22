@@ -92,8 +92,8 @@ export function useBoardDialogs({
         return
       }
 
-      // Resolve link target: if this is a link, operate on the target
-      const nodeToMove = cursorNode.link_to || cursorNode.id
+      // Resolve embed target: if this is an embed, operate on the target
+      const nodeToMove = cursorNode.embed_source ?? cursorNode.id
 
       // Calculate sort order (add at end of target)
       const targetChildren = repo.getChildren(targetNode.id)

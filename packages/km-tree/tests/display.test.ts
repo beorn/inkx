@@ -23,11 +23,12 @@ import {
 function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
   return {
     id,
-    type: "oi",
+    type: "h",
+    item: true,
     fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
+    embed_source: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -44,7 +45,7 @@ type NodeChainSpec = { type: "folder" | "file" | "section"; title: string }
 function createNodeChain(specs: NodeChainSpec[]): KNode[] {
   return specs.map((spec, i) =>
     createNode(`${spec.type}${i + 1}`, {
-      type: "oi",
+      type: "h", item: true,
       fstype: FSTYPE_MAP[spec.type],
       title: spec.title,
     }),
@@ -128,9 +129,9 @@ describe("getNodeDisplayName", () => {
 
   describe("priority 3: file node H1 heading", () => {
     it("uses first section title for file nodes", () => {
-      const fileNode = createNode("file123", { type: "oi", fstype: "mdfile" })
+      const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile" })
       const sectionNode = createNode("section123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "Project Overview",
       })
@@ -141,9 +142,9 @@ describe("getNodeDisplayName", () => {
     })
 
     it("uses first section content if title is absent", () => {
-      const fileNode = createNode("file123", { type: "oi", fstype: "mdfile" })
+      const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile" })
       const sectionNode = createNode("section123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         content: "# Heading\nParagraph content",
       })
@@ -154,9 +155,9 @@ describe("getNodeDisplayName", () => {
     })
 
     it("strips rules from section content", () => {
-      const fileNode = createNode("file123", { type: "oi", fstype: "mdfile" })
+      const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile" })
       const sectionNode = createNode("section123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         content: "Work km.default:: true\nMore content",
       })
@@ -167,9 +168,9 @@ describe("getNodeDisplayName", () => {
     })
 
     it("ignores stale data.title on first section of file node", () => {
-      const fileNode = createNode("file123", { type: "oi", fstype: "mdfile" })
+      const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile" })
       const sectionNode = createNode("section123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "",
         content: "",
@@ -186,7 +187,7 @@ describe("getNodeDisplayName", () => {
   describe("priority 4: node content", () => {
     it("returns first line of content for list items", () => {
       const node = createNode("task123", {
-        type: "li",
+        type: "p", item: true,
         content: "Fix the bug\nMore details here",
       })
       expect(getNodeDisplayName(node)).toBe("Fix the bug")
@@ -202,7 +203,7 @@ describe("getNodeDisplayName", () => {
   describe("priority 5: filename", () => {
     it("uses filename without .md extension", () => {
       const node = createNode("file123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdfile",
         fs_path: "/path/to/my-project.md",
       })
@@ -211,7 +212,7 @@ describe("getNodeDisplayName", () => {
 
     it("returns filename as-is if no .md extension", () => {
       const node = createNode("file123", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdfile",
         fs_path: "/path/to/readme",
       })
@@ -234,7 +235,7 @@ describe("getNodeDisplayName", () => {
 
     it("returns parens format for empty-titled outline items (## with no text)", () => {
       const node = createNode("01JTEST1234567", {
-        type: "oi",
+        type: "h", item: true,
         fstype: "mdsection",
         title: "",
         content: "",
@@ -256,7 +257,7 @@ describe("isNodeUntitled", () => {
 
   it("returns true for empty-titled outline item (## with no text)", () => {
     const node = createNode("abc123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "",
       content: "",
@@ -300,15 +301,15 @@ describe("isNodeUntitled", () => {
   })
 
   it("returns false for file node with titled first section", () => {
-    const fileNode = createNode("file1", { type: "oi", fstype: "mdfile" })
-    const section = createNode("sec1", { type: "oi", fstype: "mdsection", title: "Overview" })
+    const fileNode = createNode("file1", { type: "h", item: true, fstype: "mdfile" })
+    const section = createNode("sec1", { type: "h", item: true, fstype: "mdsection", title: "Overview" })
     const getChildren = (id: string) => (id === "file1" ? [section] : [])
     expect(isNodeUntitled(fileNode, getChildren)).toBe(false)
   })
 
   it("returns true for file node with empty first section", () => {
-    const fileNode = createNode("file1", { type: "oi", fstype: "mdfile" })
-    const section = createNode("sec1", { type: "oi", fstype: "mdsection", title: "", content: "" })
+    const fileNode = createNode("file1", { type: "h", item: true, fstype: "mdfile" })
+    const section = createNode("sec1", { type: "h", item: true, fstype: "mdsection", title: "", content: "" })
     const getChildren = (id: string) => (id === "file1" ? [section] : [])
     expect(isNodeUntitled(fileNode, getChildren)).toBe(true)
   })
@@ -320,17 +321,17 @@ describe("isNodeUntitled", () => {
 
 describe("getTypeIndicator", () => {
   test.each([
-    { type: "oi", fstype: "folder", expected: "/" },
-    { type: "oi", fstype: "repo", expected: "/" },
-    { type: "oi", fstype: "file", expected: ".md" },
-    { type: "oi", fstype: "mdfile", expected: ".md" },
-    { type: "oi", fstype: "mdsection", expected: "#" },
-    { type: "oi", fstype: undefined, expected: "" },
-    { type: "li", fstype: undefined, expected: "" },
+    { type: "h", item: true, fstype: "folder", expected: "/" },
+    { type: "h", item: true, fstype: "repo", expected: "/" },
+    { type: "h", item: true, fstype: "file", expected: ".md" },
+    { type: "h", item: true, fstype: "mdfile", expected: ".md" },
+    { type: "h", item: true, fstype: "mdsection", expected: "#" },
+    { type: "h", item: true, fstype: undefined, expected: "" },
+    { type: "p", item: true, fstype: undefined, expected: "" },
     { type: "p", fstype: undefined, expected: "" },
-    { type: "link", fstype: undefined, expected: "" },
-  ])("returns $expected for type=$type fstype=$fstype", ({ type, fstype, expected }) => {
-    expect(getTypeIndicator(type, fstype)).toBe(expected)
+    { type: "embed", fstype: undefined, expected: "" },
+  ])("returns $expected for type=$type fstype=$fstype", ({ type, fstype, item, expected }) => {
+    expect(getTypeIndicator(type, fstype, item)).toBe(expected)
   })
 })
 
@@ -409,17 +410,17 @@ describe("namesAreSimilar", () => {
 
 describe("getCollapsedTypeSuffix", () => {
   it("returns empty string without getChildren", () => {
-    const node = createNode("folder123", { type: "oi", fstype: "folder", title: "Project" })
+    const node = createNode("folder123", { type: "h", item: true, fstype: "folder", title: "Project" })
     expect(getCollapsedTypeSuffix(node)).toBe("")
   })
 
   it("returns empty string for single node without matching children", () => {
     const folderNode = createNode("folder123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       title: "Project",
     })
-    const otherNode = createNode("other", { type: "oi", fstype: "mdfile", title: "Other" })
+    const otherNode = createNode("other", { type: "h", item: true, fstype: "mdfile", title: "Other" })
 
     const getChildren = (id: string) => (id === "folder123" ? [otherNode] : [])
 
@@ -428,11 +429,11 @@ describe("getCollapsedTypeSuffix", () => {
 
   it("returns combined indicators for folder > file chain", () => {
     const folderNode = createNode("folder123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       title: "Project",
     })
-    const fileNode = createNode("file123", { type: "oi", fstype: "mdfile", title: "Project" })
+    const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile", title: "Project" })
 
     const getChildren = (id: string) => (id === "folder123" ? [fileNode] : [])
 
@@ -441,13 +442,13 @@ describe("getCollapsedTypeSuffix", () => {
 
   it("returns combined indicators for folder > file > section chain", () => {
     const folderNode = createNode("folder123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       title: "Project",
     })
-    const fileNode = createNode("file123", { type: "oi", fstype: "mdfile", title: "Project" })
+    const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile", title: "Project" })
     const sectionNode = createNode("section123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Project",
     })
@@ -463,13 +464,13 @@ describe("getCollapsedTypeSuffix", () => {
 
   it("stops at non-matching name", () => {
     const folderNode = createNode("folder123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "folder",
       title: "Project",
     })
-    const fileNode = createNode("file123", { type: "oi", fstype: "mdfile", title: "Project" })
+    const fileNode = createNode("file123", { type: "h", item: true, fstype: "mdfile", title: "Project" })
     const sectionNode = createNode("section123", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Intro",
     })
@@ -581,10 +582,10 @@ describe("collapseAncestorsWithTypes", () => {
 
   it("handles multiple collapsed groups", () => {
     const nodes = [
-      createNode("folder1", { type: "oi", fstype: "folder", title: "Alpha" }),
-      createNode("file1", { type: "oi", fstype: "mdfile", title: "Alpha" }),
-      createNode("folder2", { type: "oi", fstype: "folder", title: "Beta" }),
-      createNode("file2", { type: "oi", fstype: "mdfile", title: "Beta" }),
+      createNode("folder1", { type: "h", item: true, fstype: "folder", title: "Alpha" }),
+      createNode("file1", { type: "h", item: true, fstype: "mdfile", title: "Alpha" }),
+      createNode("folder2", { type: "h", item: true, fstype: "folder", title: "Beta" }),
+      createNode("file2", { type: "h", item: true, fstype: "mdfile", title: "Beta" }),
     ]
     const result = collapseAncestorsWithTypes(nodes)
     expect(result.map((r) => ({ id: r.node.id, typeSuffix: r.typeSuffix }))).toEqual([
@@ -613,7 +614,7 @@ describe("getParentContext", () => {
   it("returns file parent display name", () => {
     const taskNode = createNode("task1", { parent_id: "file1" })
     const fileNode = createNode("file1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       title: "Project Tasks",
       parent_id: null,
@@ -626,14 +627,14 @@ describe("getParentContext", () => {
   it("skips board columns and finds file parent", () => {
     const taskNode = createNode("task1", { parent_id: "column1" })
     const columnNode = createNode("column1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "In Progress",
       parent_id: "file1",
       rules: { add: "@next.md/## Inbox" }, // Has rules = board column
     })
     const fileNode = createNode("file1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       title: "Board",
       parent_id: null,
@@ -651,7 +652,7 @@ describe("getParentContext", () => {
   it("returns meaningful section without rules", () => {
     const taskNode = createNode("task1", { parent_id: "section1" })
     const sectionNode = createNode("section1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Important Tasks",
       parent_id: null,
@@ -665,13 +666,13 @@ describe("getParentContext", () => {
   it("skips specified skipParentId", () => {
     const taskNode = createNode("task1", { parent_id: "column1" })
     const columnNode = createNode("column1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "In Progress",
       parent_id: "file1",
     })
     const fileNode = createNode("file1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       title: "Board",
       parent_id: null,
@@ -686,22 +687,22 @@ describe("getParentContext", () => {
     expect(getParentContext(taskNode, "column1", getNode)).toBe("Board")
   })
 
-  it("follows link_to for transclusion nodes", () => {
+  it("follows embed_source for transclusion nodes", () => {
     const linkedNode = createNode("linked1", {
-      link_to: "original1",
+      embed_source: "original1",
       parent_id: "board-column",
     })
     const originalNode = createNode("original1", {
       parent_id: "original-file",
     })
     const originalFile = createNode("original-file", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdfile",
       title: "Original File",
       parent_id: null,
     })
     const boardColumn = createNode("board-column", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Board Column",
       rules: { add: "somewhere" },
@@ -714,21 +715,21 @@ describe("getParentContext", () => {
       return null
     }
 
-    // Should follow link_to and return original file's context
+    // Should follow embed_source and return original file's context
     expect(getParentContext(linkedNode, null, getNode)).toBe("Original File")
   })
 
   it("returns null when walking up finds nothing", () => {
     const taskNode = createNode("task1", { parent_id: "section1" })
     const sectionNode = createNode("section1", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Column",
       parent_id: "section2",
       rules: { sync: "somewhere" }, // Has rules - board column
     })
     const sectionNode2 = createNode("section2", {
-      type: "oi",
+      type: "h", item: true,
       fstype: "mdsection",
       title: "Another Column",
       parent_id: null,
