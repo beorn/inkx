@@ -8,6 +8,7 @@
 import { fromHtml } from "hast-util-from-html"
 import { toMdast } from "hast-util-to-mdast"
 import { toMarkdown } from "mdast-util-to-markdown"
+import { gfmToMarkdown } from "mdast-util-gfm"
 import type { Nodes as MdastNode } from "mdast"
 
 /**
@@ -40,6 +41,7 @@ export function htmlToMarkdown(html: string): string {
     strong: "*",
     rule: "-",
     listItemIndent: "one",
+    extensions: [gfmToMarkdown()],
   })
 
   return md.trim()
