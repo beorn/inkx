@@ -11,6 +11,21 @@ import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } 
 import type { Repo } from "../repo-context.tsx"
 
 /**
+ * Compute section depth from tree nesting.
+ * Direct children of a file node are H2 (depth 2). Each additional
+ * mdsection ancestor adds 1 to the depth.
+ */
+function computeSectionDepth(node: KNode, getNode: (id: string) => KNode | undefined): number {
+  let depth = 2 // Direct file children are H2
+  let current = node.parent_id ? getNode(node.parent_id) : undefined
+  while (current?.type === "oi" && current.fstype === "mdsection") {
+    depth++
+    current = current.parent_id ? getNode(current.parent_id) : undefined
+  }
+  return depth
+}
+
+/**
  * Create a term instance with environment detection.
  * Called per-invocation to avoid module-level mutable state.
  */
@@ -48,7 +63,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
       case "mdfile":
         return prefix + (name.endsWith(".md") ? name : name + style.gray(".md"))
       case "mdsection": {
-        const depth = (ca.node.data?.depth as number) ?? 1
+        const depth = computeSectionDepth(ca.node, (id) => repo.getNode(id))
         return prefix + style.gray("#".repeat(depth) + " ") + name
       }
     }
@@ -77,7 +92,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
       case "mdfile":
         return prefix + style.cyan(name)
       case "mdsection": {
-        const depth = (node.data?.depth as number) ?? 1
+        const depth = computeSectionDepth(node, (id) => repo.getNode(id))
         return prefix + style.gray("#".repeat(depth) + " ") + style.yellow(name)
       }
       default:

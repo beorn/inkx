@@ -33,7 +33,13 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
     // Only add .md if name doesn't already end with it
     return name.endsWith(".md") ? name : name + term.gray(".md")
   } else if (ca.node.type === "oi" && ca.node.fstype === "mdsection") {
-    const depth = (ca.node.data?.depth as number) ?? 1
+    // Compute depth from tree nesting (direct file children = H2)
+    let depth = 2
+    let current: KNode | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
+    while (current?.type === "oi" && current.fstype === "mdsection") {
+      depth++
+      current = current.parent_id ? repo.getNode(current.parent_id) : undefined
+    }
     return term.gray("#".repeat(depth) + " ") + name
   }
   return name

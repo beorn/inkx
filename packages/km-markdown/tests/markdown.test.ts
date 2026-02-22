@@ -696,7 +696,7 @@ More content.`
     expect(warning.message).toContain("Missing H1 heading")
   })
 
-  test("should warn when file has multiple H1 headings", () => {
+  test("multiple H1 headings are clamped — no warning (depth clamping prevents escape)", () => {
     const md = `# First Title
 
 Some content.
@@ -710,10 +710,13 @@ More content.
 Even more content.`
 
     const result = parseMarkdownWithLinks(md, "multiple-h1.md")
-    expect(result.warnings).toHaveLength(1)
-    const warning = result.warnings[0]!
-    expect(warning.type).toBe("multiple_h1")
-    expect(warning.message).toContain("Multiple H1 headings found (3)")
+    // With heading depth clamping, subsequent H1s become H2 (clamped to root+1)
+    // so they're no longer detected as multiple H1s
+    expect(result.warnings).toHaveLength(0)
+    // First H1 is merged into file, others become H2 children
+    expect(result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")?.title).toBe("First Title")
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    expect(sections).toHaveLength(2) // "Second Title" and "Third Title" as H2s
   })
 
   test("should not warn when file has exactly one H1 heading", () => {
@@ -856,9 +859,9 @@ describe("Section title and rules parsing", () => {
     const result = parseMarkdownWithLinks(md, "board.md")
     const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
-    // H1 is merged into file node, so no depth-1 section should exist
-    const h1Sections = sections.filter((s) => s.data?.depth === 1)
-    expect(h1Sections.length).toBe(0)
+    // H1 is merged into file node, so no H1 sections should remain
+    // (sections only contains H2+ headings)
+    expect(sections.length).toBe(2)
 
     // Today column
     const today = sections.find((s) => s.title === "Today")
@@ -894,15 +897,11 @@ describe("H1 merge into file node", () => {
     expect(fileNode?.title).toBe("Board Title")
     expect(fileNode?.content).toBe("Board Title")
 
-    // No depth-1 sections (H1 was merged)
-    const h1Sections = sections.filter((s) => s.data?.depth === 1)
-    expect(h1Sections.length).toBe(0)
-
-    // H2 sections should be direct children of file
-    const h2Sections = sections.filter((s) => s.data?.depth === 2)
-    expect(h2Sections.length).toBe(2)
+    // No H1 sections (H1 was merged into file node)
+    // All remaining sections should be direct children of file
+    expect(sections.length).toBe(2)
     expect(fileNode).toBeDefined()
-    for (const s of h2Sections) {
+    for (const s of sections) {
       expect(s.parent_id).toBe(fileNode!.id)
     }
   })
@@ -975,11 +974,10 @@ author: test
 
     // Both frontmatter and H1 data should be present
     expect(fileNode?.data?.author).toBe("test")
-    expect(fileNode?.data?.depth).toBe(1) // H1 depth
     expect(fileNode?.title).toBe("Document Title")
   })
 
-  test("should warn about multiple H1s but still merge first one", () => {
+  test("multiple H1s: first is merged, subsequent are clamped to H2", () => {
     const md = `# First Title
 
 ## Section
@@ -994,9 +992,13 @@ More content
     // First H1 merged into file
     expect(fileNode?.title).toBe("First Title")
 
-    // Warning generated for multiple H1s
-    expect(result.warnings.length).toBe(1)
-    expect(result.warnings[0]?.type).toBe("multiple_h1")
+    // No multiple_h1 warning — depth clamping converts subsequent H1s to H2
+    expect(result.warnings).toHaveLength(0)
+
+    // "Second Title" becomes an H2 sibling of "Section"
+    const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    expect(sections).toHaveLength(2)
+    expect(sections.map((s) => s.content)).toContain("Second Title")
   })
 })
 

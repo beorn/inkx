@@ -233,8 +233,8 @@ function serializeNode(
  * Serialize a section (heading + children)
  */
 function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext, treeDepth = 2): string {
-  // Prefer tree-computed depth; fall back to data.depth for parsed markdown roundtrip
-  const depth = (node.data?.depth as number) ?? treeDepth
+  // Depth derived from tree position (parent chain), not stored on the node
+  const depth = treeDepth
   const prefix = "#".repeat(depth)
   // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
   const title = node.title ?? node.content ?? ""

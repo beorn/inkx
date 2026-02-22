@@ -520,7 +520,7 @@ describe("Round-trip: Content Preservation Verification", () => {
     expect(task2!.priority).toBe(1)
   })
 
-  test("should preserve section depth", () => {
+  test("should preserve section depth via tree structure", () => {
     const nodes = parse(`# H1
 
 ## H2
@@ -531,18 +531,26 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     // H1 is merged into file node, so only 2 section nodes
     expect(sections.length).toBe(2)
-    expect(fileNode?.data?.depth).toBe(1)
-    expect(sections[0]?.data?.depth).toBe(2)
-    expect(sections[1]?.data?.depth).toBe(3)
+    expect(fileNode?.title).toBe("H1")
+    // H2 is a child of file (which absorbed H1)
+    expect(sections[0]?.parent_id).toBe(fileNode?.id)
+    // H3 is a child of H2
+    expect(sections[1]?.parent_id).toBe(sections[0]?.id)
 
-    // After round-trip
-    const nodes2 = parse(nodesToMarkdown(nodes))
+    // After round-trip, depth is derived from tree position
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("# H1")
+    expect(output).toContain("## H2")
+    expect(output).toContain("### H3")
+
+    // Double round-trip preserves structure
+    const nodes2 = parse(output)
     const sections2 = nodes2.filter((n) => n.type === "oi" && n.fstype === "mdsection")
     const fileNode2 = nodes2.find((n) => n.type === "oi" && n.fstype === "mdfile")
 
-    expect(fileNode2?.data?.depth).toBe(1)
-    expect(sections2[0]?.data?.depth).toBe(2)
-    expect(sections2[1]?.data?.depth).toBe(3)
+    expect(fileNode2?.title).toBe("H1")
+    expect(sections2[0]?.parent_id).toBe(fileNode2?.id)
+    expect(sections2[1]?.parent_id).toBe(sections2[0]?.id)
   })
 
   test("should preserve code language", () => {
@@ -1009,9 +1017,13 @@ Content here.
     expect(fileNode?.title).toBeUndefined()
     expect(sections.length).toBe(2)
     expect(fileNode).toBeDefined()
-    for (const s of sections) {
-      expect(s.parent_id).toBe(fileNode!.id)
-    }
+    // First section is a child of the file node
+    expect(sections[0]!.parent_id).toBe(fileNode!.id)
+    // Content is preserved through round-trip
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("## Just a Section")
+    expect(output).toContain("## Another Section")
+    expect(output).toContain("Content here")
   })
 
   test("should handle multiple H1s (first is used)", () => {
@@ -1046,11 +1058,14 @@ Deepest content.`)
     const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBe("H1 Level")
-    expect(fileNode?.data?.depth).toBe(1)
     expect(sections.length).toBe(5)
 
-    const depths = sections.map((s) => s.data?.depth)
-    expect(depths).toEqual(expect.arrayContaining([2, 3, 4, 5, 6]))
+    // Depth is derived from tree nesting: each section is a child of the one above
+    expect(sections[0]?.parent_id).toBe(fileNode?.id) // H2 under file
+    expect(sections[1]?.parent_id).toBe(sections[0]?.id) // H3 under H2
+    expect(sections[2]?.parent_id).toBe(sections[1]?.id) // H4 under H3
+    expect(sections[3]?.parent_id).toBe(sections[2]?.id) // H5 under H4
+    expect(sections[4]?.parent_id).toBe(sections[3]?.id) // H6 under H5
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("# H1 Level")
@@ -1058,16 +1073,28 @@ Deepest content.`)
   })
 
   test("should handle skipped heading levels", () => {
-    const sections = parse(`# Title
+    const nodes = parse(`# Title
 
 ## Section
 
 #### Skipped to H4
 
-###### Skipped to H6`).filter((n) => n.type === "oi" && n.fstype === "mdsection")
+###### Skipped to H6`)
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
-    const depths = sections.map((s) => s.data?.depth)
-    expect(depths).toEqual(expect.arrayContaining([2, 4, 6]))
+    expect(sections.length).toBe(3)
+    // Tree structure reflects nesting despite skipped levels
+    expect(sections[0]?.parent_id).toBe(fileNode?.id) // H2 under file
+    expect(sections[1]?.parent_id).toBe(sections[0]?.id) // H4 under H2 (skipped H3)
+    expect(sections[2]?.parent_id).toBe(sections[1]?.id) // H6 under H4 (skipped H5)
+
+    // Serializer derives correct heading depth from tree position
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("## Section")
+    // Skipped levels become sequential in the tree, so output uses sequential depths
+    expect(output).toContain("### Skipped to H4")
+    expect(output).toContain("#### Skipped to H6")
   })
 
   test("should handle H2 after H2 (sibling sections)", () => {
@@ -1089,10 +1116,16 @@ Content C`)
 
     expect(sections.length).toBe(3)
     expect(fileNode).toBeDefined()
+    // All H2 sections are siblings under the file node
     for (const s of sections) {
       expect(s.parent_id).toBe(fileNode!.id)
-      expect(s.data?.depth).toBe(2)
     }
+
+    // Serializer derives H2 depth from tree position (direct children of file)
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("## Section A")
+    expect(output).toContain("## Section B")
+    expect(output).toContain("## Section C")
   })
 })
 
@@ -1276,7 +1309,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       parent_idx: 1,
       title: "API Reference",
       content: "API Reference",
-      data: { depth: 2 },
     })
     const embeddingNode = makeTestNode({
       id: "embed-id-456",
@@ -1323,7 +1355,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       parent_id: "file-id-789",
       parent_idx: 1,
       content: "Inbox",
-      data: { depth: 2 },
     })
     const targetTask = makeTestNode({
       id: "original-task-1",
@@ -1424,7 +1455,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       fstype: "mdsection",
       parent_id: "other-file",
       content: "Linked Section",
-      data: { depth: 2 },
     })
     const linkSection = makeTestNode({
       id: "link-section-1",
@@ -1434,7 +1464,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
       parent_idx: 1,
       link_to: "target-section-1",
       content: "Linked Section",
-      data: { depth: 2 },
     })
 
     const md = nodesToMarkdown([fileNode, linkSection, targetNode])
@@ -1495,40 +1524,37 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
   })
 })
 
-describe("Section depth safety", () => {
-  test("section without data.depth defaults to H2 (not H1)", () => {
+describe("Section depth from tree position", () => {
+  test("section depth derived from parent chain (direct child of file = H2)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "oi",
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
-      data: { depth: 1 },
     })
-    const sectionNoDepth = makeTestNode({
+    const section = makeTestNode({
       id: "sec-1",
       type: "oi",
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
       content: "New Section",
-      // no data.depth — simulates node created by TUI without depth
     })
 
-    const md = nodesToMarkdown([fileNode, sectionNoDepth])
-    // Must be H2, not H1 — H1 would break the document structure
+    const md = nodesToMarkdown([fileNode, section])
+    // Direct child of file = H2 (file absorbs the H1 level)
     expect(md).toContain("## New Section")
     expect(md).not.toMatch(/^# New Section/m)
   })
 
-  test("section with empty content and no depth serializes safely", () => {
+  test("section with empty content serializes at correct tree depth", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "oi",
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
-      data: { depth: 1 },
     })
     const existing = makeTestNode({
       id: "sec-1",
@@ -1537,7 +1563,6 @@ describe("Section depth safety", () => {
       parent_id: "file-1",
       parent_idx: 1,
       content: "Existing",
-      data: { depth: 2 },
     })
     const empty = makeTestNode({
       id: "sec-2",
@@ -1546,15 +1571,151 @@ describe("Section depth safety", () => {
       parent_id: "file-1",
       parent_idx: 2,
       content: "",
-      // no depth
     })
 
     const md = nodesToMarkdown([fileNode, existing, empty])
-    // Empty section should be H2 (sibling level), not H1
+    // Both are direct children of file, so both are H2
     expect(md).toContain("## Existing")
     expect(md).toContain("## ")
     // Verify no bare H1 (only the file heading)
     const h1Matches = md.match(/^# .+$/gm) ?? []
     expect(h1Matches).toHaveLength(1) // just "# Document"
+  })
+})
+
+describe("Heading depth clamping", () => {
+  test("H1 inside H3 section is clamped (cannot escape above root section)", () => {
+    // Structure: H1 (merged) → H3 "Section A" → then H1 "Escaped"
+    // sectionStack after H1: [{depth:1}]
+    // H3: effectiveDepth = max(3, 1+1) = 3 → child of H1, stack: [{depth:1}, {depth:3}]
+    // Second H1: effectiveDepth = max(1, 1+1) = 2 → pop H3 (3≥2), keep H1 (1<2)
+    //   → becomes child of root H1, sibling of Section A, clamped from H1 to H2
+    // After H1 merge: both Section A and Escaped become children of file
+    const md = `# Document
+
+### Section A
+
+# Escaped Heading
+
+Some content`
+    const nodes = parse(md)
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+
+    expect(sections).toHaveLength(2)
+    const sectionA = sections.find((n) => n.content === "Section A")
+    const escaped = sections.find((n) => n.content === "Escaped Heading")
+    expect(sectionA).toBeDefined()
+    expect(escaped).toBeDefined()
+
+    // Both are children of file (H1 was merged into file)
+    // The escaped H1 was clamped to H2 (same level as Section A after merge)
+    expect(sectionA!.parent_id).toBe(fileNode!.id)
+    expect(escaped!.parent_id).toBe(fileNode!.id)
+
+    // Round-trip: serialized output should NOT show bare # for "Escaped"
+    const output = nodesToMarkdown(nodes)
+    expect(output).not.toMatch(/^# Escaped Heading/m)
+    // Both are direct children of file → both serialize as H2
+    expect(output).toContain("## Escaped Heading")
+  })
+
+  test("H1 at root level is still merged into file node", () => {
+    const md = `# Title
+
+## Section`
+    const nodes = parse(md)
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+
+    expect(fileNode?.title).toBe("Title")
+    expect(sections).toHaveLength(1)
+    expect(sections[0]?.content).toBe("Section")
+  })
+
+  test("normal nesting (H2 → H3 → H2) is unchanged", () => {
+    const md = `# Title
+
+## First
+
+### Nested
+
+## Second`
+    const nodes = parse(md)
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+
+    expect(sections).toHaveLength(3)
+    const first = sections.find((n) => n.content === "First")!
+    const nested = sections.find((n) => n.content === "Nested")!
+    const second = sections.find((n) => n.content === "Second")!
+
+    // First and Second are siblings under file
+    expect(first.parent_id).toBe(fileNode!.id)
+    expect(second.parent_id).toBe(fileNode!.id)
+    // Nested is child of First
+    expect(nested.parent_id).toBe(first.id)
+
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("## First")
+    expect(output).toContain("### Nested")
+    expect(output).toContain("## Second")
+  })
+
+  test("H2 inside H2 is clamped to H3", () => {
+    const md = `# Title
+
+## Parent
+
+## Child Should Nest`
+    // Two H2s at root → they're siblings, no clamping needed
+    // (clamping only applies when heading depth ≤ enclosing section)
+    const nodes = parse(md)
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+
+    // Both H2s are siblings at file level — no clamping, they're at root
+    expect(sections).toHaveLength(2)
+    expect(sections[0]?.parent_id).toBe(fileNode!.id)
+    expect(sections[1]?.parent_id).toBe(fileNode!.id)
+  })
+
+  test("multiple escaped headings are all clamped", () => {
+    // Structure: H1 "Doc" (merged), H2 "Outer", H1 "Inner One", H1 "Inner Two"
+    // sectionStack after H1: [{depth:1}]
+    // H2: effectiveDepth = max(2, 1+1) = 2 → child of H1, stack: [{depth:1}, {depth:2}]
+    // First H1: effectiveDepth = max(1, 1+1) = 2 → pop H2 (2≥2), keep root H1 (1<2)
+    //   → sibling of Outer, child of root H1
+    // Second H1: same clamping → sibling of Outer and Inner One
+    // After merge: all three become children of file node
+    const md = `# Doc
+
+## Outer
+
+# Inner One
+
+# Inner Two
+
+Content`
+    const nodes = parse(md)
+    const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")
+
+    const outer = sections.find((n) => n.content === "Outer")!
+    const inner1 = sections.find((n) => n.content === "Inner One")!
+    const inner2 = sections.find((n) => n.content === "Inner Two")!
+
+    // All three are siblings under file (H1s clamped to H2)
+    expect(outer.parent_id).toBe(fileNode!.id)
+    expect(inner1.parent_id).toBe(fileNode!.id)
+    expect(inner2.parent_id).toBe(fileNode!.id)
+
+    const output = nodesToMarkdown(nodes)
+    expect(output).toContain("## Outer")
+    expect(output).toContain("## Inner One")
+    expect(output).toContain("## Inner Two")
+    // No bare H1s in output (only the file title)
+    const h1s = output.match(/^# .+$/gm) ?? []
+    expect(h1s).toHaveLength(1) // just "# Doc"
   })
 })

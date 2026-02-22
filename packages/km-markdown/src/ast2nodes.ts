@@ -154,15 +154,16 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
   const now = Date.now()
 
   const fileNode = createFileNode(fsPath, fsIno, fsMtime, frontmatter, now)
-  let childNodes = astToNodes(ast, fileNode)
+  const h1Ids = new Set<string>()
+  let childNodes = astToNodes(ast, fileNode, h1Ids)
 
-  const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(fileNode, childNodes)
+  const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(fileNode, childNodes, h1Ids)
   childNodes = filteredChildren
 
   const allNodes = [fileNode, ...childNodes]
   const wikilinks = extractWikilinksFromNodes(allNodes)
   aggregateRefs(fileNode, childNodes)
-  const warnings = validateH1Count(childNodes, fsPath, hadH1)
+  const warnings = validateH1Count(childNodes, fsPath, hadH1, h1Ids)
 
   log.debug?.("parsed", {
     fsPath,
@@ -225,7 +226,7 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
  * Convert AST children to km nodes
  */
 // oxlint-disable-next-line complexity/complexity -- Recursive AST conversion with many node types
-function astToNodes(ast: Root, fileNode: KNode): KNode[] {
+function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
   const nodes: KNode[] = []
   const sectionStack: Array<{ depth: number; node: KNode }> = []
   let currentParent = fileNode
@@ -237,10 +238,18 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
     if (child.type === "heading") {
       const heading = child as Heading
 
-      // Pop stack until we find a shallower heading
+      // Clamp heading depth so it can't escape above the root section.
+      // An H1 inside an H3 section becomes H4 (root section depth + 1).
+      // At root level (no sections on stack), trust the markdown depth.
+      const effectiveDepth =
+        sectionStack.length > 0
+          ? Math.max(heading.depth, sectionStack[0]!.depth + 1)
+          : heading.depth
+
+      // Pop stack until we find a shallower heading (using effective depth)
       while (sectionStack.length > 0) {
         const top = sectionStack[sectionStack.length - 1]
-        if (top && top.depth >= heading.depth) {
+        if (top && top.depth >= effectiveDepth) {
           sectionStack.pop()
         } else {
           break
@@ -266,9 +275,13 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
       const taskMarker = taskMark !== undefined ? markToMarker(taskMark) : undefined
       const taskStatus = getStatusForMarker(taskMarker)
 
+      // Track H1 nodes at root level for mergeH1IntoFileNode
+      const isRootH1 = heading.depth === 1 && sectionStack.length === 0
+
       const parentSection = sectionStack[sectionStack.length - 1]
+      const nodeId = ulid()
       const sectionNode: KNode = {
-        id: ulid(),
+        id: nodeId,
         type: "oi",
         fstype: "mdsection",
         parent_id: parentSection ? parentSection.node.id : fileNode.id,
@@ -284,7 +297,6 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
         task_status: taskStatus,
         task_marker: taskMarker,
         data: {
-          depth: heading.depth,
           ...(hasRules ? { rules, title } : {}), // Store rules and clean title in data for DB persistence
         },
         created_at: now,
@@ -292,8 +304,12 @@ function astToNodes(ast: Root, fileNode: KNode): KNode[] {
         version: "",
       }
 
+      if (isRootH1 && h1Ids) {
+        h1Ids.add(nodeId)
+      }
+
       nodes.push(sectionNode)
-      sectionStack.push({ depth: heading.depth, node: sectionNode })
+      sectionStack.push({ depth: effectiveDepth, node: sectionNode })
       currentParent = sectionNode
       continue
     }
@@ -633,8 +649,8 @@ function parseFrontmatterTimestamp(value: unknown): number | undefined {
  * The H1 title becomes the file's title, and H1's children become file's children.
  * Returns filtered childNodes (H1 removed) and whether an H1 was found.
  */
-function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[]): { childNodes: KNode[]; hadH1: boolean } {
-  const h1Section = childNodes.find((n) => n.type === "oi" && n.data?.depth === 1)
+function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[], h1Ids: Set<string>): { childNodes: KNode[]; hadH1: boolean } {
+  const h1Section = childNodes.find((n) => h1Ids.has(n.id))
 
   if (!h1Section) {
     return { childNodes, hadH1: false }
@@ -790,9 +806,9 @@ function aggregateRefs(fileNode: KNode, childNodes: KNode[]): void {
  * Validate that the file has exactly one H1 heading.
  * Returns warnings for missing or multiple H1s.
  */
-function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean): ParseWarning[] {
+function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean, h1Ids: Set<string>): ParseWarning[] {
   const warnings: ParseWarning[] = []
-  const h1Count = childNodes.filter((n) => n.type === "oi" && n.data?.depth === 1).length
+  const h1Count = childNodes.filter((n) => h1Ids.has(n.id)).length
   // Add 1 for the merged H1 if it existed
   const totalH1s = hadH1 ? h1Count + 1 : h1Count
 
@@ -803,7 +819,7 @@ function validateH1Count(childNodes: KNode[], fsPath: string, hadH1: boolean): P
     })
   } else if (totalH1s > 1) {
     // Find the second H1 for line number
-    const secondH1 = childNodes.find((n) => n.type === "oi" && n.data?.depth === 1)
+    const secondH1 = childNodes.find((n) => h1Ids.has(n.id))
     warnings.push({
       type: "multiple_h1",
       message: `${fsPath}: Multiple H1 headings found (${totalH1s}). Each markdown file should have exactly one # heading.`,

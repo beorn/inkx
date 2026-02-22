@@ -180,8 +180,11 @@ describe("E2E Round-Trip Features", () => {
         const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
         expect(sections).toHaveLength(3) // H2, H3, H2
 
-        const h3 = sections.find((n) => n.data?.depth === 3)
-        expect(h3?.content).toContain("Subsection")
+        const h3 = sections.find((n) => n.content?.includes("Subsection"))
+        expect(h3).toBeDefined()
+        // H3 should be a child of an H2 section (tree structure encodes depth)
+        const h2Parent = sections.find((s) => s.id === h3!.parent_id)
+        expect(h2Parent).toBeDefined()
       }))
 
     test("code blocks with language tags preserved", () =>

@@ -587,13 +587,14 @@ describe("Content Round-Trip Fuzz", () => {
 
       await syncManager.syncFromFs()
 
-      // Record section depths
-      const getSectionDepths = () => {
+      // Record section tree structure (parent_id encodes nesting, not data.depth)
+      const getSectionStructure = () => {
         const nodes = getAllNodes(db)
-        return new Map(nodes.filter((n) => n.type === "oi" && !n.fstype).map((n) => [n.id, n.data?.depth ?? null]))
+        const sections = nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
+        return new Map(sections.map((n) => [n.id, n.parent_id]))
       }
 
-      const depthsBefore = getSectionDepths()
+      const structureBefore = getSectionStructure()
 
       // Edit a task under Level 3
       const tasks = getAllNodes(db).filter((n) => n.task_status != null && n.content?.includes("3.1"))
@@ -603,12 +604,12 @@ describe("Content Round-Trip Fuzz", () => {
         await syncManager.syncFromFs()
       }
 
-      const depthsAfter = getSectionDepths()
+      const structureAfter = getSectionStructure()
 
-      // All section depths should be preserved
-      for (const [id, depthBefore] of depthsBefore) {
-        const depthAfter = depthsAfter.get(id)
-        expect(depthAfter, `Section ${id} depth changed: ${depthBefore} → ${depthAfter}`).toBe(depthBefore)
+      // All section parent relationships should be preserved
+      for (const [id, parentBefore] of structureBefore) {
+        const parentAfter = structureAfter.get(id)
+        expect(parentAfter, `Section ${id} parent changed: ${parentBefore} → ${parentAfter}`).toBe(parentBefore)
       }
     }))
 

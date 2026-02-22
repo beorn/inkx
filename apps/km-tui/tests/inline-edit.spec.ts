@@ -506,16 +506,9 @@ describe("Outliner Enter — save + new sibling", () => {
     board.expect("#1b[data-cursor]").toExist()
   })
 
-  test("new sibling inherits data.depth from current card", () => {
-    const { board, repo } = testEnv(() => {
-      const nodes = item("board", item("col1", item("1a"), item("1b")))
-      // Set depth=2 on the cards (simulates H2 sections parsed from markdown)
-      for (const n of nodes) {
-        if (n.id === "1a" || n.id === "1b") {
-          n.data = { ...n.data, depth: 2 }
-        }
-      }
-      return nodes
+  test("new sibling is created between existing cards", () => {
+    const { board } = testEnv(() => {
+      return item("board", item("col1", item("1a"), item("1b")))
     })
 
     board.press("Enter") // edit 1a
@@ -530,9 +523,6 @@ describe("Outliner Enter — save + new sibling", () => {
     expect(newNodeId).toBeDefined()
     expect(newNodeId).not.toBe("1a")
     expect(newNodeId).not.toBe("1b")
-
-    // Data: new sibling inherited depth=2
-    expect(repo.getNode(newNodeId!)?.data?.depth).toBe(2)
   })
 
   test("new sibling is inserted AFTER current card, not before", () => {

@@ -29,30 +29,6 @@ import { clearSelection, getSelectedCards } from "../keyboard/keyboard-helpers.t
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 
-/**
- * Determine the correct heading depth for a new sibling node.
- * Prefers the sibling's depth (same level), but if the sibling has no depth
- * (e.g. embed/paragraph), computes parent depth + 1 to stay nested correctly.
- * Without this, creating a section among embeds under ## Processing produces
- * a ## heading (depth 2) that the markdown parser sees as a sibling of
- * Processing rather than a child — breaking the tree on re-parse.
- */
-function siblingOrParentDepth(
-  sibling: KNode,
-  parent: { id: string },
-  repo: { getNode(id: string): KNode | undefined },
-): number | undefined {
-  const sibDepth = sibling.data?.depth as number | undefined
-  if (sibDepth) return sibDepth
-
-  const parentNode = repo.getNode(parent.id)
-  const parentDepth = parentNode?.data?.depth as number | undefined
-  if (parentDepth) return parentDepth + 1
-
-  // Parent is file node (no depth) → children are H2 (depth 2)
-  return 2
-}
-
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
 // needs to mount before the next event handler runs.
 let _needsFlush = false
@@ -308,13 +284,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   } else if (newNode.type === "oi") {
     newNode.fstype = "mdsection"
   }
-  // Depth: inherit from sibling if available, otherwise compute from parent.
-  // Embeds/paragraphs have no depth — using the default (2) would create a
-  // same-level heading that breaks the markdown tree on re-parse.
-  const depth = siblingOrParentDepth(currentNode, col.node, repo)
-  if (depth) {
-    newNode.data = { ...newNode.data, depth }
-  }
+  // No need to store depth in data — it's derived from tree position during serialization
 
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(col.node.id, newNode)
@@ -382,13 +352,12 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
   const nextIdx = nextSibling?.parent_idx ?? parentIdx + 1
   const newSortOrder = (parentIdx + nextIdx) / 2
 
-  // oxlint-disable-next-line typescript-eslint/no-explicit-any -- partial node stub for depth calc
-  const depth = siblingOrParentDepth(parentNode, { id: grandparentId } as any, repo)
+  // No need to store depth in data — it's derived from tree position during serialization
   const newNode: Partial<KNode> = {
     type: "oi",
     content: "",
     parent_idx: newSortOrder,
-    data: depth ? { depth } : {},
+    data: {},
   }
 
   ctx.undoHandle.setCursor(cursorId)

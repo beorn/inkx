@@ -2,10 +2,10 @@
  * Embed Depth Bug Tests
  *
  * When handleAddNodeAfter creates a section node as a sibling of embed nodes
- * (paragraphs with link_to), the section defaults to depth=2 because embeds
- * have no data.depth for the TUI to infer from. If the parent section is also
- * depth=2, serialization produces a ## heading that the parser interprets as
- * a SIBLING rather than a CHILD -- breaking the tree structure on re-parse.
+ * (paragraphs with link_to), the section's heading depth is derived from its
+ * position in the tree (parent chain), not from stored data. If a section is
+ * incorrectly parented (sibling instead of child), serialization produces a
+ * heading at the wrong level, breaking the tree structure on re-parse.
  */
 
 import { describe, test, expect } from "vitest"
@@ -61,7 +61,6 @@ describe("Embed depth: section created among embeds", () => {
       parent_idx: 1,
       content: "Processing",
       title: "Processing",
-      data: { depth: 2 },
     })
     const embed1 = makeTestNode({
       id: "embed-1",
@@ -79,7 +78,7 @@ describe("Embed depth: section created among embeds", () => {
       link_to: "target-2",
       content: "![[File2#^def]]",
     })
-    // CORRECT depth: 3 means this is a child of "Processing" (depth=2)
+    // Inner section is a child of "Processing" — tree depth determines heading level
     const innerSection = makeTestNode({
       id: "sec-inner",
       type: "oi",
@@ -88,7 +87,6 @@ describe("Embed depth: section created among embeds", () => {
       parent_idx: 3,
       content: "",
       title: "",
-      data: { depth: 3 },
     })
     const embed3 = makeTestNode({
       id: "embed-3",
@@ -124,8 +122,10 @@ describe("Embed depth: section created among embeds", () => {
     expect(reparsedInner.parent_id).toBe(processing!.id)
   })
 
-  test("section with depth=2 among depth=2 children BREAKS round-trip (documents the bug)", () => {
-    // Simulate the bug: inner section has depth=2 (same as parent) due to missing depth
+  test("section among embeds gets correct depth from tree structure (former bug now fixed)", () => {
+    // Previously, data.depth on sections could cause incorrect heading levels.
+    // Now depth is derived from tree position (parent chain), so a child section
+    // always gets the correct depth regardless of data.depth.
     const fileNode = makeTestNode({
       id: "file-1",
       type: "oi",
@@ -143,7 +143,6 @@ describe("Embed depth: section created among embeds", () => {
       parent_idx: 1,
       content: "Processing",
       title: "Processing",
-      data: { depth: 2 },
     })
     const embed1 = makeTestNode({
       id: "embed-1",
@@ -161,8 +160,7 @@ describe("Embed depth: section created among embeds", () => {
       link_to: "target-2",
       content: "![[File2#^def]]",
     })
-    // BUGGY depth: 2 (same as parent) — simulates what happens when
-    // handleAddNodeAfter creates a section with no depth info from embed siblings
+    // Child of "Processing" — tree depth gives it ### (depth 3)
     const innerSection = makeTestNode({
       id: "sec-inner",
       type: "oi",
@@ -171,7 +169,6 @@ describe("Embed depth: section created among embeds", () => {
       parent_idx: 3,
       content: "",
       title: "",
-      data: { depth: 2 },
     })
     const embed3 = makeTestNode({
       id: "embed-3",
@@ -185,32 +182,31 @@ describe("Embed depth: section created among embeds", () => {
     const allNodes = [fileNode, processingSection, embed1, embed2, innerSection, embed3]
     const lookupNodes = [...allNodes, ...targetNodes]
 
-    // Serialize — the inner section comes out as ## (depth 2)
+    // Serialize — inner section is ### (depth 3) because it's a child of Processing
     const md = nodesToMarkdown(allNodes, lookupNodes)
 
-    // Both "Processing" and the inner section are ## headings
+    // "Processing" is ## and inner section is ### (correct tree-derived depth)
     const h2Matches = md.match(/^## /gm) ?? []
-    expect(h2Matches.length).toBe(2) // Both are ## — this is the bug in serialization
+    const h3Matches = md.match(/^### /gm) ?? []
+    expect(h2Matches.length).toBe(1) // Only Processing is ##
+    expect(h3Matches.length).toBe(1) // Inner section is ###
 
-    // Re-parse: parser sees two ## headings and makes them siblings under file
+    // Re-parse: inner section is correctly a child of Processing
     const result = parseMarkdownWithLinks(md, "next-actions.md")
     const sections = result.nodes.filter((n) => n.type === "oi" && n.fstype === "mdsection")
 
     const processing = sections.find((s) => s.content === "Processing")
     expect(processing).toBeDefined()
 
-    const fileId = result.nodes.find((n) => n.type === "oi" && n.fstype === "mdfile")!.id
     const innerSections = sections.filter((s) => s.content !== "Processing")
     expect(innerSections.length).toBeGreaterThanOrEqual(1)
 
-    // BUG: The inner section becomes a sibling of Processing (parent = file)
-    // instead of a child of Processing (parent = processing section)
+    // Inner section is a child of Processing (tree structure preserved)
     const reparsedInner = innerSections[0]!
-    expect(reparsedInner.parent_id).toBe(fileId) // Sibling — broken tree structure
-    expect(reparsedInner.parent_id).not.toBe(processing!.id) // NOT a child — that's the bug
+    expect(reparsedInner.parent_id).toBe(processing!.id)
   })
 
-  test("nodes2md serializes depth=3 section as ### heading", () => {
+  test("nodes2md serializes nested section as ### heading (depth from tree)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "oi",
@@ -219,17 +215,25 @@ describe("Embed depth: section created among embeds", () => {
       content: "Document",
       data: { depth: 1 },
     })
-    const section = makeTestNode({
-      id: "sec-1",
+    const parentSection = makeTestNode({
+      id: "sec-parent",
       type: "oi",
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
+      content: "Parent",
+    })
+    // Child of parentSection → grandchild of file → depth 3 (###)
+    const childSection = makeTestNode({
+      id: "sec-1",
+      type: "oi",
+      fstype: "mdsection",
+      parent_id: "sec-parent",
+      parent_idx: 1,
       content: "Subsection",
-      data: { depth: 3 },
     })
 
-    const md = nodesToMarkdown([fileNode, section])
+    const md = nodesToMarkdown([fileNode, parentSection, childSection])
 
     expect(md).toContain("### Subsection")
     expect(md).not.toMatch(/^## Subsection/m)
