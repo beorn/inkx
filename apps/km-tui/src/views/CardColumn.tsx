@@ -553,6 +553,8 @@ export const Column = React.memo(function Column({
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
+  const filterHiddenCount =
+    column.totalCardCount != null ? column.totalCardCount - column.cardNodes.length : 0
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
@@ -764,7 +766,7 @@ export const Column = React.memo(function Column({
           isSelected={isSelected}
           items={column.cardNodes}
           width={width - 1}
-          height={height - 2}
+          height={height - 2 - (filterHiddenCount > 0 ? 1 : 0)}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
@@ -780,6 +782,11 @@ export const Column = React.memo(function Column({
           <Box marginTop={1} paddingLeft={3}>
             <Text dimColor>(empty)</Text>
           </Box>
+        </Box>
+      )}
+      {filterHiddenCount > 0 && (
+        <Box paddingLeft={3} height={1} flexShrink={0}>
+          <Text dimColor>+{filterHiddenCount} hidden</Text>
         </Box>
       )}
     </Box>

@@ -45,7 +45,7 @@ const toggleCollapse = {
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
   category: "Fold",
-  shortcuts: ["c"],
+  shortcuts: ["gc"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
@@ -57,7 +57,7 @@ const foldNode = {
   name: "Fold Node",
   description: "Fold just this node",
   category: "Fold",
-  shortcuts: ["zc"],
+  shortcuts: ["H"],
   execute: () => ({ type: "FOLD_NODE" }),
 } satisfies CommandDef
 
@@ -66,7 +66,7 @@ const unfoldNode = {
   name: "Unfold Node",
   description: "Unfold just this node",
   category: "Fold",
-  shortcuts: ["zo"],
+  shortcuts: ["L"],
   execute: () => ({ type: "UNFOLD_NODE" }),
 } satisfies CommandDef
 

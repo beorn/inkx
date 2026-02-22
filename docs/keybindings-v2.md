@@ -14,6 +14,7 @@ Bead: `km-all.keybindings-v2`. Prior research: [ref-keybindings.md](ref-keybindi
 5. **All operations are bulk**: Every action works on multi-selection.
 6. **Auto-save on navigate**: Leaving text edit saves. No data loss.
 7. **Invalid input = feedback**: Bell + cancel + bottom bar message.
+8. **Emacs + Vim coexistence**: Emacs bindings in text edit mode, vim in node mode. For less important bindings, OK to sacrifice for high-value features if Kitty-protocol alternatives exist (e.g., Ctrl+F stays emacs in text mode; Cmd+F via Kitty is find).
 
 ## Binding Layers
 
@@ -156,19 +157,19 @@ and text edit mode work identically. All operations apply.
 - **g/m/a/t** prefixes all work (same mode, different context)
 - **Escape** = unfocus pane (return to board), pane stays open
 
-## Smart-P (Pane Toggle)
+## Smart-D (Pane Toggle)
 
-P is context-aware with three states:
+D is context-aware with three states:
 
-| Current State | P does | Result |
+| Current State | D does | Result |
 |--------------|--------|--------|
 | Pane closed | Open + focus pane | Pane focused |
 | Pane open, board focused | Focus pane | Pane focused |
 | Pane open, pane focused | Close pane | Board focused |
 
-This eliminates the need for a separate "focus pane" key. One hiccup: pressing P from
-board with pane open focuses instead of closing — user must press P twice to close.
-The dim cursor indicator makes pane state visible. Pattern is: "P always gets you
+This eliminates the need for a separate "focus pane" key. One hiccup: pressing D from
+board with pane open focuses instead of closing — user must press D twice to close.
+The dim cursor indicator makes pane state visible. Pattern is: "D always gets you
 the pane or gets rid of it, depending on where you are."
 
 Cmd+w always closes the pane regardless of focus state.
@@ -182,7 +183,7 @@ Each Escape pops one layer (follows focus stack):
 4. **Selection active** → clear selection
 5. **Nothing** → no-op (visual bell)
 
-Pane is closed explicitly via P (when focused) or Cmd+w. Escape never closes the pane.
+Pane is closed explicitly via D (when focused) or Cmd+w. Escape never closes the pane.
 
 ## Navigation
 
@@ -227,13 +228,32 @@ Escape clears find highlights. Omnibox has its own result navigation (arrows).
 | Key | Cmd | Type | UI |
 |-----|-----|------|-----|
 | T | Cmd+t | Task properties | **Dialog** (floating) |
-| G | Cmd+g | Filter / sort / group | **Dialog** (floating) |
-| F | Cmd+f | Search / replace | **Dialog** (floating) |
+| F | Ctrl+g / Cmd+g | Filter / sort / group | **Dialog** (floating) |
+| S | Shift+Cmd+f | Search & replace | **Dialog** (floating, macOS-style) |
 | A | — | AI / agent | **Dialog** (floating) |
-| P | Cmd+p | Preview / detail | **Pane** (embedded sidebar) |
+| D | Cmd+p | Preview / detail | **Pane** (embedded sidebar) |
 
-Only P is a real pane (embedded, persistent, has its own cursor). T/G/F/A are floating dialogs.
-Escape closes topmost dialog (keep pressing to close all). P uses smart toggle (see above).
+Only D is a real pane (embedded, persistent, has its own cursor). T/F/S/A are floating dialogs.
+Escape closes topmost dialog (keep pressing to close all). D uses smart toggle (see above).
+
+### Local Find (inline, lightweight)
+| Key | Mode | Action |
+|-----|------|--------|
+| / | node | Open local find bar (vim-style) |
+| Ctrl+f | node | Open local find bar |
+| Ctrl+/ | any | Open local find bar (works in text edit mode too) |
+| Cmd+f | any (Kitty) | Open local find bar |
+| n / N | find active | Next / previous match |
+
+### Search & Replace Dialog (macOS-style)
+| Key | Context | Action |
+|-----|---------|--------|
+| Tab | dialog | Switch find/replace fields |
+| Enter / Shift+Enter | dialog | Find next / previous |
+| Cmd+r / Ctrl+r | dialog | Replace current match |
+| Cmd+Shift+r / Ctrl+Shift+r | dialog | Replace all |
+| Cmd+x / Ctrl+x | dialog | Toggle regex |
+| Escape | dialog | Close |
 
 ## Edit Entry
 
@@ -430,7 +450,7 @@ VIEW                                    u / U ....... undo / redo
   , ............ settings / views       i ........... title at start
                                         Enter ....... title at end
 SEARCH                                  I ........... body at start
-  / C-f ........ local find             S-Enter ..... body at end
+  / C-f C-/ .... local find             S-Enter ..... body at end
   n / N ........ next / prev match
   : C-k Cmd-k .. omnibox             TASK (t-prefix)
   F Cmd-f ...... search / replace       tt / C-t .... task dialog

@@ -37,6 +37,8 @@ export interface ColumnView {
   rules?: SectionRules
   /** True for virtual body column (displays leading non-section content) */
   isVirtual?: boolean
+  /** Unfiltered card count before text/property filtering. Present only when filters are active. */
+  totalCardCount?: number
 }
 
 /**

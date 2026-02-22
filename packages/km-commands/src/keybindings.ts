@@ -310,7 +310,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "global",
     bindings: [
       { key: "`", commandId: "console.toggle" },
-      { key: "t", ctrl: true, commandId: "dev.test_toast" },
+      { key: "t", ctrl: true, commandId: "task_dialog" },
       { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
       { key: "k", super: true, commandId: "command_palette" },
     ],
@@ -321,7 +321,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "filter-dialog",
     bindings: [
       { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
-      { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "g", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
       { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
@@ -672,6 +672,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
       { chord: "g", key: "e", commandId: "goto_archive" },
+      { chord: "g", key: "+", commandId: "goto_project" },
+      { chord: "g", key: "[", commandId: "goto_node" },
+      { chord: "g", key: "#", commandId: "goto_tag" },
+      { chord: "g", key: "G", commandId: "cursor_last" },
 
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
@@ -679,6 +683,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
       { chord: "m", key: "p", commandId: "reparent_picker" },
+      { chord: "m", key: "+", commandId: "move_to_project" },
+      { chord: "m", key: "[", commandId: "move_to_node" },
+      { chord: "m", key: "#", commandId: "move_to_tag" },
+      { chord: "m", key: "g", commandId: "move_to_first" },
+      { chord: "m", key: "G", commandId: "move_to_last" },
 
       // a-prefix chords (add operations — v2 spec)
       { chord: "a", key: "#", commandId: "add_tag" },
@@ -690,7 +699,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "a", key: "h", commandId: "insert_at_parent" },
 
       // t-prefix chords (task properties — v2 spec)
-      { chord: "t", key: "t", commandId: "noop" },
+      { chord: "t", key: "t", commandId: "task_dialog" },
       { chord: "t", key: "-", commandId: "noop" },
       { chord: "t", key: "o", commandId: "set_assignee" },
       { chord: "t", key: "d", commandId: "set_due_date" },
@@ -715,8 +724,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "_", commandId: "decrease_content_lines" },
       { key: ",", commandId: "settings" },
 
-      // Filter and command palette
-      { key: "/", ctrl: true, commandId: "filter" },
+      // Command palette
       { key: ":", commandId: "command_palette" },
     ],
   },
@@ -743,16 +751,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "/", commandId: "local_find" },
       { key: "f", super: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
+      { key: "/", ctrl: true, commandId: "local_find" },
       { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
       { key: "g", super: true, commandId: "filter" },
+      { key: "g", ctrl: true, commandId: "filter" },
       { key: "p", super: true, commandId: "toggle_detail_pane" },
       { key: ",", super: true, commandId: "settings" },
 
-      // Favorites (0-9) — jump to favorite boards
-      { key: "0", commandId: "favorite_1" },
+      // Favorites (1-9) — jump to favorite boards
       { key: "1", commandId: "favorite_1" },
       { key: "2", commandId: "favorite_2" },
       { key: "3", commandId: "favorite_3" },

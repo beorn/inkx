@@ -836,6 +836,7 @@ export function Board({ patchedConsole }: BoardProps) {
     const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
     return visibleColumns.map((col) => ({
       ...col,
+      totalCardCount: col.cardNodes.length,
       cardNodes: col.cardNodes.filter((card) => {
         // For embeds (link_to), resolve to source node for filtering
         const filterNode = card.link_to ? (repo.getNode(card.link_to) ?? card) : card

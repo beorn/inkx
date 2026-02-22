@@ -679,7 +679,7 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
 
   it("Ctrl+T fires dev toast", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("dev.test_toast")
+    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("task_dialog")
   })
 })
 
@@ -812,7 +812,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(33) // 12 g + 5 m + 7 a + 9 t
+    expect(chordBindings.length).toBe(42) // 16 g + 10 m + 7 a + 9 t
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -832,7 +832,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["C", "O", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
+    expect(keys).toEqual(["#", "+", "C", "G", "O", "[", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {
@@ -876,8 +876,8 @@ describe("chord keybindings", () => {
     // v2: : → command_palette, , → settings
     expect(resolveKeybinding(":", {}, ctx)).toBe("command_palette")
     expect(resolveKeybinding(",", {}, ctx)).toBe("settings")
-    // Ctrl+/ → filter
-    expect(resolveKeybinding("/", { ctrl: true }, ctx)).toBe("filter")
+    // Ctrl+G → filter
+    expect(resolveKeybinding("g", { ctrl: true }, ctx)).toBe("filter")
   })
 
   it("Smart-D: D key maps to toggle_detail_pane", () => {
