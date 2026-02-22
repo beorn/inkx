@@ -33,7 +33,7 @@ const toggleFold = {
   name: "Toggle Fold",
   description: "Fold or unfold current node",
   category: "Fold",
-  shortcuts: ["z"],
+  shortcuts: [],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_FOLD", nodeId: ctx.currentNodeId }
@@ -75,7 +75,7 @@ const unfoldRecursive = {
   name: "Unfold Recursive",
   description: "Unfold node and all descendants",
   category: "Fold",
-  shortcuts: ["zO"],
+  shortcuts: [],
   execute: () => ({ type: "UNFOLD_RECURSIVE" }),
 } satisfies CommandDef
 
@@ -84,7 +84,7 @@ const foldAll = {
   name: "Fold All",
   description: "Fold all nodes at depth 1",
   category: "Fold",
-  shortcuts: ["z", "zM"],
+  shortcuts: ["<"],
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
 } satisfies CommandDef
 
@@ -93,7 +93,7 @@ const unfoldAll = {
   name: "Unfold All",
   description: "Unfold all nodes",
   category: "Fold",
-  shortcuts: ["Z", "zR"],
+  shortcuts: [">"],
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
@@ -103,7 +103,7 @@ const ignoreNode = {
   name: "Ignore Node",
   description: "Hide or un-hide node from board (persisted in .km/ignored)",
   category: "Fold",
-  shortcuts: ["C"],
+  shortcuts: [],
   execute: () => ({ type: "IGNORE_NODE" }),
 } satisfies CommandDef
 
@@ -122,7 +122,7 @@ const increaseOutlineDepth = {
   name: "Increase Depth",
   description: "Show more nested levels",
   category: "View",
-  shortcuts: [">"],
+  shortcuts: [],
   execute: () => ({ type: "INCREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
@@ -131,7 +131,7 @@ const decreaseOutlineDepth = {
   name: "Decrease Depth",
   description: "Show fewer nested levels",
   category: "View",
-  shortcuts: ["<"],
+  shortcuts: [],
   execute: () => ({ type: "DECREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 

@@ -313,10 +313,6 @@ interface ToastDismissAction {
   type: "TOAST_DISMISS"
 }
 
-interface DevTestToastAction {
-  type: "DEV_TEST_TOAST"
-}
-
 // Fold operations (single-node, handled by TUI)
 interface FoldNodeAction {
   type: "FOLD_NODE"
@@ -694,7 +690,6 @@ export type TUIAction =
   | DeleteConfirmExecuteAction
   | DeleteConfirmCancelAction
   | ToastDismissAction
-  | DevTestToastAction
   | NoopAction
   | FoldNodeAction
   | UnfoldNodeAction

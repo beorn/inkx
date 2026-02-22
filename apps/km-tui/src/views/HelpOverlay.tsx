@@ -107,7 +107,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
   lines.push(
     <Text key="fav-1">
       {"  "}
-      <Text color="yellow">{"0-9           "}</Text>
+      <Text color="yellow">{"1-9           "}</Text>
       <Text dimColor>Jump to favorite board</Text>
     </Text>,
   )

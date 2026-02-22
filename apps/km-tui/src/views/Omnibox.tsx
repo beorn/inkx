@@ -1,7 +1,7 @@
 /**
  * Omnibox — Universal Command Palette
  *
- * Accessible via `:` (node mode), `Ctrl+k` (both modes).
+ * Accessible via `:` (node mode), `Cmd+K` (both modes), `Ctrl+K` (node mode).
  * Full-screen overlay with fuzzy search across:
  * - All registered commands (with keybinding hints)
  * - Go-to locations (inbox, journal, home, archive)
@@ -83,7 +83,6 @@ const HIDDEN_COMMAND_IDS = new Set([
   "filter.nav_right",
   "filter.clear_all",
   "detail_pane.close",
-  "dev.test_toast",
 ])
 
 /** Build the static go-to location results */

@@ -21,9 +21,6 @@ const SHORT_LABELS: Record<string, string> = {
   goto_journal: "journal",
   goto_home: "home",
   goto_archive: "archive",
-  goto_project: "project",
-  goto_node: "node",
-  goto_tag: "tag",
   cursor_last: "last",
   // m-prefix (move)
   enter_move_mode: "move",
@@ -31,11 +28,6 @@ const SHORT_LABELS: Record<string, string> = {
   move_to_journal: "journal",
   move_to_home: "home",
   reparent_picker: "reparent",
-  move_to_project: "project",
-  move_to_node: "node",
-  move_to_tag: "tag",
-  move_to_first: "first",
-  move_to_last: "last",
   // a-prefix (add)
   add_tag: "tag",
   add_assignee: "assignee",

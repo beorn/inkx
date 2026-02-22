@@ -34,7 +34,6 @@ const EXCLUDED_COMMANDS = new Set([
   "delete_confirm.cancel",
   "console.close",
   "toast.dismiss",
-  "dev.test_toast",
   // Dialog navigation (internal plumbing)
   "dialog.nav_up",
   "dialog.nav_down",

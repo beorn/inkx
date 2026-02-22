@@ -33,7 +33,7 @@ const TEXT_HINTS: KeyHint[] = [
   { key: "Esc", action: "exit" },
   { key: "C-a", action: "start" },
   { key: "C-e", action: "end" },
-  { key: "C-o", action: "open" },
+  { key: "C-k", action: "kill" },
   { key: "@ # [[", action: "auto" },
 ]
 

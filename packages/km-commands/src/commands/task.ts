@@ -27,7 +27,7 @@ const cycleTaskStatus = {
   name: "Cycle Status",
   description: "Cycle through task statuses",
   category: "Task",
-  shortcuts: ["Space"],
+  shortcuts: ["X"],
   execute: (ctx) => {
     if (!ctx.currentNode || !ctx.currentNodeId) return null
     const node = ctx.currentNode

@@ -82,7 +82,7 @@ const renameNode = {
   name: "Rename",
   description: "Rename current node",
   category: "Edit",
-  shortcuts: ["sr"],
+  shortcuts: [],
   execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
 } satisfies CommandDef
 
@@ -91,7 +91,7 @@ const deleteNode = {
   name: "Delete Node",
   description: "Delete current node",
   category: "Edit",
-  shortcuts: ["D"],
+  shortcuts: ["Backspace"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "DELETE_NODE", nodeId: ctx.currentNodeId }
@@ -112,7 +112,7 @@ const insertAbove = {
   name: "Insert Above",
   description: "Insert sibling above and enter inline edit",
   category: "Edit",
-  shortcuts: ["p"],
+  shortcuts: ["O"],
   execute: () => ({ type: "INSERT_ABOVE" }),
 } satisfies CommandDef
 
@@ -121,7 +121,7 @@ const insertBelow = {
   name: "Insert Below",
   description: "Insert sibling below and enter inline edit",
   category: "Edit",
-  shortcuts: ["n"],
+  shortcuts: ["o"],
   execute: () => ({ type: "INSERT_BELOW" }),
 } satisfies CommandDef
 
@@ -130,7 +130,7 @@ const duplicateNode = {
   name: "Duplicate",
   description: "Duplicate current node",
   category: "Edit",
-  shortcuts: ["d"],
+  shortcuts: ["Cmd+D"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "DUPLICATE_NODE", nodeId: ctx.currentNodeId }
@@ -188,7 +188,7 @@ const moveToNext = {
   name: "Move to Next Actions",
   description: "Move selected node(s) to next actions",
   category: "Edit",
-  shortcuts: ["me"],
+  shortcuts: [],
   execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@next" }),
 } satisfies CommandDef
 

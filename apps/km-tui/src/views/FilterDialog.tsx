@@ -2,7 +2,7 @@
  * Filter Dialog Component
  *
  * Property-based filter panel positioned in the top-right corner.
- * Ctrl+/ toggles the panel. Navigate with j/k, toggle with Space/Enter.
+ * Ctrl+G / Cmd+G toggles the panel. Navigate with j/k, toggle with Space/Enter.
  * Escape closes. Shift+X clears all filters.
  *
  * Purely presentational — all state is in UIState, all key handling

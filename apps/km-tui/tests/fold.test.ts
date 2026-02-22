@@ -38,12 +38,12 @@ describe("fold-all-corruption", () => {
     expect(board.screenshot()).toContain("Parent")
   })
 
-  test("zc folds a card, Z should unfold it", () => {
+  test("H folds a card, > should unfold it", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
-    // Fold via zc chord
+    // Fold via H
     board.press("H")
 
     // Children should be hidden
@@ -72,16 +72,16 @@ describe("fold-all-corruption", () => {
     expect(folded).toContain("Parent")
   })
 
-  test("zo (unfold node chord) restores children after fold", () => {
+  test("L (unfold node) restores children after fold", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
     )
 
-    // Fold with zc
+    // Fold with H
     board.press("H")
     expect(board.screenshot()).not.toContain("child-1")
 
-    // Unfold with zo
+    // Unfold with L
     board.press("L")
 
     const unfolded = board.screenshot()
@@ -97,7 +97,7 @@ describe("fold-all-corruption", () => {
       ),
     )
 
-    // Fold both cards individually with zc
+    // Fold both cards individually with H
     board.press("H") // fold Processing
     board.press("j") // move to Review
     board.press("H") // fold Review
@@ -447,7 +447,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 describe("fold border blank — buffer-level assertions", () => {
   /**
    * Board with 4 cards in a single column — some with children, some without.
-   * Tests that folding (via < or zc) preserves bottom borders of folded cards
+   * Tests that folding (via < or H) preserves bottom borders of folded cards
    * AND top borders of cards directly below them.
    */
   function multiCardBoard(opts?: { columns?: number; rows?: number }) {
@@ -604,10 +604,10 @@ describe("fold border blank — buffer-level assertions", () => {
     expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
   })
 
-  test("individual fold (zc) preserves border of card below", () => {
+  test("individual fold (H) preserves border of card below", () => {
     const { board } = multiCardBoard()
 
-    // Fold Parent-A via zc chord
+    // Fold Parent-A via H
     board.press("H")
 
     // Parent-A bottom border should be intact
@@ -855,7 +855,7 @@ describe("Fold border regression", () => {
 
 describe("fold overflow transition border integrity", () => {
   /**
-   * When a card has overflow (+N indicator), folding it via zc removes all children
+   * When a card has overflow (+N indicator), folding it via H removes all children
    * and the card transitions from custom bottom border (╰─ +N ─╯) to standard
    * round border (╰──────╯). This transition must not leave stale pixels.
    */
@@ -879,7 +879,7 @@ describe("fold overflow transition border integrity", () => {
     const before = board.screenshot()
     expect(before, "should show overflow indicator").toContain("+")
 
-    // Fold BigCard via zc
+    // Fold BigCard via H
     board.press("H")
 
     // After fold, the +N indicator should be gone and borders should be intact

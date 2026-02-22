@@ -99,7 +99,7 @@ const navBack = {
   name: "Navigate Back",
   description: "Go back in navigation history",
   category: "Navigation",
-  shortcuts: ["["],
+  shortcuts: ["{"],
   execute: () => ({ type: "NAV_BACK" }),
 } satisfies CommandDef
 
@@ -108,7 +108,7 @@ const navForward = {
   name: "Navigate Forward",
   description: "Go forward in navigation history",
   category: "Navigation",
-  shortcuts: ["]"],
+  shortcuts: ["}"],
   execute: () => ({ type: "NAV_FORWARD" }),
 } satisfies CommandDef
 
@@ -118,7 +118,7 @@ const zoomIn = {
   name: "Zoom In",
   description: "Focus on current node as root",
   category: "Navigation",
-  shortcuts: ["e"],
+  shortcuts: ["z"],
   execute: (ctx) => {
     if (!ctx.currentNode) return null
     // BoardAction: just the nodeId, no tree data needed
@@ -132,7 +132,7 @@ const zoomOutwards = {
   name: "Zoom Outwards",
   description: "Zoom out one level (to parent of current root)",
   category: "Navigation",
-  shortcuts: ["u"],
+  shortcuts: ["Z"],
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
@@ -142,7 +142,7 @@ const openDetailPane = {
   name: "Open Detail",
   description: "Open detail pane for current node",
   category: "Navigation",
-  shortcuts: ["Enter"],
+  shortcuts: ["Ctrl+I"],
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 } satisfies CommandDef
 
@@ -153,7 +153,7 @@ const toggleDetailPane = {
   name: "Toggle Detail",
   description: "Smart detail pane toggle (open+focus / focus / close)",
   category: "Navigation",
-  shortcuts: ["P"],
+  shortcuts: ["D"],
   execute: () => ({ type: "TOGGLE_DETAIL_PANE" }),
 } satisfies CommandDef
 
@@ -211,7 +211,7 @@ const zoomInwards = {
   name: "Zoom Inwards",
   description: "Zoom in one level closer to selected node",
   category: "Navigation",
-  shortcuts: ["i"],
+  shortcuts: [],
   execute: () => ({ type: "ZOOM_INWARDS" }),
 } satisfies CommandDef
 
@@ -221,7 +221,7 @@ const followLink = {
   name: "Follow Link",
   description: "Go to embedded link target in context",
   category: "Navigation",
-  shortcuts: ["P"],
+  shortcuts: ["Ctrl+Enter"],
   execute: () => ({ type: "FOLLOW_LINK" }),
 } satisfies CommandDef
 
@@ -269,7 +269,7 @@ const openInSystem = {
   name: "Open in System",
   description: "Open file/folder in macOS (Finder for folders, default app for files)",
   category: "Navigation",
-  shortcuts: ["o"],
+  shortcuts: ["go"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId ?? "" }
@@ -282,7 +282,7 @@ const openInTerminal = {
   name: "Open in Terminal",
   description: "Open terminal at the closest folder",
   category: "Navigation",
-  shortcuts: ["O"],
+  shortcuts: ["gO"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId ?? "" }
@@ -295,7 +295,7 @@ const filter = {
   name: "Filter",
   description: "Open filter dialog to filter visible cards",
   category: "Navigation",
-  shortcuts: ["Ctrl+/"],
+  shortcuts: ["Ctrl+G"],
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
@@ -305,7 +305,7 @@ const commandPalette = {
   name: "Command Palette",
   description: "Open command palette",
   category: "Navigation",
-  shortcuts: ["\\"],
+  shortcuts: [":"],
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 

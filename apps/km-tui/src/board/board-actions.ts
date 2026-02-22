@@ -1118,25 +1118,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({})
       return ok()
     }
-    case "DEV_TEST_TOAST": {
-      const { toastQueue } = ctx
-      const examples = [
-        () => toastQueue.success("Task completed!"),
-        () =>
-          toastQueue.error("Failed to save", {
-            description: "Network error",
-          }),
-        () => toastQueue.warning("Disk space low"),
-        () => toastQueue.info("3 tasks selected"),
-        () =>
-          toastQueue.info("File deleted", {
-            action: { label: "Undo", trigger: "z" },
-          }),
-      ]
-      const randomToast = examples[Math.floor(Math.random() * examples.length)]
-      randomToast?.()
-      return ok()
-    }
 
     default:
       assertNever(action)

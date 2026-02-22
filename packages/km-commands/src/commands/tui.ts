@@ -67,7 +67,7 @@ export const tuiCommands: CommandDef[] = [
     name: "New Item",
     description: "Open new item dialog",
     category: "Edit",
-    shortcuts: ["n"],
+    shortcuts: ["gn"],
     execute: (): CommandAction => ({ type: "SHOW_NEW_ITEM_DIALOG" }),
   },
 
@@ -77,7 +77,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Project Picker",
     description: "Open project picker",
     category: "Navigation",
-    shortcuts: ["p"],
+    shortcuts: ["gp"],
     execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
   },
 
@@ -87,7 +87,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Search",
     description: "Open search dialog",
     category: "Navigation",
-    shortcuts: ["/"],
+    shortcuts: [],
     execute: (): CommandAction => ({ type: "SHOW_SEARCH_DIALOG" }),
   },
 
@@ -196,7 +196,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Toggle Hide Done",
     description: "Toggle hiding done and dropped tasks",
     category: "View",
-    shortcuts: ["D"],
+    shortcuts: ["tc"],
     execute: (): CommandAction => ({ type: "TOGGLE_HIDE_DONE" }),
   },
 
@@ -208,16 +208,6 @@ export const tuiCommands: CommandDef[] = [
     category: "View",
     shortcuts: ["Escape"],
     execute: (): CommandAction => ({ type: "TOAST_DISMISS" }),
-  },
-
-  // Dev
-  {
-    id: "dev.test_toast",
-    name: "Test Toast",
-    description: "Fire a random test toast (dev)",
-    category: "View",
-    shortcuts: ["Ctrl+T"],
-    execute: (): CommandAction => ({ type: "DEV_TEST_TOAST" }),
   },
 
   // Task dialog (Cmd+T / tt — v2 spec)
