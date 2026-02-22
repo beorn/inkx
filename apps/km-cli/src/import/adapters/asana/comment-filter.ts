@@ -1,5 +1,6 @@
 import type { AsanaClient } from "./asana-client.ts"
 import type { ImportComment } from "../../types.ts"
+import { htmlToMarkdown } from "./html-to-md.ts"
 
 /** Patterns that match system/audit-log style actions from old Asana (pre-2020).
  * Asana switched to proper `type: "system"` around 2019, so older action-log
@@ -142,32 +143,38 @@ export async function fetchComments(
       gid: string
       type: string
       text?: string
+      html_text?: string
       created_at: string
       created_by?: { name?: string }
     }>
   >(`/tasks/${taskGid}/stories`, {
-    opt_fields: "type,text,created_at,created_by.name",
+    opt_fields: "type,text,html_text,created_at,created_by.name",
   })
 
   const comments: ImportComment[] = []
   const activityLog: ImportComment[] = []
 
   for (const s of stories) {
-    if (!s.text?.trim()) continue
+    if (!s.text?.trim() && !s.html_text?.trim()) continue
     const author = s.created_by?.name?.replace(/\s+/g, "-").toLowerCase()
+
+    // Prefer html_text (preserves bold, italic, links) over plain text
+    const richText = s.html_text ? htmlToMarkdown(s.html_text)?.trim() : null
+    const plainText = s.text?.trim() ?? ""
 
     // System stories → activity log (always captured)
     if (s.type === "system") {
       activityLog.push({
         author,
         createdAt: s.created_at,
-        text: s.text.trim(),
+        text: plainText,
       })
       continue
     }
 
     if (s.type !== "comment") continue
-    const rawText = s.text.trim()
+    const rawText = richText || plainText
+    if (!rawText) continue
     const text = opts?.includeLogs ? rawText : filterSystemComment(rawText, s.created_at)
     if (!text) continue
     comments.push({ author, createdAt: s.created_at, text })

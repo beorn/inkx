@@ -245,8 +245,9 @@ function splitBodyAtHeadings(text: string): Array<{ type: "text" | "heading"; co
         if (content) sections.push({ type: currentType, content })
         currentLines = []
       }
-      // Push heading as its own section
-      sections.push({ type: "heading", content: headingMatch[1]! })
+      // Push heading as its own section — strip bold/italic (redundant on headings)
+      const headingText = headingMatch[1]!.replace(/\*{1,2}(.+?)\*{1,2}/g, "$1")
+      sections.push({ type: "heading", content: headingText })
       currentType = "text"
     } else {
       currentLines.push(line)
@@ -455,16 +456,68 @@ function itemToNodes(
           ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
           : ""
         const fullText = normalizeImportText(convertAsanaLinks(c.text.trim()))
-        nodes.push(
-          mkNode(counter, {
-            id: `comment-${item.sourceId}-${counter.value}`,
-            type: "p", item: true,
-            parent_id: `comments-${item.sourceId}`,
-            content: `${date} ${authorSlug}: ${fullText}`.trim(),
-            created_at: new Date(c.createdAt).getTime(),
-            updated_at: itemUpdatedAt,
-          }),
-        )
+        const commentId = `comment-${item.sourceId}-${counter.value}`
+        const commentCreatedAt = new Date(c.createdAt).getTime()
+
+        // Split comment at headings (same as body content)
+        const sections = splitBodyAtHeadings(fullText)
+        const hasHeadings = sections.some((s) => s.type === "heading")
+
+        if (!hasHeadings) {
+          // Simple comment — single node with date prefix
+          nodes.push(
+            mkNode(counter, {
+              id: commentId,
+              type: "p", item: true,
+              parent_id: `comments-${item.sourceId}`,
+              content: `${date} ${authorSlug}: ${fullText}`.trim(),
+              created_at: commentCreatedAt,
+              updated_at: itemUpdatedAt,
+            }),
+          )
+        } else {
+          // Structured comment — date/author as parent, headings as children
+          nodes.push(
+            mkNode(counter, {
+              id: commentId,
+              type: "h", item: true,
+              parent_id: `comments-${item.sourceId}`,
+              content: `${date} ${authorSlug}`.trim(),
+              created_at: commentCreatedAt,
+              updated_at: itemUpdatedAt,
+            }),
+          )
+          let sectionIdx = 0
+          let parentForSection = commentId
+          for (const section of sections) {
+            if (section.type === "text") {
+              nodes.push(
+                mkNode(counter, {
+                  id: `${commentId}-${sectionIdx}`,
+                  type: "p",
+                  parent_id: parentForSection,
+                  content: section.content,
+                  created_at: commentCreatedAt,
+                  updated_at: itemUpdatedAt,
+                }),
+              )
+            } else {
+              const sectionId = `${commentId}-h-${sectionIdx}`
+              nodes.push(
+                mkNode(counter, {
+                  id: sectionId,
+                  type: "h", item: true,
+                  parent_id: commentId,
+                  content: section.content,
+                  created_at: commentCreatedAt,
+                  updated_at: itemUpdatedAt,
+                }),
+              )
+              parentForSection = sectionId
+            }
+            sectionIdx++
+          }
+        }
       }
     }
   }
