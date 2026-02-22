@@ -19,7 +19,6 @@ const render = createRenderer({ cols: 80, rows: 1 })
 const baseUI: UIState = {
   viewMode: "cards",
   showDetailPane: false,
-  maxOutlineDepth: 2,
   maxContentLines: 3,
   rootBoardId: null,
   showHelp: false,

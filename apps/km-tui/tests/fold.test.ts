@@ -781,7 +781,7 @@ describe("Fold border regression", () => {
   }
 
   test("every visible card has matching top and bottom borders", () => {
-    // Cards with children overflow a 20-row viewport at maxOutlineDepth=2.
+    // Cards with children overflow a 20-row viewport with default fold depth.
     const { board } = testEnv(
       () =>
         item(
@@ -1182,5 +1182,99 @@ describe("fold count color", () => {
       expect(cell.fg, "fg=8 (gray), not ownColor").toBe(8)
       expect(cell.attrs.dim, "not dim").toBeFalsy()
     })
+  })
+})
+
+// =============================================================================
+// Progressive fold/unfold
+// =============================================================================
+
+describe("progressive fold/unfold", () => {
+  // Deep tree: board > col > card > child > grandchild > great-grandchild
+  // With default fold depth of 2, nodes at depth >= 2 with children are auto-folded.
+  const deepTree = () =>
+    item(
+      "board",
+      item(
+        "col1",
+        item.folder(
+          "Project",
+          item.folder("Phase 1", item.folder("Task A", item("subtask-x")), item("Task B")),
+          item.folder("Phase 2", item("Task C")),
+        ),
+      ),
+    )
+
+  test("initial fold depth: nodes at depth >= 2 with children are folded", () => {
+    const { board } = testEnv(deepTree, { rows: 30 })
+
+    const initial = board.screenshot()
+    // Phase 1/2 at depth 1 should be visible
+    expect(initial).toContain("Phase 1")
+    expect(initial).toContain("Phase 2")
+    // Task A/B/C at depth 2 should be visible (leaf or folded)
+    expect(initial).toContain("Task A")
+    expect(initial).toContain("Task B")
+    expect(initial).toContain("Task C")
+    // subtask-x at depth 3 should be hidden (Task A is folded by initial fold computation)
+    expect(initial).not.toContain("subtask-x")
+  })
+
+  test("L unfolds shallowest folded level, revealing deeper children", () => {
+    // Disable incremental check: expanding folded nodes changes tree height,
+    // which can cause fresh-render layout drift in inkx
+    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+
+    // Initially Task A is folded (subtask-x hidden)
+    expect(board.screenshot()).toContain("Task A")
+    expect(board.screenshot()).not.toContain("subtask-x")
+
+    // L unfolds Task A (the only folded node at the shallowest level)
+    board.press("L")
+
+    const afterL = board.screenshot()
+    expect(afterL).toContain("subtask-x")
+  })
+
+  test("H folds deepest unfolded level progressively", () => {
+    // Disable incremental check: fold/unfold changes tree height
+    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+
+    // Initially Task A is folded. Unfold it first.
+    board.press("L")
+    expect(board.screenshot()).toContain("subtask-x")
+
+    // H folds deepest unfolded foldable level (Task A at depth 2)
+    board.press("H")
+    expect(board.screenshot()).not.toContain("subtask-x")
+    expect(board.screenshot()).toContain("Task A") // still visible, just folded
+
+    // Another H folds Phase 1/2 (depth 1)
+    board.press("H")
+    expect(board.screenshot()).not.toContain("Task A")
+    expect(board.screenshot()).not.toContain("Task B")
+    expect(board.screenshot()).toContain("Phase 1") // still shows as folded header
+
+    // Another H folds Project itself (depth 0)
+    board.press("H")
+    expect(board.screenshot()).not.toContain("Phase 1")
+    expect(board.screenshot()).toContain("Project") // card title always visible
+  })
+
+  test("H/L round-trip: fold then unfold restores visibility", () => {
+    // Disable incremental check: fold/unfold changes tree height
+    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+
+    // H folds Phase 1/2's children first (depth 2 already has Task A folded)
+    // Since Task A is the only folded node, H folds the next deepest: Phase 1/2 at depth 1
+    board.press("H")
+    const folded = board.screenshot()
+    expect(folded).not.toContain("Task A")
+
+    // L unfolds the shallowest fold — Phase 1/2 at depth 1
+    board.press("L")
+    const restored = board.screenshot()
+    expect(restored).toContain("Phase 1")
+    expect(restored).toContain("Task A")
   })
 })

@@ -35,7 +35,6 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
     viewMode: "columns",
     showDetailPane: false,
     detailScrollOffset: 0,
-    maxOutlineDepth: 2,
     maxContentLines: 3,
     rootBoardId: null,
     showHelp: false,

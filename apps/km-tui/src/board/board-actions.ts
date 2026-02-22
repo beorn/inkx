@@ -438,26 +438,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "EXTEND_SELECT_RIGHT":
       handleExtendSelectHorizontal(ctx, "right")
       return ok()
-    case "INCREASE_OUTLINE_DEPTH": {
-      ctx.setUI((prev) => {
-        const next = Math.min(10, prev.maxOutlineDepth + 1)
-        return {
-          maxOutlineDepth: next,
-          status: { level: "info" as const, message: `Outline depth: ${next}` },
-        }
-      })
-      return ok()
-    }
-    case "DECREASE_OUTLINE_DEPTH": {
-      ctx.setUI((prev) => {
-        const next = Math.max(0, prev.maxOutlineDepth - 1)
-        return {
-          maxOutlineDepth: next,
-          status: { level: "info" as const, message: `Outline depth: ${next}` },
-        }
-      })
-      return ok()
-    }
     case "INCREASE_CONTENT_LINES": {
       ctx.setUI((prev) => {
         const next = Math.min(10, prev.maxContentLines + 1)
@@ -499,7 +479,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SELECT_ALL":
       return unimplemented("selection")
 
-    // === Fold operations (progressive per-level) ===
+    // === Fold operations (progressive per-level, Decker-inspired) ===
+    // Visibility is driven entirely by foldedNodes.
     case "FOLD_NODE": {
       if (!card) return boundary("fold", "no card selected")
       const newFolded = new Set(ctx.foldedNodes)
@@ -509,17 +490,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const walk = (nodeId: string, depth: number) => {
         const children = ctx.repo.getChildren(nodeId)
         if (children.length === 0) return
-        // This node has children — it's foldable
         if (!newFolded.has(nodeId)) {
-          // Unfolded and foldable: candidate for folding
           const list = nodesAtDepth.get(depth)
           if (list) list.push(nodeId)
           else nodesAtDepth.set(depth, [nodeId])
           if (depth > deepestDepth) deepestDepth = depth
-          // Continue walking children (they're visible since parent is unfolded)
           for (const child of children) walk(child.id, depth + 1)
         }
-        // If folded, don't walk deeper — those levels are already hidden
       }
       walk(card.id, 0)
       if (deepestDepth >= 0) {
@@ -527,7 +504,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         ctx.setFoldedNodes(newFolded)
         return ok()
       }
-      // No foldable unfolded descendants (leaf node) — boundary
       return boundary("fold", "no children to fold")
     }
     case "UNFOLD_NODE": {
@@ -539,15 +515,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const walk = (nodeId: string, depth: number) => {
         const children = ctx.repo.getChildren(nodeId)
         if (children.length === 0) return
-        // This node has children — it's foldable
         if (newFolded.has(nodeId)) {
-          // Folded: candidate for unfolding (don't walk deeper — children hidden)
           const list = nodesAtDepth.get(depth)
           if (list) list.push(nodeId)
           else nodesAtDepth.set(depth, [nodeId])
           if (depth < shallowestDepth) shallowestDepth = depth
         } else {
-          // Unfolded: walk children to find deeper folded nodes
           for (const child of children) walk(child.id, depth + 1)
         }
       }
@@ -557,7 +530,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         ctx.setFoldedNodes(newFolded)
         return ok()
       }
-      // Nothing folded in subtree — boundary
       return boundary("fold", "nothing to unfold")
     }
     case "UNFOLD_RECURSIVE": {

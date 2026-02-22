@@ -210,7 +210,7 @@ function TreeNodeImpl({
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
     useTreeRenderContext()
-  const { maxOutlineDepth: maxDepth, maxContentLines, variant, iconStyle } = treeConfig
+  const { maxContentLines, variant, iconStyle } = treeConfig
 
   // Single store subscription for per-node state only.
   // On cursor move: none of these change → no re-render from store.
@@ -309,7 +309,7 @@ function TreeNodeImpl({
   const bulletIcon = useMemo((): StatusIcon => {
     if (nodeIsTask && style.taskStatusIcon) return style.taskStatusIcon
     if (iconStyle === "workflowy") {
-      const bullet = getCircleBullet(hasChildren, hasChildren && (isFolded || depth >= maxDepth))
+      const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
       return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
     }
     if (iconStyle === "nerdfont") {
@@ -325,8 +325,6 @@ function TreeNodeImpl({
     displayNode.type,
     hasChildren,
     isFolded,
-    depth,
-    maxDepth,
     style.ownColor,
     style.taskStatusIcon,
   ])
@@ -654,8 +652,8 @@ function TreeNodeImpl({
   const visibleChildren = filteredChildren.slice(0, maxChildren)
   const hiddenCount = filteredChildren.length - visibleChildren.length
 
-  // Children are hidden when individually folded OR when outline depth limit is exceeded
-  const childrenVisible = hasChildren && !isFolded && depth < maxDepth
+  // Children are hidden when individually folded
+  const childrenVisible = hasChildren && !isFolded
   const childrenHidden = hasChildren && !childrenVisible
 
   // In cards mode (multiline), suppress "+N more" at all levels — the Card
@@ -665,8 +663,8 @@ function TreeNodeImpl({
   return (
     <Box
       flexDirection="column"
-      height={isOneliner || isCardChild ? 1 : undefined}
-      overflow={isOneliner || isCardChild ? "hidden" : undefined}
+      height={isOneliner ? 1 : undefined}
+      overflow={isOneliner ? "hidden" : undefined}
     >
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
@@ -868,7 +866,7 @@ function TreeNodeImpl({
         })}
 
       {/* Children: during editing show only structural (body is rendered as editable blocks above) */}
-      {hasChildren && !isFolded && depth < maxDepth && (
+      {childrenVisible && (
         <ErrorBoundary
           fallback={
             <Text color="red" dim>

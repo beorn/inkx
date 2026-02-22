@@ -64,7 +64,6 @@ export interface BoardState {
   moveSourceCursorNodeId: string | null // Original cursor node
 
   // View configuration
-  maxOutlineDepth: number
   maxContentLines: number
 
   // Sticky cursor coordinates (curswant)
@@ -116,8 +115,6 @@ export type BoardAction =
   | { type: "CANCEL_MOVE" }
 
   // View configuration
-  | { type: "INCREASE_OUTLINE_DEPTH" }
-  | { type: "DECREASE_OUTLINE_DEPTH" }
   | { type: "INCREASE_CONTENT_LINES" }
   | { type: "DECREASE_CONTENT_LINES" }
 
@@ -195,7 +192,6 @@ export function createBoardState(
     moveMode: false,
     moveSourceNodes: [],
     moveSourceCursorNodeId: null,
-    maxOutlineDepth: 99,
     maxContentLines: 2,
     curswantX: null,
     curswantY: null,

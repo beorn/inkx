@@ -73,7 +73,7 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
   const { ui } = ctx
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = ctx.getVisibleDescendantIds(card, ui.maxOutlineDepth, ctx.foldedNodes)
+  const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldedNodes)
   const currentIdx = descendantIds.indexOf(ctx.cursorNodeId)
   if (currentIdx < 0) return boundary(dir)
 

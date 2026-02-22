@@ -947,7 +947,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
     () => deriveTreeConfig(ui, cardInnerWidth),
-    [ui.viewMode, ui.maxOutlineDepth, ui.maxContentLines, ui.iconStyle, ui.borderMode, cardInnerWidth],
+    [ui.viewMode, ui.maxContentLines, ui.iconStyle, ui.borderMode, cardInnerWidth],
   )
 
   // Derive search highlight state for TreeNode rendering

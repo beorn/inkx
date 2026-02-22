@@ -55,7 +55,6 @@ export interface UIState {
   viewMode: ViewMode
   showDetailPane: boolean
   detailScrollOffset: number
-  maxOutlineDepth: number
   maxContentLines: number
   iconStyle: IconStyle
   borderMode: BorderMode
@@ -309,7 +308,6 @@ export function createInitialUIState(
     viewMode: initialViewMode,
     showDetailPane: initialViewMode === "list",
     detailScrollOffset: 0,
-    maxOutlineDepth: 2,
     maxContentLines: 3,
     iconStyle: "nerdfont" as IconStyle,
     borderMode: "normal" as BorderMode,

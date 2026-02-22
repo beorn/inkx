@@ -567,7 +567,7 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
         const descendantIds = getVisibleDescendantIds(
           actionCtx.repo,
           { id: nodeId },
-          actionCtx.ui.maxOutlineDepth,
+          Infinity,
           actionCtx.foldedNodes,
         )
         const childId = descendantIds[target.blockIndex]

@@ -33,7 +33,6 @@ import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-rep
  *
  * Board navigation fields are flat at store root.
  * foldedNodes is the single source of truth (removed from UIState).
- * maxOutlineDepth/maxContentLines live in ui only.
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
  * demand by the key handler (buildActionCtx) and by React (useColumns hook).
@@ -101,6 +100,41 @@ export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: u
 // Store Factory
 // =============================================================================
 
+// =============================================================================
+// Default Fold Computation
+// =============================================================================
+
+/** Depth threshold for initial folds: fold nodes with children at this depth or deeper inside each card. */
+const DEFAULT_FOLD_DEPTH = 2
+
+/**
+ * Compute default fold set for a given root.
+ * Folds all non-leaf nodes at depth >= DEFAULT_FOLD_DEPTH within each card.
+ * If existingFolds is non-empty, returns it unchanged (user has explicit folds).
+ */
+function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: Set<string>): Set<string> {
+  const foldedNodes = new Set(existingFolds)
+  if (!rootId || foldedNodes.size > 0) return foldedNodes
+
+  const columns = repo.getChildren(rootId)
+  for (const col of columns) {
+    const cards = repo.getChildren(col.id)
+    for (const card of cards) {
+      const foldDeep = (nodeId: string, depth: number) => {
+        const children = repo.getChildren(nodeId)
+        if (children.length === 0) return
+        if (depth >= DEFAULT_FOLD_DEPTH) {
+          foldedNodes.add(nodeId)
+        } else {
+          for (const child of children) foldDeep(child.id, depth + 1)
+        }
+      }
+      foldDeep(card.id, 0)
+    }
+  }
+  return foldedNodes
+}
+
 export interface CreateBoardAppStoreParams {
   repo: Repo
   toastQueue: ToastQueue
@@ -123,6 +157,10 @@ export function createBoardAppStoreState(
 ) => BoardAppStore {
   const bs = params.initialBoardState
 
+  // Compute initial folds: fold all foldable nodes at depth >= DEFAULT_FOLD_DEPTH
+  // within each card.
+  const initialFoldedNodes = computeDefaultFolds(params.repo, bs.rootId, bs.foldedNodes)
+
   return (set, _get) => {
     // Create undo system: wrap repo so mutations are auto-recorded
     const undoStack = createUndoStack()
@@ -134,7 +172,7 @@ export function createBoardAppStoreState(
       rootPath: bs.rootPath,
       cursorNodeId: bs.cursorNodeId,
       selectedNodes: bs.selectedNodes,
-      foldedNodes: bs.foldedNodes,
+      foldedNodes: initialFoldedNodes,
       collapsedNodes: bs.collapsedNodes,
       navHistory: bs.navHistory,
       navHistoryIndex: bs.navHistoryIndex,
@@ -228,9 +266,15 @@ export function createBoardAppStoreState(
             }
 
             case "ZOOM_IN": {
+              // Recompute folds for the new root. Nodes that were deeply
+              // nested (and auto-folded) may now be top-level cards.
+              // Start fresh: unfold everything, then apply default folds
+              // for the new view's card structure.
+              const zoomFolded = computeDefaultFolds(undoableRepo, action.nodeId, new Set())
               flatUpdate = {
                 rootId: action.nodeId,
                 cursorNodeId: action.cursorNodeId ?? null,
+                foldedNodes: zoomFolded,
                 curswantX: null,
                 curswantY: null,
               }
@@ -246,10 +290,13 @@ export function createBoardAppStoreState(
                   cursorNodeId: state.cursorNodeId,
                 },
               ]
+              // Recompute folds for new root (same as ZOOM_IN)
+              const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
               flatUpdate = {
                 rootId: action.rootId,
                 rootPath: action.rootPath,
                 cursorNodeId: action.cursorNodeId,
+                foldedNodes: rootFolded,
                 navHistory: newHistory,
                 navHistoryIndex: newHistory.length,
                 curswantX: null,
@@ -321,9 +368,6 @@ export function createBoardAppStoreState(
             }
 
             // View config: kept in UIState only via setUI.
-            // These cases are kept for backward compat with @km/board's BoardAction type.
-            case "INCREASE_OUTLINE_DEPTH":
-            case "DECREASE_OUTLINE_DEPTH":
             case "INCREASE_CONTENT_LINES":
             case "DECREASE_CONTENT_LINES":
               return state

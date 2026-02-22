@@ -35,7 +35,6 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
  * @example
  * const setUI = useSetUI();
  * setUI({ showHelp: false });
- * setUI(prev => ({ maxOutlineDepth: prev.maxOutlineDepth + 1 }));
  */
 export function useSetUI(): BoardAppStore["setUI"] {
   return useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
@@ -147,7 +146,6 @@ export function useSigilColors(): Map<string, string> {
  * Stable across cursor moves (only changes on view mode / outline changes).
  */
 export interface TreeConfig {
-  maxOutlineDepth: number
   maxContentLines: number
   variant: "oneliner" | "multiline"
   iconStyle: IconStyle
@@ -195,7 +193,6 @@ export function useTreeRenderContext(): TreeRenderCtx {
 export function deriveTreeConfig(ui: UIState, cardInnerWidth = 30): TreeConfig {
   const viewMode = ui.viewMode
   return {
-    maxOutlineDepth: viewMode === "cards" ? ui.maxOutlineDepth : Math.min(1, ui.maxOutlineDepth),
     maxContentLines: viewMode === "cards" ? ui.maxContentLines : 1,
     variant: viewMode === "cards" ? "multiline" : "oneliner",
     iconStyle: ui.iconStyle,

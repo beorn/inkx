@@ -30,7 +30,6 @@ describe("BottomBar", () => {
     // View configuration
     viewMode: "columns",
     showDetailPane: false,
-    maxOutlineDepth: 2,
     maxContentLines: 3,
 
     // Board context

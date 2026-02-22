@@ -58,7 +58,6 @@ describe("createBoardState", () => {
 
   it("initializes default view configuration", () => {
     const state = createBoardState()
-    expect(state.maxOutlineDepth).toBe(99)
     expect(state.maxContentLines).toBe(2)
   })
 
@@ -508,14 +507,6 @@ describe("CANCEL_MOVE action", () => {
 
 describe.each([
   {
-    increaseType: "INCREASE_OUTLINE_DEPTH" as const,
-    decreaseType: "DECREASE_OUTLINE_DEPTH" as const,
-    field: "maxOutlineDepth" as const,
-    defaultValue: 99,
-    max: 99,
-    min: 0,
-  },
-  {
     increaseType: "INCREASE_CONTENT_LINES" as const,
     decreaseType: "DECREASE_CONTENT_LINES" as const,
     field: "maxContentLines" as const,
@@ -743,19 +734,12 @@ describe("Integration scenarios", () => {
   })
 
   it("view configuration adjustment", () => {
-    // Start with lower depth to test increase
-    const initialState = { ...createBoardState(), maxOutlineDepth: 5 }
-
-    const state = dispatchAll(initialState, [
-      { type: "INCREASE_OUTLINE_DEPTH" },
-      { type: "INCREASE_OUTLINE_DEPTH" },
+    const state = dispatchAll(createBoardState(), [
       { type: "INCREASE_CONTENT_LINES" },
       { type: "INCREASE_CONTENT_LINES" },
-      { type: "DECREASE_OUTLINE_DEPTH" },
       { type: "DECREASE_CONTENT_LINES" },
     ])
 
-    expect(state.maxOutlineDepth).toBe(6)
     expect(state.maxContentLines).toBe(3)
   })
 

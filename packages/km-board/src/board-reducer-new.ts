@@ -164,16 +164,6 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
 
     // ===== View Configuration =====
 
-    case "INCREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth >= 99) return state
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth + 1 }
-    }
-
-    case "DECREASE_OUTLINE_DEPTH": {
-      if (state.maxOutlineDepth <= 0) return state
-      return { ...state, maxOutlineDepth: state.maxOutlineDepth - 1 }
-    }
-
     case "INCREASE_CONTENT_LINES": {
       if (state.maxContentLines >= 10) return state
       return { ...state, maxContentLines: state.maxContentLines + 1 }
@@ -221,7 +211,6 @@ export function createBoardState(
     moveMode: false,
     moveSourceNodes: [],
     moveSourceCursorNodeId: null,
-    maxOutlineDepth: 99,
     maxContentLines: 2,
     curswantX: null,
     curswantY: null,
