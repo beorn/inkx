@@ -836,10 +836,12 @@ describe("Round-trip: Wiki Links and Markdown Links", () => {
   })
 
   test("should preserve wiki links with block IDs", () => {
+    // Both [[doc^block]] and [[doc#^block]] parse to the same AST and
+    // round-trip to the canonical #^ form
     const output = roundtrip(`Reference [[doc^block123]] and [[page^abc|ref]].`)
 
-    expect(output).toContain("[[doc^block123]]")
-    expect(output).toContain("[[page^abc|ref]]")
+    expect(output).toContain("[[doc#^block123]]")
+    expect(output).toContain("[[page#^abc|ref]]")
   })
 
   test("should preserve markdown links text content", () => {

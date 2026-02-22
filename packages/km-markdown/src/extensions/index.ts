@@ -1,0 +1,73 @@
+/**
+ * Combined km micromark + mdast extensions.
+ *
+ * Replaces the monolithic `gfm()` / `gfmFromMarkdown()` with individual GFM
+ * sub-extensions plus km-specific tokenizers and transforms.
+ *
+ * Usage:
+ *   fromMarkdown(content, {
+ *     extensions: [km()],
+ *     mdastExtensions: kmFromMarkdown(),
+ *   })
+ */
+
+import { gfmAutolinkLiteral } from "micromark-extension-gfm-autolink-literal"
+import { gfmFootnote } from "micromark-extension-gfm-footnote"
+import { gfmStrikethrough } from "micromark-extension-gfm-strikethrough"
+import { gfmTable } from "micromark-extension-gfm-table"
+import { combineExtensions } from "micromark-util-combine-extensions"
+import type { Extension } from "micromark-util-types"
+
+import { gfmAutolinkLiteralFromMarkdown } from "mdast-util-gfm-autolink-literal"
+import { gfmFootnoteFromMarkdown } from "mdast-util-gfm-footnote"
+import { gfmStrikethroughFromMarkdown } from "mdast-util-gfm-strikethrough"
+import { gfmTableFromMarkdown } from "mdast-util-gfm-table"
+import type { Extension as FromMarkdownExtension } from "mdast-util-from-markdown"
+
+import { kmTaskMark, kmTaskMarkFromMarkdown } from "./km-task-mark.ts"
+import { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
+import { kmBlockIdTransform } from "./km-block-id.ts"
+import { kmInlinePropTransform } from "./km-inline-prop.ts"
+import { kmRefsTransform } from "./km-refs.ts"
+
+/**
+ * Combined micromark syntax extension: GFM (minus task list item) + km extensions.
+ * Replaces `gfm()` — uses km's task mark tokenizer instead of the GFM one.
+ */
+export function km(): Extension {
+  return combineExtensions([
+    gfmAutolinkLiteral(),
+    gfmFootnote(),
+    gfmStrikethrough(),
+    gfmTable(),
+    kmTaskMark(),
+    kmWikilink(),
+  ])
+}
+
+/**
+ * Combined mdast fromMarkdown extensions: GFM handlers + km handlers + km transforms.
+ *
+ * Transform ordering matters:
+ * 1. block-id — modifies text (strips ` ^blockId` suffix)
+ * 2. inline-prop — modifies text (extracts `key:: value` pairs)
+ * 3. refs — reads remaining text (extracts #tag @mention +project)
+ */
+export function kmFromMarkdown(): FromMarkdownExtension[] {
+  return [
+    gfmAutolinkLiteralFromMarkdown(),
+    gfmFootnoteFromMarkdown(),
+    gfmStrikethroughFromMarkdown(),
+    gfmTableFromMarkdown(),
+    kmTaskMarkFromMarkdown(),
+    kmWikilinkFromMarkdown(),
+    { transforms: [kmBlockIdTransform, kmInlinePropTransform, kmRefsTransform] },
+  ]
+}
+
+// Re-export individual extensions for direct use
+export { kmTaskMark, kmTaskMarkFromMarkdown } from "./km-task-mark.ts"
+export { kmWikilink, kmWikilinkFromMarkdown } from "./km-wikilink.ts"
+export { kmBlockIdTransform } from "./km-block-id.ts"
+export { kmInlinePropTransform } from "./km-inline-prop.ts"
+export { kmRefsTransform } from "./km-refs.ts"

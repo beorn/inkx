@@ -393,7 +393,7 @@ describe("Links and Backlinks", () => {
       const nodes = store.getAllNodes()
 
       // Find the embed node (list item with ![[tasks^k7m2]])
-      const embedNode = nodes.find((n) => n.content?.includes("![[tasks^k7m2]]"))
+      const embedNode = nodes.find((n) => n.content?.includes("![[tasks#^k7m2]]"))
       expect(embedNode).toBeDefined()
 
       // Find the target task (Buy groceries)
@@ -413,7 +413,7 @@ describe("Links and Backlinks", () => {
       const nodes = store.getAllNodes()
 
       // Find the embed node
-      const embedNode = nodes.find((n) => n.content?.includes("![[doc^abc1]]"))
+      const embedNode = nodes.find((n) => n.content?.includes("![[doc#^abc1]]"))
       expect(embedNode).toBeDefined()
 
       // Find the Introduction section
@@ -462,7 +462,7 @@ describe("Links and Backlinks", () => {
       const nodes = store.getAllNodes()
 
       // Find the embed node
-      const embedNode = nodes.find((n) => n.content?.includes("![[tasks^k7m2]]"))
+      const embedNode = nodes.find((n) => n.content?.includes("![[tasks#^k7m2]]"))
       expect(embedNode).toBeDefined()
 
       // Find the target task

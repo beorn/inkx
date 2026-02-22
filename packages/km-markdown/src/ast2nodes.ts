@@ -28,7 +28,6 @@ import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
 import {
-  CUSTOM_TASK_MARKS,
   getStatusForMarker,
   markToMarker,
   extractTitleTaskMarker,
@@ -37,7 +36,6 @@ import {
 import {
   parseMarkdown,
   extractFrontmatter,
-  extractTaskMark,
   nodeToText,
   blockquoteToText,
   tableToMarkdown,
@@ -117,7 +115,7 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
   const now = Date.now()
 
   const fileNode = createFileNode(fsPath, fsIno, fsMtime, frontmatter, now)
-  let childNodes = astToNodes(ast, fileNode, body)
+  let childNodes = astToNodes(ast, fileNode)
 
   const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(fileNode, childNodes)
   childNodes = filteredChildren
@@ -188,7 +186,7 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
  * Convert AST children to km nodes
  */
 // oxlint-disable-next-line complexity/complexity -- Recursive AST conversion with many node types
-function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
+function astToNodes(ast: Root, fileNode: KNode): KNode[] {
   const nodes: KNode[] = []
   const sectionStack: Array<{ depth: number; node: KNode }> = []
   let currentParent = fileNode
@@ -210,16 +208,9 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         }
       }
 
-      const text = nodeToText(heading)
-
-      // Strip ^block-id suffix from heading
-      let headingText = text
-      let sectionBlockId: string | undefined
-      const headingBlockIdMatch = headingText.match(/ \^([a-zA-Z0-9_-]+)$/)
-      if (headingBlockIdMatch) {
-        sectionBlockId = headingBlockIdMatch[1]
-        headingText = headingText.slice(0, -headingBlockIdMatch[0].length)
-      }
+      // Block ID already extracted by kmBlockIdTransform (in heading.data.blockId)
+      const sectionBlockId = heading.data?.blockId as string | undefined
+      const headingText = nodeToText(heading)
 
       const { title: titleWithRules, rules } = parseHeadingRules(headingText)
       const { marker: taskMarker, cleanText: title } = extractTitleTaskMarker(titleWithRules)
@@ -239,7 +230,7 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
         name: sectionName, // Slug/identifier derived from heading
         md_pos: heading.position?.start.offset,
         block_id: sectionBlockId,
-        content: headingText, // Clean content without ^block-id suffix
+        content: headingText, // Clean content (block-id already stripped by transform)
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
@@ -266,14 +257,14 @@ function astToNodes(ast: Root, fileNode: KNode, sourceText: string): KNode[] {
 
       for (const item of list.children) {
         const listItem = item as ListItem
-        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++, sourceText)
+        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++)
         nodes.push(...itemNodes)
       }
       continue
     }
 
     // Handle other block types
-    const blockNode = convertBlock(child, currentParent, sortOrder++, sourceText)
+    const blockNode = convertBlock(child, currentParent, sortOrder++)
     if (blockNode) {
       nodes.push(blockNode)
     }
@@ -290,37 +281,22 @@ function convertListItem(
   parent: KNode,
   ordered: boolean,
   sortOrder: number,
-  sourceText: string,
 ): KNode[] {
   const nodes: KNode[] = []
   const now = Date.now()
 
   let text = listItemToText(item)
-  // Convert position to the expected format for extractTaskMark
-  const position =
-    item.position?.start.offset !== undefined ? { start: { offset: item.position.start.offset } } : undefined
-  const taskMark = extractTaskMark(sourceText, position)
 
-  // A task is either:
-  // 1. A GFM task list item (item.checked is boolean) - [ ] or [x]
-  // 2. A list item with a custom task mark - [/], [-], [!]
-  const isGfmTask = item.checked !== null && item.checked !== undefined
-  const isCustomTask = taskMark && (CUSTOM_TASK_MARKS as readonly string[]).includes(taskMark)
-  const isTask = isGfmTask || isCustomTask
+  // Read task mark from kmast data (set by kmTaskMark tokenizer)
+  const taskMark = item.data?.taskMark as string | undefined
 
-  // For custom task marks, mdast includes the mark in the text (e.g., "[/] task content")
-  // Strip it to get the clean content
-  if (isCustomTask && !isGfmTask) {
-    text = text.replace(/^\[.\]\s*/, "")
-  }
+  // A task has a task mark (set by the km tokenizer for all marks: space, x, X, /, -, !)
+  const isTask = taskMark !== undefined
 
-  // Strip ^block-id suffix if present (must be at end of line, preceded by space)
-  const blockIdMatch = text.match(/ \^([a-zA-Z0-9_-]+)$/)
-  if (blockIdMatch) {
-    text = text.slice(0, -blockIdMatch[0].length)
-  }
+  // Block ID already extracted by kmBlockIdTransform (in item.data.blockId)
+  const blockId = item.data?.blockId as string | undefined
 
-  const taskMarker: TaskMarker | undefined = isTask ? markToMarker(taskMark ?? " ") : undefined
+  const taskMarker: TaskMarker | undefined = isTask ? markToMarker(taskMark) : undefined
   const taskStatus = isTask ? (getStatusForMarker(taskMarker) ?? ("todo" as TaskStatus)) : undefined
 
   // Parse task metadata from text
@@ -374,7 +350,7 @@ function convertListItem(
     link_to: null,
     md_pos: item.position?.start.offset,
     md_line: item.position?.start.line ? item.position.start.line - 1 : undefined, // Convert 1-indexed to 0-indexed
-    block_id: blockIdMatch?.[1],
+    block_id: blockId,
     content: displayContent,
     content_hash: undefined,
     task_status: taskStatus,
@@ -404,11 +380,11 @@ function convertListItem(
     if (child.type === "list") {
       const list = child as List
       for (const nestedItem of list.children) {
-        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++, sourceText)
+        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++)
         nodes.push(...nestedNodes)
       }
     } else if (child.type === "blockquote" || child.type === "code" || child.type === "heading") {
-      const blockNode = convertBlock(child, node, childSort++, sourceText)
+      const blockNode = convertBlock(child, node, childSort++)
       if (blockNode) nodes.push(blockNode)
     }
   }
@@ -430,24 +406,20 @@ function getEmbeddingText(text: string): string | null {
 /**
  * Convert a block element to a node
  */
-function convertBlock(block: RootContent, parent: KNode, sortOrder: number, sourceText: string = ""): KNode | null {
+function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNode | null {
   const now = Date.now()
 
   let type: NodeType
   let content: string | null = null
-  let blockId: string | undefined
   const data: Record<string, unknown> = {}
+
+  // Block ID already extracted by kmBlockIdTransform (in block.data.blockId)
+  const blockId = block.data?.blockId as string | undefined
 
   switch (block.type) {
     case "paragraph": {
       type = "p"
       content = nodeToText(block)
-      // Strip ^block-id suffix if present (must be at end of line, preceded by space)
-      const blockIdMatch = content.match(/ \^([a-zA-Z0-9_-]+)$/)
-      if (blockIdMatch) {
-        blockId = blockIdMatch[1]
-        content = content.slice(0, -blockIdMatch[0].length)
-      }
       // Detect embedding syntax ![[...]] and store target for reconciliation
       const embeddingText = getEmbeddingText(content)
       if (embeddingText) {
@@ -480,11 +452,7 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number, sour
 
     case "thematicBreak":
       type = "hr"
-      // Extract raw HR source text to preserve the original marker style (---, ***, ___)
-      if (block.position) {
-        const raw = sourceText.slice(block.position.start.offset, block.position.end.offset).trim()
-        if (raw) content = raw
-      }
+      // HR marker style (---, ***, ___) is not preserved — we use canonical `---`
       break
 
     case "table":

@@ -32,7 +32,21 @@ export type {
   SectionRules,
   ParsedHeading,
   ExtractedProp,
+  PropertyValue,
 } from "./parser.ts"
+
+// kmast types and extensions
+export type { KmWikilink } from "./kmast/types.ts"
+export { km, kmFromMarkdown } from "./extensions/index.ts"
+export {
+  kmTaskMark,
+  kmTaskMarkFromMarkdown,
+  kmWikilink,
+  kmWikilinkFromMarkdown,
+  kmBlockIdTransform,
+  kmInlinePropTransform,
+  kmRefsTransform,
+} from "./extensions/index.ts"
 
 // AST to nodes
 export { parseMarkdownToNodes, parseMarkdownWithLinks, parsePlainTextToNodes, buildNodeTree } from "./ast2nodes.ts"

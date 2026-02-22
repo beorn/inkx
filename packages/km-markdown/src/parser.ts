@@ -22,9 +22,8 @@
  */
 
 import { fromMarkdown } from "mdast-util-from-markdown"
-import { gfmFromMarkdown } from "mdast-util-gfm"
-import { gfm } from "micromark-extension-gfm"
 import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdast"
+import { km, kmFromMarkdown } from "./extensions/index.ts"
 import { TASK_MARK_REGEX_CLASS, extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
 // Re-export types
@@ -127,8 +126,8 @@ export interface WikiLink {
  */
 export function parseMarkdown(content: string): Root {
   return fromMarkdown(content, {
-    extensions: [gfm()],
-    mdastExtensions: [gfmFromMarkdown()],
+    extensions: [km()],
+    mdastExtensions: kmFromMarkdown(),
   })
 }
 
@@ -448,6 +447,18 @@ export function nodeToText(node: RootContent | Root): string {
   // Hard line break (markdown `  \n` or `<br>`) → preserve as newline
   if (node.type === "break") {
     return "\n"
+  }
+
+  // KmWikilink nodes → reconstruct wikilink text
+  if (node.type === "kmWikilink") {
+    const wl = node as { target: string; section?: string; blockRef?: string; alias?: string; embedded: boolean }
+    let text = wl.embedded ? "![[" : "[["
+    text += wl.target
+    if (wl.section) text += `#${wl.section}`
+    if (wl.blockRef) text += `#^${wl.blockRef}`
+    if (wl.alias) text += `|${wl.alias}`
+    text += "]]"
+    return text
   }
 
   if ("value" in node && typeof node.value === "string") {
