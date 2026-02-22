@@ -120,6 +120,8 @@ export interface BoardCoreProps {
   toastQueue?: ToastQueue
   /** Board dispatch (for cursor navigation from find bar) */
   dispatchBoard?: BoardAppStore["dispatchBoard"]
+  /** True while zoom is loading (deferred fold computation for large boards) */
+  isZoomLoading?: boolean
 }
 
 /**
@@ -299,6 +301,7 @@ export function BoardCore({
   consoleStats,
   toastQueue,
   dispatchBoard,
+  isZoomLoading = false,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
   const termWidth = dimensions.columns
@@ -400,10 +403,10 @@ export function BoardCore({
   const separators = Math.max(0, effectiveColCount - 1)
   const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
 
-  // Render loading skeleton until terminal is ready (dimensions detected).
+  // Render loading skeleton until terminal is ready or zoom is loading.
   // Note: ui.isLoading is intentionally NOT blocking here — per-column skeleton
   // cards are shown in CardColumn instead, keeping the board always interactive.
-  if (!ui.isReady) {
+  if (!ui.isReady || isZoomLoading) {
     return <SkeletonBoard width={termWidth} height={termHeight} />
   }
 
@@ -721,6 +724,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const foldedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.foldedNodes)
   const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
+  const isZoomLoading = useAppStore<BoardAppStore, boolean>((s) => s.isZoomLoading)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -982,6 +986,7 @@ export function Board({ patchedConsole }: BoardProps) {
           consoleStats={consoleStats}
           toastQueue={toastQueue}
           dispatchBoard={dispatchBoard}
+          isZoomLoading={isZoomLoading}
         />
       </TreeRenderProvider>
     </CursorStoreProvider>

@@ -95,8 +95,12 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
   return useMemo(() => {
-    // Preload children cache for the visible subtree in one SQL query
-    repo.preloadSubtree(rootId, 4)
+    // Adaptive preload depth: shallow (2) for large boards where everything
+    // is folded (we only need columns + card titles), deeper (4) for small boards
+    // where card sub-items are visible.
+    const topChildren = repo.getChildren(rootId)
+    const preloadDepth = topChildren.length > 20 ? 2 : 4
+    repo.preloadSubtree(rootId, preloadDepth)
     return deriveColumnsFromRepo(repo, rootId, foldedNodes)
   }, [repoVersion, rootId, foldedNodes])
 }

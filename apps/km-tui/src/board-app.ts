@@ -71,8 +71,9 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     columns = layoutCache.columns
     nodeIndex = layoutCache.nodeIndex
   } else {
-    // Preload children cache for the entire visible subtree in one SQL query
-    s.repo.preloadSubtree(s.rootId, 4)
+    // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
+    const topChildren = s.repo.getChildren(s.rootId)
+    s.repo.preloadSubtree(s.rootId, topChildren.length > 20 ? 2 : 4)
     columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
     nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id), s.foldedNodes)
     layoutCache = { rootId: s.rootId, foldedNodes: s.foldedNodes, repoVersion, columns, nodeIndex }

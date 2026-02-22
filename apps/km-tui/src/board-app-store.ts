@@ -74,6 +74,9 @@ export interface BoardAppState {
   // --- Undo/redo ---
   undoStack: UndoStack
   undoHandle: UndoableRepoHandle
+
+  // --- Zoom loading (deferred fold computation for large boards) ---
+  isZoomLoading: boolean
 }
 
 /**
@@ -231,6 +234,9 @@ export function createBoardAppStoreState(
       undoStack,
       undoHandle,
 
+      // Zoom loading
+      isZoomLoading: false,
+
       // --- Board action dispatcher (inlined from boardReducer) ---
 
       // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
@@ -293,17 +299,32 @@ export function createBoardAppStoreState(
             }
 
             case "ZOOM_IN": {
-              // Recompute folds for the new root. Nodes that were deeply
-              // nested (and auto-folded) may now be top-level cards.
-              // Start fresh: unfold everything, then apply default folds
-              // for the new view's card structure.
-              const zoomFolded = computeDefaultFolds(undoableRepo, action.nodeId, new Set())
-              flatUpdate = {
-                rootId: action.nodeId,
-                cursorNodeId: action.cursorNodeId ?? null,
-                foldedNodes: zoomFolded,
-                curswantX: null,
-                curswantY: null,
+              // For large boards (>AGGRESSIVE_FOLD_THRESHOLD columns), defer fold
+              // computation so the UI can show a loading indicator instead of blocking.
+              const zoomChildren = undoableRepo.getChildren(action.nodeId)
+              if (zoomChildren.length > AGGRESSIVE_FOLD_THRESHOLD) {
+                flatUpdate = {
+                  rootId: action.nodeId,
+                  cursorNodeId: action.cursorNodeId ?? null,
+                  foldedNodes: new Set<string>(),
+                  isZoomLoading: true,
+                  curswantX: null,
+                  curswantY: null,
+                }
+                const zoomNodeId = action.nodeId
+                setTimeout(() => {
+                  const folds = computeDefaultFolds(undoableRepo, zoomNodeId, new Set())
+                  set({ foldedNodes: folds, isZoomLoading: false })
+                }, 0)
+              } else {
+                const zoomFolded = computeDefaultFolds(undoableRepo, action.nodeId, new Set())
+                flatUpdate = {
+                  rootId: action.nodeId,
+                  cursorNodeId: action.cursorNodeId ?? null,
+                  foldedNodes: zoomFolded,
+                  curswantX: null,
+                  curswantY: null,
+                }
               }
               break
             }
@@ -317,17 +338,37 @@ export function createBoardAppStoreState(
                   cursorNodeId: state.cursorNodeId,
                 },
               ]
-              // Recompute folds for new root (same as ZOOM_IN)
-              const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
-              flatUpdate = {
-                rootId: action.rootId,
-                rootPath: action.rootPath,
-                cursorNodeId: action.cursorNodeId,
-                foldedNodes: rootFolded,
-                navHistory: newHistory,
-                navHistoryIndex: newHistory.length,
-                curswantX: null,
-                curswantY: null,
+              // For large boards, defer fold computation
+              const setRootChildren = undoableRepo.getChildren(action.rootId)
+              if (setRootChildren.length > AGGRESSIVE_FOLD_THRESHOLD) {
+                flatUpdate = {
+                  rootId: action.rootId,
+                  rootPath: action.rootPath,
+                  cursorNodeId: action.cursorNodeId,
+                  foldedNodes: new Set<string>(),
+                  isZoomLoading: true,
+                  navHistory: newHistory,
+                  navHistoryIndex: newHistory.length,
+                  curswantX: null,
+                  curswantY: null,
+                }
+                const setRootId = action.rootId
+                setTimeout(() => {
+                  const folds = computeDefaultFolds(undoableRepo, setRootId, new Set())
+                  set({ foldedNodes: folds, isZoomLoading: false })
+                }, 0)
+              } else {
+                const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
+                flatUpdate = {
+                  rootId: action.rootId,
+                  rootPath: action.rootPath,
+                  cursorNodeId: action.cursorNodeId,
+                  foldedNodes: rootFolded,
+                  navHistory: newHistory,
+                  navHistoryIndex: newHistory.length,
+                  curswantX: null,
+                  curswantY: null,
+                }
               }
               break
             }
