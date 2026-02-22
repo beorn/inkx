@@ -9,7 +9,7 @@
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
-import { BottomBar } from "../src/views/board-bottom-bar.tsx"
+import { CommandBox } from "../src/views/CommandBox.tsx"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { UIState } from "../src/ui-reducer.ts"
 import type { ColumnView } from "../src/types.ts"
@@ -71,15 +71,14 @@ const testColumns: ColumnView[] = [
 ]
 
 describe("Status bar corruption: view name bleeds into sync count", () => {
-  // Unit tests for BottomBar component
-  describe("BottomBar unit", () => {
+  // Unit tests for CommandBox component
+  describe("CommandBox unit", () => {
     it("view mode text does not overlap with node count", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={baseUI}
           rootPath={testRootPath}
           columns={testColumns}
-          layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -104,11 +103,10 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         },
       }
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={uiWithWatcher}
           rootPath={testRootPath}
           columns={testColumns}
-          layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -138,11 +136,10 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         },
       }
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={uiWithWatcher}
           rootPath={testRootPath}
           columns={testColumns}
-          layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -164,11 +161,10 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
 
     it("switching view modes clears old view text from buffer", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={{ ...baseUI, viewMode: "cards" }}
           rootPath={testRootPath}
           columns={testColumns}
-          layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -179,11 +175,10 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
 
       // Switch to "columns" (longer text)
       app.rerender(
-        <BottomBar
+        <CommandBox
           ui={{ ...baseUI, viewMode: "columns" }}
           rootPath={testRootPath}
           columns={testColumns}
-          layout={{ colIndex: 0, cardIndex: 0 }}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -246,8 +241,6 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         board.press("g").press("v")
       }
 
-      // Should be back at cards view (6 cycles: cards->col->tabs->cards->col->tabs)
-      // Actually: 6 % 3 = 0 = same as start = cards
       const bottomRow = board.screen.row(lastRow)
 
       // The view mode text should be clean — one of the valid view modes
@@ -255,8 +248,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         bottomRow.includes("CARDS VIEW") || bottomRow.includes("COLUMNS VIEW") || bottomRow.includes("TABS VIEW")
       expect(hasValidView).toBe(true)
 
-      // Check that no partial/corrupted text exists by verifying
-      // "VIEW" appears exactly once in the bottom row
+      // "VIEW" should appear exactly once
       const viewMatches = bottomRow.match(/VIEW/g)
       expect(viewMatches?.length).toBe(1)
     })
@@ -287,8 +279,6 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
     })
 
     it("view mode text does not overwrite watcher/sync text in buffer cells", () => {
-      // This test checks the actual buffer cells to detect rendering corruption
-      // where the view name text physically overlaps the sync count cells
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
@@ -297,18 +287,14 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const lastRow = board.screen.rows.length - 1
       const bottomRow = board.screen.row(lastRow)
 
-      // Verify the bottom row is well-formed
-      // It should have: left side (path info) + right side (counters + view mode)
-      // The key test: "VIEW" should appear exactly once
+      // "VIEW" should appear exactly once
       const viewCount = (bottomRow.match(/VIEW/g) || []).length
       expect(viewCount).toBe(1)
 
-      // The viewModeStr text must be present and clean in the bottom row
       expect(bottomRow).toContain("CARDS VIEW")
-      // "VIEW" should appear exactly once
       expect((bottomRow.match(/VIEW/g) || []).length).toBe(1)
 
-      // Switch to columns view (longer name) and check again
+      // Switch to columns view and check again
       board.press("g").press("v")
       const bottomRow2 = board.screen.row(lastRow)
       expect((bottomRow2.match(/VIEW/g) || []).length).toBe(1)
@@ -317,8 +303,6 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
     })
 
     it("switching from long view name to short clears leftover chars", () => {
-      // Regression: COLUMNS VIEW (12 chars) -> TABS VIEW (9 chars)
-      // could leave "NS " leftover if the buffer isn't properly cleared
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
@@ -334,25 +318,19 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       board.press("g").press("v") // -> TABS
       bottomRow = board.screen.row(lastRow)
       expect(bottomRow).toContain("TABS VIEW")
-      // "COLUMNS" must be completely gone - no leftover characters
       expect(bottomRow).not.toContain("COLUMN")
       expect(bottomRow).not.toContain("OLUMNS")
       expect(bottomRow).not.toContain("NS ")
 
-      // The rightmost characters should be spaces or the trailing space after VIEW
       // Extract the region after "TABS VIEW"
       const viewIdx = bottomRow.indexOf("TABS VIEW")
       if (viewIdx > -1) {
         const afterView = bottomRow.slice(viewIdx + "TABS VIEW".length)
-        // Should be only spaces (trailing padding)
         expect(afterView.trim()).toBe("")
       }
     })
 
     it("node count number does not bleed into view mode text (2ARDS VIEW W regression)", () => {
-      // km-tui.statusbar-corrupt: The original bug showed "2ARDS VIEW W" where
-      // the sync count "2" bled into "CARDS VIEW" and a trailing "W" from "VIEW"
-      // appeared. Test at narrow terminal width where crowding is most likely.
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 60, rows: 24 },
@@ -361,15 +339,12 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const lastRow = board.screen.rows.length - 1
       const bottomRow = board.screen.row(lastRow)
 
-      // The view mode text must be exactly "CARDS VIEW", not "2ARDS VIEW" or similar
       const viewModeEl = board.q("#view-mode")
       expect(viewModeEl.count()).toBeGreaterThan(0)
       const viewModeText = viewModeEl.textContent().trim()
       expect(viewModeText).toBe("CARDS VIEW")
 
-      // Buffer-level check: no digit immediately before "ARDS VIEW"
       expect(bottomRow).not.toMatch(/\d+ARDS/)
-      // No trailing "W" after "VIEW " that doesn't belong
       const viewIdx = bottomRow.indexOf("CARDS VIEW")
       expect(viewIdx).toBeGreaterThan(-1)
     })

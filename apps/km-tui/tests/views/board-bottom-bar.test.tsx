@@ -1,14 +1,14 @@
 /**
- * BottomBar Component Tests
+ * CommandBox Component Tests
  *
- * Tests the bottom status bar including render loop regression.
+ * Tests the command box (bottom bar) including mode pill, counters, and flash behavior.
  */
 
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext } from "inkx"
-import { BottomBar } from "../../src/views/board-bottom-bar.tsx"
+import { CommandBox } from "../../src/views/CommandBox.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
 import type { ColumnView } from "../../src/types.ts"
 
@@ -25,7 +25,7 @@ function render(element: React.ReactElement) {
   return app
 }
 
-describe("BottomBar", () => {
+describe("CommandBox", () => {
   const mockUIState: UIState = {
     // View configuration
     viewMode: "columns",
@@ -128,15 +128,12 @@ describe("BottomBar", () => {
     },
   ]
 
-  const mockLayout = { colIndex: 0, cardIndex: 0 }
-
-  it("renders storage mode and path", () => {
+  it("shows NORMAL mode pill by default", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -144,35 +141,15 @@ describe("BottomBar", () => {
       />,
     )
     const output = app.text
-    expect(output).toContain("DISK")
-    expect(output).toContain("/tmp/test-repo")
-  })
-
-  it("shows home directory as tilde", () => {
-    const homeDir = process.env.HOME || "/Users/test"
-    const app = render(
-      <BottomBar
-        ui={mockUIState}
-        rootPath={`${homeDir}/Documents/repo`}
-        columns={mockColumns}
-        layout={mockLayout}
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).toContain("~/Documents/repo")
+    expect(output).toContain("NORMAL")
   })
 
   it("shows node count with clipboard icon", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={123}
@@ -185,11 +162,10 @@ describe("BottomBar", () => {
 
   it("shows view mode", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -202,11 +178,10 @@ describe("BottomBar", () => {
 
   it("shows column position in columns view", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -219,11 +194,10 @@ describe("BottomBar", () => {
 
   it("does not show column position in single column view", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={[mockColumns[0]!]}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -236,11 +210,10 @@ describe("BottomBar", () => {
 
   it("does not show spinner when not loading", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -249,7 +222,7 @@ describe("BottomBar", () => {
     )
     const output = app.text
     // Spinner frames should not appear when not loading
-    const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    const spinnerFrames = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"]
     const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
     expect(hasSpinner).toBe(false)
   })
@@ -264,11 +237,10 @@ describe("BottomBar", () => {
       },
     }
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={uiWithWatcher}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -279,13 +251,12 @@ describe("BottomBar", () => {
     expect(output).toContain("📄5")
   })
 
-  it("shows memory storage mode", () => {
+  it("shows memory storage mode indicator", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="memory"
         nodeCount={42}
@@ -296,13 +267,12 @@ describe("BottomBar", () => {
     expect(output).toContain("MEM")
   })
 
-  it("shows move mode indicator when in move mode", () => {
+  it("shows MOVE mode pill when in move mode", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -313,13 +283,12 @@ describe("BottomBar", () => {
     expect(output).toContain("MOVE")
   })
 
-  it("does not show move mode indicator when not in move mode", () => {
+  it("does not show MOVE mode when not in move mode", () => {
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -330,17 +299,16 @@ describe("BottomBar", () => {
     expect(output).not.toContain("MOVE")
   })
 
-  it("shows move mode indicator alongside status message", () => {
+  it("shows MOVE mode alongside status message", () => {
     const uiWithStatus: UIState = {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
     }
     const app = render(
-      <BottomBar
+      <CommandBox
         ui={uiWithStatus}
         rootPath={mockRootPath}
         columns={mockColumns}
-        layout={mockLayout}
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -348,10 +316,65 @@ describe("BottomBar", () => {
       />,
     )
     const output = app.text
-    // Mode indicator should always be visible when in move mode
     expect(output).toContain("MOVE")
-    // Status message should also be visible (may be truncated at narrow widths)
     expect(output).toMatch(/Test mes/)
+  })
+
+  it("shows INSERT mode when inline editing", () => {
+    const uiWithEdit: UIState = {
+      ...mockUIState,
+      inlineEditBlock: { nodeId: "n1", blockIndex: 0 },
+    }
+    const app = render(
+      <CommandBox
+        ui={uiWithEdit}
+        rootPath={mockRootPath}
+        columns={mockColumns}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={false}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("INSERT")
+  })
+
+  it("shows VISUAL mode in visual selection", () => {
+    const uiWithVisual: UIState = {
+      ...mockUIState,
+      visualMode: true,
+      visualAnchor: "n1",
+    }
+    const app = render(
+      <CommandBox
+        ui={uiWithVisual}
+        rootPath={mockRootPath}
+        columns={mockColumns}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={false}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("VISUAL")
+  })
+
+  it("has bottom-bar id for locator queries", () => {
+    const app = render(
+      <CommandBox
+        ui={mockUIState}
+        rootPath={mockRootPath}
+        columns={mockColumns}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={false}
+      />,
+    )
+    const bar = app.locator("#bottom-bar")
+    expect(bar.count()).toBeGreaterThan(0)
   })
 
   // ===========================================================================
@@ -359,23 +382,18 @@ describe("BottomBar", () => {
   // ===========================================================================
 
   describe("flash-on-update", () => {
-    // In test environment (IS_REACT_ACT_ENVIRONMENT=true), the flash timer
-    // is skipped so flash stays true once triggered, making it testable.
-
     it("node count starts dim (no flash on initial render)", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
           moveMode={false}
         />,
       )
-      // Initially no flash — dimColor should be true (dim)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.count()).toBeGreaterThan(0)
       expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
@@ -383,42 +401,37 @@ describe("BottomBar", () => {
 
     it("node count flashes bright when value changes", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
           moveMode={false}
         />,
       )
-      // Re-render with changed node count
       app.rerender(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={43}
           moveMode={false}
         />,
       )
-      // Flash triggered — dimColor should be false (bright)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.getAttribute("dimColor")).toBe("false")
     })
 
     it("console indicator flashes when log count changes", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -426,13 +439,11 @@ describe("BottomBar", () => {
           consoleStats={{ total: 5, errors: 0, warnings: 0 }}
         />,
       )
-      // Re-render with increased log count
       app.rerender(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -455,18 +466,16 @@ describe("BottomBar", () => {
         },
       }
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={uiWithWatcher}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
           moveMode={false}
         />,
       )
-      // Re-render with more watched paths
       const uiWithMoreFiles: UIState = {
         ...mockUIState,
         watcherStatus: {
@@ -476,11 +485,10 @@ describe("BottomBar", () => {
         },
       }
       app.rerender(
-        <BottomBar
+        <CommandBox
           ui={uiWithMoreFiles}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -494,42 +502,37 @@ describe("BottomBar", () => {
 
     it("no flash when value stays the same", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
           moveMode={false}
         />,
       )
-      // Re-render with same node count
       app.rerender(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
           moveMode={false}
         />,
       )
-      // No change — should stay dim
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
     })
 
     it("console indicator shows warning icon when errors present", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -538,17 +541,16 @@ describe("BottomBar", () => {
         />,
       )
       const output = app.text
-      expect(output).toContain("⚠")
+      expect(output).toContain("\u26A0")
       expect(output).toContain("3")
     })
 
     it("console indicator not shown when total is 0", () => {
       const app = render(
-        <BottomBar
+        <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
           columns={mockColumns}
-          layout={mockLayout}
           termWidth={80}
           storageMode="disk"
           nodeCount={42}

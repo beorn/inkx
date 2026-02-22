@@ -1072,25 +1072,27 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     board.expect("#col1[data-cursor]").toExist()
   })
 
-  test("TEXT mode indicator appears in bottom bar during inline edit", () => {
+  test("INSERT mode indicator appears in command box during inline edit", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
 
-    // Before editing: no TEXT mode indicator (should show NODE)
+    // Before editing: should show NORMAL mode
     const beforeEdit = board.q("#bottom-bar").textContent()
-    expect(beforeEdit).not.toContain("TEXT")
+    expect(beforeEdit).toContain("NORMAL")
+    expect(beforeEdit).not.toContain("INSERT")
 
     // Enter edit mode
     board.press("Enter")
 
-    // During editing: TEXT mode indicator visible
+    // During editing: INSERT mode indicator visible
     const duringEdit = board.q("#bottom-bar").textContent()
-    expect(duringEdit).toContain("TEXT")
+    expect(duringEdit).toContain("INSERT")
 
     // Exit edit mode
     board.press("Escape")
 
-    // After editing: no TEXT mode indicator
+    // After editing: back to NORMAL mode
     const afterEdit = board.q("#bottom-bar").textContent()
-    expect(afterEdit).not.toContain("TEXT")
+    expect(afterEdit).toContain("NORMAL")
+    expect(afterEdit).not.toContain("INSERT")
   })
 })

@@ -55,7 +55,7 @@ import {
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore } from "../src/views/Board.tsx"
-import { BottomBar } from "../src/views/board-bottom-bar.tsx"
+import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
 import type { ColumnView } from "../src/types.ts"
@@ -1525,7 +1525,7 @@ function ToastAndStatusSection(): React.ReactElement {
       duration: 2000,
       dismissible: true,
     },
-    // Info toast from bottom bar (board-bottom-bar.tsx:49)
+    // Info toast from command box (CommandBox.tsx)
     {
       id: "toast-2",
       level: "info",
@@ -1576,8 +1576,6 @@ function ToastAndStatusSection(): React.ReactElement {
     status: { level: "info", message: "Move mode active" },
   }
 
-  const mockState = getMockBoardState()
-
   return (
     <>
       <SectionHeader title="Toast Stack & Status Bar" />
@@ -1622,10 +1620,10 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text> </Text>
 
       <Text bold>Normal state (no status message):</Text>
-      <BottomBar
+      <CommandBox
         ui={mockUIState}
-        state={mockState}
-        layout={{ colIndex: 0, cardIndex: 0 }}
+        rootPath="/tmp/test"
+        columns={[]}
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1634,10 +1632,10 @@ function ToastAndStatusSection(): React.ReactElement {
       <Text> </Text>
 
       <Text bold>With status message:</Text>
-      <BottomBar
+      <CommandBox
         ui={uiStateWithStatus}
-        state={mockState}
-        layout={{ colIndex: 0, cardIndex: 0 }}
+        rootPath="/tmp/test"
+        columns={[]}
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1659,11 +1657,11 @@ function ToastAndStatusSection(): React.ReactElement {
           {/* Toast stack in bottom-right */}
           <ToastStack toasts={mockToasts.slice(0, 3)} termWidth={demoTermWidth} termHeight={demoTermHeight} />
 
-          {/* Bottom bar at bottom */}
-          <BottomBar
+          {/* Command box at bottom */}
+          <CommandBox
             ui={uiStateWithStatus}
-            state={mockState}
-            layout={{ colIndex: 0, cardIndex: 0 }}
+            rootPath="/tmp/test"
+            columns={[]}
             termWidth={demoTermWidth}
             storageMode="disk"
             nodeCount={42}

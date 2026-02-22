@@ -49,8 +49,7 @@ import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-l
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
-import { BottomBar } from "./board-bottom-bar.tsx"
-import { KeyBar } from "./key-bar.tsx"
+import { CommandBox } from "./CommandBox.tsx"
 import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
@@ -312,9 +311,10 @@ export function BoardCore({
   const boardWidth = termWidth - detailPaneWidth
 
   // Calculate content area height - space between top and bottom bars
-  // KeyBar and FindBar share a single slot (included in BOTTOM_BAR_HEIGHT), so no extra height needed
+  // BOTTOM_BAR_HEIGHT = 1 (CommandBox). FindBar adds 1 row when active.
   const SYNC_PANE_HEIGHT = 6
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+  const findBarHeight = ui.localSearch ? 1 : 0
+  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - findBarHeight - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -652,14 +652,12 @@ export function BoardCore({
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
         {/* Which-key popup (shows chord suffixes when prefix is pending) */}
         {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
-        {/* Line 1 chrome: shared slot — only one visible at a time */}
-        {ui.localSearch ? (
+        {/* Find bar (inline search — only when active) */}
+        {ui.localSearch && (
           <FindBar localSearch={ui.localSearch} width={termWidth} onQueryChange={handleFindQueryChange} />
-        ) : (
-          <KeyBar ui={ui} termWidth={termWidth} />
         )}
-        {/* Bottom bar (includes status messages) */}
-        <BottomBar
+        {/* Command box — mode pill + status + counters */}
+        <CommandBox
           ui={ui}
           rootPath={rootPath}
           columns={columns}
