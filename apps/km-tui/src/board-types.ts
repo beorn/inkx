@@ -214,8 +214,6 @@ export interface PaneState {
 
   // Per-pane view config (subset of UIState)
   viewMode: ViewMode
-  showDetailPane: boolean
-  detailScrollOffset: number
 
   // Per-pane cursor store
   cursorStore: CursorStore
@@ -257,8 +255,6 @@ export function createPaneState(
   opts: {
     viewType?: PaneViewType
     viewMode: ViewMode
-    showDetailPane: boolean
-    detailScrollOffset: number
     cursorStore: CursorStore
     isZoomLoading: boolean
   },
@@ -280,8 +276,6 @@ export function createPaneState(
     curswantX: board.curswantX,
     curswantY: board.curswantY,
     viewMode: opts.viewMode,
-    showDetailPane: opts.showDetailPane,
-    detailScrollOffset: opts.detailScrollOffset,
     cursorStore: opts.cursorStore,
     isZoomLoading: opts.isZoomLoading,
   }

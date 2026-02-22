@@ -9,6 +9,7 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { LayoutNode, PaneState } from "../board-types.ts"
+import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 
 export interface WorkspaceViewProps {
@@ -53,12 +54,6 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
   }
 
   return labels
-}
-
-/** Collect pane IDs in left-to-right / top-to-bottom layout order */
-function getLayoutPaneIds(layout: LayoutNode): string[] {
-  if (layout.type === "leaf") return [layout.paneId]
-  return [...getLayoutPaneIds(layout.left), ...getLayoutPaneIds(layout.right)]
 }
 
 /**

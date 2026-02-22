@@ -86,7 +86,6 @@ const MODE_COLORS: Record<string, string> = {
 
 export interface CommandBoxProps {
   ui: UIState
-  rootPath: string | null
   columns: ColumnView[]
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */

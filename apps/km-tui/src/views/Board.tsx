@@ -659,7 +659,6 @@ export function BoardCore({
         {/* Command box — mode pill + status + counters */}
         <CommandBox
           ui={ui}
-          rootPath={rootPath}
           columns={columns}
           termWidth={termWidth}
           storageMode={repo.mode}
