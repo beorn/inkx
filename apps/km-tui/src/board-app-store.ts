@@ -122,6 +122,12 @@ export interface BoardAppActions {
   // Workspace pane operations (Phase 3: splitting)
   splitFocusedPane(direction: "h" | "v"): void
   closeFocusedPane(): void
+
+  // Workspace pane operations (Phase 4: focus navigation)
+  focusPaneInDirection(direction: "left" | "right" | "up" | "down"): void
+  focusPreviousPane(): void
+  cyclePaneFocus(direction: "next" | "prev"): void
+  focusPaneByNumber(number: number): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -240,6 +246,7 @@ export function createBoardAppStoreState(
     const workspace: WorkspaceState = {
       panes: new Map([[defaultPaneId, initialPane]]),
       focusedPaneId: defaultPaneId,
+      previousFocusedPaneId: null,
       layout: { type: "leaf", paneId: defaultPaneId },
     }
 
@@ -687,6 +694,95 @@ export function createBoardAppStoreState(
               panes: newPanes,
               layout: newLayout,
               focusedPaneId: newFocusedId,
+              previousFocusedPaneId: workspace.previousFocusedPaneId === focusedId
+                ? null
+                : workspace.previousFocusedPaneId,
+            },
+          }
+        })
+      },
+
+      // --- Workspace pane operations (Phase 4: focus navigation) ---
+
+      focusPaneInDirection(direction: "left" | "right" | "up" | "down") {
+        set((state) => {
+          const { workspace } = state
+          const targetPaneId = findAdjacentPaneInLayout(workspace.layout, workspace.focusedPaneId, direction)
+          if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
+          if (!workspace.panes.has(targetPaneId)) return state
+
+          return {
+            workspace: {
+              ...workspace,
+              focusedPaneId: targetPaneId,
+              previousFocusedPaneId: workspace.focusedPaneId,
+            },
+          }
+        })
+      },
+
+      focusPreviousPane() {
+        set((state) => {
+          const { workspace } = state
+          const prevId = workspace.previousFocusedPaneId
+          if (!prevId || !workspace.panes.has(prevId)) return state
+          if (prevId === workspace.focusedPaneId) return state
+
+          return {
+            workspace: {
+              ...workspace,
+              focusedPaneId: prevId,
+              previousFocusedPaneId: workspace.focusedPaneId,
+            },
+          }
+        })
+      },
+
+      cyclePaneFocus(direction: "next" | "prev") {
+        set((state) => {
+          const { workspace } = state
+          const tabOrder = getLayoutPaneIds(workspace.layout)
+          if (tabOrder.length <= 1) return state
+
+          const currentIndex = tabOrder.indexOf(workspace.focusedPaneId)
+          if (currentIndex < 0) return state
+
+          let nextIndex: number
+          if (direction === "next") {
+            nextIndex = (currentIndex + 1) % tabOrder.length
+          } else {
+            nextIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length
+          }
+
+          const targetPaneId = tabOrder[nextIndex]
+          if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
+
+          return {
+            workspace: {
+              ...workspace,
+              focusedPaneId: targetPaneId,
+              previousFocusedPaneId: workspace.focusedPaneId,
+            },
+          }
+        })
+      },
+
+      focusPaneByNumber(number: number) {
+        set((state) => {
+          const { workspace } = state
+          const tabOrder = getLayoutPaneIds(workspace.layout)
+          // Pane numbers are 1-indexed
+          const targetIndex = number - 1
+          if (targetIndex < 0 || targetIndex >= tabOrder.length) return state
+
+          const targetPaneId = tabOrder[targetIndex]
+          if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
+
+          return {
+            workspace: {
+              ...workspace,
+              focusedPaneId: targetPaneId,
+              previousFocusedPaneId: workspace.focusedPaneId,
             },
           }
         })
@@ -758,4 +854,82 @@ function removeLayoutNode(layout: LayoutNode, paneId: string): LayoutNode | null
 function getLayoutPaneIds(layout: LayoutNode): string[] {
   if (layout.type === "leaf") return [layout.paneId]
   return [...getLayoutPaneIds(layout.left), ...getLayoutPaneIds(layout.right)]
+}
+
+// =============================================================================
+// Spatial Navigation (Phase 4)
+// =============================================================================
+
+interface LayoutPathStep {
+  node: LayoutNode & { type: "split" }
+  side: "left" | "right"
+}
+
+/** Find the path from root to a leaf pane, recording which side we took at each split */
+function findLayoutPath(layout: LayoutNode, paneId: string): LayoutPathStep[] | null {
+  if (layout.type === "leaf") {
+    return layout.paneId === paneId ? [] : null
+  }
+
+  const leftPath = findLayoutPath(layout.left, paneId)
+  if (leftPath !== null) {
+    return [{ node: layout, side: "left" }, ...leftPath]
+  }
+
+  const rightPath = findLayoutPath(layout.right, paneId)
+  if (rightPath !== null) {
+    return [{ node: layout, side: "right" }, ...rightPath]
+  }
+
+  return null
+}
+
+/** Get the first (leftmost/topmost) leaf pane ID */
+function firstLayoutLeaf(node: LayoutNode): string {
+  if (node.type === "leaf") return node.paneId
+  return firstLayoutLeaf(node.left)
+}
+
+/** Get the last (rightmost/bottommost) leaf pane ID */
+function lastLayoutLeaf(node: LayoutNode): string {
+  if (node.type === "leaf") return node.paneId
+  return lastLayoutLeaf(node.right)
+}
+
+/**
+ * Find the pane adjacent to the given pane in a spatial direction.
+ *
+ * For left/right: looks for siblings in horizontal ("h") splits.
+ * For up/down: looks for siblings in vertical ("v") splits.
+ *
+ * Returns null if no adjacent pane exists in that direction.
+ */
+function findAdjacentPaneInLayout(
+  layout: LayoutNode,
+  paneId: string,
+  direction: "left" | "right" | "up" | "down",
+): string | null {
+  const path = findLayoutPath(layout, paneId)
+  if (!path) return null
+
+  const splitDirection = direction === "left" || direction === "right" ? "h" : "v"
+  const goToRight = direction === "right" || direction === "down"
+
+  // Walk up the path looking for a relevant split
+  for (let i = path.length - 1; i >= 0; i--) {
+    const step = path[i]!
+    if (step.node.direction !== splitDirection) continue
+
+    // We came from 'left' and want to go right/down → enter the 'right' subtree
+    if (step.side === "left" && goToRight) {
+      return firstLayoutLeaf(step.node.right)
+    }
+
+    // We came from 'right' and want to go left/up → enter the 'left' subtree
+    if (step.side === "right" && !goToRight) {
+      return lastLayoutLeaf(step.node.left)
+    }
+  }
+
+  return null
 }

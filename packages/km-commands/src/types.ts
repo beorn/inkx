@@ -567,6 +567,25 @@ interface PaneCloseAction {
   type: "PANE_CLOSE"
 }
 
+interface PaneFocusAction {
+  type: "PANE_FOCUS"
+  direction: "left" | "right" | "up" | "down"
+}
+
+interface PaneFocusPreviousAction {
+  type: "PANE_FOCUS_PREVIOUS"
+}
+
+interface PaneFocusCycleAction {
+  type: "PANE_FOCUS_CYCLE"
+  direction: "next" | "prev"
+}
+
+interface PaneFocusNumberAction {
+  type: "PANE_FOCUS_NUMBER"
+  number: number
+}
+
 // Focus switching (Cmd+h/l — kitty protocol)
 interface FocusBoardAction {
   type: "FOCUS_BOARD"
@@ -734,6 +753,10 @@ export type TUIAction =
   | SettingsAction
   | PaneSplitAction
   | PaneCloseAction
+  | PaneFocusAction
+  | PaneFocusPreviousAction
+  | PaneFocusCycleAction
+  | PaneFocusNumberAction
   | FocusBoardAction
   | FocusDetailAction
   | TextBoldAction

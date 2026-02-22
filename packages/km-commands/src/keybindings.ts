@@ -707,6 +707,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
       { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
       { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
+      { chord: "Ctrl+w", key: "h", commandId: "pane_focus_left" },
+      { chord: "Ctrl+w", key: "j", commandId: "pane_focus_down" },
+      { chord: "Ctrl+w", key: "k", commandId: "pane_focus_up" },
+      { chord: "Ctrl+w", key: "l", commandId: "pane_focus_right" },
+      { chord: "Ctrl+w", key: "p", commandId: "pane_focus_previous" },
+      { chord: "Ctrl+w", key: "Tab", commandId: "pane_focus_next" },
+      { chord: "Ctrl+w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
     ],
   },
 

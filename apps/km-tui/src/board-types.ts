@@ -239,6 +239,7 @@ export type LayoutNode =
 export interface WorkspaceState {
   panes: Map<string, PaneState>
   focusedPaneId: string
+  previousFocusedPaneId: string | null
   layout: LayoutNode
 }
 

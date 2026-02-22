@@ -100,6 +100,16 @@ export interface ActionCtx {
   /** Close the focused pane (if more than one pane exists) */
   closeFocusedPane: () => void
 
+  // === Workspace pane operations (Phase 4: focus navigation) ===
+  /** Move focus to an adjacent pane in the given direction */
+  focusPaneInDirection: (direction: "left" | "right" | "up" | "down") => void
+  /** Toggle focus between current and previous pane */
+  focusPreviousPane: () => void
+  /** Cycle focus to next/prev pane in tab order */
+  cyclePaneFocus: (direction: "next" | "prev") => void
+  /** Jump focus to pane by number (1-indexed, based on tab order) */
+  focusPaneByNumber: (number: number) => void
+
   // === Utilities ===
   /** Count visible descendants for outline mode */
   countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number

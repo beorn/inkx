@@ -1012,6 +1012,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.closeFocusedPane()
       return ok()
     }
+    case "PANE_FOCUS": {
+      ctx.focusPaneInDirection(action.direction)
+      return ok()
+    }
+    case "PANE_FOCUS_PREVIOUS": {
+      ctx.focusPreviousPane()
+      return ok()
+    }
+    case "PANE_FOCUS_CYCLE": {
+      ctx.cyclePaneFocus(action.direction)
+      return ok()
+    }
+    case "PANE_FOCUS_NUMBER": {
+      ctx.focusPaneByNumber(action.number)
+      return ok()
+    }
 
     // === Detail pane ===
     case "DETAIL_PANE_CLOSE":
