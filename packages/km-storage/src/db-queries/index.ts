@@ -28,6 +28,7 @@ export {
   getBodyChildren,
   getSubitems,
   getSubtree,
+  getSubtreeShallow,
   getEmbedTargetsOnBoard,
   getAncestors,
 } from "./tree-traversal.ts"

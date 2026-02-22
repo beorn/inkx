@@ -194,6 +194,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return counts
     },
 
+    preloadSubtree(_rootId: string | null, _maxDepth: number) {
+      // No-op for fake repo — children are already in memory
+    },
+
     getSubtree(nodeId) {
       ensureNotClosed()
       const result: KNode[] = []

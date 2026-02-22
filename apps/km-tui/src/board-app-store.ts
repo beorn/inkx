@@ -116,6 +116,10 @@ function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: S
   const foldedNodes = new Set(existingFolds)
   if (!rootId || foldedNodes.size > 0) return foldedNodes
 
+  // Preload entire subtree in a single SQL query to avoid N+1 getChildren calls.
+  // Depth: root(0) → columns(1) → cards(2) → card children through DEFAULT_FOLD_DEPTH+2(4)
+  repo.preloadSubtree(rootId, DEFAULT_FOLD_DEPTH + 2)
+
   const columns = repo.getChildren(rootId)
   for (const col of columns) {
     const cards = repo.getChildren(col.id)

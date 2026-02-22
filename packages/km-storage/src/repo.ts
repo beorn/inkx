@@ -40,6 +40,7 @@ import {
   getAncestors as dbGetAncestors,
   getChildCountsBatch as dbGetChildCountsBatch,
   getSubtree as dbGetSubtree,
+  getSubtreeShallow as dbGetSubtreeShallow,
 } from "./db-queries/tree-traversal.ts"
 import { createEmitter, type Emitter } from "./emitter.ts"
 import type { FileTree } from "./file-tree.ts"
@@ -62,6 +63,8 @@ interface ChildrenCache {
   get(parentId: string | null): KNode[]
   bust(parentId: string | null): void
   clear(): void
+  /** Set cache entry only if not already present (for batch preloading) */
+  warmIfMissing(parentId: string | null, children: KNode[]): void
 }
 
 function createChildrenCache(dataStore: DataStore): ChildrenCache {
@@ -79,6 +82,11 @@ function createChildrenCache(dataStore: DataStore): ChildrenCache {
     },
     clear() {
       cache.clear()
+    },
+    warmIfMissing(parentId, children) {
+      if (!cache.has(parentId)) {
+        cache.set(parentId, children)
+      }
     },
   }
 }
@@ -104,6 +112,25 @@ function createQueryMethods(deps: RepoMethodDeps) {
     },
     getSubtree(nodeId: string) {
       return dbGetSubtree(db, nodeId)
+    },
+    preloadSubtree(rootId: string | null, maxDepth: number) {
+      const nodes = dbGetSubtreeShallow(db, rootId, maxDepth)
+      // Group by parent_id and warm the children cache
+      const byParent = new Map<string | null, KNode[]>()
+      for (const node of nodes) {
+        // Skip the root node itself (depth 0) — it's not a child of anyone we need to cache
+        const pid = node.parent_id === "." ? null : node.parent_id
+        let arr = byParent.get(pid)
+        if (!arr) {
+          arr = []
+          byParent.set(pid, arr)
+        }
+        arr.push(node)
+      }
+      // Warm the cache — only set if not already cached (avoid overwriting fresher data)
+      for (const [pid, children] of byParent) {
+        childrenCache.warmIfMissing(pid, children)
+      }
     },
     getAncestors(nodeId: string) {
       return dbGetAncestors(db, nodeId)
@@ -662,6 +689,15 @@ export interface Repo extends Disposable {
 
   /** Get full subtree under a node */
   getSubtree(nodeId: string): KNode[]
+
+  /**
+   * Preload a depth-limited subtree into the children cache.
+   * Uses a single recursive CTE query instead of N individual getChildren calls.
+   * Call before operations that will walk the tree (e.g., computeDefaultFolds).
+   * @param rootId - Root node ID (null for repo root)
+   * @param maxDepth - Maximum depth to preload (0 = root only, 4 = root + 4 levels)
+   */
+  preloadSubtree(rootId: string | null, maxDepth: number): void
 
   /** Get ancestors of a node (from root to parent) */
   getAncestors(nodeId: string): KNode[]

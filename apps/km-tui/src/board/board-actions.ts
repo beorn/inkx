@@ -74,6 +74,7 @@ import {
   handleZoomInNode,
   handleZoomInwards,
   handleZoomOutwards,
+  handleZoomToRoot,
 } from "./board-actions-zoom.ts"
 import { handleLocalFindOpen, handleLocalFindNext, handleLocalFindPrev } from "./board-actions-find.ts"
 import {
@@ -292,6 +293,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
+    case "ZOOM_TO_ROOT":
+      return handleZoomToRoot(ctx)
     case "DELETE_NODE":
       handleDeleteNode(ctx)
       return ok()

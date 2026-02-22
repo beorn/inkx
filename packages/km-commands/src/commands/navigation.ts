@@ -136,6 +136,16 @@ const zoomOutwards = {
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
+// Zoom to board root (skip all intermediate levels)
+const zoomToRoot = {
+  id: "zoom_to_root",
+  name: "Zoom to Board Root",
+  description: "Zoom all the way out to the board root in one step",
+  category: "Navigation",
+  shortcuts: ["gR"],
+  execute: () => ({ type: "ZOOM_TO_ROOT" }),
+} satisfies CommandDef
+
 // Open detail pane for current node
 const openDetailPane = {
   id: "open_detail_pane",
@@ -383,6 +393,7 @@ export const navigationCommands: CommandDef[] = [
   navForward,
   zoomIn,
   zoomOutwards,
+  zoomToRoot,
   openDetailPane,
   toggleDetailPane,
   closeDetailPane,

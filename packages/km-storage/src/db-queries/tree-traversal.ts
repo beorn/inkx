@@ -71,6 +71,33 @@ export function getChildren(db: Database, parentId: string | null): KNode[] {
 }
 
 /**
+ * Get shallow subtree (depth-limited recursive CTE).
+ * Returns all nodes within `maxDepth` levels below `rootId`.
+ * Depth 0 = root node itself, depth 1 = children, etc.
+ * Results are grouped by parent_id for efficient cache warming.
+ */
+export function getSubtreeShallow(db: Database, rootId: string | null, maxDepth: number): KNode[] {
+  const pid = rootId ?? "."
+  const rows = db
+    .query(
+      `
+    WITH RECURSIVE subtree AS (
+      SELECT *, 0 as depth FROM nodes WHERE ${rootId ? "id = ?" : "parent_id = '.'"}
+      UNION ALL
+      SELECT n.*, s.depth + 1 FROM nodes n
+      JOIN subtree s ON n.parent_id = s.id
+      WHERE s.depth < ?
+    )
+    SELECT * FROM subtree
+    ORDER BY parent_id, parent_idx, created_at
+  `,
+    )
+    .all(...(rootId ? [pid, maxDepth] : [maxDepth])) as Record<string, unknown>[]
+
+  return rows.map(rowToNode)
+}
+
+/**
  * Get subtree (recursive)
  */
 export function getSubtree(db: Database, rootId: string): KNode[] {

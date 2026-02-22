@@ -44,6 +44,39 @@ function firstCardId(
 }
 
 /**
+ * Zoom all the way to the board root in one step.
+ * Walks up ancestors from current root to find the board file root (parent_id = null or ".").
+ * Much faster than pressing Z repeatedly because computeDefaultFolds only runs once.
+ */
+export function handleZoomToRoot(ctx: ActionCtx): ActionResult {
+  if (!ctx.rootId) return boundary("zoom", "Already at root")
+
+  // Walk up to find board file root
+  let nodeId: string | null = ctx.rootId
+  let boardRoot: string | null = null
+  while (nodeId) {
+    const node = ctx.repo.getNode(nodeId)
+    if (!node) break
+    if (node.parent_id === null || node.parent_id === ".") {
+      boardRoot = node.id
+      break
+    }
+    boardRoot = nodeId
+    nodeId = node.parent_id
+  }
+
+  // Already at board root?
+  if (boardRoot === ctx.rootId) return boundary("zoom", "Already at board root")
+
+  if (boardRoot) {
+    saveNavHistory(ctx)
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: boardRoot })
+    clearSelection(ctx)
+  }
+  return ok()
+}
+
+/**
  * Zoom out to parent level.
  * Handles detail pane, outline mode, and actual zoom operations.
  */
