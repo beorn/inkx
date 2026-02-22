@@ -118,7 +118,6 @@ function createQueryMethods(deps: RepoMethodDeps) {
       // Group by parent_id and warm the children cache
       const byParent = new Map<string | null, KNode[]>()
       for (const node of nodes) {
-        // Skip the root node itself (depth 0) — it's not a child of anyone we need to cache
         const pid = node.parent_id === "." ? null : node.parent_id
         let arr = byParent.get(pid)
         if (!arr) {
