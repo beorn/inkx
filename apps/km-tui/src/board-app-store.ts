@@ -103,7 +103,9 @@ export interface BoardAppState {
  * In Phase 1, the returned PaneState mirrors the flat store fields.
  */
 export function getFocusedPane(state: BoardAppState): PaneState {
-  return state.workspace.panes.get(state.workspace.focusedPaneId)!
+  const pane = state.workspace.panes.get(state.workspace.focusedPaneId)
+  if (!pane) throw new Error(`Focused pane "${state.workspace.focusedPaneId}" not found in workspace`)
+  return pane
 }
 
 /**
@@ -915,7 +917,7 @@ export function createBoardAppStoreState(
         set((state) => {
           const { workspace } = state
           const focusedPane = workspace.panes.get(workspace.focusedPaneId)
-          if (!focusedPane || focusedPane.viewType !== "empty") return state
+          if (focusedPane?.viewType !== "empty") return state
 
           const updatedPane: PaneState = { ...focusedPane, viewType: "board" }
           const newPanes = new Map(workspace.panes)

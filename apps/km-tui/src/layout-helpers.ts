@@ -133,8 +133,8 @@ export function findAdjacentPaneInLayout(
 
   // Walk up the path looking for a relevant split
   for (let i = path.length - 1; i >= 0; i--) {
-    const step = path[i]!
-    if (step.node.direction !== splitDirection) continue
+    const step = path[i]
+    if (!step || step.node.direction !== splitDirection) continue
 
     // We came from 'left' and want to go right/down → enter the 'right' subtree
     if (step.side === "left" && goToRight) {
@@ -166,14 +166,15 @@ export function resizeSplitForPane(layout: LayoutNode, paneId: string, delta: nu
   // Find the nearest split matching the axis
   let targetIndex = -1
   for (let i = path.length - 1; i >= 0; i--) {
-    if (path[i]!.node.direction === axis) {
+    if (path[i]?.node.direction === axis) {
       targetIndex = i
       break
     }
   }
   if (targetIndex < 0) return layout
 
-  const targetStep = path[targetIndex]!
+  const targetStep = path[targetIndex]
+  if (!targetStep) return layout
   // If pane is on the right side, invert the delta (growing the right pane = shrinking the ratio)
   const adjustedDelta = targetStep.side === "left" ? delta : -delta
 
