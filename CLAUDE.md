@@ -86,7 +86,7 @@ Use `/git commit`. Follow [Conventional Commits](https://conventionalcommits.org
 
 ## Session Completion
 
-Before ending: `bun fix && bun run test:all && git push`. Propose next steps with AskUserQuestion.
+Before ending: `bun fix && bun run test:all && git push`. For refactors/migrations, run `/complete` to catch remnants, stale docs, and unclosed beads. Propose next steps with AskUserQuestion.
 Sub-agents skip this — only the top-level session runs verification.
 
 ## Maintaining These Docs
@@ -111,4 +111,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
 | [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
+| [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [batch-refactor](vendor/beorn-tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

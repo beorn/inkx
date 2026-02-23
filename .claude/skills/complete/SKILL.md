@@ -1,223 +1,121 @@
 ---
 description: "Session-end completeness audit. Use when finishing a refactor, migration, or feature to verify nothing was left behind."
-argument-hint: "[<what-was-refactored>]"
+argument-hint: "[<what-was-changed>]"
 allowed-tools: Bash, Read, Glob, Grep, Skill, AskUserQuestion
 ---
 
-# Session Completeness Audit
+# Completeness Audit
 
 **Keywords**: complete, done, finish, session end, audit, remnant, leftover
 
 ## Context
 
 - Branch: !`git branch --show-current`
-- Status: !`git status --porcelain`
-- Diff stats: !`git diff --stat HEAD~5 2>/dev/null || git diff --stat`
-- Changed files: !`git diff --name-only HEAD~5 2>/dev/null || git diff --name-only`
+- Uncommitted: !`git status --porcelain`
 - In-progress beads: !`bd list --status in_progress 2>/dev/null | head -10 || echo "(none)"`
-- Recent commits: !`git log --oneline -5`
+- Recent commits: !`git log --oneline -10`
+- Diffs (truncated): !`git diff -U2 HEAD~5 -- ':!vendor' 2>/dev/null | head -200 || git diff -U2 -- ':!vendor' | head -200`
+- Uncommitted diffs: !`git diff -U2 | head -100`
 
-## What Was Refactored
+## Step 1: Understand the Work
 
-$ARGUMENTS
+**Argument**: $ARGUMENTS
 
-If no argument provided, infer from the diff stats and recent commits above. If unclear, ask the user.
+Read the diffs above. Determine concretely:
+- What was added, changed, or removed (functions, types, props, config keys, commands, UI states)
+- For refactors: what old names/patterns were replaced, and what replaced them
+- For new features: what new concepts were introduced
+- For bug fixes: what behavior changed
 
-## Procedure
+If the diffs are truncated, Read the changed files to fill gaps. If still unclear, ask the user.
 
-Run all 7 phases sequentially. Collect findings into a structured report. Each phase produces `PASS`, `FLAG` (non-blocking), or `BLOCK` (hard gate).
+## Step 2: Investigate (the whole point of this skill)
 
----
+**Think about what you DIDN'T touch.** The files you changed are fine — the compiler and tests verify those. The danger is everything else: the consumer you forgot, the doc page nobody reads, the test helper that still sets up the old shape, the sibling function with the same bug.
 
-### Phase 1: Refactor Remnant Scan (HARD GATE)
+### Three principles for good hypotheses
 
-This is the most important phase. Old references survive refactors constantly.
+1. **Follow the blast radius.** Every change has downstream consumers. A renamed export has importers. A changed type has destructurers. A new command should appear in help text. A fixed bug might exist in the sibling code path. Trace outward from your change.
 
-1. From the argument (or inferred from diffs), identify the **old terms** that should no longer appear — old function names, old type names, old config keys, old variable names
-2. Grep ALL source for each old term:
-   ```
-   Grep pattern="<old-term>" glob="*.{ts,tsx}" path="<repo-root>"
-   Grep pattern="<old-term>" glob="*.md" path="<repo-root>"
-   ```
-3. Classify each hit:
+2. **Check the shadow copies.** Code gets described in multiple places: source, tests, test fixtures, docs, skill files, CLAUDE.md, MEMORY.md, `docs/ref/ui.md`, error messages, log strings, comments. A change to the source that doesn't update the shadows leaves lies behind.
 
-| Classification | Verdict | Example |
-|---|---|---|
-| Active usage (import, call, reference) | **BLOCK** | `import { oldFunc } from ...` |
-| Re-export / compat shim | **FLAG** — should be deleted | `export { newFunc as oldFunc }` |
-| Test referencing old API | **BLOCK** — test must update | `expect(oldFunc()).toBe(...)` |
-| Comment / doc reference | **FLAG** — should update | `// Uses oldFunc for ...` |
-| String literal (log msg, error) | **FLAG** — update if misleading | `log("oldFunc called")` |
+3. **Look for the old way still working.** The most insidious remnant isn't a broken reference — it's a *working* one. Compat re-exports, `@deprecated` annotations, function overloads supporting both signatures, two code paths doing the same thing. If the old way still works, someone will use it. (From `docs/lessons/refactoring.md`: "Deprecated code still works, so there's no urgency" — that's exactly why it never gets cleaned up.)
 
-**Hard gate**: Any BLOCK hit = **INCOMPLETE**.
+### How to investigate
 
----
+Form 5-10 hypotheses. Prioritize non-obvious ones — the obvious searches (exact old name) are easy; the creative ones (variant spellings, related concepts, sibling functions) catch what others miss.
 
-### Phase 2: `/code clean` Dry Run
+For each hypothesis, grep the **entire repo**:
+```
+Grep pattern="<term>" glob="*.{ts,tsx}"
+Grep pattern="<term>" glob="*.md"
+```
 
-Run `/code clean --dry-run` on all files that appear in the diff.
+Run independent searches in parallel. Include variant spellings, partial matches, related concepts.
 
-Additionally, grep changed files for:
+### Classify findings
 
-| Pattern | Verdict | Action |
-|---|---|---|
-| `export { X as Y }` (compat re-export) | **FLAG** | Should delete, not shim |
-| `@deprecated` without a tracking bead | **FLAG** | Should delete or create bead |
-| `TODO:remove`, `TEMPORARY`, `HACK`, `WORKAROUND` without bead | **FLAG** | Create bead or fix now |
-
-Report findings — do NOT implement changes.
-
----
-
-### Phase 3: Principles Compliance
-
-Scan changed files for anti-patterns from `docs/principles.md` and `docs/lessons/refactoring.md`:
-
-| Anti-Pattern | Check |
+| Finding | Verdict |
 |---|---|
-| Compatibility shims | `export { old as new }` or function overloads supporting both signatures |
-| Silent fallbacks | `?? defaultValue` masking bugs in internal code |
-| `@deprecated` annotations | Should delete, not annotate |
-| Dual patterns | Two ways to do the same thing (infection vector) |
-| `ensure*` guard checks | Let lower layer throw naturally |
-| Getters/setters, pure delegators | Plain properties, direct calls |
-| "Finish later" TODOs | Migration must be complete in this session |
-| OldWay still exists | Must delete, not deprecate |
+| Active code using removed/old API | **BLOCK** |
+| Test exercising removed API or old shape | **BLOCK** |
+| Re-export, compat shim, `@deprecated` keeping old way alive | **BLOCK** |
+| Dual pattern — old + new both work | **BLOCK** |
+| Doc/skill/comment describing old behavior | **FLAG** |
+| `TODO`/`HACK`/`WORKAROUND` without tracking bead | **FLAG** |
+| Changelog, git history, bead history | skip |
 
-Report each finding with file:line and verdict (FLAG or BLOCK).
+**Any BLOCK = INCOMPLETE.** Report all findings with file:line.
 
----
+## Step 3: Code Clean
 
-### Phase 4: Test Audit (HARD GATE)
+Run `/code clean --dry-run` on the files changed by this session's work. This catches things the hypothesis scan won't — simplification opportunities, anti-patterns from `docs/principles.md`, logging violations, narrative flow issues.
 
-1. Run tests:
-   ```bash
-   cd /Users/beorn/Code/pim/km ; bun run test:fast | tail -30
-   ```
-2. Check: do changed source files have corresponding test updates?
-   - For each changed `.ts`/`.tsx` in `src/` or `packages/`, look for a test file that was also modified
-   - Missing test update = **FLAG** (not always blocking, but notable)
-3. Check: are any tests still testing removed/renamed APIs?
-   - Grep test files for old terms from Phase 1
-   - Test using removed API = **BLOCK**
+Don't implement — just report findings alongside the investigation results.
 
-**Hard gate**: Test failure = **INCOMPLETE**.
+## Step 4: Wrap Up
 
----
+Run tests and lint — table stakes, not the point of this skill:
 
-### Phase 5: Doc Audit
-
-Grep for old/removed terms in documentation:
-
-```
-Grep pattern="<old-term>" path="<repo-root>/docs/"
-Grep pattern="<old-term>" path="<repo-root>/.claude/skills/"
-Grep pattern="<old-term>" path="<repo-root>/CLAUDE.md"
+```bash
+cd /Users/beorn/Code/pim/km ; bun fix && bun run test:fast | tail -30
 ```
 
-Also check:
-- `docs/ref/ui.md` if UI state changed
-- `MEMORY.md` for outdated references
+Close completed beads. Sync (`bd sync`). Commit and push.
 
-Each stale doc reference = **FLAG**.
+**BLOCK if tests or lint fail.**
 
----
-
-### Phase 6: Bead Audit
-
-1. In-progress beads for completed work → **FLAG** (should close)
-2. New `@deprecated` / `TODO` / `WORKAROUND` without a tracking bead → **FLAG**
-3. Beads synced? Check if `.beads/` appears in `git status`:
-   ```bash
-   git status --porcelain .beads/ 2>/dev/null
-   ```
-   Dirty beads = **FLAG** (run `bd sync`)
-
----
-
-### Phase 7: Git Hygiene (HARD GATE)
-
-1. Lint passes:
-   ```bash
-   cd /Users/beorn/Code/pim/km ; bun fix
-   ```
-2. Clean working tree (no uncommitted changes after all fixes)
-3. Beads synced (`bd sync`)
-4. Pushed to remote
-5. No temp/debug files (`*.debug.*`, `*.tmp.*`, `/tmp/km-explore-tests/`)
-
-**Hard gate**: Lint failure or uncommitted changes = **INCOMPLETE**.
-
----
-
-## Report Template
-
-After all phases, produce this report:
+## Report
 
 ```markdown
-## Completeness Audit: <what-was-refactored>
+## Completeness: <work summary>
 
-### Phase 1: Remnant Scan
-- [ ] No active usage of removed APIs
-- Findings: ...
+### What was done
+<1-2 sentences>
 
-### Phase 2: Code Clean
-- [ ] No compat shims, stale TODOs, or untracked deprecations
-- Findings: ...
+### Investigation
+| # | Hypothesis | Search | Result |
+|---|---|---|---|
+| 1 | "Callers of X still destructure old shape" | `Grep oldField *.ts` | PASS — 0 hits |
+| 2 | "docs/ref/ui.md still lists removed state" | `Grep oldState docs/` | FLAG — ui.md:42 |
+| 3 | "unfold has same bug as fold" | `Read unfold.ts:80` | BLOCK — identical pattern |
 
-### Phase 3: Principles Compliance
-- [ ] No anti-patterns in changed files
-- Findings: ...
+### Code Clean
+<Summary of /code clean --dry-run findings, or "No issues found">
 
-### Phase 4: Tests
-- [ ] Tests pass
-- [ ] No tests reference removed APIs
-- Findings: ...
-
-### Phase 5: Docs
-- [ ] No stale doc references
-- Findings: ...
-
-### Phase 6: Beads
-- [ ] In-progress beads closed or updated
-- [ ] Beads synced
-- Findings: ...
-
-### Phase 7: Git Hygiene
-- [ ] Lint passes
-- [ ] Clean working tree
-- [ ] Pushed to remote
-- Findings: ...
+### Mechanical
+- [x] Tests pass
+- [x] Lint passes
+- [x] Committed and pushed
 
 ### Verdict
-**COMPLETE** / **INCOMPLETE — N blocking items remain**
-
-Blocking:
-1. ...
-
-Flags (non-blocking, should address):
-1. ...
+**COMPLETE** / **INCOMPLETE — N blocking items**
 ```
-
-## Hard Gates (all must pass for COMPLETE)
-
-1. No active usage of removed APIs (Phase 1)
-2. Tests pass (Phase 4)
-3. Lint passes (Phase 7)
-4. No uncommitted changes (Phase 7)
 
 ## Anti-Patterns
 
-- Declaring "done" because tests pass — tests don't catch stale docs or compat shims
-- Skipping remnant scan when no argument provided — infer from diffs
-- Running `/code clean` in implementation mode — always `--dry-run` here
-- Ignoring stale docs — they mislead future sessions
-- Leaving `@deprecated` annotations — delete, not annotate
-
-## Cross-References
-
-- `/code clean` — invoked in Phase 2
-- `/commit` — for committing fixes found during audit
-- `/pm` — for bead closure
-- `docs/principles.md` — source of Phase 3 compliance checks
-- `docs/lessons/refactoring.md` — refactoring anti-patterns
+- Declaring "done" because tests pass — tests don't catch stale docs, compat shims, or sibling bugs
+- Only grepping for exact old names — search for variants, related concepts, partial matches
+- Scoping investigation to changed files — the whole point is checking what you DIDN'T change
+- Leaving `@deprecated` or compat re-exports "for safety" — they become permanent
+- Forming only 2-3 obvious hypotheses — push to 5-10, prioritize non-obvious ones
