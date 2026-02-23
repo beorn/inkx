@@ -325,6 +325,16 @@ const moveToHome = {
   execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@home" }),
 } satisfies CommandDef
 
+// Move to project (stub — not yet implemented)
+const moveToProject = {
+  id: "move_to_project",
+  name: "Move to Project",
+  description: "Move selected node(s) to a project",
+  category: "Edit",
+  shortcuts: ["m+"],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -347,6 +357,7 @@ export const editCommands: CommandDef[] = [
   moveToJournal,
   moveToNext,
   moveToHome,
+  moveToProject,
   addLink,
   reparentPicker,
   archiveNode,

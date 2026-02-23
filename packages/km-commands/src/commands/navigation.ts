@@ -358,6 +358,43 @@ const gotoArchive = {
   execute: () => ({ type: "GOTO_BOARD", boardId: "@archive" }),
 } satisfies CommandDef
 
+// Goto stubs for verb grid expansion (not yet implemented)
+const gotoTag = {
+  id: "goto_tag",
+  name: "Go to Tag",
+  description: "Filter by tag",
+  category: "Navigation",
+  shortcuts: ["g#"],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
+const gotoAssignee = {
+  id: "goto_assignee",
+  name: "Go to Assignee",
+  description: "Filter by assignee",
+  category: "Navigation",
+  shortcuts: ["g@"],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
+const gotoProject = {
+  id: "goto_project",
+  name: "Go to Project",
+  description: "Navigate to project board",
+  category: "Navigation",
+  shortcuts: ["g+"],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
+const gotoBacklink = {
+  id: "goto_backlink",
+  name: "Go to Backlink",
+  description: "Follow backlink",
+  category: "Navigation",
+  shortcuts: ["g["],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
 // Focus board (Cmd+h — kitty)
 const focusBoard = {
   id: "focus_board",
@@ -412,6 +449,10 @@ export const navigationCommands: CommandDef[] = [
   gotoHome,
   gotoNext,
   gotoArchive,
+  gotoTag,
+  gotoAssignee,
+  gotoProject,
+  gotoBacklink,
   blockNavDown,
   blockNavUp,
   settings,

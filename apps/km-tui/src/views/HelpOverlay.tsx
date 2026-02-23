@@ -4,10 +4,13 @@
  * Displays keyboard shortcuts for the board TUI, auto-generated from the
  * keybinding registry and command definitions.
  *
+ * Uses inkx flex layout throughout — no manual width calculations.
+ * Fill component handles dot leaders and section header fills.
+ *
  * Multi-column layout with verb × location grid. Scrollable with j/k.
  */
 import React, { useMemo } from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, Fill } from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
@@ -18,9 +21,6 @@ interface HelpOverlayProps {
 }
 
 // ── Layout configuration ────────────────────────────────────────────
-
-/** Alignment column for dot leaders */
-const DOT_STOP = 12
 
 /**
  * Sections arranged in rows. Each row is rendered side-by-side.
@@ -41,56 +41,75 @@ const SECTION_ROWS: Array<string[] | null> = [
  * Render key string with dim ` / ` separators for alternatives.
  * Keys are yellow, ` / ` separators are dim grey.
  */
-function renderKeyColored(keyStr: string, keyPrefix: string): React.ReactNode[] {
-  if (!keyStr.includes(" / ")) {
-    return [
-      <Text key={`${keyPrefix}-k0`} color="yellow">
-        {keyStr}
-      </Text>,
-    ]
-  }
-  const parts: React.ReactNode[] = []
-  const segments = keyStr.split(" / ")
-  for (let i = 0; i < segments.length; i++) {
-    if (i > 0) {
-      parts.push(
-        <Text key={`${keyPrefix}-s${i}`} dimColor>
-          {" / "}
-        </Text>,
-      )
-    }
-    parts.push(
-      <Text key={`${keyPrefix}-k${i}`} color="yellow">
-        {segments[i]}
-      </Text>,
+function KeyText({ keys, prefix }: { keys: string; prefix: string }): React.ReactElement {
+  if (!keys.includes(" / ")) {
+    return (
+      <Text key={`${prefix}-k0`} color="yellow">
+        {keys}
+      </Text>
     )
   }
-  return parts
+  const segments = keys.split(" / ")
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <React.Fragment key={`${prefix}-k${i}`}>
+          {i > 0 && <Text dimColor>{" / "}</Text>}
+          <Text color="yellow">{seg}</Text>
+        </React.Fragment>
+      ))}
+    </>
+  )
 }
 
-// ── Dot-leader entry rendering ──────────────────────────────────────
+// ── Section header ──────────────────────────────────────────────────
 
-/** Render a single key..description entry with dot leaders */
-function renderEntryStr(keys: string[], desc: string, colWidth: number): string {
-  const keyStr = keys.join(" ")
-  const dots = Math.max(1, DOT_STOP - keyStr.length - 2)
-  const descMax = colWidth - DOT_STOP
-  return keyStr + " " + ".".repeat(dots) + " " + desc.slice(0, descMax)
+function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row">
+      <Text dimColor>{"── "}</Text>
+      <Text bold color="cyan">
+        {title.toUpperCase()}
+      </Text>
+      <Box flexGrow={1}>
+        <Fill>
+          <Text dimColor>{" ─"}</Text>
+        </Fill>
+      </Box>
+    </Box>
+  )
+}
+
+// ── Entry line (key...description with dot leaders) ─────────────────
+
+function EntryLine({ keys, desc, prefix }: { keys: string; desc: string; prefix: string }): React.ReactElement {
+  return (
+    <Box flexDirection="row">
+      <Text>{"  "}</Text>
+      <KeyText keys={keys} prefix={prefix} />
+      <Text> </Text>
+      <Box flexGrow={1}>
+        <Fill>
+          <Text dimColor>{"."}</Text>
+        </Fill>
+      </Box>
+      <Text> </Text>
+      <Text>{desc}</Text>
+    </Box>
+  )
 }
 
 // ── Section building ────────────────────────────────────────────────
 
-function sectionHeaderStr(category: string, colWidth: number): string {
-  const title = category.toUpperCase()
-  const lineLen = Math.max(0, colWidth - title.length - 5)
-  return "── " + title + " " + "─".repeat(lineLen)
-}
-
-/** Build lines for a single section (returns plain strings for column merging) */
-function buildSectionStrings(section: HelpSection, colWidth: number): string[] {
-  const lines: string[] = [sectionHeaderStr(section.category, colWidth)]
-  for (const item of section.items) {
-    lines.push("  " + renderEntryStr(item.keys, item.description, colWidth - 2))
+function buildSectionLines(section: HelpSection, keyPrefix: string): React.ReactElement[] {
+  const lines: React.ReactElement[] = []
+  lines.push(<SectionHeaderLine key={`${keyPrefix}-hdr`} title={section.category} />)
+  for (let i = 0; i < section.items.length; i++) {
+    const item = section.items[i]
+    const keyStr = item.keys.join(" ")
+    lines.push(
+      <EntryLine key={`${keyPrefix}-e${i}`} keys={keyStr} desc={item.description} prefix={`${keyPrefix}-e${i}`} />,
+    )
   }
   return lines
 }
@@ -103,130 +122,58 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
   for (const s of sections) sectionMap.set(s.category, s)
 
   const rendered = new Set<string>()
-  let lineIdx = 0
-
-  function addLine(el: React.ReactElement) {
-    lines.push(el)
-    lineIdx++
-  }
-
-  function renderColoredLine(raw: string, key: string): React.ReactElement {
-    // Parse "── TITLE ───" headers
-    const headerMatch = raw.match(/^(── )(.+?)( ─+)$/)
-    if (headerMatch) {
-      return (
-        <Text key={key}>
-          <Text dimColor>{headerMatch[1]}</Text>
-          <Text bold color="cyan">
-            {headerMatch[2]}
-          </Text>
-          <Text dimColor>{headerMatch[3]}</Text>
-        </Text>
-      )
-    }
-    // Parse "  key .. desc" entries
-    const entryMatch = raw.match(/^( +)(.+?)( \.+ )(.*)$/)
-    if (entryMatch) {
-      return (
-        <Text key={key}>
-          {entryMatch[1]}
-          {renderKeyColored(entryMatch[2], key)}
-          <Text dimColor>{entryMatch[3]}</Text>
-          <Text>{entryMatch[4]}</Text>
-        </Text>
-      )
-    }
-    return (
-      <Text key={key} dimColor>
-        {raw}
-      </Text>
-    )
-  }
 
   // Render section rows (multi-column)
   for (const row of SECTION_ROWS) {
     if (row === null) {
-      // Verb × location grid
-      renderVerbGrid(contentWidth, addLine)
+      lines.push(...buildVerbGridLines(contentWidth))
       continue
     }
 
-    const cols: string[][] = []
-    const sectionNames: string[] = []
+    const sectionData: HelpSection[] = []
     for (const name of row) {
       const section = sectionMap.get(name)
       if (section) {
-        const colWidth = Math.floor(contentWidth / row.length)
-        cols.push(buildSectionStrings(section, colWidth))
-        sectionNames.push(name)
+        sectionData.push(section)
         rendered.add(name)
       }
     }
 
-    if (cols.length === 0) continue
+    if (sectionData.length === 0) continue
 
-    // Merge columns side by side
-    const colWidth = Math.floor(contentWidth / cols.length)
-    const maxLines = Math.max(...cols.map((c) => c.length))
+    if (sectionData.length === 1) {
+      // Single column — full width
+      const prefix = `s-${sectionData[0].category}`
+      lines.push(...buildSectionLines(sectionData[0], prefix))
+    } else {
+      // Multi-column: merge lines side by side using fixed-width Boxes
+      const colWidth = Math.floor(contentWidth / sectionData.length)
+      const cols = sectionData.map((s, ci) => buildSectionLines(s, `s${ci}-${s.category}`))
+      const maxLines = Math.max(...cols.map((c) => c.length))
 
-    for (let i = 0; i < maxLines; i++) {
-      const parts: React.ReactNode[] = []
-      for (let c = 0; c < cols.length; c++) {
-        const raw = (cols[c][i] ?? "").padEnd(colWidth)
-        const colKey = `r${lineIdx}-c${c}`
-
-        // Parse and colorize inline
-        const headerMatch = raw.match(/^(── )(.+?)( ─+)(.*)$/)
-        if (headerMatch) {
-          parts.push(
-            <React.Fragment key={colKey}>
-              <Text dimColor>{headerMatch[1]}</Text>
-              <Text bold color="cyan">
-                {headerMatch[2]}
-              </Text>
-              <Text dimColor>{headerMatch[3] + headerMatch[4]}</Text>
-            </React.Fragment>,
-          )
-          continue
-        }
-        const entryMatch = raw.match(/^( +)(.+?)( \.+ )(.*)$/)
-        if (entryMatch) {
-          // Pad the description to fill column
-          const usedLen = entryMatch[1].length + entryMatch[2].length + entryMatch[3].length + entryMatch[4].length
-          const pad = Math.max(0, colWidth - usedLen)
-          parts.push(
-            <React.Fragment key={colKey}>
-              {entryMatch[1]}
-              {renderKeyColored(entryMatch[2], colKey)}
-              <Text dimColor>{entryMatch[3]}</Text>
-              <Text>{entryMatch[4]}</Text>
-              {pad > 0 ? " ".repeat(pad) : null}
-            </React.Fragment>,
-          )
-          continue
-        }
-        parts.push(
-          <Text key={colKey} dimColor>
-            {raw}
-          </Text>,
+      for (let i = 0; i < maxLines; i++) {
+        lines.push(
+          <Box key={`row-${lines.length}`} flexDirection="row">
+            {cols.map((col, ci) => (
+              <Box key={ci} width={colWidth}>
+                {col[i] ?? null}
+              </Box>
+            ))}
+          </Box>,
         )
       }
-      addLine(<Text key={`row-${lineIdx}`}>{parts}</Text>)
     }
 
     // Blank line between rows
-    addLine(<Text key={`blank-${lineIdx}`}> </Text>)
+    lines.push(<Text key={`blank-${lines.length}`}> </Text>)
   }
 
   // Render any sections not in the layout
   for (const section of sections) {
     if (rendered.has(section.category)) continue
     rendered.add(section.category)
-    const strs = buildSectionStrings(section, contentWidth)
-    for (const raw of strs) {
-      addLine(renderColoredLine(raw, `extra-${lineIdx}`))
-    }
-    addLine(<Text key={`blank-${lineIdx}`}> </Text>)
+    lines.push(...buildSectionLines(section, `extra-${section.category}`))
+    lines.push(<Text key={`blank-${lines.length}`}> </Text>)
   }
 
   return lines
@@ -234,89 +181,79 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
 // ── Verb × Location grid ────────────────────────────────────────────
 
-function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) => void) {
-  const headerWidth = contentWidth - 5
-  const title = "VERBS × LOCATIONS"
-  const lineLen = Math.max(0, headerWidth - title.length)
+/** Column widths for the verb grid */
+const VG_LOC_W = 14
+const VG_COL_W = 14
 
-  addLine(
-    <Text key="vg-hdr">
+function GridCell({ value }: { value?: string }): React.ReactElement {
+  if (!value) return <Text dimColor>{"—"}</Text>
+  return <Text color="yellow">{value}</Text>
+}
+
+function buildVerbGridLines(contentWidth: number): React.ReactElement[] {
+  const lines: React.ReactElement[] = []
+
+  // Header
+  lines.push(
+    <Box key="vg-hdr" flexDirection="row">
       <Text dimColor>{"── "}</Text>
       <Text bold color="cyan">
-        {title}
+        {"VERBS × LOCATIONS"}
       </Text>
-      <Text dimColor>{" " + "─".repeat(lineLen)}</Text>
-    </Text>,
+      <Box flexGrow={1}>
+        <Fill>
+          <Text dimColor>{" ─"}</Text>
+        </Fill>
+      </Box>
+    </Box>,
   )
 
-  // Column layout: location label + 3 verb columns with gutters
-  const locW = 14
-  const colW = 14
-
-  /** Render a verb grid cell value with dim ` / ` separators */
-  function renderGridCell(val: string | undefined, width: number, isLast: boolean): React.ReactNode {
-    if (!val) return <Text dimColor>{isLast ? "—" : "—".padEnd(width)}</Text>
-    if (val.includes(" / ")) {
-      const parts = val.split(" / ")
-      const nodes: React.ReactNode[] = []
-      let len = 0
-      for (let i = 0; i < parts.length; i++) {
-        if (i > 0) {
-          nodes.push(
-            <Text key={`s${i}`} dimColor>
-              {" / "}
-            </Text>,
-          )
-          len += 3
-        }
-        nodes.push(
-          <Text key={`k${i}`} color="yellow">
-            {parts[i]}
-          </Text>,
-        )
-        len += parts[i].length
-      }
-      if (!isLast) {
-        const pad = Math.max(0, width - len)
-        if (pad > 0) nodes.push(" ".repeat(pad))
-      }
-      return <>{nodes}</>
-    }
-    return <Text color="yellow">{isLast ? val : val.padEnd(width)}</Text>
-  }
-
   // Column headers
-  addLine(
-    <Text key="vg-col-hdr">
-      {"  "}
-      <Text dimColor>{"".padEnd(locW)}</Text>
-      <Text bold color="cyan">
-        {"go (g)".padEnd(colW)}
-      </Text>
-      <Text bold color="cyan">
-        {"move (m)".padEnd(colW)}
-      </Text>
+  lines.push(
+    <Box key="vg-col-hdr" flexDirection="row">
+      <Text>{"  "}</Text>
+      <Box width={VG_LOC_W}>
+        <Text dimColor>{""}</Text>
+      </Box>
+      <Box width={VG_COL_W}>
+        <Text bold color="cyan">
+          {"go (g)"}
+        </Text>
+      </Box>
+      <Box width={VG_COL_W}>
+        <Text bold color="cyan">
+          {"move (m)"}
+        </Text>
+      </Box>
       <Text bold color="cyan">
         {"add (a)"}
       </Text>
-    </Text>,
+    </Box>,
   )
 
+  // Grid rows
   for (let i = 0; i < VERB_GRID.length; i++) {
     const row = VERB_GRID[i]
-    addLine(
-      <Text key={`vg-${i}`}>
-        {"  "}
-        <Text color="yellow">{row.key}</Text>
-        <Text>{" " + row.location.padEnd(locW - row.key.length - 1)}</Text>
-        {renderGridCell(row.goto, colW, false)}
-        {renderGridCell(row.move, colW, false)}
-        {renderGridCell(row.add, 0, true)}
-      </Text>,
+    lines.push(
+      <Box key={`vg-${i}`} flexDirection="row">
+        <Text>{"  "}</Text>
+        <Box width={VG_LOC_W} flexDirection="row">
+          <Text color="yellow">{row.key}</Text>
+          <Text>{" " + row.location}</Text>
+        </Box>
+        <Box width={VG_COL_W}>
+          <GridCell value={row.goto} />
+        </Box>
+        <Box width={VG_COL_W}>
+          <GridCell value={row.move} />
+        </Box>
+        <GridCell value={row.add} />
+      </Box>,
     )
   }
 
-  addLine(<Text key="vg-blank"> </Text>)
+  lines.push(<Text key="vg-blank"> </Text>)
+  return lines
 }
 
 // ── Main component ──────────────────────────────────────────────────

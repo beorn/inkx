@@ -831,7 +831,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(57) // 15 g + 5 m + 7 a + 9 t + 21 Ctrl+w
+    expect(chordBindings.length).toBe(62) // 19 g + 5 m + 7 a + 9 t + 22 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -851,7 +851,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["/", "C", "G", "N", "O", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
+    expect(keys).toEqual(["#", "+", "/", "@", "C", "G", "N", "O", "[", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {

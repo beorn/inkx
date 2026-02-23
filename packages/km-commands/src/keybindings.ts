@@ -676,6 +676,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "/", commandId: "zoom_to_root" },
       { chord: "g", key: "e", commandId: "goto_archive" },
       { chord: "g", key: "N", commandId: "goto_next" },
+      { chord: "g", key: "#", commandId: "goto_tag" },
+      { chord: "g", key: "@", commandId: "goto_assignee" },
+      { chord: "g", key: "+", commandId: "goto_project" },
+      { chord: "g", key: "[", commandId: "goto_backlink" },
       { chord: "g", key: "G", commandId: "cursor_last" },
 
       // m-prefix chords (move to board)
@@ -683,6 +687,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "m", key: "i", commandId: "move_to_inbox" },
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
+      { chord: "m", key: "+", commandId: "move_to_project" },
       { chord: "m", key: "p", commandId: "reparent_picker" },
 
       // a-prefix chords (add operations — v2 spec)

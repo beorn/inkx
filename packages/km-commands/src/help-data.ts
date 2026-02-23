@@ -122,6 +122,11 @@ const EXCLUDED_COMMANDS = new Set([
   "move_to_home",
   "move_to_next",
   "reparent_picker",
+  "move_to_project",
+  "goto_tag",
+  "goto_assignee",
+  "goto_project",
+  "goto_backlink",
   "add_tag",
   "add_assignee",
   "add_project",
@@ -397,7 +402,7 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["capture_inbox", "capture_dialog"],
-    display: "c / C / ⌘n",
+    display: "c C ⌘n",
     description: "capture to inbox",
     section: "Task",
   },
@@ -413,7 +418,7 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["open_detail_pane", "close_detail_pane", "toggle_detail_pane"],
-    display: "D / ⌃i / ⌘w",
+    display: "D ⌃i ⌘w",
     description: "detail pane",
     section: "View",
   },
@@ -444,13 +449,13 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["pane_resize_grow", "pane_resize_shrink"],
-    display: "⌃w > / <",
+    display: "⌃w > <",
     description: "resize width",
     section: "Panes",
   },
   {
     commands: ["pane_resize_grow_vertical", "pane_resize_shrink_vertical"],
-    display: "⌃w + / -",
+    display: "⌃w + -",
     description: "resize height",
     section: "Panes",
   },
@@ -462,7 +467,7 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["pane_focus_next", "pane_focus_prev"],
-    display: "⌃w ⇥ / ⇧⇥",
+    display: "⌃w ⇥ ⇧⇥",
     description: "cycle panes",
     section: "Panes",
   },
@@ -484,19 +489,19 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "h", location: "home", goto: "g h", move: "m h" },
   { key: "e", location: "archive", goto: "g e" },
   { key: "N", location: "next", goto: "g N" },
-  { key: "p", location: "picker", goto: "g p", move: "⌃r / m p" },
-  // Add targets
-  { key: "#", location: "tag", add: "# / a #" },
-  { key: "@", location: "assignee", add: "@ / a @" },
-  { key: "+", location: "project", add: "+ / a +" },
-  { key: "[", location: "backlink", add: "[ / a [" },
+  { key: "p", location: "picker", goto: "g p", move: "⌃r m p" },
+  // Targets (add, with go/move stubs)
+  { key: "#", location: "tag", goto: "g #", add: "# a #" },
+  { key: "@", location: "assignee", goto: "g @", add: "@ a @" },
+  { key: "+", location: "project", goto: "g +", move: "m +", add: "+ a +" },
+  { key: "[", location: "backlink", goto: "g [", add: "[ a [" },
   { key: "l", location: "link", add: "⌃l" },
   // Tree structure
   { key: "i", location: "child", add: "a i" },
   { key: "j", location: "sibling", add: "a j" },
   { key: "h", location: "at parent", add: "a h" },
   // Move
-  { key: "m", location: "move mode", move: "m / m m" },
+  { key: "m", location: "move mode", move: "m" },
 ]
 
 // ── macOS key formatting ─────────────────────────────────────────────
