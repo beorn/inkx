@@ -1,4 +1,4 @@
-import type { CommandDef, TaskStatus, TaskSetStatusAction } from "../types.ts"
+import type { CommandAction, CommandDef, TaskStatus, TaskSetStatusAction } from "../types.ts"
 
 // Re-export for consumers
 export type { TaskSetStatusAction as TaskAction } from "../types.ts"
@@ -161,7 +161,20 @@ const setAssignee = {
   execute: () => ({ type: "SET_ASSIGNEE" }),
 } satisfies CommandDef
 
+const clearTask = {
+  id: "clear_task",
+  name: "Clear Task",
+  description: "Remove all task properties (status, dates, priority, assignee)",
+  category: "Task",
+  shortcuts: ["t-"],
+  execute: (ctx): CommandAction | null => {
+    if (!ctx.currentNodeId) return null
+    return { type: "CLEAR_TASK", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
 export const taskCommands: CommandDef[] = [
+  clearTask,
   cycleTaskStatus,
   toggleTaskDone,
   setStatusTodo,

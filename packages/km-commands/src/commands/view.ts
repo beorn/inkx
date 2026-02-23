@@ -1,4 +1,4 @@
-import type { CommandDef } from "../types.ts"
+import type { CommandAction, CommandDef } from "../types.ts"
 
 // View mode
 const cycleViewMode = {
@@ -14,8 +14,17 @@ const cycleIconStyle = {
   name: "Cycle Icon Style",
   description: "Cycle between nerdfont, workflowy, and regular bullet icons",
   category: "View",
-  shortcuts: ["vV"],
+  shortcuts: [],
   execute: () => ({ type: "CYCLE_ICON_STYLE" }),
+} satisfies CommandDef
+
+const clearFilters = {
+  id: "clear_filters",
+  name: "Clear Filters",
+  description: "Clear all active filters and filter text",
+  category: "View",
+  shortcuts: ["v-"],
+  execute: (): CommandAction => ({ type: "CLEAR_FILTER" }),
 } satisfies CommandDef
 
 const showHelp = {
@@ -156,6 +165,7 @@ const decreaseContentLines = {
 export const viewCommands: CommandDef[] = [
   cycleViewMode,
   cycleIconStyle,
+  clearFilters,
   showHelp,
   toggleFold,
   foldNode,
