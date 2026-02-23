@@ -127,7 +127,7 @@ export interface BoardCoreProps {
     handleSearchCancel: () => void
     handleDatePromptConfirm: () => void
     handleDatePromptCancel: () => void
-    handleOmniboxSelect: (commandId: string) => void
+    handleOmniboxSelect: (result: import("./Omnibox.tsx").OmniboxResult) => void
     handleOmniboxCancel: () => void
   }
   /** Collapsed nodes (node IDs) */
@@ -1019,15 +1019,20 @@ export function Board({ patchedConsole }: BoardProps) {
   // Omnibox handlers — need store access for dispatchCommandById
   const storeRef = React.useContext(StoreContext)
   const handleOmniboxSelect = useCallback(
-    (commandId: string) => {
+    (result: import("./Omnibox.tsx").OmniboxResult) => {
       popDialogMode()
       setUI({ showOmnibox: false })
-      if (storeRef) {
+      if (result.type === "search" && result.nodeId) {
+        // Navigate to search result — reuse the search handler
+        const node = repo.getNode(result.nodeId)
+        if (node) baseDialogHandlers.handleSearchSelect(node)
+      } else if (result.commandId && storeRef) {
+        // Dispatch command (goto or command types)
         const store = storeRef as import("zustand").StoreApi<BoardAppStore>
-        dispatchCommandById(commandId, store.getState.bind(store))
+        dispatchCommandById(result.commandId, store.getState.bind(store))
       }
     },
-    [setUI, storeRef],
+    [setUI, storeRef, repo, baseDialogHandlers],
   )
   const handleOmniboxCancel = useCallback(() => {
     popDialogMode()

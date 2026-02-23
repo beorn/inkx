@@ -76,12 +76,12 @@ describe("omnibox", () => {
     expect(screenshot).not.toContain("Archive")
   })
 
-  it("shows no matching commands for garbage query", () => {
+  it("shows no results for garbage query", () => {
     const { board } = standardBoard()
     board.press(":")
     board.press("z").press("z").press("z").press("q").press("q")
     const screenshot = board.screenshot()
-    expect(screenshot).toContain("No matching commands")
+    expect(screenshot).toContain("No results")
   })
 
   it("Enter on result closes omnibox", () => {
@@ -111,6 +111,48 @@ describe("omnibox", () => {
     board.press("ArrowDown")
     // Just verify the omnibox is still open and responsive
     board.expect("[data-dialog='omnibox']").toExist()
+  })
+
+  it("shows vault search results for content queries", () => {
+    const { board } = standardBoard()
+    board.press(":")
+    // Type "task1" — should match the node title via FTS
+    board.press("t").press("a").press("s").press("k").press("1")
+    const screenshot = board.screenshot()
+    // Search section divider should appear
+    expect(screenshot).toContain("Search")
+    // The node title should appear in results
+    expect(screenshot).toContain("task1")
+  })
+
+  it("search results appear below command results", () => {
+    // Use extra-tall terminal so both sections are visible
+    const { board } = testEnv(
+      () => [
+        ...item(
+          "board",
+          item("col1", item("task1"), item("task2")),
+        ),
+      ],
+      { rows: 60 },
+    )
+    board.press(":")
+    // Type "task1" — matches few commands but definitely matches the node
+    board.press("t").press("a").press("s").press("k").press("1")
+    const screenshot = board.screenshot()
+    // Search section divider should appear
+    expect(screenshot).toContain("Search")
+    // The search result (node) should appear
+    expect(screenshot).toContain("task1")
+  })
+
+  it("does not search with single character query", () => {
+    const { board } = standardBoard()
+    board.press(":")
+    board.press("t")
+    const screenshot = board.screenshot()
+    // Should NOT show search section divider with 1 char
+    expect(screenshot).not.toContain("── Search ──")
   })
 
   it("shows footer with navigation hints", () => {

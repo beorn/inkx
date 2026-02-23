@@ -1,18 +1,24 @@
 /**
- * Omnibox — Universal Command Palette
+ * Omnibox — Universal Command Palette + Vault Search
  *
  * Accessible via `:` (node mode), `Cmd+K` (both modes), `Ctrl+K` (node mode).
  * Full-screen overlay with fuzzy search across:
  * - All registered commands (with keybinding hints)
  * - Go-to locations (inbox, journal, home, archive)
+ * - Vault-wide content search (FTS5, triggers at 2+ chars)
  *
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import { ModalDialog, InputBox } from "./shared-components.tsx"
+import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { getAllCommands, getAllKeybindings, fuzzyMatch, type CommandDef, type Keybinding } from "@km/commands"
+import { isOutline, isEmbed, type KNode } from "@km/core"
+import { useRepo } from "../repo-context.tsx"
+import type { Repo } from "../repo-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { getParentName } from "./search-utils.ts"
 
 // =============================================================================
 // Types
@@ -22,15 +28,19 @@ export interface OmniboxResult {
   /** Unique key for React rendering */
   key: string
   /** Result type for categorization and icon display */
-  type: "command" | "goto"
+  type: "command" | "goto" | "search"
   /** Display label */
   label: string
   /** Secondary description text */
   description: string
   /** Keyboard shortcut hint (e.g., "⌃K", "gi") */
   shortcutHint?: string
-  /** Command ID to execute when selected */
-  commandId: string
+  /** Command ID to execute when selected (command/goto types) */
+  commandId?: string
+  /** Node ID to navigate to (search type) */
+  nodeId?: string
+  /** Node object for rich rendering (search type) */
+  node?: KNode
 }
 
 // =============================================================================
@@ -162,6 +172,43 @@ function buildKeybindingMap(): Map<string, string> {
 }
 
 // =============================================================================
+// Vault Search
+// =============================================================================
+
+/** Minimum query length before FTS5 search fires */
+const MIN_SEARCH_LENGTH = 2
+/** Maximum number of search results shown */
+const MAX_SEARCH_RESULTS = 10
+
+/** Build vault-wide search results from FTS5 */
+function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
+  if (query.length < MIN_SEARCH_LENGTH) return []
+
+  const nodes = repo.search(query)
+  const results: OmniboxResult[] = []
+
+  for (const node of nodes) {
+    if (results.length >= MAX_SEARCH_RESULTS) break
+    if (isOutline(node.type, node.item) && node.fstype === "folder") continue
+    if (isEmbed(node.type)) continue
+
+    const title = getNodeDisplayName(repo, node)
+    const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))
+
+    results.push({
+      key: `search:${node.id}`,
+      type: "search",
+      label: title,
+      description: parentContext ? `in ${parentContext}` : "",
+      nodeId: node.id,
+      node,
+    })
+  }
+
+  return results
+}
+
+// =============================================================================
 // Fuzzy Scoring
 // =============================================================================
 
@@ -193,7 +240,7 @@ function fuzzyScore(query: string, target: string): number {
 function scoreResult(result: OmniboxResult, query: string): number {
   const labelScore = fuzzyScore(query, result.label)
   const descScore = fuzzyScore(query, result.description) * 0.5
-  const idScore = fuzzyScore(query, result.commandId) * 0.3
+  const idScore = result.commandId ? fuzzyScore(query, result.commandId) * 0.3 : 0
   return Math.max(labelScore, descScore, idScore)
 }
 
@@ -201,7 +248,16 @@ function scoreResult(result: OmniboxResult, query: string): number {
 // Result Item Component
 // =============================================================================
 
-function ResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
+/** Section divider shown between command/goto and search results */
+function SectionDivider({ label }: { label: string }): React.ReactElement {
+  return (
+    <Box height={1}>
+      <Text dimColor>{`── ${label} ──`}</Text>
+    </Box>
+  )
+}
+
+function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
 
   return (
@@ -226,13 +282,22 @@ function ResultItem({ result, isSelected }: { result: OmniboxResult; isSelected:
   )
 }
 
+function ResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
+  if (result.type === "search" && result.node) {
+    return (
+      <NodeLine node={result.node} title={result.label} parentContext={result.description} isSelected={isSelected} />
+    )
+  }
+  return <CommandResultItem result={result} isSelected={isSelected} />
+}
+
 // =============================================================================
 // Omnibox Component
 // =============================================================================
 
 interface OmniboxProps {
-  /** Called when user selects a result — receives commandId */
-  onSelect: (commandId: string) => void
+  /** Called when user selects a result */
+  onSelect: (result: OmniboxResult) => void
   /** Called when user cancels (Escape) */
   onCancel: () => void
   /** Available width */
@@ -242,6 +307,7 @@ interface OmniboxProps {
 }
 
 export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps): React.ReactElement {
+  const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
   // Stable refs for callbacks used in useDialogInput closures
@@ -261,7 +327,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
     onConfirm: () => {
       const selected = resultsRef.current[selectedIndexRef.current]
       if (selected) {
-        onSelectRef.current(selected.commandId)
+        onSelectRef.current(selected)
       }
     },
     onCancel: () => onCancelRef.current(),
@@ -273,9 +339,9 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   const commandResults = React.useMemo(() => buildCommandResults(keybindingMap), [keybindingMap])
   const allResults = React.useMemo(() => [...gotoResults, ...commandResults], [gotoResults, commandResults])
 
-  // Filter and sort results based on query
+  // Filter and sort command/goto results based on query
   const query = editCtx.value.trim()
-  const filteredResults = React.useMemo(() => {
+  const filteredCommandResults = React.useMemo(() => {
     if (!query) return allResults
 
     const scored = allResults
@@ -285,6 +351,20 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
 
     return scored.map(({ result }) => result)
   }, [allResults, query])
+
+  // Vault-wide search results (FTS5, deferred until 2+ chars)
+  const searchResults = React.useMemo(
+    () => buildSearchResults(repo, query),
+    [repo, query],
+  )
+
+  // Merge: command/goto results first, then search results (with divider tracked by index)
+  const hasSearchResults = searchResults.length > 0
+  const searchDividerIndex = hasSearchResults ? filteredCommandResults.length : -1
+  const filteredResults = React.useMemo(() => {
+    if (!hasSearchResults) return filteredCommandResults
+    return [...filteredCommandResults, ...searchResults]
+  }, [filteredCommandResults, searchResults, hasSearchResults])
 
   resultsRef.current = filteredResults
 
@@ -327,7 +407,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
           afterCursor={editCtx.afterCursor}
           prompt="> "
           promptColor="cyan"
-          placeholder="Type a command..."
+          placeholder="Search commands and content..."
           focusRing
         />
       </Box>
@@ -335,11 +415,16 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
       {/* Results list */}
       <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
         {filteredResults.length === 0 ? (
-          <Text dimColor>No matching commands</Text>
+          <Text dimColor>{query.length >= MIN_SEARCH_LENGTH ? "No results" : "No matching commands"}</Text>
         ) : (
           visibleResults.map((result, i) => {
             const actualIndex = scrollOffset + i
-            return <ResultItem key={result.key} result={result} isSelected={actualIndex === selectedIndex} />
+            return (
+              <React.Fragment key={result.key}>
+                {actualIndex === searchDividerIndex && <SectionDivider label="Search" />}
+                <ResultItem result={result} isSelected={actualIndex === selectedIndex} />
+              </React.Fragment>
+            )
           })
         )}
       </Box>
