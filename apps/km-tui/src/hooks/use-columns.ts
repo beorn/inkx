@@ -327,7 +327,6 @@ export function* deriveColumnsIncremental(
  */
 interface ColumnViewCacheEntry {
   childrenRef: KNode[] // Reference identity check — childrenCache returns same array if not busted
-  foldDepthsRef: Map<string, number>
   wipLimitsRef: Map<string, number>
   view: ColumnView
 }
@@ -343,17 +342,15 @@ function kNodeToColumnViewCached(
   const childrenRef = repo.getChildren(node.id)
   const cached = columnViewCache.get(node.id)
 
-  if (
-    cached &&
-    cached.childrenRef === childrenRef &&
-    cached.foldDepthsRef === foldDepths &&
-    cached.wipLimitsRef === wipLimits
-  ) {
+  // Cache key: childrenRef + wipLimits only.
+  // foldDepths is NOT used by kNodeToColumnView (param is _foldDepths) —
+  // fold expansion happens at the rendering layer (TreeNode), not here.
+  if (cached && cached.childrenRef === childrenRef && cached.wipLimitsRef === wipLimits) {
     return cached.view
   }
 
   const view = kNodeToColumnView(repo, node, wipLimits, foldDepths)
-  columnViewCache.set(node.id, { childrenRef, foldDepthsRef: foldDepths, wipLimitsRef: wipLimits, view })
+  columnViewCache.set(node.id, { childrenRef, wipLimitsRef: wipLimits, view })
   return view
 }
 

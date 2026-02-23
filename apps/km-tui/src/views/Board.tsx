@@ -142,6 +142,8 @@ export interface BoardCoreProps {
   dispatchBoard?: BoardAppStore["dispatchBoard"]
   /** True while zoom is loading (deferred fold computation for large boards) */
   isZoomLoading?: boolean
+  /** Deferred fold depths — used by progressive reveal to reset on fold changes */
+  foldDepths?: Map<string, number>
 }
 
 /**
@@ -194,15 +196,24 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
  *
  * Returns columnCount in tests (IS_REACT_ACT_ENVIRONMENT) for synchronous rendering.
  */
-function useColumnReveal(columnCount: number, rootId: string | null): number {
+function useColumnReveal(
+  columnCount: number,
+  rootId: string | null,
+  foldDepths: Map<string, number> | undefined,
+): number {
   // @ts-expect-error - React internal flag set by inkx test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
   const [revealedCount, setRevealedCount] = useState(isTest ? columnCount : Math.min(1, columnCount))
-  const prevRootRef = useRef<string | null>(null)
+  const prevRef = useRef<{ rootId: string | null; foldDepths: Map<string, number> | undefined }>({
+    rootId,
+    foldDepths,
+  })
 
-  // Reset on rootId change (zoom) — guard against same-value setState
-  if (rootId !== prevRootRef.current) {
-    prevRootRef.current = rootId
+  // Reset on rootId change (zoom) or foldDepths change (fold/unfold all).
+  // foldDepths uses reference identity — board-actions creates a new Map on every fold op.
+  // When foldDepths is undefined (tests), only rootId triggers reset.
+  if (rootId !== prevRef.current.rootId || (foldDepths !== undefined && foldDepths !== prevRef.current.foldDepths)) {
+    prevRef.current = { rootId, foldDepths }
     if (!isTest && columnCount > 0 && revealedCount !== 1) {
       setRevealedCount(1)
     }
@@ -397,6 +408,7 @@ export function BoardCore({
   toastQueue,
   dispatchBoard,
   isZoomLoading = false,
+  foldDepths: foldDepthsProp,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
 
@@ -410,7 +422,9 @@ export function BoardCore({
 
   // Progressive column reveal — stagger one column per paint frame.
   // Returns how many columns to render (rest show skeletons).
-  const revealedCount = useColumnReveal(columns.length, rootId)
+  // Uses foldDepths so reveal resets on fold/unfold-all, spreading the heavy
+  // re-render across frames instead of blocking for 10s.
+  const revealedCount = useColumnReveal(columns.length, rootId, foldDepthsProp)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -1109,6 +1123,7 @@ export function Board({ patchedConsole }: BoardProps) {
           toastQueue={toastQueue}
           dispatchBoard={dispatchBoard}
           isZoomLoading={isZoomLoading}
+          foldDepths={deferredFoldDepths}
         />
       </TreeRenderProvider>
     </CursorStoreProvider>
