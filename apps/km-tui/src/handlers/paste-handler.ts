@@ -10,30 +10,11 @@
 
 import { existsSync } from "fs"
 import { homedir } from "os"
+import { enableBracketedPaste, disableBracketedPaste, PASTE_START, PASTE_END } from "inkx"
 
 // Increase max listeners for test scenarios where many Board components are created
 // Each Board adds a paste handler that listens to stdin
 process.stdin.setMaxListeners(200)
-
-/**
- * Bracketed paste escape sequences
- */
-const PASTE_START = "\x1b[200~"
-const PASTE_END = "\x1b[201~"
-
-/**
- * Enable bracketed paste mode
- */
-function enableBracketedPaste(): void {
-  process.stdout.write("\x1b[?2004h")
-}
-
-/**
- * Disable bracketed paste mode
- */
-function disableBracketedPaste(): void {
-  process.stdout.write("\x1b[?2004l")
-}
 
 /**
  * Result of parsing pasted content
@@ -168,7 +149,7 @@ export function createPasteHandler(
   }
 
   // Enable bracketed paste
-  enableBracketedPaste()
+  enableBracketedPaste(process.stdout)
 
   // Listen for raw data if stdin is available in raw mode
   if (process.stdin.isTTY) {
@@ -181,7 +162,7 @@ export function createPasteHandler(
 
   // Return cleanup function
   return () => {
-    disableBracketedPaste()
+    disableBracketedPaste(process.stdout)
     if (process.stdin.isTTY) {
       process.stdin.off("data", handleData)
     }

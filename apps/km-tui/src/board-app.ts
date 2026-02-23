@@ -457,14 +457,21 @@ export interface MouseTarget {
 
 /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
 function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
-  const { columns, navigator } = actionCtx
-  for (let colIdx = 0; colIdx < columns.length; colIdx++) {
-    const itemCount = navigator.getItemCount(colIdx)
+  const { navigator } = actionCtx
+
+  // Primary: use registered column bounds (covers all columns including empty ones)
+  const colIdx = navigator.findColumnAtX(mouseX)
+  if (colIdx >= 0) return colIdx
+
+  // Fallback: check card positions (for columns whose bounds haven't been registered yet)
+  const { columns } = actionCtx
+  for (let ci = 0; ci < columns.length; ci++) {
+    const itemCount = navigator.getItemCount(ci)
     if (itemCount === 0) continue
     for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
-      const rect = navigator.getPosition(colIdx, itemIdx)
+      const rect = navigator.getPosition(ci, itemIdx)
       if (rect) {
-        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return colIdx
+        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return ci
         break
       }
     }

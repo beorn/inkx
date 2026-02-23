@@ -21,6 +21,16 @@ export interface GridNavigator {
   findItemAtY(section: number, targetY: number): number
   findInsertionSlot(section: number, targetY: number): number
 
+  // === Column bounds (for mouse click targeting) ===
+  /** Register a column's bounding box (x, y, width, height) for mouse hit testing. */
+  registerColumnBounds(section: number, rect: ScreenRect): void
+  /** Unregister a column's bounding box. */
+  unregisterColumnBounds(section: number): void
+  /** Get a column's bounding box, or undefined if not registered. */
+  getColumnBounds(section: number): ScreenRect | undefined
+  /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
+  findColumnAtX(mouseX: number): number
+
   // === Head/anchor region tracking ===
   updateHead(section: number, item: number, y: number, height: number): void
   getHead(section: number, item: number): { y: number; height: number } | undefined
@@ -56,6 +66,9 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
 
   // Head data: Map keyed by `${section}:${item}`
   const heads = new Map<string, { y: number; height: number }>()
+
+  // Column bounds: Map keyed by section index → bounding rect of the whole column
+  const columnBounds = new Map<number, ScreenRect>()
 
   let stickyY: number | null = null
   let stickyX: number | null = null
@@ -111,6 +124,29 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
 
     findInsertionSlot(section: number, targetY: number): number {
       return pos.findInsertionSlot(section, targetY)
+    },
+
+    // === Column bounds (for mouse click targeting) ===
+
+    registerColumnBounds(section: number, rect: ScreenRect): void {
+      columnBounds.set(section, rect)
+      log.debug?.(`registerColumnBounds sec=${section} x=${rect.x} w=${rect.width}`)
+    },
+
+    unregisterColumnBounds(section: number): void {
+      columnBounds.delete(section)
+      log.debug?.(`unregisterColumnBounds sec=${section}`)
+    },
+
+    getColumnBounds(section: number): ScreenRect | undefined {
+      return columnBounds.get(section)
+    },
+
+    findColumnAtX(mouseX: number): number {
+      for (const [section, rect] of columnBounds) {
+        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return section
+      }
+      return -1
     },
 
     // === Head/anchor region tracking ===
@@ -222,6 +258,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
     clear(): void {
       pos.clear()
       heads.clear()
+      columnBounds.clear()
       stickyY = null
       stickyX = null
       deferredNav = null

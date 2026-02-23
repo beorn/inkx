@@ -6,6 +6,7 @@ import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
+import { notify } from "inkx"
 
 type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
 
@@ -149,6 +150,7 @@ export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
       description: e.message,
       batchKey: "parse-error",
     })
+    notify(process.stdout, `Parse error in ${e.file}:${e.line}`, { title: "km" })
   })
 
   // Sync errors
@@ -157,6 +159,7 @@ export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
       description: e.message,
       batchKey: "sync-error",
     })
+    notify(process.stdout, `Sync error: ${e.path}`, { title: "km" })
   })
 
   // Validation warnings

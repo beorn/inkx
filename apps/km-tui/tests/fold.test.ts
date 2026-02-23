@@ -1345,3 +1345,100 @@ describe("progressive fold/unfold", () => {
     expect(restored).not.toContain("subtask-x") // Task A is auto-folded, so subtask-x hidden
   })
 })
+
+// =============================================================================
+// Fold Boundary Feedback (km-tui.fold-boundary)
+// =============================================================================
+
+describe("fold boundary feedback (km-tui.fold-boundary)", () => {
+  test("H at depth 0 rings bell with 'already fully folded' message", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+
+    // Fold to depth 0
+    board.press("H") // fold once
+
+    // Try to fold again — should hit boundary
+    board.press("H")
+    expect(board.bell).toBe(true)
+    expect(board.hasStatus).toBe(true)
+    const status = board.getStatus()
+    expect(status?.level).toBe("warning")
+    expect(status?.message).toContain("already fully folded")
+  })
+
+  test("< (fold all) at depth 0 rings bell", () => {
+    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+
+    // Fold all to depth 0
+    board.press("<") // depth 1 → 0
+
+    // Try again — should hit boundary
+    board.press("<")
+    expect(board.bell).toBe(true)
+    const status = board.getStatus()
+    expect(status?.message).toContain("already fully folded")
+  })
+
+  test("L clears bell/status on valid unfold after boundary", () => {
+    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+
+    // Hit fold boundary
+    board.press("H")
+    board.press("H")
+    expect(board.bell).toBe(true)
+
+    // Unfold — should clear bell/status and succeed
+    board.press("L")
+    expect(board.bell).toBe(false)
+    expect(board.hasStatus).toBe(false)
+    expect(board.screenshot()).toContain("child-1")
+  })
+
+  test("> (unfold all) caps at MAX_FOLD_DEPTH and rings bell", () => {
+    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+
+    // Unfold many times to reach the cap
+    for (let i = 0; i < 25; i++) {
+      board.press(">")
+    }
+
+    // Should have hit the boundary at some point — verify bell is rung
+    // (bell is cleared on next keypress, so we need to check after the last press)
+    expect(board.bell).toBe(true)
+    const status = board.getStatus()
+    expect(status?.message).toContain("maximum depth reached")
+  })
+
+  test("L (unfold node) caps at MAX_FOLD_DEPTH per card", () => {
+    const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
+
+    // Unfold many times on the same card to reach the cap
+    for (let i = 0; i < 25; i++) {
+      board.press("L")
+    }
+
+    expect(board.bell).toBe(true)
+    const status = board.getStatus()
+    expect(status?.message).toContain("maximum depth reached")
+  })
+
+  test("fold depth never goes negative (H repeatedly)", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+
+    // Press H many times — should bottom out at 0, never go negative
+    for (let i = 0; i < 10; i++) {
+      board.press("H")
+    }
+
+    // Should ring bell (at boundary)
+    expect(board.bell).toBe(true)
+
+    // Unfold once — should work (depth goes from 0 to 1)
+    board.press("L")
+    expect(board.screenshot()).toContain("child-1")
+  })
+})

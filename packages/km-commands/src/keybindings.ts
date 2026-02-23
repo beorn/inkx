@@ -440,9 +440,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "detail-pane",
     bindings: [
-      // Escape unfocuses pane (returns to board) — pane stays open per v2 spec
+      // Escape/h unfocuses pane (returns to board) — pane stays open per v2 spec
       // isInDetailPane = focus tree activeId === "detail-pane", NOT showDetailPane
       { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
+      { key: "h", commandId: "detail_pane.close", when: isInDetailPane },
+      // j/k navigate the cursor within the detail pane items
+      { key: "j", commandId: "detail_pane.cursor_down", when: isInDetailPane },
+      { key: "k", commandId: "detail_pane.cursor_up", when: isInDetailPane },
+      { key: "ArrowDown", commandId: "detail_pane.cursor_down", when: isInDetailPane },
+      { key: "ArrowUp", commandId: "detail_pane.cursor_up", when: isInDetailPane },
+      // Enter zooms into the selected child
+      { key: "Return", commandId: "detail_pane.enter", when: isInDetailPane },
     ],
   },
 

@@ -151,4 +151,25 @@ export const detailPaneCommands: CommandDef[] = [
     category: "View",
     execute: (): CommandAction => ({ type: "DETAIL_PANE_SCROLL_UP" }),
   },
+  {
+    id: "detail_pane.cursor_down",
+    name: "Detail Cursor Down",
+    description: "Move cursor down within detail pane items",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "DETAIL_PANE_CURSOR_DOWN" }),
+  },
+  {
+    id: "detail_pane.cursor_up",
+    name: "Detail Cursor Up",
+    description: "Move cursor up within detail pane items",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "DETAIL_PANE_CURSOR_UP" }),
+  },
+  {
+    id: "detail_pane.enter",
+    name: "Detail Enter",
+    description: "Zoom into the selected detail pane item",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "DETAIL_PANE_ENTER" }),
+  },
 ]

@@ -30,9 +30,16 @@ export interface DetailPaneProps {
   width: number
   height: number
   scrollOffset?: number
+  cursorIndex?: number
 }
 
-export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
+export function DetailPane({
+  node,
+  width,
+  height,
+  scrollOffset = 0,
+  cursorIndex = 0,
+}: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Tree-based focus: useFocusable reads the testID from the nearest parent
@@ -55,6 +62,7 @@ export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPane
         height={height}
         scrollOffset={scrollOffset}
         focused={detailFocused}
+        cursorIndex={cursorIndex}
       />
     )
   }
@@ -65,6 +73,7 @@ export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPane
       height={height}
       scrollOffset={scrollOffset}
       focused={detailFocused}
+      cursorIndex={cursorIndex}
     />
   )
 }
@@ -79,7 +88,8 @@ function FolderDetailPane({
   height,
   scrollOffset = 0,
   focused: detailFocused = true,
-}: DetailPaneProps): React.ReactElement {
+  cursorIndex = 0,
+}: DetailPaneProps & { focused?: boolean }): React.ReactElement {
   const repo = useRepo()
   // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
   const fullWidth = Math.max(10, width - 2) // subtract border only
@@ -149,14 +159,20 @@ function FolderDetailPane({
 
           {/* Outline — uses NodeLineView for consistent icon + title rendering */}
           <Box flexDirection="column" marginTop={1}>
-            {entries.map((entry, i) => (
-              <NodeLineView
-                key={`${entry.node.id}-${i}`}
-                node={entry.node}
-                displayName={getNodeDisplayName(repo, entry.node)}
-                indent={entry.depth}
-              />
-            ))}
+            {entries.map((entry, i) => {
+              // For cursor: track which top-level child (depth=0) this entry belongs to
+              const topLevelIndex = entries.slice(0, i + 1).filter((e) => e.depth === 0).length - 1
+              const isCursored = detailFocused && entry.depth === 0 && topLevelIndex === cursorIndex
+              return (
+                <Box key={`${entry.node.id}-${i}`} backgroundColor={isCursored ? "#333333" : undefined}>
+                  <NodeLineView
+                    node={entry.node}
+                    displayName={getNodeDisplayName(repo, entry.node)}
+                    indent={entry.depth}
+                  />
+                </Box>
+              )
+            })}
             {hasMore && <Text dimColor> ...and more</Text>}
           </Box>
         </Box>
@@ -164,7 +180,7 @@ function FolderDetailPane({
         {/* Footer: keybindings + debug info — always visible */}
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            {"h/Esc:close {/}:scroll Enter:open"}
+            {"j/k:nav h/Esc:close Enter:open"}
           </Text>
           <Text dimColor wrap="truncate">
             {node.type} {node.id}
@@ -185,7 +201,8 @@ function TaskDetailPane({
   height,
   scrollOffset = 0,
   focused: detailFocused = true,
-}: DetailPaneProps): React.ReactElement {
+  cursorIndex = 0,
+}: DetailPaneProps & { focused?: boolean }): React.ReactElement {
   const repo = useRepo()
 
   // Wiki link resolver: resolves [[target]] to the node's display title
@@ -353,7 +370,12 @@ function TaskDetailPane({
           {/* Children rendered as subitems with separators */}
           {structuralChildren.length > 0 && (
             <Box flexDirection="column" width={contentWidth} marginTop={bodyChildren.length > 0 ? 1 : 0}>
-              <DetailSubitems repo={repo} items={structuralChildren} innerWidth={contentWidth} />
+              <DetailSubitems
+                repo={repo}
+                items={structuralChildren}
+                innerWidth={contentWidth}
+                cursorIndex={detailFocused ? cursorIndex : -1}
+              />
             </Box>
           )}
 
@@ -387,7 +409,7 @@ function TaskDetailPane({
         {/* Footer: keybindings + debug info — always visible */}
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            {"h/Esc:close {/}:scroll Space:status"}
+            {"j/k:nav h/Esc:close Enter:open"}
           </Text>
           <Text dimColor wrap="truncate">
             {node.type} {node.id}
@@ -672,10 +694,12 @@ function DetailSubitems({
   repo,
   items,
   innerWidth,
+  cursorIndex = -1,
 }: {
   repo: Repo
   items: KNode[]
   innerWidth: number
+  cursorIndex?: number
 }): React.ReactElement {
   return (
     <>
@@ -684,6 +708,8 @@ function DetailSubitems({
         const displayItem = resolveEmbed(repo, item)
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
+        const isCursored = idx === cursorIndex
+        const cursorBg = isCursored ? "#333333" : undefined
         // Collapsed sections render muted with just the title + count
         const isSectionCollapsed = item.rules?.collapse === true
         if (isSectionCollapsed) {
@@ -693,7 +719,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -715,7 +741,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -756,7 +782,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth}>
+            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}

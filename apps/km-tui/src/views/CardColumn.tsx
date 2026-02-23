@@ -88,6 +88,39 @@ interface CardProps {
  * columns with different scroll positions.
  */
 /**
+ * Helper component that registers the Column's bounding box for mouse click targeting.
+ * Must be rendered INSIDE the Column's outer Box to get the correct node context.
+ * Enables clicking on column headers and empty space to select the column.
+ */
+function ColumnLayoutRegistrar({ colIndex }: { colIndex: number }): null {
+  const registry = useNavigator()
+
+  const handleLayout = useCallback(
+    (computed: { x: number; y: number; width: number; height: number }) => {
+      if (!registry) return
+      layoutLog.trace?.(`ColumnLayoutRegistrar: col=${colIndex} x=${computed.x} w=${computed.width}`)
+      registry.registerColumnBounds(colIndex, {
+        x: computed.x,
+        y: computed.y,
+        width: computed.width,
+        height: computed.height,
+      })
+    },
+    [registry, colIndex],
+  )
+
+  useScreenRectCallback(handleLayout)
+
+  useEffect(() => {
+    return () => {
+      registry?.unregisterColumnBounds(colIndex)
+    }
+  }, [registry, colIndex])
+
+  return null
+}
+
+/**
  * Helper component that registers the Card's screen position.
  * Must be rendered INSIDE the Card's Box to get the correct node context.
  */
@@ -691,6 +724,7 @@ export const Column = React.memo(function Column({
         height={height}
         overflow="hidden"
       >
+        <ColumnLayoutRegistrar colIndex={colIndex} />
         <Box
           flexDirection="column"
           width={width}
@@ -741,6 +775,7 @@ export const Column = React.memo(function Column({
       height={height}
       overflow="hidden"
     >
+      <ColumnLayoutRegistrar colIndex={colIndex} />
       {/* Column header — unified NodeView component */}
       <ColumnHeader
         node={column.node}

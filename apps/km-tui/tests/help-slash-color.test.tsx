@@ -73,22 +73,22 @@ describe("HelpOverlay", () => {
     const stripped = strip(output)
     // Combined navigation entries
     expect(stripped).toMatch(/hjkl.*\.+.*navigate/)
-    // Combined fold entries
-    expect(stripped).toMatch(/H\/L.*\.+.*fold\/unfold/)
+    // Combined fold entries (space-separated display: "H L")
+    expect(stripped).toMatch(/H\s+L.*\.+.*fold\/unfold/)
   })
 
   test("shows task section with task commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("TASK")
-    expect(stripped).toMatch(/x\/X/)
+    expect(stripped).toMatch(/x\s+X/)
   })
 
   test("shows editing section with edit commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("EDITING")
-    expect(stripped).toMatch(/o\/O/)
+    expect(stripped).toMatch(/o\s+O/)
   })
 
   test("shows panes section with ⌃w chords", async () => {

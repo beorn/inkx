@@ -238,23 +238,33 @@ function BoardTopBar({
 function CursorAwareDetailPane({ width, height }: { width: number; height: number }): React.ReactElement | null {
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
+  const detailCursorIndex = useAppStore<BoardAppStore, number>((s) => s.ui.detailCursorIndex)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
   // Show detail for card, column, or board node (whichever cursor level)
   const nodeId = cursorPos.cursorCardNodeId ?? cursorPos.cursorColumnNodeId
   const node = nodeId ? repo.getNode(nodeId) : undefined
-  // Reset scroll offset when selected node changes
+  // Reset scroll offset and cursor when selected node changes
   const prevNodeIdRef = React.useRef(node?.id)
   React.useEffect(() => {
     if (node?.id !== prevNodeIdRef.current) {
       prevNodeIdRef.current = node?.id
-      setUI({ detailScrollOffset: 0 })
+      setUI({ detailScrollOffset: 0, detailCursorIndex: 0 })
     }
   }, [node?.id, setUI])
   // Use 0 during the transitional render where node changed but effect hasn't fired yet
   const effectiveScrollOffset = node?.id !== prevNodeIdRef.current ? 0 : detailScrollOffset
+  const effectiveCursorIndex = node?.id !== prevNodeIdRef.current ? 0 : detailCursorIndex
   if (!node) return null
-  return <DetailPane node={node} width={width} height={height} scrollOffset={effectiveScrollOffset} />
+  return (
+    <DetailPane
+      node={node}
+      width={width}
+      height={height}
+      scrollOffset={effectiveScrollOffset}
+      cursorIndex={effectiveCursorIndex}
+    />
+  )
 }
 
 /**

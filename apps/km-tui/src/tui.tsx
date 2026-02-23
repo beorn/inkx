@@ -240,7 +240,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
             <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
           </InputLayerProvider>
         </RepoProvider>,
-        isInteractive ? { alternateScreen: true, kitty: true, mouse: true } : { cols, rows, stdout: process.stdout },
+        isInteractive
+          ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
+          : { cols, rows, stdout: process.stdout },
       )
 
       // Now that alternate screen is active, notify caller (CLI uses this

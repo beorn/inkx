@@ -508,6 +508,46 @@ export function testEnv(
       pressKey(key)
       return board
     },
+    /** Simulate a left mouse click at screen coordinates (x, y). Chainable. */
+    click: (x: number, y: number, opts?: { ctrl?: boolean }) => {
+      sendMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: opts?.ctrl ?? false,
+      })
+      return board
+    },
+    /** Simulate a double-click at screen coordinates (x, y). Chainable. */
+    doubleClick: (x: number, y: number) => {
+      // First click
+      sendMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: false,
+      })
+      // Second click (within double-click threshold)
+      sendMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: false,
+      })
+      return board
+    },
     q: (selector: string) => {
       return result.locator(selector)
     },

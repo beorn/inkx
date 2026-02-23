@@ -24,7 +24,7 @@ import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnor
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { activeEditTargetRef, activeEditContextRef } from "inkx"
+import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "inkx"
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   extractBody,
@@ -36,7 +36,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { isOutline, isListItem } from "@km/core"
+import { isOutline, isListItem, isItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -44,6 +44,19 @@ import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
+
+/**
+ * Maximum fold depth. Prevents runaway expansion when unfolding.
+ * 20 levels is very generous — most real outlines are 3-5 levels deep.
+ */
+export const MAX_FOLD_DEPTH = 20
+
+/**
+ * Threshold for "too much content" warning on unfold.
+ * If unfolding a single card would reveal more than this many visible nodes,
+ * log a warning (but still allow the unfold).
+ */
+const UNFOLD_CONTENT_WARN_THRESHOLD = 500
 
 // Import handlers from specialized modules
 import {
@@ -495,6 +508,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Fold operations (depth-based progressive fold/unfold) ===
     // Visibility is driven by foldDepths: Map<string, number>.
     // depth 0 = fully folded, no entry = inherit parent's remaining depth, 999 = infinite.
+    // MAX_FOLD_DEPTH caps how deep unfold can go (prevents runaway expansion).
     case "FOLD_NODE": {
       const newDepths = new Map(ctx.foldDepths)
       const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
@@ -545,6 +559,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
       // scope:"root" → modify the board-level depth directly
       if (action.scope === "root") {
+        if (boardDepth >= MAX_FOLD_DEPTH) return boundary("fold", "maximum depth reached")
         newDepths.set(ctx.rootId ?? "", boardDepth + 1)
         // Clear per-card overrides so all cards inherit the new root depth
         for (const column of ctx.columns) {
@@ -568,6 +583,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       let changed = false
       for (const nodeId of roots) {
         const current = newDepths.get(nodeId)
+        const effectiveDepth = current ?? boardDepth
+        if (effectiveDepth >= MAX_FOLD_DEPTH) continue // already at max
         if (current === undefined) {
           // Inheriting from board root — increment from inherited depth
           newDepths.set(nodeId, boardDepth + 1)
@@ -577,7 +594,25 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           changed = true
         }
       }
-      if (!changed) return boundary("fold", "nothing to unfold")
+      if (!changed) return boundary("fold", "maximum depth reached")
+
+      // "Too much content" warning: estimate visible nodes after unfold
+      // and log a warning if any single card would show too many nodes.
+      for (const nodeId of roots) {
+        const node = ctx.repo.getNode(nodeId)
+        if (!node) continue
+        const depth = newDepths.get(nodeId) ?? boardDepth
+        const visibleCount = countDescendantsAtDepth(ctx.repo, node, 0, depth)
+        if (visibleCount > UNFOLD_CONTENT_WARN_THRESHOLD) {
+          log.warn(
+            "unfold: card %s would show ~%d nodes (threshold: %d)",
+            nodeId,
+            visibleCount,
+            UNFOLD_CONTENT_WARN_THRESHOLD,
+          )
+        }
+      }
+
       ctx.setFoldDepths(newDepths)
       return ok()
     }
@@ -1117,6 +1152,31 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DETAIL_PANE_SCROLL_UP":
       ctx.setUI((prev) => ({ detailScrollOffset: Math.max(0, prev.detailScrollOffset - 3) }))
       return ok()
+    case "DETAIL_PANE_CURSOR_DOWN": {
+      const itemCount = getDetailPaneItemCount(ctx)
+      if (itemCount > 0) {
+        ctx.setUI((prev) => ({
+          detailCursorIndex: Math.min(prev.detailCursorIndex + 1, itemCount - 1),
+        }))
+      }
+      return ok()
+    }
+    case "DETAIL_PANE_CURSOR_UP": {
+      ctx.setUI((prev) => ({
+        detailCursorIndex: Math.max(prev.detailCursorIndex - 1, 0),
+      }))
+      return ok()
+    }
+    case "DETAIL_PANE_ENTER": {
+      const enterNode = getDetailPaneCursorNode(ctx)
+      if (enterNode) {
+        // Zoom into the selected child node
+        saveNavHistory(ctx)
+        ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
+        ctx.closeDetailPane()
+      }
+      return ok()
+    }
 
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
     // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
@@ -1847,6 +1907,10 @@ function handleClipboardCopy(ctx: ActionCtx, mode: "copy" | "cut"): ActionResult
     clipboard: { nodeIds, mode },
   })
 
+  // Copy content to system clipboard via OSC 52
+  const text = cards.map((c) => c.content ?? c.id).join("\n")
+  copyToClipboard(process.stdout, text)
+
   const label = mode === "cut" ? "Cut" : "Copied"
   ctx.toastQueue.info(`${label} ${nodeIds.length} node${nodeIds.length > 1 ? "s" : ""}`)
   return ok()
@@ -1937,4 +2001,75 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
   }
 
   return ok()
+}
+
+// =============================================================================
+// Fold Helpers
+// =============================================================================
+
+/**
+ * Estimate the number of visible descendants at a given fold depth.
+ * Used for "too much content" warnings when unfolding.
+ * Walks the tree up to `remainingDepth` levels deep, counting nodes.
+ */
+function countDescendantsAtDepth(
+  repo: { getChildren(id: string): { id: string }[] },
+  node: { id: string },
+  depth: number,
+  remainingDepth: number,
+): number {
+  if (remainingDepth <= 0) return 0
+  const children = repo.getChildren(node.id)
+  let count = children.length
+  for (const child of children) {
+    count += countDescendantsAtDepth(repo, child, depth + 1, remainingDepth - 1)
+  }
+  return count
+}
+
+// =============================================================================
+// Detail pane cursor helpers — compute navigable items for j/k navigation
+// =============================================================================
+
+/**
+ * Compute the navigable items in the detail pane for the current card.
+ * Returns the same structural children list that DetailPane renders.
+ * For folders: direct children. For tasks: li items + oi items from extractBody.
+ */
+function getDetailPaneItems(ctx: ActionCtx): KNode[] {
+  const card = ctx.card
+  if (!card) return []
+
+  // Resolve embed source
+  const embedSrc = card.embed_source
+  const resolvedNode = embedSrc ? (ctx.repo.getNode(embedSrc) ?? card) : card
+
+  const children = ctx.repo.getChildren(resolvedNode.id)
+
+  // For folders, the navigable items are the direct children
+  if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
+    return children
+  }
+
+  // For tasks: split into body and structural, same as DetailPane
+  const { body: rawBody, items: oiItems } = extractBody(children)
+  const liItems: KNode[] = []
+  for (const child of rawBody) {
+    if (isItem(child.type, child.item) && !isOutline(child.type, child.item)) {
+      liItems.push(child)
+    }
+  }
+  return [...liItems, ...oiItems]
+}
+
+/** Get the total count of navigable items in the detail pane. */
+function getDetailPaneItemCount(ctx: ActionCtx): number {
+  return getDetailPaneItems(ctx).length
+}
+
+/** Get the node at the current detail pane cursor position. */
+function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
+  const items = getDetailPaneItems(ctx)
+  const idx = ctx.ui.detailCursorIndex
+  return items[idx]
 }

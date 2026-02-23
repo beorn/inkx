@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Text } from "inkx"
+import { Link, Text } from "inkx"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
@@ -109,9 +109,9 @@ export function InlineCode({ node }: { node: CodeNode }): React.ReactElement {
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   return (
-    <Text color={ctx.noColor ? undefined : "cyan"} underline>
+    <Link href={node.url} color={ctx.noColor ? undefined : "cyan"}>
       {node.text}
-    </Text>
+    </Link>
   )
 }
 
@@ -185,9 +185,9 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
   return (
-    <Text color={ctx.noColor ? undefined : "cyan"} dim={!ctx.noColor} underline>
-      {display}
-    </Text>
+    <Link href={node.url} color={ctx.noColor ? undefined : "cyan"}>
+      <Text dim={!ctx.noColor}>{display}</Text>
+    </Link>
   )
 }
 

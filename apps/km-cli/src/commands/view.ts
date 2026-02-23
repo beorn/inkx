@@ -119,7 +119,9 @@ export const viewCommand = new Command("view")
           }
         },
       )
-      process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
+      // Show "Initializing..." while the TUI sets up (store, sync manager, React mount).
+      // This stays visible until inkx switches to the alternate screen.
+      process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + "  Initializing board...")
       if (result) {
         result.rootPath = resolved.repoRoot
       }

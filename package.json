@@ -35,7 +35,6 @@
     "refactor": "bun vendor/beorn-tools/tools/refactor.ts",
     "tap": "bun ./vendor/beorn-tap/src/cli/runner.ts",
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
-    "type-check": "tsc --noEmit",
     "lint": "find apps packages infra vendor -path '*/node_modules' -prune -o -path '*/dist' -prune -o \\( -name '*.ts' -o -name '*.tsx' \\) -print | xargs oxlint -c packages/km-infra/oxlint/config.json --type-aware",
     "lint:errors": "find apps packages infra vendor -path '*/node_modules' -prune -o -path '*/dist' -prune -o \\( -name '*.ts' -o -name '*.tsx' \\) -print | xargs oxlint -c packages/km-infra/oxlint/config.json --type-aware --quiet",
     "lint:fix": "find apps packages infra vendor -path '*/node_modules' -prune -o -path '*/dist' -prune -o \\( -name '*.ts' -o -name '*.tsx' \\) -print | xargs oxlint -c packages/km-infra/oxlint/config.json --type-aware --fix",
