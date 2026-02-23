@@ -425,9 +425,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "inline-edit-barrier",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing },
+      // Ctrl+Z reserved for SIGTSTP (suspend) — use Cmd+Z or u for undo
       { key: "z", super: true, commandId: "undo", when: isInlineEditing },
-      { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
       // Text formatting (Cmd+b/i — kitty protocol, text edit only)
@@ -747,9 +746,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "history",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo" },
+      // Ctrl+Z reserved for SIGTSTP (suspend) — use Cmd+Z or u for undo
       { key: "z", super: true, commandId: "undo" },
-      { key: "z", ctrl: true, shift: true, commandId: "redo" },
       { key: "z", super: true, shift: true, commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },

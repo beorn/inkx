@@ -313,13 +313,17 @@ interface ToastDismissAction {
   type: "TOAST_DISMISS"
 }
 
-// Fold operations (single-node, handled by TUI)
+// Fold operations (handled by TUI)
+// scope: "root" = board-wide (used by fold_all/unfold_all)
+// scope: undefined = cursor node (default, used by fold_node/unfold_node)
 interface FoldNodeAction {
   type: "FOLD_NODE"
+  scope?: "root"
 }
 
 interface UnfoldNodeAction {
   type: "UNFOLD_NODE"
+  scope?: "root"
 }
 
 interface UnfoldRecursiveAction {

@@ -399,10 +399,10 @@ describe("viewCommands (fold and view config)", () => {
     })
 
     it.each([
-      ["fold_all", "FOLD_LEVEL", 1],
-      ["unfold_all", "UNFOLD_LEVEL", 99],
-    ] as const)("%s returns %s with depth %d", (id, type, depth) => {
-      expectAction(viewCommands, id, { type, depth })
+      ["fold_all", "FOLD_NODE", "root"],
+      ["unfold_all", "UNFOLD_NODE", "root"],
+    ] as const)("%s returns %s with scope %s", (id, type, scope) => {
+      expectAction(viewCommands, id, { type, scope })
     })
   })
 
