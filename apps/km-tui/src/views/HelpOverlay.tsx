@@ -295,7 +295,8 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
     addLine(
       <Text key={`vg-${i}`}>
         {"  "}
-        <Text color="yellow">{loc}</Text>
+        <Text color="yellow">{row.key}</Text>
+        <Text>{" " + row.location.padEnd(locW - row.key.length - 1)}</Text>
         {g ? <Text color="yellow">{g.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
         {m ? <Text color="yellow">{m.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
         {a ? <Text color="yellow">{a}</Text> : <Text dimColor>{"—"}</Text>}
