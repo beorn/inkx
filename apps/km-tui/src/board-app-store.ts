@@ -528,7 +528,12 @@ export function createBoardAppStoreState(
           return
         }
 
-        let isZoomAction = false
+        // Two-phase zoom: deferred update applied after skeleton paints.
+        // Phase 1 (immediate): set isZoomLoading: true with OLD rootId → fast render → skeleton visible.
+        // Phase 2 (setTimeout): set new rootId/foldDepths + clear isZoomLoading → heavy computation.
+        // Without this, useColumns runs the heavy deriveColumnsFromRepo DURING the skeleton render
+        // (React hooks can't be conditional), so the terminal freezes before the skeleton even paints.
+        let deferredZoom: Partial<BoardAppState> | null = null
 
         set((state) => {
           let flatUpdate: Partial<BoardAppState>
@@ -564,15 +569,26 @@ export function createBoardAppStoreState(
             case "ZOOM_IN": {
               const zoomNodeId = action.nodeId
               const zoomDepths = computeDefaultFoldDepths(zoomNodeId, new Map())
-              const showSkeleton = !globalThis.IS_REACT_ACT_ENVIRONMENT
-              isZoomAction = showSkeleton
-              flatUpdate = {
-                rootId: zoomNodeId,
-                cursorNodeId: action.cursorNodeId ?? null,
-                foldDepths: zoomDepths,
-                curswantX: null,
-                curswantY: null,
-                ...(showSkeleton && { isZoomLoading: true }),
+              if (!globalThis.IS_REACT_ACT_ENVIRONMENT) {
+                // Phase 1: skeleton only (keep old rootId → useColumns hits memo cache → fast)
+                flatUpdate = { isZoomLoading: true }
+                deferredZoom = {
+                  rootId: zoomNodeId,
+                  cursorNodeId: action.cursorNodeId ?? null,
+                  foldDepths: zoomDepths,
+                  curswantX: null,
+                  curswantY: null,
+                  isZoomLoading: false,
+                }
+              } else {
+                // Test env: synchronous update (no skeleton)
+                flatUpdate = {
+                  rootId: zoomNodeId,
+                  cursorNodeId: action.cursorNodeId ?? null,
+                  foldDepths: zoomDepths,
+                  curswantX: null,
+                  curswantY: null,
+                }
               }
               break
             }
@@ -587,18 +603,31 @@ export function createBoardAppStoreState(
                 },
               ]
               const rootDepths = computeDefaultFoldDepths(action.rootId, new Map())
-              const showSkeleton = !globalThis.IS_REACT_ACT_ENVIRONMENT
-              isZoomAction = showSkeleton
-              flatUpdate = {
-                rootId: action.rootId,
-                rootPath: action.rootPath,
-                cursorNodeId: action.cursorNodeId,
-                foldDepths: rootDepths,
-                navHistory: newHistory,
-                navHistoryIndex: newHistory.length,
-                curswantX: null,
-                curswantY: null,
-                ...(showSkeleton && { isZoomLoading: true }),
+              if (!globalThis.IS_REACT_ACT_ENVIRONMENT) {
+                // Phase 1: skeleton only (keep old rootId → useColumns hits memo cache → fast)
+                flatUpdate = { isZoomLoading: true }
+                deferredZoom = {
+                  rootId: action.rootId,
+                  rootPath: action.rootPath,
+                  cursorNodeId: action.cursorNodeId,
+                  foldDepths: rootDepths,
+                  navHistory: newHistory,
+                  navHistoryIndex: newHistory.length,
+                  curswantX: null,
+                  curswantY: null,
+                  isZoomLoading: false,
+                }
+              } else {
+                flatUpdate = {
+                  rootId: action.rootId,
+                  rootPath: action.rootPath,
+                  cursorNodeId: action.cursorNodeId,
+                  foldDepths: rootDepths,
+                  navHistory: newHistory,
+                  navHistoryIndex: newHistory.length,
+                  curswantX: null,
+                  curswantY: null,
+                }
               }
               break
             }
@@ -680,29 +709,49 @@ export function createBoardAppStoreState(
           }
         })
 
-        // After state mutation, notify CursorStore so cursor-aware components update
-        // (e.g., ZOOM_IN changes cursorNodeId, CANCEL_MOVE restores it)
-        const s = _get()
-        const getNode = (id: string) => s.repo.getNode(id)
-        const ancestors = deriveCursorAncestors(getNode, s.rootId, s.cursorNodeId, (pid) => s.repo.getChildren(pid))
-        s.cursorStore.setState({
-          cursorNodeId: s.cursorNodeId,
-          ...ancestors,
-        })
-
-        // Zoom actions: show skeleton for one frame, then reveal board.
-        // The skeleton renders immediately (isZoomLoading: true in flatUpdate).
-        // After the next event loop tick, clear it so Board renders with new rootId.
-        if (isZoomAction) {
+        if (deferredZoom) {
+          // Two-phase zoom: Phase 1 just rendered skeleton (isZoomLoading: true, old rootId).
+          // Show loading indicator, then schedule Phase 2 after skeleton paints.
           set((state) => ({
             ui: { ...state.ui, isLoading: true, loadingStartTime: Date.now() },
           }))
+          const deferred = deferredZoom
           setTimeout(() => {
-            set((state) => ({
-              isZoomLoading: false,
-              ui: { ...state.ui, isLoading: false, loadingStartTime: null },
-            }))
-          }, 0)
+            // Phase 2: Apply the real rootId/foldDepths change.
+            // This triggers useColumns → deriveColumnsFromRepo (heavy computation).
+            // The terminal will freeze here, but the skeleton was visible before this point.
+            set((state) => {
+              const merged = { ...state, ...deferred }
+              const syncedPanes = syncFlatToFocusedPane(merged as BoardAppState)
+              return {
+                ...deferred,
+                workspace: { ...state.workspace, panes: syncedPanes },
+              }
+            })
+            // Update cursor store for the new rootId
+            const s = _get()
+            const getNode = (id: string) => s.repo.getNode(id)
+            const ancestors = deriveCursorAncestors(getNode, s.rootId, s.cursorNodeId, (pid) => s.repo.getChildren(pid))
+            s.cursorStore.setState({
+              cursorNodeId: s.cursorNodeId,
+              ...ancestors,
+            })
+            // Clear loading indicator after the heavy render
+            setTimeout(() => {
+              set((state) => ({
+                ui: { ...state.ui, isLoading: false, loadingStartTime: null },
+              }))
+            }, 0)
+          }, 16) // 16ms = one frame, ensures skeleton paints before heavy computation
+        } else {
+          // Non-zoom: update cursor store synchronously
+          const s = _get()
+          const getNode = (id: string) => s.repo.getNode(id)
+          const ancestors = deriveCursorAncestors(getNode, s.rootId, s.cursorNodeId, (pid) => s.repo.getChildren(pid))
+          s.cursorStore.setState({
+            cursorNodeId: s.cursorNodeId,
+            ...ancestors,
+          })
         }
       },
 
