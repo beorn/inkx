@@ -14,7 +14,7 @@ const cycleIconStyle = {
   name: "Cycle Icon Style",
   description: "Cycle between nerdfont, workflowy, and regular bullet icons",
   category: "View",
-  shortcuts: ["V"],
+  shortcuts: ["vV"],
   execute: () => ({ type: "CYCLE_ICON_STYLE" }),
 } satisfies CommandDef
 
@@ -45,7 +45,7 @@ const toggleCollapse = {
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
   category: "Fold",
-  shortcuts: ["gc"],
+  shortcuts: ["vc"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
@@ -112,7 +112,7 @@ const toggleShowIgnored = {
   name: "Toggle Show Ignored",
   description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
   category: "Fold",
-  shortcuts: ["gC"],
+  shortcuts: ["vH"],
   execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
 } satisfies CommandDef
 

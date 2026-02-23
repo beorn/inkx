@@ -60,7 +60,7 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "Selection",
     items: [
-      { keys: ["v"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: ["v ␣"], command: "visual_mode_enter", description: "visual mode" },
       { keys: ["␣"], command: "select_toggle", description: "toggle select" },
       { keys: ["A / ⌃a"], command: "select_all", description: "select all" },
       { keys: ["⇧↑↓←→"], command: "extend_select_up", description: "extend selection" },
@@ -78,18 +78,20 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "View",
     items: [
+      { keys: ["v ␣"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: ["v v"], command: "cycle_view_mode", description: "cycle view" },
+      { keys: ["v V"], command: "cycle_icon_style", description: "cycle icons" },
+      { keys: ["v c"], command: "toggle_collapse", description: "collapse column" },
+      { keys: ["v h"], command: "ignore_node", description: "ignore (hide)" },
+      { keys: ["v H"], command: "toggle_show_ignored", description: "show ignored" },
+      { keys: ["v f"], command: "filter", description: "filter" },
       { keys: ["H / L"], command: "fold_node", description: "fold/unfold" },
       { keys: ["< / >"], command: "fold_all", description: "fold/unfold all" },
       { keys: ["D ⌃i ⌘w"], command: "open_detail_pane", description: "detail pane" },
       { keys: ["⌘h / ⌘l"], command: "focus_board", description: "focus board/detail" },
       { keys: ["⌃↵"], command: "follow_link", description: "follow link" },
       { keys: ["+ / -"], command: "increase_content_lines", description: "show more/less" },
-      { keys: ["g v"], command: "cycle_view_mode", description: "cycle view" },
-      { keys: ["g c"], command: "toggle_collapse", description: "collapse column" },
-      { keys: ["g C"], command: "toggle_show_ignored", description: "show ignored" },
-      { keys: ["V"], command: "cycle_icon_style", description: "cycle icons" },
       { keys: ["?"], command: "show_help", description: "help" },
-      { keys: ["⌘g / ⌃g"], command: "filter", description: "filter" },
     ],
   },
   {

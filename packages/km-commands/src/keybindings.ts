@@ -655,11 +655,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
       { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
-      // g/m/a/t standalone fallbacks for chord timeout
+      // g/m/a/t/v standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
+      { key: "v", commandId: "noop" },
 
       // g-prefix chords (go-to)
       { chord: "g", key: "g", commandId: "cursor_first" },
@@ -667,9 +668,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
       { chord: "g", key: "n", commandId: "new_item" },
-      { chord: "g", key: "c", commandId: "toggle_collapse" },
-      { chord: "g", key: "C", commandId: "toggle_show_ignored" },
-      { chord: "g", key: "v", commandId: "cycle_view_mode" },
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
@@ -712,6 +710,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "c", commandId: "toggle_hide_done" },
       { chord: "t", key: "l", commandId: "set_label" },
 
+      // v-prefix chords (view/visual — v2 spec)
+      { chord: "v", key: " ", commandId: "visual_mode_enter" },
+      { chord: "v", key: "v", commandId: "cycle_view_mode" },
+      { chord: "v", key: "V", commandId: "cycle_icon_style" },
+      { chord: "v", key: "c", commandId: "toggle_collapse" },
+      { chord: "v", key: "h", commandId: "ignore_node" },
+      { chord: "v", key: "H", commandId: "toggle_show_ignored" },
+      { chord: "v", key: "f", commandId: "filter" },
+
       // Ctrl+W-prefix chords (pane operations — windowing)
       { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
       { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
@@ -741,8 +748,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "view",
     bindings: [
-      { key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { key: "V", commandId: "cycle_icon_style" },
       { key: "?", commandId: "show_help" },
       { key: "+", commandId: "increase_content_lines" },
       { key: "=", commandId: "increase_content_lines" },

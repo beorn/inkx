@@ -442,8 +442,8 @@ describe("initDefaultKeybindings", () => {
   })
 
   it.each([
-    // TUI: 'v' enters visual mode
-    ["v", {}, "visual_mode_enter"],
+    // TUI: 'v' is chord prefix (v␣=visual mode)
+    ["v", {}, "noop"],
     // Shift+A for select all
     ["A", {}, "select_all"],
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
@@ -771,6 +771,7 @@ describe("chord keybindings", () => {
     expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
+    expect(isChordPrefix("v")).toBe(true)
     // Not chord prefixes
     expect(isChordPrefix("z")).toBe(false)
     expect(isChordPrefix("s")).toBe(false)
@@ -831,7 +832,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(64) // 19 g + 6 m + 8 a + 9 t + 22 Ctrl+w
+    expect(chordBindings.length).toBe(68) // 16 g + 6 m + 8 a + 9 t + 7 v + 22 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -857,12 +858,10 @@ describe("chord keybindings", () => {
       "+",
       "/",
       "@",
-      "C",
       "G",
       "N",
       "O",
       "[",
-      "c",
       "e",
       "g",
       "h",
@@ -871,7 +870,6 @@ describe("chord keybindings", () => {
       "n",
       "o",
       "p",
-      "v",
     ])
   })
 
@@ -1016,7 +1014,7 @@ describe("text mode keybinding separation", () => {
       ["Tab", { shift: true }, "outdent"],
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
-      ["v", {}, "visual_mode_enter"],
+      ["v", {}, "noop"], // v is now chord prefix (v␣=visual, vv=cycle view, etc.)
       ["/", {}, "local_find"],
       ["?", {}, "show_help"],
       // v2 rebindings
