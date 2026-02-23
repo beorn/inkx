@@ -170,7 +170,7 @@ Not all high-complexity functions need extraction. Suppress with `oxlint-disable
 
 | Pattern | Why it's fine | Example |
 |---------|---------------|---------|
-| React components with many conditionals | JSX conditionals inflate scores but structure is readable | `DetailPane`, `BottomBar`, `TreeNode` |
+| React components with many conditionals | JSX conditionals inflate scores but structure is readable | `DetailPane`, `CommandBox`, `TreeNode` |
 | Exhaustive `switch` validated by TypeScript | Lookup table **loses** compile-time completeness checking | `handleCommandAction`, `executeCommand` |
 | Test setup helpers | Tests are consumers, not APIs — setup complexity is fine | `createBoardTest`, `createFakeRepo`, fixture builders |
 | CLI action handlers (<45) | Sequential parse→resolve→execute→output is mostly irreducible | Commander.js `.action()` callbacks |

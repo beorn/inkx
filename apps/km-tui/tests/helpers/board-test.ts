@@ -1776,7 +1776,7 @@ class BoardTestImpl implements BoardTest {
     return this.result.locator("[data-bell]").count() > 0
   }
 
-  // --- Status Message (in BottomBar) ---
+  // --- Status Message (in CommandBox) ---
 
   /** Get current status message if visible, or null if no status */
   getStatus(): { level: string; message: string } | null {
