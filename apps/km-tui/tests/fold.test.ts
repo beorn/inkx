@@ -1205,18 +1205,17 @@ describe("progressive fold/unfold", () => {
       ),
     )
 
-  test("initial fold depth: nodes at depth >= 2 with children are folded", () => {
+  test("initial fold depth: nodes at depth >= 1 with children are folded", () => {
     const { board } = testEnv(deepTree, { rows: 30 })
 
     const initial = board.screenshot()
-    // Phase 1/2 at depth 1 should be visible
+    // Phase 1/2 at depth 1 should be visible but folded (depth >= DEFAULT_FOLD_DEPTH=1)
     expect(initial).toContain("Phase 1")
     expect(initial).toContain("Phase 2")
-    // Task A/B/C at depth 2 should be visible (leaf or folded)
-    expect(initial).toContain("Task A")
-    expect(initial).toContain("Task B")
-    expect(initial).toContain("Task C")
-    // subtask-x at depth 3 should be hidden (Task A is folded by initial fold computation)
+    // Task A/B/C at depth 2 should be hidden (Phase 1/2 are folded)
+    expect(initial).not.toContain("Task A")
+    expect(initial).not.toContain("Task B")
+    expect(initial).not.toContain("Task C")
     expect(initial).not.toContain("subtask-x")
   })
 
@@ -1225,23 +1224,31 @@ describe("progressive fold/unfold", () => {
     // which can cause fresh-render layout drift in inkx
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
-    // Initially Task A is folded (subtask-x hidden)
-    expect(board.screenshot()).toContain("Task A")
-    expect(board.screenshot()).not.toContain("subtask-x")
+    // Initially Phase 1/2 are folded (Tasks hidden)
+    expect(board.screenshot()).toContain("Phase 1")
+    expect(board.screenshot()).not.toContain("Task A")
 
-    // L unfolds Task A (the only folded node at the shallowest level)
+    // L unfolds Phase 1/2 (shallowest folded level)
+    // Progressive disclosure auto-folds children-with-children (Task A)
     board.press("L")
 
     const afterL = board.screenshot()
-    expect(afterL).toContain("subtask-x")
+    expect(afterL).toContain("Task A") // visible but auto-folded
+    expect(afterL).toContain("Task B") // leaf, visible
+    expect(afterL).not.toContain("subtask-x") // Task A auto-folded
+
+    // Another L unfolds Task A
+    board.press("L")
+    expect(board.screenshot()).toContain("subtask-x")
   })
 
   test("H folds deepest unfolded level progressively", () => {
     // Disable incremental check: fold/unfold changes tree height
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
-    // Initially Task A is folded. Unfold it first.
-    board.press("L")
+    // Initially Phase 1/2 are folded. Unfold both levels first.
+    board.press("L") // unfold Phase 1/2, auto-fold Task A
+    board.press("L") // unfold Task A
     expect(board.screenshot()).toContain("subtask-x")
 
     // H folds deepest unfolded foldable level (Task A at depth 2)
@@ -1319,11 +1326,15 @@ describe("progressive fold/unfold", () => {
     // Disable incremental check: fold/unfold changes tree height
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
-    // H folds Phase 1/2's children first (depth 2 already has Task A folded)
-    // Since Task A is the only folded node, H folds the next deepest: Phase 1/2 at depth 1
+    // Initially Phase 1/2 are folded at depth 1. Unfold first.
+    board.press("L") // unfold Phase 1/2, auto-fold Task A
+    expect(board.screenshot()).toContain("Task A")
+
+    // H folds the deepest unfolded level (Phase 1/2 at depth 1, since Task A is auto-folded)
     board.press("H")
     const folded = board.screenshot()
     expect(folded).not.toContain("Task A")
+    expect(folded).toContain("Phase 1") // visible but folded
 
     // L unfolds the shallowest fold — Phase 1/2 at depth 1
     // With progressive disclosure, children-with-children (Task A) get auto-folded

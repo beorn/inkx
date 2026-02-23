@@ -94,12 +94,9 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
   return useMemo(() => {
-    // Adaptive preload depth: shallow (2) for large boards where everything
-    // is folded (we only need columns + card titles), deeper (4) for small boards
-    // where card sub-items are visible.
-    const topChildren = repo.getChildren(rootId)
-    const preloadDepth = topChildren.length > 20 ? 2 : 4
-    repo.preloadSubtree(rootId, preloadDepth)
+    // No preloadSubtree here — getChildren() lazily loads from DB on cache miss.
+    // computeDefaultFolds already warms the cache for cards at fold depth.
+    // Avoiding the recursive CTE eliminates 10s+ startup freeze on large vaults.
     return deriveColumnsFromRepo(repo, rootId, foldedNodes)
   }, [repoVersion, rootId, foldedNodes])
 }
@@ -197,13 +194,54 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
   // Keep the node with more children; if tied, keep the first one.
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
 
-  // Convert structural children to columns
+  // Convert structural children to columns (with per-column memoization)
   for (const node of deduped) {
-    columns.push(kNodeToColumnView(repo, node, wipLimits, foldedNodes))
+    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldedNodes))
   }
 
   span.spanData.columns = columns.length
   return columns
+}
+
+// =============================================================================
+// Per-column memoization
+// =============================================================================
+
+/**
+ * Cache for kNodeToColumnView results to avoid re-deriving unchanged columns.
+ * Key: column node ID. The cache is invalidated per-column when:
+ * - The column's children array reference changes (childrenCache was busted)
+ * - The foldedNodes set reference changes (fold state changed)
+ * - WIP limits change
+ *
+ * This avoids the O(columns * cards) cost on every repoVersion bump when
+ * only one column's children actually changed.
+ */
+interface ColumnViewCacheEntry {
+  childrenRef: KNode[] // Reference identity check — childrenCache returns same array if not busted
+  foldedNodesRef: Set<string>
+  wipLimitsRef: Map<string, number>
+  view: ColumnView
+}
+
+const columnViewCache = new Map<string, ColumnViewCacheEntry>()
+
+function kNodeToColumnViewCached(
+  repo: Repo,
+  node: KNode,
+  wipLimits: Map<string, number>,
+  foldedNodes: Set<string>,
+): ColumnView {
+  const childrenRef = repo.getChildren(node.id)
+  const cached = columnViewCache.get(node.id)
+
+  if (cached && cached.childrenRef === childrenRef && cached.foldedNodesRef === foldedNodes && cached.wipLimitsRef === wipLimits) {
+    return cached.view
+  }
+
+  const view = kNodeToColumnView(repo, node, wipLimits, foldedNodes)
+  columnViewCache.set(node.id, { childrenRef, foldedNodesRef: foldedNodes, wipLimitsRef: wipLimits, view })
+  return view
 }
 
 // =============================================================================

@@ -481,14 +481,31 @@ describe("initDefaultKeybindings", () => {
     expectKey(key, commandId, { meta: true })
   })
 
+  // Ctrl+Z is reserved for SIGTSTP (suspend) — undo via Cmd+Z or u
   it.each([
-    ["z", { ctrl: true }, "undo"],
-    ["z", { ctrl: true, shift: true }, "redo"],
-    // Ctrl+Y is now text.yank (when textInputFocused), not redo
-    // Redo only via Ctrl+Shift+Z
-  ] as const)("undo/redo: ctrl+%s resolves to %s", (key, mods, commandId) => {
+    ["z", { super: true }, "undo"],
+    ["z", { super: true, shift: true }, "redo"],
+  ] as const)("undo/redo: %s with %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
+  })
+
+  it("Ctrl+Z is NOT bound to undo (reserved for SIGTSTP suspend)", () => {
+    initDefaultKeybindings()
+    const ctx = createContext()
+    // Ctrl+Z must not resolve to undo — it's handled as raw stdin byte \x1a
+    // for terminal suspend (SIGTSTP). Only Cmd+Z (super) does undo.
+    const result = resolveKeybinding("z", { ctrl: true }, ctx)
+    expect(result).not.toBe("undo")
+    expect(result).not.toBe("redo")
+  })
+
+  it("Ctrl+Z is NOT bound to undo during inline editing either", () => {
+    initDefaultKeybindings()
+    const ctx = createContext({ isInlineEditing: true, textInputFocused: true })
+    const result = resolveKeybinding("z", { ctrl: true }, ctx)
+    expect(result).not.toBe("undo")
+    expect(result).not.toBe("redo")
   })
 
   it.each([
@@ -1055,12 +1072,12 @@ describe("text mode keybinding separation", () => {
   })
 
   describe("undo/redo work during inline editing", () => {
-    it("Ctrl+z → undo", () => {
-      expect(resolveKeybinding("z", { ctrl: true }, inlineCtx)).toBe("undo")
+    it("Cmd+z → undo", () => {
+      expect(resolveKeybinding("z", { super: true }, inlineCtx)).toBe("undo")
     })
 
-    it("Ctrl+Shift+z → redo", () => {
-      expect(resolveKeybinding("z", { ctrl: true, shift: true }, inlineCtx)).toBe("redo")
+    it("Cmd+Shift+z → redo", () => {
+      expect(resolveKeybinding("z", { super: true, shift: true }, inlineCtx)).toBe("redo")
     })
 
     it("Ctrl+y → text.yank", () => {

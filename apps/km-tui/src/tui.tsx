@@ -6,10 +6,10 @@
  */
 
 import { EventEmitter } from "events"
-import { writeSync } from "fs"
 import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
+import { restoreTerminal, createRawSignalHandler } from "./raw-signals.ts"
 import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
@@ -33,33 +33,7 @@ export const tuiEvents = new EventEmitter()
 // Tests run 50+ Board instances, each adding refresh/watcher-status listeners
 tuiEvents.setMaxListeners(200)
 
-/**
- * Restore terminal to normal state after crash or exit.
- */
-function restoreTerminal(): void {
-  if (process.stdin.isTTY && process.stdin.isRaw) {
-    try {
-      process.stdin.setRawMode(false)
-    } catch {
-      // Ignore errors during cleanup
-    }
-  }
-
-  const sequences = [
-    "\x1b[0m", // Reset text attributes
-    "\x1b[?1007l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?1006l", // Disable mouse
-    "\x1b[?1l", // Disable application cursor keys
-    "\x1b[?2004l", // Disable bracketed paste
-    "\x1b[?25h", // Show cursor
-    "\x1b[?1049l", // Exit alternate screen
-  ].join("")
-
-  try {
-    writeSync(process.stdout.fd, sequences)
-  } catch {
-    process.stdout.write(sequences)
-  }
-}
+// restoreTerminal and createRawSignalHandler are imported from ./raw-signals.ts
 
 /**
  * Compute initial cursor node from board data.
@@ -198,6 +172,14 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   process.on("unhandledRejection", handleRejection)
   process.once("SIGINT", handleSigint)
   process.once("SIGTERM", handleSigterm)
+
+  // Handle Ctrl+C and Ctrl+Z in raw mode. These signals don't fire as
+  // SIGINT/SIGTSTP when stdin is in raw mode, so we intercept the bytes
+  // directly. This handler is active from app start through TUI operation.
+  const handleRawSignals = createRawSignalHandler()
+  if (isInteractive) {
+    process.stdin.on("data", handleRawSignals)
+  }
 
   // Use pre-created patchedConsole if provided (counts startup warnings),
   // otherwise create one now. capture: true = store entries for exit dump.

@@ -428,25 +428,25 @@ describe("invertOperation", () => {
 // =============================================================================
 
 describe("undo: TUI integration", () => {
-  test("Ctrl+Z undoes the last operation", () => {
+  test("u undoes the last operation", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
-    // Duplicate task-a (d key)
+    // Duplicate task-a
     board.press("Cmd+d")
 
     // Should have 3 cards now
     const childrenAfterDup = repo.getChildren("col1")
     expect(childrenAfterDup.length).toBe(3)
 
-    // Ctrl+Z to undo
-    board.press("Control+z")
+    // u to undo (vim-style)
+    board.press("u")
 
     // Should be back to 2 cards
     const childrenAfterUndo = repo.getChildren("col1")
     expect(childrenAfterUndo.length).toBe(2)
   })
 
-  test("Ctrl+Shift+Z redoes the last undone operation", () => {
+  test("U redoes the last undone operation", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
 
     // Duplicate
@@ -454,11 +454,11 @@ describe("undo: TUI integration", () => {
     expect(repo.getChildren("col1").length).toBe(3)
 
     // Undo
-    board.press("Control+z")
+    board.press("u")
     expect(repo.getChildren("col1").length).toBe(2)
 
-    // Redo (Ctrl+Y is the alternative binding for redo)
-    board.press("Control+y")
+    // Redo (U = redo)
+    board.press("U")
     expect(repo.getChildren("col1").length).toBe(3)
   })
 })
@@ -522,8 +522,8 @@ describe("Undo duplicate node", () => {
     expect(afterDup[2]).toBe("B")
     expect(afterDup[3]).toBe("C")
 
-    // Press Ctrl+Z to undo
-    board.press("Control+z")
+    // Press u to undo
+    board.press("u")
 
     // The duplicate should be removed
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
@@ -534,8 +534,8 @@ describe("Undo duplicate node", () => {
   test("undo with nothing to undo rings bell", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A"))))
 
-    // Ctrl+Z with empty undo stack should ring bell
-    board.press("Control+z")
+    // u with empty undo stack should ring bell
+    board.press("u")
     expect(board.bell).toBe(true)
   })
 
@@ -555,11 +555,11 @@ describe("Undo duplicate node", () => {
     expect(childIds(repo, "col1")).toHaveLength(4)
 
     // Undo last duplicate (B's duplicate)
-    board.press("Control+z")
+    board.press("u")
     expect(childIds(repo, "col1")).toHaveLength(3)
 
     // Undo first duplicate (A's duplicate)
-    board.press("Control+z")
+    board.press("u")
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
   })
 })
@@ -694,8 +694,8 @@ describe("undo cursor restore", () => {
     // The original task-b should still be visible
     board.expect("#task-b").toExist()
 
-    // Undo (ctrl+z)
-    board.press("ctrl+z")
+    // Undo
+    board.press("u")
 
     // After undo, cursor should be back on task-b (not at root or lost)
     board.expect("#task-b[data-cursor]").toExist()
@@ -711,7 +711,7 @@ describe("undo cursor restore", () => {
     board.press("Cmd+d")
 
     // Undo
-    board.press("ctrl+z")
+    board.press("u")
 
     // Cursor should be back on first card
     board.expect("#first[data-cursor]").toExist()
@@ -734,11 +734,11 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
     expect(repo.getChildren("col1")).toHaveLength(3)
 
     // Undo -> back to 2
-    board.press("Ctrl+Z")
+    board.press("u")
     expect(repo.getChildren("col1")).toHaveLength(2)
 
     // Redo -> should be back to 3
-    board.press("Ctrl+Y")
+    board.press("U")
     expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
@@ -746,10 +746,10 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("Cmd+d") // dup -> 3
-    board.press("Ctrl+Z") // undo -> 2
-    board.press("Ctrl+Y") // redo -> 3
-    board.press("Ctrl+Z") // undo -> 2
-    board.press("Ctrl+Y") // redo -> 3
+    board.press("u") // undo -> 2
+    board.press("U") // redo -> 3
+    board.press("u") // undo -> 2
+    board.press("U") // redo -> 3
 
     expect(repo.getChildren("col1")).toHaveLength(3)
   })

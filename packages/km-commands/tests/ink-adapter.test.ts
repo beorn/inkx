@@ -301,7 +301,8 @@ describe("processInkKey", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    const result = processInkKey("z", { ctrl: true }, cmdCtx, kbCtx)
+    // Cmd+Z → undo (Ctrl+Z is reserved for SIGTSTP)
+    const result = processInkKey("z", { super: true }, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("undo")
@@ -360,8 +361,8 @@ describe("wouldHandleKey", () => {
   it("respects modifiers", () => {
     const kbCtx = buildKeybindingContext({})
 
-    // Ctrl+Z is registered (undo)
-    expect(wouldHandleKey("z", { ctrl: true }, kbCtx)).toBe(true)
+    // Cmd+Z is registered (undo) — Ctrl+Z is reserved for SIGTSTP
+    expect(wouldHandleKey("z", { super: true }, kbCtx)).toBe(true)
     // Plain z is fold_all, so it IS registered
     expect(wouldHandleKey("z", {}, kbCtx)).toBe(true)
     // But Ctrl+Shift+Alt+z is not registered

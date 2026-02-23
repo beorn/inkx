@@ -275,7 +275,7 @@ function switchFocusedPane(
 // =============================================================================
 
 /** Depth threshold for initial folds: fold nodes with children at this depth or deeper inside each card. */
-const DEFAULT_FOLD_DEPTH = 2
+const DEFAULT_FOLD_DEPTH = 1
 
 /** Above this column count, fold ALL cards aggressively (fold at depth 0) to stay responsive. */
 const AGGRESSIVE_FOLD_THRESHOLD = 20
@@ -316,22 +316,47 @@ function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: S
     return foldedNodes
   }
 
-  // Normal boards: preload deeper subtree and use standard fold depth
-  repo.preloadSubtree(rootId, DEFAULT_FOLD_DEPTH + 2)
-
-  for (const col of columns) {
-    const cards = repo.getChildren(col.id)
-    for (const card of cards) {
-      const foldDeep = (nodeId: string, depth: number) => {
-        const children = repo.getChildren(nodeId)
-        if (children.length === 0) return
-        if (depth >= DEFAULT_FOLD_DEPTH) {
-          foldedNodes.add(nodeId)
-        } else {
-          for (const child of children) foldDeep(child.id, depth + 1)
+  // Normal boards: use batch getChildCounts to avoid expensive recursive CTE.
+  // For DEFAULT_FOLD_DEPTH=1, fold cards (depth 0) that have children with children.
+  // For DEFAULT_FOLD_DEPTH=0, fold cards that have any children.
+  if (DEFAULT_FOLD_DEPTH === 0) {
+    // Fold all cards with children (same logic as aggressive path)
+    const allCardIds: string[] = []
+    for (const col of columns) {
+      const cards = repo.getChildren(col.id)
+      for (const card of cards) allCardIds.push(card.id)
+    }
+    const childCounts = repo.getChildCounts(allCardIds)
+    for (const cardId of allCardIds) {
+      if ((childCounts.get(cardId) ?? 0) > 0) foldedNodes.add(cardId)
+    }
+  } else {
+    // DEFAULT_FOLD_DEPTH >= 1: walk one level at a time using getChildCounts batches.
+    // Collect nodes at each depth, batch-check their child counts,
+    // fold those with children at depth >= DEFAULT_FOLD_DEPTH.
+    for (const col of columns) {
+      const cards = repo.getChildren(col.id)
+      // BFS by depth within each card
+      for (const card of cards) {
+        let currentLevel = [card]
+        for (let depth = 0; depth < DEFAULT_FOLD_DEPTH; depth++) {
+          // Expand this level to get next level
+          const nextLevel: { id: string }[] = []
+          for (const node of currentLevel) {
+            const children = repo.getChildren(node.id)
+            for (const child of children) nextLevel.push(child)
+          }
+          currentLevel = nextLevel
+        }
+        // currentLevel is at DEFAULT_FOLD_DEPTH — fold those with children
+        if (currentLevel.length > 0) {
+          const ids = currentLevel.map((n) => n.id)
+          const childCounts = repo.getChildCounts(ids)
+          for (const node of currentLevel) {
+            if ((childCounts.get(node.id) ?? 0) > 0) foldedNodes.add(node.id)
+          }
         }
       }
-      foldDeep(card.id, 0)
     }
   }
   return foldedNodes
