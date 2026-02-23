@@ -1,7 +1,8 @@
 /**
  * Clipboard Operations
  *
- * Tests for Ctrl+C (copy), Ctrl+X (cut), and Ctrl+V (paste).
+ * Tests for clipboard: y (copy), d (cut), p (paste).
+ * Also available via Cmd+C/X/V (kitty protocol).
  *
  * Covers:
  * - Copy single node, paste creates duplicate
@@ -35,10 +36,10 @@ describe("Clipboard operations", () => {
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
     // Copy node A (cursor starts on first card)
-    board.press("Control+c")
+    board.press("y")
 
     // Paste after A
-    board.press("Control+v")
+    board.press("p")
 
     // Should now have 4 children — A, copy of A, B, C
     const after = childIds(repo, "col1")
@@ -59,14 +60,14 @@ describe("Clipboard operations", () => {
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
     // Cut node A
-    board.press("Control+x")
+    board.press("d")
 
     // Navigate to C (now B is first, so j goes to C which is second)
     board.press("j") // to B
     board.press("j") // to C
 
     // Paste after C
-    board.press("Control+v")
+    board.press("p")
 
     // A should now be after C: B, C, A
     const after = childContents(repo, "col1")
@@ -77,11 +78,11 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     // Copy A
-    board.press("Control+c")
+    board.press("y")
 
     // Paste twice
-    board.press("Control+v")
-    board.press("Control+v")
+    board.press("p")
+    board.press("p")
 
     // Should have A, copy1, copy2, B
     const children = repo.getChildren("col1")
@@ -97,23 +98,23 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     // Cut A
-    board.press("Control+x")
+    board.press("d")
 
     // Navigate to B (now first after cut moved cursor)
     board.press("j") // to B
 
     // Paste after B
-    board.press("Control+v")
+    board.press("p")
 
     // Try to paste again — should bell (clipboard cleared after cut paste)
-    board.press("Control+v")
+    board.press("p")
     expect(board.bell).toBe(true)
   })
 
   test("paste with empty clipboard rings bell", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A"))))
 
-    board.press("Control+v")
+    board.press("p")
     expect(board.bell).toBe(true)
   })
 
@@ -124,13 +125,13 @@ describe("Clipboard operations", () => {
     board.press("Shift+ArrowDown") // extends selection to include A and B
 
     // Copy selection
-    board.press("Control+c")
+    board.press("y")
 
     // Navigate to C
     board.press("j")
 
     // Paste after C
-    board.press("Control+v")
+    board.press("p")
 
     // Should have A, B, C, copy-of-A, copy-of-B
     const children = repo.getChildren("col1")
@@ -146,13 +147,13 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2", item("X"))))
 
     // Copy A
-    board.press("Control+c")
+    board.press("y")
 
     // Navigate to col2
     board.press("l")
 
     // Paste after X
-    board.press("Control+v")
+    board.press("p")
 
     // col1 should be unchanged
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
@@ -168,13 +169,13 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     // Copy A and paste
-    board.press("Control+c")
-    board.press("Control+v")
+    board.press("y")
+    board.press("p")
 
     expect(repo.getChildren("col1")).toHaveLength(3)
 
     // Undo
-    board.press("Control+z")
+    board.press("u")
 
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
   })
@@ -183,16 +184,16 @@ describe("Clipboard operations", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cut A, navigate to C, paste
-    board.press("Control+x")
+    board.press("d")
     board.press("j") // to B
     board.press("j") // to C
-    board.press("Control+v")
+    board.press("p")
 
     // Now B, C, A
     expect(childContents(repo, "col1")).toEqual(["B", "C", "A"])
 
     // Undo — A should go back to original position
-    board.press("Control+z")
+    board.press("u")
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C"])
   })
 
@@ -203,7 +204,7 @@ describe("Clipboard operations", () => {
     board.press("l")
 
     // Copy should fail — no card to copy
-    board.press("Control+c")
+    board.press("y")
     expect(board.bell).toBe(true)
   })
 })

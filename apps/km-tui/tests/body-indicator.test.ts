@@ -49,7 +49,7 @@ describe("body indicator (···)", () => {
     )
 
     // Fold the card's children with zh chord (fold_node)
-    board.press("z").press("h")
+    board.press("H")
 
     // Now ··· should show because body children are hidden (folded)
     const screen = board.screenshot()

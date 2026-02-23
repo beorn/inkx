@@ -494,9 +494,24 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Fold operations (progressive per-level, Decker-inspired) ===
     // Visibility is driven entirely by foldedNodes.
     case "FOLD_NODE": {
-      if (!card) return boundary("fold", "no card selected")
+      // Determine fold roots based on scope:
+      // 1. scope: "root" → board-wide (all columns' cards)
+      // 2. Multiple selected nodes → all selected
+      // 3. Column header → all cards in column
+      // 4. Single card → just that card
+      const selected = getSelectedCards(ctx)
+      const roots =
+        action.scope === "root"
+          ? ctx.columns.flatMap((c) => c.cardNodes.map((n) => n.id))
+          : selected.length > 0
+            ? selected.map((c) => c.id)
+            : card
+              ? [card.id]
+              : ctx.column
+                ? ctx.column.cardNodes.map((n) => n.id)
+                : []
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
       const newFolded = new Set(ctx.foldedNodes)
-      // Walk subtree to find the deepest unfolded level with children
       let deepestDepth = -1
       const nodesAtDepth = new Map<number, string[]>()
       const walk = (nodeId: string, depth: number) => {
@@ -510,7 +525,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           for (const child of children) walk(child.id, depth + 1)
         }
       }
-      walk(card.id, 0)
+      for (const rootId of roots) walk(rootId, 0)
       if (deepestDepth >= 0) {
         for (const id of nodesAtDepth.get(deepestDepth)!) newFolded.add(id)
         ctx.setFoldedNodes(newFolded)
@@ -519,7 +534,19 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return boundary("fold", "no children to fold")
     }
     case "UNFOLD_NODE": {
-      if (!card) return boundary("fold", "no card selected")
+      // Same scope logic as FOLD_NODE (see above)
+      const selected = getSelectedCards(ctx)
+      const roots =
+        action.scope === "root"
+          ? ctx.columns.flatMap((c) => c.cardNodes.map((n) => n.id))
+          : selected.length > 0
+            ? selected.map((c) => c.id)
+            : card
+              ? [card.id]
+              : ctx.column
+                ? ctx.column.cardNodes.map((n) => n.id)
+                : []
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
       const newFolded = new Set(ctx.foldedNodes)
       // Walk subtree to find the shallowest folded level
       let shallowestDepth = Infinity
@@ -536,7 +563,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           for (const child of children) walk(child.id, depth + 1)
         }
       }
-      walk(card.id, 0)
+      for (const rootId of roots) walk(rootId, 0)
       if (shallowestDepth < Infinity) {
         const unfoldedIds = nodesAtDepth.get(shallowestDepth)!
         for (const id of unfoldedIds) newFolded.delete(id)
