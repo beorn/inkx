@@ -32,6 +32,7 @@ import {
   resizeSplitForPane,
   equalizeLayout,
   swapLeaves,
+  setSplitRatioAbsolute,
 } from "./layout-helpers.ts"
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
 
@@ -140,6 +141,8 @@ export interface BoardAppActions {
   focusPreviousPane(): void
   cyclePaneFocus(direction: "next" | "prev"): void
   focusPaneByNumber(number: number): void
+  /** Focus a specific pane by ID (for mouse click-to-focus) */
+  focusPaneById(paneId: string): void
 
   // Workspace pane operations (Phase 5: resize, zoom, close-all, swap)
   resizeFocusedPane(delta: number, axis: "h" | "v"): void
@@ -147,6 +150,10 @@ export interface BoardAppActions {
   zoomFocusedPane(): void
   closeAllButFocused(): void
   swapPaneInDirection(direction: "left" | "right" | "up" | "down"): void
+
+  // Workspace pane operations (Phase 7: mouse support)
+  /** Set absolute split ratio for drag resize */
+  setSplitRatio(splitNode: LayoutNode & { type: "split" }, ratio: number): void
 
   // Workspace pane operations (Phase 6: pane-aware navigation)
   /** Change the focused pane's viewType from "empty" to "board" */
@@ -1045,6 +1052,15 @@ export function createBoardAppStoreState(
         })
       },
 
+      focusPaneById(paneId: string) {
+        set((state) => {
+          const { workspace } = state
+          if (paneId === workspace.focusedPaneId) return state
+          if (!workspace.panes.has(paneId)) return state
+          return switchFocusedPane(state, paneId)
+        })
+      },
+
       // --- Workspace pane operations (Phase 5: resize, zoom, close-all, swap) ---
 
       resizeFocusedPane(delta: number, axis: "h" | "v") {
@@ -1147,6 +1163,17 @@ export function createBoardAppStoreState(
           return {
             workspace: { ...workspace, layout: newLayout },
           }
+        })
+      },
+
+      // --- Workspace pane operations (Phase 7: mouse support) ---
+
+      setSplitRatio(splitNode: LayoutNode & { type: "split" }, ratio: number) {
+        set((state) => {
+          const { workspace } = state
+          const newLayout = setSplitRatioAbsolute(workspace.layout, splitNode, ratio)
+          if (newLayout === workspace.layout) return state
+          return { workspace: { ...workspace, layout: newLayout } }
         })
       },
 

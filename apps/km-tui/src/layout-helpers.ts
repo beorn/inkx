@@ -224,3 +224,116 @@ export function swapLeaves(layout: LayoutNode, paneIdA: string, paneIdB: string)
   if (newLeft === layout.left && newRight === layout.right) return layout
   return { ...layout, left: newLeft, right: newRight }
 }
+
+// =============================================================================
+// Mouse Hit Testing (Phase 7: mouse support)
+// =============================================================================
+
+/** Bounding rectangle for a layout region */
+export interface LayoutBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface SplitBorderHit {
+  /** Reference to the split node */
+  splitNode: LayoutNode & { type: "split" }
+  /** Start of the container on the split axis */
+  containerStart: number
+  /** Size of the container on the split axis */
+  containerSize: number
+}
+
+/**
+ * Hit-test for split borders: given mouse coordinates and terminal dimensions,
+ * find which split border (if any) the click lands on.
+ *
+ * Each pane has a 1-char border (borderStyle="single"). The "seam" between
+ * adjacent panes is 2 chars wide. We match clicks within ±tolerance of the
+ * computed split position.
+ */
+export function hitTestSplitBorder(
+  layout: LayoutNode,
+  x: number,
+  y: number,
+  bounds: LayoutBounds,
+  tolerance = 1,
+): SplitBorderHit | null {
+  if (layout.type === "leaf") return null
+
+  const isHorizontal = layout.direction === "h"
+  const pos = isHorizontal ? x : y
+  const containerStart = isHorizontal ? bounds.x : bounds.y
+  const containerSize = isHorizontal ? bounds.width : bounds.height
+
+  // The split boundary position (where the first child ends)
+  const borderPos = containerStart + Math.round(containerSize * layout.ratio)
+
+  // Check if the click is near this border
+  if (Math.abs(pos - borderPos) <= tolerance) {
+    return { splitNode: layout, containerStart, containerSize }
+  }
+
+  // Recurse into the child that contains the click position
+  if (pos < borderPos) {
+    // Click is in the left/top child
+    const childBounds = isHorizontal
+      ? { ...bounds, width: borderPos - bounds.x }
+      : { ...bounds, height: borderPos - bounds.y }
+    return hitTestSplitBorder(layout.left, x, y, childBounds, tolerance)
+  } else {
+    // Click is in the right/bottom child
+    const childBounds = isHorizontal
+      ? { x: borderPos, y: bounds.y, width: bounds.x + bounds.width - borderPos, height: bounds.height }
+      : { x: bounds.x, y: borderPos, width: bounds.width, height: bounds.y + bounds.height - borderPos }
+    return hitTestSplitBorder(layout.right, x, y, childBounds, tolerance)
+  }
+}
+
+/**
+ * Hit-test for pane leaves: given mouse coordinates and terminal dimensions,
+ * find which leaf pane (if any) contains the click.
+ */
+export function hitTestPaneId(layout: LayoutNode, x: number, y: number, bounds: LayoutBounds): string | null {
+  if (layout.type === "leaf") {
+    // Check if the point is within bounds
+    if (x >= bounds.x && x < bounds.x + bounds.width && y >= bounds.y && y < bounds.y + bounds.height) {
+      return layout.paneId
+    }
+    return null
+  }
+
+  const isHorizontal = layout.direction === "h"
+  const borderPos = isHorizontal
+    ? bounds.x + Math.round(bounds.width * layout.ratio)
+    : bounds.y + Math.round(bounds.height * layout.ratio)
+
+  const pos = isHorizontal ? x : y
+
+  if (pos < borderPos) {
+    const childBounds = isHorizontal
+      ? { ...bounds, width: borderPos - bounds.x }
+      : { ...bounds, height: borderPos - bounds.y }
+    return hitTestPaneId(layout.left, x, y, childBounds)
+  } else {
+    const childBounds = isHorizontal
+      ? { x: borderPos, y: bounds.y, width: bounds.x + bounds.width - borderPos, height: bounds.height }
+      : { x: bounds.x, y: borderPos, width: bounds.width, height: bounds.y + bounds.height - borderPos }
+    return hitTestPaneId(layout.right, x, y, childBounds)
+  }
+}
+
+/**
+ * Set the ratio of a specific split node to an absolute value (for drag resize).
+ * Clamps to [0.1, 0.9].
+ */
+export function setSplitRatioAbsolute(
+  layout: LayoutNode,
+  targetSplit: LayoutNode & { type: "split" },
+  newRatio: number,
+): LayoutNode {
+  const clamped = Math.max(0.1, Math.min(0.9, newRatio))
+  return adjustSplitRatio(layout, targetSplit, clamped - targetSplit.ratio)
+}

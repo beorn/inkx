@@ -18,6 +18,8 @@ export interface WorkspaceViewProps {
   focusedPaneId: string
   /** Render a pane's board content, receiving the pane ID for state isolation */
   renderPane: (paneId: string) => React.ReactNode
+  /** Called when a pane is clicked (for click-to-focus) */
+  onPaneClick?: (paneId: string) => void
 }
 
 /**
@@ -62,7 +64,7 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
  * - Single pane: renders board directly, no wrapper
  * - Multiple panes: recursive split layout with divider lines
  */
-export function WorkspaceView({ layout, panes, focusedPaneId, renderPane }: WorkspaceViewProps): React.ReactElement {
+export function WorkspaceView({ layout, panes, focusedPaneId, renderPane, onPaneClick }: WorkspaceViewProps): React.ReactElement {
   // Single pane (the common case) — render board directly, no overhead
   if (layout.type === "leaf" && panes.size <= 1) {
     return <>{renderPane(layout.paneId)}</>
@@ -78,6 +80,7 @@ export function WorkspaceView({ layout, panes, focusedPaneId, renderPane }: Work
         focusedPaneId={focusedPaneId}
         paneLabels={paneLabels}
         renderPane={renderPane}
+        onPaneClick={onPaneClick}
       />
     </Box>
   )
@@ -90,12 +93,14 @@ function LayoutNodeView({
   focusedPaneId,
   paneLabels,
   renderPane,
+  onPaneClick,
 }: {
   node: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
   paneLabels: Map<string, string>
   renderPane: (paneId: string) => React.ReactNode
+  onPaneClick?: (paneId: string) => void
 }): React.ReactElement {
   if (node.type === "leaf") {
     const pane = panes.get(node.paneId)
@@ -107,7 +112,13 @@ function LayoutNodeView({
 
     // For multi-pane layouts, wrap each pane in a bordered box with number label
     return (
-      <Box flexGrow={1} flexDirection="column" borderStyle="single" borderColor={borderColor}>
+      <Box
+        flexGrow={1}
+        flexDirection="column"
+        borderStyle="single"
+        borderColor={borderColor}
+        onMouseDown={() => onPaneClick?.(node.paneId)}
+      >
         {label && (
           <Box>
             <Text color={borderColor} bold={isFocused}>[{label}]</Text>
@@ -135,6 +146,7 @@ function LayoutNodeView({
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
           renderPane={renderPane}
+          onPaneClick={onPaneClick}
         />
       </Box>
       <Box flexBasis={secondBasis} flexGrow={0} flexShrink={0} flexDirection="column">
@@ -144,6 +156,7 @@ function LayoutNodeView({
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
           renderPane={renderPane}
+          onPaneClick={onPaneClick}
         />
       </Box>
     </Box>

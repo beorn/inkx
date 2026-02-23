@@ -1032,6 +1032,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const { exit } = useApp()
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
+  const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)
 
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
@@ -1069,6 +1070,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         panes={workspace.panes}
         focusedPaneId={workspace.focusedPaneId}
         renderPane={renderPane}
+        onPaneClick={focusPaneById}
       />
     </Box>
   )

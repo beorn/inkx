@@ -22,6 +22,8 @@ import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
+import type { LayoutNode } from "./board-types.ts"
 
 const perfLog = createLogger("km:perf")
 
@@ -432,6 +434,13 @@ let lastClick = { time: 0, x: 0, y: 0 }
 const DOUBLE_CLICK_MS = 400
 const DOUBLE_CLICK_DISTANCE = 2
 
+/** Drag state for split border resize */
+let dragState: {
+  splitNode: LayoutNode & { type: "split" }
+  containerStart: number
+  containerSize: number
+} | null = null
+
 /** Mouse click target — what the user clicked on */
 export interface MouseTarget {
   /** "card" = clicked on a card, "column" = clicked on column header or empty space */
@@ -547,6 +556,49 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
   if (!cachedFocusManager) {
     cachedFocusManager = ctx.focusManager
     cachedFocus = ctx.focus.bind(ctx)
+  }
+
+  // --- Border drag resize (Phase 7: mouse support) ---
+  if (dragState) {
+    if (mouse.action === "move") {
+      const { splitNode, containerStart, containerSize } = dragState
+      const pos = splitNode.direction === "h" ? mouse.x : mouse.y
+      const newRatio = (pos - containerStart) / containerSize
+      get().setSplitRatio(splitNode, newRatio)
+      return
+    }
+    if (mouse.action === "up") {
+      dragState = null
+      return
+    }
+  }
+
+  // Check for border click to start drag, or click-to-focus another pane
+  if (mouse.action === "down" && mouse.button === 0) {
+    const state = get()
+    const { workspace } = state
+    if (workspace.panes.size > 1) {
+      const dims = state.ui.dimensions
+      const bounds = { x: 0, y: 0, width: dims.columns, height: dims.rows }
+
+      // Check split border hit first (drag resize)
+      const hit = hitTestSplitBorder(workspace.layout, mouse.x, mouse.y, bounds)
+      if (hit) {
+        dragState = {
+          splitNode: hit.splitNode,
+          containerStart: hit.containerStart,
+          containerSize: hit.containerSize,
+        }
+        return
+      }
+
+      // Click-to-focus: if click lands in a non-focused pane, switch focus
+      const clickedPaneId = hitTestPaneId(workspace.layout, mouse.x, mouse.y, bounds)
+      if (clickedPaneId && clickedPaneId !== workspace.focusedPaneId) {
+        state.focusPaneById(clickedPaneId)
+        // Don't return — let the click also do card selection in the newly focused pane
+      }
+    }
   }
 
   if (mouse.action === "wheel") {
