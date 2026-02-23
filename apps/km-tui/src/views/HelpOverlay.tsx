@@ -252,7 +252,39 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
 
   // Column layout: location label + 3 verb columns with gutters
   const locW = 14
-  const colW = 12
+  const colW = 14
+
+  /** Render a verb grid cell value with dim ` / ` separators */
+  function renderGridCell(val: string | undefined, width: number, isLast: boolean): React.ReactNode {
+    if (!val) return <Text dimColor>{isLast ? "—" : "—".padEnd(width)}</Text>
+    if (val.includes(" / ")) {
+      const parts = val.split(" / ")
+      const nodes: React.ReactNode[] = []
+      let len = 0
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0) {
+          nodes.push(
+            <Text key={`s${i}`} dimColor>
+              {" / "}
+            </Text>,
+          )
+          len += 3
+        }
+        nodes.push(
+          <Text key={`k${i}`} color="yellow">
+            {parts[i]}
+          </Text>,
+        )
+        len += parts[i].length
+      }
+      if (!isLast) {
+        const pad = Math.max(0, width - len)
+        if (pad > 0) nodes.push(" ".repeat(pad))
+      }
+      return <>{nodes}</>
+    }
+    return <Text color="yellow">{isLast ? val : val.padEnd(width)}</Text>
+  }
 
   // Column headers
   addLine(
@@ -273,18 +305,14 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
 
   for (let i = 0; i < VERB_GRID.length; i++) {
     const row = VERB_GRID[i]
-    const loc = (row.key + " " + row.location).padEnd(locW)
-    const g = row.goto
-    const m = row.move
-    const a = row.add
     addLine(
       <Text key={`vg-${i}`}>
         {"  "}
         <Text color="yellow">{row.key}</Text>
         <Text>{" " + row.location.padEnd(locW - row.key.length - 1)}</Text>
-        {g ? <Text color="yellow">{g.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
-        {m ? <Text color="yellow">{m.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
-        {a ? <Text color="yellow">{a}</Text> : <Text dimColor>{"—"}</Text>}
+        {renderGridCell(row.goto, colW, false)}
+        {renderGridCell(row.move, colW, false)}
+        {renderGridCell(row.add, 0, true)}
       </Text>,
     )
   }

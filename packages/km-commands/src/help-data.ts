@@ -126,6 +126,11 @@ const EXCLUDED_COMMANDS = new Set([
   "add_assignee",
   "add_project",
   "add_backlink",
+  "add_link",
+  "insert_child",
+  "add_sibling_below",
+  "insert_at_parent",
+  "enter_move_mode",
 ])
 
 /** Layers to skip entirely (they contain internal/modal bindings) */
@@ -175,11 +180,6 @@ const COMMAND_SECTION_OVERRIDES: Record<string, string> = {
   command_palette: "System",
   settings: "System",
   // Navigation layer → other sections
-  add_link: "Editing",
-  insert_child: "Editing",
-  add_sibling_below: "Editing",
-  insert_at_parent: "Editing",
-  enter_move_mode: "Editing",
   zoom_to_root: "Navigation",
   open_in_system: "System",
   open_in_terminal: "System",
@@ -289,12 +289,6 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
   toggle_collapse: "collapse column",
   toggle_show_ignored: "show ignored",
   cycle_view_mode: "cycle view",
-  // Editing (formerly Move/Add)
-  enter_move_mode: "move mode",
-  add_link: "add link",
-  insert_child: "add child",
-  add_sibling_below: "add below",
-  insert_at_parent: "add at parent",
   // Panes
   pane_split_vertical: "split v",
   pane_split_horizontal: "split h",
@@ -484,16 +478,25 @@ const COMBINE_RULES: CombineRule[] = [
 // ── Verb × Location grid ─────────────────────────────────────────────
 
 export const VERB_GRID: VerbGridRow[] = [
+  // Locations
   { key: "i", location: "inbox", goto: "g i", move: "m i" },
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "h", location: "home", goto: "g h", move: "m h" },
   { key: "e", location: "archive", goto: "g e" },
   { key: "N", location: "next", goto: "g N" },
-  { key: "p", location: "picker", goto: "g p", move: "m p" },
-  { key: "#", location: "tag", add: "a #" },
-  { key: "@", location: "assignee", add: "a @" },
-  { key: "+", location: "project", add: "a +" },
-  { key: "[", location: "backlink", add: "a [" },
+  { key: "p", location: "picker", goto: "g p", move: "⌃r / m p" },
+  // Add targets
+  { key: "#", location: "tag", add: "# / a #" },
+  { key: "@", location: "assignee", add: "@ / a @" },
+  { key: "+", location: "project", add: "+ / a +" },
+  { key: "[", location: "backlink", add: "[ / a [" },
+  { key: "l", location: "link", add: "⌃l" },
+  // Tree structure
+  { key: "i", location: "child", add: "a i" },
+  { key: "j", location: "sibling", add: "a j" },
+  { key: "h", location: "at parent", add: "a h" },
+  // Move
+  { key: "m", location: "move mode", move: "m / m m" },
 ]
 
 // ── macOS key formatting ─────────────────────────────────────────────
@@ -532,7 +535,7 @@ function formatKey(binding: Keybinding): string {
       keyName = "⎋"
       break
     case "Enter":
-      keyName = "↩"
+      keyName = "ret"
       break
     case "Tab":
       keyName = "⇥"
