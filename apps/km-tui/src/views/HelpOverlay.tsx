@@ -37,6 +37,37 @@ const SECTION_ROWS: Array<string[] | null> = [
 
 // ── Key display formatting ──────────────────────────────────────────
 
+/**
+ * Render key string with dim ` / ` separators for alternatives.
+ * Keys are yellow, ` / ` separators are dim grey.
+ */
+function renderKeyColored(keyStr: string, keyPrefix: string): React.ReactNode[] {
+  if (!keyStr.includes(" / ")) {
+    return [
+      <Text key={`${keyPrefix}-k0`} color="yellow">
+        {keyStr}
+      </Text>,
+    ]
+  }
+  const parts: React.ReactNode[] = []
+  const segments = keyStr.split(" / ")
+  for (let i = 0; i < segments.length; i++) {
+    if (i > 0) {
+      parts.push(
+        <Text key={`${keyPrefix}-s${i}`} dimColor>
+          {" / "}
+        </Text>,
+      )
+    }
+    parts.push(
+      <Text key={`${keyPrefix}-k${i}`} color="yellow">
+        {segments[i]}
+      </Text>,
+    )
+  }
+  return parts
+}
+
 // ── Dot-leader entry rendering ──────────────────────────────────────
 
 /** Render a single key..description entry with dot leaders */
@@ -99,7 +130,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
       return (
         <Text key={key}>
           {entryMatch[1]}
-          <Text color="yellow">{entryMatch[2]}</Text>
+          {renderKeyColored(entryMatch[2], key)}
           <Text dimColor>{entryMatch[3]}</Text>
           <Text>{entryMatch[4]}</Text>
         </Text>
@@ -166,7 +197,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
           parts.push(
             <React.Fragment key={colKey}>
               {entryMatch[1]}
-              <Text color="yellow">{entryMatch[2]}</Text>
+              {renderKeyColored(entryMatch[2], colKey)}
               <Text dimColor>{entryMatch[3]}</Text>
               <Text>{entryMatch[4]}</Text>
               {pad > 0 ? " ".repeat(pad) : null}
