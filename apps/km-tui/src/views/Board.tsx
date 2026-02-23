@@ -10,15 +10,7 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react"
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import {
   Box,
   Text,
@@ -216,14 +208,11 @@ function useColumnReveal(columnCount: number, rootId: string | null): number {
     }
   }
 
-  // Chain: after each column renders, reveal the next one
+  // Chain: after each column renders, reveal the next one via setTimeout(0).
+  // Each column gets one event-loop tick for inkx to paint before the next mounts.
   useEffect(() => {
     if (isTest || revealedCount >= columnCount) return
-    process.stderr.write(`[reveal] ${revealedCount}/${columnCount} effect fired +${Math.round(performance.now())}ms\n`)
-    const id = setTimeout(() => {
-      process.stderr.write(`[reveal] setTimeout fired, bumping to ${revealedCount + 1} +${Math.round(performance.now())}ms\n`)
-      setRevealedCount((c) => c + 1)
-    }, 0)
+    const id = setTimeout(() => setRevealedCount((c) => c + 1), 0)
     return () => clearTimeout(id)
   }, [revealedCount, columnCount, isTest])
 
