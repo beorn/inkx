@@ -288,17 +288,22 @@ function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: S
   const columns = repo.getChildren(rootId)
 
   // For large boards, fold ALL cards aggressively to keep zoom instant.
-  // Only need columns(depth 1) + cards(depth 2) — no deeper walk needed.
+  // Use getChildCounts batch query instead of preloadSubtree — avoids loading
+  // the full subtree (100k+ rows) just to check which cards have children.
   if (columns.length > AGGRESSIVE_FOLD_THRESHOLD) {
-    repo.preloadSubtree(rootId, 2)
+    // Collect all card IDs across all columns
+    const allCardIds: string[] = []
     for (const col of columns) {
       const cards = repo.getChildren(col.id)
       for (const card of cards) {
-        // Fold every card that has children (fold at depth 0)
-        const children = repo.getChildren(card.id)
-        if (children.length > 0) {
-          foldedNodes.add(card.id)
-        }
+        allCardIds.push(card.id)
+      }
+    }
+    // Batch query: get child counts for all cards in one SQL call
+    const childCounts = repo.getChildCounts(allCardIds)
+    for (const cardId of allCardIds) {
+      if ((childCounts.get(cardId) ?? 0) > 0) {
+        foldedNodes.add(cardId)
       }
     }
     return foldedNodes

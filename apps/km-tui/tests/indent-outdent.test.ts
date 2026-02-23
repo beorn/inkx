@@ -308,7 +308,7 @@ describe("Interaction with folded nodes", () => {
     )
 
     // Fold parent
-    board.press("H") // fold_node on parent
+    board.press("z").press("h") // fold_node on parent
 
     // Navigate to target
     board.press("j") // → target

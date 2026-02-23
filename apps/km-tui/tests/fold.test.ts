@@ -720,7 +720,7 @@ describe("fold border blank — buffer-level assertions", () => {
     board.press("H")
     expectBottomBorderIntact(board, "Parent-D")
 
-    // Step 5: unfold each card individually via L, verify borders restored
+    // Step 5: unfold each card individually via zl, verify borders restored
     // Cursor is on Parent-D after step 4
     board.press("L") // unfold Parent-D
     expectBottomBorderIntact(board, "Parent-D")
@@ -1261,6 +1261,60 @@ describe("progressive fold/unfold", () => {
     expect(board.screenshot()).toContain("Project") // card title always visible
   })
 
+  test("L on fully-folded card reveals only one level (progressive disclosure, km-ovuzg)", () => {
+    // Disable incremental check: fold/unfold changes tree height
+    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+
+    // Fold Project completely (3 H presses: depth 2 -> depth 1 -> depth 0)
+    board.press("H") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
+    board.press("H") // fold Project (depth 0)
+    expect(board.screenshot()).not.toContain("Phase 1")
+    expect(board.screenshot()).toContain("Project")
+
+    // First L: unfold Project — should reveal Phase 1/2 but NOT their children
+    board.press("L")
+    const afterFirstL = board.screenshot()
+    expect(afterFirstL).toContain("Phase 1")
+    expect(afterFirstL).toContain("Phase 2")
+    // Phase 1/2's children should be hidden because they were auto-folded
+    expect(afterFirstL).not.toContain("Task A")
+    expect(afterFirstL).not.toContain("Task B")
+    expect(afterFirstL).not.toContain("Task C")
+
+    // Second L: unfold Phase 1/2 — should reveal Task A/B/C but NOT subtask-x
+    board.press("L")
+    const afterSecondL = board.screenshot()
+    expect(afterSecondL).toContain("Task A")
+    expect(afterSecondL).toContain("Task B")
+    expect(afterSecondL).toContain("Task C")
+    // subtask-x should still be hidden (Task A auto-folded since it has children)
+    expect(afterSecondL).not.toContain("subtask-x")
+
+    // Third L: unfold Task A — reveals subtask-x
+    board.press("L")
+    expect(board.screenshot()).toContain("subtask-x")
+  })
+
+  test("L on card with flat children (no grandchildren) reveals all at once", () => {
+    // When children are all leaves, L should show them all — no unnecessary folding
+    const { board } = testEnv(
+      () =>
+        item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
+      { rows: 30, checkIncremental: false },
+    )
+
+    // Fold FlatParent
+    board.press("H")
+    expect(board.screenshot()).not.toContain("child-a")
+
+    // Unfold — all children should be visible (they're all leaves)
+    board.press("L")
+    const after = board.screenshot()
+    expect(after).toContain("child-a")
+    expect(after).toContain("child-b")
+    expect(after).toContain("child-c")
+  })
+
   test("H/L round-trip: fold then unfold restores visibility", () => {
     // Disable incremental check: fold/unfold changes tree height
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
@@ -1272,9 +1326,12 @@ describe("progressive fold/unfold", () => {
     expect(folded).not.toContain("Task A")
 
     // L unfolds the shallowest fold — Phase 1/2 at depth 1
+    // With progressive disclosure, children-with-children (Task A) get auto-folded
     board.press("L")
     const restored = board.screenshot()
     expect(restored).toContain("Phase 1")
-    expect(restored).toContain("Task A")
+    expect(restored).toContain("Task A") // visible but folded (auto-folded by progressive disclosure)
+    expect(restored).toContain("Task B") // leaf, always visible
+    expect(restored).not.toContain("subtask-x") // Task A is auto-folded, so subtask-x hidden
   })
 })

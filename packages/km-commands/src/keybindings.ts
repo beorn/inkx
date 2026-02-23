@@ -606,10 +606,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Tab", commandId: "indent_node" },
       { key: "Tab", shift: true, commandId: "outdent" },
 
-      // Clipboard (Ctrl/Cmd)
-      { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) },
-      { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) },
-      { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) },
+      // Clipboard (Cmd/Super only — Ctrl+C/X/V are reserved for process signals)
       { key: "c", super: true, commandId: "clipboard_copy", when: not(textInputFocused) },
       { key: "x", super: true, commandId: "clipboard_cut", when: not(textInputFocused) },
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },

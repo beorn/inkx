@@ -63,6 +63,8 @@ interface ChildrenCache {
   get(parentId: string | null): KNode[]
   bust(parentId: string | null): void
   clear(): void
+  /** Check if children for a given parentId are already cached */
+  has(parentId: string | null): boolean
   /** Set cache entry only if not already present (for batch preloading) */
   warmIfMissing(parentId: string | null, children: KNode[]): void
 }
@@ -82,6 +84,9 @@ function createChildrenCache(dataStore: DataStore): ChildrenCache {
     },
     clear() {
       cache.clear()
+    },
+    has(parentId) {
+      return cache.has(parentId)
     },
     warmIfMissing(parentId, children) {
       if (!cache.has(parentId)) {
@@ -114,6 +119,11 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbGetSubtree(db, nodeId)
     },
     preloadSubtree(rootId: string | null, maxDepth: number) {
+      // Skip the expensive recursive CTE if the root's children are already cached.
+      // This means a prior preload or getChildren already warmed this subtree.
+      // Cache is busted on mutations, so stale data isn't a concern.
+      if (childrenCache.has(rootId)) return
+
       const nodes = dbGetSubtreeShallow(db, rootId, maxDepth)
       // Group by parent_id and warm the children cache
       const byParent = new Map<string | null, KNode[]>()

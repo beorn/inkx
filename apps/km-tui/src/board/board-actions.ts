@@ -538,7 +538,17 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       walk(card.id, 0)
       if (shallowestDepth < Infinity) {
-        for (const id of nodesAtDepth.get(shallowestDepth)!) newFolded.delete(id)
+        const unfoldedIds = nodesAtDepth.get(shallowestDepth)!
+        for (const id of unfoldedIds) newFolded.delete(id)
+        // Progressive disclosure: auto-fold children of newly-unfolded nodes
+        // that have their own children, so only one level is revealed at a time.
+        for (const id of unfoldedIds) {
+          for (const child of ctx.repo.getChildren(id)) {
+            if (ctx.repo.getChildren(child.id).length > 0) {
+              newFolded.add(child.id)
+            }
+          }
+        }
         ctx.setFoldedNodes(newFolded)
         return ok()
       }

@@ -48,8 +48,8 @@ describe("body indicator (···)", () => {
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
-    // Fold the card's children with H (fold_node)
-    board.press("H")
+    // Fold the card's children with zh chord (fold_node)
+    board.press("z").press("h")
 
     // Now ··· should show because body children are hidden (folded)
     const screen = board.screenshot()
