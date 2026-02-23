@@ -14,11 +14,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createStore } from "zustand"
-import {
-  createBoardAppStoreState,
-  type BoardAppStore,
-  type CreateBoardAppStoreParams,
-} from "../src/board-app-store.ts"
+import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import { createBoardState, createPaneState } from "../src/board-types.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
@@ -164,7 +160,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Fold a node in main pane
     store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "task-1" })
-    expect(store.getState().foldedNodes.has("task-1")).toBe(true)
+    expect(store.getState().foldDepths.has("task-1")).toBe(true)
 
     // Split and switch to new pane
     store.getState().splitFocusedPane("h")
@@ -173,11 +169,11 @@ describe("windowing — focus switch saves/restores state", () => {
     // New pane's folds are empty (it's an empty pane)
     const newPaneId = store.getState().workspace.focusedPaneId
     const newPane = store.getState().workspace.panes.get(newPaneId)!
-    expect(newPane.foldedNodes.size).toBe(0)
+    expect(newPane.foldDepths.size).toBe(0)
 
     // Switch back — main pane should still have the fold
     store.getState().cyclePaneFocus("next")
-    expect(store.getState().foldedNodes.has("task-1")).toBe(true)
+    expect(store.getState().foldDepths.has("task-1")).toBe(true)
   })
 })
 
@@ -244,23 +240,28 @@ describe("windowing — dispatch syncs to focused pane", () => {
     expect(mainPane.curswantX).toBeNull()
   })
 
-  test("dispatchBoard TOGGLE_FOLD syncs foldedNodes to focused pane", () => {
+  test("dispatchBoard TOGGLE_FOLD syncs foldDepths to focused pane", () => {
     const { store } = createTestStore()
 
     store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "task-1" })
 
     const mainPane = store.getState().workspace.panes.get("main")!
-    expect(mainPane.foldedNodes.has("task-1")).toBe(true)
+    expect(mainPane.foldDepths.has("task-1")).toBe(true)
   })
 
-  test("setFoldedNodes syncs to focused pane", () => {
+  test("setFoldDepths syncs to focused pane", () => {
     const { store } = createTestStore()
 
-    store.getState().setFoldedNodes(new Set(["task-1", "task-2"]))
+    store.getState().setFoldDepths(
+      new Map([
+        ["task-1", 0],
+        ["task-2", 0],
+      ]),
+    )
 
     const mainPane = store.getState().workspace.panes.get("main")!
-    expect(mainPane.foldedNodes.has("task-1")).toBe(true)
-    expect(mainPane.foldedNodes.has("task-2")).toBe(true)
+    expect(mainPane.foldDepths.has("task-1")).toBe(true)
+    expect(mainPane.foldDepths.has("task-2")).toBe(true)
   })
 })
 
@@ -271,12 +272,7 @@ describe("windowing — dispatch syncs to focused pane", () => {
 describe("windowing — visual rendering", () => {
   test("single pane renders without borders", () => {
     const { board } = testEnv(
-      () =>
-        item.root(
-          "board",
-          item("Inbox", item("task-1"), item("task-2")),
-          item("Projects", item("proj-a")),
-        ),
+      () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
       { columns: 80, rows: 24 },
     )
 

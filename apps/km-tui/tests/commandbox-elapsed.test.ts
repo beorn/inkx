@@ -17,9 +17,7 @@ const SPINNER_FRAME_0 = "\u280B"
 
 describe("CommandBox elapsed time display", () => {
   test("loading spinner shows when isLoading is true", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("Task Alpha"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Before loading: no spinner frame in the bottom bar
     const before = board.screenshot()
@@ -39,9 +37,7 @@ describe("CommandBox elapsed time display", () => {
   })
 
   test("elapsed time shows after 1 second", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("Task Alpha"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Set loading with a start time 2 seconds in the past
     act(() => {
@@ -64,9 +60,7 @@ describe("CommandBox elapsed time display", () => {
   })
 
   test("elapsed time does NOT show when elapsed <= 1 second", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("Task Alpha"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Set loading with a start time just now (0 seconds elapsed)
     act(() => {
@@ -89,9 +83,7 @@ describe("CommandBox elapsed time display", () => {
   })
 
   test("elapsed time clears when loading stops", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("Task Alpha"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Start loading 3 seconds ago
     act(() => {
@@ -127,9 +119,7 @@ describe("CommandBox elapsed time display", () => {
   })
 
   test("elapsed time shows larger values for longer operations", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("Task Alpha"))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Simulate 15 seconds of loading
     act(() => {

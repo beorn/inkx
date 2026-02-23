@@ -261,7 +261,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // Source nodes (exist elsewhere in the tree -- under a different parent)
     const srcParent: KNode = {
       id: "src-parent",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Sources" },
@@ -274,7 +275,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     }
     const src1: KNode = {
       id: "src1",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       task_marker: "[ ]",
       task_status: "todo",
@@ -290,7 +292,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     }
     const src2: KNode = {
       id: "src2",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       task_marker: "[x]",
       task_status: "done",
@@ -308,7 +311,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // Tasks column
     const tasksCol: KNode = {
       id: "Tasks",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Tasks" },
@@ -324,7 +328,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // Embeds have no task_status/priority themselves — they inherit from source
     const embed1: KNode = {
       id: "embed1",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "![[src1]]",
       data: {},
@@ -337,7 +342,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     }
     const embed2: KNode = {
       id: "embed2",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "![[src2]]",
       data: {},
@@ -351,7 +357,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // A normal (non-embed) task for comparison
     const normalTask: KNode = {
       id: "normalTask",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       task_marker: "[ ]",
       task_status: "todo",
@@ -368,7 +375,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     // Board root
     const board: KNode = {
       id: "board",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "board" },

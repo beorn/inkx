@@ -44,7 +44,8 @@ function derivedState(store: StoreApi<BoardAppStore>) {
 function emptyColumn(id: string): KNode {
   return {
     id,
-    type: "h", item: true,
+    type: "h",
+    item: true,
     fstype: "folder",
     content: undefined,
     data: { name: id },
@@ -97,7 +98,8 @@ describe("Skeleton loading", () => {
       const colB = emptyColumn("col-empty-b")
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -146,7 +148,8 @@ describe("Skeleton loading", () => {
       const colA = emptyColumn("col-empty-a")
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -177,7 +180,8 @@ describe("Skeleton loading", () => {
       const colA = emptyColumn("col-empty-a")
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -221,7 +225,8 @@ describe("Skeleton loading", () => {
       const colB = emptyColumn("col-empty-b")
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -291,7 +296,8 @@ describe("Skeleton loading", () => {
     const { board, store, repo } = testEnv(() => {
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -309,7 +315,10 @@ describe("Skeleton loading", () => {
         boardNode,
         col1,
         ...item("col2", item("Task Beta")).map((n, i) => {
-          if (i === 0) ((n.parent_id = "board"), (n.parent_idx = 1))
+          if (i === 0) {
+            n.parent_id = "board"
+            n.parent_idx = 1
+          }
           return n
         }),
       ]
@@ -340,7 +349,8 @@ describe("Skeleton loading", () => {
     const { board, store, repo } = testEnv(() => {
       const boardNode: KNode = {
         id: "board",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },

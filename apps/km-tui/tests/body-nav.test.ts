@@ -402,7 +402,9 @@ describe("zoom into node with body content: cursor placement", () => {
     // Cursor on target-card
     expect(driver.getState().selectedNodeId).toBe("target-card")
 
-    // Zoom in (e)
+    // Zoom inwards: board → col1 → target-card (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("target-card")
 
@@ -425,7 +427,9 @@ describe("zoom into node with body content: cursor placement", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Zoom into section-with-hr
+    // Zoom inwards: board → col1 → section-with-hr (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("section-with-hr")
 
@@ -454,7 +458,8 @@ describe("zoom into node with body content: cursor placement", () => {
       ),
     )
 
-    // Zoom into target (cursor starts on target)
+    // Zoom inwards: board → col1 → target (one level per press)
+    board.press("z")
     board.press("z")
 
     // After zoom, cursor should be on first body card
@@ -482,7 +487,9 @@ describe("zoom into node with body content: cursor placement", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Zoom into section
+    // Zoom inwards: board → col1 → section (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("section")
 
@@ -526,7 +533,9 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Zoom into root-section
+    // Zoom inwards: board → col1 → root-section (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("root-section")
 
@@ -558,7 +567,9 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Zoom into target
+    // Zoom inwards: board → col1 → target (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("target")
 
@@ -606,7 +617,8 @@ describe("real vault scenario: zoom into section with mixed columns", () => {
       ),
     )
 
-    // Zoom into "landing" → becomes root, children become columns
+    // Zoom inwards: root → col1 → landing (one level per press)
+    board.press("z")
     board.press("z")
 
     // Now at column level or card level in the zoomed view

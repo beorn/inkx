@@ -45,7 +45,8 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
 function makeLiNode(id: string, parentId: string | null, parentIdx: number, children?: string[]): KNode[] {
   const node: KNode = {
     id,
-    type: "p", item: true,
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[ ]",
     task_status: "todo",
@@ -70,7 +71,8 @@ function makeLiNode(id: string, parentId: string | null, parentIdx: number, chil
 function makeOiNode(id: string, parentId: string | null, parentIdx: number): KNode {
   return {
     id,
-    type: "h", item: true,
+    type: "h",
+    item: true,
     fstype: "folder",
     content: undefined,
     data: { name: id },
@@ -891,7 +893,8 @@ describe("search flow via key presses", () => {
     // When selected, they may be at column level or card level.
     const fileNode: KNode = {
       id: "readme-file",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "file",
       content: "README",
       data: { name: "README" },

@@ -147,15 +147,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
   test("structural child without collapse rule still appears as a card", () => {
     // Ensure structural children without km.collapse:: true are not filtered
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("task-1"),
-            item("Subsection", item("sub-1"), item("sub-2")),
-          ),
-        ),
+      () => item("board", item("col", item("task-1"), item("Subsection", item("sub-1"), item("sub-2")))),
       { columns: 80, rows: 24 },
     )
 

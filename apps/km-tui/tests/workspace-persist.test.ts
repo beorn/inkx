@@ -62,7 +62,12 @@ function makePaneState(
     curswantY: null,
     viewMode: opts?.viewMode ?? "cards",
     cursorStore: {
-      getState: () => ({ cursorNodeId: null, cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" as const }),
+      getState: () => ({
+        cursorNodeId: null,
+        cursorCardNodeId: null,
+        cursorColumnNodeId: null,
+        selectionLevel: "board" as const,
+      }),
       setState: () => {},
       subscribe: () => () => {},
     },
@@ -86,11 +91,7 @@ const vsplit = (left: LayoutNode, right: LayoutNode, ratio = 0.5): LayoutNode =>
   right,
 })
 
-function makeWorkspace(opts?: {
-  panes?: PaneState[]
-  layout?: LayoutNode
-  focusedPaneId?: string
-}): WorkspaceState {
+function makeWorkspace(opts?: { panes?: PaneState[]; layout?: LayoutNode; focusedPaneId?: string }): WorkspaceState {
   const panes = opts?.panes ?? [makePaneState("main", { rootId: "node-tasks", rootPath: "/vault" })]
   const paneMap = new Map<string, PaneState>()
   for (const p of panes) paneMap.set(p.id, p)
@@ -223,12 +224,7 @@ describe("serializeWorkspace", () => {
   })
 
   it("serializes deeply nested layout", () => {
-    const panes = [
-      makePaneState("a"),
-      makePaneState("b"),
-      makePaneState("c"),
-      makePaneState("d"),
-    ]
+    const panes = [makePaneState("a"), makePaneState("b"), makePaneState("c"), makePaneState("d")]
     const layout = hsplit(vsplit(leaf("a"), leaf("b"), 0.3), vsplit(leaf("c"), leaf("d"), 0.7), 0.4)
     const ws = makeWorkspace({ panes, layout, focusedPaneId: "c" })
     const result = serializeWorkspace(ws, "complex", defaultRepo)

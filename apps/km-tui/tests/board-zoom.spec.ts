@@ -136,8 +136,9 @@ describe("Zooming", () => {
     board.press("j")
     board.expect("#card2[data-cursor]").toExist()
 
-    // Zoom in
-    board.press("z")
+    // zoom_inwards: first z goes to col (one level closer), second z goes to card2
+    board.press("z") // root=col, cursor stays on card2
+    board.press("z") // root=card2, sub1/sub2 visible
     board.expect("#sub1").toExist()
 
     // Nav back (history) - should restore cursor to card2
@@ -145,10 +146,10 @@ describe("Zooming", () => {
     board.expect("#card2[data-cursor]").toExist()
 
     // --- Z zooms out one level ---
-    // Zoom back in to card2
-    board.press("z")
+    // Zoom back in to card2 (two z presses: board → col → card2)
+    board.press("z") // root=col
+    board.press("z") // root=card2
     board.expect("#sub1").toExist()
-    board.expect("#col").not.toExist()
 
     // Z zooms out one level (back to col as root)
     // Cursor stays on sub1 (visible as card under card2 column)
@@ -177,32 +178,37 @@ describe("Zooming", () => {
     expect(output).toMatch(/board.*col.*parent/i)
   })
 
-  test("z zooms directly into cursor node (zoom_in)", () => {
-    // board > col > level1 > level2 > level3
-    // With cursor on level1 (which has children), pressing 'z' should zoom
-    // directly to level1 as root, showing level2 as a column
+  test("z zooms inwards one level toward cursor node (zoom_inwards)", () => {
+    // board > col > level1(level2(level3)), other
+    // With cursor on level1 (which has children), pressing 'z' zooms one level
+    // closer: board → col. A second 'z' goes col → level1.
     const { board } = testEnv(() =>
       item("board", item("col", item("level1", item("level2", item("level3"))), item("other"))),
     )
     // Cursor starts at level1 (first card in col)
     board.expect("#level1[data-cursor]").toExist()
 
-    // Press z - zoom_in makes level1 the root
+    // First z: zoom_inwards goes one level closer (board → col)
     board.press("z")
+    // At root=col: level1 and other are visible, level2 is a grandchild
+    board.expect("#level1").toExist()
+    board.expect("#level2").toExist()
 
+    // Second z: zoom_inwards goes another level (col → level1)
+    board.press("z")
     // Now we're zoomed to level1. level2 should be visible.
     board.expect("#level2").toExist()
     // "other" should NOT be visible (it's a sibling of level1, not a child)
     board.expect("#other").not.toExist()
   })
 
-  test("i at cursor's parent level acts like o (zoom to cursor)", () => {
-    // When cursor is already a direct child of root, i = one level = zoom to cursor
+  test("z at cursor's parent level zooms one level toward cursor", () => {
+    // When cursor is already a direct child of root's child, z zooms one level (to col)
     const { board } = testEnv(() => item("board", item("col", item("card", item("sub")))))
     board.expect("#card[data-cursor]").toExist()
 
     // col is direct child of board, and card is child of col.
-    // i should zoom to col (one level toward card).
+    // z should zoom to col (one level toward card).
     board.press("z")
     board.expect("#card").toExist()
     board.expect("#board").not.toExist()
@@ -213,8 +219,9 @@ describe("Zooming", () => {
       const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
       board.expect("#parent[data-cursor]").toExist()
 
-      // Zoom in - cursor should go to first child
-      board.press("z")
+      // zoom_inwards: first z goes board → col, second z goes col → parent
+      board.press("z") // root=col, cursor stays on parent
+      board.press("z") // root=parent, cursor on first child
       board.expect("#child1[data-cursor]").toExist()
     })
 
@@ -224,7 +231,9 @@ describe("Zooming", () => {
       const { board } = testEnv(() =>
         item("board", item("col", item("parent", item("child1", item("c1")), item("child2", item("c2"))))),
       )
-      board.press("z") // Zoom in to parent
+      // zoom_inwards: two presses to reach parent (board → col → parent)
+      board.press("z") // root=col, cursor stays on parent
+      board.press("z") // root=parent, cursor on first card (c1)
       // After zoom, cursor is on first card (grandchild) for immediate j/k navigation
       board.expect("#c1[data-cursor]").toExist()
 
@@ -265,7 +274,7 @@ describe("History", () => {
   })
 
   // NOTE: Navigation history is only pushed by ZOOM operations, not cursor movement.
-  // Tests for [ and ] must use zoom (i) to create history entries.
+  // Tests for [ and ] must use zoom (z) to create history entries.
   describe("cursor position after history navigation", () => {
     test("[ restores cursor after zoom, ] restores zoom state", () => {
       const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
@@ -290,19 +299,21 @@ describe("History", () => {
       const { board } = testEnv(() =>
         item("board", item("col", item("parent", item("c1", item("gc1")), item("c2", item("gc2"))))),
       )
-      // Zoom to parent (c1 and c2 become columns, cursor on first card = gc1)
-      board.press("z")
+      // zoom_inwards: two presses to reach parent (board → col → parent)
+      board.press("z") // root=col, cursor stays on parent
+      board.press("z") // root=parent, cursor on first card = gc1
       board.expect("#gc1[data-cursor]").toExist()
 
       // Navigate to c2's first card
       board.press("l")
       board.expect("#gc2[data-cursor]").toExist()
 
-      // Zoom deeper into c2
-      board.press("z")
+      // Zoom deeper into c2 (root=parent, cursor on gc2, parent of gc2 is c2, c2.parent=parent=root, so target=c2)
+      board.press("z") // root=c2
       board.expect("#gc2").toExist()
 
-      // Go back twice to return to board
+      // Go back three times to return to board (c2 → parent → col → board)
+      board.press("{")
       board.press("{")
       board.press("{")
       board.expect("#parent[data-cursor]").toExist()
@@ -465,7 +476,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 // --- Merged from zoom-inwards-body-only.test.ts (bead: km-tui.inline-edit-body) ---
 
 describe("zoom on body-only nodes", () => {
-  it("should zoom via handleZoomIn on a body-only node", () => {
+  it("should zoom via zoom_inwards on a body-only node", () => {
     // bodyOnlyNode has only paragraph/code children — these are now navigable cards
     const nodes = item("board", item("col1", item("bodyOnlyNode", item.paragraph("text1"), item.code("code1"))))
     const repo = createFakeRepo({ nodes })
@@ -473,14 +484,16 @@ describe("zoom on body-only nodes", () => {
 
     expect(driver.getState().selectedNodeId).toBe("bodyOnlyNode")
 
-    // Press 'e' (zoom_in) — should zoom since body cards are navigable
-    driver.press("z")
+    // zoom_inwards: first z goes board → col1, second z goes col1 → bodyOnlyNode
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
+    driver.press("z") // root=bodyOnlyNode
 
     const after = driver.store.getState()
     expect(after.rootId).toBe("bodyOnlyNode")
   })
 
-  it("should zoom via zoom_in into a body-only node", () => {
+  it("should zoom via zoom_inwards into a body-only node", () => {
     const nodes = item(
       "board",
       item("col1", item("task1")),
@@ -493,8 +506,10 @@ describe("zoom on body-only nodes", () => {
     driver.press("l")
     expect(driver.getState().selectedNodeId).toBe("bodyNode")
 
-    // Press 'z' (zoom_in) — makes cursor node the root
-    driver.press("z")
+    // zoom_inwards: first z goes board → bodyCol, second z goes bodyCol → bodyNode
+    driver.press("z") // root=bodyCol
+    expect(driver.store.getState().rootId).toBe("bodyCol")
+    driver.press("z") // root=bodyNode
 
     const after = driver.store.getState()
     expect(after.rootId).toBe("bodyNode")
@@ -505,11 +520,12 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Press 'z' (zoom_in) on the first card which has structural children
-    driver.press("z")
+    // zoom_inwards: first z goes board → col1, second z goes col1 → card-with-children
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
+    driver.press("z") // root=card-with-children
 
     const after = driver.store.getState()
-    // zoom_in makes cursor node (card-with-children) the root
     expect(after.rootId).toBe("card-with-children")
   })
 
@@ -518,11 +534,12 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // Press 'z' on mixed node (has both body and structural children)
-    driver.press("z")
+    // zoom_inwards: first z goes board → col1, second z goes col1 → mixed
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
+    driver.press("z") // root=mixed
 
     const after = driver.store.getState()
-    // zoom_in makes cursor node (mixed) the root
     expect(after.rootId).toBe("mixed")
   })
 })
@@ -561,7 +578,8 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Next Actions", parent_id: null }),
       makeNode({
         id: sectionId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdsection",
         title: "Processing",
         parent_id: rootId,
@@ -570,7 +588,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       makeNode({
         id: embed1Id,
         type: "embed",
-                content: "Embed 1",
+        content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
         embed_source: targetId,
@@ -578,7 +596,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       makeNode({
         id: embed2Id,
         type: "embed",
-                content: "Embed 2",
+        content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
         embed_source: targetId,
@@ -616,7 +634,15 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Notes", parent_id: null }),
-      makeNode({ id: sectionId, type: "h", item: true, fstype: "mdsection", title: "Intro", parent_id: rootId, parent_idx: 0 }),
+      makeNode({
+        id: sectionId,
+        type: "h",
+        item: true,
+        fstype: "mdsection",
+        title: "Intro",
+        parent_id: rootId,
+        parent_idx: 0,
+      }),
       makeNode({ id: para1Id, type: "p", content: "First paragraph", parent_id: sectionId, parent_idx: 0 }),
       makeNode({ id: para2Id, type: "p", content: "Second paragraph", parent_id: sectionId, parent_idx: 1 }),
     ]
@@ -644,12 +670,20 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Mixed", parent_id: null }),
-      makeNode({ id: sectionId, type: "h", item: true, fstype: "mdsection", title: "Section", parent_id: rootId, parent_idx: 0 }),
+      makeNode({
+        id: sectionId,
+        type: "h",
+        item: true,
+        fstype: "mdsection",
+        title: "Section",
+        parent_id: rootId,
+        parent_idx: 0,
+      }),
       makeNode({ id: paraId, type: "p", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
       makeNode({
         id: embedId,
         type: "embed",
-                content: "Embed ref",
+        content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
         embed_source: targetId,
@@ -686,10 +720,19 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
 
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
-      makeNode({ id: taskId, type: "p", item: true, list_marker: "-", content: "Leading task", parent_id: rootId, parent_idx: 0 }),
+      makeNode({
+        id: taskId,
+        type: "p",
+        item: true,
+        list_marker: "-",
+        content: "Leading task",
+        parent_id: rootId,
+        parent_idx: 0,
+      }),
       makeNode({
         id: sectionId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
@@ -697,7 +740,8 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       }),
       makeNode({
         id: cardId,
-        type: "p", item: true,
+        type: "p",
+        item: true,
         list_marker: "-",
         content: "Card in section",
         parent_id: sectionId,
@@ -736,14 +780,15 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: embedId,
         type: "embed",
-                content: "Leading embed",
+        content: "Leading embed",
         parent_id: rootId,
         parent_idx: 0,
         embed_source: targetId,
       }),
       makeNode({
         id: sectionId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
@@ -772,10 +817,42 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
 
     const nodes: KNode[] = [
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
-      makeNode({ id: sec1Id, type: "h", item: true, fstype: "mdsection", title: "Todo", parent_id: rootId, parent_idx: 0 }),
-      makeNode({ id: sec2Id, type: "h", item: true, fstype: "mdsection", title: "Done", parent_id: rootId, parent_idx: 1 }),
-      makeNode({ id: task1Id, type: "p", item: true, list_marker: "-", content: "Task 1", parent_id: sec1Id, parent_idx: 0 }),
-      makeNode({ id: task2Id, type: "p", item: true, list_marker: "-", content: "Task 2", parent_id: sec2Id, parent_idx: 0 }),
+      makeNode({
+        id: sec1Id,
+        type: "h",
+        item: true,
+        fstype: "mdsection",
+        title: "Todo",
+        parent_id: rootId,
+        parent_idx: 0,
+      }),
+      makeNode({
+        id: sec2Id,
+        type: "h",
+        item: true,
+        fstype: "mdsection",
+        title: "Done",
+        parent_id: rootId,
+        parent_idx: 1,
+      }),
+      makeNode({
+        id: task1Id,
+        type: "p",
+        item: true,
+        list_marker: "-",
+        content: "Task 1",
+        parent_id: sec1Id,
+        parent_idx: 0,
+      }),
+      makeNode({
+        id: task2Id,
+        type: "p",
+        item: true,
+        list_marker: "-",
+        content: "Task 2",
+        parent_id: sec2Id,
+        parent_idx: 0,
+      }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -895,7 +972,8 @@ describe("u zooms out to parent", () => {
       item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
     )
 
-    // Zoom into parent (first card in col)
+    // zoom_inwards: two presses to reach parent (board → col → parent)
+    board.press("z") // root=col, cursor stays on parent
     board.press("z") // root=parent, columns=[child1, child2]
     board.expect("#child1").toExist()
     board.expect("#child2").toExist()
@@ -928,8 +1006,9 @@ describe("u zooms out to parent", () => {
       item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"))))),
     )
 
-    // Zoom into parent — root=parent, columns=[child1, child2]
-    board.press("z")
+    // zoom_inwards: two presses to reach parent (board → col → parent)
+    board.press("z") // root=col
+    board.press("z") // root=parent, columns=[child1, child2]
     board.expect("#child1").toExist()
     board.expect("#child2").toExist()
 
@@ -950,8 +1029,9 @@ describe("u zooms out to parent", () => {
       item("board", item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3"))))),
     )
 
-    // Zoom into parent: root=parent, columns=[child1, child2], cursor=gc1
-    board.press("z")
+    // zoom_inwards: two presses to reach parent (board → col → parent)
+    board.press("z") // root=col
+    board.press("z") // root=parent, columns=[child1, child2], cursor=gc1
     board.expect("#gc1[data-cursor]").toExist()
 
     // Navigate to gc2 (second card in child1 column)
@@ -972,8 +1052,9 @@ describe("u zooms out to parent", () => {
       item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"), item("gc3"))))),
     )
 
-    // Zoom into parent: root=parent, columns=[child1, child2], cursor=gc1
-    board.press("z")
+    // zoom_inwards: two presses to reach parent (board → col → parent)
+    board.press("z") // root=col
+    board.press("z") // root=parent, columns=[child1, child2], cursor=gc1
     board.expect("#gc1[data-cursor]").toExist()
 
     // Navigate right to child2 column
@@ -1003,7 +1084,8 @@ describe("u zooms out to parent", () => {
       item("board", item("col", item("card1", item("sub1")), item("card2", item("sub2")))),
     )
 
-    // Zoom into card1 (cursor starts on card1, card1 has children)
+    // zoom_inwards: two presses to reach card1 (board → col → card1)
+    board.press("z") // root=col
     board.press("z") // root=card1, sub1 is a column
     board.expect("#sub1").toExist()
 

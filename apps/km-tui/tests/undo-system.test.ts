@@ -45,7 +45,8 @@ describe("undo: add node", () => {
 
     // Add a new node
     const newId = repo.addNode("col1", {
-      type: "p", item: true,
+      type: "p",
+      item: true,
       content: "new-task",
       task_marker: "[ ]",
       task_status: "todo",
@@ -68,7 +69,8 @@ describe("undo: add node", () => {
     const { repo, handle } = setupBoard()
 
     const newId = repo.addNode("col1", {
-      type: "p", item: true,
+      type: "p",
+      item: true,
       content: "new-task",
       task_marker: "[ ]",
       task_status: "todo",

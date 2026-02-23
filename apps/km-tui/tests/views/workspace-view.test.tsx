@@ -60,12 +60,7 @@ describe("WorkspaceView — single leaf", () => {
     const panes = new Map([["main", pane]])
 
     const app = render(
-      <WorkspaceView
-        layout={layout}
-        panes={panes}
-        focusedPaneId="main"
-        renderPane={() => <BoardContent />}
-      />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="main" renderPane={() => <BoardContent />} />,
     )
 
     // Board content is rendered
@@ -104,12 +99,7 @@ describe("WorkspaceView — multi-pane layout", () => {
     const { panes, layout, focusedId } = twoPane()
 
     const app = render(
-      <WorkspaceView
-        layout={layout}
-        panes={panes}
-        focusedPaneId={focusedId}
-        renderPane={() => <BoardContent />}
-      />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId={focusedId} renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("[1]")
@@ -121,12 +111,7 @@ describe("WorkspaceView — multi-pane layout", () => {
     const { panes, layout } = twoPane({ focusedId: "pane-1" })
 
     const app = render(
-      <WorkspaceView
-        layout={layout}
-        panes={panes}
-        focusedPaneId="pane-1"
-        renderPane={() => <BoardContent />}
-      />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="pane-1" renderPane={() => <BoardContent />} />,
     )
 
     // Locate label text nodes — focused [1] should be bold+green, unfocused [2] should be gray
@@ -139,12 +124,7 @@ describe("WorkspaceView — multi-pane layout", () => {
     const { panes, layout } = twoPane({ focusedId: "pane-2" })
 
     const app = render(
-      <WorkspaceView
-        layout={layout}
-        panes={panes}
-        focusedPaneId="pane-2"
-        renderPane={() => <BoardContent />}
-      />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="pane-2" renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("[1]")
@@ -155,12 +135,7 @@ describe("WorkspaceView — multi-pane layout", () => {
     const { panes, layout } = twoPane({ rightType: "empty" })
 
     const app = render(
-      <WorkspaceView
-        layout={layout}
-        panes={panes}
-        focusedPaneId="pane-1"
-        renderPane={() => <BoardContent />}
-      />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="pane-1" renderPane={() => <BoardContent />} />,
     )
 
     // The empty pane should show "empty" dim text next to its label

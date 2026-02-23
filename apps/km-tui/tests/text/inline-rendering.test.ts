@@ -64,10 +64,7 @@ describe("long bare URL prettification", () => {
   })
 
   it("long bare URL in card body renders prettified (no https://)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item(`Check ${longUrl}`))),
-      { rows: 20, columns: 100 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item(`Check ${longUrl}`))), { rows: 20, columns: 100 })
 
     const screenText = board.screen.text
     expect(screenText).not.toContain("https://")
@@ -80,7 +77,8 @@ describe("long bare URL prettification", () => {
 // =============================================================================
 
 describe("long markdown links", () => {
-  const longMarkdownLink = "[project docs](https://very-long-url.com/path/to/really/deep/nested/page?with=params&and=more)"
+  const longMarkdownLink =
+    "[project docs](https://very-long-url.com/path/to/really/deep/nested/page?with=params&and=more)"
 
   it("parseInlineText parses as link node with text and url", () => {
     const nodes = parseInlineText(longMarkdownLink)
@@ -123,11 +121,7 @@ describe("detail pane body rendering", () => {
     // A card (depth 0) with a paragraph child should have body content.
     // In the cards view, the card shows a body indicator (···).
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.file("Parent card", item.paragraph("This is body text for the parent"))),
-        ),
+      () => item("board", item("col1", item.file("Parent card", item.paragraph("This is body text for the parent")))),
       { rows: 20, columns: 80 },
     )
 
@@ -141,11 +135,7 @@ describe("detail pane body rendering", () => {
     // When a card has a paragraph child, the paragraph text should
     // be rendered as a card child line (not "(empty)").
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.file("Task", item.paragraph("Body paragraph content here"))),
-        ),
+      () => item("board", item("col1", item.file("Task", item.paragraph("Body paragraph content here")))),
       { rows: 20, columns: 80 },
     )
 
@@ -191,10 +181,7 @@ describe("card body multi-line content", () => {
   it("card child renders without escape sequence artifacts", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item("col1", item.file("Card", item.paragraph("Content with https://example.com/link inside"))),
-        ),
+        item("board", item("col1", item.file("Card", item.paragraph("Content with https://example.com/link inside")))),
       { rows: 20, columns: 50 },
     )
 
@@ -225,14 +212,10 @@ describe("breadcrumb URL prettification", () => {
   it("node name with bare URL renders prettified in top bar", () => {
     // When a node's display name contains a bare URL, the top bar
     // should show the prettified version (via parseToPlainText in board-top-bar.ts).
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("https://github.com/user/repo/issues/42")),
-        ),
-      { rows: 20, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("https://github.com/user/repo/issues/42"))), {
+      rows: 20,
+      columns: 80,
+    })
 
     const screenText = board.screen.text
     // The card itself should show prettified URL

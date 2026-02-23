@@ -168,7 +168,7 @@ describe("Selection", () => {
   })
 
   // ---------------------------------------------------------------------------
-  // Progressive select all (A = Shift+A = select_all_progressive)
+  // Select all (A = Shift+A = select_all, progressive: column then board)
   // In cards view (no outline mode): column -> board -> column -> ...
   // Card scope requires outline mode.
   // ---------------------------------------------------------------------------

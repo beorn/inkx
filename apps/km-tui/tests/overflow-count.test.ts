@@ -47,7 +47,8 @@ describe("child count on subitems", () => {
         // bodyTask as li (body content, not oi) with children
         const bodyTask: KNode = {
           id: "bodyTask",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           task_marker: "[ ]",
           task_status: "todo",
@@ -63,7 +64,8 @@ describe("child count on subitems", () => {
         // bodyTask children
         const btChild1: KNode = {
           id: "bt-child-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           content: "bt-child-1",
           data: {},
@@ -76,7 +78,8 @@ describe("child count on subitems", () => {
         }
         const btChild2: KNode = {
           id: "bt-child-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           content: "bt-child-2",
           data: {},
@@ -89,7 +92,8 @@ describe("child count on subitems", () => {
         }
         const btChild3: KNode = {
           id: "bt-child-3",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           content: "bt-child-3",
           data: {},
@@ -103,7 +107,8 @@ describe("child count on subitems", () => {
         // sectionA as oi (structural)
         const sectionA: KNode = {
           id: "sectionA",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "folder",
           content: undefined,
           data: { name: "sectionA" },
@@ -116,7 +121,8 @@ describe("child count on subitems", () => {
         }
         const card1: KNode = {
           id: "card1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           content: "card1",
           data: {},
@@ -183,7 +189,8 @@ describe("overflow indicator on cards", () => {
       { checkIncremental: false }, // zoom causes incremental mismatch (separate issue)
     )
 
-    // Zoom into zoomTarget via 'e'
+    // Zoom inwards toward zoomTarget: first z → root=col1, second z → root=zoomTarget
+    board.press("z")
     board.press("z")
 
     const screenshot = board.screenshot()

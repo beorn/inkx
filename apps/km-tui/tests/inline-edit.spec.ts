@@ -589,7 +589,8 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
@@ -606,7 +607,8 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
@@ -716,7 +718,8 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     // Create target nodes that the links point to
     const targetA: KNode = {
       id: "target-a",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       content: "Target task A",
       parent_id: "other-file",
@@ -733,7 +736,8 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     const targetC: KNode = { ...targetA, id: "target-c", content: "Target task C", parent_idx: 2 }
     const otherFile: KNode = {
       id: "other-file",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },

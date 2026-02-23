@@ -22,7 +22,8 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
   const nodes: KNode[] = [
     {
       id: "root",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "repo",
       data: { name: "board", is_repo_root: true },
       parent_id: null,
@@ -34,7 +35,8 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     },
     {
       id: "col1",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "folder",
       name: opts.sigilName,
       data: { name: opts.displayName },
@@ -47,7 +49,8 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     },
     {
       id: "task-a",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       task_marker: "[ ]",
       task_status: "todo",
@@ -66,7 +69,8 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     nodes.push(
       {
         id: "col2",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "folder",
         data: { name: "col2" },
         parent_id: "root",
@@ -78,7 +82,8 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
       },
       {
         id: "task-b",
-        type: "p", item: true,
+        type: "p",
+        item: true,
         list_marker: "-",
         task_marker: "[ ]",
         task_status: "todo",

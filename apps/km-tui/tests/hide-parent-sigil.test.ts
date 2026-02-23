@@ -58,7 +58,8 @@ describe("hide redundant parent sigil on embedded links", () => {
       // This represents the file where the tasks originally live
       nodes.push({
         id: "next-file",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
@@ -75,7 +76,8 @@ describe("hide redundant parent sigil on embedded links", () => {
       // Add the target task nodes (what the embeds point to)
       nodes.push({
         id: "target-a",
-        type: "p", item: true,
+        type: "p",
+        item: true,
         list_marker: "-",
         parent_id: "next-file",
         parent_idx: 0,
@@ -91,7 +93,8 @@ describe("hide redundant parent sigil on embedded links", () => {
 
       nodes.push({
         id: "target-b",
-        type: "p", item: true,
+        type: "p",
+        item: true,
         list_marker: "-",
         parent_id: "next-file",
         parent_idx: 1,

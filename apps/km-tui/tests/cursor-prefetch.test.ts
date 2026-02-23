@@ -82,13 +82,7 @@ describe("cursor prefetch on horizontal navigation", () => {
 
   test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 120, rows: 20 },
     )
 
@@ -147,15 +141,10 @@ describe("cursor prefetch on horizontal navigation", () => {
   })
 
   test("horizontal nav across boundary doesn't cause errors", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-        ),
-      { columns: 80, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      columns: 80,
+      rows: 20,
+    })
 
     // Navigate to right boundary
     board.press("l")
@@ -182,12 +171,7 @@ describe("cursor prefetch on horizontal navigation", () => {
 describe("rapid repo.touch() coalescing", () => {
   test("5 rapid touch() calls don't crash the board", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))),
       { columns: 80, rows: 20 },
     )
 
@@ -215,12 +199,7 @@ describe("rapid repo.touch() coalescing", () => {
 
   test("touch() between navigation steps doesn't break cursor", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-        ),
+      () => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
       { columns: 80, rows: 20 },
     )
 
@@ -255,14 +234,10 @@ describe("rapid repo.touch() coalescing", () => {
   })
 
   test("rapid touch() with no actual data changes preserves rendering", () => {
-    const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-1"), item("task-2"), item("task-3")),
-        ),
-      { columns: 60, rows: 20 },
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))), {
+      columns: 60,
+      rows: 20,
+    })
 
     const before = board.screenshot()
     expect(before).toContain("task-1")
@@ -285,13 +260,7 @@ describe("rapid repo.touch() coalescing", () => {
 
   test("touch() during horizontal navigation doesn't cause rendering issues", () => {
     const { board, repo } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a")),
-          item("col2", item("2a")),
-          item("col3", item("3a")),
-        ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 120, rows: 20 },
     )
 

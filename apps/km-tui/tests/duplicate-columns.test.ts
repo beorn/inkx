@@ -32,7 +32,8 @@ describe("duplicate column deduplication", () => {
     const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const nextPopulated = makeNode({
       id: "next-1",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -42,7 +43,8 @@ describe("duplicate column deduplication", () => {
     })
     const nextEmpty = makeNode({
       id: "next-2",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -52,21 +54,24 @@ describe("duplicate column deduplication", () => {
     })
     const task1 = makeNode({
       id: "task-1",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       parent_id: "next-1",
       parent_idx: 0,
       content: "Do something",
     })
     const task2 = makeNode({
       id: "task-2",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       parent_id: "next-1",
       parent_idx: 1,
       content: "Do something else",
     })
     const otherCol = makeNode({
       id: "other-col",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 2,
@@ -93,7 +98,8 @@ describe("duplicate column deduplication", () => {
     const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const nextEmpty = makeNode({
       id: "next-empty",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -103,7 +109,8 @@ describe("duplicate column deduplication", () => {
     })
     const nextPopulated = makeNode({
       id: "next-pop",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -113,7 +120,8 @@ describe("duplicate column deduplication", () => {
     })
     const task = makeNode({
       id: "task-1",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       parent_id: "next-pop",
       parent_idx: 0,
       content: "Task",
@@ -135,7 +143,8 @@ describe("duplicate column deduplication", () => {
     const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
     const col1 = makeNode({
       id: "col-1",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 0,
@@ -143,7 +152,8 @@ describe("duplicate column deduplication", () => {
     })
     const col2 = makeNode({
       id: "col-2",
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 1,

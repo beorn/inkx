@@ -175,14 +175,16 @@ describe("getProjectPath", () => {
         { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -199,7 +201,8 @@ describe("getProjectPath", () => {
         { id: "file1", type: "h", item: true, fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Do something",
           parent_id: "file1",
         },
@@ -249,7 +252,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review Q1 budget",
           task_status: "todo",
           due_at: "2026-01-10",
@@ -273,7 +277,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Test task",
           task_status: "todo",
           assigned_to: "bjorn",
@@ -310,7 +315,8 @@ describe("DetailPane", () => {
         { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           content: "Subtask 1",
           parent_id: "parent1",
           task_status: "done",
@@ -318,7 +324,8 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           content: "Subtask 2",
           parent_id: "parent1",
           parent_idx: 1,
@@ -338,7 +345,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Talk to @john about #budget for +work project [[Meeting Notes]]",
         },
       ]),
@@ -357,14 +365,16 @@ describe("DetailPane", () => {
         { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -392,7 +402,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Completed task",
           task_status: "done",
         },
@@ -408,7 +419,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Immigration paperwork",
           task_status: "todo",
           data: {
@@ -435,7 +447,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Simple task",
           task_status: "todo",
           data: {
@@ -457,13 +470,15 @@ describe("DetailPane", () => {
         // Project file nodes (as created by import) — their content is the project title
         {
           id: "proj1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "mdfile" as const,
           content: "FAMILY SPRINT",
         },
         {
           id: "proj2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "mdfile" as const,
           content: "[Fam] Estate",
         },
@@ -471,7 +486,8 @@ describe("DetailPane", () => {
         // (simulates post-parse state where projectMemberships was lost)
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review docs +family-sprint +fam-estate",
           task_status: "todo",
         },
@@ -489,7 +505,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review docs +unknown-project",
           task_status: "todo",
         },
@@ -507,7 +524,8 @@ describe("DetailPane", () => {
         { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Subtask with kids",
           parent_id: "parent1",
           task_status: "todo",
@@ -515,14 +533,16 @@ describe("DetailPane", () => {
         },
         {
           id: "grandchild1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Grandchild 1",
           parent_id: "sub1",
           task_marker: "[ ]",
         },
         {
           id: "grandchild2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Grandchild 2",
           parent_id: "sub1",
           parent_idx: 1,
@@ -530,7 +550,8 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Subtask no kids",
           parent_id: "parent1",
           parent_idx: 1,
@@ -560,7 +581,15 @@ describe("DetailPane", () => {
         { id: "d4", type: "p", item: true, content: "Depth 4", parent_id: "d3", task_marker: "[ ]" },
         // d4 is at depth 3, so its children are not fetched
         { id: "d5a", type: "p", item: true, content: "Hidden child A", parent_id: "d4", task_marker: "[ ]" },
-        { id: "d5b", type: "p", item: true, content: "Hidden child B", parent_id: "d4", parent_idx: 1, task_marker: "[ ]" },
+        {
+          id: "d5b",
+          type: "p",
+          item: true,
+          content: "Hidden child B",
+          parent_id: "d4",
+          parent_idx: 1,
+          task_marker: "[ ]",
+        },
       ]),
     })
     const parent = repo.getNode("parent1")!
@@ -623,7 +652,8 @@ describe("DetailPane", () => {
         // Then subtask items
         {
           id: "sub1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Subtask A",
           parent_id: "task1",
           parent_idx: 1,
@@ -631,7 +661,8 @@ describe("DetailPane", () => {
         },
         {
           id: "sub2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Subtask B",
           parent_id: "task1",
           parent_idx: 2,
@@ -655,7 +686,8 @@ describe("DetailPane", () => {
         { id: "target1", type: "p", item: true, content: "Target task" },
         {
           id: "source1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "mdfile" as const,
           content: "Meeting Notes",
           parent_idx: 1,
@@ -686,7 +718,8 @@ describe("DetailPane", () => {
       nodes: createTestNodes([
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Clean task",
           task_status: "todo",
         },
@@ -707,14 +740,16 @@ describe("DetailPane", () => {
         { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
         },
         {
           id: "task1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -747,14 +782,16 @@ describe("DetailPane", () => {
         { id: "parent1", type: "h", item: true, content: "Parent task" },
         {
           id: "sub1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "First subtask",
           parent_id: "parent1",
           task_marker: "[ ]",
         },
         {
           id: "sub2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Second subtask",
           parent_id: "parent1",
           parent_idx: 1,
@@ -762,7 +799,8 @@ describe("DetailPane", () => {
         },
         {
           id: "sub3",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Third subtask",
           parent_id: "parent1",
           parent_idx: 2,

@@ -58,7 +58,8 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     rows: height,
   })
   const store = createStore(() => ({
-    foldedNodes: new Set<string>(),
+    foldDepths: new Map<string, number>(),
+    workspace: { panes: new Map() },
     ui: initialUI,
     navigator: null,
     setUI: () => {},
@@ -192,7 +193,8 @@ describe("Render", () => {
     const repo = createFakeRepo()
     const card: KNode = {
       id: "test-card",
-      type: "p", item: true,
+      type: "p",
+      item: true,
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
@@ -212,7 +214,8 @@ describe("Render", () => {
       nodes: [
         {
           id: "test-card",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
@@ -225,7 +228,8 @@ describe("Render", () => {
         },
         {
           id: "child-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
@@ -248,7 +252,8 @@ describe("Render", () => {
       nodes: [
         {
           id: "test-card",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
@@ -261,7 +266,8 @@ describe("Render", () => {
         },
         {
           id: "child-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
@@ -274,7 +280,8 @@ describe("Render", () => {
         },
         {
           id: "child-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 1,

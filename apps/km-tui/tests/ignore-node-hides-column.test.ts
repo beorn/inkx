@@ -40,7 +40,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const fileNode: KNode = {
     ...base,
     id: "file-1",
-    type: "h", item: true,
+    type: "h",
+    item: true,
     fstype: "mdfile",
     fs_path: "tasks.md",
     name: "tasks",
@@ -52,7 +53,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const col1: KNode = {
     ...base,
     id: "col1",
-    type: "h", item: true,
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "todo",
     content: "Todo",
@@ -64,7 +66,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const col2: KNode = {
     ...base,
     id: "col2",
-    type: "h", item: true,
+    type: "h",
+    item: true,
     fstype: "mdsection",
     name: "done",
     content: "Done",
@@ -76,7 +79,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const taskA: KNode = {
     ...base,
     id: "task-a",
-    type: "p", item: true,
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[ ]",
     task_status: "todo",
@@ -89,7 +93,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const taskB: KNode = {
     ...base,
     id: "task-b",
-    type: "p", item: true,
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[ ]",
     task_status: "todo",
@@ -102,7 +107,8 @@ function createRealisticNodes(repoPath: string): KNode[] {
   const taskC: KNode = {
     ...base,
     id: "task-c",
-    type: "p", item: true,
+    type: "p",
+    item: true,
     list_marker: "-",
     task_marker: "[x]",
     task_status: "done",

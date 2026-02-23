@@ -46,11 +46,7 @@ describe("filter hidden count indicator", () => {
 
   test("hidden indicator disappears when filter is cleared", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs")),
-        ),
+      () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 80, rows: 24 },
     )
 
@@ -70,14 +66,10 @@ describe("filter hidden count indicator", () => {
   })
 
   test("no hidden indicator when all cards match filter", () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Tasks", item("Fix bug"), item("Fix login")),
-        ),
-      { columns: 80, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     // Apply filter that matches all cards
     store.getState().setUI({ filterText: "Fix" })

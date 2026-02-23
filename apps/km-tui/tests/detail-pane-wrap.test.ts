@@ -75,7 +75,8 @@ describe("DetailPane word wrapping", () => {
     const nodes = [
       createTestNode({
         id: "task1",
-        type: "p", item: true,
+        type: "p",
+        item: true,
         content: "Test",
         task_status: "todo",
         data: {
@@ -100,7 +101,8 @@ describe("DetailPane word wrapping", () => {
       createTestNode({ id: "parent1", type: "h", item: true, content: "Parent task" }),
       createTestNode({
         id: "sub1",
-        type: "p", item: true,
+        type: "p",
+        item: true,
         content: "Subtask one",
         parent_id: "parent1",
         task_status: "todo",

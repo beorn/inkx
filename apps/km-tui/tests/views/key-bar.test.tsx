@@ -21,11 +21,7 @@ function renderWithFocus(ui: UIState, termWidth: number, focusedId?: string) {
     fm.focus({ props: { testID: focusedId }, children: [], parent: null } as any, "programmatic")
   }
   return render(
-    React.createElement(
-      FocusManagerContext.Provider,
-      { value: fm },
-      React.createElement(KeyBar, { ui, termWidth }),
-    ),
+    React.createElement(FocusManagerContext.Provider, { value: fm }, React.createElement(KeyBar, { ui, termWidth })),
   )
 }
 

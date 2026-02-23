@@ -1305,8 +1305,7 @@ describe("progressive fold/unfold", () => {
   test("L on card with flat children (no grandchildren) reveals all at once", () => {
     // When children are all leaves, L should show them all — no unnecessary folding
     const { board } = testEnv(
-      () =>
-        item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
+      () => item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
       { rows: 30, checkIncremental: false },
     )
 

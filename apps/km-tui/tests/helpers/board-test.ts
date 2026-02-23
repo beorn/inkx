@@ -343,11 +343,7 @@ function standardBoard() {
  */
 
 /** Build an EventHandlerContext with focus support for tests */
-function buildTestEventHandlerCtx(
-  store: StoreApi<BoardAppStore>,
-  fm: ReturnType<typeof createFocusManager>,
-  app: App,
-) {
+function buildTestEventHandlerCtx(store: StoreApi<BoardAppStore>, fm: ReturnType<typeof createFocusManager>, app: App) {
   return {
     get: store.getState,
     set: store.setState,
@@ -2202,7 +2198,7 @@ export function renderBoard(state: InitialBoardData, options: BoardTestOptions =
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], { columns, rows })
   const store = createStore(() => ({
-    foldedNodes: new Set<string>(),
+    foldDepths: new Map<string, number>(),
     ui: initialUI,
     navigator: null,
     setUI: () => {},

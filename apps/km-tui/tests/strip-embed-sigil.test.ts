@@ -71,7 +71,8 @@ describe("strip embed sigil", () => {
         // Target A: task with name "@next" (sigil should be stripped in @next column)
         nodes.push({
           id: "target-a",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 0,
@@ -89,7 +90,8 @@ describe("strip embed sigil", () => {
         // Target B: task with name "@waiting" (different sigil, should NOT be stripped in @next column)
         nodes.push({
           id: "target-b",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "some-file",
           parent_idx: 1,
@@ -223,7 +225,8 @@ describe("strip embed sigil", () => {
         // Target task that lives inside @next.md — parent context would be "@next"
         nodes.push({
           id: "target-c",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           list_marker: "-",
           parent_id: "next-file",
           parent_idx: 0,

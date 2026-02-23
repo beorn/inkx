@@ -17,8 +17,7 @@ const baseRender = createRenderer()
 /** Render wrapped with FocusManagerContext (including rerender) */
 function render(element: React.ReactElement) {
   const fm = createFocusManager()
-  const wrap = (el: React.ReactElement) =>
-    React.createElement(FocusManagerContext.Provider, { value: fm }, el)
+  const wrap = (el: React.ReactElement) => React.createElement(FocusManagerContext.Provider, { value: fm }, el)
   const app = baseRender(wrap(element))
   const originalRerender = app.rerender.bind(app)
   app.rerender = (el: React.ReactElement) => originalRerender(wrap(el))
@@ -93,7 +92,8 @@ describe("CommandBox", () => {
     {
       node: {
         id: "section-1",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdsection",
         parent_id: "root-123",
         parent_idx: 0,
@@ -111,7 +111,8 @@ describe("CommandBox", () => {
     {
       node: {
         id: "section-2",
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdsection",
         parent_id: "root-123",
         parent_idx: 1,
@@ -222,7 +223,18 @@ describe("CommandBox", () => {
     )
     const output = app.text
     // Spinner frames should not appear when not loading
-    const spinnerFrames = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"]
+    const spinnerFrames = [
+      "\u280B",
+      "\u2819",
+      "\u2839",
+      "\u2838",
+      "\u283C",
+      "\u2834",
+      "\u2826",
+      "\u2827",
+      "\u2807",
+      "\u280F",
+    ]
     const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
     expect(hasSpinner).toBe(false)
   })
