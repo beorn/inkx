@@ -119,19 +119,14 @@ function convertAsanaLinks(text: string): string {
 // =============================================================================
 
 /** Map import status to km TaskStatus */
+const TASK_STATUS_MAP: Record<string, TaskStatus> = {
+  done: "done",
+  wip: "doing",
+  blocked: "blocked",
+  dropped: "dropped",
+}
 function toTaskStatus(status?: string): TaskStatus {
-  switch (status) {
-    case "done":
-      return "done"
-    case "wip":
-      return "doing"
-    case "blocked":
-      return "blocked"
-    case "dropped":
-      return "dropped"
-    default:
-      return "todo"
-  }
+  return TASK_STATUS_MAP[status ?? ""] ?? "todo"
 }
 
 /** Mutable counter scoped to each conversion pass (avoids module-level state) */

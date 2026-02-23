@@ -476,6 +476,37 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
+   * Regenerate the file containing a given node.
+   * Looks up the parent chain to find the file node, then serializes
+   * its subtree to markdown and queues a write.
+   *
+   * @param nodeOrParentId - A node to find the file for, or a parent_id to look up first
+   * @param eventId - The event ID that triggered the regeneration
+   * @param reconcileFirst - If true, reconcile pending FS changes before regenerating
+   */
+  private regenerateFileForNode(nodeOrParentId: KNode | string, eventId: string, reconcileFirst = false): void {
+    const node = typeof nodeOrParentId === "string" ? getNode(this.db, nodeOrParentId) : nodeOrParentId
+    if (!node) return
+    const fileNode = findFileNode(this.db, node)
+    if (!fileNode?.fs_path) return
+
+    if (reconcileFirst) {
+      this.reconcileIfChanged(fileNode)
+    }
+
+    const blockIds = this.createBlockIdAssigner(eventId)
+    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
+    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
+    this.writeQueue.queue({
+      path: absPath,
+      content,
+      sourceEventId: eventId,
+    })
+    blockIds.rewriteSourceFiles(fileNode.id)
+  }
+
+  /**
    * Handle node updated event - regenerate file
    *
    * CRITICAL: Before regenerating, we must reconcile any pending FS changes
@@ -671,20 +702,7 @@ export class SyncManager extends EventEmitter {
       })
     } else if (data.parent_id && data.parent_id !== ".") {
       // Section/task/paragraph node: regenerate parent file to include it
-      const parentNode = getNode(this.db, data.parent_id)
-      const fileNode = parentNode ? findFileNode(this.db, parentNode) : null
-      if (fileNode?.fs_path) {
-        const blockIds = this.createBlockIdAssigner(event.id)
-        const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-        const subtreeNodes = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-        this.writeQueue.queue({
-          path: absPath,
-          content,
-          sourceEventId: event.id,
-        })
-        blockIds.rewriteSourceFiles(fileNode.id)
-      }
+      this.regenerateFileForNode(data.parent_id, event.id)
     }
   }
 
@@ -711,20 +729,7 @@ export class SyncManager extends EventEmitter {
       this.writeQueue.queueDelete(absPath, event.id)
     } else if (data?.parent_id) {
       // Section node: regenerate the parent file to reflect the deletion
-      const blockIds = this.createBlockIdAssigner(event.id)
-      const parentNode = getNode(this.db, data.parent_id)
-      const fileNode = parentNode ? findFileNode(this.db, parentNode) : null
-      if (fileNode?.fs_path) {
-        const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-        const subtreeNodes = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-        this.writeQueue.queue({
-          path: absPath,
-          content,
-          sourceEventId: event.id,
-        })
-        blockIds.rewriteSourceFiles(fileNode.id)
-      }
+      this.regenerateFileForNode(data.parent_id, event.id)
     }
   }
 
@@ -741,24 +746,8 @@ export class SyncManager extends EventEmitter {
     const node = getNode(this.db, event.target)
     if (!node) return
 
-    // Regenerate affected files
-    const fileNode = findFileNode(this.db, node)
-    if (fileNode?.fs_path) {
-      // Check if file has been modified externally and reconcile if needed
-      this.reconcileIfChanged(fileNode)
-
-      const blockIds = this.createBlockIdAssigner(event.id)
-      const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-      const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-
-      this.writeQueue.queue({
-        path: absPath,
-        content,
-        sourceEventId: event.id,
-      })
-      blockIds.rewriteSourceFiles(fileNode.id)
-    }
+    // Regenerate affected files (reconcile first to avoid losing external changes)
+    this.regenerateFileForNode(node, event.id, true)
   }
 
   /**

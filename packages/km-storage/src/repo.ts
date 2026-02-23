@@ -263,73 +263,55 @@ function summarizeChanges(changes: Partial<KNode>): Record<string, unknown> {
 function createMutationMethods(deps: RepoMethodDeps, state: { version: number; notify(): void }) {
   const { dataStore, hooks, childrenCache } = deps
 
+  /** Run a mutation with before/after hooks, version bump, and notification. */
+  function runWithHooks<T>(ctx: MutationContext, fn: (ctx: MutationContext) => T): T {
+    if (hooks?.beforeMutation) {
+      const result = hooks.beforeMutation(ctx)
+      if (result?.cancel) throw new Error("Mutation cancelled by hook")
+      if (result?.context) ctx = result.context
+    }
+    const retval = fn(ctx)
+    state.version++
+    hooks?.afterMutation?.(ctx)
+    state.notify()
+    return retval
+  }
+
   const mutations = {
     updateNode(id: string, changes: Partial<KNode>) {
-      let ctx: MutationContext = { type: "update", nodeId: id, changes }
-      if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx)
-        if (result?.cancel) throw new Error("Mutation cancelled by hook")
-        if (result?.context) ctx = result.context
-      }
-      const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
-      dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
-      childrenCache.bust(parentId)
-      state.version++
-      hooks?.afterMutation?.(ctx)
-      state.notify()
+      runWithHooks({ type: "update", nodeId: id, changes }, (ctx) => {
+        const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+        dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
+        childrenCache.bust(parentId)
+      })
       log.info?.(`mutation: update ${id}`, {
         changes: summarizeChanges(changes),
       })
     },
     moveNode(id: string, newParentId: string, position: number) {
-      let ctx: MutationContext = {
-        type: "move",
-        nodeId: id,
-        newParentId,
-        position,
-      }
-      if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx)
-        if (result?.cancel) throw new Error("Mutation cancelled by hook")
-        if (result?.context) ctx = result.context
-      }
-      const oldParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
-      dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
-      childrenCache.bust(oldParentId)
-      childrenCache.bust(ctx.newParentId ?? newParentId)
-      state.version++
-      hooks?.afterMutation?.(ctx)
-      state.notify()
+      runWithHooks({ type: "move", nodeId: id, newParentId, position }, (ctx) => {
+        const oldParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+        dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
+        childrenCache.bust(oldParentId)
+        childrenCache.bust(ctx.newParentId ?? newParentId)
+      })
       log.info?.(`mutation: move ${id} → parent=${newParentId} pos=${position}`)
     },
     deleteNode(id: string) {
-      let ctx: MutationContext = { type: "delete", nodeId: id }
-      if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx)
-        if (result?.cancel) throw new Error("Mutation cancelled by hook")
-        if (result?.context) ctx = result.context
-      }
-      const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
-      dataStore.deleteNode(ctx.nodeId)
-      childrenCache.bust(deletedParentId)
-      state.version++
-      hooks?.afterMutation?.(ctx)
-      state.notify()
+      runWithHooks({ type: "delete", nodeId: id }, (ctx) => {
+        const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+        dataStore.deleteNode(ctx.nodeId)
+        childrenCache.bust(deletedParentId)
+      })
       log.info?.(`mutation: delete ${id}`)
     },
     addNode(parentId: string | null, node: Partial<KNode>) {
-      let ctx: MutationContext = { type: "add", nodeId: "", node }
-      if (hooks?.beforeMutation) {
-        const result = hooks.beforeMutation(ctx)
-        if (result?.cancel) throw new Error("Mutation cancelled by hook")
-        if (result?.context) ctx = result.context
-      }
-      const newId = dataStore.addNode(parentId, ctx.node ?? node)
-      ctx.nodeId = newId
-      childrenCache.bust(parentId)
-      state.version++
-      hooks?.afterMutation?.(ctx)
-      state.notify()
+      const newId = runWithHooks({ type: "add", nodeId: "", node }, (ctx) => {
+        const id = dataStore.addNode(parentId, ctx.node ?? node)
+        ctx.nodeId = id
+        childrenCache.bust(parentId)
+        return id
+      })
       log.info?.(`mutation: add ${newId} parent=${parentId}`, {
         type: node.type,
         content: node.content?.slice(0, 80),
@@ -365,7 +347,7 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
     },
     renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void) {
       const node = dataStore.getNode(id)
-      if (!node) return
+      if (!node) throw new Error(`Node not found: ${id}`)
       const oldName = node.name ?? ""
 
       // Derive new name from content (strip task mark prefix like "- [ ] ")
@@ -406,12 +388,9 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // 3. Update target_name in links table
       dbUpdateTargetName(deps.db, oldName, newName)
 
-      // 4. Update path references in section rules (add=, sync=)
+      // 4. Update path references in rules and blocked-by property targets
       // Pass this (not mutations) so undo proxy intercepts through the proxy chain
-      updateRulePathReferences(dataStore, this, oldName, newName)
-
-      // 5. Update blocked-by property targets
-      updateBlockedByReferences(dataStore, this, oldName, newName)
+      updateRenameReferences(dataStore, this, oldName, newName)
     },
   }
 
@@ -454,9 +433,10 @@ function replacePathInRuleField(
 }
 
 /**
- * Update path references in section rules (add=, sync=) when a node is renamed.
+ * Update path references in rules (add=, sync=) and blocked-by property targets
+ * when a node is renamed. Single pass over all nodes.
  */
-function updateRulePathReferences(
+function updateRenameReferences(
   dataStore: DataStore,
   mutations: MutationMethods,
   oldName: string,
@@ -465,62 +445,49 @@ function updateRulePathReferences(
   const allNodes = dataStore.getAllNodes()
 
   for (const node of allNodes) {
-    if (!node.rules) continue
+    let newData: typeof node.data | undefined
+    let updatedContent: string | null | undefined
 
-    const newRules = { ...node.rules }
-    let changed = false
+    // Check rules for path references
+    if (node.rules) {
+      const newRules = { ...node.rules }
+      let rulesChanged = false
 
-    const addResult = replacePathInRuleField(newRules.add, oldName, newName)
-    if (addResult.changed) {
-      newRules.add = addResult.value as typeof newRules.add
-      changed = true
+      const addResult = replacePathInRuleField(newRules.add, oldName, newName)
+      if (addResult.changed) {
+        newRules.add = addResult.value as typeof newRules.add
+        rulesChanged = true
+      }
+
+      const syncResult = replacePathInRuleField(newRules.sync, oldName, newName)
+      if (syncResult.changed) {
+        newRules.sync = syncResult.value as string
+        rulesChanged = true
+      }
+
+      if (rulesChanged) {
+        newData = { ...node.data, rules: newRules }
+        updatedContent = node.content
+          ? node.content.replace(new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), newName)
+          : node.content
+      }
     }
 
-    const syncResult = replacePathInRuleField(newRules.sync, oldName, newName)
-    if (syncResult.changed) {
-      newRules.sync = syncResult.value as string
-      changed = true
-    }
-
-    if (changed) {
-      const newData = { ...node.data, rules: newRules }
-      const updatedContent = node.content
-        ? node.content.replace(new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), newName)
-        : node.content
-      mutations.updateNode(node.id, {
-        data: JSON.stringify(newData) as unknown as Record<string, unknown>,
-        content: updatedContent,
-      })
-    }
-  }
-}
-
-/**
- * Update blocked-by property targets when a node is renamed.
- */
-function updateBlockedByReferences(
-  dataStore: DataStore,
-  mutations: MutationMethods,
-  oldName: string,
-  newName: string,
-): void {
-  const allNodes = dataStore.getAllNodes()
-
-  for (const node of allNodes) {
+    // Check blocked-by property targets
     const props = node.data?.props as Record<string, { type: string; target?: string }> | undefined
-    if (!props) continue
-
-    const blockedBy = props["blocked-by"]
-    if (blockedBy?.type !== "link") continue
-    if (blockedBy.target?.toLowerCase() !== oldName.toLowerCase()) continue
-
-    // Update the blocked-by target
-    const newProps = {
-      ...props,
-      "blocked-by": { ...blockedBy, target: newName },
+    if (props) {
+      const blockedBy = props["blocked-by"]
+      if (blockedBy?.type === "link" && blockedBy.target?.toLowerCase() === oldName.toLowerCase()) {
+        const newProps = { ...props, "blocked-by": { ...blockedBy, target: newName } }
+        newData = { ...(newData ?? node.data), props: newProps }
+      }
     }
-    const newData = { ...node.data, props: newProps }
-    mutations.updateNode(node.id, { data: JSON.stringify(newData) as unknown as Record<string, unknown> })
+
+    if (newData) {
+      const changes: Partial<KNode> = { data: JSON.stringify(newData) as unknown as Record<string, unknown> }
+      if (updatedContent !== undefined) changes.content = updatedContent
+      mutations.updateNode(node.id, changes)
+    }
   }
 }
 

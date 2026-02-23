@@ -46,7 +46,13 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import { usePaneId } from "../pane-context.tsx"
 
 // Extracted modules
-import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-layout.ts"
+import {
+  TOP_BAR_HEIGHT,
+  BOTTOM_BAR_HEIGHT,
+  FILTER_PANEL_WIDTH,
+  COLLAPSED_COL_WIDTH,
+  computeColumnWidths,
+} from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
@@ -385,17 +391,8 @@ export function BoardCore({
   )
 
   // Column width calculation — uniform expanded width with space reserved for separators
-  const COLLAPSED_WIDTH = 3
-  // Count collapsed columns — they take much less space, so more total columns can fit
-  const totalCollapsed = columns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
-  // Max expanded columns that fit at ~35 char minimum width, accounting for collapsed columns' space
-  const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
-  const effectiveColCount = Math.min(columns.length, maxExpandedCols + totalCollapsed)
-  const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
-  const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
-  const collapsedSpace = visibleCollapsed * COLLAPSED_WIDTH
-  const separators = Math.max(0, effectiveColCount - 1)
-  const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
+  const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
+  const { expandedWidth } = computeColumnWidths(boardWidth, columns, collapsedNodes)
 
   // Render loading skeleton until terminal is ready or zoom is loading.
   // Note: ui.isLoading is intentionally NOT blocking here — per-column skeleton
@@ -940,20 +937,12 @@ export function Board({ patchedConsole }: BoardProps) {
   // NO useInput — keys handled by term:key in board-app.ts
 
   // Card inner width for line-aware title truncation.
-  // Uses actual column count + collapsed state (same math as BoardCore line 331-342).
+  // Uses actual column count + collapsed state (same math as BoardCore).
   const cardInnerWidth = useMemo(() => {
     const termWidth = ui.dimensions.columns
     const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
     const boardWidth = termWidth - detailPaneWidth
-    const COLLAPSED_WIDTH = 3
-    const totalCollapsed = filteredColumns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
-    const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * (COLLAPSED_WIDTH + 1)) / 35))
-    const effectiveColCount = Math.min(filteredColumns.length, maxExpandedCols + totalCollapsed)
-    const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
-    const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
-    const collapsedSpace = visibleCollapsed * COLLAPSED_WIDTH
-    const separators = Math.max(0, effectiveColCount - 1)
-    const expandedWidth = Math.max(20, Math.floor((boardWidth - separators - collapsedSpace) / visibleExpanded))
+    const { expandedWidth } = computeColumnWidths(boardWidth, filteredColumns, collapsedNodes)
     return expandedWidth - 2 // minus border left + right
   }, [ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
 

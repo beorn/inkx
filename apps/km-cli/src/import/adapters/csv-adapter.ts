@@ -193,12 +193,10 @@ function normalizeStatus(raw: string): ImportItem["status"] | undefined {
 // =============================================================================
 
 function csvRowToItem(row: string[], columns: Map<number, ColumnRole>, counter: { value: number }): ImportItem | null {
-  const get = (role: ColumnRole): string | undefined => {
-    for (const [idx, r] of columns) {
-      if (r === role) return row[idx]?.trim()
-    }
-    return undefined
-  }
+  // Build role→value map once per row instead of scanning columns per field
+  const roleValues = new Map<ColumnRole, string | undefined>()
+  for (const [idx, role] of columns) roleValues.set(role, row[idx]?.trim())
+  const get = (role: ColumnRole): string | undefined => roleValues.get(role)
 
   const title = get("title")
   if (!title) return null
