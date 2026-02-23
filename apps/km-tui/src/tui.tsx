@@ -20,6 +20,7 @@ import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
+import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 
 const log = createLogger("km:tui")
 
@@ -217,6 +218,19 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     const viewMode = options?.initialViewMode ?? "cards"
 
+    // Try to load saved workspace for layout restoration
+    const vaultPath = options.repo.path
+    let savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
+
+    // Only restore if the saved workspace has a multi-pane layout (single pane = no value in restoring)
+    if (savedWorkspace && savedWorkspace.panes.length <= 1) {
+      savedWorkspace = null
+    }
+
+    if (savedWorkspace) {
+      log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
+    }
+
     const storeParams: CreateBoardAppStoreParams = {
       repo: options.repo,
       toastQueue,
@@ -230,6 +244,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         state.rootId,
       ),
       dimensions: { columns: cols, rows },
+      savedWorkspace,
     }
 
     // Create L3 app (Zustand store + term:key handler)
@@ -255,6 +270,18 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
       if (isInteractive) {
         await handle.waitUntilExit()
+
+        // Auto-save workspace on exit (best-effort, errors silently ignored)
+        try {
+          const storeState = handle.store.getState()
+          const vaultPath = options.repo.path
+          if (vaultPath) {
+            saveWorkspace(storeState.workspace, "default", vaultPath, options.repo)
+            log.debug?.("Auto-saved workspace as 'default'")
+          }
+        } catch (e: unknown) {
+          log.debug?.(`Failed to auto-save workspace: ${e instanceof Error ? e.message : String(e)}`)
+        }
       } else {
         // Non-interactive: initial render already wrote to stdout, tear down immediately
         handle.unmount()

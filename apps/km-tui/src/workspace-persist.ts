@@ -1,0 +1,305 @@
+/**
+ * Workspace Persistence — Save/Restore Pane Layouts
+ *
+ * Serializes workspace state (layout tree, pane configs) to JSON files in
+ * `<vault>/.km/workspaces/`. On exit, auto-saves as "default". On launch,
+ * restores from "default" if present.
+ *
+ * Persisted: layout tree, pane viewType/rootNodePath/viewMode, focusedPaneId.
+ * NOT persisted: cursor position, fold state, scroll offsets, CursorStore,
+ * selection, nav history — these are session-specific.
+ *
+ * Key design: rootNodePath stores the node's fs_path (relative file path within
+ * the vault), not the vault root path. On restore, this is resolved back to a
+ * node ID via repo.resolveNode(). Ephemeral node IDs are never persisted.
+ */
+
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
+import { join } from "node:path"
+import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board-types.ts"
+import type { Repo } from "./repo-context.tsx"
+
+// =============================================================================
+// Persisted Types
+// =============================================================================
+
+export interface PersistedWorkspace {
+  version: 1
+  name: string
+  savedAt: string // ISO date
+  layout: PersistedLayoutNode
+  panes: PersistedPane[]
+  focusedPaneId: string
+}
+
+export interface PersistedPane {
+  id: string
+  viewType: "board" | "detail" | "empty"
+  /** Node's fs_path (relative file path within the vault), resolved to rootId on restore */
+  rootNodePath: string | null
+  viewMode: ViewMode
+}
+
+export type PersistedLayoutNode =
+  | { type: "leaf"; paneId: string }
+  | { type: "split"; direction: "h" | "v"; ratio: number; left: PersistedLayoutNode; right: PersistedLayoutNode }
+
+// =============================================================================
+// Serialization
+// =============================================================================
+
+/**
+ * Serialize a live LayoutNode to a persisted LayoutNode.
+ * The types are structurally identical, but this ensures we only persist
+ * the expected fields (no accidental extras).
+ */
+function serializeLayout(node: LayoutNode): PersistedLayoutNode {
+  if (node.type === "leaf") {
+    return { type: "leaf", paneId: node.paneId }
+  }
+  return {
+    type: "split",
+    direction: node.direction,
+    ratio: node.ratio,
+    left: serializeLayout(node.left),
+    right: serializeLayout(node.right),
+  }
+}
+
+/**
+ * Serialize a live PaneState to a persisted pane.
+ * Uses the repo to look up the node's fs_path from its rootId.
+ * Falls back to null if the node no longer exists or has no fs_path.
+ */
+function serializePane(pane: PaneState, repo: Repo): PersistedPane {
+  let rootNodePath: string | null = null
+  if (pane.rootId) {
+    const node = repo.getNode(pane.rootId)
+    rootNodePath = node?.fs_path ?? null
+  }
+
+  return {
+    id: pane.id,
+    viewType: pane.viewType,
+    rootNodePath,
+    viewMode: pane.viewMode,
+  }
+}
+
+/**
+ * Serialize the current workspace state to a persistable format.
+ * @param repo - Repo needed to resolve rootId → fs_path for persistence
+ */
+export function serializeWorkspace(workspace: WorkspaceState, name: string, repo: Repo): PersistedWorkspace {
+  const panes: PersistedPane[] = []
+  for (const pane of workspace.panes.values()) {
+    panes.push(serializePane(pane, repo))
+  }
+
+  return {
+    version: 1,
+    name,
+    savedAt: new Date().toISOString(),
+    layout: serializeLayout(workspace.layout),
+    panes,
+    focusedPaneId: workspace.focusedPaneId,
+  }
+}
+
+// =============================================================================
+// Deserialization
+// =============================================================================
+
+/** Valid view modes for validation. */
+const VALID_VIEW_MODES = new Set<string>(["cards", "list", "columns", "tabs"])
+
+/** Valid pane view types for validation. */
+const VALID_VIEW_TYPES = new Set<string>(["board", "detail", "empty"])
+
+/**
+ * Validate and parse a persisted layout node.
+ * Returns null if the structure is invalid.
+ */
+function parseLayout(raw: unknown): PersistedLayoutNode | null {
+  if (!raw || typeof raw !== "object") return null
+  const obj = raw as Record<string, unknown>
+
+  if (obj.type === "leaf") {
+    if (typeof obj.paneId !== "string") return null
+    return { type: "leaf", paneId: obj.paneId }
+  }
+
+  if (obj.type === "split") {
+    if (obj.direction !== "h" && obj.direction !== "v") return null
+    if (typeof obj.ratio !== "number" || obj.ratio < 0.05 || obj.ratio > 0.95) return null
+    const left = parseLayout(obj.left)
+    const right = parseLayout(obj.right)
+    if (!left || !right) return null
+    return { type: "split", direction: obj.direction, ratio: obj.ratio, left, right }
+  }
+
+  return null
+}
+
+/**
+ * Validate and parse a persisted pane.
+ * Returns null if the structure is invalid.
+ */
+function parsePane(raw: unknown): PersistedPane | null {
+  if (!raw || typeof raw !== "object") return null
+  const obj = raw as Record<string, unknown>
+
+  if (typeof obj.id !== "string") return null
+  if (!VALID_VIEW_TYPES.has(obj.viewType as string)) return null
+  if (obj.rootNodePath !== null && typeof obj.rootNodePath !== "string") return null
+  if (!VALID_VIEW_MODES.has(obj.viewMode as string)) return null
+
+  return {
+    id: obj.id as string,
+    viewType: obj.viewType as "board" | "detail" | "empty",
+    rootNodePath: (obj.rootNodePath as string | null) ?? null,
+    viewMode: obj.viewMode as ViewMode,
+  }
+}
+
+/**
+ * Collect all pane IDs referenced in a layout tree.
+ */
+function collectLayoutPaneIds(node: PersistedLayoutNode): Set<string> {
+  if (node.type === "leaf") return new Set([node.paneId])
+  const left = collectLayoutPaneIds(node.left)
+  const right = collectLayoutPaneIds(node.right)
+  for (const id of right) left.add(id)
+  return left
+}
+
+/**
+ * Parse and validate a persisted workspace from raw JSON.
+ * Returns null if the data is invalid or incompatible.
+ */
+export function parsePersistedWorkspace(raw: unknown): PersistedWorkspace | null {
+  if (!raw || typeof raw !== "object") return null
+  const obj = raw as Record<string, unknown>
+
+  // Version check
+  if (obj.version !== 1) return null
+  if (typeof obj.name !== "string") return null
+  if (typeof obj.savedAt !== "string") return null
+  if (typeof obj.focusedPaneId !== "string") return null
+
+  // Parse layout
+  const layout = parseLayout(obj.layout)
+  if (!layout) return null
+
+  // Parse panes
+  if (!Array.isArray(obj.panes)) return null
+  const panes: PersistedPane[] = []
+  for (const rawPane of obj.panes) {
+    const pane = parsePane(rawPane)
+    if (!pane) return null
+    panes.push(pane)
+  }
+
+  // Validate: every pane referenced in layout must exist in the panes array
+  const layoutPaneIds = collectLayoutPaneIds(layout)
+  const paneIds = new Set(panes.map((p) => p.id))
+  for (const id of layoutPaneIds) {
+    if (!paneIds.has(id)) return null
+  }
+
+  // Validate: focusedPaneId must reference a pane in the layout
+  if (!layoutPaneIds.has(obj.focusedPaneId as string)) return null
+
+  return {
+    version: 1,
+    name: obj.name as string,
+    savedAt: obj.savedAt as string,
+    layout,
+    panes,
+    focusedPaneId: obj.focusedPaneId as string,
+  }
+}
+
+// =============================================================================
+// File I/O
+// =============================================================================
+
+/**
+ * Get the directory path for workspace files.
+ */
+function workspacesDir(vaultPath: string): string {
+  return join(vaultPath, ".km", "workspaces")
+}
+
+/**
+ * Get the full file path for a named workspace.
+ */
+function workspaceFilePath(vaultPath: string, name: string): string {
+  // Sanitize name: allow only alphanumeric, dash, underscore
+  const safeName = name.replace(/[^a-zA-Z0-9_-]/g, "_")
+  return join(workspacesDir(vaultPath), `${safeName}.json`)
+}
+
+/**
+ * Save the current workspace state to disk.
+ * @param repo - Repo needed to resolve rootId → fs_path for persistence
+ */
+export function saveWorkspace(workspace: WorkspaceState, name: string, vaultPath: string, repo: Repo): void {
+  const data = serializeWorkspace(workspace, name, repo)
+  const dir = workspacesDir(vaultPath)
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+  const filePath = workspaceFilePath(vaultPath, name)
+  writeFileSync(filePath, JSON.stringify(data, null, 2) + "\n", "utf-8")
+}
+
+/**
+ * Load a named workspace from disk.
+ * Returns null if the file doesn't exist or is invalid.
+ */
+export function loadWorkspace(name: string, vaultPath: string): PersistedWorkspace | null {
+  const filePath = workspaceFilePath(vaultPath, name)
+  if (!existsSync(filePath)) return null
+
+  try {
+    const content = readFileSync(filePath, "utf-8")
+    const raw = JSON.parse(content) as unknown
+    return parsePersistedWorkspace(raw)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * List all saved workspace names.
+ * Returns sorted names without the .json extension.
+ */
+export function listWorkspaces(vaultPath: string): string[] {
+  const dir = workspacesDir(vaultPath)
+  if (!existsSync(dir)) return []
+
+  try {
+    const files = readdirSync(dir)
+    return files
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => f.slice(0, -5))
+      .sort()
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Delete a named workspace from disk.
+ * Returns true if the file was deleted, false if it didn't exist.
+ */
+export function deleteWorkspace(name: string, vaultPath: string): boolean {
+  const filePath = workspaceFilePath(vaultPath, name)
+  if (!existsSync(filePath)) return false
+
+  try {
+    unlinkSync(filePath)
+    return true
+  } catch {
+    return false
+  }
+}

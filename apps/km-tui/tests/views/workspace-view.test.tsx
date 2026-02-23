@@ -64,7 +64,7 @@ describe("WorkspaceView — single leaf", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="main"
-        renderBoard={() => <BoardContent />}
+        renderPane={() => <BoardContent />}
       />,
     )
 
@@ -108,7 +108,7 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId={focusedId}
-        renderBoard={() => <BoardContent />}
+        renderPane={() => <BoardContent />}
       />,
     )
 
@@ -125,7 +125,7 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-1"
-        renderBoard={() => <BoardContent />}
+        renderPane={() => <BoardContent />}
       />,
     )
 
@@ -143,7 +143,7 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-2"
-        renderBoard={() => <BoardContent />}
+        renderPane={() => <BoardContent />}
       />,
     )
 
@@ -159,7 +159,7 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-1"
-        renderBoard={() => <BoardContent />}
+        renderPane={() => <BoardContent />}
       />,
     )
 
@@ -192,7 +192,7 @@ describe("WorkspaceView — pane numbering", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="a" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="a" renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("[1]")
@@ -216,7 +216,7 @@ describe("WorkspaceView — pane numbering", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="main" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="main" renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("[1]")
@@ -248,7 +248,7 @@ describe("WorkspaceView — pane numbering", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="first" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="first" renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("[1]")
@@ -278,7 +278,7 @@ describe("WorkspaceView — split direction", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="left" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="left" renderPane={() => <BoardContent />} />,
     )
 
     // Both labels visible — horizontal split puts them side by side
@@ -302,7 +302,7 @@ describe("WorkspaceView — split direction", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="top" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="top" renderPane={() => <BoardContent />} />,
     )
 
     // Both labels visible — vertical split stacks them
@@ -329,7 +329,7 @@ describe("WorkspaceView — edge cases", () => {
     }
 
     const app = render(
-      <WorkspaceView layout={layout} panes={panes} focusedPaneId="real" renderBoard={() => <BoardContent />} />,
+      <WorkspaceView layout={layout} panes={panes} focusedPaneId="real" renderPane={() => <BoardContent />} />,
     )
 
     expect(app.text).toContain("Missing pane")

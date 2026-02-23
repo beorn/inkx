@@ -43,12 +43,14 @@ import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-co
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
+import { usePaneId } from "../pane-context.tsx"
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
+import { PaneIdProvider } from "../pane-context.tsx"
 import { CommandBox } from "./CommandBox.tsx"
 import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
@@ -709,17 +711,34 @@ export function Board({ patchedConsole }: BoardProps) {
   // would capture the initial undefined values permanently.
   const { pause: onPauseRender, resume: onResumeRender } = useApp()
   const repo = useRepo()
+  const paneId = usePaneId()
 
-  // Read state from store
+  // Read state from pane-specific state in workspace.
+  // The focused pane's PaneState is kept in sync with flat fields (see syncFlatToPane).
+  // Non-focused panes read from their saved PaneState snapshot.
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
-  const rootId = useAppStore<BoardAppStore, string | null>((s) => s.rootId)
-  const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
+  const rootId = useAppStore<BoardAppStore, string | null>(
+    (s) => s.workspace.panes.get(paneId)?.rootId ?? s.rootId,
+  )
+  const rootPath = useAppStore<BoardAppStore, string | null>(
+    (s) => s.workspace.panes.get(paneId)?.rootPath ?? s.rootPath,
+  )
   // CursorStore provides cursor state without triggering Board re-render on SELECT
-  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => s.cursorStore)
-  const foldedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.foldedNodes)
-  const collapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => s.collapsedNodes)
-  const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
-  const isZoomLoading = useAppStore<BoardAppStore, boolean>((s) => s.isZoomLoading)
+  const cursorStore = useAppStore<BoardAppStore, CursorStore>(
+    (s) => s.workspace.panes.get(paneId)?.cursorStore ?? s.cursorStore,
+  )
+  const foldedNodes = useAppStore<BoardAppStore, Set<string>>(
+    (s) => s.workspace.panes.get(paneId)?.foldedNodes ?? s.foldedNodes,
+  )
+  const collapsedNodes = useAppStore<BoardAppStore, Set<string>>(
+    (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
+  )
+  const moveMode = useAppStore<BoardAppStore, boolean>(
+    (s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode,
+  )
+  const isZoomLoading = useAppStore<BoardAppStore, boolean>(
+    (s) => s.workspace.panes.get(paneId)?.isZoomLoading ?? s.isZoomLoading,
+  )
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -1017,16 +1036,18 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
 
-  const renderBoard = useCallback(
-    () => (
-      <Board
-        initialViewMode={initialViewMode}
-        dimensions={storeDimensions}
-        onExit={exit}
-        toastQueue={toastQueue}
-        navigator={navigator}
-        patchedConsole={patchedConsole}
-      />
+  const renderPane = useCallback(
+    (paneId: string) => (
+      <PaneIdProvider value={paneId}>
+        <Board
+          initialViewMode={initialViewMode}
+          dimensions={storeDimensions}
+          onExit={exit}
+          toastQueue={toastQueue}
+          navigator={navigator}
+          patchedConsole={patchedConsole}
+        />
+      </PaneIdProvider>
     ),
     [initialViewMode, storeDimensions, exit, toastQueue, navigator, patchedConsole],
   )
@@ -1035,7 +1056,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   if (workspace.panes.size <= 1) {
     return (
       <Box flexDirection="column" height={storeDimensions.rows}>
-        {renderBoard()}
+        {renderPane("main")}
       </Box>
     )
   }
@@ -1047,7 +1068,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         layout={workspace.layout}
         panes={workspace.panes}
         focusedPaneId={workspace.focusedPaneId}
-        renderBoard={renderBoard}
+        renderPane={renderPane}
       />
     </Box>
   )

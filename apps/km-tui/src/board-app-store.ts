@@ -16,12 +16,12 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
+import type { BoardAction, BoardState, LayoutNode, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
 import { createBoardState, createPaneState } from "./board-types.ts"
 import type { UIState } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
-import { deriveCursorAncestors, type CursorStore } from "./cursor-store.ts"
+import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
 import {
@@ -33,6 +33,7 @@ import {
   equalizeLayout,
   swapLeaves,
 } from "./layout-helpers.ts"
+import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
 
 // =============================================================================
 // Store Types
@@ -159,6 +160,110 @@ export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: u
 // =============================================================================
 
 // =============================================================================
+// Pane ↔ Flat Field Sync Helpers
+// =============================================================================
+
+/**
+ * Snapshot the current flat board fields into a PaneState object.
+ * Used to save state before switching focus away from a pane.
+ */
+function snapshotFlatToPane(state: BoardAppState, pane: PaneState): PaneState {
+  return {
+    ...pane,
+    rootId: state.rootId,
+    rootPath: state.rootPath,
+    cursorNodeId: state.cursorNodeId,
+    selectedNodes: state.selectedNodes,
+    foldedNodes: state.foldedNodes,
+    collapsedNodes: state.collapsedNodes,
+    navHistory: state.navHistory,
+    navHistoryIndex: state.navHistoryIndex,
+    moveMode: state.moveMode,
+    moveSourceNodes: state.moveSourceNodes,
+    moveSourceCursorNodeId: state.moveSourceCursorNodeId,
+    curswantX: state.curswantX,
+    curswantY: state.curswantY,
+    cursorStore: state.cursorStore,
+    isZoomLoading: state.isZoomLoading,
+  }
+}
+
+/**
+ * Restore flat board fields from a PaneState.
+ * Used when switching focus to a different pane.
+ * Returns partial state for Zustand set().
+ */
+function restorePaneToFlat(pane: PaneState): Partial<BoardAppState> {
+  return {
+    rootId: pane.rootId,
+    rootPath: pane.rootPath,
+    cursorNodeId: pane.cursorNodeId,
+    selectedNodes: pane.selectedNodes,
+    foldedNodes: pane.foldedNodes,
+    collapsedNodes: pane.collapsedNodes,
+    navHistory: pane.navHistory,
+    navHistoryIndex: pane.navHistoryIndex,
+    moveMode: pane.moveMode,
+    moveSourceNodes: pane.moveSourceNodes,
+    moveSourceCursorNodeId: pane.moveSourceCursorNodeId,
+    curswantX: pane.curswantX,
+    curswantY: pane.curswantY,
+    cursorStore: pane.cursorStore,
+    isZoomLoading: pane.isZoomLoading,
+  }
+}
+
+/**
+ * Build an updated panes map with the focused pane's flat fields synced in.
+ * Called after mutations to keep workspace.panes in sync with flat state.
+ */
+function syncFlatToFocusedPane(state: BoardAppState): Map<string, PaneState> {
+  const focusedPaneId = state.workspace.focusedPaneId
+  const pane = state.workspace.panes.get(focusedPaneId)
+  if (!pane) return state.workspace.panes
+
+  const updated = snapshotFlatToPane(state, pane)
+  const newPanes = new Map(state.workspace.panes)
+  newPanes.set(focusedPaneId, updated)
+  return newPanes
+}
+
+/**
+ * Switch focus from one pane to another.
+ * Saves the old pane's state, restores the new pane's state to flat fields,
+ * and updates the workspace's focused pane ID.
+ */
+function switchFocusedPane(
+  state: BoardAppState,
+  newPaneId: string,
+): Partial<BoardAppStore> {
+  const oldPaneId = state.workspace.focusedPaneId
+  const oldPane = state.workspace.panes.get(oldPaneId)
+  const newPane = state.workspace.panes.get(newPaneId)
+  if (!oldPane || !newPane) return {}
+
+  // Save current flat fields into old pane
+  const savedOldPane = snapshotFlatToPane(state, oldPane)
+
+  // Build updated panes map
+  const newPanes = new Map(state.workspace.panes)
+  newPanes.set(oldPaneId, savedOldPane)
+
+  // Restore new pane's fields to flat state
+  const flatUpdate = restorePaneToFlat(newPane)
+
+  return {
+    ...flatUpdate,
+    workspace: {
+      ...state.workspace,
+      panes: newPanes,
+      focusedPaneId: newPaneId,
+      previousFocusedPaneId: oldPaneId,
+    },
+  }
+}
+
+// =============================================================================
 // Default Fold Computation
 // =============================================================================
 
@@ -228,6 +333,104 @@ export interface CreateBoardAppStoreParams {
   initialBoardState: BoardState
   initialUIState: UIState
   dimensions: { columns: number; rows: number }
+  /** Saved workspace to restore (layout + panes). If provided, overrides the default single-pane workspace. */
+  savedWorkspace?: PersistedWorkspace | null
+}
+
+/**
+ * Restore a workspace from a persisted state.
+ *
+ * Resolves each pane's rootNodePath back to a rootId via repo.resolveNode().
+ * Panes whose rootNodePath can't be resolved get the fallback rootId/rootPath.
+ * Returns null if the persisted workspace is empty or structurally invalid.
+ */
+function restoreWorkspaceFromPersisted(
+  saved: PersistedWorkspace,
+  repo: Repo,
+  fallbackBoardState: BoardState,
+  cursorStore: CursorStore,
+): WorkspaceState | null {
+  const panes = new Map<string, PaneState>()
+
+  for (const persisted of saved.panes) {
+    const resolvedBoard = resolvePersistedPane(persisted, repo, fallbackBoardState)
+    const pane = createPaneState(persisted.id, resolvedBoard, {
+      viewType: persisted.viewType,
+      viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
+      cursorStore: persisted.id === saved.focusedPaneId
+        ? cursorStore
+        : createCursorStore({
+            cursorNodeId: null,
+            cursorCardNodeId: null,
+            cursorColumnNodeId: null,
+            selectionLevel: "board",
+          }),
+      isZoomLoading: false,
+    })
+    panes.set(persisted.id, pane)
+  }
+
+  if (panes.size === 0) return null
+
+  // Convert persisted layout to live LayoutNode (structurally identical)
+  const layout = deserializeLayout(saved.layout)
+
+  return {
+    panes,
+    focusedPaneId: saved.focusedPaneId,
+    previousFocusedPaneId: null,
+    layout,
+    preZoomLayout: null,
+    preZoomPanes: null,
+  }
+}
+
+/** Resolve a persisted pane's rootNodePath to a BoardState. */
+function resolvePersistedPane(persisted: PersistedPane, repo: Repo, fallback: BoardState): BoardState {
+  if (!persisted.rootNodePath) {
+    return createBoardState(fallback.rootId, fallback.rootPath)
+  }
+
+  // Try to resolve the file path to a node
+  const node = repo.resolveNode(persisted.rootNodePath)
+  if (node) {
+    return createBoardState(node.id, fallback.rootPath, null)
+  }
+
+  // File no longer exists — fall back to default root
+  return createBoardState(fallback.rootId, fallback.rootPath)
+}
+
+/** Convert persisted layout to live LayoutNode (structurally identical). */
+function deserializeLayout(node: PersistedLayoutNode): LayoutNode {
+  if (node.type === "leaf") {
+    return { type: "leaf", paneId: node.paneId }
+  }
+  return {
+    type: "split",
+    direction: node.direction,
+    ratio: node.ratio,
+    left: deserializeLayout(node.left),
+    right: deserializeLayout(node.right),
+  }
+}
+
+/** Create the default single-pane workspace for fresh sessions. */
+function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoardAppStoreParams): WorkspaceState {
+  const defaultPaneId = "main"
+  const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
+    viewMode: params.initialUIState.viewMode,
+    cursorStore: params.cursorStore,
+    isZoomLoading: false,
+  })
+  return {
+    panes: new Map([[defaultPaneId, initialPane]]),
+    focusedPaneId: defaultPaneId,
+    previousFocusedPaneId: null,
+    layout: { type: "leaf", paneId: defaultPaneId },
+    preZoomLayout: null,
+    preZoomPanes: null,
+  }
 }
 
 /**
@@ -251,25 +454,28 @@ export function createBoardAppStoreState(
     const undoStack = createUndoStack()
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
 
-    // Phase 1 workspace: single pane mirroring the flat board state.
-    // The pane's foldedNodes uses the computed initial folds.
+    // Try to restore workspace from saved state, otherwise create default single-pane workspace.
     const initialPaneBoard: BoardState = {
       ...bs,
       foldedNodes: initialFoldedNodes,
     }
-    const defaultPaneId = "main"
-    const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
-      viewMode: params.initialUIState.viewMode,
-      cursorStore: params.cursorStore,
-      isZoomLoading: false,
-    })
-    const workspace: WorkspaceState = {
-      panes: new Map([[defaultPaneId, initialPane]]),
-      focusedPaneId: defaultPaneId,
-      previousFocusedPaneId: null,
-      layout: { type: "leaf", paneId: defaultPaneId },
-      preZoomLayout: null,
-      preZoomPanes: null,
+
+    let workspace: WorkspaceState
+
+    if (params.savedWorkspace) {
+      const restored = restoreWorkspaceFromPersisted(
+        params.savedWorkspace,
+        params.repo,
+        initialPaneBoard,
+        params.cursorStore,
+      )
+      if (restored) {
+        workspace = restored
+      } else {
+        workspace = createDefaultWorkspace(initialPaneBoard, params)
+      }
+    } else {
+      workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
     return {
@@ -327,6 +533,13 @@ export function createBoardAppStoreState(
           s.cursorNodeId = action.nodeId
           s.curswantX = null
           s.curswantY = null
+          // Also silently sync to focused pane's PaneState
+          const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
+          if (focusedPane) {
+            focusedPane.cursorNodeId = action.nodeId
+            focusedPane.curswantX = null
+            focusedPane.curswantY = null
+          }
           // Derive cursor ancestors from tree structure
           const getNode = (id: string) => s.repo.getNode(id)
           const ancestors = deriveCursorAncestors(getNode, s.rootId, action.nodeId, (pid) => s.repo.getChildren(pid))
@@ -343,6 +556,12 @@ export function createBoardAppStoreState(
           const s = _get()
           if (action.x !== undefined) s.curswantX = action.x
           if (action.y !== undefined) s.curswantY = action.y
+          // Also silently sync to focused pane's PaneState
+          const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
+          if (focusedPane) {
+            if (action.x !== undefined) focusedPane.curswantX = action.x
+            if (action.y !== undefined) focusedPane.curswantY = action.y
+          }
           return
         }
 
@@ -393,7 +612,11 @@ export function createBoardAppStoreState(
                 const zoomNodeId = action.nodeId
                 setTimeout(() => {
                   const folds = computeDefaultFolds(undoableRepo, zoomNodeId, new Set())
-                  set({ foldedNodes: folds, isZoomLoading: false })
+                  set((s) => {
+                    const merged = { ...s, foldedNodes: folds, isZoomLoading: false }
+                    const syncedPanes = syncFlatToFocusedPane(merged)
+                    return { foldedNodes: folds, isZoomLoading: false, workspace: { ...s.workspace, panes: syncedPanes } }
+                  })
                 }, 0)
               } else {
                 const zoomFolded = computeDefaultFolds(undoableRepo, action.nodeId, new Set())
@@ -434,7 +657,11 @@ export function createBoardAppStoreState(
                 const setRootId = action.rootId
                 setTimeout(() => {
                   const folds = computeDefaultFolds(undoableRepo, setRootId, new Set())
-                  set({ foldedNodes: folds, isZoomLoading: false })
+                  set((s) => {
+                    const merged = { ...s, foldedNodes: folds, isZoomLoading: false }
+                    const syncedPanes = syncFlatToFocusedPane(merged)
+                    return { foldedNodes: folds, isZoomLoading: false, workspace: { ...s.workspace, panes: syncedPanes } }
+                  })
                 }, 0)
               } else {
                 const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
@@ -520,7 +747,13 @@ export function createBoardAppStoreState(
             }
           }
 
-          return flatUpdate
+          // Sync flat fields to the focused pane's PaneState
+          const merged = { ...state, ...flatUpdate }
+          const syncedPanes = syncFlatToFocusedPane(merged as BoardAppState)
+          return {
+            ...flatUpdate,
+            workspace: { ...state.workspace, panes: syncedPanes },
+          }
         })
 
         // After state mutation, notify CursorStore so cursor-aware components update
@@ -544,7 +777,14 @@ export function createBoardAppStoreState(
       },
 
       setFoldedNodes(nodes: Set<string>) {
-        set({ foldedNodes: nodes })
+        set((state) => {
+          const merged = { ...state, foldedNodes: nodes }
+          const syncedPanes = syncFlatToFocusedPane(merged)
+          return {
+            foldedNodes: nodes,
+            workspace: { ...state.workspace, panes: syncedPanes },
+          }
+        })
       },
 
       setTextEditTarget(target: EditTarget | null) {
@@ -654,14 +894,22 @@ export function createBoardAppStoreState(
             newPaneId = `pane-${counter}`
           }
 
-          // Create an empty pane
+          // Create a new CursorStore for the new pane (independent cursor state)
+          const newPaneCursorStore = createCursorStore({
+            cursorNodeId: null,
+            cursorCardNodeId: null,
+            cursorColumnNodeId: null,
+            selectionLevel: "board",
+          })
+
+          // Create an empty pane with its own cursor store
           const emptyPane = createPaneState(
             newPaneId,
             createBoardState(),
             {
               viewType: "empty",
               viewMode: state.ui.viewMode,
-              cursorStore: state.cursorStore,
+              cursorStore: newPaneCursorStore,
               isZoomLoading: false,
             },
           )
@@ -669,7 +917,12 @@ export function createBoardAppStoreState(
           // Split the layout tree at the focused pane
           const newLayout = splitLayoutNode(workspace.layout, focusedId, direction, newPaneId)
 
+          // Also snapshot current flat fields into the focused pane before adding new pane
+          const focusedPane = workspace.panes.get(focusedId)
           const newPanes = new Map(workspace.panes)
+          if (focusedPane) {
+            newPanes.set(focusedId, snapshotFlatToPane(state, focusedPane))
+          }
           newPanes.set(newPaneId, emptyPane)
 
           return {
@@ -706,7 +959,12 @@ export function createBoardAppStoreState(
           // Pick a new focused pane (first available)
           const newFocusedId = getLayoutPaneIds(newLayout)[0] ?? "main"
 
+          // Restore the new focused pane's state to flat fields
+          const newFocusedPane = newPanes.get(newFocusedId)
+          const flatUpdate = newFocusedPane ? restorePaneToFlat(newFocusedPane) : {}
+
           return {
+            ...flatUpdate,
             workspace: {
               ...workspace,
               panes: newPanes,
@@ -729,13 +987,7 @@ export function createBoardAppStoreState(
           if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
           if (!workspace.panes.has(targetPaneId)) return state
 
-          return {
-            workspace: {
-              ...workspace,
-              focusedPaneId: targetPaneId,
-              previousFocusedPaneId: workspace.focusedPaneId,
-            },
-          }
+          return switchFocusedPane(state, targetPaneId)
         })
       },
 
@@ -746,13 +998,7 @@ export function createBoardAppStoreState(
           if (!prevId || !workspace.panes.has(prevId)) return state
           if (prevId === workspace.focusedPaneId) return state
 
-          return {
-            workspace: {
-              ...workspace,
-              focusedPaneId: prevId,
-              previousFocusedPaneId: workspace.focusedPaneId,
-            },
-          }
+          return switchFocusedPane(state, prevId)
         })
       },
 
@@ -775,13 +1021,7 @@ export function createBoardAppStoreState(
           const targetPaneId = tabOrder[nextIndex]
           if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
 
-          return {
-            workspace: {
-              ...workspace,
-              focusedPaneId: targetPaneId,
-              previousFocusedPaneId: workspace.focusedPaneId,
-            },
-          }
+          return switchFocusedPane(state, targetPaneId)
         })
       },
 
@@ -796,13 +1036,7 @@ export function createBoardAppStoreState(
           const targetPaneId = tabOrder[targetIndex]
           if (!targetPaneId || targetPaneId === workspace.focusedPaneId) return state
 
-          return {
-            workspace: {
-              ...workspace,
-              focusedPaneId: targetPaneId,
-              previousFocusedPaneId: workspace.focusedPaneId,
-            },
-          }
+          return switchFocusedPane(state, targetPaneId)
         })
       },
 
@@ -919,7 +1153,17 @@ export function createBoardAppStoreState(
           const focusedPane = workspace.panes.get(workspace.focusedPaneId)
           if (focusedPane?.viewType !== "empty") return state
 
-          const updatedPane: PaneState = { ...focusedPane, viewType: "board" }
+          // Copy current flat rootId/rootPath into the pane (the user just navigated)
+          const updatedPane: PaneState = {
+            ...focusedPane,
+            viewType: "board",
+            rootId: state.rootId,
+            rootPath: state.rootPath,
+            cursorNodeId: state.cursorNodeId,
+            foldedNodes: state.foldedNodes,
+            collapsedNodes: state.collapsedNodes,
+            cursorStore: state.cursorStore,
+          }
           const newPanes = new Map(workspace.panes)
           newPanes.set(workspace.focusedPaneId, updatedPane)
 

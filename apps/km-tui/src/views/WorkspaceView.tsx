@@ -16,8 +16,8 @@ export interface WorkspaceViewProps {
   layout: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
-  /** Render the board content (the main pane view) */
-  renderBoard: () => React.ReactNode
+  /** Render a pane's board content, receiving the pane ID for state isolation */
+  renderPane: (paneId: string) => React.ReactNode
 }
 
 /**
@@ -62,10 +62,10 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
  * - Single pane: renders board directly, no wrapper
  * - Multiple panes: recursive split layout with divider lines
  */
-export function WorkspaceView({ layout, panes, focusedPaneId, renderBoard }: WorkspaceViewProps): React.ReactElement {
+export function WorkspaceView({ layout, panes, focusedPaneId, renderPane }: WorkspaceViewProps): React.ReactElement {
   // Single pane (the common case) — render board directly, no overhead
   if (layout.type === "leaf" && panes.size <= 1) {
-    return <>{renderBoard()}</>
+    return <>{renderPane(layout.paneId)}</>
   }
 
   const paneLabels = derivePaneLabels(layout, panes)
@@ -77,7 +77,7 @@ export function WorkspaceView({ layout, panes, focusedPaneId, renderBoard }: Wor
         panes={panes}
         focusedPaneId={focusedPaneId}
         paneLabels={paneLabels}
-        renderBoard={renderBoard}
+        renderPane={renderPane}
       />
     </Box>
   )
@@ -89,13 +89,13 @@ function LayoutNodeView({
   panes,
   focusedPaneId,
   paneLabels,
-  renderBoard,
+  renderPane,
 }: {
   node: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
   paneLabels: Map<string, string>
-  renderBoard: () => React.ReactNode
+  renderPane: (paneId: string) => React.ReactNode
 }): React.ReactElement {
   if (node.type === "leaf") {
     const pane = panes.get(node.paneId)
@@ -115,7 +115,7 @@ function LayoutNodeView({
           </Box>
         )}
         <Box flexGrow={1} flexDirection="column">
-          {pane.viewType === "board" ? renderBoard() : <EmptyPaneWelcome />}
+          {pane.viewType === "board" ? renderPane(node.paneId) : <EmptyPaneWelcome />}
         </Box>
       </Box>
     )
@@ -134,7 +134,7 @@ function LayoutNodeView({
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
-          renderBoard={renderBoard}
+          renderPane={renderPane}
         />
       </Box>
       <Box flexBasis={secondBasis} flexGrow={0} flexShrink={0} flexDirection="column">
@@ -143,7 +143,7 @@ function LayoutNodeView({
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
-          renderBoard={renderBoard}
+          renderPane={renderPane}
         />
       </Box>
     </Box>
