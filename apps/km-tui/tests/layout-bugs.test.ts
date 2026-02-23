@@ -24,10 +24,10 @@ describe("km-tui.uncollapse-header", () => {
     })
 
     // Collapse
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Get the Alpha column box
     const colBox = board.screen.nodeBox("Alpha")
@@ -50,8 +50,8 @@ describe("km-tui.uncollapse-header", () => {
     )
 
     // Collapse and uncollapse
-    board.press("g").press("c")
-    board.press("g").press("c")
+    board.press("v").press("c")
+    board.press("v").press("c")
 
     // Get column position
     const colBox = board.screen.nodeBox("MyCol")
@@ -74,8 +74,8 @@ describe("km-tui.uncollapse-header", () => {
     )
 
     // Collapse and uncollapse
-    board.press("g").press("c")
-    board.press("g").press("c")
+    board.press("v").press("c")
+    board.press("v").press("c")
 
     // Card content should be visible
     board.expectScreen("task-x")
@@ -100,7 +100,7 @@ describe("km-tui.uncollapse-header", () => {
     })
 
     // Collapse Left
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(1)
 
     // Navigate to Right column
@@ -111,7 +111,7 @@ describe("km-tui.uncollapse-header", () => {
     board.press("h")
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
 
     // Header should be visible
@@ -135,7 +135,7 @@ describe("km-tui.collapsed-shift", () => {
     })
 
     // Collapse first column
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // The collapsed column should start at x=0
     const collapsedBox = board.q("[data-collapsed]").boundingBox()
@@ -149,7 +149,7 @@ describe("km-tui.collapsed-shift", () => {
       rows: 20,
     })
 
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     const collapsedBox = board.q("[data-collapsed]").boundingBox()
     expect(collapsedBox).not.toBeNull()
@@ -162,7 +162,7 @@ describe("km-tui.collapsed-shift", () => {
       rows: 20,
     })
 
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // ColA collapsed at x=0, width=3
     // Separator at x=3, width=1
@@ -179,7 +179,7 @@ describe("km-tui.collapsed-shift", () => {
     )
 
     // Navigate to middle column and collapse
-    board.press("l").press("g").press("c")
+    board.press("l").press("v").press("c")
 
     // Find collapsed column
     const collapsed = board.q("[data-collapsed]")
@@ -311,8 +311,8 @@ describe("uncollapse header edge cases", () => {
     )
 
     // Collapse and uncollapse
-    incBoard.press("g").press("c")
-    incBoard.press("g").press("c")
+    incBoard.press("v").press("c")
+    incBoard.press("v").press("c")
 
     // Compare incremental buffer against fresh render
     const incBuffer = incBoard._result.lastBuffer()!
@@ -336,8 +336,8 @@ describe("uncollapse header edge cases", () => {
     })
 
     for (let i = 0; i < 5; i++) {
-      board.press("g").press("c") // collapse
-      board.press("g").press("c") // uncollapse
+      board.press("v").press("c") // collapse
+      board.press("v").press("c") // uncollapse
     }
 
     // Header should still be visible after many cycles
@@ -356,7 +356,7 @@ describe("uncollapse header edge cases", () => {
 
     // Navigate to collapsed column and uncollapse
     board.press("h")
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Header should be visible
     board.expectScreen("PreCollapsed")
@@ -369,8 +369,8 @@ describe("uncollapse header edge cases", () => {
       incremental: true,
     })
 
-    board.press("g").press("c")
-    board.press("g").press("c")
+    board.press("v").press("c")
+    board.press("v").press("c")
 
     const incBuffer = board._result.lastBuffer()!
     const freshBuffer = board._result.freshRender()
@@ -409,10 +409,10 @@ describe("collapsed column shift edge cases", () => {
     )
 
     // Collapse A
-    board.press("g").press("c")
+    board.press("v").press("c")
     // Navigate to B and collapse
     board.press("l")
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Two collapsed columns
     expect(board.q("[data-collapsed]").count()).toBe(2)
@@ -438,7 +438,7 @@ describe("collapsed column shift edge cases", () => {
 
     // Navigate to Mid, collapse it
     board.press("l")
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Find the Right column
     const rightBox = board.screen.nodeBox("Right")

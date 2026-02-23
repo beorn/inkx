@@ -29,7 +29,7 @@ import type { BoardAppStore } from "../src/board-app-store.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
 
 /**
- * Open the old search dialog (no keybinding anymore — dispatched directly).
+ * Open the search dialog via the "search" command.
  * After dispatching, press Backspace to flush the inkx render pipeline.
  * The dialog text input is empty at this point, so Backspace is a no-op.
  */

@@ -134,9 +134,9 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // Switch view modes and navigate — matches reproduction sequence
     board
       .press("l") // navigate right
-      .press("v") // switch to columns view
-      .press("v") // switch to tabs view
-      .press("v") // back to cards view
+      .press("v").press("v") // switch to columns view
+      .press("v").press("v") // switch to tabs view
+      .press("v").press("v") // back to cards view
       .press("h") // navigate left
       .press("j") // navigate down (even if only one card)
       .press("k") // navigate up

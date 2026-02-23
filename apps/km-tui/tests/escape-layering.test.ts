@@ -23,8 +23,8 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // Enter visual mode with 'v'
-    board.press("v")
+    // Enter visual mode with 'v' + space
+    board.press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
 
     // Escape exits visual mode
@@ -166,7 +166,7 @@ describe("Escape Layering", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Enter visual mode (which also creates a selection)
-    board.press("v")
+    board.press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 

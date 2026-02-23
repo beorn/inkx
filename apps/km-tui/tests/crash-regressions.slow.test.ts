@@ -33,7 +33,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
     expect(before).toContain("Task A")
 
     // Press gC to ignore node — should not throw
-    expect(() => board.press("g").press("C")).not.toThrow()
+    expect(() => board.press("v").press("H")).not.toThrow()
 
     // Board should still be usable
     const after = board.screenshot()
@@ -45,7 +45,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
   test("pressing C shows error toast instead of crashing", () => {
     const { board } = makeBoard()
 
-    board.press("g").press("C")
+    board.press("v").press("H")
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render

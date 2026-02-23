@@ -21,8 +21,8 @@ import {
   type CommandAction,
 } from "@km/commands"
 import React from "react"
-import { dispatchCommandById } from "../src/board-app.ts"
 import type { BoardAppStore } from "../src/board-app-store.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
 
 describe("withCommands", () => {
   // Create a mock registry with a few commands for testing
@@ -553,7 +553,7 @@ describe("createBoardDriver", () => {
     expect(state.dialogs.search).toBe(false)
     expect(state.dialogs.newItem).toBe(false)
 
-    // Open search dialog (no keybinding — dispatch command directly)
+    // Open search dialog via the "search" command
     dispatchCommandById("search", driver.store.getState as () => BoardAppStore)
 
     // Dialog should be open
@@ -662,7 +662,7 @@ describe("createBoardDriver", () => {
     let storeState = driver.store.getState()
     expect(storeState.ui.showSearchDialog).toBe(false)
 
-    // Open search dialog (no keybinding — dispatch command directly)
+    // Open search dialog via the "search" command
     dispatchCommandById("search", driver.store.getState as () => BoardAppStore)
 
     // Store should reflect dialog state

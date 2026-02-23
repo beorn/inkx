@@ -656,7 +656,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     // Cursor starts on body column (first non-collapsed column).
     // Press g.c to toggle collapse on body column — this triggers the bug:
     // "ERROR km:nav cursor node not in repo: __body__board, falling back to root"
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Check no error was logged about __body__
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
@@ -671,7 +671,7 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // Body column is virtual/synthetic — collapse should be a boundary error (bell)
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.bell, "body column collapse should ring bell").toBe(true)
   })
 
@@ -681,11 +681,11 @@ describe("BUG: collapse on body column triggers __body__ repo lookup error", () 
     const { board } = testEnv(() => item("board", item.paragraph("body text here"), item("col1", item("A"))))
 
     // g.c on body column (should be noop/boundary)
-    board.press("g").press("c")
+    board.press("v").press("c")
     // l to navigate to col1
     board.press("l")
     // g.c to collapse col1 (this should work fine)
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     const bodyErrors = errorSpy.mock.calls.filter((args) =>
       args.some((arg) => typeof arg === "string" && arg.includes("__body__")),

@@ -379,16 +379,16 @@ describe("View Modes", () => {
     board.expect("#task2[data-cursor]").toExist()
 
     // Cycle through views - cursor should stay on task2
-    board.press("v") // To list view
+    board.press("v").press("v") // To list view
     board.expect("#task2[data-cursor]").toExist()
 
-    board.press("v") // To columns view
+    board.press("v").press("v") // To columns view
     board.expect("#task2[data-cursor]").toExist()
 
-    board.press("v") // To tabs view
+    board.press("v").press("v") // To tabs view
     board.expect("#task2[data-cursor]").toExist()
 
-    board.press("v") // Back to cards view
+    board.press("v").press("v") // Back to cards view
     board.expect("#task2[data-cursor]").toExist()
   })
 })

@@ -72,12 +72,12 @@ describe("Column Fold/Collapse", () => {
     board.expect("#1b").toExist()
 
     // c collapses current column — cards hidden, column shows first letter
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#1a").not.toExist()
     board.expect("#1b").not.toExist()
 
     // c again un-collapses
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#1a").toExist()
     board.expect("#1b").toExist()
   })
@@ -89,7 +89,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#2a[data-cursor]").toExist()
 
     // Collapse col2 — cards hidden
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#2a").not.toExist()
     board.expect("#2b").not.toExist()
 
@@ -105,7 +105,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#1a").toExist()
 
     // Collapse "Todo" column
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#1a").not.toExist()
 
     // The collapsed column should show "data-collapsed" attribute
@@ -115,7 +115,7 @@ describe("Column Fold/Collapse", () => {
   test("c persists collapsed state to node data", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Collapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#1a").not.toExist()
 
     // Verify the collapsed state is persisted in node data
@@ -123,7 +123,7 @@ describe("Column Fold/Collapse", () => {
     expect((colNode.data as Record<string, unknown>).collapsed).toBe(true)
 
     // Uncollapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#1a").toExist()
 
     // Verify the collapsed key is removed from node data
@@ -305,7 +305,7 @@ describe("Untitled Columns", () => {
         if (staleCol) {
           staleCol.title = ""
           staleCol.content = ""
-          staleCol.data = { depth: 2, rules: { color: "yellow" }, title: "Waiting" }
+          staleCol.data = { rules: { color: "yellow" }, title: "Waiting" }
         }
         return nodes
       },
@@ -331,7 +331,7 @@ describe("Untitled Columns", () => {
 describe("Icon Style Cycling", () => {
   test("V cycles icon style from nerdfont to workflowy", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("V")
+    board.press("v").press("V")
     const status = board.getStatus()
     expect(status).not.toBeNull()
     expect(status?.message).toBe("Style: workflowy")
@@ -340,33 +340,33 @@ describe("Icon Style Cycling", () => {
   test("V cycles through all 6 visual presets (3 icons x 2 border modes)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
     // nerdfont/normal -> workflowy/normal
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: workflowy")
 
     // workflowy/normal -> regular/normal
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: regular")
 
     // regular/normal -> nerdfont/black (icon wraps, border advances)
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: nerdfont (dark borders)")
 
     // nerdfont/black -> workflowy/black
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: workflowy (dark borders)")
 
     // workflowy/black -> regular/black
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: regular (dark borders)")
 
     // regular/black -> nerdfont/normal (full wrap)
-    board.press("V")
+    board.press("v").press("V")
     expect(board.getStatus()?.message).toBe("Style: nerdfont")
   })
 
   test("V does not trigger bell (is a valid action)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("V")
+    board.press("v").press("V")
     expect(board.bell).toBe(false)
   })
 })

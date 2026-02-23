@@ -214,7 +214,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const { board } = nestedBoard()
 
     // gc = toggle_collapse on current card (card-a)
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     const text = board.screenshot()
     checkBorderIntegrity(text, "after toggle fold")

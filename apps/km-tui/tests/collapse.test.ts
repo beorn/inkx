@@ -35,7 +35,7 @@ describe("collapse/uncollapse columns", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("task-a")
 
     // Press 'c' to collapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // After collapse, cursor should be on column header (not an invisible card)
     const collapsed = board.q("[data-collapsed]")
@@ -52,11 +52,11 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
     // Uncollapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
 
     // Cards should be visible again
@@ -76,12 +76,12 @@ describe("collapse/uncollapse columns", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("file1")
 
     // Collapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     const collapsed = board.q("[data-collapsed]")
     expect(collapsed.count()).toBeGreaterThan(0)
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
   })
 
@@ -95,11 +95,11 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
   })
 
@@ -112,10 +112,10 @@ describe("collapse/uncollapse columns", () => {
       ),
     )
 
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
   })
 
@@ -127,10 +127,10 @@ describe("collapse/uncollapse columns", () => {
     // Navigate to col-body body card (intro text)
     expect(board.q("[data-cursor]").textContent()).toContain("intro text")
 
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(0)
   })
 
@@ -147,7 +147,7 @@ describe("collapse/uncollapse columns", () => {
     // Initial cursor should be on first card which is in col-other (since empty-col has no cards)
 
     // Press c - should work even on columns with no cards
-    board.press("g").press("c")
+    board.press("v").press("c")
     // (empty column collapse behavior - just verifying no crash)
   })
 
@@ -178,7 +178,7 @@ describe("collapse/uncollapse columns", () => {
     board.press("h")
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Should now show cards
     // Navigate down into col1
@@ -202,7 +202,7 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Move right to col2
     board.press("l")
@@ -232,7 +232,7 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse col1
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Try pressing j - should not enter collapsed column
     board.press("j")
@@ -255,7 +255,7 @@ describe("collapse/uncollapse columns", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("task-b")
 
     // Collapse - cursor should move to column header
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Collapsed column should have cursor
     const cursor = board.q("[data-cursor]")
@@ -271,10 +271,10 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Cursor should be somewhere valid
     const cursor = board.q("[data-cursor]")
@@ -291,14 +291,14 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse col1 (cursor starts on task-a)
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(1)
 
     // After collapse, cursor is on col1 header. Move right to col2's card
     board.press("l")
 
     // Collapse col2
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBe(2)
 
     // After collapse, cursor on col2 header. Move right to col3
@@ -308,7 +308,7 @@ describe("collapse/uncollapse columns", () => {
 
     // Uncollapse col1: h from col3's card goes to col1 (since col2 is collapsed)
     board.press("h")
-    board.press("g").press("c") // toggle collapse on whichever column we landed on
+    board.press("v").press("c") // toggle collapse on whichever column we landed on
 
     // Should now have fewer collapsed columns
     const collapsedAfter = board.q("[data-collapsed]").count()
@@ -326,7 +326,7 @@ describe("collapse/uncollapse columns", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("intro text")
 
     // Try to collapse the virtual body column
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Should not crash - cursor should still be valid
     const cursor = board.q("[data-cursor]")
@@ -346,7 +346,7 @@ describe("collapse/uncollapse columns", () => {
     board.press("k")
 
     // Collapse from column header
-    board.press("g").press("c")
+    board.press("v").press("c")
     expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
   })
 
@@ -357,7 +357,7 @@ describe("collapse/uncollapse columns", () => {
     board.press("k").press("k")
 
     // Try to collapse from board level - should be a no-op
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Should still be at board level or no crash
     const cursor = board.q("[data-cursor]")
@@ -383,7 +383,7 @@ describe("collapsed column width", () => {
     )
 
     // Navigate to col2 and collapse it
-    board.press("l").press("g").press("c")
+    board.press("l").press("v").press("c")
 
     // The collapsed column should exist and be narrow
     const collapsed = board.q("[data-collapsed]")
@@ -426,7 +426,7 @@ describe("collapsed column width", () => {
     expect(col1Before).not.toBeNull()
 
     // Collapse col2
-    board.press("l").press("g").press("c")
+    board.press("l").press("v").press("c")
 
     // Get col1 width after collapse — should be wider
     const col1After = board.q("#col1").boundingBox()
@@ -440,7 +440,7 @@ describe("collapsed column width", () => {
       () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24, incremental: true },
     )
-    incrementalBoard.press("l").press("g").press("c")
+    incrementalBoard.press("l").press("v").press("c")
     const incrementalScreenshot = incrementalBoard.screenshot()
 
     // Render same board with same collapse, but use fresh (non-incremental) rendering
@@ -448,7 +448,7 @@ describe("collapsed column width", () => {
       () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
       { columns: 80, rows: 24, incremental: false },
     )
-    freshBoard.press("l").press("g").press("c")
+    freshBoard.press("l").press("v").press("c")
     const freshScreenshot = freshBoard.screenshot()
 
     // Both should produce identical output
@@ -466,7 +466,7 @@ describe("collapsed column width", () => {
         ),
       { columns: 120, rows: 30, incremental: true },
     )
-    board.press("l").press("g").press("c")
+    board.press("l").press("v").press("c")
 
     const incBuffer = board._result.lastBuffer()!
     const freshBuffer = board._result.freshRender()
@@ -504,7 +504,7 @@ describe("collapsed column width", () => {
     expect(beforeScreenshot).toContain("task-d")
 
     // Collapse col2
-    board.press("l").press("g").press("c")
+    board.press("l").press("v").press("c")
 
     // Cards inside collapsed column should NOT be visible
     const afterScreenshot = board.screenshot()
@@ -530,7 +530,7 @@ describe("collapsed column border symmetry", () => {
       rows: 20,
     })
     board = env.board
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("[data-collapsed]").toExist()
   })
 
@@ -616,7 +616,7 @@ describe("collapsed column after shift", () => {
       // Navigate to column header level, collapse Todo, shift right
       board.press("k")
       board.expect("#Todo[data-cursor]").toExist()
-      board.press("g").press("c")
+      board.press("v").press("c")
       board.expect("[data-collapsed]").toExist()
       board.press("Meta+l")
       board.expect("#Todo[data-cursor]").toExist()
@@ -676,7 +676,7 @@ describe("collapsed column after shift", () => {
 
     // Collapse Todo and shift right
     board.press("k")
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.press("Meta+l")
 
     const incBuffer = board._result.lastBuffer()!
@@ -719,7 +719,7 @@ describe("collapsed column after shift", () => {
     // Navigate to Beta, collapse it
     board.press("l").press("k")
     board.expect("#Beta[data-cursor]").toExist()
-    board.press("g").press("c")
+    board.press("v").press("c")
 
     // Shift collapsed Beta right (past Gamma)
     board.press("Meta+l")
@@ -773,9 +773,9 @@ describe("uncollapse header rendering", () => {
       })
       board = env.board
       // Collapse and uncollapse
-      board.press("g").press("c")
+      board.press("v").press("c")
       board.expect("#a1").not.toExist()
-      board.press("g").press("c")
+      board.press("v").press("c")
       board.expect("#a1").toExist()
     })
 
@@ -795,9 +795,9 @@ describe("uncollapse header rendering", () => {
     )
 
     // Collapse and uncollapse
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#task1").not.toExist()
-    board.press("g").press("c")
+    board.press("v").press("c")
     board.expect("#task1").toExist()
 
     // The column box should contain the header name in its first row
@@ -816,8 +816,8 @@ describe("uncollapse header rendering", () => {
     )
 
     // Collapse and uncollapse
-    board.press("g").press("c")
-    board.press("g").press("c")
+    board.press("v").press("c")
+    board.press("v").press("c")
 
     // The header should show the card count
     const screenshot = board.screenshot()
