@@ -272,3 +272,98 @@ describe("structural children with km.collapse:: true hidden from card view", ()
     expect(cardIds).not.toContain("act-1")
   })
 })
+
+describe("collapsed children hidden inside cards (sub-items)", () => {
+  test("Activity/Comments sections with km.collapse:: true do not render inside cards", () => {
+    // Bug: km-tui.activity-subitems
+    // Even though collapsed sections are filtered from column-level cards,
+    // they still appear as sub-items WITHIN a card's children rendering.
+    // e.g., a task card shows "§ Activity" and "§ Comments" inside it.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item(
+              "task-with-activity",
+              item("sub-task-1"),
+              item("sub-task-2"),
+              item("Activity km.collapse:: true", item("log-1"), item("log-2")),
+              item("Comments km.collapse:: true", item("c1")),
+            ),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // The card itself should render
+    board.expect("#task-with-activity").toExist()
+    // Regular sub-tasks should be visible inside the card
+    board.expect("#sub-task-1").toExist()
+    board.expect("#sub-task-2").toExist()
+
+    // Collapsed sections should NOT appear inside the card
+    board.expect("#Activity km.collapse:: true").not.toExist()
+    board.expect("#Comments km.collapse:: true").not.toExist()
+    board.expect("#log-1").not.toExist()
+    board.expect("#log-2").not.toExist()
+    board.expect("#c1").not.toExist()
+
+    // Verify via screenshot that "Activity" and "Comments" text don't appear
+    const screenshot = board.screenshot()
+    expect(screenshot).not.toContain("Activity")
+    expect(screenshot).not.toContain("Comments")
+  })
+
+  test("detailOnly sub-items do not render inside cards", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item(
+              "task-with-comments",
+              item("real-child"),
+              detailOnlyItem("inline-comments", "Comments", item("ic1")),
+            ),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    board.expect("#task-with-comments").toExist()
+    board.expect("#real-child").toExist()
+
+    // detailOnly sub-items should not appear inside the card
+    board.expect("#inline-comments").not.toExist()
+    board.expect("#ic1").not.toExist()
+  })
+
+  test("overflow count excludes collapsed children inside cards", () => {
+    // When a card has collapsed children, the overflow count should NOT include them.
+    // Only real visible children should be counted for overflow.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item(
+              "card-with-hidden",
+              item("visible-1"),
+              item("visible-2"),
+              item("Activity km.collapse:: true", item("a1"), item("a2"), item("a3")),
+            ),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // The card should not show any overflow indicator from the collapsed children
+    const screenshot = board.screenshot()
+    // Activity section has 3 children + itself = 4 hidden nodes that should NOT inflate overflow
+    expect(screenshot).not.toContain("Activity")
+  })
+})

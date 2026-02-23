@@ -31,6 +31,7 @@ import {
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
+import { isCollapsedChild } from "../hooks/use-columns.ts"
 import {
   getTypeBullet,
   getCircleBullet,
@@ -271,7 +272,10 @@ function TreeNodeImpl({
   // For embeds, get children from the TARGET node (transclusion shows target's children)
   const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
   const childrenSourceId = isEmbedded && resolvedNode ? resolvedNode.id : node.id
-  const children = childrenProp ?? resolvedGetChildren(childrenSourceId)
+  const rawChildren = childrenProp ?? resolvedGetChildren(childrenSourceId)
+  // Filter out collapsed children (km.collapse:: true, detailOnly) — these are only
+  // shown in the detail pane, never as sub-items inside cards.
+  const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
   // Use childCountProp if provided (for folded nodes where children array is empty)
   const childCount = childCountProp ?? children.length
   const hasChildren = childCount > 0

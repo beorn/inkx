@@ -154,7 +154,7 @@ export function parseAsanaFile(jsonContent: string): ImportData {
     const sections: ImportSection[] = []
 
     for (const [sectionGid, sectionTasks] of projectData.sections) {
-      const sectionName = projectData.sectionNames.get(sectionGid) ?? "Untitled Section"
+      const sectionName = projectData.sectionNames.get(sectionGid)?.trim() || "Untitled Section"
       sections.push({
         sourceId: sectionGid,
         title: sectionName,

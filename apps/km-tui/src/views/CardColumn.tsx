@@ -26,6 +26,7 @@ import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
+import { isCollapsedChild } from "../hooks/use-columns.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -211,7 +212,7 @@ const Card = React.memo(
     const repo = useRepo()
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const children = useMemo(() => repo.getChildren(card.id), [repo, card.id])
+    const children = useMemo(() => repo.getChildren(card.id).filter((c) => !isCollapsedChild(c)), [repo, card.id])
     const childCount = childCountProp ?? children.length
     const directHidden = Math.max(0, childCount - maxChildren)
     const { hasOverflow, hiddenCount } = useMemo(() => {

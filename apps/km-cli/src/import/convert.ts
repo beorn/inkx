@@ -648,7 +648,7 @@ function itemToNodes(
 }
 
 /** Section titles that should be treated as "no section" (items go directly under parent) */
-const NO_SECTION_TITLES = new Set(["(no section)", "untitled section", "untitled"])
+const NO_SECTION_TITLES = new Set(["", "(no section)", "untitled section", "untitled"])
 
 /** Convert a section to KNode(s) — skips header for placeholder sections like "(no section)" */
 function sectionToNodes(

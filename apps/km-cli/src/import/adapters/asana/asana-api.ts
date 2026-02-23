@@ -155,7 +155,7 @@ function deriveSections(tasks: AsanaApiTask[], projectGid?: string): Array<{ gid
     const section = membership?.section
     if (section?.gid && !seen.has(section.gid)) {
       seen.add(section.gid)
-      result.push({ gid: section.gid, name: section.name ?? "Untitled" })
+      result.push({ gid: section.gid, name: section.name?.trim() || "Untitled" })
     }
   }
   return result
@@ -169,7 +169,7 @@ function deriveAssigneeSections(tasks: AsanaApiTask[]): Array<{ gid: string; nam
     const section = task.assignee_section
     if (section?.gid && !seen.has(section.gid)) {
       seen.add(section.gid)
-      result.push({ gid: section.gid, name: section.name ?? "Untitled" })
+      result.push({ gid: section.gid, name: section.name?.trim() || "Untitled" })
     }
   }
   return result
