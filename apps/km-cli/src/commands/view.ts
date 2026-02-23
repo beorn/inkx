@@ -39,16 +39,9 @@ export const viewCommand = new Command("view")
     // Import modules
     let storageModule: typeof import("@km/storage")
     let tuiModule: typeof import("@km/tui")
-    let coreModule: typeof import("@km/core")
-    let loadRepo: (typeof import("../load-repo.ts"))["loadRepo"]
     {
       using _ = startup.span("import-modules")
-      ;[storageModule, tuiModule, coreModule, { loadRepo }] = await Promise.all([
-        import("@km/storage"),
-        import("@km/tui"),
-        import("@km/core"),
-        import("../load-repo.ts"),
-      ])
+      ;[storageModule, tuiModule] = await Promise.all([import("@km/storage"), import("@km/tui")])
     }
 
     // Resolve path and set debug root
@@ -64,69 +57,73 @@ export const viewCommand = new Command("view")
     const patchedConsole =
       interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 
-    // Load repo with progress display
-    let createdRepo: Awaited<ReturnType<typeof loadRepo>>
-    {
-      using _ = startup.span("repo-load")
-      createdRepo = await loadRepo(resolved.repoRoot, {
-        showProgress: true,
-        discoverOnly: interactive,
-      })
-    }
+    // Load repo + build state with unified progress display
+    const { steps } = await import("@beorn/inkx-ui/progress")
+    const { createRepo } = storageModule
 
-    // Resolve nodeRef to actual node ID
+    let createdRepo: import("@km/storage").Repo | undefined
     let rootNodeId: string | undefined
-    if (resolved.nodeRef) {
-      const node = createdRepo.resolveNode(resolved.nodeRef)
-      rootNodeId = node?.id
+    let state: Parameters<typeof tuiModule.runBoard>[0] = null
 
-      // km-view-stub: If targeting a stub file, parse it eagerly
-      // Stub files have data._stub = true and no children until parsed
-      if (
-        isOutline(node?.type ?? "", node?.item) &&
-        (node?.fstype === "file" || node?.fstype === "mdfile") &&
-        interactive
-      ) {
-        const data = node.data as { _stub?: boolean } | undefined
-        if (data?._stub && node.fs_path) {
-          const absPath = join(resolved.repoRoot, node.fs_path)
-          debug.debug?.(`parsing stub file eagerly: ${absPath}`)
-          storageModule.parseStubFile(createdRepo.database, node.id, absPath)
-        }
-      }
-    } else {
-      // No specific node requested - use repo root folder node
-      const repoRootNode = createdRepo.getRepoRootNode()
-      rootNodeId = repoRootNode?.id
-    }
+    await steps({
+      loadRepo: function* () {
+        using _ = startup.span("repo-load")
+        createdRepo = yield* createRepo(resolved.repoRoot, {
+          loadFiles: true,
+          discoverOnly: interactive,
+        })
+        return createdRepo
+      },
+      buildState: function* () {
+        using _ = startup.span("build-state")
+        if (!createdRepo) return null
 
-    // Surface load errors/warnings to the user
-    for (const err of createdRepo.loadErrors) {
-      const prefix = err.path ? `${err.path}: ` : ""
-      process.stderr.write(`⚠ ${prefix}${err.message}\n`)
-    }
+        // Resolve nodeRef to actual node ID
+        if (resolved.nodeRef) {
+          const node = createdRepo.resolveNode(resolved.nodeRef)
+          rootNodeId = node?.id
 
-    // Build view state with progress display (covers the gap between loadRepo and board render)
-    const state = (() => {
-      using _ = startup.span("build-state")
-      const result = coreModule.runWithProgress(
-        tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
-        (info: string | { current?: number; total?: number }) => {
-          if (typeof info === "string") {
-            process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + `  Building board: ${info}`)
-          } else if (info.current != null && info.total != null) {
-            process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + `  Building board (${info.current}/${info.total})`)
+          // km-view-stub: If targeting a stub file, parse it eagerly
+          if (
+            isOutline(node?.type ?? "", node?.item) &&
+            (node?.fstype === "file" || node?.fstype === "mdfile") &&
+            interactive
+          ) {
+            const data = node.data as { _stub?: boolean } | undefined
+            if (data?._stub && node.fs_path) {
+              const absPath = join(resolved.repoRoot, node.fs_path)
+              debug.debug?.(`parsing stub file eagerly: ${absPath}`)
+              storageModule.parseStubFile(createdRepo.database, node.id, absPath)
+            }
           }
-        },
-      )
-      // Show "Initializing..." while the TUI sets up (store, sync manager, React mount).
-      // This stays visible until inkx switches to the alternate screen.
-      process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + "  Initializing board...")
-      if (result) {
-        result.rootPath = resolved.repoRoot
-      }
-      return result
-    })()
+        } else {
+          const repoRootNode = createdRepo.getRepoRootNode()
+          rootNodeId = repoRootNode?.id
+        }
+
+        // Surface load errors/warnings
+        for (const err of createdRepo.loadErrors) {
+          const prefix = err.path ? `${err.path}: ` : ""
+          process.stderr.write(`⚠ ${prefix}${err.message}\n`)
+        }
+
+        const result = yield* tuiModule.initBoardStateGenerator(createdRepo, rootNodeId)
+        if (result) {
+          result.rootPath = resolved.repoRoot
+        }
+        state = result
+        return result
+      },
+      initBoard() {
+        // Placeholder step — the TUI sets up store, sync manager, React mount.
+        // This step completes immediately; the actual init happens after steps finish.
+        // The step timer shows how long the steps runner itself took.
+      },
+    }).run({ clear: false })
+
+    if (!createdRepo) {
+      throw new Error("Failed to load repo")
+    }
 
     // km-fast-md.7: Extract deferred files for background parsing
     const deferredFiles = createdRepo.deferredFiles

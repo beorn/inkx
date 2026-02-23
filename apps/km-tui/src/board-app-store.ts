@@ -528,6 +528,8 @@ export function createBoardAppStoreState(
           return
         }
 
+        let isZoomAction = false
+
         set((state) => {
           let flatUpdate: Partial<BoardAppState>
 
@@ -562,12 +564,15 @@ export function createBoardAppStoreState(
             case "ZOOM_IN": {
               const zoomNodeId = action.nodeId
               const zoomDepths = computeDefaultFoldDepths(zoomNodeId, new Map())
+              const showSkeleton = !globalThis.IS_REACT_ACT_ENVIRONMENT
+              isZoomAction = showSkeleton
               flatUpdate = {
                 rootId: zoomNodeId,
                 cursorNodeId: action.cursorNodeId ?? null,
                 foldDepths: zoomDepths,
                 curswantX: null,
                 curswantY: null,
+                ...(showSkeleton && { isZoomLoading: true }),
               }
               break
             }
@@ -582,6 +587,8 @@ export function createBoardAppStoreState(
                 },
               ]
               const rootDepths = computeDefaultFoldDepths(action.rootId, new Map())
+              const showSkeleton = !globalThis.IS_REACT_ACT_ENVIRONMENT
+              isZoomAction = showSkeleton
               flatUpdate = {
                 rootId: action.rootId,
                 rootPath: action.rootPath,
@@ -591,6 +598,7 @@ export function createBoardAppStoreState(
                 navHistoryIndex: newHistory.length,
                 curswantX: null,
                 curswantY: null,
+                ...(showSkeleton && { isZoomLoading: true }),
               }
               break
             }
@@ -681,6 +689,21 @@ export function createBoardAppStoreState(
           cursorNodeId: s.cursorNodeId,
           ...ancestors,
         })
+
+        // Zoom actions: show skeleton for one frame, then reveal board.
+        // The skeleton renders immediately (isZoomLoading: true in flatUpdate).
+        // After the next event loop tick, clear it so Board renders with new rootId.
+        if (isZoomAction) {
+          set((state) => ({
+            ui: { ...state.ui, isLoading: true, loadingStartTime: Date.now() },
+          }))
+          setTimeout(() => {
+            set((state) => ({
+              isZoomLoading: false,
+              ui: { ...state.ui, isLoading: false, loadingStartTime: null },
+            }))
+          }, 0)
+        }
       },
 
       // --- Direct setters ---
