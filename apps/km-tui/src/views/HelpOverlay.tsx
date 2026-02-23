@@ -30,8 +30,8 @@ const DOT_STOP = 12
 const SECTION_ROWS: Array<string[] | null> = [
   ["Navigation", "Editing"],
   ["Selection", "Task"],
-  ["Fold", "View"],
-  ["Panes", "System"],
+  ["View", "Panes"],
+  ["System"],
   null, // verb × location grid
 ]
 
@@ -229,11 +229,6 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
     addLine(<Text key={`blank-${lineIdx}`}> </Text>)
   }
 
-  // Quick access
-  const qaWidth = contentWidth - 5
-  addLine(renderColoredLine(sectionHeaderStr("Quick Access", contentWidth), `qa-hdr-${lineIdx}`))
-  addLine(renderColoredLine("  " + renderEntryStr(["1-9"], "jump to favorite board", qaWidth), `qa-fav-${lineIdx}`))
-  addLine(<Text key={`qa-blank-${lineIdx}`}> </Text>)
 
   return lines
 }

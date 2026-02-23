@@ -151,7 +151,7 @@ const LAYER_CATEGORY_MAP: Record<string, string> = {
   selection: "Selection",
   edit: "Editing",
   task: "Task",
-  fold: "Fold", // sub-categorized by chord prefix below
+  fold: "View", // fold commands merge into View; sub-categorized by chord prefix below
   view: "View",
   history: "Editing", // merge into Editing
   tui: "System", // merge into System
@@ -209,11 +209,11 @@ const FOLD_CATEGORY_OVERRIDES: Record<string, string> = {
   "[": "Add",
 }
 
-/** Command IDs that belong in the Fold section (not sub-categorized) */
+/** Command IDs that belong in the View section (fold commands, not sub-categorized by chord) */
 const FOLD_COMMANDS = new Set(["fold_node", "unfold_node", "fold_all", "unfold_all"])
 
 /** Display order for sections */
-const SECTION_ORDER = ["Navigation", "Editing", "Selection", "Task", "Fold", "Panes", "View", "System"]
+const SECTION_ORDER = ["Navigation", "Editing", "Selection", "Task", "View", "Panes", "System"]
 
 // ── Concise descriptions ─────────────────────────────────────────────
 
@@ -407,9 +407,9 @@ const COMBINE_RULES: CombineRule[] = [
     description: "capture to inbox",
     section: "Task",
   },
-  // Fold
-  { commands: ["fold_node", "unfold_node"], display: "H / L", description: "fold/unfold", section: "Fold" },
-  { commands: ["fold_all", "unfold_all"], display: "< / >", description: "fold/unfold all", section: "Fold" },
+  // Fold (merged into View)
+  { commands: ["fold_node", "unfold_node"], display: "H / L", description: "fold/unfold", section: "View" },
+  { commands: ["fold_all", "unfold_all"], display: "< / >", description: "fold/unfold all", section: "View" },
   // View
   {
     commands: ["increase_content_lines", "decrease_content_lines"],
@@ -532,7 +532,7 @@ function formatKey(binding: Keybinding): string {
       keyName = "⎋"
       break
     case "Enter":
-      keyName = "↩\uFE0E"
+      keyName = "↩"
       break
     case "Tab":
       keyName = "⇥"
@@ -568,15 +568,15 @@ function formatChordPrefix(chord: string): string {
 function getFoldCategory(binding: Keybinding): string {
   // Chord bindings → sub-categorize by prefix
   if (binding.chord) {
-    return CHORD_CATEGORY_MAP[binding.chord] ?? "Fold"
+    return CHORD_CATEGORY_MAP[binding.chord] ?? "View"
   }
   // Bare symbol overrides
   if (FOLD_CATEGORY_OVERRIDES[binding.key]) {
     return FOLD_CATEGORY_OVERRIDES[binding.key]
   }
-  // Fold-specific commands stay in Fold
+  // Fold-specific commands go to View
   if (FOLD_COMMANDS.has(binding.commandId)) {
-    return "Fold"
+    return "View"
   }
   // Standalone fallbacks (g, m, a, t without chord) — skip
   return ""
@@ -704,6 +704,12 @@ export function getHelpScreenData(): HelpSection[] {
 
   // Apply combine rules
   applyCombineRules(sectionMap)
+
+  // Add quick-access entry to Navigation (1-9 favorites are generated, not in registry)
+  const navItems = sectionMap.get("Navigation")
+  if (navItems) {
+    navItems.push({ keys: ["1-9"], command: "_favorites", description: "jump to board" })
+  }
 
   // Sort sections by defined order
   const sections: HelpSection[] = []
