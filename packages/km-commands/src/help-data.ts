@@ -438,6 +438,12 @@ const COMBINE_RULES: CombineRule[] = [
     section: "View",
   },
   {
+    commands: ["local_find", "search_replace"],
+    display: "/ ⌘f/F",
+    description: "find / replace",
+    section: "System",
+  },
+  {
     commands: ["open_in_system", "open_in_terminal"],
     display: "⌘o/⌘⇧o",
     description: "open in app/terminal",
@@ -540,7 +546,7 @@ function formatKey(binding: Keybinding): string {
       keyName = "⎋"
       break
     case "Enter":
-      keyName = "↩"
+      keyName = "↩\uFE0E"
       break
     case "Tab":
       keyName = "⇥"

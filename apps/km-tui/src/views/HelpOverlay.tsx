@@ -222,16 +222,20 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
     </Text>,
   )
 
+  // Column layout: location label + 3 verb columns with gutters
+  const locW = 12
+  const colW = 10
+
   // Column headers
   addLine(
     <Text key="vg-col-hdr">
       {"  "}
-      <Text dimColor>{"          "}</Text>
+      <Text dimColor>{"".padEnd(locW)}</Text>
       <Text bold color="cyan">
-        {"go (g)   "}
+        {"go (g)".padEnd(colW)}
       </Text>
       <Text bold color="cyan">
-        {"move (m) "}
+        {"move (m)".padEnd(colW)}
       </Text>
       <Text bold color="cyan">
         {"add (a)"}
@@ -241,9 +245,9 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
 
   for (let i = 0; i < VERB_GRID.length; i++) {
     const row = VERB_GRID[i]
-    const loc = (row.key + " " + row.location).padEnd(10)
-    const g = (row.goto ?? "—").padEnd(9)
-    const m = (row.move ?? "—").padEnd(9)
+    const loc = (row.key + " " + row.location).padEnd(locW)
+    const g = (row.goto ?? "—").padEnd(colW)
+    const m = (row.move ?? "—").padEnd(colW)
     const a = row.add ?? "—"
     addLine(
       <Text key={`vg-${i}`}>
