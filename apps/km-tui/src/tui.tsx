@@ -234,6 +234,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     {
       using _ = run.span("render-setup")
+      // Show progress while React mount runs (~2s on large vaults).
+      // Visible on normal screen until alt screen takes over.
+      if (isInteractive) process.stdout.write("  ⠋ Rendering...\n")
       const handle = await boardApp.run(
         <RepoProvider repo={options.repo}>
           <InputLayerProvider>

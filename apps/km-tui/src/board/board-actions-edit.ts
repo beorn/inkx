@@ -121,12 +121,18 @@ function handleDeleteColumn(
   const { repo } = ctx
   const nodeId = col.node.id
 
-  // Count total descendants (cards + their children recursively)
+  // Count total descendants (cards + their children recursively).
+  // Cap at 10000 to avoid blocking the event loop on deep trees (118k+ nodes).
+  const MAX_COUNT = 10000
   let totalDescendants = 0
   const countDescendants = (id: string) => {
+    if (totalDescendants >= MAX_COUNT) return
     const children = repo.getChildren(id)
     totalDescendants += children.length
-    for (const child of children) countDescendants(child.id)
+    for (const child of children) {
+      if (totalDescendants >= MAX_COUNT) return
+      countDescendants(child.id)
+    }
   }
   countDescendants(nodeId)
 

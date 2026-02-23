@@ -602,7 +602,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         const node = ctx.repo.getNode(nodeId)
         if (!node) continue
         const depth = newDepths.get(nodeId) ?? boardDepth
-        const visibleCount = countDescendantsAtDepth(ctx.repo, node, 0, depth)
+        const visibleCount = countDescendantsAtDepth(ctx.repo, node, depth, UNFOLD_CONTENT_WARN_THRESHOLD + 1)
         if (visibleCount > UNFOLD_CONTENT_WARN_THRESHOLD) {
           log.warn(
             "unfold: card %s would show ~%d nodes (threshold: %d)",
@@ -621,14 +621,23 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const newDepths = new Map(ctx.foldDepths)
       // Set depth to 999 (effectively infinite) for the card
       newDepths.set(card.id, 999)
-      // Remove explicit depth entries for all descendants so they inherit
-      const removeDescendantDepths = (nodeId: string) => {
-        for (const child of ctx.repo.getChildren(nodeId)) {
-          newDepths.delete(child.id)
-          removeDescendantDepths(child.id)
+      // Remove explicit depth entries for descendants so they inherit the parent's 999.
+      // Instead of walking all descendants (can be 100k+ nodes), iterate foldDepths
+      // entries (typically <20) and check ancestry via parent chain.
+      const cardId = card.id
+      for (const [id] of newDepths) {
+        if (id === cardId) continue
+        let nodeId: string | null = id
+        while (nodeId) {
+          const n = ctx.repo.getNode(nodeId)
+          if (!n?.parent_id) break
+          if (n.parent_id === cardId) {
+            newDepths.delete(id)
+            break
+          }
+          nodeId = n.parent_id
         }
       }
-      removeDescendantDepths(card.id)
       ctx.setFoldDepths(newDepths)
       return ok()
     }
@@ -2015,14 +2024,15 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 function countDescendantsAtDepth(
   repo: { getChildren(id: string): { id: string }[] },
   node: { id: string },
-  depth: number,
   remainingDepth: number,
+  limit: number,
 ): number {
   if (remainingDepth <= 0) return 0
   const children = repo.getChildren(node.id)
   let count = children.length
   for (const child of children) {
-    count += countDescendantsAtDepth(repo, child, depth + 1, remainingDepth - 1)
+    if (count >= limit) return count
+    count += countDescendantsAtDepth(repo, child, remainingDepth - 1, limit - count)
   }
   return count
 }
