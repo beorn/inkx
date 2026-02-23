@@ -11,7 +11,6 @@
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
 import React, {
-  Suspense,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -188,99 +187,47 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
 }
 
 // =============================================================================
-// Progressive Column Rendering via Suspense
+// Progressive Column Reveal
 // =============================================================================
 
 /**
- * Resource for Suspense — read() throws the promise while pending (inkx pattern).
- * Once resolved, read() returns normally and the component renders.
- */
-interface ColumnResource {
-  read(): void
-}
-
-/**
- * Progressive column reveal via chained resources (throw-promise Suspense pattern).
- * Column 0 resolves immediately. Each subsequent column resolves after
- * the previous one MOUNTS (not just resolves) — ColumnGate calls onMounted
- * from useEffect, which fires after React commits + inkx paints.
- * setTimeout(0) between each ensures one column per paint frame.
+ * Progressive column reveal via state-based mount chaining.
+ * Returns revealedCount — columns up to that index render normally,
+ * the rest show ColumnSkeleton placeholders.
  *
- * Uses the throw-promise pattern (not React.use()) because inkx's reconciler
- * handles thrown promises in Suspense boundaries.
+ * Column 0 renders on first frame. After it mounts, a useEffect fires
+ * setTimeout(0) which bumps revealedCount to 2. Each subsequent column
+ * gets a paint frame for its skeleton before the next real column renders.
+ * This yields to the event loop between each column, preventing long blocks.
+ *
+ * Returns columnCount in tests (IS_REACT_ACT_ENVIRONMENT) for synchronous rendering.
  */
-function createColumnResources(count: number): {
-  resources: ColumnResource[]
-  onMounted: (index: number) => void
-} {
-  const resolved: boolean[] = Array(count).fill(false)
-  resolved[0] = true // Column 0 renders immediately
-
-  const resolvers: (() => void)[] = []
-  const promises = Array.from({ length: count }, (_, i) => {
-    if (i === 0) return Promise.resolve()
-    return new Promise<void>((r) => {
-      resolvers[i] = () => {
-        resolved[i] = true
-        r()
-      }
-    })
-  })
-
-  const resources: ColumnResource[] = promises.map((promise, i) => ({
-    read() {
-      if (!resolved[i]) throw promise
-    },
-  }))
-
-  return {
-    resources,
-    onMounted(index: number) {
-      const next = resolvers[index + 1]
-      if (next) setTimeout(next, 0)
-    },
-  }
-}
-
-/**
- * Hook that creates and caches column reveal resources.
- * Recreates on rootId change (zoom). Returns null in test env.
- */
-function useColumnReveal(columnCount: number, rootId: string | null): ReturnType<typeof createColumnResources> | null {
+function useColumnReveal(columnCount: number, rootId: string | null): number {
   // @ts-expect-error - React internal flag set by inkx test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const ref = useRef<ReturnType<typeof createColumnResources> | null>(null)
+  const [revealedCount, setRevealedCount] = useState(isTest ? columnCount : Math.min(1, columnCount))
   const prevRootRef = useRef<string | null>(null)
 
-  if (!isTest && rootId !== prevRootRef.current && columnCount > 0) {
+  // Reset on rootId change (zoom) — guard against same-value setState
+  if (rootId !== prevRootRef.current) {
     prevRootRef.current = rootId
-    ref.current = createColumnResources(columnCount)
+    if (!isTest && columnCount > 0 && revealedCount !== 1) {
+      setRevealedCount(1)
+    }
   }
 
-  return isTest ? null : ref.current
-}
-
-/**
- * Gate component — suspends via throw-promise until column's resource resolves.
- * Signals onMounted after mount so the next column's resource can resolve.
- */
-function ColumnGate({
-  resource,
-  index,
-  onMounted,
-  children,
-}: {
-  resource: ColumnResource
-  index: number
-  onMounted: (index: number) => void
-  children: React.ReactNode
-}): React.ReactElement {
-  resource.read() // Throws promise if pending — inkx Suspense catches it
+  // Chain: after each column renders, reveal the next one
   useEffect(() => {
-    process.stderr.write(`[reveal] col ${index} mounted +${Math.round(performance.now())}ms\n`)
-    onMounted(index)
-  }, [index, onMounted])
-  return <>{children}</>
+    if (isTest || revealedCount >= columnCount) return
+    process.stderr.write(`[reveal] ${revealedCount}/${columnCount} effect fired +${Math.round(performance.now())}ms\n`)
+    const id = setTimeout(() => {
+      process.stderr.write(`[reveal] setTimeout fired, bumping to ${revealedCount + 1} +${Math.round(performance.now())}ms\n`)
+      setRevealedCount((c) => c + 1)
+    }, 0)
+    return () => clearTimeout(id)
+  }, [revealedCount, columnCount, isTest])
+
+  return isTest ? columnCount : revealedCount
 }
 
 /**
@@ -472,9 +419,9 @@ export function BoardCore({
 
   const isBoardSelected = derivedSelectionLevel === "board"
 
-  // Progressive column reveal — staggered promises + Suspense.
-  // Null in tests (act() needs synchronous rendering).
-  const columnReveal = useColumnReveal(columns.length, rootId)
+  // Progressive column reveal — stagger one column per paint frame.
+  // Returns how many columns to render (rest show skeletons).
+  const revealedCount = useColumnReveal(columns.length, rootId)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -628,24 +575,17 @@ export function BoardCore({
                           height={contentHeight}
                         />
                       )
-                      const resource = columnReveal?.resources[index]
-                      if (!resource || !columnReveal) return columnEl
-                      return (
-                        <Suspense
-                          fallback={
-                            <ColumnSkeleton
-                              name={col.node.title || col.node.name || ""}
-                              width={colWidth}
-                              height={contentHeight}
-                              colIndex={index}
-                            />
-                          }
-                        >
-                          <ColumnGate resource={resource} index={index} onMounted={columnReveal.onMounted}>
-                            {columnEl}
-                          </ColumnGate>
-                        </Suspense>
-                      )
+                      if (index >= revealedCount) {
+                        return (
+                          <ColumnSkeleton
+                            name={col.node.title || col.node.name || ""}
+                            width={colWidth}
+                            height={contentHeight}
+                            colIndex={index}
+                          />
+                        )
+                      }
+                      return columnEl
                     }}
                     renderOverflowIndicator={(dir) => (
                       <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
