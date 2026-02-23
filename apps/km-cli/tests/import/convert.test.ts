@@ -22,6 +22,7 @@ import {
   slugify,
   stripHtmlTags,
 } from "../../src/import/convert.ts"
+import type { ConvertOptions } from "../../src/import/convert.ts"
 import type { ImportData, ImportItem } from "../../src/import/types.ts"
 
 // ============================================================================
@@ -60,8 +61,8 @@ function makeDataWithSections(
 }
 
 /** Convert single-project data and return the markdown string */
-function convertToMd(data: ImportData): string {
-  const files = convert(data)
+function convertToMd(data: ImportData, opts?: ConvertOptions): string {
+  const files = convert(data, opts)
   const [md] = files.values()
   return md!
 }
@@ -180,7 +181,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
   })
 
   test("renders comments as child list nodes (not in blockquote)", () => {
-    const md = convertToMd(fixture)
+    const md = convertToMd(fixture, { skipActivities: false })
     // Comments section is an oi node, rendered as a heading
     expect(md).toContain("## Comments")
     expect(md).toContain("- 2026-02-16 @bob: Looks great")
@@ -418,6 +419,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain(
       "## [x] Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 p:: 2 ^tf1",
@@ -449,6 +451,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("## Comments")
     // Multi-line comment text is stored in the node content
@@ -475,6 +478,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).not.toContain("moved this Task")
     expect(md).toContain("This is a real comment")
@@ -495,6 +499,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("Actual feedback about the design")
     expect(md).not.toContain("changed the due date")
@@ -516,6 +521,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("moved this Task from Backlog to Done")
   })
@@ -585,6 +591,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     // Body as paragraph (not blockquote), no indent since parent is oi
     expect(md).toContain("Description text here")
@@ -624,6 +631,7 @@ describe("Activity log rendering", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     // Activity section is an oi node, rendered as a heading
     expect(md).toContain("## Activity")
@@ -655,6 +663,7 @@ describe("Activity log rendering", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     const commentIdx = md.indexOf("## Comments")
     const activityIdx = md.indexOf("## Activity")
@@ -677,11 +686,120 @@ describe("Activity log rendering", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     // Activity section is an oi node, rendered as a heading
     expect(md).toContain("## Activity")
     expect(md).toContain("- 2026-02-15 @system: Task moved")
     expect(md).not.toContain("> **Activity:**")
+  })
+})
+
+// ============================================================================
+// Skip activities (default behavior)
+// ============================================================================
+
+describe("Skip activities (default)", () => {
+  test("comments and activity logs are skipped by default", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with comments and activity",
+          body: "Description preserved",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Great work!",
+            },
+          ],
+          activityLog: [
+            {
+              author: "system",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Task created",
+            },
+          ],
+          attachments: [
+            {
+              name: "file.pdf",
+              url: "https://example.com/file.pdf",
+              type: "file",
+            },
+          ],
+        },
+      ]),
+    )
+    // Task title and body preserved
+    expect(md).toContain("Task with comments and activity")
+    expect(md).toContain("Description preserved")
+    // Attachments still present (not activities)
+    expect(md).toContain("## Attachments")
+    expect(md).toContain("file.pdf")
+    // Comments and activity skipped
+    expect(md).not.toContain("## Comments")
+    expect(md).not.toContain("## Activity")
+    expect(md).not.toContain("Great work!")
+    expect(md).not.toContain("Task created")
+  })
+
+  test("subtask comments are also skipped by default", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Parent task",
+          children: [
+            {
+              sourceId: "sub1",
+              title: "Subtask",
+              comments: [
+                {
+                  author: "bob",
+                  createdAt: "2026-02-12T15:00:00Z",
+                  text: "Subtask comment",
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    )
+    expect(md).toContain("Parent task")
+    expect(md).toContain("Subtask")
+    expect(md).not.toContain("## Comments")
+    expect(md).not.toContain("Subtask comment")
+  })
+
+  test("skipActivities: false includes comments and activity", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task",
+          comments: [
+            {
+              author: "alice",
+              createdAt: "2026-02-10T10:00:00Z",
+              text: "Included comment",
+            },
+          ],
+          activityLog: [
+            {
+              author: "system",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Included activity",
+            },
+          ],
+        },
+      ]),
+      { skipActivities: false },
+    )
+    expect(md).toContain("## Comments")
+    expect(md).toContain("Included comment")
+    expect(md).toContain("## Activity")
+    expect(md).toContain("Included activity")
   })
 })
 
@@ -810,6 +928,12 @@ describe("Child node structure", () => {
       },
       "parent",
       nodes,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { skipActivities: false },
     )
     const commentsParent = nodes.find((n) => n.id === "comments-t1")!
     expect(commentsParent).toBeDefined()
@@ -893,6 +1017,12 @@ describe("Child node structure", () => {
       },
       "parent",
       nodes,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { skipActivities: false },
     )
     // Task node itself should have the Asana timestamps
     const taskNode = nodes.find((n) => n.id === "t1")!
@@ -2673,6 +2803,7 @@ describe("Asana link conversion in comments", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("[[^789012]]")
     expect(md).not.toContain("app.asana.com")
@@ -2693,6 +2824,7 @@ describe("Asana link conversion in comments", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("[[^222]]")
     expect(md).not.toContain("app.asana.com")
@@ -2716,6 +2848,12 @@ describe("Asana link conversion in comments", () => {
       },
       "parent",
       nodes,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { skipActivities: false },
     )
     const commentNode = nodes.find((n) => n.parent_id === "comments-t1")!
     expect(commentNode).toBeDefined()
@@ -3042,6 +3180,7 @@ describe("Asset proxy URLs in full pipeline (#10)", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("[Asana asset]")
     expect(md).not.toContain("get_asset")
@@ -3115,6 +3254,7 @@ describe("Comment text cleanup (#17)", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("<https://example.com/doc>")
     expect(md).not.toMatch(/\[https:\/\/example\.com\/doc\]\(https:\/\/example\.com\/doc\)/)
@@ -3135,6 +3275,7 @@ describe("Comment text cleanup (#17)", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("[[^456]]")
     expect(md).not.toContain("app.asana.com")
@@ -3155,6 +3296,7 @@ describe("Comment text cleanup (#17)", () => {
           ],
         },
       ]),
+      { skipActivities: false },
     )
     expect(md).toContain("- First")
     expect(md).toContain("- Second")

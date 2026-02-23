@@ -51,14 +51,13 @@ const makeTask = (
   })
 
 /** Create a section node for serialization tests */
-const makeSection = (content: string, depth: number) =>
+const makeSection = (content: string, _depth?: number) =>
   makeTestNode({
     type: "h",
     item: true,
     fstype: "mdsection",
     content,
     name: content.toLowerCase().replace(/\s+/g, "-"),
-    data: { depth },
   })
 
 /** Create a code node for serialization tests */

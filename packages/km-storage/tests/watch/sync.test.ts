@@ -539,7 +539,7 @@ code
             parent_id: fileNode!.id,
             parent_idx: (colA!.parent_idx ?? 0) + 0.5,
             content: "",
-            data: { depth: 2 },
+            data: {},
           },
         }
 

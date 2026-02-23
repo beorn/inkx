@@ -35,7 +35,7 @@ describe("strip embed sigil", () => {
             n.type = "h"
             n.item = true
             n.fstype = "mdsection"
-            n.data = { depth: 2, name: "@next" }
+            n.data = { name: "@next" }
             n.name = "@next"
           }
 
@@ -64,7 +64,7 @@ describe("strip embed sigil", () => {
             n.type = "h"
             n.item = true
             n.fstype = "mdsection"
-            n.data = { depth: 2, name: "Other" }
+            n.data = { name: "Other" }
           }
         }
 
@@ -142,7 +142,7 @@ describe("strip embed sigil", () => {
             n.type = "h"
             n.item = true
             n.fstype = "mdsection"
-            n.data = { depth: 2, name: "@next" }
+            n.data = { name: "@next" }
             n.name = "@next"
           }
           // Tasks with @next inline in content
@@ -190,7 +190,7 @@ describe("strip embed sigil", () => {
             n.type = "h"
             n.item = true
             n.fstype = "mdsection"
-            n.data = { depth: 2, name: "@next" }
+            n.data = { name: "@next" }
             n.name = "@next"
           }
 

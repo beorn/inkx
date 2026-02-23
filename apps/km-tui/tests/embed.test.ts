@@ -20,19 +20,17 @@ const colItems = (col: string) => `#${col} [data-view='item']`
 
 describe("embed create depth", () => {
   test("new node after embed is created correctly", () => {
-    // Simulate: a column containing embeds (no depth in data)
+    // Simulate: a column containing embeds.
     // When creating a new node among the embeds, it should be created successfully.
-    // Depth is derived from tree position during serialization, not stored in data.
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
-        // Embeds have no depth — simulate by setting embed_source
-        // (what makes them embeds in the real app)
+        // Simulate embed nodes by setting embed_source
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.embed_source = "some-target"
           n.type = "h"
           n.item = true
-          n.data = {} // no depth, like real embeds
+          n.data = {}
         }
       }
       return nodes
@@ -85,16 +83,14 @@ describe("embed create depth", () => {
   })
 
   test("new node at board root level is created correctly", () => {
-    // When the parent column has no depth (file node), creating a new
-    // node should succeed. Depth is derived from tree position during
-    // serialization, not stored in data.
+    // When creating a new node in a column, it should succeed.
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("child-a"), item("child-b")))
       for (const n of nodes) {
         if (n.id === "child-a" || n.id === "child-b") {
           n.type = "h"
           n.item = true
-          n.data = {} // no depth
+          n.data = {}
         }
       }
       return nodes

@@ -10,7 +10,7 @@ import { isEmbed } from "@km/core"
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
 import type { InitialBoardData, ColumnView } from "./types.ts"
-import { deduplicateByFsPath } from "./hooks/use-columns.ts"
+import { deduplicateByFsPath, isCollapsedChild } from "./hooks/use-columns.ts"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
 import {
@@ -44,8 +44,10 @@ function buildColumnCards(
     }
   }
 
-  // Structural (oi) nodes are regular cards
+  // Structural (oi) nodes are regular cards — except collapsed ones
+  // (e.g., imported Activity/Comments/Attachments with km.collapse:: true)
   for (const node of structuralNodes) {
+    if (isCollapsedChild(node)) continue
     cardNodes.push(node)
   }
 

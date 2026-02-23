@@ -68,7 +68,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   if (cards.length === 0) return
 
   // Aggregate impact across all cards
-  const TRIVIAL_DATA_KEYS = new Set(["depth", "rules", "lang", "meta", "completion"])
+  const TRIVIAL_DATA_KEYS = new Set(["rules", "lang", "meta", "completion"])
   let totalChildCount = 0
   let totalBacklinkCount = 0
   let anyHasMetadata = false

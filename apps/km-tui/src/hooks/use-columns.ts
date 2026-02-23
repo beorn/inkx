@@ -30,7 +30,7 @@ const log = createLogger("km:tui:columns")
 /** Nodes with km.collapse:: true (e.g., imported comments/attachments/activity) are
  *  shown only in the detail pane, never as cards in columns.
  *  Also supports legacy detailOnly data flag. */
-function isCollapsedChild(node: KNode): boolean {
+export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   const rules = node.rules ?? parseHeadingRules(node.title || "").rules
   return rules.collapse === true
@@ -442,8 +442,7 @@ function kNodeToColumnView(
     if (!isEmbed(child.type)) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
-    // Collapsed structural nodes are kept but rendered folded (compact card)
-    // Only body blocks are filtered out by isCollapsedChild
+    if (isCollapsedChild(child)) continue
     cardNodes.push(child)
   }
 

@@ -113,7 +113,7 @@ describe("getNodeDisplayName", () => {
       const node = createNode("01KH8939", {
         title: "",
         content: "",
-        data: { depth: 2, rules: { color: "yellow" }, title: "Waiting" },
+        data: { rules: { color: "yellow" }, title: "Waiting" },
       })
       expect(getNodeDisplayName(node)).toBe("(01KH8939)")
     })
@@ -179,7 +179,7 @@ describe("getNodeDisplayName", () => {
         fstype: "mdsection",
         title: "",
         content: "",
-        data: { depth: 1, title: "Old Stale Title" },
+        data: { title: "Old Stale Title" },
       })
 
       const getChildren = (id: string) => (id === "file123" ? [sectionNode] : [])
@@ -300,7 +300,7 @@ describe("isNodeUntitled", () => {
     const node = createNode("abc123", {
       title: "",
       content: "",
-      data: { depth: 2, title: "Waiting" },
+      data: { title: "Waiting" },
     })
     expect(isNodeUntitled(node)).toBe(true)
   })

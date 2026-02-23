@@ -54,7 +54,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
-      data: { depth: 1 },
+
       fs_path: "/repo/next-actions.md",
     })
     const processingSection = makeTestNode({
@@ -128,10 +128,9 @@ describe("Embed depth: section created among embeds", () => {
     expect(reparsedInner.parent_id).toBe(processing!.id)
   })
 
-  test("section among embeds gets correct depth from tree structure (former bug now fixed)", () => {
-    // Previously, data.depth on sections could cause incorrect heading levels.
-    // Now depth is derived from tree position (parent chain), so a child section
-    // always gets the correct depth regardless of data.depth.
+  test("section among embeds gets correct depth from tree structure", () => {
+    // Depth is derived from tree position (parent chain), so a child section
+    // always gets the correct heading level from its nesting.
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
@@ -139,7 +138,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
-      data: { depth: 1 },
+
       fs_path: "/repo/next-actions.md",
     })
     const processingSection = makeTestNode({
@@ -223,7 +222,7 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
-      data: { depth: 1 },
+
     })
     const parentSection = makeTestNode({
       id: "sec-parent",

@@ -58,7 +58,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     fstype: "mdsection",
     name: "todo",
     content: "Todo",
-    data: { depth: 2 },
+    data: {},
     parent_id: "file-1",
     parent_idx: 0,
   }
@@ -71,7 +71,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     fstype: "mdsection",
     name: "done",
     content: "Done",
-    data: { depth: 2 },
+    data: {},
     parent_id: "file-1",
     parent_idx: 1,
   }

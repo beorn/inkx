@@ -115,6 +115,16 @@ function convertAsanaLinks(text: string): string {
 }
 
 // =============================================================================
+// Convert options
+// =============================================================================
+
+/** Options for the convert stage */
+export interface ConvertOptions {
+  /** Skip importing comments and activity logs (default: true) */
+  skipActivities?: boolean
+}
+
+// =============================================================================
 // ImportItem → KNode conversion
 // =============================================================================
 
@@ -299,6 +309,7 @@ function itemToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
+  convertOpts?: ConvertOptions,
 ): void {
   // Within-file dedup: skip entirely if already rendered in this project
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
@@ -450,7 +461,7 @@ function itemToNodes(
   }
 
   // Comments as child list nodes under a "Comments" parent
-  if (item.comments?.length) {
+  if (item.comments?.length && !(convertOpts?.skipActivities ?? true)) {
     const filtered = item.comments
       .map((c) => ({ ...c, text: filterSystemComment(c.text, c.createdAt) }))
       .filter((c) => c.text.trim())
@@ -586,7 +597,7 @@ function itemToNodes(
   }
 
   // Activity log as child list nodes under an "Activity" parent
-  if (item.activityLog?.length) {
+  if (item.activityLog?.length && !(convertOpts?.skipActivities ?? true)) {
     nodes.push(
       mkNode(counter, {
         id: `activity-${item.sourceId}`,
@@ -630,6 +641,7 @@ function itemToNodes(
         currentProject,
         localRendered,
         userSlugMap,
+        convertOpts,
       )
     }
   }
@@ -649,6 +661,7 @@ function sectionToNodes(
   currentProject?: string,
   localRendered?: Set<string>,
   userSlugMap?: Map<string, string>,
+  convertOpts?: ConvertOptions,
 ): void {
   const isPlaceholder = NO_SECTION_TITLES.has(section.title.toLowerCase().trim())
   const itemParentId = isPlaceholder ? parentId : `section-${section.sourceId}`
@@ -668,7 +681,18 @@ function sectionToNodes(
   }
 
   for (const item of section.items) {
-    itemToNodes(counter, item, itemParentId, nodes, rendered, primaryMap, currentProject, localRendered, userSlugMap)
+    itemToNodes(
+      counter,
+      item,
+      itemParentId,
+      nodes,
+      rendered,
+      primaryMap,
+      currentProject,
+      localRendered,
+      userSlugMap,
+      convertOpts,
+    )
   }
 }
 
@@ -678,6 +702,7 @@ function projectToNodes(
   rendered?: Set<string>,
   primaryMap?: Map<string, string>,
   userSlugMap?: Map<string, string>,
+  convertOpts?: ConvertOptions,
 ): KNode[] {
   const counter: IdxCounter = { value: 0 }
   const nodes: KNode[] = []
@@ -709,14 +734,36 @@ function projectToNodes(
   // Sections
   if (project.sections?.length) {
     for (const section of project.sections) {
-      sectionToNodes(counter, section, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap)
+      sectionToNodes(
+        counter,
+        section,
+        fileId,
+        nodes,
+        rendered,
+        primaryMap,
+        project.title,
+        localRendered,
+        userSlugMap,
+        convertOpts,
+      )
     }
   }
 
   // Loose items
   if (project.items?.length) {
     for (const item of project.items) {
-      itemToNodes(counter, item, fileId, nodes, rendered, primaryMap, project.title, localRendered, userSlugMap, 2)
+      itemToNodes(
+        counter,
+        item,
+        fileId,
+        nodes,
+        rendered,
+        primaryMap,
+        project.title,
+        localRendered,
+        userSlugMap,
+        convertOpts,
+      )
     }
   }
 
@@ -945,9 +992,9 @@ function buildPrimaryMap(data: ImportData): {
 }
 
 /** Convert ImportData to a map of relative file paths → markdown content */
-export function convert(data: ImportData): FileMap {
+export function convert(data: ImportData, opts?: ConvertOptions): FileMap {
   const files: FileMap = new Map()
-  for (const [filename, markdown] of convertBatch(data)) {
+  for (const [filename, markdown] of convertBatch(data, opts)) {
     files.set(filename, markdown)
   }
   return files
@@ -957,14 +1004,14 @@ export function convert(data: ImportData): FileMap {
  * Streaming convert: yields [filename, markdown] pairs one project at a time.
  * Memory-efficient for large imports — each project's KNode tree is GC'd after yield.
  */
-export function* convertBatch(data: ImportData): Generator<[string, string]> {
+export function* convertBatch(data: ImportData, opts?: ConvertOptions): Generator<[string, string]> {
   const { primaryMap, filenames, userSlugMap } = buildPrimaryMap(data)
   const rendered = new Set<string>()
 
   for (const [i, project] of data.projects.entries()) {
     const filename = filenames[i]
     if (!filename) continue
-    const nodes = projectToNodes(project, rendered, primaryMap, userSlugMap)
+    const nodes = projectToNodes(project, rendered, primaryMap, userSlugMap, opts)
     const markdown = nodesToMarkdown(nodes)
     yield [filename, markdown]
   }

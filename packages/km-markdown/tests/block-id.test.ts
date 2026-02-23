@@ -139,7 +139,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-      data: { depth: 1 },
+
     })
     const task = makeTestNode({
       id: "task-1",
@@ -166,7 +166,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-      data: { depth: 1 },
+
     })
     const ul = makeTestNode({
       id: "ul-1",
@@ -191,7 +191,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-      data: { depth: 1 },
+
     })
     const para = makeTestNode({
       id: "para-1",
@@ -214,7 +214,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Doc",
-      data: { depth: 1 },
+
     })
     const section = makeTestNode({
       id: "sec-1",
@@ -226,7 +226,7 @@ describe("Serializer: block_id output", () => {
       content: "My Section",
       title: "My Section",
       block_id: "def3",
-      data: { depth: 2 },
+
     })
 
     const md = nodesToMarkdown([fileNode, section])
@@ -241,7 +241,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-      data: { depth: 1 },
+
     })
     const task = makeTestNode({
       id: "task-1",
@@ -268,7 +268,7 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-      data: { depth: 1 },
+
     })
     const ol = makeTestNode({
       id: "ol-1",
@@ -299,7 +299,7 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -356,7 +356,7 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -411,7 +411,7 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -460,7 +460,7 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -670,7 +670,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -718,7 +718,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -738,7 +738,7 @@ describe("Embed references with block_id", () => {
       title: "My Section",
       content: "My Section",
       block_id: "s1a2",
-      data: { depth: 2 },
+
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -761,7 +761,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -803,7 +803,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -852,7 +852,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -900,7 +900,7 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-      data: { depth: 1 },
+
     })
     const targetFileNode = makeTestNode({
       id: "target-file",

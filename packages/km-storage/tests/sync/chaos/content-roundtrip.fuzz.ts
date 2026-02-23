@@ -589,7 +589,7 @@ describe("Content Round-Trip Fuzz", () => {
 
       await syncManager.syncFromFs()
 
-      // Record section tree structure (parent_id encodes nesting, not data.depth)
+      // Record section tree structure (parent_id encodes nesting)
       const getSectionStructure = () => {
         const nodes = getAllNodes(db)
         const sections = nodes.filter((n) => n.type === "h" && n.fstype === "mdsection")

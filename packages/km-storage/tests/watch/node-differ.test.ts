@@ -382,7 +382,7 @@ describe("diffNodes", () => {
           parent_idx: 0,
           title: "Waiting",
           content: "Waiting km.color:: yellow",
-          data: { depth: 2, rules: { color: "yellow" }, title: "Waiting" },
+          data: { rules: { color: "yellow" }, title: "Waiting" },
         }),
       ]
       const newNodes = [
@@ -395,7 +395,7 @@ describe("diffNodes", () => {
           parent_idx: 0,
           title: "",
           content: "",
-          data: { depth: 2 },
+          data: { lang: "ts" },
         }),
       ]
 
@@ -404,7 +404,7 @@ describe("diffNodes", () => {
       const updated = result.changes.find((c) => c.type === "updated")
       expect(updated?.nodeId).toBe("section-1")
       // data should be the FULL new object, not a merge
-      expect(updated?.changes?.data).toEqual({ depth: 2 })
+      expect(updated?.changes?.data).toEqual({ lang: "ts" })
       // Specifically: old title and rules must NOT be present
       expect((updated?.changes?.data as Record<string, unknown>)?.title).toBeUndefined()
       expect((updated?.changes?.data as Record<string, unknown>)?.rules).toBeUndefined()

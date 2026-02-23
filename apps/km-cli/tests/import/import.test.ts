@@ -894,8 +894,9 @@ describe("End-to-end: FakeAsana → markdown files", () => {
     // HTML notes converted to markdown with bullets in body paragraph (mdast uses - bullets)
     expect(edge).toMatch(/-\s+First option/)
     expect(edge).not.toMatch(/>\s+-\s+First option/)
-    // Multi-line comment has continuation lines
-    expect(edge).toContain("@alice-smith: First line of feedback")
+    // Comments are skipped by default (skipActivities: true)
+    expect(edge).not.toContain("## Comments")
+    expect(edge).not.toContain("First line of feedback")
     // All-metadata task (as heading under section, depth 3)
     expect(edge).toContain("### [x] Comprehensive task")
     expect(edge).toContain("@alice-smith")

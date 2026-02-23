@@ -405,7 +405,7 @@ describe("pipelineResolveLinks()", () => {
     // Insert a section with name column (sections have slugified heading as name)
     db.run(
       `INSERT INTO nodes (id, type, parent_id, parent_idx, name, title, data, created_at, updated_at, version)
-       VALUES ('section1', 'section', 'file1', 0, 'my-section', 'My Section', '{"depth":2}', 1000, 1000, '')`,
+       VALUES ('section1', 'section', 'file1', 0, 'my-section', 'My Section', '{}', 1000, 1000, '')`,
     )
 
     const appliedFiles = [

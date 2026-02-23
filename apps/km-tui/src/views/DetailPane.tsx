@@ -453,7 +453,6 @@ const KNOWN_DATA_KEYS = new Set([
   "name",
   "title",
   "recurrence",
-  "depth",
   "fstype",
   "rules",
   "tag",

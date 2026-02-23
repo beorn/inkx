@@ -8,12 +8,14 @@
  * Both paths are tested here. These nodes should only be visible in the detail
  * pane, never as cards in columns.
  *
- * Bug: km-tui.comments-as-cards
+ * Bug: km-tui.activity-cards
  */
 
-import { describe, test } from "vitest"
+import { describe, expect, test } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
+import { createFakeRepo } from "@km/storage"
+import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 
 /** Create an li node with detailOnly data (like imported comments/attachments/activity) */
 function detailOnlyItem(id: string, content: string, ...childArrays: KNode[][]): KNode[] {
@@ -114,10 +116,51 @@ describe("detailOnly nodes hidden from card view", () => {
 })
 
 describe("structural children with km.collapse:: true hidden from card view", () => {
-  test("structural child with km.collapse:: true does not appear as a card", () => {
-    // A column has regular task cards plus a structural child (heading with children)
-    // marked km.collapse:: true. The collapsed structural child should be filtered
-    // out of cardNodes by isCollapsedChild, just like detailOnly nodes.
+  test("collapsed structural nodes filtered from cardNodes in deriveColumnsFromRepo", () => {
+    // Verify at the data model level that collapsed structural nodes
+    // do NOT appear in the cardNodes array for any column.
+    const nodes = item(
+      "board",
+      item(
+        "col",
+        item("task-1"),
+        item("task-2"),
+        item("Activity km.collapse:: true", item("log-1"), item("log-2")),
+        item("Comments km.collapse:: true", item("c1")),
+      ),
+    )
+
+    const repo = createFakeRepo({ nodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    // Should have exactly 1 column
+    expect(columns).toHaveLength(1)
+    const col = columns[0]!
+
+    // Only task-1 and task-2 should be in cardNodes — Activity and Comments should be filtered
+    const cardIds = col.cardNodes.map((c) => c.id)
+    expect(cardIds).toContain("task-1")
+    expect(cardIds).toContain("task-2")
+    expect(cardIds).not.toContain("Activity km.collapse:: true")
+    expect(cardIds).not.toContain("Comments km.collapse:: true")
+    expect(cardIds).not.toContain("log-1")
+    expect(cardIds).not.toContain("log-2")
+    expect(cardIds).not.toContain("c1")
+  })
+
+  test("non-collapsed structural nodes remain in cardNodes", () => {
+    const nodes = item("board", item("col", item("task-1"), item("Subsection", item("sub-1"), item("sub-2"))))
+
+    const repo = createFakeRepo({ nodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    expect(columns).toHaveLength(1)
+    const cardIds = columns[0]!.cardNodes.map((c) => c.id)
+    expect(cardIds).toContain("task-1")
+    expect(cardIds).toContain("Subsection")
+  })
+
+  test("structural child with km.collapse:: true does not render as a card", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -137,11 +180,14 @@ describe("structural children with km.collapse:: true hidden from card view", ()
     board.expect("#task-1").toExist()
     board.expect("#task-2").toExist()
 
-    // Collapsed structural child should NOT appear as a card
-    board.expect("#Activity km.collapse:: true").not.toExist()
-    // Its children should also not appear (they are nested under the hidden node)
+    // log-1/log-2 should not appear (children of hidden node)
     board.expect("#log-1").not.toExist()
     board.expect("#log-2").not.toExist()
+
+    // Verify via screenshot that "Activity" text doesn't appear anywhere
+    const screenshot = board.screenshot()
+    expect(screenshot).not.toContain("Activity")
+    expect(screenshot).not.toContain("···")
   })
 
   test("structural child without collapse rule still appears as a card", () => {
@@ -160,31 +206,69 @@ describe("structural children with km.collapse:: true hidden from card view", ()
 
   test("mix of detailOnly and km.collapse:: true children both filtered", () => {
     // Both filtering mechanisms should work together in the same column
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "col",
-            item("task-1"),
-            // detailOnly body node
-            detailOnlyItem("comments", "Comments", item("c1")),
-            // km.collapse:: true structural node
-            item("History km.collapse:: true", item("entry-1")),
-            item("task-2"),
-          ),
-        ),
-      { columns: 80, rows: 24 },
+    const nodes = item(
+      "board",
+      item(
+        "col",
+        item("task-1"),
+        // detailOnly body node
+        detailOnlyItem("comments", "Comments", item("c1")),
+        // km.collapse:: true structural node
+        item("History km.collapse:: true", item("entry-1")),
+        item("task-2"),
+      ),
     )
 
+    const repo = createFakeRepo({ nodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    expect(columns).toHaveLength(1)
+    const cardIds = columns[0]!.cardNodes.map((c) => c.id)
+
     // Regular tasks visible
-    board.expect("#task-1").toExist()
-    board.expect("#task-2").toExist()
+    expect(cardIds).toContain("task-1")
+    expect(cardIds).toContain("task-2")
 
     // Both hidden mechanisms filter their respective nodes
-    board.expect("#comments").not.toExist()
-    board.expect("#c1").not.toExist()
-    board.expect("#History km.collapse:: true").not.toExist()
-    board.expect("#entry-1").not.toExist()
+    expect(cardIds).not.toContain("comments")
+    expect(cardIds).not.toContain("c1")
+    expect(cardIds).not.toContain("History km.collapse:: true")
+    expect(cardIds).not.toContain("entry-1")
+  })
+
+  test("Asana-style Activity/Comments/Attachments sections filtered from cards", () => {
+    // Reproduce the exact Asana import pattern: task with body, comments, attachments, activity
+    // as structural children marked with km.collapse:: true
+    const nodes = item(
+      "board",
+      item(
+        "project-section",
+        item("real-task-1"),
+        item("real-task-2"),
+        item("Comments km.collapse:: true", item("comment-a"), item("comment-b")),
+        item("Attachments km.collapse:: true", item("att-1")),
+        item("Activity km.collapse:: true", item("act-1"), item("act-2"), item("act-3")),
+      ),
+    )
+
+    const repo = createFakeRepo({ nodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    expect(columns).toHaveLength(1)
+    const cardIds = columns[0]!.cardNodes.map((c) => c.id)
+
+    // Real tasks should be present
+    expect(cardIds).toContain("real-task-1")
+    expect(cardIds).toContain("real-task-2")
+
+    // All Asana metadata sections should be hidden
+    expect(cardIds).not.toContain("Comments km.collapse:: true")
+    expect(cardIds).not.toContain("Attachments km.collapse:: true")
+    expect(cardIds).not.toContain("Activity km.collapse:: true")
+
+    // Their children should also not be in cardNodes (they are children of filtered parents)
+    expect(cardIds).not.toContain("comment-a")
+    expect(cardIds).not.toContain("att-1")
+    expect(cardIds).not.toContain("act-1")
   })
 })

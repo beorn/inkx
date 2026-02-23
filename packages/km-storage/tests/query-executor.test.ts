@@ -333,7 +333,6 @@ describe("Status on Any Node Type", () => {
         item: true,
         task_status: "wip",
         content: "Project Phase 1",
-        data: '{"depth": 2}',
       },
       {
         id: "file1",
@@ -355,7 +354,6 @@ describe("Status on Any Node Type", () => {
         type: "h",
         item: true,
         content: "Normal section",
-        data: '{"depth": 2}',
       },
     ])
   })
