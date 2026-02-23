@@ -176,7 +176,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 // ── Verb × Location grid ────────────────────────────────────────────
 
 /** Column widths for the verb grid */
-const VG_LOC_W = 12
+const VG_LOC_W = 16
 const VG_COL_W = 10
 
 function GridCell({ value }: { value?: string }): React.ReactElement {
@@ -207,9 +207,7 @@ function buildVerbGridLines(): React.ReactElement[] {
   lines.push(
     <Box key="vg-col-hdr" flexDirection="row">
       <Text>{"  "}</Text>
-      <Box width={VG_LOC_W}>
-        <Text dimColor>{"prefix"}</Text>
-      </Box>
+      <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
           {"go"}
@@ -226,12 +224,12 @@ function buildVerbGridLines(): React.ReactElement[] {
     </Box>,
   )
 
-  // Prefix row (chord key + ctrl alternative)
+  // Prefix key row (chord prefix + ctrl alternatives)
   lines.push(
     <Box key="vg-prefix" flexDirection="row">
       <Text>{"  "}</Text>
       <Box width={VG_LOC_W}>
-        <Text dimColor>{""}</Text>
+        <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color="yellow">{"g"}</Text>
@@ -252,6 +250,9 @@ function buildVerbGridLines(): React.ReactElement[] {
   // Grid rows
   for (let i = 0; i < VERB_GRID.length; i++) {
     const row = VERB_GRID[i]
+    if (row.separator) {
+      lines.push(<Text key={`vg-sep-${i}`}> </Text>)
+    }
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Text>{"  "}</Text>

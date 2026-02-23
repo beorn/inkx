@@ -182,112 +182,75 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
 // Progressive Column Rendering via Suspense
 // =============================================================================
 
-interface RevealEntry {
-  promise: Promise<void>
-  resolve: () => void
-  resolved: boolean
-}
-
 /**
- * Suspense resource for staggered column reveal.
- *
- * Uses the throw-promise pattern: `read(index)` either returns (column ready)
- * or throws a promise (column suspended → Suspense shows skeleton).
- *
- * Flow: column 0 resolves immediately → mounts → onMounted(0) → setTimeout(0)
- * → column 1 resolves → mounts → onMounted(1) → ... Each column gets its own
- * paint frame because setTimeout(0) yields to inkx's render scheduler.
+ * Progressive column reveal via chained promises.
+ * Column 0 resolves immediately. Each subsequent column resolves after
+ * the previous one MOUNTS (not just resolves) — ColumnGate calls onMounted
+ * from useEffect, which fires after React commits + inkx paints.
+ * setTimeout(0) between each ensures one column per paint frame.
  */
-function createRevealResource(count: number): {
-  read: (index: number) => void
+function createColumnPromises(count: number): {
+  promises: Promise<void>[]
   onMounted: (index: number) => void
 } {
-  const entries: RevealEntry[] = []
-  const start = performance.now()
-
-  for (let i = 0; i < count; i++) {
-    let resolve!: () => void
-    const promise = new Promise<void>((r) => {
-      resolve = r
+  const resolvers: (() => void)[] = []
+  const promises = Array.from({ length: count }, (_, i) => {
+    if (i === 0) return Promise.resolve()
+    return new Promise<void>((r) => {
+      resolvers[i] = r
     })
-    entries[i] = { promise, resolve, resolved: false }
-  }
-
-  // Resolve column 0 immediately
-  if (entries[0]) {
-    entries[0].resolved = true
-    entries[0].resolve()
-  }
+  })
 
   return {
-    read(index: number): void {
-      const entry = entries[index]
-      if (!entry || entry.resolved) return
-      throw entry.promise
-    },
+    promises,
     onMounted(index: number) {
-      log.debug?.(
-        `column ${index}/${count} mounted at +${(performance.now() - start).toFixed(0)}ms`,
-      )
-      // After this column paints, resolve the next one.
-      // setTimeout(0) yields to inkx's render scheduler (queueMicrotask-based),
-      // ensuring the terminal paints this column before the next one starts.
-      const next = entries[index + 1]
-      if (next && !next.resolved) {
-        setTimeout(() => {
-          next.resolved = true
-          next.resolve()
-        }, 0)
-      }
+      const next = resolvers[index + 1]
+      if (next) setTimeout(next, 0)
     },
   }
 }
 
 /**
- * Hook that manages the Suspense reveal resource.
- * Recreates on rootId change (zoom) for fresh progressive reveal.
- * Returns null in test env (act() doesn't support async Suspense).
+ * Hook that creates and caches column reveal promises.
+ * Recreates on rootId change (zoom). Returns null in test env.
  */
-function useProgressiveReveal(
+function useColumnReveal(
   columnCount: number,
   rootId: string | null,
-): { read: (index: number) => void; onMounted: (index: number) => void } | null {
+): ReturnType<typeof createColumnPromises> | null {
   // @ts-expect-error - React internal flag set by inkx test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const resourceRef = useRef<ReturnType<typeof createRevealResource> | null>(null)
+  const ref = useRef<ReturnType<typeof createColumnPromises> | null>(null)
   const prevRootRef = useRef<string | null>(null)
-  const prevCountRef = useRef(-1)
 
-  if (
-    !isTest &&
-    (rootId !== prevRootRef.current || columnCount !== prevCountRef.current) &&
-    columnCount > 0
-  ) {
+  if (!isTest && rootId !== prevRootRef.current && columnCount > 0) {
     prevRootRef.current = rootId
-    prevCountRef.current = columnCount
-    resourceRef.current = createRevealResource(columnCount)
+    ref.current = createColumnPromises(columnCount)
   }
 
-  return isTest ? null : resourceRef.current
+  return isTest ? null : ref.current
 }
 
 /**
- * Gate component that suspends via the reveal resource.
- * On mount, signals onMounted to trigger the next column's reveal.
+ * Gate component — suspends via React.use() until column's promise resolves.
+ * Signals onMounted after mount so the next column's promise can resolve.
  */
-function RevealGate({
+function ColumnGate({
+  promise,
   index,
-  resource,
+  onMounted,
   children,
 }: {
+  promise: Promise<void>
   index: number
-  resource: { read: (index: number) => void; onMounted: (index: number) => void }
+  onMounted: (index: number) => void
   children: React.ReactNode
 }): React.ReactElement {
-  resource.read(index)
+  React.use(promise)
   useEffect(() => {
-    resource.onMounted(index)
-  }, [index, resource])
+    log.debug?.(`column ${index} mounted at +${Math.round(performance.now())}ms`)
+    onMounted(index)
+  }, [index, onMounted])
   return <>{children}</>
 }
 
@@ -480,9 +443,9 @@ export function BoardCore({
 
   const isBoardSelected = derivedSelectionLevel === "board"
 
-  // Progressive column reveal via Suspense — each column gets its own boundary.
-  // Returns null in tests (act() needs synchronous rendering).
-  const columnReveal = useProgressiveReveal(columns.length, rootId)
+  // Progressive column reveal — staggered promises + Suspense.
+  // Null in tests (act() needs synchronous rendering).
+  const columnReveal = useColumnReveal(columns.length, rootId)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -636,8 +599,8 @@ export function BoardCore({
                           height={contentHeight}
                         />
                       )
-                      // In tests: render columns directly (act() doesn't support async Suspense)
-                      if (!columnReveal) return columnEl
+                      const promise = columnReveal?.promises[index]
+                      if (!promise || !columnReveal) return columnEl
                       return (
                         <Suspense
                           fallback={
@@ -649,9 +612,9 @@ export function BoardCore({
                             />
                           }
                         >
-                          <RevealGate index={index} resource={columnReveal}>
+                          <ColumnGate promise={promise} index={index} onMounted={columnReveal.onMounted}>
                             {columnEl}
-                          </RevealGate>
+                          </ColumnGate>
                         </Suspense>
                       )
                     }}

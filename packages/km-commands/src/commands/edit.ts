@@ -348,6 +348,16 @@ const moveToProject = {
   execute: () => ({ type: "NOOP" }),
 } satisfies CommandDef
 
+// Add to archive (stub — add new item directly to archive board)
+const addToArchive = {
+  id: "add_to_archive",
+  name: "Add to Archive",
+  description: "Add a new item to the archive board",
+  category: "Edit",
+  shortcuts: ["ae"],
+  execute: () => ({ type: "NOOP" }),
+} satisfies CommandDef
+
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -384,4 +394,5 @@ export const editCommands: CommandDef[] = [
   addAssignee,
   addProject,
   addBacklink,
+  addToArchive,
 ]

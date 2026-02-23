@@ -699,6 +699,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "a", key: "i", commandId: "insert_child" },
       { chord: "a", key: "j", commandId: "add_sibling_below" },
       { chord: "a", key: "h", commandId: "insert_at_parent" },
+      { chord: "a", key: "e", commandId: "add_to_archive" },
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },

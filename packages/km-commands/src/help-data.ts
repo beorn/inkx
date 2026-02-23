@@ -22,6 +22,8 @@ export interface VerbGridRow {
   goto?: string
   move?: string
   add?: string
+  /** Render a blank line before this row */
+  separator?: boolean
 }
 
 // ── Help sections ─────────────────────────────────────────────────────
@@ -122,17 +124,17 @@ const HELP_SECTIONS: HelpSection[] = [
 // ── Verb x Location grid ──────────────────────────────────────────────
 
 export const VERB_GRID: VerbGridRow[] = [
-  // Boards
+  // Board locations
+  { key: "/", location: "root", goto: "g /" },
+  { key: "h", location: "home (next)", goto: "g h", move: "m h" },
   { key: "i", location: "inbox", goto: "g i", move: "m i" },
   { key: "j", location: "journal", goto: "g j", move: "m j" },
-  { key: "h", location: "home", goto: "g h", move: "m h" },
-  { key: "e", location: "archive", goto: "g e", move: "m e" },
-  { key: "N", location: "next", goto: "g N" },
-  { key: "/", location: "root", goto: "g /" },
-  { key: "p", location: "picker", goto: "g p", move: "m p" },
-  // Targets (bare key shortcuts: #, @, + work without prefix)
+  { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e" },
+  // Targets
+  { key: "p", location: "picker", goto: "g p", move: "m p", separator: true },
+  { key: "[", location: "backlink", goto: "g [", add: "a [" },
   { key: "#", location: "tag", goto: "g #", add: "#" },
-  { key: "@", location: "assignee", goto: "g @", add: "@" },
+  { key: "@", location: "context", goto: "g @", add: "@" },
   { key: "+", location: "project", goto: "g +", move: "m +", add: "+" },
 ]
 

@@ -48,13 +48,17 @@ describe("HelpOverlay", () => {
     expect(app.text).toContain("CHORDS")
     // Column headers
     expect(app.text).toMatch(/go\s+move\s+add/)
-    // Prefix row with ctrl alternatives
+    // Prefix key row with ctrl alternatives
+    expect(app.text).toContain("prefix key")
     expect(app.text).toContain("⌃r")
     expect(app.text).toContain("⌃l")
-    // Grid rows
+    // Board locations
     expect(app.text).toContain("inbox")
     expect(app.text).toContain("journal")
-    expect(app.text).toContain("home")
+    expect(app.text).toContain("home (next)")
+    // Target locations
+    expect(app.text).toContain("context")
+    expect(app.text).toContain("backlink")
   })
 
   test("shows combined entries with dot leaders", () => {
