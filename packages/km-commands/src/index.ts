@@ -20,7 +20,7 @@ export type {
   HideHelpAction,
   CycleViewModeAction,
   DeleteNodeAction,
-  SelectAllProgressiveAction,
+  SelectAllProgressiveAction, // now type: "SELECT_ALL" (progressive behavior)
   // TUI-specific action types
   TUIAction,
   QuitAction,
@@ -155,8 +155,8 @@ export {
 } from "./when.ts"
 
 // Help data (auto-generated from registry)
-export type { HelpItem, HelpSection } from "./help-data.ts"
-export { getHelpScreenData } from "./help-data.ts"
+export type { HelpItem, HelpSection, VerbGridRow } from "./help-data.ts"
+export { getHelpScreenData, VERB_GRID } from "./help-data.ts"
 
 // Ink Adapter (for TUI integration)
 export {

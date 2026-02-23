@@ -43,7 +43,7 @@ export interface CommandContext {
 
   // State flags (for commands that need them)
   moveMode: boolean
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
 }
 
 export interface CommandDef {
@@ -204,8 +204,9 @@ interface DeleteNodeAction {
   nodeId: string
 }
 
+/** Select all (progressive: column first, then board-wide) */
 interface SelectAllProgressiveAction {
-  type: "SELECT_ALL_PROGRESSIVE"
+  type: "SELECT_ALL"
 }
 
 // TUI-specific actions (dialogs, quit, favorites)
@@ -851,10 +852,6 @@ interface SelectAllSiblingsAction {
   type: "SELECT_ALL_SIBLINGS"
 }
 
-interface SelectAllAction {
-  type: "SELECT_ALL"
-}
-
 interface ExtendSelectUpAction {
   type: "EXTEND_SELECT_UP"
 }
@@ -878,7 +875,6 @@ export type NavigationAction =
   | FoldLevelAction
   | UnfoldLevelAction
   | SelectAllSiblingsAction
-  | SelectAllAction
   | ExtendSelectUpAction
   | ExtendSelectDownAction
   | ExtendSelectLeftAction

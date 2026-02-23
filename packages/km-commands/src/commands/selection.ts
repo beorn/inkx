@@ -45,21 +45,10 @@ const selectAllSiblings = {
 const selectAll = {
   id: "select_all",
   name: "Select All",
-  description: "Select all visible nodes",
+  description: "Select all (column first, then board-wide)",
   category: "Selection",
-  shortcuts: ["Ctrl+A"],
+  shortcuts: ["A", "Ctrl+A"],
   execute: () => ({ type: "SELECT_ALL" }),
-} satisfies CommandDef
-
-// Progressive select all (TUI's Shift+A behavior)
-// First press: select all in column, second: select all in board
-const selectAllProgressive = {
-  id: "select_all_progressive",
-  name: "Progressive Select All",
-  description: "Select all in column, then all in board",
-  category: "Selection",
-  shortcuts: ["A"],
-  execute: () => ({ type: "SELECT_ALL_PROGRESSIVE" }),
 } satisfies CommandDef
 
 const clearSelection = {
@@ -132,7 +121,6 @@ export const selectionCommands: CommandDef[] = [
   selectRemove,
   selectAllSiblings,
   selectAll,
-  selectAllProgressive,
   clearSelection,
   extendSelectUp,
   extendSelectDown,

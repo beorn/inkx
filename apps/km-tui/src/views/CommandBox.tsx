@@ -21,7 +21,18 @@ import type { ColumnView } from "../types.ts"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
-const SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"]
+const SPINNER_FRAMES = [
+  "\u280B",
+  "\u2819",
+  "\u2839",
+  "\u2838",
+  "\u283C",
+  "\u2834",
+  "\u2826",
+  "\u2827",
+  "\u2807",
+  "\u280F",
+]
 const SPINNER_INTERVAL = 80
 
 const FLASH_DURATION = 3000
@@ -236,7 +247,8 @@ export function CommandBox({
         {/* Loading spinner */}
         {isLoading && !chordSuffix && (
           <Text dimColor>
-            {spinnerFrame}{elapsed > 1 ? ` ${elapsed}s ` : " "}
+            {spinnerFrame}
+            {elapsed > 1 ? ` ${elapsed}s ` : " "}
           </Text>
         )}
         {/* Pane indicator (only when in detail pane) */}
@@ -260,7 +272,8 @@ export function CommandBox({
         {/* Memory mode indicator (only for non-disk) */}
         {storageLabel && (
           <Text dimColor id="storage-mode">
-            {"  "}{storageLabel}
+            {"  "}
+            {storageLabel}
           </Text>
         )}
       </Box>

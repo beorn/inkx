@@ -3,7 +3,13 @@
  *
  * Generates structured help data from the keybinding registry and command
  * definitions. Used by HelpOverlay to render auto-generated keyboard
- * shortcut reference instead of hardcoded content.
+ * shortcut reference.
+ *
+ * Features:
+ * - Sub-categorizes fold layer by chord prefix (g→Go To, m→Move, etc.)
+ * - Combines related commands into single entries (hjkl→navigate)
+ * - Uses macOS key icons (⌃, ⌘, ⌥, ⇧, ↑, ⌫, ⎋, etc.)
+ * - Provides verb × location grid data
  */
 
 import { defaultKeybindingLayers } from "./keybindings.ts"
@@ -21,6 +27,16 @@ export interface HelpSection {
   category: string
   items: HelpItem[]
 }
+
+export interface VerbGridRow {
+  key: string
+  location: string
+  goto?: string
+  move?: string
+  add?: string
+}
+
+// ── Excluded commands and layers ─────────────────────────────────────
 
 /** Command IDs to exclude from help (internal/modal/low-level) */
 const EXCLUDED_COMMANDS = new Set([
@@ -88,7 +104,7 @@ const EXCLUDED_COMMANDS = new Set([
   "detail_pane.scroll_up",
   // Close/quit is generic Escape behavior
   "close_or_quit",
-  // Generated favorites/column commands (too many, listed as range)
+  // Generated favorites/column commands (shown in Quick Access)
   ...Array.from({ length: 9 }, (_, i) => `favorite_${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `column_${i + 1}`),
 ])
@@ -107,134 +123,592 @@ const EXCLUDED_LAYERS = new Set([
   "local-find",
 ])
 
+// ── Section mapping and ordering ─────────────────────────────────────
+
 /** Map layer names to user-facing help categories */
 const LAYER_CATEGORY_MAP: Record<string, string> = {
-  global: "Global",
+  global: "System",
   navigation: "Navigation",
   selection: "Selection",
   edit: "Editing",
   task: "Task",
-  fold: "Fold & Chords",
+  fold: "Fold", // sub-categorized by chord prefix below
   view: "View",
-  history: "History",
-  tui: "System",
+  history: "Editing", // merge into Editing
+  tui: "System", // merge into System
 }
 
-/** Format a keybinding into a human-readable key string */
+/** Per-command section overrides (when a command is in the wrong layer for help purposes) */
+const COMMAND_SECTION_OVERRIDES: Record<string, string> = {
+  // Navigation layer → Editing
+  enter_inline_edit: "Editing",
+  // These are in navigation layer but belong in View
+  toggle_detail_pane: "View",
+  close_detail_pane: "View",
+  open_detail_pane: "View",
+  focus_board: "View",
+  focus_detail: "View",
+  follow_link: "View",
+  // These are in navigation layer but belong in other sections
+  add_link: "Add",
+  reparent_picker: "Move",
+  open_in_system: "System",
+  open_in_terminal: "System",
+  // These have chord bindings (g prefix) in fold layer but already appear
+  // in other sections via combine rules — prevent duplication in "Go To"
+  cursor_first: "Navigation",
+  cursor_last: "Navigation",
+  new_item: "Editing",
+}
+
+/** Sub-categorize fold layer bindings by chord prefix */
+const CHORD_CATEGORY_MAP: Record<string, string> = {
+  g: "Go To",
+  m: "Move",
+  a: "Add",
+  t: "Task",
+  "Ctrl+w": "Panes",
+}
+
+/** Bare symbol keys in fold layer that belong to specific sections */
+const FOLD_CATEGORY_OVERRIDES: Record<string, string> = {
+  "@": "Add",
+  "#": "Add",
+  "+": "Add",
+  "[": "Add",
+}
+
+/** Command IDs that belong in the Fold section (not sub-categorized) */
+const FOLD_COMMANDS = new Set(["fold_node", "unfold_node", "fold_all", "unfold_all"])
+
+/** Display order for sections */
+const SECTION_ORDER = [
+  "Navigation",
+  "Editing",
+  "Selection",
+  "Task",
+  "Fold",
+  "Go To",
+  "Move",
+  "Add",
+  "Panes",
+  "View",
+  "System",
+]
+
+// ── Concise descriptions ─────────────────────────────────────────────
+
+/** Short descriptions to replace verbose command descriptions */
+const DESCRIPTION_OVERRIDES: Record<string, string> = {
+  // Navigation
+  cursor_down: "move down",
+  cursor_up: "move up",
+  cursor_left: "move left",
+  cursor_right: "move right",
+  cursor_first: "go to top",
+  cursor_last: "go to bottom",
+  cursor_parent: "go to parent",
+  block_nav_down: "down by block",
+  block_nav_up: "up by block",
+  page_up: "half page up",
+  page_down: "half page down",
+  zoom_inwards: "zoom in",
+  zoom_outwards: "zoom out",
+  zoom_in: "zoom to cursor",
+  zoom_to_root: "zoom to root",
+  nav_back: "back",
+  nav_forward: "forward",
+  sibling_board_next: "next board",
+  sibling_board_prev: "prev board",
+  follow_link: "follow link",
+  // Editing
+  enter_inline_edit: "edit",
+  insert_below: "new item below",
+  insert_above: "new item above",
+  clipboard_cut: "cut",
+  clipboard_copy: "copy",
+  clipboard_paste: "paste",
+  delete_node: "delete",
+  indent_node: "indent",
+  outdent: "outdent",
+  duplicate_node: "duplicate",
+  undo: "undo",
+  redo: "redo",
+  shift_up: "shift up",
+  shift_down: "shift down",
+  shift_left: "shift left",
+  shift_right: "shift right",
+  // Selection
+  select_toggle: "toggle select",
+  select_all: "select all",
+  extend_select_up: "extend up",
+  extend_select_down: "extend down",
+  extend_select_left: "extend left",
+  extend_select_right: "extend right",
+  // Task
+  toggle_task_done: "toggle done",
+  cycle_task_status: "cycle status",
+  archive: "archive",
+  capture_inbox: "capture to inbox",
+  capture_dialog: "capture (dialog)",
+  task_dialog: "task properties",
+  set_assignee: "set assignee",
+  set_due_date: "set due date",
+  set_priority: "set priority",
+  set_start_date: "set start date",
+  set_recurring: "set recurring",
+  toggle_hide_done: "toggle done",
+  set_label: "set label",
+  // Fold
+  fold_node: "fold",
+  unfold_node: "unfold",
+  fold_all: "fold all",
+  unfold_all: "unfold all",
+  // Go To
+  open_in_system: "open in app",
+  open_in_terminal: "open in terminal",
+  project_picker: "board picker",
+  new_item: "new item dialog",
+  toggle_collapse: "collapse column",
+  toggle_show_ignored: "show ignored",
+  cycle_view_mode: "cycle view",
+  goto_inbox: "inbox",
+  goto_journal: "journal",
+  goto_home: "home",
+  goto_archive: "archive",
+  goto_next: "next",
+  // Move
+  enter_move_mode: "move mode",
+  move_to_inbox: "to inbox",
+  move_to_journal: "to journal",
+  move_to_home: "to home",
+  reparent_picker: "pick parent",
+  // Add
+  add_tag: "add tag",
+  add_assignee: "add assignee",
+  add_project: "add project",
+  add_backlink: "add backlink",
+  add_link: "add link",
+  insert_child: "add child",
+  add_sibling_below: "add below",
+  insert_at_parent: "add at parent",
+  // Panes
+  pane_split_vertical: "split v",
+  pane_split_horizontal: "split h",
+  pane_close: "close pane",
+  pane_focus_left: "focus left",
+  pane_focus_down: "focus down",
+  pane_focus_up: "focus up",
+  pane_focus_right: "focus right",
+  pane_focus_previous: "prev pane",
+  pane_focus_next: "next pane",
+  pane_focus_prev: "prev pane",
+  pane_resize_grow: "grow width",
+  pane_resize_shrink: "shrink width",
+  pane_resize_grow_vertical: "grow height",
+  pane_resize_shrink_vertical: "shrink height",
+  pane_equalize: "equalize",
+  pane_zoom: "zoom pane",
+  pane_only: "close others",
+  pane_swap_left: "swap left",
+  pane_swap_down: "swap down",
+  pane_swap_up: "swap up",
+  pane_swap_right: "swap right",
+  // View
+  visual_mode_enter: "visual mode",
+  cycle_icon_style: "cycle icons",
+  show_help: "help",
+  increase_content_lines: "show more",
+  decrease_content_lines: "show less",
+  command_palette: "command palette",
+  toggle_detail_pane: "detail pane",
+  close_detail_pane: "close detail",
+  open_detail_pane: "open detail",
+  focus_board: "focus board",
+  focus_detail: "focus detail",
+  // System
+  quit: "quit",
+  local_find: "find",
+  search_replace: "find & replace",
+  filter: "filter",
+  settings: "settings",
+}
+
+// ── Combine rules ────────────────────────────────────────────────────
+
+/** Rules for combining related commands into single display entries */
+interface CombineRule {
+  commands: string[]
+  display: string
+  description: string
+  section: string
+}
+
+const COMBINE_RULES: CombineRule[] = [
+  // Navigation
+  {
+    commands: ["cursor_down", "cursor_up", "cursor_left", "cursor_right"],
+    display: "hjkl",
+    description: "navigate",
+    section: "Navigation",
+  },
+  { commands: ["zoom_inwards", "zoom_outwards"], display: "z/Z", description: "zoom in/out", section: "Navigation" },
+  { commands: ["nav_back", "nav_forward"], display: "{/}", description: "back/forward", section: "Navigation" },
+  {
+    commands: ["block_nav_down", "block_nav_up"],
+    display: "J/K",
+    description: "move by block",
+    section: "Navigation",
+  },
+  { commands: ["page_up", "page_down"], display: "⌃u/⌃d", description: "half page up/down", section: "Navigation" },
+  { commands: ["cursor_first", "cursor_last"], display: "gg/G", description: "top/bottom", section: "Navigation" },
+  {
+    commands: ["sibling_board_next", "sibling_board_prev"],
+    display: "⌃j/⌃k",
+    description: "next/prev board",
+    section: "Navigation",
+  },
+  // Editing
+  {
+    commands: ["insert_below", "insert_above"],
+    display: "o/O",
+    description: "new item below/above",
+    section: "Editing",
+  },
+  { commands: ["undo", "redo"], display: "u/U", description: "undo/redo", section: "Editing" },
+  { commands: ["indent_node", "outdent"], display: "⇥/⇧⇥", description: "indent/outdent", section: "Editing" },
+  {
+    commands: ["clipboard_copy", "clipboard_cut", "clipboard_paste"],
+    display: "y/d/p",
+    description: "copy/cut/paste",
+    section: "Editing",
+  },
+  // Selection
+  {
+    commands: ["extend_select_up", "extend_select_down", "extend_select_left", "extend_select_right"],
+    display: "⇧↑↓←→",
+    description: "extend selection",
+    section: "Selection",
+  },
+  // Task
+  {
+    commands: ["toggle_task_done", "cycle_task_status"],
+    display: "x/X",
+    description: "toggle/cycle status",
+    section: "Task",
+  },
+  { commands: ["capture_inbox", "capture_dialog"], display: "c/C", description: "capture to inbox", section: "Task" },
+  // Fold
+  { commands: ["fold_node", "unfold_node"], display: "H/L", description: "fold/unfold", section: "Fold" },
+  { commands: ["fold_all", "unfold_all"], display: "</> ", description: "fold/unfold all", section: "Fold" },
+  // View
+  {
+    commands: ["increase_content_lines", "decrease_content_lines"],
+    display: "+/-",
+    description: "show more/less",
+    section: "View",
+  },
+  {
+    commands: ["open_detail_pane", "close_detail_pane", "toggle_detail_pane"],
+    display: "D/⌃i/⌘w",
+    description: "detail pane",
+    section: "View",
+  },
+  {
+    commands: ["focus_board", "focus_detail"],
+    display: "⌘h/⌘l",
+    description: "focus board/detail",
+    section: "View",
+  },
+  {
+    commands: ["open_in_system", "open_in_terminal"],
+    display: "⌘o/⌘⇧o",
+    description: "open in app/terminal",
+    section: "System",
+  },
+  // Panes
+  {
+    commands: ["pane_split_vertical", "pane_split_horizontal"],
+    display: "⌃w v/s",
+    description: "split v/h",
+    section: "Panes",
+  },
+  {
+    commands: ["pane_focus_left", "pane_focus_down", "pane_focus_up", "pane_focus_right"],
+    display: "⌃w hjkl",
+    description: "focus pane",
+    section: "Panes",
+  },
+  {
+    commands: ["pane_resize_grow", "pane_resize_shrink"],
+    display: "⌃w >/<",
+    description: "resize width",
+    section: "Panes",
+  },
+  {
+    commands: ["pane_resize_grow_vertical", "pane_resize_shrink_vertical"],
+    display: "⌃w +/-",
+    description: "resize height",
+    section: "Panes",
+  },
+  {
+    commands: ["pane_swap_left", "pane_swap_down", "pane_swap_up", "pane_swap_right"],
+    display: "⌃w HJKL",
+    description: "swap pane",
+    section: "Panes",
+  },
+  {
+    commands: ["pane_focus_next", "pane_focus_prev"],
+    display: "⌃w ⇥/⇧⇥",
+    description: "cycle panes",
+    section: "Panes",
+  },
+  // Shifting
+  {
+    commands: ["shift_up", "shift_down", "shift_left", "shift_right"],
+    display: "⌘↑↓←→",
+    description: "shift node",
+    section: "Editing",
+  },
+]
+
+// ── Verb × Location grid ─────────────────────────────────────────────
+
+export const VERB_GRID: VerbGridRow[] = [
+  { key: "i", location: "inbox", goto: "g i", move: "m i" },
+  { key: "j", location: "journal", goto: "g j", move: "m j" },
+  { key: "h", location: "home", goto: "g h", move: "m h" },
+  { key: "e", location: "archive", goto: "g e" },
+  { key: "N", location: "next", goto: "g N" },
+  { key: "p", location: "picker", goto: "g p", move: "m p" },
+  { key: "#", location: "tag", add: "a #" },
+  { key: "@", location: "assignee", add: "a @" },
+  { key: "+", location: "project", add: "a +" },
+  { key: "[", location: "backlink", add: "a [" },
+]
+
+// ── macOS key formatting ─────────────────────────────────────────────
+
+/** Format a keybinding into a human-readable key string with macOS icons */
 function formatKey(binding: Keybinding): string {
   const parts: string[] = []
 
-  if (binding.ctrl) parts.push("C")
-  if (binding.meta) parts.push("M")
-  if (binding.super) parts.push("Cmd")
-  if (binding.alt) parts.push("Alt")
-  if (binding.shift) parts.push("S")
+  if (binding.ctrl) parts.push("⌃")
+  if (binding.meta) parts.push("⌥")
+  if (binding.super) parts.push("⌘")
+  if (binding.alt) parts.push("⌥")
+  if (binding.shift) parts.push("⇧")
 
-  // Friendly key names
   let keyName = binding.key
   switch (keyName) {
     case "ArrowUp":
-      keyName = "Up"
+      keyName = "↑"
       break
     case "ArrowDown":
-      keyName = "Down"
+      keyName = "↓"
       break
     case "ArrowLeft":
-      keyName = "Left"
+      keyName = "←"
       break
     case "ArrowRight":
-      keyName = "Right"
+      keyName = "→"
       break
     case "Backspace":
-      keyName = "BS"
+      keyName = "⌫"
       break
     case "Delete":
-      keyName = "Del"
+      keyName = "⌦"
       break
     case "Escape":
-      keyName = "Esc"
+      keyName = "⎋"
+      break
+    case "Enter":
+      keyName = "↩"
+      break
+    case "Tab":
+      keyName = "⇥"
       break
     case " ":
-      keyName = "Space"
+      keyName = "␣"
       break
   }
 
   if (binding.chord) {
-    // Chord: show as prefix->key
-    const prefix = binding.chord
+    const prefix = formatChordPrefix(binding.chord)
     if (parts.length > 0) {
-      return `${prefix}->${parts.join("+")}+${keyName}`
+      return `${prefix} ${parts.join("")}${keyName}`
     }
-    return `${prefix}->${keyName}`
+    return `${prefix} ${keyName}`
   }
 
   if (parts.length > 0) {
-    return `${parts.join("+")}+${keyName}`
+    return `${parts.join("")}${keyName}`
   }
   return keyName
 }
 
+/** Format chord prefix with macOS icons */
+function formatChordPrefix(chord: string): string {
+  if (chord === "Ctrl+w") return "⌃w"
+  return chord
+}
+
+// ── Section building ─────────────────────────────────────────────────
+
+/** Determine the section for a fold-layer binding */
+function getFoldCategory(binding: Keybinding): string {
+  // Chord bindings → sub-categorize by prefix
+  if (binding.chord) {
+    return CHORD_CATEGORY_MAP[binding.chord] ?? "Fold"
+  }
+  // Bare symbol overrides
+  if (FOLD_CATEGORY_OVERRIDES[binding.key]) {
+    return FOLD_CATEGORY_OVERRIDES[binding.key]
+  }
+  // Fold-specific commands stay in Fold
+  if (FOLD_COMMANDS.has(binding.commandId)) {
+    return "Fold"
+  }
+  // Standalone fallbacks (g, m, a, t without chord) — skip
+  return ""
+}
+
+/** Add an item to a section, merging keys for duplicate commandIds */
+function addItem(
+  sectionMap: Map<string, HelpItem[]>,
+  category: string,
+  key: string,
+  commandId: string,
+  description: string,
+) {
+  let items = sectionMap.get(category)
+  if (!items) {
+    items = []
+    sectionMap.set(category, items)
+  }
+  const existing = items.find((i) => i.command === commandId)
+  if (existing) {
+    if (existing.keys.length < 2 && !existing.keys.includes(key)) {
+      existing.keys.push(key)
+    }
+  } else {
+    items.push({ keys: [key], command: commandId, description })
+  }
+}
+
+/** Apply combine rules: merge related commands into single entries */
+function applyCombineRules(sectionMap: Map<string, HelpItem[]>): void {
+  for (const rule of COMBINE_RULES) {
+    const items = sectionMap.get(rule.section)
+    if (!items) continue
+
+    // Remove individual entries
+    const remaining = items.filter((item) => !rule.commands.includes(item.command))
+
+    // Find insertion point (where first combined command was)
+    const firstIdx = items.findIndex((item) => rule.commands.includes(item.command))
+    if (firstIdx < 0) continue
+
+    // Insert combined entry at the position of the first matched command
+    const combinedItem: HelpItem = {
+      keys: [rule.display],
+      command: rule.commands[0],
+      description: rule.description,
+    }
+
+    // Reconstruct: items before first match + combined + items after (excluding matched)
+    const before = remaining.filter((_, i) => {
+      const origIdx = items.indexOf(remaining[i])
+      return origIdx < firstIdx
+    })
+    const after = remaining.filter((_, i) => {
+      const origIdx = items.indexOf(remaining[i])
+      return origIdx > firstIdx
+    })
+
+    sectionMap.set(rule.section, [...before, combinedItem, ...after])
+  }
+}
+
+/**
+ * Validate that all command IDs in help config maps actually exist.
+ * Called once at module load. Throws on invalid IDs — these are programming errors.
+ */
+function validateHelpConfig(knownIds: Set<string>): void {
+  for (const id of Object.keys(DESCRIPTION_OVERRIDES)) {
+    if (!knownIds.has(id)) throw new Error(`DESCRIPTION_OVERRIDES: unknown command "${id}"`)
+  }
+  for (const id of Object.keys(COMMAND_SECTION_OVERRIDES)) {
+    if (!knownIds.has(id)) throw new Error(`COMMAND_SECTION_OVERRIDES: unknown command "${id}"`)
+  }
+  for (const rule of COMBINE_RULES) {
+    for (const id of rule.commands) {
+      if (!knownIds.has(id)) throw new Error(`COMBINE_RULES "${rule.display}": unknown command "${id}"`)
+    }
+  }
+}
+
+// Validate at module load — catches typos immediately
+const _knownCommandIds = new Set(allCommands.map((c) => c.id))
+validateHelpConfig(_knownCommandIds)
+
 /**
  * Build help screen data from the keybinding registry.
  *
- * Iterates all keybinding layers, collects key->commandId mappings,
- * resolves command name/description from the command definitions,
- * and groups by layer-derived category.
+ * Iterates all keybinding layers, collects key→commandId mappings,
+ * resolves command descriptions, groups by section, applies
+ * combine rules, and sorts by SECTION_ORDER.
  */
 export function getHelpScreenData(): HelpSection[] {
-  // Build command lookup map
   const commandMap = new Map<string, CommandDef>()
   for (const cmd of allCommands) {
     commandMap.set(cmd.id, cmd)
   }
 
-  const sections: HelpSection[] = []
+  const sectionMap = new Map<string, HelpItem[]>()
 
   for (const layer of defaultKeybindingLayers) {
     if (EXCLUDED_LAYERS.has(layer.name)) continue
-
-    const category = LAYER_CATEGORY_MAP[layer.name] ?? layer.name
-
-    // Collect items: group bindings by commandId to merge keys
-    const commandOrder: string[] = []
-    const commandKeys = new Map<string, string[]>()
 
     for (const binding of layer.bindings) {
       if (binding.wildcard) continue
       if (EXCLUDED_COMMANDS.has(binding.commandId)) continue
 
       const key = formatKey(binding)
-      const existing = commandKeys.get(binding.commandId)
-      if (existing) {
-        // Avoid duplicate display keys; cap at 2 alternatives to prevent overflow
-        if (existing.length < 2 && !existing.includes(key)) {
-          existing.push(key)
-        }
+      const cmd = commandMap.get(binding.commandId)
+      const desc = DESCRIPTION_OVERRIDES[binding.commandId] ?? cmd?.description ?? cmd?.name ?? binding.commandId
+
+      // Determine category: per-command override > fold sub-category > layer default
+      let category: string
+      if (COMMAND_SECTION_OVERRIDES[binding.commandId]) {
+        category = COMMAND_SECTION_OVERRIDES[binding.commandId]
+      } else if (layer.name === "fold") {
+        category = getFoldCategory(binding)
+        if (!category) continue // skip standalone fallbacks
       } else {
-        commandOrder.push(binding.commandId)
-        commandKeys.set(binding.commandId, [key])
+        category = LAYER_CATEGORY_MAP[layer.name] ?? layer.name
       }
+
+      addItem(sectionMap, category, key, binding.commandId, desc)
     }
+  }
 
-    if (commandOrder.length === 0) continue
+  // Apply combine rules
+  applyCombineRules(sectionMap)
 
-    const items: HelpItem[] = []
-    for (const cmdId of commandOrder) {
-      const cmd = commandMap.get(cmdId)
-      const keys = commandKeys.get(cmdId) ?? []
-      items.push({
-        keys,
-        command: cmd?.name ?? cmdId,
-        description: cmd?.description ?? cmd?.name ?? cmdId,
-      })
+  // Sort sections by defined order
+  const sections: HelpSection[] = []
+  for (const name of SECTION_ORDER) {
+    const items = sectionMap.get(name)
+    if (items && items.length > 0) {
+      sections.push({ category: name, items })
     }
+  }
 
-    // Merge into existing section with same category, or create new
-    const existingSection = sections.find((s) => s.category === category)
-    if (existingSection) {
-      existingSection.items.push(...items)
-    } else {
-      sections.push({ category, items })
+  // Append any sections not in SECTION_ORDER
+  for (const [name, items] of sectionMap) {
+    if (!SECTION_ORDER.includes(name) && items.length > 0) {
+      sections.push({ category: name, items })
     }
   }
 

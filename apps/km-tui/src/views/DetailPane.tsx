@@ -32,12 +32,7 @@ export interface DetailPaneProps {
   scrollOffset?: number
 }
 
-export function DetailPane({
-  node,
-  width,
-  height,
-  scrollOffset = 0,
-}: DetailPaneProps): React.ReactElement {
+export function DetailPane({ node, width, height, scrollOffset = 0 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Tree-based focus: useFocusable reads the testID from the nearest parent
@@ -341,10 +336,7 @@ function TaskDetailPane({
               return (
                 <React.Fragment key={`${child.id}-${i}`}>
                   {needsSpace && <Text> </Text>}
-                  <NodeLineView
-                    node={resolvedChild}
-                    displayName={getNodeDisplayName(repo, resolvedChild)}
-                  />
+                  <NodeLineView node={resolvedChild} displayName={getNodeDisplayName(repo, resolvedChild)} />
                 </React.Fragment>
               )
             }
@@ -379,7 +371,9 @@ function TaskDetailPane({
                   <Text key={bl.id} wrap="truncate">
                     {"  "}
                     <Text dimColor>{breadcrumb}</Text>
-                    <Text bold><InlineText text={blTitle} context={{ resolveWikiLink }} /></Text>
+                    <Text bold>
+                      <InlineText text={blTitle} context={{ resolveWikiLink }} />
+                    </Text>
                   </Text>
                 )
               })}
@@ -788,7 +782,9 @@ function DetailSubitems({
                 <Box flexDirection="row" width={innerWidth}>
                   <Box width={2} flexShrink={0} />
                   <Box flexGrow={1} flexShrink={1}>
-                    <Text wrap="wrap"><InlineText text={b.content ?? ""} /></Text>
+                    <Text wrap="wrap">
+                      <InlineText text={b.content ?? ""} />
+                    </Text>
                   </Box>
                 </Box>
               </React.Fragment>

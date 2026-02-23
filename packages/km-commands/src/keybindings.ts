@@ -505,8 +505,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
       { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
 
-      // Zoom: z = zoom into cursor node, Z = zoom out one level
-      { key: "z", commandId: "zoom_in" },
+      // Zoom: z = zoom inwards one level (toward cursor), Z = zoom out one level
+      { key: "z", commandId: "zoom_inwards" },
       { key: "Z", commandId: "zoom_outwards" },
 
       // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
@@ -540,11 +540,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       // Space = toggle selection (v2 spec)
       { key: " ", commandId: "select_toggle" },
-      // Progressive select all with Shift+A
-      { key: "A", commandId: "select_all_progressive" },
-      // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
+      // Select all (progressive: column first, then board-wide)
+      { key: "A", commandId: "select_all" },
       { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
-      // Cmd+A selects all (kitty protocol)
       { key: "a", super: true, commandId: "select_all" },
 
       // Extend selection with Shift+arrows (xterm modified arrow sequences)

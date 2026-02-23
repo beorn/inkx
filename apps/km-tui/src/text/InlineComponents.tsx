@@ -272,13 +272,7 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
  *   <InlineText text="**bold** @user [[link]]" />
  *   <InlineText text={title} context={{ excludeSigils: new Set(["@issue"]) }} />
  */
-export function InlineText({
-  text,
-  context,
-}: {
-  text: string
-  context?: InlineRenderContext
-}): React.ReactElement {
+export function InlineText({ text, context }: { text: string; context?: InlineRenderContext }): React.ReactElement {
   const nodes = React.useMemo(() => parseInlineText(text), [text])
   if (context) {
     return (

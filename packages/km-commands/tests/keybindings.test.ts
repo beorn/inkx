@@ -444,8 +444,8 @@ describe("initDefaultKeybindings", () => {
   it.each([
     // TUI: 'v' enters visual mode
     ["v", {}, "visual_mode_enter"],
-    // Shift+A for progressive select all
-    ["A", {}, "select_all_progressive"],
+    // Shift+A for select all
+    ["A", {}, "select_all"],
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
     ["Escape", {}, "close_or_quit"],
   ] as const)("selection: %s resolves to %s", (key, mods, commandId) => {
@@ -516,8 +516,8 @@ describe("initDefaultKeybindings", () => {
     ["j", { ctrl: true }, "sibling_board_next"],
     // Ctrl+K → command_palette (global layer 2, higher priority than sibling_board_prev)
     ["k", { ctrl: true }, "command_palette"],
-    // v2: z = zoom_in (focus cursor node as root)
-    ["z", {}, "zoom_in"],
+    // v2: z = zoom_inwards (focus cursor node as root)
+    ["z", {}, "zoom_inwards"],
   ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
@@ -722,11 +722,11 @@ describe("defaultKeybindings", () => {
     // Navigation (j/k use cursor_down/up for visual navigation)
     expect(commandIds).toContain("cursor_down")
     expect(commandIds).toContain("cursor_up")
-    expect(commandIds).toContain("zoom_in")
+    expect(commandIds).toContain("zoom_inwards")
     expect(commandIds).toContain("zoom_outwards")
 
     // Selection
-    expect(commandIds).toContain("select_all_progressive")
+    expect(commandIds).toContain("select_all")
     // Note: clear_selection is handled by close_or_quit (contextual)
     expect(commandIds).toContain("close_or_quit")
 
@@ -874,8 +874,8 @@ describe("chord keybindings", () => {
     // v2: u → undo, U → redo
     expect(resolveKeybinding("u", {}, ctx)).toBe("undo")
     expect(resolveKeybinding("U", {}, ctx)).toBe("redo")
-    // v2: z → zoom_in (focus cursor node as root), Z → zoom_outwards
-    expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_in")
+    // v2: z → zoom_inwards (focus cursor node as root), Z → zoom_outwards
+    expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_inwards")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
     // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
@@ -1008,7 +1008,7 @@ describe("text mode keybinding separation", () => {
       ["d", {}, "clipboard_cut"],
       ["y", {}, "clipboard_copy"],
       ["c", {}, "capture_inbox"],
-      ["z", {}, "zoom_in"],
+      ["z", {}, "zoom_inwards"],
     ])("%s (normally %s) is blocked in text mode", (key, mods, normalCmd) => {
       // Verify it works in node mode
       expect(resolveKeybinding(key, mods, nodeCtx)).toBe(normalCmd)

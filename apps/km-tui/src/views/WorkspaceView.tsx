@@ -64,7 +64,13 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
  * - Single pane: renders board directly, no wrapper
  * - Multiple panes: recursive split layout with divider lines
  */
-export function WorkspaceView({ layout, panes, focusedPaneId, renderPane, onPaneClick }: WorkspaceViewProps): React.ReactElement {
+export function WorkspaceView({
+  layout,
+  panes,
+  focusedPaneId,
+  renderPane,
+  onPaneClick,
+}: WorkspaceViewProps): React.ReactElement {
   // Single pane (the common case) — render board directly, no overhead
   if (layout.type === "leaf" && panes.size <= 1) {
     return <>{renderPane(layout.paneId)}</>
@@ -104,7 +110,13 @@ function LayoutNodeView({
 }): React.ReactElement {
   if (node.type === "leaf") {
     const pane = panes.get(node.paneId)
-    if (!pane) return <Box flexGrow={1}><Text>Missing pane: {node.paneId}</Text></Box>
+    if (!pane) {
+      return (
+        <Box flexGrow={1}>
+          <Text>Missing pane: {node.paneId}</Text>
+        </Box>
+      )
+    }
 
     const isFocused = node.paneId === focusedPaneId
     const borderColor = isFocused ? "green" : "gray"
@@ -121,7 +133,9 @@ function LayoutNodeView({
       >
         {label && (
           <Box>
-            <Text color={borderColor} bold={isFocused}>[{label}]</Text>
+            <Text color={borderColor} bold={isFocused}>
+              [{label}]
+            </Text>
             {pane.viewType === "empty" && <Text dimColor> empty</Text>}
           </Box>
         )}

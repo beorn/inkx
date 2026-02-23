@@ -183,11 +183,13 @@ export function useBoardDialogs({
         // Target is deeper — zoom to make it a visible card.
         // Dispatch zoom synchronously with dialog close so both state changes
         // batch into a single render (avoids the freeze from two separate renders).
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: nav.zoomTarget!,
-          cursorNodeId: nav.cursorTarget,
-        })
+        if (nav.zoomTarget) {
+          dispatchBoard({
+            type: "ZOOM_IN",
+            nodeId: nav.zoomTarget,
+            cursorNodeId: nav.cursorTarget,
+          })
+        }
       }
     },
     [repo, setUI, dispatchBoard, openDetailPane, rootId],

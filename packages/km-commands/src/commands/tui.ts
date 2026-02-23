@@ -61,7 +61,6 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "QUIT" }),
   },
 
-
   // New item dialog
   {
     id: "new_item",

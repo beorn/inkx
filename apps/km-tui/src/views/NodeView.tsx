@@ -31,7 +31,14 @@ import React from "react"
 import { Box, Text } from "inkx"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
-import { getColumnHeaderIcon, getNodeIcon, getStatusIcon, isSigilName, parseToPlainText, InlineText } from "../text/index.ts"
+import {
+  getColumnHeaderIcon,
+  getNodeIcon,
+  getStatusIcon,
+  isSigilName,
+  parseToPlainText,
+  InlineText,
+} from "../text/index.ts"
 import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
@@ -248,11 +255,12 @@ export function NodeLineView({
     : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   // Title: use displayName override or derive from content
-  const titleText = displayName
-    ?? (() => {
-        const rawContent = node.content ?? ""
-        return nodeIsTask ? stripTaskMark(rawContent) : rawContent
-      })()
+  const titleText =
+    displayName ??
+    (() => {
+      const rawContent = node.content ?? ""
+      return nodeIsTask ? stripTaskMark(rawContent) : rawContent
+    })()
 
   const textColor = isSelected ? "black" : undefined
   const bgColor = isSelected ? "yellow" : undefined
@@ -353,7 +361,8 @@ export function NodeCardView({
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
-            <Text color={iconColor}>{icon.char}</Text> <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
+            <Text color={iconColor}>{icon.char}</Text>{" "}
+            <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
             {subtaskBadge && <Text color={isSelected ? "black" : "gray"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
@@ -603,7 +612,9 @@ export function NodeDetailView({
         {bodyChildren.map((child, i) => (
           <React.Fragment key={`${child.id}-${i}`}>
             {i > 0 && <Text> </Text>}
-            <Text wrap="wrap"><InlineText text={child.content ?? ""} /></Text>
+            <Text wrap="wrap">
+              <InlineText text={child.content ?? ""} />
+            </Text>
           </React.Fragment>
         ))}
 
@@ -630,7 +641,9 @@ export function NodeDetailView({
             {backlinks.slice(0, maxBacklinks).map((bl) => (
               <Text key={bl.id} wrap="truncate">
                 {"  "}
-                <Text bold><InlineText text={bl.content ?? ""} context={{ hideFields: true }} /></Text>
+                <Text bold>
+                  <InlineText text={bl.content ?? ""} context={{ hideFields: true }} />
+                </Text>
               </Text>
             ))}
             {backlinks.length > maxBacklinks && <Text dimColor> +{backlinks.length - maxBacklinks} more</Text>}

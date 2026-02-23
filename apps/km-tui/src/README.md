@@ -97,17 +97,17 @@ Key principle: **AST before rendering** — parse to structured nodes, then rend
 
 ## Key Files
 
-| File                          | Purpose                                        |
-| ----------------------------- | ---------------------------------------------- |
-| `tui.ts`                      | Entry point, sync manager lifecycle            |
-| `views/Board.tsx`             | Main container, state, keyboard handling       |
-| `views/TreeNode.tsx`          | Unified tree node rendering                    |
-| `views/DetailPane.tsx`        | Task detail view with fields                   |
-| `text/inline-parser.ts`       | Markdown → InlineNode[] AST parser             |
-| `text/InlineComponents.tsx`   | InlineNode[] → React JSX rendering             |
-| `text/rich.ts`                | ANSI utilities (displayLength, stripAnsi)      |
-| `state.ts`                    | BoardState building and manipulation           |
-| `types.ts`                    | Type definitions for all TUI components        |
+| File                        | Purpose                                   |
+| --------------------------- | ----------------------------------------- |
+| `tui.ts`                    | Entry point, sync manager lifecycle       |
+| `views/Board.tsx`           | Main container, state, keyboard handling  |
+| `views/TreeNode.tsx`        | Unified tree node rendering               |
+| `views/DetailPane.tsx`      | Task detail view with fields              |
+| `text/inline-parser.ts`     | Markdown → InlineNode[] AST parser        |
+| `text/InlineComponents.tsx` | InlineNode[] → React JSX rendering        |
+| `text/rich.ts`              | ANSI utilities (displayLength, stripAnsi) |
+| `state.ts`                  | BoardState building and manipulation      |
+| `types.ts`                  | Type definitions for all TUI components   |
 
 ## Automatic Sync
 

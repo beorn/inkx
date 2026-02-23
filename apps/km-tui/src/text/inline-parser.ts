@@ -114,7 +114,10 @@ function phrasingToPlainText(nodes: PhrasingContent[]): string {
 /** Patterns for km-specific inline syntax, matched in order of priority */
 const KM_PATTERNS = [
   // Arrow block references: → ^numericId or → [[^numericId]] (Asana recurring task parents)
-  { re: /\s*→\s*(?:\[\[)?\^(\d+)(?:\]\])?/g, make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }) },
+  {
+    re: /\s*→\s*(?:\[\[)?\^(\d+)(?:\]\])?/g,
+    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
+  },
   // Embed block references: ![[^numericId]]
   { re: /!\[\[\^(\d+)\]\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }) },
   // Wiki links: ![[target]], [[target]], [[target|alias]]
@@ -133,7 +136,10 @@ const KM_PATTERNS = [
     },
   },
   // Bracketed inline fields: [key:: value]
-  { re: /\[(\w+)::\s*([^\]]*)\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1], value: m[2] }) },
+  {
+    re: /\[(\w+)::\s*([^\]]*)\]/g,
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1], value: m[2] }),
+  },
   // Bare key:: value properties
   {
     re: /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi,

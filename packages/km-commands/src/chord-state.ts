@@ -34,14 +34,14 @@ export interface ChordState {
    * @param hasModifiers - True if any modifier (ctrl/meta/shift/alt) is held
    * @param modifiers - The full modifier set (for chord resolution)
    * @param ctx - Keybinding context (for chord when predicates)
-   * @param cb - Callbacks for chord prefix/resolution queries
+   * @param resolver - Callbacks for chord prefix/resolution queries
    */
   processKey(
     key: string,
     hasModifiers: boolean,
     modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
     ctx: unknown,
-    cb: ChordCallbacks,
+    resolver: ChordCallbacks,
   ): ChordResult
   /** Cancel any pending chord (e.g., when entering text mode or modal) */
   cancel(): void
@@ -75,20 +75,20 @@ export function createChordState(): ChordState {
       return pendingPrefix
     },
 
-    processKey(key, hasModifiers, modifiers, ctx, cb) {
+    processKey(key, hasModifiers, modifiers, ctx, resolver) {
       // If we have a pending prefix, try to complete the chord
       if (pendingPrefix !== null) {
         const prefix = pendingPrefix
         pendingPrefix = null
 
         // Try to resolve the chord (prefix + second key)
-        const commandId = cb.resolveChord(prefix, key, modifiers, ctx)
+        const commandId = resolver.resolveChord(prefix, key, modifiers, ctx)
         if (commandId) {
           return { type: "resolved", commandId }
         }
 
         // No chord match → replay: fire standalone for prefix + replay second key
-        const standaloneId = cb.resolveStandalone(prefix)
+        const standaloneId = resolver.resolveStandalone(prefix)
         if (standaloneId) {
           return { type: "replay", standaloneId, replayKey: key }
         }
@@ -100,11 +100,11 @@ export function createChordState(): ChordState {
       // No pending prefix — check if this key starts a chord
       // Try composite prefix first (e.g., "Ctrl+w"), then bare key (unmodified only)
       const compositePrefix = buildChordPrefix(key, modifiers)
-      if (compositePrefix && cb.isChordPrefix(compositePrefix)) {
+      if (compositePrefix && resolver.isChordPrefix(compositePrefix)) {
         pendingPrefix = compositePrefix
         return { type: "pending", prefix: compositePrefix }
       }
-      if (!hasModifiers && cb.isChordPrefix(key)) {
+      if (!hasModifiers && resolver.isChordPrefix(key)) {
         pendingPrefix = key
         return { type: "pending", prefix: key }
       }
