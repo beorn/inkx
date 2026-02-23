@@ -4,7 +4,14 @@
 
 Manages git worktrees for parallel development. Handles submodules, dependencies, and direnv automatically.
 
-## Why This Tool?
+## Native vs Custom Worktrees
+
+Claude Code 2.1.50+ supports `isolation: "worktree"` on the Task tool — agents get automatic temporary worktrees that auto-clean. The `WorktreeCreate` hook in `settings.json` handles submodule/dependency setup for these.
+
+Use **native isolation** for: parallel agent edits on the same files (automatic, temporary).
+Use **`bun worktree`** for: persistent development branches, merge workflow, manual parallel work.
+
+## Why `bun worktree`?
 
 Bare `git worktree add` doesn't handle:
 - **Submodules** - need independent clones, not symlinks to main worktree
