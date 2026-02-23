@@ -11,7 +11,7 @@
  * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { isEmbed } from "@km/core"
@@ -48,22 +48,38 @@ export interface CursorIndices {
 
 /**
  * Derive cursor indices from cursorNodeId using nodeIndex for O(1) lookup.
+ * When getNode is provided and cursorNodeId is not in the index (e.g., a descendant
+ * of a card), walks up the parent chain to find the containing card's position.
+ * This eliminates the need to index all descendants upfront (20k+ getChildren queries).
  */
 export function deriveCursorIndices(
   columns: ColumnView[],
   cursorNodeId: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
+  getNode?: (id: string) => { parent_id: string | null } | null,
 ): CursorIndices {
   if (!cursorNodeId || columns.length === 0) {
     return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
   }
 
-  const pos = nodeIndex.get(cursorNodeId)
-  if (pos) {
+  // Direct lookup
+  let entry = nodeIndex.get(cursorNodeId)
+
+  // On miss: walk up parent chain to find containing card
+  if (!entry && getNode) {
+    let current = getNode(cursorNodeId)
+    while (current?.parent_id) {
+      entry = nodeIndex.get(current.parent_id)
+      if (entry) break
+      current = getNode(current.parent_id)
+    }
+  }
+
+  if (entry) {
     return {
-      colIndex: pos.colIndex,
-      cardIndex: pos.cardIndex,
-      isAtCardLevel: pos.cardIndex !== -1,
+      colIndex: entry.colIndex,
+      cardIndex: entry.cardIndex,
+      isAtCardLevel: entry.cardIndex !== -1,
     }
   }
 
@@ -83,6 +99,13 @@ export function deriveCursorIndices(
  * Uses useSyncExternalStore to subscribe to repo mutations — columns
  * automatically recompute when any mutation (updateNode, moveNode, etc.)
  * occurs, without requiring manual dispatch at each call site.
+ *
+ * In test env: synchronous derivation (act() needs sync updates).
+ * In production: incremental loading via generator — yields one column at a time,
+ * time-sliced across frames (8ms budget per tick). Per-column memoization cache
+ * makes non-zoom mutations fast (most columns hit cache), so the incremental path
+ * is effectively synchronous for mutations. Only zoom (cold cache) actually yields
+ * across multiple ticks for progressive rendering.
  *
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
@@ -111,12 +134,46 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
   // In test mode, use repoVersion directly for synchronous updates
   const effectiveVersion = isTest ? repoVersion : debouncedVersion
 
-  return useMemo(() => {
-    // No preloadSubtree here — getChildren() lazily loads from DB on cache miss.
-    // computeDefaultFoldDepths already warms the cache for cards at fold depth.
-    // Avoiding the recursive CTE eliminates 10s+ startup freeze on large vaults.
-    return deriveColumnsFromRepo(repo, rootId, foldDepths)
-  }, [effectiveVersion, rootId, foldDepths])
+  // Synchronous initial derivation (first render shows all columns immediately)
+  const [columns, setColumns] = useState<ColumnView[]>(() => deriveColumnsFromRepo(repo, rootId, foldDepths))
+
+  // Track deps to detect changes — initial state matches useState initializer
+  const depsRef = useRef({ rootId, foldDepths, version: effectiveVersion })
+
+  useEffect(() => {
+    const prev = depsRef.current
+    if (prev.rootId === rootId && prev.foldDepths === foldDepths && prev.version === effectiveVersion) return
+    depsRef.current = { rootId, foldDepths, version: effectiveVersion }
+
+    if (isTest) {
+      // Synchronous in tests — act() needs immediate updates
+      setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
+      return
+    }
+
+    // Incremental in production — yield per column, time-sliced
+    const gen = deriveColumnsIncremental(repo, rootId, foldDepths)
+    let cancelled = false
+    const result: ColumnView[] = []
+
+    function tick() {
+      if (cancelled) return
+      const deadline = performance.now() + 8 // 8ms budget per tick
+      let next = gen.next()
+      while (!next.done && performance.now() < deadline) {
+        result.push(next.value)
+        next = gen.next()
+      }
+      setColumns([...result])
+      if (!next.done && !cancelled) setTimeout(tick, 0)
+    }
+    tick()
+    return () => {
+      cancelled = true
+    }
+  }, [effectiveVersion, rootId, foldDepths, isTest, repo])
+
+  return columns
 }
 
 /**
@@ -228,6 +285,47 @@ export function deriveColumnsFromRepo(
 
   span.spanData.columns = columns.length
   return columns
+}
+
+/**
+ * Generator version of deriveColumnsFromRepo — yields one column at a time.
+ * Used by useColumns for time-sliced incremental loading in production.
+ * Per-column memoization cache makes non-zoom mutations fast (most columns hit cache),
+ * so the generator typically exhausts in one tick for mutations. Only zoom (cold cache)
+ * actually yields across multiple ticks for progressive rendering.
+ */
+export function* deriveColumnsIncremental(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+): Generator<ColumnView, void, unknown> {
+  using span = log.span("derive-columns-incremental")
+  const allChildren = repo.getChildren(rootId)
+  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
+  const wipLimits = extractWipLimits(columnNodes)
+
+  // Body column first (usually fast)
+  const filteredBody = bodyNodes.filter(
+    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
+  if (filteredBody.length > 0) {
+    const virtualCardIds = new Set<string>()
+    for (const n of filteredBody) {
+      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+    }
+    yield {
+      node: createVirtualBodyNode(rootId),
+      cardNodes: filteredBody,
+      virtualCardIds,
+      isVirtual: true,
+    }
+  }
+
+  const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
+  for (const node of deduped) {
+    yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
+  }
+  span.spanData.columns = (filteredBody.length > 0 ? 1 : 0) + deduped.length
 }
 
 // =============================================================================

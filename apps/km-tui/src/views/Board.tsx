@@ -786,11 +786,10 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
   const columns = useColumns(repo, rootId, foldDepths)
-  const getChildren = useCallback((id: string) => repo.getChildren(id), [repo])
-  const nodeIndex = useMemo(
-    () => buildNodeIndex(columns, getChildren, foldDepths, rootId),
-    [columns, getChildren, foldDepths, rootId],
-  )
+  // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
+  // deriveCursorIndices walks up parent chain on miss via getNode.
+  const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
+  const getNode = useCallback((id: string) => repo.getNode(id), [repo])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks
@@ -804,9 +803,10 @@ export function Board({ patchedConsole }: BoardProps) {
   })
 
   // Derive cursor position from cursorNodeId + columns
+  // getNode enables parent-walk fallback for descendant nodes not in the lazy index
   const cursorPosition = useMemo(
-    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex),
-    [columns, cursorNodeId, nodeIndex],
+    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode),
+    [columns, cursorNodeId, nodeIndex, getNode],
   )
 
   const columnsLayout = useMemo(

@@ -77,10 +77,10 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     const topChildren = s.repo.getChildren(s.rootId)
     s.repo.preloadSubtree(s.rootId, topChildren.length > 20 ? 2 : 4)
     columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
-    nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id), s.foldDepths, s.rootId)
+    nodeIndex = buildNodeIndex(columns)
     layoutCache = { rootId: s.rootId, foldDepths: s.foldDepths, repoVersion, columns, nodeIndex }
   }
-  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
   const column = columns[cursor.colIndex]
   const card = column?.cardNodes[cursor.cardIndex]
   const selectedNode = card ?? column?.node ?? null
