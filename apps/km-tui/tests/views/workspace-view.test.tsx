@@ -40,7 +40,6 @@ function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState 
     viewType,
     viewMode: "columns",
     cursorStore: stubCursorStore(),
-    isZoomLoading: false,
   })
 }
 

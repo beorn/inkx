@@ -217,9 +217,6 @@ export interface PaneState {
 
   // Per-pane cursor store
   cursorStore: CursorStore
-
-  // Per-pane zoom loading
-  isZoomLoading: boolean
 }
 
 /**
@@ -256,7 +253,6 @@ export function createPaneState(
     viewType?: PaneViewType
     viewMode: ViewMode
     cursorStore: CursorStore
-    isZoomLoading: boolean
   },
 ): PaneState {
   return {
@@ -277,6 +273,5 @@ export function createPaneState(
     curswantY: board.curswantY,
     viewMode: opts.viewMode,
     cursorStore: opts.cursorStore,
-    isZoomLoading: opts.isZoomLoading,
   }
 }

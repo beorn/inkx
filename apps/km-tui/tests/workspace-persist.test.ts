@@ -71,7 +71,6 @@ function makePaneState(
       setState: () => {},
       subscribe: () => () => {},
     },
-    isZoomLoading: false,
   } as unknown as PaneState
 }
 

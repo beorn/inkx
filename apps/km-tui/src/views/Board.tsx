@@ -10,7 +10,7 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import {
   Box,
   Text,
@@ -140,9 +140,7 @@ export interface BoardCoreProps {
   toastQueue?: ToastQueue
   /** Board dispatch (for cursor navigation from find bar) */
   dispatchBoard?: BoardAppStore["dispatchBoard"]
-  /** True while zoom is loading (deferred fold computation for large boards) */
-  isZoomLoading?: boolean
-  /** Deferred fold depths — used by progressive reveal to reset on fold changes */
+  /** Fold depths — used by progressive reveal to reset on fold changes */
   foldDepths?: Map<string, number>
 }
 
@@ -407,7 +405,6 @@ export function BoardCore({
   consoleStats,
   toastQueue,
   dispatchBoard,
-  isZoomLoading = false,
   foldDepths: foldDepthsProp,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
@@ -512,13 +509,6 @@ export function BoardCore({
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
   const { expandedWidth } = computeColumnWidths(boardWidth, columns, collapsedNodes)
-
-  // Render loading skeleton until terminal is ready or zoom is loading.
-  // Note: ui.isLoading is intentionally NOT blocking here — per-column skeleton
-  // cards are shown in CardColumn instead, keeping the board always interactive.
-  if (!ui.isReady || isZoomLoading) {
-    return <SkeletonBoard width={termWidth} height={termHeight} />
-  }
 
   return (
     <ConstraintRoot>
@@ -904,15 +894,11 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
 
-  // Defer rootId and foldDepths so React shows old board during zoom transitions.
-  // inkx uses ConcurrentRoot, so useDeferredValue actually defers: first render keeps
-  // old values (cached columns = instant), second render triggers incremental loading.
-  const deferredRootId = useDeferredValue(rootId)
-  const deferredFoldDepths = useDeferredValue(foldDepths)
-  const isZoomLoading = rootId !== deferredRootId
-
-  // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
-  const columns = useColumns(repo, deferredRootId, deferredFoldDepths)
+  // Derive columns from repo (reactive to repo mutations via useSyncExternalStore).
+  // Column derivation is <1ms with per-column memoization. Progressive reveal
+  // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
+  // with skeleton placeholders, then revealing one column per frame.
+  const columns = useColumns(repo, rootId, foldDepths)
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
@@ -1102,6 +1088,12 @@ export function Board({ patchedConsole }: BoardProps) {
   )
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
 
+  // Gate on terminal readiness before constructing the heavy rendering tree.
+  // isReady is false until terminal dimensions are detected (almost always true on first render).
+  if (!ui.isReady) {
+    return <SkeletonBoard width={ui.dimensions.columns} height={ui.dimensions.rows} />
+  }
+
   return (
     <CursorStoreProvider store={cursorStore}>
       <TreeRenderProvider
@@ -1127,8 +1119,7 @@ export function Board({ patchedConsole }: BoardProps) {
           consoleStats={consoleStats}
           toastQueue={toastQueue}
           dispatchBoard={dispatchBoard}
-          isZoomLoading={isZoomLoading}
-          foldDepths={deferredFoldDepths}
+          foldDepths={foldDepths}
         />
       </TreeRenderProvider>
     </CursorStoreProvider>

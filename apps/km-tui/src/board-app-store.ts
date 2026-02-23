@@ -94,9 +94,6 @@ export interface BoardAppState {
   // --- Undo/redo ---
   undoStack: UndoStack
   undoHandle: UndoableRepoHandle
-
-  // --- Zoom loading (deferred fold computation for large boards) ---
-  isZoomLoading: boolean
 }
 
 /**
@@ -191,7 +188,6 @@ function snapshotFlatToPane(state: BoardAppState, pane: PaneState): PaneState {
     curswantX: state.curswantX,
     curswantY: state.curswantY,
     cursorStore: state.cursorStore,
-    isZoomLoading: state.isZoomLoading,
   }
 }
 
@@ -216,7 +212,6 @@ function restorePaneToFlat(pane: PaneState): Partial<BoardAppState> {
     curswantX: pane.curswantX,
     curswantY: pane.curswantY,
     cursorStore: pane.cursorStore,
-    isZoomLoading: pane.isZoomLoading,
   }
 }
 
@@ -329,7 +324,6 @@ function restoreWorkspaceFromPersisted(
               cursorColumnNodeId: null,
               selectionLevel: "board",
             }),
-      isZoomLoading: false,
     })
     panes.set(persisted.id, pane)
   }
@@ -385,7 +379,6 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
   const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
     viewMode: params.initialUIState.viewMode,
     cursorStore: params.cursorStore,
-    isZoomLoading: false,
   })
   return {
     panes: new Map([[defaultPaneId, initialPane]]),
@@ -482,9 +475,6 @@ export function createBoardAppStoreState(
       undoStack,
       undoHandle,
 
-      // Zoom loading
-      isZoomLoading: false,
-
       // --- Board action dispatcher (inlined from boardReducer) ---
 
       // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
@@ -528,9 +518,9 @@ export function createBoardAppStoreState(
           return
         }
 
-        // Zoom updates rootId + foldDepths atomically. Board.tsx uses useDeferredValue
-        // so the old board stays visible during the transition (no skeleton needed).
-        // useColumns' incremental generator handles progressive column loading.
+        // Zoom updates rootId + foldDepths atomically. BoardCore's useColumnReveal
+        // handles the transition: resets to 1 column, then progressively reveals
+        // new columns with skeleton placeholders showing real column headers.
 
         set((state) => {
           let flatUpdate: Partial<BoardAppState>
@@ -676,7 +666,7 @@ export function createBoardAppStoreState(
           }
         })
 
-        // Update cursor store synchronously (useDeferredValue in Board handles transition UX)
+        // Update cursor store synchronously (progressive reveal in Board handles transition UX)
         const s = _get()
         const getNode = (id: string) => s.repo.getNode(id)
         const ancestors = deriveCursorAncestors(getNode, s.rootId, s.cursorNodeId, (pid) => s.repo.getChildren(pid))
@@ -732,7 +722,6 @@ export function createBoardAppStoreState(
             viewType: "detail",
             viewMode: state.ui.viewMode,
             cursorStore: state.cursorStore,
-            isZoomLoading: false,
           })
 
           const newPanes = new Map(state.workspace.panes)
@@ -822,7 +811,6 @@ export function createBoardAppStoreState(
             viewType: "empty",
             viewMode: state.ui.viewMode,
             cursorStore: newPaneCursorStore,
-            isZoomLoading: false,
           })
 
           // Split the layout tree at the focused pane
