@@ -619,8 +619,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
       { key: "d", super: true, commandId: "duplicate_node" },
-      // Cmd+n = capture new to inbox (kitty)
-      { key: "n", super: true, commandId: "capture_inbox" },
+      // Cmd+n = capture dialog (kitty)
+      { key: "n", super: true, commandId: "capture_dialog" },
     ],
   },
 
@@ -633,8 +633,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "X", commandId: "cycle_task_status" },
       // e = archive (remove from view, still searchable)
       { key: "e", commandId: "archive" },
-      // c = capture to inbox, C = capture with dialog
-      { key: "c", commandId: "capture_inbox" },
+      // C = capture with dialog (shifted C is not a chord prefix)
       { key: "C", commandId: "capture_dialog" },
     ],
   },
@@ -657,19 +656,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
       { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
-      // g/m/a/t/v standalone fallbacks for chord timeout
+      // n = new item dialog (bare key, not chord)
+      { key: "n", commandId: "new_item" },
+
+      // g/m/a/t/v/c standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
       { key: "v", commandId: "noop" },
+      { key: "c", commandId: "capture_dialog" },
 
       // g-prefix chords (go-to)
       { chord: "g", key: "g", commandId: "cursor_first" },
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
-      { chord: "g", key: "n", commandId: "new_item" },
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
@@ -720,6 +722,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "v", key: "H", commandId: "toggle_show_ignored" },
       { chord: "v", key: "f", commandId: "filter" },
       { chord: "v", key: "-", commandId: "clear_filters" },
+
+      // c-prefix chords (capture to location)
+      { chord: "c", key: "c", commandId: "capture_dialog" },
+      { chord: "c", key: "i", commandId: "capture_inbox" },
+      { chord: "c", key: "h", commandId: "capture_home" },
+      { chord: "c", key: "j", commandId: "capture_journal" },
+      { chord: "c", key: "e", commandId: "capture_archive" },
 
       // Ctrl+W-prefix chords (pane operations — windowing)
       { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },

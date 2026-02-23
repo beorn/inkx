@@ -225,24 +225,32 @@ const archiveNode = {
   },
 } satisfies CommandDef
 
-// Capture new item to inbox (quick-add) — stub
-const captureInbox = {
-  id: "capture_inbox",
-  name: "Capture to Inbox",
-  description: "Quick-add a new item to inbox",
-  category: "Edit",
-  shortcuts: ["c"],
-  execute: () => ({ type: "CAPTURE_INBOX" }),
-} satisfies CommandDef
+// Capture locations — data-driven config for c-chord capture commands
+export const CAPTURE_LOCATIONS = [
+  { key: "i", id: "inbox", boardId: "@inbox", label: "Inbox" },
+  { key: "h", id: "home", boardId: "@home", label: "Home" },
+  { key: "j", id: "journal", boardId: "@journal", label: "Journal" },
+  { key: "e", id: "archive", boardId: "@archive", label: "Archive" },
+] as const
 
-// Capture with dialog — stub
+// Factory-generated capture commands (one per location)
+const captureLocationCommands: CommandDef[] = CAPTURE_LOCATIONS.map((loc) => ({
+  id: `capture_${loc.id}`,
+  name: `Capture to ${loc.label}`,
+  description: `Quick-capture a new item to ${loc.label.toLowerCase()}`,
+  category: "Edit" as const,
+  shortcuts: [`c${loc.key}`],
+  execute: () => ({ type: "CAPTURE" as const, location: loc.boardId }),
+}))
+
+// Capture with dialog (no preset location → dialog opens with location picker)
 const captureDialog = {
   id: "capture_dialog",
   name: "Capture with Dialog",
   description: "Add a new item via capture dialog",
   category: "Edit",
   shortcuts: ["C"],
-  execute: () => ({ type: "CAPTURE_DIALOG" }),
+  execute: () => ({ type: "CAPTURE" }),
 } satisfies CommandDef
 
 // Add child item (a-prefix chord: ai)
@@ -385,7 +393,7 @@ export const editCommands: CommandDef[] = [
   addLink,
   reparentPicker,
   archiveNode,
-  captureInbox,
+  ...captureLocationCommands,
   captureDialog,
   insertChild,
   addSiblingBelow,

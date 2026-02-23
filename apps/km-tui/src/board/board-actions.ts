@@ -768,8 +768,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === UI stubs (future features) ===
     case "ARCHIVE_NODE":
-    case "CAPTURE_INBOX":
-    case "CAPTURE_DIALOG":
+    case "CAPTURE":
     case "SETTINGS":
       return unimplemented("ui")
 

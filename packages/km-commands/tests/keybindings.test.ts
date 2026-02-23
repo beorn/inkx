@@ -786,7 +786,6 @@ describe("chord keybindings", () => {
     ["g", "o", "open_in_system"],
     ["g", "O", "open_in_terminal"],
     ["g", "p", "project_picker"],
-    ["g", "n", "new_item"],
     ["g", "i", "goto_inbox"],
     ["g", "j", "goto_journal"],
     ["g", "h", "goto_home"],
@@ -811,6 +810,12 @@ describe("chord keybindings", () => {
     ["t", "s", "set_start_date"],
     ["t", "o", "set_assignee"],
     ["t", "l", "set_label"],
+    // c-prefix chords (capture to location)
+    ["c", "c", "capture_dialog"],
+    ["c", "i", "capture_inbox"],
+    ["c", "h", "capture_home"],
+    ["c", "j", "capture_journal"],
+    ["c", "e", "capture_archive"],
   ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
     const ctx = createContext()
     expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
@@ -832,7 +837,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(68) // 16 g + 6 m + 8 a + 9 t + 7 v + 22 Ctrl+w
+    expect(chordBindings.length).toBe(72) // 15 g + 6 m + 8 a + 9 t + 7 v + 5 c + 22 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -853,7 +858,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["#", "+", "/", "@", "G", "N", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p"])
+    expect(keys).toEqual(["#", "+", "/", "@", "G", "N", "O", "[", "e", "g", "h", "i", "j", "o", "p"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {
@@ -879,9 +884,9 @@ describe("chord keybindings", () => {
     // v2: z → zoom_inwards (focus cursor node as root), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_inwards")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
-    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
+    // v2: e → archive, c → capture_dialog (chord fallback), C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
-    expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
+    expect(resolveKeybinding("c", {}, ctx)).toBe("capture_dialog")
     expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
     expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
     // v2: Space → select_toggle
@@ -1009,7 +1014,7 @@ describe("text mode keybinding separation", () => {
       ["p", {}, "clipboard_paste"],
       ["d", {}, "clipboard_cut"],
       ["y", {}, "clipboard_copy"],
-      ["c", {}, "capture_inbox"],
+      ["c", {}, "capture_dialog"],
       ["z", {}, "zoom_inwards"],
     ])("%s (normally %s) is blocked in text mode", (key, mods, normalCmd) => {
       // Verify it works in node mode
@@ -1167,8 +1172,8 @@ describe("Cmd shortcuts (kitty protocol, super modifier)", () => {
       expectKey("o", "open_in_terminal", { super: true, shift: true })
     })
 
-    it("Cmd+n → capture_inbox (capture new)", () => {
-      expectKey("n", "capture_inbox", sup)
+    it("Cmd+n → capture_dialog (capture new)", () => {
+      expectKey("n", "capture_dialog", sup)
     })
 
     it("Cmd+k → command_palette (omnibox)", () => {

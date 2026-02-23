@@ -22,6 +22,7 @@ export interface VerbGridRow {
   goto?: string
   move?: string
   add?: string
+  create?: string
   /** Render a blank line before this row */
   separator?: boolean
 }
@@ -47,7 +48,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["i / Enter"], command: "enter_inline_edit", description: "edit" },
       { keys: ["o / O / ⌘Enter"], command: "insert_below", description: "new item below/above" },
-      { keys: ["g n / ⌘⇧Enter"], command: "new_item", description: "new item dialog" },
+      { keys: ["n / ⌘⇧Enter"], command: "new_item", description: "new item dialog" },
       { keys: ["Backspace / Del"], command: "delete_node", description: "delete" },
       { keys: ["⌘d"], command: "duplicate_node", description: "duplicate" },
       { keys: ["y / d / p / ⌘c/x/v"], command: "clipboard_copy", description: "copy/cut/paste" },
@@ -117,7 +118,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["F / ⌃g / ⌘g"], command: "filter", description: "filter" },
       { keys: ["S / ⌘f"], command: "search_replace", description: "search / replace" },
-      { keys: ["c / C / ⌘n"], command: "capture_dialog", description: "capture" },
+      { keys: ["C / c c / ⌘n"], command: "capture_dialog", description: "capture dialog" },
       { keys: [": / ⌃k / ⌘k"], command: "command_palette", description: "command palette" },
       { keys: ["/ / ⌃f"], command: "local_find", description: "find on screen" },
       { keys: ["?"], command: "show_help", description: "help" },
@@ -133,10 +134,10 @@ const HELP_SECTIONS: HelpSection[] = [
 export const VERB_GRID: VerbGridRow[] = [
   // Board locations
   { key: "/", location: "root", goto: "g /" },
-  { key: "h", location: "home (@next)", goto: "g h", move: "m h" },
-  { key: "i", location: "inbox", goto: "g i", move: "m i" },
-  { key: "j", location: "journal", goto: "g j", move: "m j" },
-  { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e" },
+  { key: "h", location: "home (@next)", goto: "g h", move: "m h", create: "c h" },
+  { key: "i", location: "inbox", goto: "g i", move: "m i", create: "c i" },
+  { key: "j", location: "journal", goto: "g j", move: "m j", create: "c j" },
+  { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e", create: "c e" },
   // Targets (pickers / wikilink types)
   { key: "[", location: "item", goto: "g [", move: "m p", add: "a [", separator: true },
   { key: "#", location: "tag", goto: "g #", add: "#" },
