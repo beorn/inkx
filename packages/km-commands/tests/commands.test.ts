@@ -62,7 +62,7 @@ function createContext(overrides?: Partial<CommandContext>): CommandContext {
     columnIndex: 0,
     columnCount: 1,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     ...overrides,
   }
 }
@@ -91,7 +91,7 @@ function createNullNodeContext(): CommandContext {
     columnIndex: 0,
     columnCount: 0,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
   }
 }
 

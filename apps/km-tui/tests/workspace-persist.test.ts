@@ -51,7 +51,7 @@ function makePaneState(
     rootPath: opts?.rootPath ?? null,
     cursorNodeId: null,
     selectedNodes: new Set(),
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     collapsedNodes: new Set(),
     navHistory: [],
     navHistoryIndex: 0,
@@ -183,7 +183,10 @@ describe("serializeWorkspace", () => {
   it("does not include session-specific state", () => {
     const pane = makePaneState("main", { rootId: "node-tasks" })
     pane.cursorNodeId = "cursor-123"
-    pane.foldedNodes = new Set(["fold-1", "fold-2"])
+    pane.foldDepths = new Map([
+      ["fold-1", 0],
+      ["fold-2", 0],
+    ])
     pane.selectedNodes = new Set(["sel-1"])
     pane.navHistory = [{ rootId: "old", rootPath: "old.md", cursorNodeId: "old-cursor" }]
 

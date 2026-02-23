@@ -15,7 +15,7 @@ function makeState(cursorNodeId: string, rootId: string | null = "board"): NavSt
   return {
     cursorNodeId,
     rootId,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     collapsedNodes: new Set(),
   }
 }

@@ -49,7 +49,7 @@ describe("withCommands", () => {
     columnIndex: 0,
     columnCount: 3,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
   }
 
   const createOptions = (): WithCommandsOptions<CommandContext, CommandAction> => ({
@@ -224,7 +224,7 @@ describe("withKeybindings", () => {
     columnIndex: 0,
     columnCount: 3,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
   }
 
   test("press('j') triggers cursor_down command", async () => {
@@ -372,7 +372,7 @@ describe("composed app driver", () => {
       columnIndex: 0,
       columnCount: 1,
       moveMode: false,
-      foldedNodes: new Set(),
+      foldDepths: new Map(),
     }
 
     // Full composition

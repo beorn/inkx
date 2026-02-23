@@ -205,15 +205,15 @@ describe("countVisibleNodes", () => {
   })
 
   it("excludes children of folded nodes", () => {
-    const foldedNodes = new Map([["col-a", 0]])
-    const count = countVisibleNodes(testNodes, foldedNodes)
+    const foldDepths = new Map([["col-a", 0]])
+    const count = countVisibleNodes(testNodes, foldDepths)
     // col-a (visible) + col-b + card-3 = 3 (col-a's children hidden)
     expect(count).toBe(3)
   })
 
   it("handles deeply folded nodes", () => {
-    const foldedNodes = new Map([["card-1", 0]])
-    const count = countVisibleNodes(testNodes, foldedNodes)
+    const foldDepths = new Map([["card-1", 0]])
+    const count = countVisibleNodes(testNodes, foldDepths)
     // All except item-1-1 and item-1-2 = 5
     expect(count).toBe(5)
   })

@@ -46,7 +46,7 @@ function firstCardId(
 /**
  * Zoom all the way to the board root in one step.
  * Walks up ancestors from current root to find the board file root (parent_id = null or ".").
- * Much faster than pressing Z repeatedly because computeDefaultFolds only runs once.
+ * Much faster than pressing Z repeatedly because computeDefaultFoldDepths only runs once.
  */
 export function handleZoomToRoot(ctx: ActionCtx): ActionResult {
   if (!ctx.rootId) return boundary("zoom", "Already at root")

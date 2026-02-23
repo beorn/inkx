@@ -256,7 +256,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
 
     // Verify cursor is on the selected node (derive layout on demand)
     const s = store.getState()
-    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
     const ni = buildNodeIndex(cols)
     const cursor = deriveCursorIndices(cols, s.cursorNodeId, ni)
     const col = cols[cursor.colIndex]

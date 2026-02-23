@@ -189,7 +189,7 @@ import { ScrollableList } from "../constraints"
   selectedIndex={cursorIndex}
   height={availableHeight}
   getItemHeight={(card, index) =>
-    estimateTreeNodeHeight(card.node, 0, config, getChildren, foldedNodes)
+    estimateTreeNodeHeight(card.node, 0, config, getChildren, foldDepths)
   }
   renderItem={(card, index, isSelected) => <TreeNode node={card.node} />}
   renderOverflow={(direction, count) => (
@@ -379,12 +379,12 @@ const getItemHeight = useCallback(
       0, // depth
       heightConfig,
       getChildren,
-      foldedNodes,
+      foldDepths,
     );
     // Add buffer for multi-line items (text wrapping is imprecise)
     return estimated > 1 ? estimated + 1 : estimated;
   },
-  [heightConfig, foldedNodes],
+  [heightConfig, foldDepths],
 );
 
 <ScrollableList

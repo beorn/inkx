@@ -67,7 +67,7 @@ interface TUIBoardState {
   columns: ColumnView[]
   selectedNodes: Set<string>
   visualMode: boolean
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   collapsedColumns: Set<number>
   collapsedNodeIds: Set<string>
   searchQuery: string
@@ -146,7 +146,7 @@ const mockZustandStore = createStore(() => ({
     multiSelected: new Set<string>(),
     inlineEditBlock: null,
   },
-  foldedNodes: new Set<string>(),
+  foldDepths: new Map<string, number>(),
   jobRunner: { submit: () => ({ cancel() {} }) },
   setUI: () => {},
 }))
@@ -1139,7 +1139,7 @@ function createMockTUIBoardState(): TUIBoardState {
     ],
     selectedNodes: new Set<string>(),
     visualMode: false,
-    foldedNodes: new Set<string>(),
+    foldDepths: new Map<string, number>(),
     collapsedColumns: new Set<number>(),
     collapsedNodeIds: new Set<string>(),
     searchQuery: "",

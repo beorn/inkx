@@ -29,7 +29,7 @@ const baseUI: UIState = {
   selectionAnchor: null,
   selectAllLevel: 0,
   collapsedColumns: new Set(),
-  foldedNodes: new Set(),
+  foldDepths: new Map(),
   mouseSelection: null,
   isMouseDragging: false,
   droppedFiles: [],

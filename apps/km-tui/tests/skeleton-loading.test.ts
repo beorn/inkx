@@ -23,7 +23,7 @@ import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../s
 /** Derive layout from store state on demand. */
 function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
   const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const selectionLevel: "board" | "column" | "card" =

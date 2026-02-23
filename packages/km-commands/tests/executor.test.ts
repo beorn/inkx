@@ -45,7 +45,7 @@ function createContext(overrides: Partial<CommandContext> = {}): CommandContext 
     columnIndex: 0,
     columnCount: 0,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     ...overrides,
   }
 }
@@ -154,7 +154,7 @@ describe("buildContext", () => {
       columnIndex: 1,
       columnCount: 3,
       moveMode: false,
-      foldedNodes: new Set(["folded-1"]),
+      foldDepths: new Map([["folded-1", 0]]),
     })
 
     expect(ctx.viewMode).toBe("cards")
@@ -166,7 +166,7 @@ describe("buildContext", () => {
     expect(ctx.columnIndex).toBe(1)
     expect(ctx.columnCount).toBe(3)
     expect(ctx.moveMode).toBe(false)
-    expect(ctx.foldedNodes.has("folded-1")).toBe(true)
+    expect(ctx.foldDepths.has("folded-1")).toBe(true)
   })
 
   it("includes viewMode", () => {
@@ -182,7 +182,7 @@ describe("buildContext", () => {
         columnIndex: 0,
         columnCount: 0,
         moveMode: false,
-        foldedNodes: new Set(),
+        foldDepths: new Map(),
       })
       expect(ctx.viewMode).toBe(mode)
     }
@@ -198,7 +198,7 @@ describe("buildContext", () => {
       columnIndex: 0,
       columnCount: 0,
       moveMode: false,
-      foldedNodes: new Set(),
+      foldDepths: new Map(),
     })
 
     expect(ctx.currentNode).toBeNull()
@@ -215,7 +215,7 @@ describe("buildContext", () => {
       columnIndex: 0,
       columnCount: 0,
       moveMode: false,
-      foldedNodes: new Set(),
+      foldDepths: new Map(),
     })
 
     expect(ctx.selectedNodes).toEqual([])

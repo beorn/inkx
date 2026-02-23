@@ -702,7 +702,7 @@ export interface Repo extends Disposable {
   /**
    * Preload a depth-limited subtree into the children cache.
    * Uses a single recursive CTE query instead of N individual getChildren calls.
-   * Call before operations that will walk the tree (e.g., computeDefaultFolds).
+   * Call before operations that will walk the tree (e.g., computeDefaultFoldDepths).
    * @param rootId - Root node ID (null for repo root)
    * @param maxDepth - Maximum depth to preload (0 = root only, 4 = root + 4 levels)
    */

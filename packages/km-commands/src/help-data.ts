@@ -142,14 +142,20 @@ const LAYER_CATEGORY_MAP: Record<string, string> = {
 const COMMAND_SECTION_OVERRIDES: Record<string, string> = {
   // Navigation layer → Editing
   enter_inline_edit: "Editing",
-  // These are in navigation layer but belong in View
+  // Navigation/tui layer → View
   toggle_detail_pane: "View",
   close_detail_pane: "View",
   open_detail_pane: "View",
   focus_board: "View",
   focus_detail: "View",
   follow_link: "View",
-  // These are in navigation layer but belong in other sections
+  // Consolidate duplicates: commands appearing in multiple layers → single section
+  capture_inbox: "Task",
+  capture_dialog: "Task",
+  task_dialog: "Task",
+  command_palette: "System",
+  settings: "System",
+  // Navigation layer → other sections
   add_link: "Add",
   reparent_picker: "Move",
   open_in_system: "System",
@@ -326,6 +332,7 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
   focus_board: "focus board",
   focus_detail: "focus detail",
   // System
+  "console.toggle": "console",
   quit: "quit",
   local_find: "find",
   search_replace: "find & replace",
@@ -396,7 +403,18 @@ const COMBINE_RULES: CombineRule[] = [
     description: "toggle/cycle status",
     section: "Task",
   },
-  { commands: ["capture_inbox", "capture_dialog"], display: "c/C", description: "capture to inbox", section: "Task" },
+  {
+    commands: ["capture_inbox", "capture_dialog"],
+    display: "c/C/⌘n",
+    description: "capture to inbox",
+    section: "Task",
+  },
+  {
+    commands: ["set_assignee", "set_due_date", "set_priority", "set_start_date", "set_recurring", "set_label"],
+    display: "t+o/d/!/s/r/l",
+    description: "set property",
+    section: "Task",
+  },
   // Fold
   { commands: ["fold_node", "unfold_node"], display: "H/L", description: "fold/unfold", section: "Fold" },
   { commands: ["fold_all", "unfold_all"], display: "</> ", description: "fold/unfold all", section: "Fold" },

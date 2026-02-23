@@ -54,7 +54,7 @@ function createCommandContext(overrides?: Partial<CommandContext>): CommandConte
     columnIndex: 0,
     columnCount: 0,
     moveMode: false,
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     ...overrides,
   }
 }

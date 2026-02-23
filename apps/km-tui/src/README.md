@@ -67,7 +67,7 @@ These are managed inside `Board.tsx`:
 | State            | Purpose                               |
 | ---------------- | ------------------------------------- |
 | `state`          | BoardState (columns, cursor, etc.)    |
-| `foldedNodes`    | Set of folded node IDs                |
+| `foldDepths`     | Map of node IDs to fold depth budget  |
 | `multiSelected`  | Set of selected item keys             |
 | `viewMode`       | "cards" / "columns" / "list" / "tabs" |
 | `showDetailPane` | Detail pane visibility                |

@@ -49,7 +49,7 @@ describe("CommandBox", () => {
     collapsedColumns: new Set(),
 
     // Node fold state
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
 
     // Mouse state
     mouseSelection: null,

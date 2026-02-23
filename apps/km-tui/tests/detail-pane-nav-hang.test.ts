@@ -19,7 +19,7 @@ import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../s
 /** Derive colIndex from store state on demand. */
 function getColIndex(store: StoreApi<BoardAppStore>): number {
   const s = store.getState()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
   const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   return cursor.colIndex

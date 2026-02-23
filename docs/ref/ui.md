@@ -474,7 +474,7 @@ interface BoardState {
 
   // Selection state
   selectedNodes: Set<string> // Multi-selection (visual mode)
-  foldedNodes: Set<string> // Collapsed cards (fold with 'space')
+  foldDepths: Map<string, number> // Depth budget per node (0 = fully folded)
   collapsedNodes: Set<string> // Collapsed columns (toggle with 'c')
 
   // Navigation

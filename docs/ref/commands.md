@@ -66,7 +66,7 @@ interface CommandContext {
   columnIndex: number
   columnCount: number
   moveMode: boolean
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
 }
 ```
 

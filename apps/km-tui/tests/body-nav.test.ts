@@ -247,7 +247,7 @@ describe("body content navigation", () => {
     const navState: NavState = {
       cursorNodeId: "body text",
       rootId: "board",
-      foldedNodes: new Set(),
+      foldDepths: new Map(),
       collapsedNodes: new Set(),
     }
 
@@ -277,7 +277,7 @@ describe("body content navigation", () => {
     expect(
       nav.navigate(
         "down",
-        { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        { cursorNodeId: "p1", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
         repo,
         registry,
       ),
@@ -287,7 +287,7 @@ describe("body content navigation", () => {
     expect(
       nav.navigate(
         "down",
-        { cursorNodeId: "p2", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        { cursorNodeId: "p2", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
         repo,
         registry,
       ),
@@ -297,7 +297,7 @@ describe("body content navigation", () => {
     expect(
       nav.navigate(
         "down",
-        { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        { cursorNodeId: "p3", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
         repo,
         registry,
       ),
@@ -307,7 +307,7 @@ describe("body content navigation", () => {
     expect(
       nav.navigate(
         "up",
-        { cursorNodeId: "p3", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        { cursorNodeId: "p3", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
         repo,
         registry,
       ),
@@ -317,7 +317,7 @@ describe("body content navigation", () => {
     expect(
       nav.navigate(
         "up",
-        { cursorNodeId: "p1", rootId: "board", foldedNodes: new Set(), collapsedNodes: new Set() },
+        { cursorNodeId: "p1", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
         repo,
         registry,
       ),

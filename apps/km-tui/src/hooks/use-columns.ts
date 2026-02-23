@@ -113,7 +113,7 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
 
   return useMemo(() => {
     // No preloadSubtree here — getChildren() lazily loads from DB on cache miss.
-    // computeDefaultFolds already warms the cache for cards at fold depth.
+    // computeDefaultFoldDepths already warms the cache for cards at fold depth.
     // Avoiding the recursive CTE eliminates 10s+ startup freeze on large vaults.
     return deriveColumnsFromRepo(repo, rootId, foldDepths)
   }, [effectiveVersion, rootId, foldDepths])

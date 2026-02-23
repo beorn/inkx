@@ -96,7 +96,7 @@ function dispatchAndFlush(store: StoreApi<BoardAppStore>, action: Parameters<Boa
 /** Derive layout from store state on demand (layout is no longer stored). */
 function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
+  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
   const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const col = columns[cursor.colIndex]
