@@ -324,49 +324,5 @@ describe("Untitled Columns", () => {
   })
 })
 
-// =============================================================================
-// Icon Style Cycling (V key)
-// =============================================================================
-
-describe("Icon Style Cycling", () => {
-  test("V cycles icon style from nerdfont to workflowy", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("v").press("V")
-    const status = board.getStatus()
-    expect(status).not.toBeNull()
-    expect(status?.message).toBe("Style: workflowy")
-  })
-
-  test("V cycles through all 6 visual presets (3 icons x 2 border modes)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    // nerdfont/normal -> workflowy/normal
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: workflowy")
-
-    // workflowy/normal -> regular/normal
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: regular")
-
-    // regular/normal -> nerdfont/black (icon wraps, border advances)
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: nerdfont (dark borders)")
-
-    // nerdfont/black -> workflowy/black
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: workflowy (dark borders)")
-
-    // workflowy/black -> regular/black
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: regular (dark borders)")
-
-    // regular/black -> nerdfont/normal (full wrap)
-    board.press("v").press("V")
-    expect(board.getStatus()?.message).toBe("Style: nerdfont")
-  })
-
-  test("V does not trigger bell (is a valid action)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("v").press("V")
-    expect(board.bell).toBe(false)
-  })
-})
+// Note: Icon style cycling (cycle_icon_style) is still available via omnibox
+// but no longer has a keybinding (removed from v V chord)

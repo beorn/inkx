@@ -703,23 +703,23 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },
-      { chord: "t", key: "-", commandId: "noop" },
+      { chord: "t", key: "-", commandId: "clear_task" },
       { chord: "t", key: "o", commandId: "set_assignee" },
       { chord: "t", key: "d", commandId: "set_due_date" },
       { chord: "t", key: "!", commandId: "set_priority" },
       { chord: "t", key: "s", commandId: "set_start_date" },
       { chord: "t", key: "r", commandId: "set_recurring" },
-      { chord: "t", key: "c", commandId: "toggle_hide_done" },
       { chord: "t", key: "l", commandId: "set_label" },
 
       // v-prefix chords (view/visual — v2 spec)
       { chord: "v", key: " ", commandId: "visual_mode_enter" },
       { chord: "v", key: "v", commandId: "cycle_view_mode" },
-      { chord: "v", key: "V", commandId: "cycle_icon_style" },
       { chord: "v", key: "c", commandId: "toggle_collapse" },
+      { chord: "v", key: "d", commandId: "toggle_hide_done" },
       { chord: "v", key: "h", commandId: "ignore_node" },
       { chord: "v", key: "H", commandId: "toggle_show_ignored" },
       { chord: "v", key: "f", commandId: "filter" },
+      { chord: "v", key: "-", commandId: "clear_filters" },
 
       // Ctrl+W-prefix chords (pane operations — windowing)
       { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
@@ -781,13 +781,14 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
-      { key: "f", super: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
       { key: "/", ctrl: true, commandId: "local_find" },
-      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
+      { key: "F", commandId: "filter", when: not(textInputFocused) },
+      { key: "S", commandId: "search_replace", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
+      { key: "f", super: true, commandId: "search_replace" },
       { key: "g", super: true, commandId: "filter" },
       { key: "g", ctrl: true, commandId: "filter" },
       { key: "p", super: true, commandId: "toggle_detail_pane" },

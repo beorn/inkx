@@ -65,6 +65,7 @@ import {
   handleIndentColumn,
   handleShiftCard,
   handleTaskStatusCycle,
+  handleClearTask,
 } from "./board-actions-edit.ts"
 import {
   handleCursorMove,
@@ -324,6 +325,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Task actions ===
     case "TASK_SET_STATUS":
       handleTaskStatusCycle(ctx)
+      return ok()
+    case "CLEAR_TASK":
+      handleClearTask(ctx)
       return ok()
 
     // === History actions (undo/redo) ===

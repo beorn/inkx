@@ -531,6 +531,35 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 }
 
 /**
+ * Clear all task properties from selected cards (status, dates, priority, assignee, recurrence).
+ * Batch-aware: when multi-selection is active, clears all selected cards.
+ */
+export function handleClearTask(ctx: ActionCtx): void {
+  const cards = getSelectedCards(ctx)
+  if (cards.length === 0) return
+
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.startBatch("Clear task")
+
+  for (const c of cards) {
+    const targetId = c.embed_source || c.id
+    ctx.repo.updateNode(targetId, {
+      task_status: undefined,
+      task_marker: undefined,
+      due_at: undefined,
+      start_at: undefined,
+      priority: undefined,
+      assigned_to: undefined,
+      recurrence: undefined,
+      completed_at: undefined,
+    })
+  }
+
+  ctx.undoHandle.endBatch()
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+}
+
+/**
  * Shift card or column in a direction.
  *
  * When cursor is on a card: up/down shifts within column, left/right moves between columns.

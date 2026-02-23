@@ -159,6 +159,11 @@ export interface TaskSetStatusAction {
   status: TaskStatus
 }
 
+export interface ClearTaskAction {
+  type: "CLEAR_TASK"
+  nodeId: string
+}
+
 // History actions for undo/redo (handled at app level, not board reducer)
 export interface HistoryUndoAction {
   type: "HISTORY_UNDO"
@@ -897,6 +902,7 @@ export type CommandAction =
   | BoardAction
   | NavigationAction
   | TaskSetStatusAction
+  | ClearTaskAction
   | HistoryAction
   | UIAction
   | TextEditAction
