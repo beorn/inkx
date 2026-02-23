@@ -37,52 +37,11 @@ const SECTION_ROWS: Array<string[] | null> = [
 
 // ── Key display formatting ──────────────────────────────────────────
 
-/**
- * Format a key display string with appropriate spacing around `/` separators.
- * Adds spaces for readability when keys are multi-character (e.g. `⌘o / ⌘⇧o`),
- * keeps tight for single-char combos (e.g. `y/d/p`).
- */
-function formatKeyDisplay(raw: string): string {
-  if (!raw.includes("/")) return raw
-  const segs = raw.split("/")
-  if (segs.length <= 4 && segs.some((s) => s.trim().length > 1)) {
-    return segs.join(" / ")
-  }
-  return raw
-}
-
-/**
- * Render key string with dim `/` separators.
- * Keys are yellow, `/` separators are dim grey.
- */
-function renderKeyColored(keyStr: string, keyPrefix: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = []
-  // Split on " / " (spaced) or "/" (tight) — keep separators via capturing group
-  const segments = keyStr.split(/( \/ |\/)/g)
-  let idx = 0
-  for (const seg of segments) {
-    if (seg === " / " || seg === "/") {
-      parts.push(
-        <Text key={`${keyPrefix}-s${idx++}`} dimColor>
-          {seg}
-        </Text>,
-      )
-    } else if (seg) {
-      parts.push(
-        <Text key={`${keyPrefix}-k${idx++}`} color="yellow">
-          {seg}
-        </Text>,
-      )
-    }
-  }
-  return parts
-}
-
 // ── Dot-leader entry rendering ──────────────────────────────────────
 
 /** Render a single key..description entry with dot leaders */
 function renderEntryStr(keys: string[], desc: string, colWidth: number): string {
-  const keyStr = formatKeyDisplay(keys.join("/"))
+  const keyStr = keys.join(" ")
   const dots = Math.max(1, DOT_STOP - keyStr.length - 2)
   const descMax = colWidth - DOT_STOP
   return keyStr + " " + ".".repeat(dots) + " " + desc.slice(0, descMax)
@@ -140,7 +99,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
       return (
         <Text key={key}>
           {entryMatch[1]}
-          {renderKeyColored(entryMatch[2], key)}
+          <Text color="yellow">{entryMatch[2]}</Text>
           <Text dimColor>{entryMatch[3]}</Text>
           <Text>{entryMatch[4]}</Text>
         </Text>
@@ -207,7 +166,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
           parts.push(
             <React.Fragment key={colKey}>
               {entryMatch[1]}
-              {renderKeyColored(entryMatch[2], colKey)}
+              <Text color="yellow">{entryMatch[2]}</Text>
               <Text dimColor>{entryMatch[3]}</Text>
               <Text>{entryMatch[4]}</Text>
               {pad > 0 ? " ".repeat(pad) : null}

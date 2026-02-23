@@ -99,14 +99,33 @@ const EXCLUDED_COMMANDS = new Set([
   // Block editing (internal)
   "edit_block.navigate_up",
   "edit_block.navigate_down",
-  // Detail pane scrolling (internal)
+  // Detail pane (internal)
   "detail_pane.scroll_down",
   "detail_pane.scroll_up",
+  "detail_pane.cursor_down",
+  "detail_pane.cursor_up",
+  "detail_pane.enter",
   // Close/quit is generic Escape behavior
   "close_or_quit",
   // Generated favorites/column commands (shown in Quick Access)
   ...Array.from({ length: 9 }, (_, i) => `favorite_${i + 1}`),
   ...Array.from({ length: 9 }, (_, i) => `column_${i + 1}`),
+  // Verb-grid commands (shown in the verb × location grid, not in sections)
+  "goto_inbox",
+  "goto_journal",
+  "goto_home",
+  "goto_archive",
+  "goto_next",
+  "project_picker",
+  "move_to_inbox",
+  "move_to_journal",
+  "move_to_home",
+  "move_to_next",
+  "reparent_picker",
+  "add_tag",
+  "add_assignee",
+  "add_project",
+  "add_backlink",
 ])
 
 /** Layers to skip entirely (they contain internal/modal bindings) */
@@ -156,15 +175,21 @@ const COMMAND_SECTION_OVERRIDES: Record<string, string> = {
   command_palette: "System",
   settings: "System",
   // Navigation layer → other sections
-  add_link: "Add",
-  reparent_picker: "Move",
+  add_link: "Editing",
+  insert_child: "Editing",
+  add_sibling_below: "Editing",
+  insert_at_parent: "Editing",
+  enter_move_mode: "Editing",
+  zoom_to_root: "Navigation",
   open_in_system: "System",
   open_in_terminal: "System",
-  // These have chord bindings (g prefix) in fold layer but already appear
-  // in other sections via combine rules — prevent duplication in "Go To"
+  // g-chord bindings that belong in other sections (verb grid handles locations)
   cursor_first: "Navigation",
   cursor_last: "Navigation",
   new_item: "Editing",
+  toggle_collapse: "View",
+  toggle_show_ignored: "View",
+  cycle_view_mode: "View",
 }
 
 /** Sub-categorize fold layer bindings by chord prefix */
@@ -188,19 +213,7 @@ const FOLD_CATEGORY_OVERRIDES: Record<string, string> = {
 const FOLD_COMMANDS = new Set(["fold_node", "unfold_node", "fold_all", "unfold_all"])
 
 /** Display order for sections */
-const SECTION_ORDER = [
-  "Navigation",
-  "Editing",
-  "Selection",
-  "Task",
-  "Fold",
-  "Go To",
-  "Move",
-  "Add",
-  "Panes",
-  "View",
-  "System",
-]
+const SECTION_ORDER = ["Navigation", "Editing", "Selection", "Task", "Fold", "Panes", "View", "System"]
 
 // ── Concise descriptions ─────────────────────────────────────────────
 
@@ -269,30 +282,15 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
   unfold_node: "unfold",
   fold_all: "fold all",
   unfold_all: "unfold all",
-  // Go To
+  // View/System (formerly Go To)
   open_in_system: "open in app",
   open_in_terminal: "open in terminal",
-  project_picker: "board picker",
   new_item: "new item dialog",
   toggle_collapse: "collapse column",
   toggle_show_ignored: "show ignored",
   cycle_view_mode: "cycle view",
-  goto_inbox: "inbox",
-  goto_journal: "journal",
-  goto_home: "home",
-  goto_archive: "archive",
-  goto_next: "next",
-  // Move
+  // Editing (formerly Move/Add)
   enter_move_mode: "move mode",
-  move_to_inbox: "to inbox",
-  move_to_journal: "to journal",
-  move_to_home: "to home",
-  reparent_picker: "pick parent",
-  // Add
-  add_tag: "add tag",
-  add_assignee: "add assignee",
-  add_project: "add project",
-  add_backlink: "add backlink",
   add_link: "add link",
   insert_child: "add child",
   add_sibling_below: "add below",
@@ -358,34 +356,34 @@ const COMBINE_RULES: CombineRule[] = [
     description: "navigate",
     section: "Navigation",
   },
-  { commands: ["zoom_inwards", "zoom_outwards"], display: "z/Z", description: "zoom in/out", section: "Navigation" },
-  { commands: ["nav_back", "nav_forward"], display: "{/}", description: "back/forward", section: "Navigation" },
+  { commands: ["zoom_inwards", "zoom_outwards"], display: "z Z", description: "zoom in/out", section: "Navigation" },
+  { commands: ["nav_back", "nav_forward"], display: "{ }", description: "back/forward", section: "Navigation" },
   {
     commands: ["block_nav_down", "block_nav_up"],
-    display: "J/K",
+    display: "J K",
     description: "move by block",
     section: "Navigation",
   },
-  { commands: ["page_up", "page_down"], display: "⌃u/⌃d", description: "half page up/down", section: "Navigation" },
-  { commands: ["cursor_first", "cursor_last"], display: "gg/G", description: "top/bottom", section: "Navigation" },
+  { commands: ["page_up", "page_down"], display: "⌃u ⌃d", description: "half page up/down", section: "Navigation" },
+  { commands: ["cursor_first", "cursor_last"], display: "gg G", description: "top/bottom", section: "Navigation" },
   {
     commands: ["sibling_board_next", "sibling_board_prev"],
-    display: "⌃j/⌃k",
+    display: "⌃j ⌃k",
     description: "next/prev board",
     section: "Navigation",
   },
   // Editing
   {
     commands: ["insert_below", "insert_above"],
-    display: "o/O",
+    display: "o O",
     description: "new item below/above",
     section: "Editing",
   },
-  { commands: ["undo", "redo"], display: "u/U", description: "undo/redo", section: "Editing" },
-  { commands: ["indent_node", "outdent"], display: "⇥/⇧⇥", description: "indent/outdent", section: "Editing" },
+  { commands: ["undo", "redo"], display: "u U", description: "undo/redo", section: "Editing" },
+  { commands: ["indent_node", "outdent"], display: "⇥ ⇧⇥", description: "indent/outdent", section: "Editing" },
   {
     commands: ["clipboard_copy", "clipboard_cut", "clipboard_paste"],
-    display: "y/d/p",
+    display: "y d p",
     description: "copy/cut/paste",
     section: "Editing",
   },
@@ -399,54 +397,48 @@ const COMBINE_RULES: CombineRule[] = [
   // Task
   {
     commands: ["toggle_task_done", "cycle_task_status"],
-    display: "x/X",
+    display: "x X",
     description: "toggle/cycle status",
     section: "Task",
   },
   {
     commands: ["capture_inbox", "capture_dialog"],
-    display: "c/C/⌘n",
+    display: "c C ⌘n",
     description: "capture to inbox",
     section: "Task",
   },
-  {
-    commands: ["set_assignee", "set_due_date", "set_priority", "set_start_date", "set_recurring", "set_label"],
-    display: "t+o/d/!/s/r/l",
-    description: "set property",
-    section: "Task",
-  },
   // Fold
-  { commands: ["fold_node", "unfold_node"], display: "H/L", description: "fold/unfold", section: "Fold" },
-  { commands: ["fold_all", "unfold_all"], display: "</> ", description: "fold/unfold all", section: "Fold" },
+  { commands: ["fold_node", "unfold_node"], display: "H L", description: "fold/unfold", section: "Fold" },
+  { commands: ["fold_all", "unfold_all"], display: "< >", description: "fold/unfold all", section: "Fold" },
   // View
   {
     commands: ["increase_content_lines", "decrease_content_lines"],
-    display: "+/-",
+    display: "+ -",
     description: "show more/less",
     section: "View",
   },
   {
     commands: ["open_detail_pane", "close_detail_pane", "toggle_detail_pane"],
-    display: "D/⌃i/⌘w",
+    display: "D ⌃i ⌘w",
     description: "detail pane",
     section: "View",
   },
   {
     commands: ["focus_board", "focus_detail"],
-    display: "⌘h/⌘l",
+    display: "⌘h ⌘l",
     description: "focus board/detail",
     section: "View",
   },
   {
     commands: ["open_in_system", "open_in_terminal"],
-    display: "⌘o/⌘⇧o",
+    display: "⌘o ⌘⇧o",
     description: "open in app/terminal",
     section: "System",
   },
   // Panes
   {
     commands: ["pane_split_vertical", "pane_split_horizontal"],
-    display: "⌃w v/s",
+    display: "⌃w v s",
     description: "split v/h",
     section: "Panes",
   },
@@ -458,13 +450,13 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["pane_resize_grow", "pane_resize_shrink"],
-    display: "⌃w >/<",
+    display: "⌃w > <",
     description: "resize width",
     section: "Panes",
   },
   {
     commands: ["pane_resize_grow_vertical", "pane_resize_shrink_vertical"],
-    display: "⌃w +/-",
+    display: "⌃w + -",
     description: "resize height",
     section: "Panes",
   },
@@ -476,7 +468,7 @@ const COMBINE_RULES: CombineRule[] = [
   },
   {
     commands: ["pane_focus_next", "pane_focus_prev"],
-    display: "⌃w ⇥/⇧⇥",
+    display: "⌃w ⇥ ⇧⇥",
     description: "cycle panes",
     section: "Panes",
   },
