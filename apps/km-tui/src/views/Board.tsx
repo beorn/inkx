@@ -10,7 +10,7 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import type { ColumnView, ViewMode } from "../types.ts"
@@ -733,9 +733,6 @@ export function Board({ patchedConsole }: BoardProps) {
     (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
   )
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode)
-  const isZoomLoading = useAppStore<BoardAppStore, boolean>(
-    (s) => s.workspace.panes.get(paneId)?.isZoomLoading ?? s.isZoomLoading,
-  )
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -784,8 +781,15 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
 
+  // Defer rootId and foldDepths so React shows old board during zoom transitions.
+  // inkx uses ConcurrentRoot, so useDeferredValue actually defers: first render keeps
+  // old values (cached columns = instant), second render triggers incremental loading.
+  const deferredRootId = useDeferredValue(rootId)
+  const deferredFoldDepths = useDeferredValue(foldDepths)
+  const isZoomLoading = rootId !== deferredRootId
+
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
-  const columns = useColumns(repo, rootId, foldDepths)
+  const columns = useColumns(repo, deferredRootId, deferredFoldDepths)
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
