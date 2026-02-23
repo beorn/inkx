@@ -111,7 +111,7 @@ export interface UIState {
     cardIndex: number
     cursorNodeId: string | null
     multiSelected: Set<SelectionKey>
-    foldedNodes?: Set<string>
+    foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number
 

@@ -42,10 +42,10 @@ let cachedFocus: ((testID: string) => void) | null = null
 // =============================================================================
 
 // Layout cache — avoids recomputing columns+nodeIndex on every keypress when state hasn't changed.
-// Uses Set reference equality for foldedNodes (each mutation creates a new Set).
+// Uses Map reference equality for foldDepths (each mutation creates a new Map).
 let layoutCache: {
   rootId: string | null
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   repoVersion: number
   columns: ColumnView[]
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
@@ -61,13 +61,13 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   const repoVersion = s.repo.getSnapshot()
 
   // Reuse cached layout if state inputs haven't changed
-  // foldedNodes uses reference equality — each fold/unfold creates a new Set
+  // foldDepths uses reference equality — each fold/unfold creates a new Map
   let columns: ColumnView[]
   let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
   if (
     layoutCache &&
     layoutCache.rootId === s.rootId &&
-    layoutCache.foldedNodes === s.foldedNodes &&
+    layoutCache.foldDepths === s.foldDepths &&
     layoutCache.repoVersion === repoVersion
   ) {
     columns = layoutCache.columns
@@ -76,9 +76,9 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
     const topChildren = s.repo.getChildren(s.rootId)
     s.repo.preloadSubtree(s.rootId, topChildren.length > 20 ? 2 : 4)
-    columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldedNodes)
-    nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id), s.foldedNodes)
-    layoutCache = { rootId: s.rootId, foldedNodes: s.foldedNodes, repoVersion, columns, nodeIndex }
+    columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
+    nodeIndex = buildNodeIndex(columns, (id) => s.repo.getChildren(id), s.foldDepths, s.rootId)
+    layoutCache = { rootId: s.rootId, foldDepths: s.foldDepths, repoVersion, columns, nodeIndex }
   }
   const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
   const column = columns[cursor.colIndex]
@@ -91,7 +91,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     rootPath: s.rootPath,
     cursorNodeId: s.cursorNodeId,
     selectedNodes: s.selectedNodes,
-    foldedNodes: s.foldedNodes,
+    foldDepths: s.foldDepths,
     collapsedNodes: s.collapsedNodes,
     moveMode: s.moveMode,
     moveSourceNodes: s.moveSourceNodes,
@@ -112,7 +112,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     card,
     dispatchBoard: (action) => s.dispatchBoard(action),
     setUI: (partial) => s.setUI(partial),
-    setFoldedNodes: (nodes) => s.setFoldedNodes(nodes),
+    setFoldDepths: (depths) => s.setFoldDepths(depths),
     openDetailPane: () => s.openDetailPane(),
     closeDetailPane: () => s.closeDetailPane(),
     toggleDetailPane: () => s.toggleDetailPane(),
@@ -137,10 +137,10 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: cachedFocusManager!,
     focus: cachedFocus ?? (() => {}),
-    countVisibleDescendants: (node, depth, maxDepth, foldedNodes) =>
-      countVisibleDescendants(s.repo, node, depth, maxDepth, foldedNodes),
-    getVisibleDescendantIds: (cardNode, maxDepth, foldedNodes) =>
-      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldedNodes),
+    countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
+      countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
+    getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
+      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, s.rootId),
   }
 }
 
@@ -295,7 +295,7 @@ export function dispatchCommandById(commandId: string, get: () => BoardAppStore,
     columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
     columnCount: ctx.columns.length,
     moveMode: ctx.moveMode,
-    foldedNodes: ctx.foldedNodes,
+    foldDepths: ctx.foldDepths,
   }
 
   const actions = executeCommand(commandId, cmdCtx)
@@ -671,7 +671,8 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
           actionCtx.repo,
           { id: nodeId },
           Infinity,
-          actionCtx.foldedNodes,
+          actionCtx.foldDepths,
+          actionCtx.rootId,
         )
         const childId = descendantIds[target.blockIndex]
         if (childId) {
@@ -785,15 +786,18 @@ function countVisibleDescendants(
   node: { id: string },
   depth: number,
   maxDepth: number,
-  foldedNodes: Set<string>,
+  foldDepths: Map<string, number>,
+  remainingDepth?: number,
 ): number {
-  if (depth > maxDepth || foldedNodes.has(node.id)) {
+  const effectiveDepth = foldDepths.get(node.id) ?? remainingDepth ?? Infinity
+  if (depth > maxDepth || effectiveDepth <= 0) {
     return 0
   }
   const children = repo.getChildren(node.id).slice(0, 10)
   let count = children.length
   for (const child of children) {
-    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldedNodes)
+    const childDepth = foldDepths.get(child.id) ?? effectiveDepth - 1
+    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldDepths, childDepth)
   }
   return count
 }
@@ -801,22 +805,27 @@ function countVisibleDescendants(
 /**
  * Get flat list of visible descendant IDs in DFS order for outline navigation.
  * First entry is the card itself (index 0), then its visible descendants.
+ * Uses foldDepths for depth-based visibility: each node's effective depth is
+ * its explicit override or inherited (parent depth - 1).
  */
 function getVisibleDescendantIds(
   repo: { getChildren(id: string): { id: string }[] },
   cardNode: { id: string },
   maxDepth: number,
-  foldedNodes: Set<string>,
+  foldDepths: Map<string, number>,
+  rootId?: string | null,
 ): string[] {
   const result: string[] = [cardNode.id]
-  function walk(node: { id: string }, depth: number): void {
-    if (depth >= maxDepth || foldedNodes.has(node.id)) return
+  const cardDepth = foldDepths.get(cardNode.id) ?? foldDepths.get(rootId ?? "") ?? 1
+  function walk(node: { id: string }, depth: number, remainingDepth: number): void {
+    if (depth >= maxDepth || remainingDepth <= 0) return
     const children = repo.getChildren(node.id)
     for (const child of children) {
       result.push(child.id)
-      walk(child, depth + 1)
+      const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1
+      walk(child, depth + 1, childDepth)
     }
   }
-  walk(cardNode, 0)
+  walk(cardNode, 0, cardDepth)
   return result
 }

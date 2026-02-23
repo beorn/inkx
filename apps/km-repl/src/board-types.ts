@@ -62,8 +62,8 @@ export interface BoardState {
   nodes: TNode[]
   /** Cursor position as path through tree */
   cursor: TPath
-  /** Node IDs that are folded (children hidden) */
-  foldedNodes: Set<string>
+  /** Node IDs → depth budgets (0 = folded, no entry = inherit) */
+  foldDepths: Map<string, number>
   /** Node IDs that are collapsed (in outline mode) */
   collapsedNodes: Set<string>
   /** Node IDs that are selected */

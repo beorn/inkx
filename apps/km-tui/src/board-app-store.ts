@@ -44,7 +44,7 @@ import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./w
  * The full board app store state.
  *
  * Board navigation fields are flat at store root.
- * foldedNodes is the single source of truth (removed from UIState).
+ * foldDepths is the single source of truth (removed from UIState).
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
  * demand by the key handler (buildActionCtx) and by React (useColumns hook).
@@ -63,7 +63,7 @@ export interface BoardAppState {
   rootPath: string | null
   cursorNodeId: string | null
   selectedNodes: Set<string>
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   navHistory: NavHistoryEntry[]
   navHistoryIndex: number
@@ -121,7 +121,7 @@ export interface BoardAppActions {
   setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)): void
 
   // Fold operations (single source of truth at store root)
-  setFoldedNodes(nodes: Set<string>): void
+  setFoldDepths(depths: Map<string, number>): void
 
   // Direct setters
   setTextEditTarget(target: EditTarget | null): void
@@ -181,7 +181,7 @@ function snapshotFlatToPane(state: BoardAppState, pane: PaneState): PaneState {
     rootPath: state.rootPath,
     cursorNodeId: state.cursorNodeId,
     selectedNodes: state.selectedNodes,
-    foldedNodes: state.foldedNodes,
+    foldDepths: state.foldDepths,
     collapsedNodes: state.collapsedNodes,
     navHistory: state.navHistory,
     navHistoryIndex: state.navHistoryIndex,
@@ -206,7 +206,7 @@ function restorePaneToFlat(pane: PaneState): Partial<BoardAppState> {
     rootPath: pane.rootPath,
     cursorNodeId: pane.cursorNodeId,
     selectedNodes: pane.selectedNodes,
-    foldedNodes: pane.foldedNodes,
+    foldDepths: pane.foldDepths,
     collapsedNodes: pane.collapsedNodes,
     navHistory: pane.navHistory,
     navHistoryIndex: pane.navHistoryIndex,
@@ -240,10 +240,7 @@ function syncFlatToFocusedPane(state: BoardAppState): Map<string, PaneState> {
  * Saves the old pane's state, restores the new pane's state to flat fields,
  * and updates the workspace's focused pane ID.
  */
-function switchFocusedPane(
-  state: BoardAppState,
-  newPaneId: string,
-): Partial<BoardAppStore> {
+function switchFocusedPane(state: BoardAppState, newPaneId: string): Partial<BoardAppStore> {
   const oldPaneId = state.workspace.focusedPaneId
   const oldPane = state.workspace.panes.get(oldPaneId)
   const newPane = state.workspace.panes.get(newPaneId)
@@ -274,69 +271,21 @@ function switchFocusedPane(
 // Default Fold Computation
 // =============================================================================
 
-/** Depth threshold for initial folds: fold nodes with children at this depth or deeper inside each card. */
-/** Above this column count, defer fold computation to avoid blocking the event loop. */
-const DEFERRED_FOLD_THRESHOLD = 10
-
 /**
- * Defer a heavy computation to the next tick while showing a loading indicator.
- * Sets isZoomLoading + ui.isLoading/loadingStartTime, yields to event loop,
- * runs the computation, then clears loading state.
+ * Compute default fold depths for a given root.
+ * Sets rootId depth to 1: cards show their titles + body, sub-items folded.
  *
- * @param set - Zustand set function
- * @param state - Current state (for spreading ui)
- * @param compute - The heavy work to do (returns partial state update)
- */
-function deferWithProgress(
-  set: (partial: Partial<BoardAppStore> | ((state: BoardAppStore) => Partial<BoardAppStore>)) => void,
-  state: BoardAppStore,
-  compute: () => Partial<BoardAppStore>,
-): Partial<BoardAppState> {
-  setTimeout(() => {
-    const result = compute()
-    set((s) => ({
-      ...result,
-      isZoomLoading: false,
-      ui: { ...s.ui, isLoading: false, loadingStartTime: null },
-      workspace: {
-        ...s.workspace,
-        panes: syncFlatToFocusedPane({ ...s, ...result, isZoomLoading: false }),
-      },
-    }))
-  }, 0)
-  return {
-    isZoomLoading: true,
-    ui: { ...state.ui, isLoading: true, loadingStartTime: Date.now() },
-  }
-}
-
-/**
- * Compute default fold set for a given root.
- * Folds at depth 1: cards are visible with their body/section headers,
- * but card children (sub-items, sections) are folded.
- * Folding a leaf is a no-op (no children to hide), so over-folding is safe.
- *
- * If existingFolds is non-empty, returns it unchanged (user has explicit folds).
+ * If existingDepths is non-empty, returns a copy unchanged (user has explicit folds).
  * User can unfold specific areas with L or > (progressive disclosure).
  */
-function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: Set<string>): Set<string> {
-  if (!rootId || existingFolds.size > 0) return new Set(existingFolds)
+function computeDefaultFoldDepths(rootId: string | null, existingDepths: Map<string, number>): Map<string, number> {
+  if (!rootId || existingDepths.size > 0) return new Map(existingDepths)
 
-  // Fold cards' children (depth 1). Cards show their direct content (body paragraphs,
-  // section headers) but sub-items within those sections are hidden.
-  // Folding a leaf node is harmless (stays in the set with no rendering effect).
-  const foldedNodes = new Set<string>()
-  const columns = repo.getChildren(rootId)
-  for (const col of columns) {
-    const cards = repo.getChildren(col.id)
-    for (const card of cards) {
-      const children = repo.getChildren(card.id)
-      for (const child of children) {
-        foldedNodes.add(child.id)
-      }
-    }
-  }
-  return foldedNodes
+  // Depth 1 on root: columns visible, cards visible with their direct content,
+  // but card children (sub-items, sections) are folded.
+  const foldDepths = new Map<string, number>()
+  foldDepths.set(rootId, 1)
+  return foldDepths
 }
 
 export interface CreateBoardAppStoreParams {
@@ -371,14 +320,15 @@ function restoreWorkspaceFromPersisted(
     const pane = createPaneState(persisted.id, resolvedBoard, {
       viewType: persisted.viewType,
       viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
-      cursorStore: persisted.id === saved.focusedPaneId
-        ? cursorStore
-        : createCursorStore({
-            cursorNodeId: null,
-            cursorCardNodeId: null,
-            cursorColumnNodeId: null,
-            selectionLevel: "board",
-          }),
+      cursorStore:
+        persisted.id === saved.focusedPaneId
+          ? cursorStore
+          : createCursorStore({
+              cursorNodeId: null,
+              cursorCardNodeId: null,
+              cursorColumnNodeId: null,
+              selectionLevel: "board",
+            }),
       isZoomLoading: false,
     })
     panes.set(persisted.id, pane)
@@ -459,8 +409,8 @@ export function createBoardAppStoreState(
 ) => BoardAppStore {
   const bs = params.initialBoardState
 
-  // Compute initial folds: fold all cards unconditionally for instant startup.
-  const initialFoldedNodes = computeDefaultFolds(params.repo, bs.rootId, bs.foldedNodes)
+  // Compute initial fold depths: set root depth to 1 for instant startup.
+  const initialFoldDepths = computeDefaultFoldDepths(bs.rootId, bs.foldDepths)
 
   return (set, _get) => {
     // Create undo system: wrap repo so mutations are auto-recorded
@@ -470,7 +420,7 @@ export function createBoardAppStoreState(
     // Try to restore workspace from saved state, otherwise create default single-pane workspace.
     const initialPaneBoard: BoardState = {
       ...bs,
-      foldedNodes: initialFoldedNodes,
+      foldDepths: initialFoldDepths,
     }
 
     let workspace: WorkspaceState
@@ -500,7 +450,7 @@ export function createBoardAppStoreState(
       rootPath: bs.rootPath,
       cursorNodeId: bs.cursorNodeId,
       selectedNodes: bs.selectedNodes,
-      foldedNodes: initialFoldedNodes,
+      foldDepths: initialFoldDepths,
       collapsedNodes: bs.collapsedNodes,
       navHistory: bs.navHistory,
       navHistoryIndex: bs.navHistoryIndex,
@@ -588,13 +538,13 @@ export function createBoardAppStoreState(
               return state
 
             case "TOGGLE_FOLD": {
-              const newFolded = new Set(state.foldedNodes)
-              if (newFolded.has(action.nodeId)) {
-                newFolded.delete(action.nodeId)
+              const newDepths = new Map(state.foldDepths)
+              if (newDepths.has(action.nodeId)) {
+                newDepths.delete(action.nodeId)
               } else {
-                newFolded.add(action.nodeId)
+                newDepths.set(action.nodeId, 0)
               }
-              flatUpdate = { foldedNodes: newFolded }
+              flatUpdate = { foldDepths: newDepths }
               break
             }
 
@@ -610,30 +560,14 @@ export function createBoardAppStoreState(
             }
 
             case "ZOOM_IN": {
-              // For large boards, defer fold computation so the UI can show
-              // a loading indicator instead of blocking.
-              const zoomChildren = undoableRepo.getChildren(action.nodeId)
               const zoomNodeId = action.nodeId
-              if (zoomChildren.length > DEFERRED_FOLD_THRESHOLD) {
-                flatUpdate = {
-                  rootId: zoomNodeId,
-                  cursorNodeId: action.cursorNodeId ?? null,
-                  foldedNodes: new Set<string>(),
-                  curswantX: null,
-                  curswantY: null,
-                  ...deferWithProgress(set, state, () => ({
-                    foldedNodes: computeDefaultFolds(undoableRepo, zoomNodeId, new Set()),
-                  })),
-                }
-              } else {
-                const zoomFolded = computeDefaultFolds(undoableRepo, zoomNodeId, new Set())
-                flatUpdate = {
-                  rootId: zoomNodeId,
-                  cursorNodeId: action.cursorNodeId ?? null,
-                  foldedNodes: zoomFolded,
-                  curswantX: null,
-                  curswantY: null,
-                }
+              const zoomDepths = computeDefaultFoldDepths(zoomNodeId, new Map())
+              flatUpdate = {
+                rootId: zoomNodeId,
+                cursorNodeId: action.cursorNodeId ?? null,
+                foldDepths: zoomDepths,
+                curswantX: null,
+                curswantY: null,
               }
               break
             }
@@ -647,35 +581,16 @@ export function createBoardAppStoreState(
                   cursorNodeId: state.cursorNodeId,
                 },
               ]
-              // For large boards, defer fold computation
-              const setRootChildren = undoableRepo.getChildren(action.rootId)
-              const setRootId = action.rootId
-              if (setRootChildren.length > DEFERRED_FOLD_THRESHOLD) {
-                flatUpdate = {
-                  rootId: setRootId,
-                  rootPath: action.rootPath,
-                  cursorNodeId: action.cursorNodeId,
-                  foldedNodes: new Set<string>(),
-                  navHistory: newHistory,
-                  navHistoryIndex: newHistory.length,
-                  curswantX: null,
-                  curswantY: null,
-                  ...deferWithProgress(set, state, () => ({
-                    foldedNodes: computeDefaultFolds(undoableRepo, setRootId, new Set()),
-                  })),
-                }
-              } else {
-                const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
-                flatUpdate = {
-                  rootId: action.rootId,
-                  rootPath: action.rootPath,
-                  cursorNodeId: action.cursorNodeId,
-                  foldedNodes: rootFolded,
-                  navHistory: newHistory,
-                  navHistoryIndex: newHistory.length,
-                  curswantX: null,
-                  curswantY: null,
-                }
+              const rootDepths = computeDefaultFoldDepths(action.rootId, new Map())
+              flatUpdate = {
+                rootId: action.rootId,
+                rootPath: action.rootPath,
+                cursorNodeId: action.cursorNodeId,
+                foldDepths: rootDepths,
+                navHistory: newHistory,
+                navHistoryIndex: newHistory.length,
+                curswantX: null,
+                curswantY: null,
               }
               break
             }
@@ -777,12 +692,12 @@ export function createBoardAppStoreState(
         })
       },
 
-      setFoldedNodes(nodes: Set<string>) {
+      setFoldDepths(depths: Map<string, number>) {
         set((state) => {
-          const merged = { ...state, foldedNodes: nodes }
+          const merged = { ...state, foldDepths: depths }
           const syncedPanes = syncFlatToFocusedPane(merged)
           return {
-            foldedNodes: nodes,
+            foldDepths: depths,
             workspace: { ...state.workspace, panes: syncedPanes },
           }
         })
@@ -810,16 +725,12 @@ export function createBoardAppStoreState(
           }
 
           // Create a detail pane with an empty board state (detail doesn't navigate).
-          const detailPane = createPaneState(
-            detailPaneId,
-            createBoardState(),
-            {
-              viewType: "detail",
-              viewMode: state.ui.viewMode,
-              cursorStore: state.cursorStore,
-              isZoomLoading: false,
-            },
-          )
+          const detailPane = createPaneState(detailPaneId, createBoardState(), {
+            viewType: "detail",
+            viewMode: state.ui.viewMode,
+            cursorStore: state.cursorStore,
+            isZoomLoading: false,
+          })
 
           const newPanes = new Map(state.workspace.panes)
           newPanes.set(detailPaneId, detailPane)
@@ -904,16 +815,12 @@ export function createBoardAppStoreState(
           })
 
           // Create an empty pane with its own cursor store
-          const emptyPane = createPaneState(
-            newPaneId,
-            createBoardState(),
-            {
-              viewType: "empty",
-              viewMode: state.ui.viewMode,
-              cursorStore: newPaneCursorStore,
-              isZoomLoading: false,
-            },
-          )
+          const emptyPane = createPaneState(newPaneId, createBoardState(), {
+            viewType: "empty",
+            viewMode: state.ui.viewMode,
+            cursorStore: newPaneCursorStore,
+            isZoomLoading: false,
+          })
 
           // Split the layout tree at the focused pane
           const newLayout = splitLayoutNode(workspace.layout, focusedId, direction, newPaneId)
@@ -971,9 +878,8 @@ export function createBoardAppStoreState(
               panes: newPanes,
               layout: newLayout,
               focusedPaneId: newFocusedId,
-              previousFocusedPaneId: workspace.previousFocusedPaneId === focusedId
-                ? null
-                : workspace.previousFocusedPaneId,
+              previousFocusedPaneId:
+                workspace.previousFocusedPaneId === focusedId ? null : workspace.previousFocusedPaneId,
             },
           }
         })
@@ -1181,7 +1087,7 @@ export function createBoardAppStoreState(
             rootId: state.rootId,
             rootPath: state.rootPath,
             cursorNodeId: state.cursorNodeId,
-            foldedNodes: state.foldedNodes,
+            foldDepths: state.foldDepths,
             collapsedNodes: state.collapsedNodes,
             cursorStore: state.cursorStore,
           }

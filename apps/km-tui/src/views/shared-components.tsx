@@ -6,11 +6,13 @@
  */
 import React, { useCallback } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
+import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
+import type { BoardAppStore } from "../board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
@@ -62,6 +64,13 @@ export const MemoizedTreeCard = React.memo(
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.id)
 
+    // Fold depth: per-card override or root's depth budget
+    const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
+      const cardOverride = s.foldDepths.get(card.id)
+      if (cardOverride !== undefined) return cardOverride
+      return s.foldDepths.get(s.rootId ?? "") ?? 1
+    })
+
     const content = (
       <CardLayoutTracker nodeId={card.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>
         <TreeNode
@@ -73,6 +82,7 @@ export const MemoizedTreeCard = React.memo(
           children={children}
           getBoardPills={getBoardPills}
           extraExcludedSigils={extraExcludedSigils}
+          remainingDepth={rootFoldDepth}
         />
       </CardLayoutTracker>
     )

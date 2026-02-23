@@ -268,7 +268,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Resolve embedded links to get the actual target node type
       const embedTarget = curNode?.embed_source
       const resolvedNode = embedTarget ? ctx.repo.getNode(embedTarget) : curNode
-      const isFolder = resolvedNode ? isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder" : false
+      const isFolder = resolvedNode
+        ? isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder"
+        : false
       log.debug?.(`OPEN_DETAIL_PANE: curNodeId=${curNodeId} isFolder=${isFolder}`)
       if (curNodeId && !isFolder) {
         const children = ctx.repo.getChildren(curNodeId)
@@ -309,7 +311,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DELETE_NODE":
       handleDeleteNode(ctx)
       return ok()
-    case "SELECT_ALL_PROGRESSIVE":
+    case "SELECT_ALL":
       progressiveSelectAll(ctx)
       return ok()
 
@@ -348,15 +350,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
     case "FOLD_LEVEL": {
-      const newFolded = new Set(ctx.foldedNodes)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newFolded.add(c.id)
-      ctx.setFoldedNodes(newFolded)
+      const newDepths = new Map(ctx.foldDepths)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.set(c.id, 0)
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
     case "UNFOLD_LEVEL": {
-      const newFolded = new Set(ctx.foldedNodes)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newFolded.delete(c.id)
-      ctx.setFoldedNodes(newFolded)
+      const newDepths = new Map(ctx.foldDepths)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.delete(c.id)
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
     case "TOGGLE_COLLAPSE": {
@@ -488,111 +490,111 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Selection actions (not yet implemented) ===
     case "SELECT_ALL_SIBLINGS":
-    case "SELECT_ALL":
       return unimplemented("selection")
 
-    // === Fold operations (progressive per-level, Decker-inspired) ===
-    // Visibility is driven entirely by foldedNodes.
+    // === Fold operations (depth-based progressive fold/unfold) ===
+    // Visibility is driven by foldDepths: Map<string, number>.
+    // depth 0 = fully folded, no entry = inherit parent's remaining depth, 999 = infinite.
     case "FOLD_NODE": {
-      // Determine fold roots based on scope:
-      // 1. scope: "root" → board-wide (all columns' cards)
-      // 2. Multiple selected nodes → all selected
-      // 3. Column header → all cards in column
-      // 4. Single card → just that card
-      const selected = getSelectedCards(ctx)
-      const roots =
-        action.scope === "root"
-          ? ctx.columns.flatMap((c) => c.cardNodes.map((n) => n.id))
-          : selected.length > 0
-            ? selected.map((c) => c.id)
-            : card
-              ? [card.id]
-              : ctx.column
-                ? ctx.column.cardNodes.map((n) => n.id)
-                : []
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      const newFolded = new Set(ctx.foldedNodes)
-      let deepestDepth = -1
-      const nodesAtDepth = new Map<number, string[]>()
-      const walk = (nodeId: string, depth: number) => {
-        const children = ctx.repo.getChildren(nodeId)
-        if (children.length === 0) return
-        if (!newFolded.has(nodeId)) {
-          const list = nodesAtDepth.get(depth)
-          if (list) list.push(nodeId)
-          else nodesAtDepth.set(depth, [nodeId])
-          if (depth > deepestDepth) deepestDepth = depth
-          for (const child of children) walk(child.id, depth + 1)
+      const newDepths = new Map(ctx.foldDepths)
+      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
+
+      // scope:"root" → modify the board-level depth directly
+      if (action.scope === "root") {
+        if (boardDepth <= 0) return boundary("fold", "already fully folded")
+        newDepths.set(ctx.rootId ?? "", boardDepth - 1)
+        // Clear per-card overrides so all cards inherit the new root depth
+        for (const column of ctx.columns) {
+          for (const c of column.cardNodes) newDepths.delete(c.id)
         }
-      }
-      for (const rootId of roots) walk(rootId, 0)
-      if (deepestDepth >= 0) {
-        for (const id of nodesAtDepth.get(deepestDepth)!) newFolded.add(id)
-        ctx.setFoldedNodes(newFolded)
+        ctx.setFoldDepths(newDepths)
         return ok()
       }
-      return boundary("fold", "no children to fold")
+
+      // Per-card fold: determine fold targets
+      const selected = getSelectedCards(ctx)
+      const roots =
+        selected.length > 0
+          ? selected.map((c) => c.id)
+          : card
+            ? [card.id]
+            : ctx.column
+              ? ctx.column.cardNodes.map((n) => n.id)
+              : []
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
+      let changed = false
+      for (const nodeId of roots) {
+        const current = newDepths.get(nodeId)
+        if (current === 0) continue // already fully folded
+        if (current === undefined) {
+          // Inheriting from board root — decrement from inherited depth
+          newDepths.set(nodeId, Math.max(0, boardDepth - 1))
+          changed = true
+        } else {
+          newDepths.set(nodeId, Math.max(0, current - 1))
+          changed = true
+        }
+      }
+      if (!changed) return boundary("fold", "already fully folded")
+      ctx.setFoldDepths(newDepths)
+      return ok()
     }
     case "UNFOLD_NODE": {
-      // Same scope logic as FOLD_NODE (see above)
-      const selected = getSelectedCards(ctx)
-      const roots =
-        action.scope === "root"
-          ? ctx.columns.flatMap((c) => c.cardNodes.map((n) => n.id))
-          : selected.length > 0
-            ? selected.map((c) => c.id)
-            : card
-              ? [card.id]
-              : ctx.column
-                ? ctx.column.cardNodes.map((n) => n.id)
-                : []
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      const newFolded = new Set(ctx.foldedNodes)
-      // Walk subtree to find the shallowest folded level
-      let shallowestDepth = Infinity
-      const nodesAtDepth = new Map<number, string[]>()
-      const walk = (nodeId: string, depth: number) => {
-        const children = ctx.repo.getChildren(nodeId)
-        if (children.length === 0) return
-        if (newFolded.has(nodeId)) {
-          const list = nodesAtDepth.get(depth)
-          if (list) list.push(nodeId)
-          else nodesAtDepth.set(depth, [nodeId])
-          if (depth < shallowestDepth) shallowestDepth = depth
-        } else {
-          for (const child of children) walk(child.id, depth + 1)
+      const newDepths = new Map(ctx.foldDepths)
+      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
+
+      // scope:"root" → modify the board-level depth directly
+      if (action.scope === "root") {
+        newDepths.set(ctx.rootId ?? "", boardDepth + 1)
+        // Clear per-card overrides so all cards inherit the new root depth
+        for (const column of ctx.columns) {
+          for (const c of column.cardNodes) newDepths.delete(c.id)
         }
-      }
-      for (const rootId of roots) walk(rootId, 0)
-      if (shallowestDepth < Infinity) {
-        const unfoldedIds = nodesAtDepth.get(shallowestDepth)!
-        for (const id of unfoldedIds) newFolded.delete(id)
-        // Progressive disclosure: auto-fold children of newly-unfolded nodes
-        // that have their own children, so only one level is revealed at a time.
-        for (const id of unfoldedIds) {
-          for (const child of ctx.repo.getChildren(id)) {
-            if (ctx.repo.getChildren(child.id).length > 0) {
-              newFolded.add(child.id)
-            }
-          }
-        }
-        ctx.setFoldedNodes(newFolded)
+        ctx.setFoldDepths(newDepths)
         return ok()
       }
-      return boundary("fold", "nothing to unfold")
+
+      // Per-card unfold: determine targets
+      const selected = getSelectedCards(ctx)
+      const roots =
+        selected.length > 0
+          ? selected.map((c) => c.id)
+          : card
+            ? [card.id]
+            : ctx.column
+              ? ctx.column.cardNodes.map((n) => n.id)
+              : []
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
+      let changed = false
+      for (const nodeId of roots) {
+        const current = newDepths.get(nodeId)
+        if (current === undefined) {
+          // Inheriting from board root — increment from inherited depth
+          newDepths.set(nodeId, boardDepth + 1)
+          changed = true
+        } else {
+          newDepths.set(nodeId, current + 1)
+          changed = true
+        }
+      }
+      if (!changed) return boundary("fold", "nothing to unfold")
+      ctx.setFoldDepths(newDepths)
+      return ok()
     }
     case "UNFOLD_RECURSIVE": {
       if (!card) return boundary("fold", "no card selected")
-      const newFolded = new Set(ctx.foldedNodes)
-      // Unfold the card and all descendants
-      const unfoldDescendants = (nodeId: string) => {
-        newFolded.delete(nodeId)
+      const newDepths = new Map(ctx.foldDepths)
+      // Set depth to 999 (effectively infinite) for the card
+      newDepths.set(card.id, 999)
+      // Remove explicit depth entries for all descendants so they inherit
+      const removeDescendantDepths = (nodeId: string) => {
         for (const child of ctx.repo.getChildren(nodeId)) {
-          unfoldDescendants(child.id)
+          newDepths.delete(child.id)
+          removeDescendantDepths(child.id)
         }
       }
-      unfoldDescendants(card.id)
-      ctx.setFoldedNodes(newFolded)
+      removeDescendantDepths(card.id)
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
 

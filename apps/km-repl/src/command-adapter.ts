@@ -73,7 +73,7 @@ interface ShellContextOptions {
   columnIndex?: number
   columnCount?: number
   moveMode?: boolean
-  foldedNodes?: Set<string>
+  foldDepths?: Map<string, number>
 }
 
 /**
@@ -90,7 +90,7 @@ export function buildShellContext(viewMode: ViewMode = "list", options: ShellCon
     columnIndex: options.columnIndex ?? 0,
     columnCount: options.columnCount ?? 0,
     moveMode: options.moveMode ?? false,
-    foldedNodes: options.foldedNodes ?? new Set(),
+    foldDepths: options.foldDepths ?? new Map(),
   })
 }
 

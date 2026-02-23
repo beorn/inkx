@@ -158,6 +158,13 @@ const Card = React.memo(
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
 
+    // Fold depth: per-card override or root's depth budget
+    const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
+      const cardOverride = s.foldDepths.get(nodeId)
+      if (cardOverride !== undefined) return cardOverride
+      return s.foldDepths.get(s.rootId ?? "") ?? 1
+    })
+
     // Dual cursor: dim the cursor when board is not focused.
     // Board is "focused" when it has explicit focus OR the detail pane doesn't
     // (covers initial render before autoFocus fires, when nothing has focus yet).
@@ -281,6 +288,7 @@ const Card = React.memo(
             extraExcludedSigils={extraExcludedSigils}
             compactContent
             hideChildCount
+            remainingDepth={rootFoldDepth}
           />
         </Box>
       )
@@ -358,6 +366,7 @@ const Card = React.memo(
               childCount={childCount}
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
+              remainingDepth={rootFoldDepth}
             />
           </Box>
           <Box width={width} height={1} flexShrink={0}>
@@ -395,6 +404,7 @@ const Card = React.memo(
           childCount={childCount}
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount
+          remainingDepth={rootFoldDepth}
         />
       </Box>
     )
@@ -509,7 +519,7 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle, borderMode },
+    treeConfig: { iconStyle },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
@@ -547,8 +557,7 @@ export const Column = React.memo(function Column({
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
-  const filterHiddenCount =
-    column.totalCardCount != null ? column.totalCardCount - column.cardNodes.length : 0
+  const filterHiddenCount = column.totalCardCount != null ? column.totalCardCount - column.cardNodes.length : 0
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(

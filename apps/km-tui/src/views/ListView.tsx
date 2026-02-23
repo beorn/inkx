@@ -114,7 +114,8 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const selectedFlatIndex = useMemo(() => {
     if (!cursorColumnNodeId) return 0
     for (let i = 0; i < flatItems.length; i++) {
-      const item = flatItems[i]!
+      const item = flatItems[i]
+      if (!item) continue
       if (selectionLevel === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
         return i
       }

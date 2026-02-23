@@ -21,7 +21,7 @@ export function pushNavHistoryEntry(
   cardIndex: number,
   multiSelected: Set<SelectionKey>,
   cursorNodeId: string | null = null,
-  foldedNodes?: Set<string>,
+  foldDepths?: Map<string, number>,
 ): void {
   const entry = {
     rootId,
@@ -29,7 +29,7 @@ export function pushNavHistoryEntry(
     cardIndex,
     cursorNodeId,
     multiSelected: new Set(multiSelected),
-    foldedNodes: foldedNodes ? new Set(foldedNodes) : undefined,
+    foldDepths: foldDepths ? new Map(foldDepths) : undefined,
   }
   setUI((prev) => {
     const h = [...prev.navHistory.slice(0, prev.navHistoryIndex), entry]
@@ -46,7 +46,7 @@ export function saveNavHistory(ctx: ActionCtx): void {
     ctx.cardIndex,
     ctx.ui.multiSelected,
     ctx.cursorNodeId,
-    ctx.foldedNodes,
+    ctx.foldDepths,
   )
 }
 

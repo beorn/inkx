@@ -87,7 +87,10 @@ export function deriveCursorAncestors(
   // The last element is the child of rootId (column or body card)
   // The second-to-last is the grandchild of rootId (card level)
   const depth = ancestors.length
-  const childOfRootId = ancestors[depth - 1]!
+  const childOfRootId = ancestors[depth - 1]
+  if (!childOfRootId) {
+    return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
+  }
   const childOfRootNode = getNode(childOfRootId)
 
   if (!childOfRootNode || (childOfRootNode.parent_id !== rootId && childOfRootNode.parent_id !== null)) {
@@ -98,7 +101,8 @@ export function deriveCursorAncestors(
   // Determine if the child-of-root is a body card or structural item.
   // Body cards are non-outline nodes that appear BEFORE the first outline sibling
   // (matching extractBody's logic). Non-outline nodes AFTER the first outline are structural.
-  const isBodyCard = !isOutline(childOfRootNode.type, childOfRootNode.item) && isInBodyRegion(childOfRootId, rootId, getChildren)
+  const isBodyCard =
+    !isOutline(childOfRootNode.type, childOfRootNode.item) && isInBodyRegion(childOfRootId, rootId, getChildren)
 
   if (isBodyCard) {
     // Body cards are direct children of root but displayed as cards in a virtual body column.
@@ -121,7 +125,7 @@ export function deriveCursorAncestors(
   }
 
   // depth >= 2: childOfRoot = column, ancestors[depth-2] = card
-  const cardNodeId = ancestors[depth - 2]!
+  const cardNodeId = ancestors[depth - 2] ?? null
   return { cursorCardNodeId: cardNodeId, cursorColumnNodeId: childOfRootId, selectionLevel: "card" }
 }
 

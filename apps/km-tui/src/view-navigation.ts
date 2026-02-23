@@ -26,7 +26,7 @@ const log = createLogger("km:nav")
 export interface NavState {
   cursorNodeId: string
   rootId: string | null
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   collapsedNodes: Set<string>
 }
 

@@ -39,7 +39,8 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
     const items = virtualListProps.items
     const getKey = keyExtractor ?? ((item: T) => (item as { node?: { id?: string } })?.node?.id ?? "")
     for (let i = 0; i < items.length; i++) {
-      if (getKey(items[i]!) === cursorCardNodeId) return i
+      const item = items[i]
+      if (item != null && getKey(item) === cursorCardNodeId) return i
     }
     return -1
   }, [cursorCardNodeId, isSelected, virtualListProps.items, keyExtractor])

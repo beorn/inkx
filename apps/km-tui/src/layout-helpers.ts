@@ -182,7 +182,11 @@ export function resizeSplitForPane(layout: LayoutNode, paneId: string, delta: nu
 }
 
 /** Adjust the ratio of a specific split node in the tree, clamping to [0.1, 0.9] */
-export function adjustSplitRatio(layout: LayoutNode, target: LayoutNode & { type: "split" }, delta: number): LayoutNode {
+export function adjustSplitRatio(
+  layout: LayoutNode,
+  target: LayoutNode & { type: "split" },
+  delta: number,
+): LayoutNode {
   if (layout.type === "leaf") return layout
 
   if (layout === target) {

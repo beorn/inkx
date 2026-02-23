@@ -80,7 +80,10 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     const name = parseToPlainText(rawName.replace(/#@/g, "@"))
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
-    if (isOutline(node.type, node.item) && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
+    if (
+      isOutline(node.type, node.item) &&
+      (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")
+    ) {
       const sep = segments.length === 0 ? "" : isWithinBoard ? ">" : "/"
       segments.push({ id: node.id, name, sep, isWithinBoard, node })
     } else if (isOutline(node.type, node.item) && node.fstype === "mdsection") {

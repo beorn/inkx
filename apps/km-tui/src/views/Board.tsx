@@ -7,7 +7,7 @@
  * 3. BoardApp - Production entry wrapper (gets dimensions/exit from context)
  *
  * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
- * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldedNodes)
+ * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
@@ -248,14 +248,7 @@ function CursorAwareDetailPane({ width, height }: { width: number; height: numbe
   // Use 0 during the transitional render where node changed but effect hasn't fired yet
   const effectiveScrollOffset = node?.id !== prevNodeIdRef.current ? 0 : detailScrollOffset
   if (!node) return null
-  return (
-    <DetailPane
-      node={node}
-      width={width}
-      height={height}
-      scrollOffset={effectiveScrollOffset}
-    />
-  )
+  return <DetailPane node={node} width={width} height={height} scrollOffset={effectiveScrollOffset} />
 }
 
 /**
@@ -316,7 +309,8 @@ export function BoardCore({
   // BOTTOM_BAR_HEIGHT = 1 (CommandBox). FindBar adds 1 row when active.
   const SYNC_PANE_HEIGHT = 6
   const findBarHeight = ui.localSearch ? 1 : 0
-  const contentHeight = termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - findBarHeight - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+  const contentHeight =
+    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - findBarHeight - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -438,68 +432,68 @@ export function BoardCore({
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Board area — focusable container for all card/column/list views */}
           <Box focusable autoFocus testID="board-area" flexGrow={1} flexDirection="column">
-          {/* Cards, Columns, or List view */}
-          {ui.viewMode === "cards" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading cards view</Text>}
-              resetKey={errorBoundaryResetKey}
-              onError={handleRenderError}
-            >
-              {columns.length === 0 ? (
-                <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
-                  <Text dimColor>Empty board</Text>
-                </Box>
-              ) : (
-                <HorizontalVirtualList
-                  items={columns}
-                  width={boardWidth}
-                  height={contentHeight}
-                  itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
-                  gap={1}
-                  scrollTo={isBoardSelected ? undefined : colIndex}
-                  renderItem={(col, index) => (
-                    <Column
-                      column={col}
-                      colIndex={index}
-                      isCollapsed={collapsedNodes.has(col.node.id)}
-                      width={collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
-                      height={contentHeight}
-                    />
-                  )}
-                  renderOverflowIndicator={(dir) => (
-                    <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
-                  )}
-                  overflowIndicatorWidth={1}
-                  renderSeparator={() => <ColumnSeparator />}
-                  keyExtractor={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
-                />
-              )}
-            </ErrorBoundary>
-          ) : ui.viewMode === "columns" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading columns view</Text>}
-              resetKey={errorBoundaryResetKey}
-              onError={handleRenderError}
-            >
-              <ColumnsView columns={columns} width={boardWidth} height={contentHeight} />
-            </ErrorBoundary>
-          ) : ui.viewMode === "list" ? (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading list view</Text>}
-              resetKey={errorBoundaryResetKey}
-              onError={handleRenderError}
-            >
-              <ListView columns={columns} width={boardWidth} height={contentHeight} />
-            </ErrorBoundary>
-          ) : (
-            <ErrorBoundary
-              fallback={<Text color="red">Error loading tabs view</Text>}
-              resetKey={errorBoundaryResetKey}
-              onError={handleRenderError}
-            >
-              <TabsView columns={columns} width={boardWidth} height={contentHeight} />
-            </ErrorBoundary>
-          )}
+            {/* Cards, Columns, or List view */}
+            {ui.viewMode === "cards" ? (
+              <ErrorBoundary
+                fallback={<Text color="red">Error loading cards view</Text>}
+                resetKey={errorBoundaryResetKey}
+                onError={handleRenderError}
+              >
+                {columns.length === 0 ? (
+                  <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
+                    <Text dimColor>Empty board</Text>
+                  </Box>
+                ) : (
+                  <HorizontalVirtualList
+                    items={columns}
+                    width={boardWidth}
+                    height={contentHeight}
+                    itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
+                    gap={1}
+                    scrollTo={isBoardSelected ? undefined : colIndex}
+                    renderItem={(col, index) => (
+                      <Column
+                        column={col}
+                        colIndex={index}
+                        isCollapsed={collapsedNodes.has(col.node.id)}
+                        width={collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
+                        height={contentHeight}
+                      />
+                    )}
+                    renderOverflowIndicator={(dir) => (
+                      <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
+                    )}
+                    overflowIndicatorWidth={1}
+                    renderSeparator={() => <ColumnSeparator />}
+                    keyExtractor={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
+                  />
+                )}
+              </ErrorBoundary>
+            ) : ui.viewMode === "columns" ? (
+              <ErrorBoundary
+                fallback={<Text color="red">Error loading columns view</Text>}
+                resetKey={errorBoundaryResetKey}
+                onError={handleRenderError}
+              >
+                <ColumnsView columns={columns} width={boardWidth} height={contentHeight} />
+              </ErrorBoundary>
+            ) : ui.viewMode === "list" ? (
+              <ErrorBoundary
+                fallback={<Text color="red">Error loading list view</Text>}
+                resetKey={errorBoundaryResetKey}
+                onError={handleRenderError}
+              >
+                <ListView columns={columns} width={boardWidth} height={contentHeight} />
+              </ErrorBoundary>
+            ) : (
+              <ErrorBoundary
+                fallback={<Text color="red">Error loading tabs view</Text>}
+                resetKey={errorBoundaryResetKey}
+                onError={handleRenderError}
+              >
+                <TabsView columns={columns} width={boardWidth} height={contentHeight} />
+              </ErrorBoundary>
+            )}
           </Box>
           {/* Detail pane — subscribes to cursor position independently */}
           {ui.showDetailPane && (
@@ -717,9 +711,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // The focused pane's PaneState is kept in sync with flat fields (see syncFlatToPane).
   // Non-focused panes read from their saved PaneState snapshot.
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
-  const rootId = useAppStore<BoardAppStore, string | null>(
-    (s) => s.workspace.panes.get(paneId)?.rootId ?? s.rootId,
-  )
+  const rootId = useAppStore<BoardAppStore, string | null>((s) => s.workspace.panes.get(paneId)?.rootId ?? s.rootId)
   const rootPath = useAppStore<BoardAppStore, string | null>(
     (s) => s.workspace.panes.get(paneId)?.rootPath ?? s.rootPath,
   )
@@ -727,15 +719,13 @@ export function Board({ patchedConsole }: BoardProps) {
   const cursorStore = useAppStore<BoardAppStore, CursorStore>(
     (s) => s.workspace.panes.get(paneId)?.cursorStore ?? s.cursorStore,
   )
-  const foldedNodes = useAppStore<BoardAppStore, Set<string>>(
-    (s) => s.workspace.panes.get(paneId)?.foldedNodes ?? s.foldedNodes,
+  const foldDepths = useAppStore<BoardAppStore, Map<string, number>>(
+    (s) => s.workspace.panes.get(paneId)?.foldDepths ?? s.foldDepths,
   )
   const collapsedNodes = useAppStore<BoardAppStore, Set<string>>(
     (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
   )
-  const moveMode = useAppStore<BoardAppStore, boolean>(
-    (s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode,
-  )
+  const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode)
   const isZoomLoading = useAppStore<BoardAppStore, boolean>(
     (s) => s.workspace.panes.get(paneId)?.isZoomLoading ?? s.isZoomLoading,
   )
@@ -788,9 +778,12 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore)
-  const columns = useColumns(repo, rootId, foldedNodes)
+  const columns = useColumns(repo, rootId, foldDepths)
   const getChildren = useCallback((id: string) => repo.getChildren(id), [repo])
-  const nodeIndex = useMemo(() => buildNodeIndex(columns, getChildren, foldedNodes), [columns, getChildren, foldedNodes])
+  const nodeIndex = useMemo(
+    () => buildNodeIndex(columns, getChildren, foldDepths, rootId),
+    [columns, getChildren, foldDepths, rootId],
+  )
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks

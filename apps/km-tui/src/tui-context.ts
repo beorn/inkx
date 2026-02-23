@@ -35,7 +35,7 @@ export interface ActionCtx {
   rootPath: string | null
   cursorNodeId: string | null
   selectedNodes: Set<string>
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   moveMode: boolean
   moveSourceNodes: string[]
@@ -67,8 +67,8 @@ export interface ActionCtx {
   dispatchBoard: (action: BoardAction) => void
   /** Set UI fields directly (partial update, shallow merge) */
   setUI: (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
-  /** Set foldedNodes (single source of truth at store root) */
-  setFoldedNodes: (nodes: Set<string>) => void
+  /** Set foldDepths (single source of truth at store root) */
+  setFoldDepths: (depths: Map<string, number>) => void
 
   // === Undo/Redo ===
   /** Undo stack for reversible operations */
@@ -130,9 +130,9 @@ export interface ActionCtx {
 
   // === Utilities ===
   /** Count visible descendants for outline mode */
-  countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldedNodes: Set<string>) => number
+  countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldDepths: Map<string, number>) => number
   /** Get flat list of visible descendant IDs in DFS order (card itself first, then descendants) */
-  getVisibleDescendantIds: (cardNode: KNode, maxDepth: number, foldedNodes: Set<string>) => string[]
+  getVisibleDescendantIds: (cardNode: KNode, maxDepth: number, foldDepths: Map<string, number>) => string[]
 }
 
 // ===== Mode helpers =====

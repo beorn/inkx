@@ -39,7 +39,7 @@ describe("createBoardState", () => {
   it("initializes empty collections", () => {
     const state = createBoardState()
     expect(state.selectedNodes.size).toBe(0)
-    expect(state.foldedNodes.size).toBe(0)
+    expect(state.foldDepths.size).toBe(0)
     expect(state.collapsedNodes.size).toBe(0)
   })
 
@@ -106,7 +106,7 @@ describe("SELECT action", () => {
 describe.each([
   {
     actionType: "TOGGLE_FOLD" as const,
-    setName: "foldedNodes" as const,
+    setName: "foldDepths" as const,
     nodeId: "node-123",
   },
   {
@@ -145,9 +145,9 @@ describe("TOGGLE_FOLD action - additional", () => {
       { type: "TOGGLE_FOLD", nodeId: "node-1" },
       { type: "TOGGLE_FOLD", nodeId: "node-2" },
     ])
-    expect(result.foldedNodes.has("node-1")).toBe(true)
-    expect(result.foldedNodes.has("node-2")).toBe(true)
-    expect(result.foldedNodes.size).toBe(2)
+    expect(result.foldDepths.has("node-1")).toBe(true)
+    expect(result.foldDepths.has("node-2")).toBe(true)
+    expect(result.foldDepths.size).toBe(2)
   })
 })
 
@@ -158,7 +158,7 @@ describe("TOGGLE_COLLAPSE action - additional", () => {
       { type: "TOGGLE_FOLD", nodeId: "node-1" },
       { type: "TOGGLE_COLLAPSE", nodeId: "node-1" },
     ])
-    expect(result.foldedNodes.has("node-1")).toBe(true)
+    expect(result.foldDepths.has("node-1")).toBe(true)
     expect(result.collapsedNodes.has("node-1")).toBe(true)
   })
 })
@@ -640,7 +640,7 @@ describe("Edge cases", () => {
     ])
 
     expect(complex.selectedNodes.size).toBe(2)
-    expect(complex.foldedNodes.size).toBe(1)
+    expect(complex.foldDepths.size).toBe(1)
     expect(complex.collapsedNodes.size).toBe(1)
     expect(complex.curswantX).toBe(5)
     expect(complex.curswantY).toBe(10)
@@ -659,7 +659,7 @@ describe("Edge cases", () => {
 
     // Original state should be unchanged
     expect(original.cursorNodeId).toBeNull()
-    expect(original.foldedNodes.size).toBe(0)
+    expect(original.foldDepths.size).toBe(0)
     expect(original.selectedNodes.size).toBe(0)
   })
 
@@ -688,7 +688,7 @@ describe("Integration scenarios", () => {
       { type: "ZOOM_IN", nodeId: "node-2", cursorNodeId: "node-2-child" },
     ])
 
-    expect(state.foldedNodes.has("node-1")).toBe(true)
+    expect(state.foldDepths.has("node-1")).toBe(true)
     expect(state.rootId).toBe("node-2")
     expect(state.cursorNodeId).toBe("node-2-child")
   })

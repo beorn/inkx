@@ -43,7 +43,7 @@ export function isTreeDirection(dir: string): dir is TreeDirection {
 export interface TreeNavState {
   cursorNodeId: string | null
   rootId: string | null
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
 }
 
 /**
@@ -52,12 +52,12 @@ export interface TreeNavState {
  * Uses Repo for tree structure queries. No visual layout involved.
  *
  * @param direction - Navigation direction ("next"/"prev" for siblings, "child"/"parent" for tree traversal)
- * @param state - Navigation state (cursorNodeId, rootId, foldedNodes)
+ * @param state - Navigation state (cursorNodeId, rootId, foldDepths)
  * @param repo - Repo for tree queries
  * @returns New cursorNodeId, or null if can't move
  */
 export function handleTreeNavigation(direction: TreeDirection, state: TreeNavState, repo: Repo): string | null {
-  const { cursorNodeId, rootId, foldedNodes } = state
+  const { cursorNodeId, rootId, foldDepths } = state
 
   // If no cursor, can't navigate
   if (!cursorNodeId) {
@@ -123,7 +123,7 @@ export function handleTreeNavigation(direction: TreeDirection, state: TreeNavSta
 
     case "child": {
       // Move to first child (if not folded and has children)
-      if (foldedNodes.has(cursorNodeId)) {
+      if (foldDepths.get(cursorNodeId) === 0) {
         log.debug?.("tree nav: node is folded, can't enter child")
         return null
       }

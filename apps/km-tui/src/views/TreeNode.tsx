@@ -15,7 +15,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { isOutline, isEmbed, isItem } from "@km/core"
+import { isOutline } from "@km/core"
 import {
   extractTitleTaskMarker,
   isTask,
@@ -115,6 +115,10 @@ interface TreeNodeProps {
   compactContent?: boolean
   /** Hide the right-aligned child count (cards view has overflow indicator instead) */
   hideChildCount?: boolean
+  /** Remaining depth budget for fold rendering. When 0, children are hidden.
+   * If a node has an override in foldDepths, that takes precedence.
+   * Default: Infinity (show everything). */
+  remainingDepth?: number
 }
 
 /**
@@ -170,6 +174,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     return false
   }
 
+  // Fold depth
+  if (prev.remainingDepth !== next.remainingDepth) return false
+
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
   if (prev.childCount !== next.childCount) return false
@@ -206,6 +213,7 @@ function TreeNodeImpl({
   dim = false,
   compactContent = false,
   hideChildCount = false,
+  remainingDepth = Infinity,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
   const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
@@ -219,19 +227,22 @@ function TreeNodeImpl({
     BoardAppStore,
     {
       isMultiSelected: boolean
-      isFolded: boolean
+      foldDepthOverride: number | undefined
       editBlockIndex: number | null
       editInitialCursorPos: "start" | "end" | undefined
       editStickyX: number | undefined
     }
   >((s) => ({
     isMultiSelected: s.ui.multiSelected.has(selectionKey),
-    isFolded: s.foldedNodes.has(node.id),
+    foldDepthOverride: s.foldDepths.get(node.id),
     editBlockIndex: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.blockIndex : null,
     editInitialCursorPos: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.initialCursorPos : undefined,
     editStickyX: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.stickyX : undefined,
   }))
-  const { isMultiSelected, isFolded } = nodeState
+  // Fold depth: per-node override from foldDepths Map, or inherited remainingDepth from parent
+  const effectiveDepth = nodeState.foldDepthOverride ?? remainingDepth
+  const isMultiSelected = nodeState.isMultiSelected
+  const isFolded = effectiveDepth <= 0
   const editBlockIndex = nodeState.editBlockIndex
   const isInlineEditing = editBlockIndex !== null
   const editingTitle = editBlockIndex === 0
@@ -319,15 +330,7 @@ function TreeNodeImpl({
     // "regular" style — existing fold markers
     const bullet = getFoldMarker(hasChildren, isFolded, style.ownColor)
     return bullet
-  }, [
-    nodeIsTask,
-    iconStyle,
-    displayNode.type,
-    hasChildren,
-    isFolded,
-    style.ownColor,
-    style.taskStatusIcon,
-  ])
+  }, [nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon])
 
   // Memoize prefix - only recalc when bullet icon changes
   const prefix = useMemo(() => buildPrefix(bulletIcon), [bulletIcon])
@@ -661,11 +664,7 @@ function TreeNodeImpl({
   const suppressChildOverflow = !isOneliner
 
   return (
-    <Box
-      flexDirection="column"
-      height={isOneliner ? 1 : undefined}
-      overflow={isOneliner ? "hidden" : undefined}
-    >
+    <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
@@ -740,7 +739,11 @@ function TreeNodeImpl({
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
-                {isVerbatim ? processedContent : <InlineText text={processedContent} context={{ ...inlineContext, noColor: shouldStripColor }} />}
+                {isVerbatim ? (
+                  processedContent
+                ) : (
+                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: shouldStripColor }} />
+                )}
                 {sigilName && (
                   <>
                     {" "}
@@ -888,6 +891,7 @@ function TreeNodeImpl({
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
             showOverflowIndicator={!suppressChildOverflow}
+            remainingDepth={effectiveDepth - 1}
           />
         </ErrorBoundary>
       )}
@@ -949,7 +953,7 @@ function tryResolveEmbedRef(
   if (!repo.resolveNode) return null
 
   const resolveAndFormat = (query: string): string | null => {
-    const target = repo.resolveNode!(query)
+    const target = repo.resolveNode?.(query) ?? null
     if (!target) return null
     const content = cleanContentForDisplay(target.content)
     // Guard: don't return content that's itself an embed reference
@@ -959,7 +963,7 @@ function tryResolveEmbedRef(
 
   // Bare block ref "^blockid" → extract blockid and look up
   const blockMatch = ref.match(/^\^([\w-]+)$/)
-  if (blockMatch) return resolveAndFormat(blockMatch[1]!)
+  if (blockMatch?.[1] != null) return resolveAndFormat(blockMatch[1])
 
   // file#^blockid → extract blockid part
   const hashIdx = ref.indexOf("#")
@@ -1084,6 +1088,8 @@ interface NodeChildrenProps {
   /** Whether to show the "+N more" overflow indicator (default: true).
    * In cards mode, suppressed at all levels in favor of a single consolidated "..." at the card root. */
   showOverflowIndicator?: boolean
+  /** Remaining depth budget for fold rendering (passed from parent TreeNode) */
+  remainingDepth?: number
 }
 
 function NodeChildren({
@@ -1099,6 +1105,7 @@ function NodeChildren({
   getBoardPills,
   extraExcludedSigils,
   showOverflowIndicator = true,
+  remainingDepth,
 }: NodeChildrenProps): React.ReactElement {
   // Apply recursive body extraction: separate body content from structural items
   const { body: bodyChildren, items: structuralChildren } = extractBody(children)
@@ -1139,6 +1146,7 @@ function NodeChildren({
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
+            remainingDepth={remainingDepth}
           />
         )
       })}

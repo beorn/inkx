@@ -31,7 +31,7 @@ export interface SerializedState {
   rootPath: string | null
   cursor: TPath
   selectedNodes: string[]
-  foldedNodes: string[]
+  foldDepths: [string, number][]
   collapsedNodes: string[]
   nodeCount: number
   topLevelCount: number
@@ -92,7 +92,7 @@ export function serializeState(state: BoardState): SerializedState {
     rootPath: state.rootPath,
     cursor: state.cursor,
     selectedNodes: Array.from(state.selectedNodes),
-    foldedNodes: Array.from(state.foldedNodes),
+    foldDepths: Array.from(state.foldDepths.entries()),
     collapsedNodes: Array.from(state.collapsedNodes),
     nodeCount: countNodes(state.nodes),
     topLevelCount: state.nodes.length,
@@ -113,8 +113,8 @@ export function formatStateHuman(state: BoardState): string {
   if (state.selectedNodes.size > 0) {
     lines.push(`selected: ${state.selectedNodes.size} nodes`)
   }
-  if (state.foldedNodes.size > 0) {
-    lines.push(`folded: ${state.foldedNodes.size} nodes`)
+  if (state.foldDepths.size > 0) {
+    lines.push(`folded: ${state.foldDepths.size} nodes`)
   }
   if (state.collapsedNodes.size > 0) {
     lines.push(`collapsed: ${state.collapsedNodes.size} nodes`)
@@ -143,7 +143,7 @@ export function renderAsciiView(state: BoardState): string {
       const nodePath = [...path, i]
       const isSelected = state.cursor.length === nodePath.length && state.cursor.every((v, idx) => v === nodePath[idx])
       const marker = isSelected ? "→" : " "
-      const foldMarker = state.foldedNodes.has(node.id) ? "▸" : " "
+      const foldMarker = state.foldDepths.get(node.id) === 0 ? "▸" : " "
       const STATUS_ICONS: Record<TaskStatus, string> = {
         todo: "○",
         wip: "◐",
@@ -158,7 +158,7 @@ export function renderAsciiView(state: BoardState): string {
       )
 
       // Render children if not folded
-      if (node.children.length > 0 && !state.foldedNodes.has(node.id)) {
+      if (node.children.length > 0 && state.foldDepths.get(node.id) !== 0) {
         renderNodes(node.children, nodePath, indent + "  ")
       }
     }
@@ -704,7 +704,7 @@ export function executeBoardAction(action: BoardAction, ctx: ShellContext): Boar
   const changed =
     newState.cursor.length !== ctx.state.cursor.length ||
     !newState.cursor.every((v: number, i: number) => v === ctx.state.cursor[i]) ||
-    newState.foldedNodes.size !== ctx.state.foldedNodes.size ||
+    newState.foldDepths.size !== ctx.state.foldDepths.size ||
     newState.collapsedNodes.size !== ctx.state.collapsedNodes.size ||
     newState.selectedNodes.size !== ctx.state.selectedNodes.size
 

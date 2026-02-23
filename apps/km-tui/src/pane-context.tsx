@@ -12,13 +12,7 @@ import React, { createContext, useContext } from "react"
 
 const PaneContext = createContext<string>("main")
 
-export function PaneIdProvider({
-  value,
-  children,
-}: {
-  value: string
-  children: React.ReactNode
-}): React.ReactElement {
+export function PaneIdProvider({ value, children }: { value: string; children: React.ReactNode }): React.ReactElement {
   return <PaneContext.Provider value={value}>{children}</PaneContext.Provider>
 }
 

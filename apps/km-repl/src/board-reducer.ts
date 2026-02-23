@@ -44,7 +44,7 @@ export function createBoardState(nodes: TNode[], rootId: string | null, rootPath
     rootPath,
     nodes,
     cursor: nodes.length > 0 ? [0] : [],
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     collapsedNodes: new Set(),
     selectedNodes: new Set(),
   }
@@ -121,7 +121,7 @@ function handleCursorMove(state: BoardState, dir: NodeDirection): BoardState {
     case "in": {
       const currentNode = siblings[currentIdx]
       if (!currentNode || currentNode.children.length === 0) return state
-      if (state.foldedNodes.has(currentNode.id)) return state
+      if (state.foldDepths.get(currentNode.id) === 0) return state
       return {
         ...state,
         cursor: [...cursor, 0],
@@ -257,12 +257,12 @@ function handleFoldLevel(state: BoardState, depth: number): BoardState {
   const currentNode = getNodeAtPath(nodes, cursor)
   if (!currentNode) return state
 
-  const newFolded = new Set(state.foldedNodes)
+  const newDepths = new Map(state.foldDepths)
 
   // Fold children at depth
   function foldAtDepth(node: TNode, currentDepth: number) {
     if (currentDepth === depth) {
-      newFolded.add(node.id)
+      newDepths.set(node.id, 0)
     } else if (currentDepth < depth) {
       for (const child of node.children) {
         foldAtDepth(child, currentDepth + 1)
@@ -271,7 +271,7 @@ function handleFoldLevel(state: BoardState, depth: number): BoardState {
   }
 
   foldAtDepth(currentNode, 0)
-  return { ...state, foldedNodes: newFolded }
+  return { ...state, foldDepths: newDepths }
 }
 
 function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
@@ -279,12 +279,12 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
   const currentNode = getNodeAtPath(nodes, cursor)
   if (!currentNode) return state
 
-  const newFolded = new Set(state.foldedNodes)
+  const newDepths = new Map(state.foldDepths)
 
   // Unfold children at depth
   function unfoldAtDepth(node: TNode, currentDepth: number) {
     if (currentDepth === depth) {
-      newFolded.delete(node.id)
+      newDepths.delete(node.id)
     } else if (currentDepth < depth) {
       for (const child of node.children) {
         unfoldAtDepth(child, currentDepth + 1)
@@ -293,7 +293,7 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
   }
 
   unfoldAtDepth(currentNode, 0)
-  return { ...state, foldedNodes: newFolded }
+  return { ...state, foldDepths: newDepths }
 }
 
 /**
@@ -369,13 +369,13 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
       return handleUnfoldLevel(state, action.depth)
 
     case "TOGGLE_FOLD": {
-      const newFolded = new Set(state.foldedNodes)
-      if (newFolded.has(action.nodeId)) {
-        newFolded.delete(action.nodeId)
+      const newDepths = new Map(state.foldDepths)
+      if (newDepths.has(action.nodeId)) {
+        newDepths.delete(action.nodeId)
       } else {
-        newFolded.add(action.nodeId)
+        newDepths.set(action.nodeId, 0)
       }
-      return { ...state, foldedNodes: newFolded }
+      return { ...state, foldDepths: newDepths }
     }
 
     case "TOGGLE_FOLD_CURRENT": {
@@ -384,18 +384,18 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
       if (!currentNode) return state
       // Only fold nodes that have children
       if (currentNode.children.length === 0) return state
-      const newFolded = new Set(state.foldedNodes)
-      if (newFolded.has(currentNode.id)) {
-        newFolded.delete(currentNode.id)
+      const newDepths = new Map(state.foldDepths)
+      if (newDepths.has(currentNode.id)) {
+        newDepths.delete(currentNode.id)
       } else {
-        newFolded.add(currentNode.id)
+        newDepths.set(currentNode.id, 0)
       }
-      return { ...state, foldedNodes: newFolded }
+      return { ...state, foldDepths: newDepths }
     }
 
     case "UNFOLD_ALL": {
-      // Clear all folded nodes
-      return { ...state, foldedNodes: new Set() }
+      // Clear all fold depths
+      return { ...state, foldDepths: new Map() }
     }
 
     case "TOGGLE_COLLAPSE": {

@@ -73,7 +73,7 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
   const { ui } = ctx
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldedNodes)
+  const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
   const currentIdx = descendantIds.indexOf(ctx.cursorNodeId)
   if (currentIdx < 0) return boundary(dir)
 
@@ -184,15 +184,16 @@ function handleBlockNav(ctx: ActionCtx, dir: "block_down" | "block_up"): ActionR
 
   if (dir === "block_down") {
     // Drill in: auto-unfold if folded, then move to first child.
-    // We must pass the updated foldedNodes to handleTreeNavigation because
-    // ctx.foldedNodes won't reflect the setFoldedNodes call until next render.
-    let foldedNodes = ctx.foldedNodes
-    if (foldedNodes.has(ctx.cursorNodeId)) {
-      foldedNodes = new Set(foldedNodes)
-      foldedNodes.delete(ctx.cursorNodeId)
-      ctx.setFoldedNodes(foldedNodes)
+    // We must pass the updated foldDepths to handleTreeNavigation because
+    // ctx.foldDepths won't reflect the setFoldDepths call until next render.
+    let foldDepths = ctx.foldDepths
+    const currentDepth = foldDepths.get(ctx.cursorNodeId)
+    if (currentDepth === 0) {
+      foldDepths = new Map(foldDepths)
+      foldDepths.delete(ctx.cursorNodeId)
+      ctx.setFoldDepths(foldDepths)
     }
-    const navState = { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId, foldedNodes }
+    const navState = { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId, foldDepths }
     const targetId = handleTreeNavigation("child", navState, ctx.repo)
     if (targetId && targetId !== ctx.cursorNodeId) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
@@ -261,8 +262,8 @@ function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
     clearSelection(ctx)
   }
 
-  if (entry.foldedNodes) {
-    ctx.setFoldedNodes(entry.foldedNodes)
+  if (entry.foldDepths) {
+    ctx.setFoldDepths(entry.foldDepths)
   }
 
   return ok()
@@ -343,7 +344,7 @@ function navStateFrom(ctx: ActionCtx): NavState {
   return {
     cursorNodeId: ctx.cursorNodeId,
     rootId: ctx.rootId,
-    foldedNodes: ctx.foldedNodes,
+    foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
   }
 }

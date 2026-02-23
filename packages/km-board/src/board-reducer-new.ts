@@ -40,13 +40,13 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
     // ===== Fold/Collapse =====
 
     case "TOGGLE_FOLD": {
-      const newFolded = new Set(state.foldedNodes)
-      if (newFolded.has(action.nodeId)) {
-        newFolded.delete(action.nodeId)
+      const newDepths = new Map(state.foldDepths)
+      if (newDepths.has(action.nodeId)) {
+        newDepths.delete(action.nodeId)
       } else {
-        newFolded.add(action.nodeId)
+        newDepths.set(action.nodeId, 0)
       }
-      return { ...state, foldedNodes: newFolded }
+      return { ...state, foldDepths: newDepths }
     }
 
     case "TOGGLE_COLLAPSE": {
@@ -204,7 +204,7 @@ export function createBoardState(
     rootPath,
     cursorNodeId,
     selectedNodes: new Set(),
-    foldedNodes: new Set(),
+    foldDepths: new Map(),
     collapsedNodes: new Set(),
     navHistory: [],
     navHistoryIndex: 0,

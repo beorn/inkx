@@ -100,7 +100,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     columnIndex: colIndex >= 0 ? colIndex : 0,
     columnCount: columns.length,
     moveMode: ctx.moveMode,
-    foldedNodes: ctx.foldedNodes,
+    foldDepths: ctx.foldDepths,
   })
 
   return { cmdCtx, kbCtx }

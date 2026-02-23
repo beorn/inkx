@@ -86,10 +86,10 @@ export function deriveCursorIndices(
  *
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
- * @param foldedNodes - Set of folded node IDs
+ * @param foldDepths - Map of node ID → depth budget (0 = folded, no entry = inherit)
  * @returns ColumnView[] for rendering
  */
-export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnView[] {
+export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>): ColumnView[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
@@ -115,8 +115,8 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
     // No preloadSubtree here — getChildren() lazily loads from DB on cache miss.
     // computeDefaultFolds already warms the cache for cards at fold depth.
     // Avoiding the recursive CTE eliminates 10s+ startup freeze on large vaults.
-    return deriveColumnsFromRepo(repo, rootId, foldedNodes)
-  }, [effectiveVersion, rootId, foldedNodes])
+    return deriveColumnsFromRepo(repo, rootId, foldDepths)
+  }, [effectiveVersion, rootId, foldDepths])
 }
 
 /**
@@ -128,9 +128,12 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
 export function buildNodeIndex(
   columns: ColumnView[],
   getChildren?: (parentId: string) => { id: string }[],
-  foldedNodes?: Set<string>,
+  foldDepths?: Map<string, number>,
+  rootId?: string | null,
 ): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
+  // Root fold depth controls how deep within each card to index for navigation
+  const rootDepth = foldDepths?.get(rootId ?? "") ?? 1
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
     const col = columns[colIdx]
     if (!col) continue
@@ -142,7 +145,9 @@ export function buildNodeIndex(
       if (!card) continue
       index.set(card.id, { colIndex: colIdx, cardIndex: cardIdx })
       if (getChildren) {
-        mapDescendants(card.id, colIdx, cardIdx, index, getChildren, foldedNodes)
+        // Per-card override or root depth
+        const cardDepth = foldDepths?.get(card.id) ?? rootDepth
+        mapDescendants(card.id, colIdx, cardIdx, index, getChildren, foldDepths, cardDepth)
       }
     }
   }
@@ -155,15 +160,15 @@ function mapDescendants(
   cardIndex: number,
   index: Map<string, { colIndex: number; cardIndex: number }>,
   getChildren: (parentId: string) => { id: string }[],
-  foldedNodes?: Set<string>,
+  foldDepths: Map<string, number> | undefined,
+  remainingDepth: number,
 ): void {
+  if (remainingDepth <= 0) return
   for (const child of getChildren(parentId)) {
     if (!index.has(child.id)) {
       index.set(child.id, { colIndex, cardIndex })
-      // Don't recurse into folded nodes — their descendants are invisible
-      if (!foldedNodes?.has(child.id)) {
-        mapDescendants(child.id, colIndex, cardIndex, index, getChildren, foldedNodes)
-      }
+      const childDepth = foldDepths?.get(child.id) ?? remainingDepth - 1
+      mapDescendants(child.id, colIndex, cardIndex, index, getChildren, foldDepths, childDepth)
     }
   }
 }
@@ -176,7 +181,11 @@ function mapDescendants(
  * structural (outline) columns -- matching buildBoardState's logic so that
  * zoomed-in views render identically to the board root.
  */
-export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedNodes: Set<string>): ColumnView[] {
+export function deriveColumnsFromRepo(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+): ColumnView[] {
   using span = log.span("derive-columns")
   // Split root children into leading body content and structural columns.
   // Only outline nodes become columns; list items/embeds/block nodes before the first outline
@@ -214,7 +223,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
 
   // Convert structural children to columns (with per-column memoization)
   for (const node of deduped) {
-    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldedNodes))
+    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
   }
 
   span.spanData.columns = columns.length
@@ -229,7 +238,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
  * Cache for kNodeToColumnView results to avoid re-deriving unchanged columns.
  * Key: column node ID. The cache is invalidated per-column when:
  * - The column's children array reference changes (childrenCache was busted)
- * - The foldedNodes set reference changes (fold state changed)
+ * - The foldDepths map reference changes (fold state changed)
  * - WIP limits change
  *
  * This avoids the O(columns * cards) cost on every repoVersion bump when
@@ -237,7 +246,7 @@ export function deriveColumnsFromRepo(repo: Repo, rootId: string | null, foldedN
  */
 interface ColumnViewCacheEntry {
   childrenRef: KNode[] // Reference identity check — childrenCache returns same array if not busted
-  foldedNodesRef: Set<string>
+  foldDepthsRef: Map<string, number>
   wipLimitsRef: Map<string, number>
   view: ColumnView
 }
@@ -248,17 +257,22 @@ function kNodeToColumnViewCached(
   repo: Repo,
   node: KNode,
   wipLimits: Map<string, number>,
-  foldedNodes: Set<string>,
+  foldDepths: Map<string, number>,
 ): ColumnView {
   const childrenRef = repo.getChildren(node.id)
   const cached = columnViewCache.get(node.id)
 
-  if (cached && cached.childrenRef === childrenRef && cached.foldedNodesRef === foldedNodes && cached.wipLimitsRef === wipLimits) {
+  if (
+    cached &&
+    cached.childrenRef === childrenRef &&
+    cached.foldDepthsRef === foldDepths &&
+    cached.wipLimitsRef === wipLimits
+  ) {
     return cached.view
   }
 
-  const view = kNodeToColumnView(repo, node, wipLimits, foldedNodes)
-  columnViewCache.set(node.id, { childrenRef, foldedNodesRef: foldedNodes, wipLimitsRef: wipLimits, view })
+  const view = kNodeToColumnView(repo, node, wipLimits, foldDepths)
+  columnViewCache.set(node.id, { childrenRef, foldDepthsRef: foldDepths, wipLimitsRef: wipLimits, view })
   return view
 }
 
@@ -328,7 +342,7 @@ function kNodeToColumnView(
   repo: Repo,
   node: KNode,
   wipLimits: Map<string, number>,
-  _foldedNodes: Set<string>,
+  _foldDepths: Map<string, number>,
 ): ColumnView {
   // Use node.rules if available, otherwise parse from title
   const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || "").rules

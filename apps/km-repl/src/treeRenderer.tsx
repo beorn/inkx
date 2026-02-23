@@ -88,7 +88,7 @@ function TreeLine({
 function buildTreeLines(
   nodes: TNode[],
   cursor: TPath,
-  foldedNodes: Set<string>,
+  foldDepths: Map<string, number>,
   selectedNodes: Set<string>,
   parentPath: TPath,
   prefix: string,
@@ -107,7 +107,7 @@ function buildTreeLines(
     // Check if this node is at the cursor position
     const isCursor = cursor.length === path.length && cursor.every((v, j) => v === path[j])
     const isSelected = selectedNodes.has(node.id)
-    const isFolded = foldedNodes.has(node.id)
+    const isFolded = foldDepths.get(node.id) === 0
 
     // Status icon
     const statusIcon = node.task_status ? (STATUS_ICONS[node.task_status] ?? " ") : " "
@@ -134,7 +134,7 @@ function buildTreeLines(
 
     // Render children if not folded
     if (!isFolded && node.children.length > 0) {
-      lines.push(...buildTreeLines(node.children, cursor, foldedNodes, selectedNodes, path, childPrefix))
+      lines.push(...buildTreeLines(node.children, cursor, foldDepths, selectedNodes, path, childPrefix))
     }
   }
 
@@ -151,7 +151,7 @@ interface TreeViewProps {
  * Main tree view component for rendering BoardState
  */
 function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
-  const lines = buildTreeLines(state.nodes, state.cursor, state.foldedNodes, state.selectedNodes, [], "")
+  const lines = buildTreeLines(state.nodes, state.cursor, state.foldDepths, state.selectedNodes, [], "")
 
   return (
     <Box flexDirection="column" width={width} height={height}>

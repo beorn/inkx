@@ -188,7 +188,10 @@ export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" 
   const movedCardIds = cardsToMove.map((c) => c.id)
 
   // Cursor follows the first moved card to its new column
-  ctx.dispatchBoard({ type: "SELECT", nodeId: cardsToMove[0]!.id })
+  const firstMoved = cardsToMove[0]
+  if (firstMoved) {
+    ctx.dispatchBoard({ type: "SELECT", nodeId: firstMoved.id })
+  }
 
   rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
 

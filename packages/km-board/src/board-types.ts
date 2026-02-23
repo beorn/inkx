@@ -49,7 +49,7 @@ export interface BoardState {
 
   // Selection state
   selectedNodes: Set<string>
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   collapsedNodes: Set<string> // Top-level nodes that are collapsed
 
   // Navigation history (stores cursorNodeId, NOT paths)
@@ -78,7 +78,7 @@ export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
   | { type: "SELECT"; nodeId: string | null }
 
-  // Fold/unfold (just toggles Sets)
+  // Fold/unfold (manipulates depth map)
   | { type: "TOGGLE_FOLD"; nodeId: string }
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
 
@@ -155,6 +155,6 @@ export interface BoardViewModel {
   nodes: TNode[]
   cursor: TPath
   selectedNodes: Set<string>
-  foldedNodes: Set<string>
+  foldDepths: Map<string, number>
   viewMode: ViewMode
 }

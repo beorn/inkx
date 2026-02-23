@@ -414,13 +414,7 @@ const PRIORITY_TEXT_COLORS = ["red", "yellow", "yellowBright", undefined] as con
  * React component version of formatDateBadge.
  * Uses <Text color="..."> props instead of raw ANSI escape codes.
  */
-export function DateBadge({
-  node,
-  noColor,
-}: {
-  node: KNode
-  noColor?: boolean
-}): React.ReactElement | null {
+export function DateBadge({ node, noColor }: { node: KNode; noColor?: boolean }): React.ReactElement | null {
   const parts: React.ReactElement[] = []
 
   // Priority badge
@@ -483,9 +477,19 @@ function DueDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean 
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
   if (noColor) return <Text>{text}</Text>
-  if (diff < 0) return <Text color="red" bold>{text}</Text>
+  if (diff < 0) {
+    return (
+      <Text color="red" bold>
+        {text}
+      </Text>
+    )
+  }
   if (diff <= 1) return <Text color="green">{text}</Text>
-  return <Text color="cyan" dimColor>{text}</Text>
+  return (
+    <Text color="cyan" dimColor>
+      {text}
+    </Text>
+  )
 }
 
 /** Scheduled date with coloring: today/tomorrow=green, future=dim cyan, past=no color */
@@ -494,7 +498,13 @@ function ScheduledDateText({ dateStr, noColor }: { dateStr: string; noColor?: bo
   const text = formatRelativeDate(dateStr)
   if (noColor) return <Text>{text}</Text>
   if (diff >= 0 && diff <= 1) return <Text color="green">{text}</Text>
-  if (diff > 1) return <Text color="cyan" dimColor>{text}</Text>
+  if (diff > 1) {
+    return (
+      <Text color="cyan" dimColor>
+        {text}
+      </Text>
+    )
+  }
   return <Text>{text}</Text>
 }
 
@@ -516,7 +526,7 @@ export function BoardPillsView({
     return (
       <>
         {pills.map((p, i) => (
-          <Text key={i} color={noColor ? undefined : (p.color as any)}>
+          <Text key={i} color={noColor ? undefined : p.color}>
             ●
           </Text>
         ))}
@@ -528,7 +538,7 @@ export function BoardPillsView({
       {pills.map((p, i) => (
         <React.Fragment key={i}>
           {i > 0 ? " " : ""}
-          <Text color={noColor ? undefined : (p.color as any)}>@{p.name}</Text>
+          <Text color={noColor ? undefined : p.color}>@{p.name}</Text>
         </React.Fragment>
       ))}
     </>
@@ -562,7 +572,7 @@ export function InfoSuffix({
     return (
       <Text>
         {"  "}
-        {hasAssignee && <Text>@{shortName(node.assigned_to!)}</Text>}
+        {hasAssignee && node.assigned_to && <Text>@{shortName(node.assigned_to)}</Text>}
         {hasAssignee && hasPills && " "}
         {hasPills && <BoardPillsView pills={boardPills} compact={false} noColor={noColor} />}
       </Text>
