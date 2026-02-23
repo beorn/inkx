@@ -150,7 +150,7 @@ export interface TreeConfig {
   variant: "oneliner" | "multiline"
   iconStyle: IconStyle
   borderMode: BorderMode
-  /** Inner width of a card (column width minus borders). Used for line-aware title truncation. */
+  /** Inner width of a card (column width minus padding). Used for line-aware title truncation. */
   cardInnerWidth: number
 }
 
