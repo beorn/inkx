@@ -35,11 +35,54 @@ const SECTION_ROWS: Array<string[] | null> = [
   null, // verb × location grid
 ]
 
+// ── Key display formatting ──────────────────────────────────────────
+
+/**
+ * Format a key display string with appropriate spacing around `/` separators.
+ * Adds spaces for readability when keys are multi-character (e.g. `⌘o / ⌘⇧o`),
+ * keeps tight for single-char combos (e.g. `y/d/p`).
+ */
+function formatKeyDisplay(raw: string): string {
+  if (!raw.includes("/")) return raw
+  const segs = raw.split("/")
+  if (segs.length <= 4 && segs.some((s) => s.trim().length > 1)) {
+    return segs.join(" / ")
+  }
+  return raw
+}
+
+/**
+ * Render key string with dim `/` separators.
+ * Keys are yellow, `/` separators are dim grey.
+ */
+function renderKeyColored(keyStr: string, keyPrefix: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  // Split on " / " (spaced) or "/" (tight) — keep separators via capturing group
+  const segments = keyStr.split(/( \/ |\/)/g)
+  let idx = 0
+  for (const seg of segments) {
+    if (seg === " / " || seg === "/") {
+      parts.push(
+        <Text key={`${keyPrefix}-s${idx++}`} dimColor>
+          {seg}
+        </Text>,
+      )
+    } else if (seg) {
+      parts.push(
+        <Text key={`${keyPrefix}-k${idx++}`} color="yellow">
+          {seg}
+        </Text>,
+      )
+    }
+  }
+  return parts
+}
+
 // ── Dot-leader entry rendering ──────────────────────────────────────
 
 /** Render a single key..description entry with dot leaders */
 function renderEntryStr(keys: string[], desc: string, colWidth: number): string {
-  const keyStr = keys.join("/")
+  const keyStr = formatKeyDisplay(keys.join("/"))
   const dots = Math.max(1, DOT_STOP - keyStr.length - 2)
   const descMax = colWidth - DOT_STOP
   return keyStr + " " + ".".repeat(dots) + " " + desc.slice(0, descMax)
@@ -97,7 +140,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
       return (
         <Text key={key}>
           {entryMatch[1]}
-          <Text color="yellow">{entryMatch[2]}</Text>
+          {renderKeyColored(entryMatch[2], key)}
           <Text dimColor>{entryMatch[3]}</Text>
           <Text>{entryMatch[4]}</Text>
         </Text>
@@ -164,7 +207,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
           parts.push(
             <React.Fragment key={colKey}>
               {entryMatch[1]}
-              <Text color="yellow">{entryMatch[2]}</Text>
+              {renderKeyColored(entryMatch[2], colKey)}
               <Text dimColor>{entryMatch[3]}</Text>
               <Text>{entryMatch[4]}</Text>
               {pad > 0 ? " ".repeat(pad) : null}
@@ -223,8 +266,8 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
   )
 
   // Column layout: location label + 3 verb columns with gutters
-  const locW = 12
-  const colW = 10
+  const locW = 14
+  const colW = 12
 
   // Column headers
   addLine(
@@ -246,16 +289,16 @@ function renderVerbGrid(contentWidth: number, addLine: (el: React.ReactElement) 
   for (let i = 0; i < VERB_GRID.length; i++) {
     const row = VERB_GRID[i]
     const loc = (row.key + " " + row.location).padEnd(locW)
-    const g = (row.goto ?? "—").padEnd(colW)
-    const m = (row.move ?? "—").padEnd(colW)
-    const a = row.add ?? "—"
+    const g = row.goto
+    const m = row.move
+    const a = row.add
     addLine(
       <Text key={`vg-${i}`}>
         {"  "}
         <Text color="yellow">{loc}</Text>
-        <Text>{g}</Text>
-        <Text>{m}</Text>
-        <Text>{a}</Text>
+        {g ? <Text color="yellow">{g.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
+        {m ? <Text color="yellow">{m.padEnd(colW)}</Text> : <Text dimColor>{"—".padEnd(colW)}</Text>}
+        {a ? <Text color="yellow">{a}</Text> : <Text dimColor>{"—"}</Text>}
       </Text>,
     )
   }
