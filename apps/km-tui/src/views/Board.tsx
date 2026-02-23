@@ -525,15 +525,6 @@ export function BoardCore({
                     scrollTo={isBoardSelected ? undefined : colIndex}
                     renderItem={(col, index) => {
                       const colWidth = collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth
-                      const columnEl = (
-                        <Column
-                          column={col}
-                          colIndex={index}
-                          isCollapsed={collapsedNodes.has(col.node.id)}
-                          width={colWidth}
-                          height={contentHeight}
-                        />
-                      )
                       if (index >= revealedCount) {
                         return (
                           <ColumnSkeleton
@@ -544,7 +535,15 @@ export function BoardCore({
                           />
                         )
                       }
-                      return columnEl
+                      return (
+                        <Column
+                          column={col}
+                          colIndex={index}
+                          isCollapsed={collapsedNodes.has(col.node.id)}
+                          width={colWidth}
+                          height={contentHeight}
+                        />
+                      )
                     }}
                     renderOverflowIndicator={(dir) => (
                       <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
@@ -786,7 +785,6 @@ export interface BoardProps {
  */
 // oxlint-disable-next-line complexity/complexity -- React connector — hooks + effects inflate score
 export function Board({ patchedConsole }: BoardProps) {
-  const _boardStart = performance.now()
   // Read pause/resume directly from AppContext (via mutable ref).
   // BoardApp doesn't re-render after initial mount, so passing these as props
   // would capture the initial undefined values permanently.
@@ -865,9 +863,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Column derivation is <1ms with per-column memoization. Progressive reveal
   // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
   // with skeleton placeholders, then revealing one column per frame.
-  const _useColStart = performance.now()
   const columns = useColumns(repo, rootId, foldDepths)
-  const _useColMs = performance.now() - _useColStart
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
@@ -1056,13 +1052,6 @@ export function Board({ patchedConsole }: BoardProps) {
     [ui.localSearch?.matchNodeIds],
   )
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
-
-  // PERF: Board render timing
-  const _boardMs = performance.now() - _boardStart
-  if (_boardMs > 5) {
-    const { appendFileSync } = require("node:fs") as typeof import("node:fs")
-    appendFileSync("/tmp/km-profile.log", `Board render: ${_boardMs.toFixed(0)}ms (useColumns=${_useColMs.toFixed(0)}ms cols=${columns.length})\n`)
-  }
 
   return (
     <CursorStoreProvider store={cursorStore}>

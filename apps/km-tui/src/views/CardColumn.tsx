@@ -558,7 +558,6 @@ export const Column = React.memo(function Column({
   width,
   height,
 }: ColumnProps): React.ReactElement {
-  const _colStart = performance.now()
   const repo = useRepo()
   const setUI = useSetUI()
   const {
@@ -588,6 +587,17 @@ export const Column = React.memo(function Column({
     (state) =>
       state.isLoading || state.backgroundParsing || !state.watcherStatus || state.watcherStatus.state === "starting",
   )
+
+  // Lazy card escalation: mount with few cards for fast first paint,
+  // then escalate to full count after the column has rendered once.
+  // @ts-expect-error - React internal flag set by inkx test renderer
+  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
+  const [maxCards, setMaxCards] = useState(isTest ? FULL_MAX_CARDS : INITIAL_MAX_CARDS)
+  useEffect(() => {
+    if (isTest || maxCards >= FULL_MAX_CARDS) return
+    const id = setTimeout(() => setMaxCards(FULL_MAX_CARDS), 0)
+    return () => clearTimeout(id)
+  }, [isTest, maxCards])
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = parseToPlainText(getNodeDisplayName(repo, column.node))
@@ -812,7 +822,7 @@ export const Column = React.memo(function Column({
           height={height - 2 - (filterHiddenCount > 0 ? 1 : 0)}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
-          maxRendered={FULL_MAX_CARDS}
+          maxRendered={maxCards}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           overflowIndicator

@@ -55,7 +55,7 @@ describe("HelpOverlay", () => {
     // Board locations
     expect(app.text).toContain("inbox")
     expect(app.text).toContain("journal")
-    expect(app.text).toContain("home (next)")
+    expect(app.text).toContain("home (@next)")
     // Target locations (wikilink types)
     expect(app.text).toContain("item")
     expect(app.text).toContain("context")
