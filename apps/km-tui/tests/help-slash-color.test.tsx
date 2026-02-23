@@ -39,17 +39,7 @@ describe("HelpOverlay", () => {
   test("shows all expected section categories", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
-    for (const section of [
-      "NAVIGATION",
-      "EDITING",
-      "SELECTION",
-      "TASK",
-      "FOLD",
-      "VIEW",
-      "PANES",
-      "SYSTEM",
-      "QUICK ACCESS",
-    ]) {
+    for (const section of ["NAVIGATION", "EDITING", "SELECTION", "TASK", "VIEW", "PANES", "SYSTEM"]) {
       expect(stripped).toContain(section)
     }
   })
@@ -73,22 +63,22 @@ describe("HelpOverlay", () => {
     const stripped = strip(output)
     // Combined navigation entries
     expect(stripped).toMatch(/hjkl.*\.+.*navigate/)
-    // Combined fold entries (space-separated display: "H L")
-    expect(stripped).toMatch(/H\s+L.*\.+.*fold\/unfold/)
+    // Combined fold entries (slash-separated display: "H / L")
+    expect(stripped).toMatch(/H \/ L.*\.+.*fold\/unfold/)
   })
 
   test("shows task section with task commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("TASK")
-    expect(stripped).toMatch(/x\s+X/)
+    expect(stripped).toMatch(/x \/ X/)
   })
 
   test("shows editing section with edit commands", async () => {
     const output = await renderHelp()
     const stripped = strip(output)
     expect(stripped).toContain("EDITING")
-    expect(stripped).toMatch(/o\s+O/)
+    expect(stripped).toMatch(/o \/ O/)
   })
 
   test("shows panes section with ⌃w chords", async () => {

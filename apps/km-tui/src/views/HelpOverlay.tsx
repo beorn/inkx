@@ -229,7 +229,6 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
     addLine(<Text key={`blank-${lineIdx}`}> </Text>)
   }
 
-
   return lines
 }
 

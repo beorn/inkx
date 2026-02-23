@@ -354,7 +354,7 @@ const COMBINE_RULES: CombineRule[] = [
   { commands: ["nav_back", "nav_forward"], display: "{ / }", description: "back/forward", section: "Navigation" },
   {
     commands: ["block_nav_down", "block_nav_up"],
-    display: "J / K",
+    display: "J K",
     description: "move by block",
     section: "Navigation",
   },
@@ -535,7 +535,7 @@ function formatKey(binding: Keybinding): string {
       keyName = "⎋"
       break
     case "Enter":
-      keyName = "ret"
+      keyName = "↩"
       break
     case "Tab":
       keyName = "⇥"
