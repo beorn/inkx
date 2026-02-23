@@ -164,10 +164,16 @@ export async function fetchComments(
 
     // System stories → activity log (always captured)
     if (s.type === "system") {
+      // Strip author's full name from text start — we already show @username
+      const authorName = s.created_by?.name
+      const text =
+        authorName && plainText.startsWith(authorName)
+          ? plainText.slice(authorName.length).trimStart()
+          : plainText
       activityLog.push({
         author,
         createdAt: s.created_at,
-        text: plainText,
+        text,
       })
       continue
     }

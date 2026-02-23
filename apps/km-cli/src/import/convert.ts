@@ -48,6 +48,23 @@ export function buildUniqueSlugMap(entries: Array<{ name: string; gid: string }>
   return map
 }
 
+/**
+ * Strip the author's full name from the start of activity text.
+ * E.g., text="Bjørn Stabell added this task" with authorSlug="bjørn-stabell"
+ * → "added this task". Matches by slugifying successive words from the text start.
+ */
+function stripAuthorPrefix(text: string, authorSlug: string): string {
+  // Try progressively longer word prefixes until slug matches
+  const words = text.split(/\s+/)
+  for (let i = 1; i <= Math.min(words.length, 5); i++) {
+    const prefix = words.slice(0, i).join(" ")
+    if (slugify(prefix) === authorSlug) {
+      return words.slice(i).join(" ")
+    }
+  }
+  return text
+}
+
 /** Resolve a user reference to its slug — handles both display names and pre-slugified values */
 export function resolveUserSlug(ref: string, userSlugMap: Map<string, string>): string {
   // Try display name first (e.g., "Bjørn Stabell")
@@ -579,12 +596,14 @@ function itemToNodes(
     for (const a of item.activityLog) {
       const date = a.createdAt.slice(0, 10)
       const authorSlug = a.author ? `@${userSlugMap ? resolveUserSlug(a.author, userSlugMap) : slugify(a.author)}` : ""
+      // Strip author's full name from text start — we already show @username
+      const text = a.author ? stripAuthorPrefix(a.text, a.author) : a.text
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
           type: "p", item: true,
           parent_id: `activity-${item.sourceId}`,
-          content: `${date} ${authorSlug}: ${a.text}`.trim(),
+          content: `${date} ${authorSlug}: ${text}`.trim(),
           created_at: new Date(a.createdAt).getTime(),
           updated_at: itemUpdatedAt,
         }),

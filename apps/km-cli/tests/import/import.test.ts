@@ -166,7 +166,7 @@ describe("Stage 1: Fetch from Asana API", () => {
     // System story (type: "system") captured in activityLog
     expect(task1.activityLog).toBeDefined()
     expect(task1.activityLog).toHaveLength(1)
-    expect(task1.activityLog![0]!.text).toBe("Alice Smith moved this task to To Do")
+    expect(task1.activityLog![0]!.text).toBe("moved this task to To Do")
     expect(task1.activityLog![0]!.author).toBe("alice-smith")
     expect(task1.activityLog![0]!.createdAt).toBe("2026-02-15T09:00:00Z")
   })

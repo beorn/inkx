@@ -50,14 +50,15 @@ export function htmlToMarkdown(html: string): string {
 /**
  * Preprocess Asana html_notes before parsing.
  * Asana uses bare \n for line breaks in html_notes, but HTML spec treats \n as
- * insignificant whitespace. Convert \n to <br> while preserving structural whitespace.
+ * insignificant whitespace. Single \n → <br> (hard line break).
+ * Multiple consecutive \n or <br> → paragraph break (not stacked hard breaks).
  */
 function preprocessAsanaHtml(html: string): string {
   let result = html.replace(/\n/g, "<br>\n")
   // Remove <br> between tags (structural whitespace, e.g. </li>\n<li>)
   result = result.replace(/><br>\n</g, ">\n<")
-  // Collapse double <br> from existing <br>\n -> <br><br>\n
-  result = result.replace(/<br><br>/g, "<br>")
+  // Collapse 2+ consecutive <br> into paragraph break (not stacked hard breaks)
+  result = result.replace(/(<br>\s*){2,}/g, "</p><p>")
   return result
 }
 

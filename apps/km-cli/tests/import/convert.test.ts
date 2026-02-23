@@ -627,8 +627,8 @@ describe("Activity log rendering", () => {
     )
     // Activity section is an oi node, rendered as a heading
     expect(md).toContain("## Activity")
-    expect(md).toContain("- 2026-02-15 @alice: Alice moved this task to To Do")
-    expect(md).toContain("- 2026-02-16 @bob: Bob completed this task")
+    expect(md).toContain("- 2026-02-15 @alice: moved this task to To Do")
+    expect(md).toContain("- 2026-02-16 @bob: completed this task")
     // Old blockquote format should NOT be present
     expect(md).not.toContain("> **Activity:**")
   })
