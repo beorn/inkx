@@ -207,7 +207,6 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
   cursor_right: "move right",
   cursor_first: "go to top",
   cursor_last: "go to bottom",
-  cursor_parent: "go to parent",
   block_nav_down: "down by block",
   block_nav_up: "up by block",
   page_up: "half page up",
