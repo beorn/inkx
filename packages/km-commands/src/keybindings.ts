@@ -504,6 +504,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
       { key: "d", ctrl: true, commandId: "page_down" },
       { key: "u", ctrl: true, commandId: "page_up" },
+      { key: "PageDown", commandId: "page_down" },
+      { key: "PageUp", commandId: "page_up" },
 
       // Sibling board navigation
       { key: "j", ctrl: true, commandId: "sibling_board_next" },

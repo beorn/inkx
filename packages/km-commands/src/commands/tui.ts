@@ -6,15 +6,11 @@
  * - New item dialog
  * - Project picker
  * - Favorites (1-9)
- * - Column jump (Shift+1-9)
  * - Escape (contextual close/quit)
  * - Outdent
  */
 
 import type { CommandDef, CommandAction } from "../types.ts"
-
-/** Shift+number symbol for each digit 1-9 */
-const SHIFT_NUMBER_SYMBOLS = ["!", "@", "#", "$", "%", "^", "&", "*", "("]
 
 /** Generate favorite commands (1-9): jump to favorite board N via number key */
 const favoriteCommands = ((): CommandDef[] =>
@@ -29,23 +25,6 @@ const favoriteCommands = ((): CommandDef[] =>
       execute: (): CommandAction => ({
         type: "JUMP_TO_FAVORITE",
         favoriteNumber: n,
-      }),
-    }
-  }))()
-
-/** Generate column jump commands (1-9): jump to column N via Shift+number */
-const columnJumpCommands = ((): CommandDef[] =>
-  Array.from({ length: 9 }, (_, i) => {
-    const n = i + 1
-    return {
-      id: `column_${n}`,
-      name: `Column ${n}`,
-      description: `Jump to column ${n}`,
-      category: "Navigation",
-      shortcuts: [SHIFT_NUMBER_SYMBOLS[i] ?? ""],
-      execute: (): CommandAction => ({
-        type: "JUMP_TO_COLUMN",
-        columnNumber: n,
       }),
     }
   }))()
@@ -81,21 +60,8 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
   },
 
-  // Search dialog
-  {
-    id: "search",
-    name: "Search",
-    description: "Open search dialog",
-    category: "Navigation",
-    shortcuts: [],
-    execute: (): CommandAction => ({ type: "SHOW_SEARCH_DIALOG" }),
-  },
-
   // Favorites (1-9)
   ...favoriteCommands,
-
-  // Column jump (Shift+1-9)
-  ...columnJumpCommands,
 
   // Close/Quit (contextual Escape)
   {
@@ -178,16 +144,6 @@ export const tuiCommands: CommandDef[] = [
     category: "View",
     shortcuts: ["`"],
     execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
-  },
-
-  // Sync Pane
-  {
-    id: "sync_pane.toggle",
-    name: "Toggle Sync Pane",
-    description: "Toggle sync activity pane",
-    category: "View",
-    shortcuts: ["S"],
-    execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
   },
 
   // Toggle hide done/dropped tasks

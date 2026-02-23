@@ -36,7 +36,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["z / Z"], command: "zoom_inwards", description: "zoom in/out" },
       { keys: ["gg / G"], command: "cursor_first", description: "top/bottom" },
       { keys: ["J K"], command: "block_nav_down", description: "move by block" },
-      { keys: ["⌃u / ⌃d"], command: "page_up", description: "half page up/down" },
+      { keys: ["⌃u / ⌃d / PgUp/Dn"], command: "page_up", description: "half page up/down" },
       { keys: ["{ / }"], command: "nav_back", description: "back/forward" },
       { keys: ["⌃j / ⌃k"], command: "sibling_board_next", description: "next/prev board" },
       { keys: ["↵"], command: "zoom_in", description: "zoom to cursor" },

@@ -853,24 +853,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual([
-      "#",
-      "+",
-      "/",
-      "@",
-      "G",
-      "N",
-      "O",
-      "[",
-      "e",
-      "g",
-      "h",
-      "i",
-      "j",
-      "n",
-      "o",
-      "p",
-    ])
+    expect(keys).toEqual(["#", "+", "/", "@", "G", "N", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {
