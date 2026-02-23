@@ -10,7 +10,6 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import { appendFileSync } from "node:fs"
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import {
   Box,
@@ -186,18 +185,9 @@ function useColumnReveal(
 
   // Chain: after each column renders, reveal the next one via setTimeout(0).
   // Each column gets one event-loop tick for inkx to paint before the next mounts.
-  const revealStartRef = useRef(0)
   useEffect(() => {
-    appendFileSync("/tmp/km-reveal.log", `effect: revealed=${revealedCount}/${columnCount} test=${isTest} start=${Math.round(revealStartRef.current)}\n`)
     if (isTest || revealedCount >= columnCount) return
-    if (revealStartRef.current > 0) {
-      const elapsed = performance.now() - revealStartRef.current
-      appendFileSync("/tmp/km-reveal.log", `  col ${revealedCount - 1}→${revealedCount}: ${Math.round(elapsed)}ms\n`)
-    }
-    const id = setTimeout(() => {
-      revealStartRef.current = performance.now()
-      setRevealedCount((c) => c + 1)
-    }, 0)
+    const id = setTimeout(() => setRevealedCount((c) => c + 1), 0)
     return () => clearTimeout(id)
   }, [revealedCount, columnCount, isTest])
 

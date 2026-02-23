@@ -216,11 +216,16 @@ const Card = React.memo(
     const directHidden = Math.max(0, childCount - maxChildren)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
+      // Batch grandchild count query: one SQL GROUP BY instead of N individual getChildren calls.
+      // Each card has ~3 visible children; without batching, that's 3 cold SQLite queries per card.
       const visibleChildren = children.slice(0, maxChildren)
-      for (const child of visibleChildren) {
-        const grandchildren = repo.getChildren(child.id)
-        if (grandchildren.length > maxChildren) {
-          total += grandchildren.length - maxChildren
+      if (visibleChildren.length > 0) {
+        const grandchildCounts = repo.getChildCounts(visibleChildren.map((c) => c.id))
+        for (const child of visibleChildren) {
+          const gcCount = grandchildCounts.get(child.id) ?? 0
+          if (gcCount > maxChildren) {
+            total += gcCount - maxChildren
+          }
         }
       }
       // Title wrap: TreeNode constrainText() allows titles up to 2 lines.

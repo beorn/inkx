@@ -134,9 +134,16 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
   // In test mode, use repoVersion directly for synchronous updates
   const effectiveVersion = isTest ? repoVersion : debouncedVersion
 
-  // Synchronous column derivation. Data is fast (<1ms with per-column memoization).
-  // Progressive rendering is handled at the view layer via Suspense (Board.tsx).
-  const [columns, setColumns] = useState<ColumnView[]>(() => deriveColumnsFromRepo(repo, rootId, foldDepths))
+  // Batch-preload children cache before column derivation + Card mount.
+  // Without this, each Card component individually queries SQLite for children
+  // (overflow calc, TreeNode display) — 200+ cold-cache queries per column on 333k-node vaults.
+  // A single CTE query at depth 3 warms: root→columns→cards→card-children, so Card overflow
+  // calc and TreeNode render all hit cache. ~6000 nodes for a typical board.
+  // The action context (board-app.ts) already does this for keypresses; this covers initial render + zoom.
+  const [columns, setColumns] = useState<ColumnView[]>(() => {
+    repo.preloadSubtree(rootId, 3)
+    return deriveColumnsFromRepo(repo, rootId, foldDepths)
+  })
 
   // Track deps to detect changes
   const depsRef = useRef({ rootId, foldDepths, version: effectiveVersion })
@@ -153,6 +160,8 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
 
     // Coalesced derivation — runs after rapid version bumps settle.
     // Per-column memoization makes non-zoom derivation fast (cache hits).
+    // Preload on rootId change (zoom) — cache is already warm for version bumps.
+    if (prev.rootId !== rootId) repo.preloadSubtree(rootId, 3)
     setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
   }, [effectiveVersion, rootId, foldDepths, isTest, repo])
 
