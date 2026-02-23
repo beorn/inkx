@@ -515,7 +515,7 @@ function createMutationHandler(repo: Repo, rootId: string | null, rootPath: stri
           ...newState,
           cursor: newCursor.length > 0 ? newCursor : [0],
           // Preserve UI state
-          foldedNodes: state.foldedNodes,
+          foldDepths: state.foldDepths,
           collapsedNodes: state.collapsedNodes,
           selectedNodes: new Set(), // Clear selection after mutation
         },

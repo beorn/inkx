@@ -2931,7 +2931,6 @@ describe("normalizeImportText", () => {
     const input = "first\n\n\n\nsecond"
     expect(normalizeImportText(input)).toBe("first\n\nsecond")
   })
-
 })
 
 // ============================================================================

@@ -37,7 +37,7 @@ export function parseCSV(text: string, delimiter = ","): string[][] {
   let inQuotes = false
 
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i]!
+    const ch = text[i] ?? ""
     const next = text[i + 1]
 
     if (inQuotes) {
@@ -135,7 +135,10 @@ const COLUMN_ALIASES: Record<string, ColumnRole> = {
 function mapColumns(headers: string[]): Map<number, ColumnRole> {
   const mapping = new Map<number, ColumnRole>()
   for (let i = 0; i < headers.length; i++) {
-    const normalized = headers[i]!.trim()
+    const header = headers[i]
+    if (!header) continue
+    const normalized = header
+      .trim()
       .toLowerCase()
       .replace(/[_\s]+/g, "_")
     // Also try without underscores for "due date" → "duedate" style
@@ -253,7 +256,14 @@ export function parseCSVToImportData(text: string, filename?: string): ImportDat
     }
   }
 
-  const headers = rows[0]!
+  const headers = rows[0]
+  if (!headers) {
+    return {
+      source: "csv",
+      fetchedAt: new Date().toISOString(),
+      projects: [],
+    }
+  }
   const columns = mapColumns(headers)
 
   // Check for required title column
@@ -270,7 +280,9 @@ export function parseCSVToImportData(text: string, filename?: string): ImportDat
   // Parse all items
   const items: Array<{ item: ImportItem; project?: string; parent?: string }> = []
   for (let i = 1; i < rows.length; i++) {
-    const item = csvRowToItem(rows[i]!, columns, nextId)
+    const row = rows[i]
+    if (!row) continue
+    const item = csvRowToItem(row, columns, nextId)
     if (!item) continue
 
     // Extract project/section grouping
@@ -278,7 +290,7 @@ export function parseCSVToImportData(text: string, filename?: string): ImportDat
     if (hasProjectCol) {
       for (const [idx, role] of columns) {
         if (role === "project") {
-          project = rows[i]![idx]?.trim()
+          project = row[idx]?.trim()
           break
         }
       }
@@ -289,7 +301,7 @@ export function parseCSVToImportData(text: string, filename?: string): ImportDat
     if (hasParentCol) {
       for (const [idx, role] of columns) {
         if (role === "parent") {
-          parent = rows[i]![idx]?.trim()
+          parent = row[idx]?.trim()
           break
         }
       }

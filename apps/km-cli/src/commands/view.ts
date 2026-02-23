@@ -82,7 +82,11 @@ export const viewCommand = new Command("view")
 
       // km-view-stub: If targeting a stub file, parse it eagerly
       // Stub files have data._stub = true and no children until parsed
-      if (isOutline(node?.type ?? "", node?.item) && (node?.fstype === "file" || node?.fstype === "mdfile") && interactive) {
+      if (
+        isOutline(node?.type ?? "", node?.item) &&
+        (node?.fstype === "file" || node?.fstype === "mdfile") &&
+        interactive
+      ) {
         const data = node.data as { _stub?: boolean } | undefined
         if (data?._stub && node.fs_path) {
           const absPath = join(resolved.repoRoot, node.fs_path)

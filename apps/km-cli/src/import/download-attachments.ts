@@ -222,7 +222,11 @@ export async function downloadAttachments(
 
   for (let i = 0; i < allAttachments.length; i += DOWNLOAD_CONCURRENCY) {
     // Rate limit: delay between batches to respect server limits
-    if (i > 0) await new Promise((r) => setTimeout(r, 100))
+    if (i > 0) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
+    }
     // Only bail if re-authentication keeps failing (token is invalid)
     if (consecutiveAuthFailures >= MAX_AUTH_FAILURES) {
       const remaining = allAttachments.length - i

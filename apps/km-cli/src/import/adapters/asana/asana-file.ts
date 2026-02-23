@@ -75,7 +75,7 @@ function convertTask(task: AsanaTask): ImportItem {
     const memberships = task.memberships
       .filter((m) => m.project?.name)
       .map((m) => ({
-        project: m.project!.name,
+        project: m.project?.name ?? "",
         ...(m.section?.name ? { section: m.section.name } : {}),
       }))
     if (memberships.length > 0) {

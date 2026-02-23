@@ -30,7 +30,9 @@ export const inboxCommand = new Command("inbox")
     }
 
     // Get all tasks in inbox
-    const items = repo.getChildren(inbox.id).filter((n) => isItem(n.type, n.item) && !isOutline(n.type, n.item) && n.task_marker !== undefined)
+    const items = repo
+      .getChildren(inbox.id)
+      .filter((n) => isItem(n.type, n.item) && !isOutline(n.type, n.item) && n.task_marker !== undefined)
 
     if (items.length === 0) {
       if (options.json) {
@@ -70,7 +72,9 @@ inboxCommand
     }
 
     // Get all tasks in inbox
-    const items = repo.getChildren(inbox.id).filter((n) => isItem(n.type, n.item) && !isOutline(n.type, n.item) && n.task_marker !== undefined)
+    const items = repo
+      .getChildren(inbox.id)
+      .filter((n) => isItem(n.type, n.item) && !isOutline(n.type, n.item) && n.task_marker !== undefined)
 
     if (items.length === 0) {
       console.log(term.green("Inbox is empty!"))

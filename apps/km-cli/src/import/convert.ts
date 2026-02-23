@@ -263,7 +263,7 @@ function splitBodyAtHeadings(text: string): Array<{ type: "text" | "heading"; co
         currentLines = []
       }
       // Push heading as its own section — strip bold/italic (redundant on headings)
-      const headingText = headingMatch[1]!.replace(/\*{1,2}(.+?)\*{1,2}/g, "$1")
+      const headingText = (headingMatch[1] ?? "").replace(/\*{1,2}(.+?)\*{1,2}/g, "$1")
       sections.push({ type: "heading", content: headingText })
       currentType = "text"
     } else {
@@ -320,7 +320,8 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: refNodeId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
@@ -393,7 +394,8 @@ function itemToNodes(
 
   const taskNode = mkNode(counter, {
     id: item.sourceId,
-    type: "h", item: true,
+    type: "h",
+    item: true,
     parent_id: parentId,
     task_marker: getMarkerForStatus(status),
     task_status: status,
@@ -437,7 +439,8 @@ function itemToNodes(
         nodes.push(
           mkNode(counter, {
             id: sectionId,
-            type: "h", item: true,
+            type: "h",
+            item: true,
             parent_id: item.sourceId,
             content: section.content,
             created_at: itemCreatedAt,
@@ -460,7 +463,8 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `comments-${item.sourceId}`,
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: item.sourceId,
           content: "Comments km.collapse:: true",
           created_at: itemCreatedAt,
@@ -485,7 +489,8 @@ function itemToNodes(
           nodes.push(
             mkNode(counter, {
               id: commentId,
-              type: "p", item: true,
+              type: "p",
+              item: true,
               parent_id: `comments-${item.sourceId}`,
               content: `${date} ${authorSlug}: ${fullText}`.trim(),
               created_at: commentCreatedAt,
@@ -497,7 +502,8 @@ function itemToNodes(
           nodes.push(
             mkNode(counter, {
               id: commentId,
-              type: "h", item: true,
+              type: "h",
+              item: true,
               parent_id: `comments-${item.sourceId}`,
               content: `${date} ${authorSlug}`.trim(),
               created_at: commentCreatedAt,
@@ -523,7 +529,8 @@ function itemToNodes(
               nodes.push(
                 mkNode(counter, {
                   id: sectionId,
-                  type: "h", item: true,
+                  type: "h",
+                  item: true,
                   parent_id: commentId,
                   content: section.content,
                   created_at: commentCreatedAt,
@@ -544,7 +551,8 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `attachments-${item.sourceId}`,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: item.sourceId,
         content: "Attachments km.collapse:: true",
         created_at: itemCreatedAt,
@@ -571,7 +579,8 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: `attachments-${item.sourceId}`,
           content: linkMd,
           created_at: att.createdAt ? new Date(att.createdAt).getTime() : itemCreatedAt,
@@ -586,7 +595,8 @@ function itemToNodes(
     nodes.push(
       mkNode(counter, {
         id: `activity-${item.sourceId}`,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: item.sourceId,
         content: "Activity km.collapse:: true",
         created_at: itemCreatedAt,
@@ -601,7 +611,8 @@ function itemToNodes(
       nodes.push(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: `activity-${item.sourceId}`,
           content: `${date} ${authorSlug}: ${text}`.trim(),
           created_at: new Date(a.createdAt).getTime(),
@@ -651,7 +662,8 @@ function sectionToNodes(
     nodes.push(
       mkNode(counter, {
         id: itemParentId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: parentId,
         fstype: "mdsection",
         content: section.title,
@@ -689,7 +701,8 @@ function projectToNodes(
   nodes.push(
     mkNode(counter, {
       id: fileId,
-      type: "h", item: true,
+      type: "h",
+      item: true,
       fstype: "mdfile",
       content: projectTitle,
       data: frontmatter,
@@ -718,7 +731,8 @@ function projectToNodes(
     nodes.push(
       mkNode(counter, {
         id: statusSectionId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: fileId,
         fstype: "mdsection",
         content: "Status Updates",
@@ -744,7 +758,8 @@ function projectToNodes(
       nodes.push(
         mkNode(counter, {
           id: statusId,
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: statusSectionId,
           content: su.title || "Status update",
         }),
@@ -768,7 +783,8 @@ function projectToNodes(
     nodes.push(
       mkNode(counter, {
         id: cfSectionId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         parent_id: fileId,
         fstype: "mdsection",
         content: "Custom Fields",
@@ -787,7 +803,8 @@ function projectToNodes(
       nodes.push(
         mkNode(counter, {
           id: cfId,
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: cfSectionId,
           content: cf.name,
         }),
@@ -819,14 +836,7 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
 }
 
 /** Export for testing: convert a single ImportItem to KNode, slug helpers */
-export {
-  itemToNodes,
-  buildTaskContent,
-  buildBodyContent,
-  decodeHtmlEntities,
-  stripHtmlTags,
-  normalizeImportText,
-}
+export { itemToNodes, buildTaskContent, buildBodyContent, decodeHtmlEntities, stripHtmlTags, normalizeImportText }
 
 /**
  * Build the primaryMap (task sourceId → filename) and filename list.
@@ -1020,7 +1030,8 @@ function* generateTagFiles(
     nodes.push(
       mkNode(counter, {
         id: fileId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdfile",
         content: `#${tagSlug}`,
       }),
@@ -1032,7 +1043,8 @@ function* generateTagFiles(
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
-            type: "h", item: true,
+            type: "h",
+            item: true,
             parent_id: fileId,
             content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -1114,7 +1126,8 @@ function* generateUserFiles(
     nodes.push(
       mkNode(counter, {
         id: fileId,
-        type: "h", item: true,
+        type: "h",
+        item: true,
         fstype: "mdfile",
         content: `@${userSlug}`,
       }),
@@ -1145,7 +1158,8 @@ function* generateUserFiles(
         nodes.push(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
-            type: "h", item: true,
+            type: "h",
+            item: true,
             parent_id: parentId,
             content: `![[^${item.sourceId}]]`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -1163,14 +1177,15 @@ function* generateUserFiles(
       nodes.push(
         mkNode(counter, {
           id: sectionId,
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: fileId,
           fstype: "mdsection",
           content: sectionName,
           title: sectionName,
         }),
       )
-      for (const item of sectionGroups.get(sectionName)!) {
+      for (const item of sectionGroups.get(sectionName) ?? []) {
         emitUserItem(item, sectionId)
       }
     }

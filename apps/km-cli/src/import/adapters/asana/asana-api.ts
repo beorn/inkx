@@ -83,9 +83,10 @@ async function fetchCustomFieldSettings(client: AsanaClient, projectGid: string)
   return settings
     .filter((s) => s.custom_field?.name)
     .map((s) => {
-      const cf = s.custom_field!
+      const cf = s.custom_field
+      if (!cf?.name) throw new Error("unreachable: filtered above")
       const def: ImportCustomFieldDef = {
-        name: cf.name!,
+        name: cf.name,
         type: cf.type ?? "text",
       }
       if (cf.description) def.description = cf.description
@@ -563,7 +564,7 @@ export async function fetchFromAsana(
         taskList = await client.get<{ gid: string }>(`/users/${user.gid}/user_task_list`, {
           workspace: workspace.gid,
         })
-      } catch (err) {
+      } catch (_err) {
         console.log(term.dim(`  @${userSlug}: skipped (task list not accessible)`))
         continue
       }

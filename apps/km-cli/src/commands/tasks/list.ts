@@ -93,7 +93,13 @@ function resolveFromPathOrId(
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
-    if (isItem(rootNode.type, rootNode.item) && !isOutline(rootNode.type, rootNode.item) && rootNode.task_marker !== undefined) return null
+    if (
+      isItem(rootNode.type, rootNode.item) &&
+      !isOutline(rootNode.type, rootNode.item) &&
+      rootNode.task_marker !== undefined
+    ) {
+      return null
+    }
 
     // Get tasks under this root, then apply status filter.
     // Root-scoped listing defaults to active tasks only (todo + wip).
@@ -208,7 +214,9 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
 
     // Check if any ancestor was a section (for task indent)
     if (!hasSection) {
-      hasSection = collapsedAncestors.some((ca) => isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")
+      hasSection = collapsedAncestors.some(
+        (ca) => isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection",
+      )
     }
 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
