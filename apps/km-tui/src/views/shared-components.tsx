@@ -87,10 +87,10 @@ export const MemoizedTreeCard = React.memo(
       </CardLayoutTracker>
     )
 
-    // Show focus outline (border) when editing — layout shift is intentional
+    // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box borderStyle="round" borderColor="cyan">
+        <Box outlineStyle="round" outlineColor="cyan">
           {content}
         </Box>
       )

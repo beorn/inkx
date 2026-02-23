@@ -224,7 +224,7 @@ function ColumnSkeleton({
       </Box>
       <Text dimColor>{"─".repeat(width)}</Text>
       {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
+        <Box key={ri} outlineStyle="round" outlineDimColor paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1} width={width} height={cardHeight}>
           <Text dimColor wrap="truncate">
             {fill.repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
           </Text>
@@ -1037,7 +1037,7 @@ export function Board({ patchedConsole }: BoardProps) {
     const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
     const boardWidth = termWidth - detailPaneWidth
     const { expandedWidth } = computeColumnWidths(boardWidth, filteredColumns, collapsedNodes)
-    return expandedWidth - 2 // minus border left + right
+    return expandedWidth - 3 // card width is expandedWidth - 1 (CardColumn renderItem), minus 2 for padding left + right
   }, [paneRect.width, ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)

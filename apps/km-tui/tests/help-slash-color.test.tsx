@@ -45,7 +45,7 @@ describe("HelpOverlay", () => {
 
   test("shows chord grid", () => {
     const app = renderHelp()
-    expect(app.text).toContain("CHORDS")
+    expect(app.text).toContain("SHORTCUTS")
     // Column headers
     expect(app.text).toMatch(/go\s+move\s+add/)
     // Prefix key row with ctrl alternatives
@@ -113,7 +113,7 @@ describe("HelpOverlay", () => {
 
     const app40 = renderHelp({ height: smallHeight, scrollOffset: 40 })
     expect(app40.text).not.toContain("NAVIGATION")
-    expect(app40.text).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|CHORDS/)
+    expect(app40.text).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|SHORTCUTS/)
   })
 
   test("renders footer with close instructions", () => {

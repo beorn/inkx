@@ -198,12 +198,12 @@ function buildVerbGridLines(fillWidth: number): React.ReactElement[] {
   const lines: React.ReactElement[] = []
 
   // Section header
-  const dashCount = Math.max(0, fillWidth - "CHORDS".length - 4)
+  const dashCount = Math.max(0, fillWidth - "SHORTCUTS".length - 4)
   lines.push(
     <Box key="vg-hdr" flexDirection="row">
       <Text>{"  "}</Text>
       <Text bold color="cyan">
-        {"CHORDS"}
+        {"SHORTCUTS"}
       </Text>
       <Text> </Text>
       <Text dimColor>{"─".repeat(dashCount)}</Text>

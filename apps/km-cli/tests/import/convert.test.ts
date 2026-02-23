@@ -693,6 +693,35 @@ describe("Activity log rendering", () => {
     expect(md).toContain("- 2026-02-15 @system: Task moved")
     expect(md).not.toContain("> **Activity:**")
   })
+
+  test("strips multi-word author name from activity text (no redundant name)", () => {
+    const md = convertToMd(
+      makeData([
+        {
+          sourceId: "t1",
+          title: "Task with multi-word author",
+          activityLog: [
+            {
+              author: "Alice Smith",
+              createdAt: "2026-02-15T09:00:00Z",
+              text: "Alice Smith moved this task to To Do",
+            },
+            {
+              author: "Bjørn Stabell",
+              createdAt: "2026-02-16T10:00:00Z",
+              text: "Bjørn Stabell completed this task",
+            },
+          ],
+        },
+      ]),
+      { skipActivities: false },
+    )
+    // Should strip the full name — only @slug shown, not both @slug AND full name
+    expect(md).toContain("- 2026-02-15 @alice-smith: moved this task to To Do")
+    expect(md).not.toContain("Alice Smith moved")
+    expect(md).toContain("- 2026-02-16 @bjørn-stabell: completed this task")
+    expect(md).not.toContain("Bjørn Stabell completed")
+  })
 })
 
 // ============================================================================

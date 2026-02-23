@@ -270,10 +270,17 @@ const Card = React.memo(
       // HR cards render borderless with padding (matching border width) for alignment.
       // Padding on all 4 sides matches border dimensions for layout stability.
       // When selected, they get a yellow border like other body blocks.
-      const hrLayoutProps = isSelected
-        ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: !boardFocused }
-        : isMultiSelected || isColSelected
-          ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: false }
+      const hrLayoutProps =
+        isSelected || isMultiSelected || isColSelected
+          ? {
+              paddingLeft: 1,
+              paddingRight: 1,
+              paddingTop: 1,
+              paddingBottom: 1,
+              outlineStyle: "round" as const,
+              outlineColor: "yellow",
+              outlineDimColor: isSelected && !boardFocused,
+            }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
         <Box flexDirection="column" flexShrink={0} width={width} {...hrLayoutProps}>
@@ -347,9 +354,13 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          borderStyle="round"
-          borderColor={collapsedBorder}
-          borderDimColor={(!isSelected && !isMultiSelected && !isColSelected) || (isSelected && !boardFocused)}
+          paddingLeft={1}
+          paddingRight={1}
+          paddingTop={1}
+          paddingBottom={1}
+          outlineStyle="round"
+          outlineColor={collapsedBorder}
+          outlineDimColor={(!isSelected && !isMultiSelected && !isColSelected) || (isSelected && !boardFocused)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -392,10 +403,13 @@ const Card = React.memo(
           <Box
             flexDirection="column"
             width={width}
-            borderStyle="round"
-            borderBottom={false}
-            borderColor={borderColor}
-            borderDimColor={cursorDim}
+            paddingLeft={1}
+            paddingRight={1}
+            paddingTop={1}
+            outlineStyle="round"
+            outlineBottom={false}
+            outlineColor={borderColor}
+            outlineDimColor={cursorDim}
           >
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
@@ -431,9 +445,13 @@ const Card = React.memo(
         flexDirection="column"
         flexShrink={0}
         width={width}
-        borderStyle="round"
-        borderColor={borderColor}
-        borderDimColor={cursorDim}
+        paddingLeft={1}
+        paddingRight={1}
+        paddingTop={1}
+        paddingBottom={1}
+        outlineStyle="round"
+        outlineColor={borderColor}
+        outlineDimColor={cursorDim}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
@@ -475,7 +493,7 @@ const Card = React.memo(
 // =============================================================================
 
 /** Shared layout props for body blocks (virtual cards and HRs).
- * Always uses border for consistent sizing — borderColor varies by state.
+ * Always uses padding+outline for consistent sizing — outlineColor varies by state.
  * Layout invariant: selecting/deselecting must NOT shift content. */
 function bodyBlockLayoutProps(
   showBorder: boolean,
@@ -487,11 +505,14 @@ function bodyBlockLayoutProps(
   defaultBorderColor = "gray",
   cursorDim = false,
 ) {
-  if (showBorder) return { borderStyle: "round" as const, borderColor, borderDimColor: cursorDim }
+  const base = { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
+  if (showBorder)
+    {return { ...base, outlineStyle: "round" as const, outlineColor: borderColor, outlineDimColor: cursorDim }}
   return {
-    borderStyle: "round" as const,
-    borderColor: isMultiSelected || isColumnSelected ? "yellow" : defaultBorderColor,
-    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
+    ...base,
+    outlineStyle: "round" as const,
+    outlineColor: isMultiSelected || isColumnSelected ? "yellow" : defaultBorderColor,
+    outlineDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
   }
 }
 
@@ -520,7 +541,7 @@ function SkeletonCards({
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
+        <Box key={ri} outlineStyle="round" outlineDimColor paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1} width={width} height={cardHeight}>
           <Text dimColor wrap="truncate">
             {"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
           </Text>
@@ -744,9 +765,13 @@ export const Column = React.memo(function Column({
           flexDirection="column"
           width={width}
           flexGrow={1}
-          borderStyle="round"
-          borderColor={borderColor}
-          borderDimColor={colCursorDim}
+          paddingLeft={1}
+          paddingRight={1}
+          paddingTop={1}
+          paddingBottom={1}
+          outlineStyle="round"
+          outlineColor={borderColor}
+          outlineDimColor={colCursorDim}
           overflow="hidden"
           backgroundColor={isColumnSelected && !colCursorDim ? "yellow" : undefined}
         >

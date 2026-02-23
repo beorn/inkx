@@ -40,7 +40,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["⌃u / ⌃d / PgUp/Dn"], command: "page_up", description: "half page up/down" },
       { keys: ["{ / } / ⌘[/]"], command: "nav_back", description: "back/forward" },
       { keys: ["⌃j / ⌃k"], command: "sibling_board_next", description: "next/prev board" },
-      { keys: ["1-9"], command: "_favorites", description: "jump to board" },
+      { keys: ["0-9"], command: "_favorites", description: "jump to favorite" },
     ],
   },
   {
@@ -138,6 +138,8 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "i", location: "inbox", goto: "g i", move: "m i", create: "c i" },
   { key: "j", location: "journal", goto: "g j", move: "m j", create: "c j" },
   { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e", create: "c e" },
+  // Favorites (0-9)
+  { key: "0-9", location: "favorite", goto: "g 0", move: "m 0", add: "a 0", separator: true },
   // Targets (pickers / wikilink types)
   { key: "[", location: "item", goto: "g [", move: "m p", add: "a [", separator: true },
   { key: "#", location: "tag", goto: "g #", add: "#" },

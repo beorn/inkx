@@ -53,8 +53,9 @@ export function buildUniqueSlugMap(entries: Array<{ name: string; gid: string }>
  * E.g., text="Bjørn Stabell added this task" with authorSlug="bjørn-stabell"
  * → "added this task". Matches by slugifying successive words from the text start.
  */
-function stripAuthorPrefix(text: string, authorSlug: string): string {
+function stripAuthorPrefix(text: string, author: string): string {
   // Try progressively longer word prefixes until slug matches
+  const authorSlug = slugify(author)
   const words = text.split(/\s+/)
   for (let i = 1; i <= Math.min(words.length, 5); i++) {
     const prefix = words.slice(0, i).join(" ")
