@@ -13,7 +13,7 @@
 /* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
 
 import React, { useState, useEffect } from "react"
-import { Box, Text, useFocusManager } from "inkx"
+import { Box, Text, useFocusManager, useInterval } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type UIState, getEditMode } from "../ui-reducer.ts"
@@ -70,19 +70,11 @@ function useLogToast(total: number, toastQueue?: ToastQueue): void {
   }, [total, toastQueue])
 }
 
-/** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
+/** Hook for animated spinner frame - uses inkx useInterval (Dan Abramov's ref pattern) */
 function useSpinnerFrame(enabled: boolean): string {
   const [frameIndex, setFrameIndex] = useState(0)
 
-  useEffect(() => {
-    if (!enabled) return
-    // @ts-expect-error - React internal flag set by inkx test renderer
-    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
-    const timer = setInterval(() => {
-      setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length)
-    }, SPINNER_INTERVAL)
-    return () => clearInterval(timer)
-  }, [enabled])
+  useInterval(() => setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length), SPINNER_INTERVAL, enabled)
 
   return SPINNER_FRAMES[frameIndex] ?? "\u280B"
 }
@@ -139,16 +131,19 @@ export function CommandBox({
 
   // Elapsed time counter for long operations
   const [elapsed, setElapsed] = useState(0)
+  const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
+
+  // Reset to 0 when not loading; compute initial value on mount
   useEffect(() => {
     if (!ui.loadingStartTime) {
       setElapsed(0)
       return
     }
-    const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
     tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
   }, [ui.loadingStartTime])
+
+  // Tick every second while loading (useInterval skips the initial call)
+  useInterval(tick, 1000, !!ui.loadingStartTime)
 
   // Flash white for 3s when any counter changes
   const logTotal = consoleStats?.total ?? 0

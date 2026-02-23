@@ -8,19 +8,20 @@
 import { describe, test, expect } from "vitest"
 import React from "react"
 import { renderStatic } from "inkx"
+import { createRenderer } from "inkx/testing"
 import { HelpOverlay } from "../src/views/HelpOverlay.tsx"
 
-/** Render the help overlay and return stripped lines */
-async function renderHelp(opts?: { width?: number; height?: number; scrollOffset?: number }) {
+/** Render the help overlay using createRenderer for layout feedback (Fill needs content rect) */
+function renderHelp(opts?: { width?: number; height?: number; scrollOffset?: number }) {
   const w = opts?.width ?? 100
   const h = opts?.height ?? 200
+  const render = createRenderer({ cols: w, rows: h + 10 })
   const element = React.createElement(HelpOverlay, {
     width: w,
     height: h,
     scrollOffset: opts?.scrollOffset ?? 0,
   })
-  const output = await renderStatic(element, { width: w, height: h + 10 })
-  return output
+  return render(element)
 }
 
 function strip(s: string): string {
@@ -28,104 +29,91 @@ function strip(s: string): string {
 }
 
 describe("HelpOverlay", () => {
-  test("shows section headers from keybinding layers", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("NAVIGATION")
-    expect(stripped).toContain("EDITING")
-    expect(stripped).toContain("SYSTEM")
+  test("shows section headers from keybinding layers", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("NAVIGATION")
+    expect(app.text).toContain("EDITING")
+    expect(app.text).toContain("SYSTEM")
   })
 
-  test("shows all expected section categories", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
+  test("shows all expected section categories", () => {
+    const app = renderHelp()
     for (const section of ["NAVIGATION", "EDITING", "SELECTION", "TASK", "VIEW", "PANES", "SYSTEM"]) {
-      expect(stripped).toContain(section)
+      expect(app.text).toContain(section)
     }
   })
 
-  test("shows verb × location grid", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("VERBS")
-    expect(stripped).toContain("LOCATIONS")
-    expect(stripped).toContain("go (g)")
-    expect(stripped).toContain("move (m)")
-    expect(stripped).toContain("add (a)")
+  test("shows verb × location grid", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("VERBS")
+    expect(app.text).toContain("LOCATIONS")
+    expect(app.text).toContain("go (g)")
+    expect(app.text).toContain("move (m)")
+    expect(app.text).toContain("add (a)")
     // Grid rows
-    expect(stripped).toContain("inbox")
-    expect(stripped).toContain("journal")
-    expect(stripped).toContain("home")
+    expect(app.text).toContain("inbox")
+    expect(app.text).toContain("journal")
+    expect(app.text).toContain("home")
   })
 
-  test("shows combined entries with dot leaders", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
+  test("shows combined entries with dot leaders", () => {
+    const app = renderHelp()
     // Combined navigation entries
-    expect(stripped).toMatch(/hjkl.*\.+.*navigate/)
+    expect(app.text).toMatch(/hjkl.*\.+.*navigate/)
     // Combined fold entries (slash-separated display: "H / L")
-    expect(stripped).toMatch(/H \/ L.*\.+.*fold\/unfold/)
+    expect(app.text).toMatch(/H \/ L.*\.+.*fold\/unfold/)
   })
 
-  test("shows task section with task commands", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("TASK")
-    expect(stripped).toMatch(/x \/ X/)
+  test("shows task section with task commands", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("TASK")
+    expect(app.text).toMatch(/x \/ X/)
   })
 
-  test("shows editing section with edit commands", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("EDITING")
-    expect(stripped).toMatch(/o \/ O/)
+  test("shows editing section with edit commands", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("EDITING")
+    expect(app.text).toMatch(/o \/ O/)
   })
 
-  test("shows panes section with ⌃w chords", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("PANES")
-    // Chord prefix shown in combined entries
-    expect(stripped).toContain("⌃w")
+  test("shows panes section with ⌃w chords", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("PANES")
+    expect(app.text).toContain("⌃w")
   })
 
-  test("uses macOS key icons", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    // Ctrl shown as ⌃
-    expect(stripped).toContain("⌃")
-    // Cmd shown as ⌘
-    expect(stripped).toContain("⌘")
+  test("uses macOS key icons", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("⌃")
+    expect(app.text).toContain("⌘")
   })
 
-  test("bare '/' key for find is rendered in yellow", async () => {
-    const output = await renderHelp()
-    const lines = output.split("\n")
+  test("bare '/' key for find is rendered in yellow", () => {
+    const app = renderHelp()
+    const lines = app.ansi.split("\n")
     const findLine = lines.find((l: string) => {
       const s = strip(l)
       return s.includes("find") && s.includes("/")
     })
     expect(findLine).toBeDefined()
-    // Yellow ANSI code (38;5;3)
+    // Yellow ANSI code (38;5;3 or similar)
     expect(findLine).toMatch(/38;5;3/)
   })
 
-  test("scrolling shifts visible content", async () => {
+  test("scrolling shifts visible content", () => {
     const smallHeight = 30
 
-    const output0 = await renderHelp({ height: smallHeight, scrollOffset: 0 })
-    expect(strip(output0)).toContain("NAVIGATION")
+    const app0 = renderHelp({ height: smallHeight, scrollOffset: 0 })
+    expect(app0.text).toContain("NAVIGATION")
 
-    const output40 = await renderHelp({ height: smallHeight, scrollOffset: 40 })
-    const stripped40 = strip(output40)
-    expect(stripped40).not.toContain("NAVIGATION")
-    expect(stripped40).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|VERBS/)
+    const app40 = renderHelp({ height: smallHeight, scrollOffset: 40 })
+    expect(app40.text).not.toContain("NAVIGATION")
+    expect(app40.text).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|VERBS/)
   })
 
-  test("renders footer with close instructions", async () => {
-    const output = await renderHelp()
-    const stripped = strip(output)
-    expect(stripped).toContain("to close")
+  test("renders footer with close instructions", () => {
+    const app = renderHelp()
+    expect(app.text).toContain("to close")
   })
 
   test("small terminal renders fallback", async () => {
