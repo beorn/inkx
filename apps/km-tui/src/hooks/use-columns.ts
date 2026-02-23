@@ -11,7 +11,7 @@
  * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
 
-import { useMemo, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { isEmbed } from "@km/core"
@@ -93,12 +93,30 @@ export function useColumns(repo: Repo, rootId: string | null, foldedNodes: Set<s
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
+  // Coalesce rapid version bumps — multiple mutations within one frame
+  // (e.g., background link resolution firing touch() multiple times)
+  // only trigger one derivation. Disabled in test env where act() needs sync updates.
+  // @ts-expect-error - React internal flag set by inkx test renderer
+  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
+  const [debouncedVersion, setDebouncedVersion] = useState(repoVersion)
+  useEffect(() => {
+    if (isTest) {
+      setDebouncedVersion(repoVersion)
+      return
+    }
+    const id = setTimeout(() => setDebouncedVersion(repoVersion), 0)
+    return () => clearTimeout(id)
+  }, [repoVersion, isTest])
+
+  // In test mode, use repoVersion directly for synchronous updates
+  const effectiveVersion = isTest ? repoVersion : debouncedVersion
+
   return useMemo(() => {
     // No preloadSubtree here — getChildren() lazily loads from DB on cache miss.
     // computeDefaultFolds already warms the cache for cards at fold depth.
     // Avoiding the recursive CTE eliminates 10s+ startup freeze on large vaults.
     return deriveColumnsFromRepo(repo, rootId, foldedNodes)
-  }, [repoVersion, rootId, foldedNodes])
+  }, [effectiveVersion, rootId, foldedNodes])
 }
 
 /**

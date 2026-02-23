@@ -126,6 +126,19 @@ export function CommandBox({
   const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
   const spinnerFrame = useSpinnerFrame(isLoading)
 
+  // Elapsed time counter for long operations
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!ui.loadingStartTime) {
+      setElapsed(0)
+      return
+    }
+    const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [ui.loadingStartTime])
+
   // Flash white for 3s when any counter changes
   const logTotal = consoleStats?.total ?? 0
   const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
@@ -223,7 +236,7 @@ export function CommandBox({
         {/* Loading spinner */}
         {isLoading && !chordSuffix && (
           <Text dimColor>
-            {spinnerFrame}{" "}
+            {spinnerFrame}{elapsed > 1 ? ` ${elapsed}s ` : " "}
           </Text>
         )}
         {/* Pane indicator (only when in detail pane) */}

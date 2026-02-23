@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_nodes_parent ON nodes(parent_id);
+CREATE INDEX IF NOT EXISTS idx_nodes_parent_order ON nodes(parent_id, parent_idx);
 CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_path ON nodes(fs_path);
 CREATE INDEX IF NOT EXISTS idx_nodes_fs_ino ON nodes(fs_ino);
@@ -72,7 +72,8 @@ CREATE VIRTUAL TABLE IF NOT EXISTS nodes_fts USING fts5(
   id,
   content,
   content='nodes',
-  content_rowid='rowid'
+  content_rowid='rowid',
+  prefix='2,3,4'
 );
 
 -- Triggers to keep FTS in sync
@@ -148,6 +149,9 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
       db.run("UPDATE nodes SET type = 'embed' WHERE type = 'link'")
     }
   }
+
+  // Drop old single-column parent index (superseded by covering index)
+  try { db.run("DROP INDEX IF EXISTS idx_nodes_parent") } catch { /* ignore */ }
 }
 
 /**

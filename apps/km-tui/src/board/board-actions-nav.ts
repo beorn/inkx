@@ -135,6 +135,19 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
           }
         })
       }
+      // Prefetch adjacent column children for smooth navigation
+      const prefetchRootId = ctx.rootId
+      const prefetchColId = ctx.repo.getNode(targetId)?.parent_id
+      if (prefetchRootId && prefetchColId) {
+        setTimeout(() => {
+          const cols = ctx.repo.getChildren(prefetchRootId)
+          const targetColIdx = cols.findIndex((c) => c.id === prefetchColId)
+          const prev = targetColIdx > 0 ? cols[targetColIdx - 1] : undefined
+          const next = targetColIdx < cols.length - 1 ? cols[targetColIdx + 1] : undefined
+          if (prev) ctx.repo.getChildren(prev.id)
+          if (next) ctx.repo.getChildren(next.id)
+        })
+      }
       return ok()
     }
   }

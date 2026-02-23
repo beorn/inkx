@@ -275,87 +275,64 @@ function switchFocusedPane(
 // =============================================================================
 
 /** Depth threshold for initial folds: fold nodes with children at this depth or deeper inside each card. */
-const DEFAULT_FOLD_DEPTH = 1
+/** Above this column count, defer fold computation to avoid blocking the event loop. */
+const DEFERRED_FOLD_THRESHOLD = 10
 
-/** Above this column count, fold ALL cards aggressively (fold at depth 0) to stay responsive. */
-const AGGRESSIVE_FOLD_THRESHOLD = 20
+/**
+ * Defer a heavy computation to the next tick while showing a loading indicator.
+ * Sets isZoomLoading + ui.isLoading/loadingStartTime, yields to event loop,
+ * runs the computation, then clears loading state.
+ *
+ * @param set - Zustand set function
+ * @param state - Current state (for spreading ui)
+ * @param compute - The heavy work to do (returns partial state update)
+ */
+function deferWithProgress(
+  set: (partial: Partial<BoardAppStore> | ((state: BoardAppStore) => Partial<BoardAppStore>)) => void,
+  state: BoardAppStore,
+  compute: () => Partial<BoardAppStore>,
+): Partial<BoardAppState> {
+  setTimeout(() => {
+    const result = compute()
+    set((s) => ({
+      ...result,
+      isZoomLoading: false,
+      ui: { ...s.ui, isLoading: false, loadingStartTime: null },
+      workspace: {
+        ...s.workspace,
+        panes: syncFlatToFocusedPane({ ...s, ...result, isZoomLoading: false }),
+      },
+    }))
+  }, 0)
+  return {
+    isZoomLoading: true,
+    ui: { ...state.ui, isLoading: true, loadingStartTime: Date.now() },
+  }
+}
 
 /**
  * Compute default fold set for a given root.
- * Folds all non-leaf nodes at depth >= DEFAULT_FOLD_DEPTH within each card.
- * If existingFolds is non-empty, returns it unchanged (user has explicit folds).
+ * Folds at depth 1: cards are visible with their body/section headers,
+ * but card children (sub-items, sections) are folded.
+ * Folding a leaf is a no-op (no children to hide), so over-folding is safe.
  *
- * For large boards (>AGGRESSIVE_FOLD_THRESHOLD columns), folds all cards at depth 0
- * to avoid expensive tree traversal. The user can unfold specific areas with >.
+ * If existingFolds is non-empty, returns it unchanged (user has explicit folds).
+ * User can unfold specific areas with L or > (progressive disclosure).
  */
 function computeDefaultFolds(repo: Repo, rootId: string | null, existingFolds: Set<string>): Set<string> {
-  const foldedNodes = new Set(existingFolds)
-  if (!rootId || foldedNodes.size > 0) return foldedNodes
+  if (!rootId || existingFolds.size > 0) return new Set(existingFolds)
 
+  // Fold cards' children (depth 1). Cards show their direct content (body paragraphs,
+  // section headers) but sub-items within those sections are hidden.
+  // Folding a leaf node is harmless (stays in the set with no rendering effect).
+  const foldedNodes = new Set<string>()
   const columns = repo.getChildren(rootId)
-
-  // For large boards, fold ALL cards aggressively to keep zoom instant.
-  // Use getChildCounts batch query instead of preloadSubtree — avoids loading
-  // the full subtree (100k+ rows) just to check which cards have children.
-  if (columns.length > AGGRESSIVE_FOLD_THRESHOLD) {
-    // Collect all card IDs across all columns
-    const allCardIds: string[] = []
-    for (const col of columns) {
-      const cards = repo.getChildren(col.id)
-      for (const card of cards) {
-        allCardIds.push(card.id)
-      }
-    }
-    // Batch query: get child counts for all cards in one SQL call
-    const childCounts = repo.getChildCounts(allCardIds)
-    for (const cardId of allCardIds) {
-      if ((childCounts.get(cardId) ?? 0) > 0) {
-        foldedNodes.add(cardId)
-      }
-    }
-    return foldedNodes
-  }
-
-  // Normal boards: use batch getChildCounts to avoid expensive recursive CTE.
-  // For DEFAULT_FOLD_DEPTH=1, fold cards (depth 0) that have children with children.
-  // For DEFAULT_FOLD_DEPTH=0, fold cards that have any children.
-  if (DEFAULT_FOLD_DEPTH === 0) {
-    // Fold all cards with children (same logic as aggressive path)
-    const allCardIds: string[] = []
-    for (const col of columns) {
-      const cards = repo.getChildren(col.id)
-      for (const card of cards) allCardIds.push(card.id)
-    }
-    const childCounts = repo.getChildCounts(allCardIds)
-    for (const cardId of allCardIds) {
-      if ((childCounts.get(cardId) ?? 0) > 0) foldedNodes.add(cardId)
-    }
-  } else {
-    // DEFAULT_FOLD_DEPTH >= 1: walk one level at a time using getChildCounts batches.
-    // Collect nodes at each depth, batch-check their child counts,
-    // fold those with children at depth >= DEFAULT_FOLD_DEPTH.
-    for (const col of columns) {
-      const cards = repo.getChildren(col.id)
-      // BFS by depth within each card
-      for (const card of cards) {
-        let currentLevel = [card]
-        for (let depth = 0; depth < DEFAULT_FOLD_DEPTH; depth++) {
-          // Expand this level to get next level
-          const nextLevel: { id: string }[] = []
-          for (const node of currentLevel) {
-            const children = repo.getChildren(node.id)
-            for (const child of children) nextLevel.push(child)
-          }
-          currentLevel = nextLevel
-        }
-        // currentLevel is at DEFAULT_FOLD_DEPTH — fold those with children
-        if (currentLevel.length > 0) {
-          const ids = currentLevel.map((n) => n.id)
-          const childCounts = repo.getChildCounts(ids)
-          for (const node of currentLevel) {
-            if ((childCounts.get(node.id) ?? 0) > 0) foldedNodes.add(node.id)
-          }
-        }
+  for (const col of columns) {
+    const cards = repo.getChildren(col.id)
+    for (const card of cards) {
+      const children = repo.getChildren(card.id)
+      for (const child of children) {
+        foldedNodes.add(child.id)
       }
     }
   }
@@ -482,8 +459,7 @@ export function createBoardAppStoreState(
 ) => BoardAppStore {
   const bs = params.initialBoardState
 
-  // Compute initial folds: fold all foldable nodes at depth >= DEFAULT_FOLD_DEPTH
-  // within each card.
+  // Compute initial folds: fold all cards unconditionally for instant startup.
   const initialFoldedNodes = computeDefaultFolds(params.repo, bs.rootId, bs.foldedNodes)
 
   return (set, _get) => {
@@ -634,31 +610,25 @@ export function createBoardAppStoreState(
             }
 
             case "ZOOM_IN": {
-              // For large boards (>AGGRESSIVE_FOLD_THRESHOLD columns), defer fold
-              // computation so the UI can show a loading indicator instead of blocking.
+              // For large boards, defer fold computation so the UI can show
+              // a loading indicator instead of blocking.
               const zoomChildren = undoableRepo.getChildren(action.nodeId)
-              if (zoomChildren.length > AGGRESSIVE_FOLD_THRESHOLD) {
+              const zoomNodeId = action.nodeId
+              if (zoomChildren.length > DEFERRED_FOLD_THRESHOLD) {
                 flatUpdate = {
-                  rootId: action.nodeId,
+                  rootId: zoomNodeId,
                   cursorNodeId: action.cursorNodeId ?? null,
                   foldedNodes: new Set<string>(),
-                  isZoomLoading: true,
                   curswantX: null,
                   curswantY: null,
+                  ...deferWithProgress(set, state, () => ({
+                    foldedNodes: computeDefaultFolds(undoableRepo, zoomNodeId, new Set()),
+                  })),
                 }
-                const zoomNodeId = action.nodeId
-                setTimeout(() => {
-                  const folds = computeDefaultFolds(undoableRepo, zoomNodeId, new Set())
-                  set((s) => {
-                    const merged = { ...s, foldedNodes: folds, isZoomLoading: false }
-                    const syncedPanes = syncFlatToFocusedPane(merged)
-                    return { foldedNodes: folds, isZoomLoading: false, workspace: { ...s.workspace, panes: syncedPanes } }
-                  })
-                }, 0)
               } else {
-                const zoomFolded = computeDefaultFolds(undoableRepo, action.nodeId, new Set())
+                const zoomFolded = computeDefaultFolds(undoableRepo, zoomNodeId, new Set())
                 flatUpdate = {
-                  rootId: action.nodeId,
+                  rootId: zoomNodeId,
                   cursorNodeId: action.cursorNodeId ?? null,
                   foldedNodes: zoomFolded,
                   curswantX: null,
@@ -679,27 +649,21 @@ export function createBoardAppStoreState(
               ]
               // For large boards, defer fold computation
               const setRootChildren = undoableRepo.getChildren(action.rootId)
-              if (setRootChildren.length > AGGRESSIVE_FOLD_THRESHOLD) {
+              const setRootId = action.rootId
+              if (setRootChildren.length > DEFERRED_FOLD_THRESHOLD) {
                 flatUpdate = {
-                  rootId: action.rootId,
+                  rootId: setRootId,
                   rootPath: action.rootPath,
                   cursorNodeId: action.cursorNodeId,
                   foldedNodes: new Set<string>(),
-                  isZoomLoading: true,
                   navHistory: newHistory,
                   navHistoryIndex: newHistory.length,
                   curswantX: null,
                   curswantY: null,
+                  ...deferWithProgress(set, state, () => ({
+                    foldedNodes: computeDefaultFolds(undoableRepo, setRootId, new Set()),
+                  })),
                 }
-                const setRootId = action.rootId
-                setTimeout(() => {
-                  const folds = computeDefaultFolds(undoableRepo, setRootId, new Set())
-                  set((s) => {
-                    const merged = { ...s, foldedNodes: folds, isZoomLoading: false }
-                    const syncedPanes = syncFlatToFocusedPane(merged)
-                    return { foldedNodes: folds, isZoomLoading: false, workspace: { ...s.workspace, panes: syncedPanes } }
-                  })
-                }, 0)
               } else {
                 const rootFolded = computeDefaultFolds(undoableRepo, action.rootId, new Set())
                 flatUpdate = {

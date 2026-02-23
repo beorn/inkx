@@ -102,10 +102,20 @@ export const viewCommand = new Command("view")
       process.stderr.write(`⚠ ${prefix}${err.message}\n`)
     }
 
-    // Build view state
+    // Build view state with progress display (covers the gap between loadRepo and board render)
     const state = (() => {
       using _ = startup.span("build-state")
-      const result = coreModule.runGenerator(tuiModule.initBoardStateGenerator(createdRepo, rootNodeId))
+      const result = coreModule.runWithProgress(
+        tuiModule.initBoardStateGenerator(createdRepo, rootNodeId),
+        (info: string | { current?: number; total?: number }) => {
+          if (typeof info === "string") {
+            process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + `  Building board: ${info}`)
+          } else if (info.current != null && info.total != null) {
+            process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END + `  Building board (${info.current}/${info.total})`)
+          }
+        },
+      )
+      process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
       if (result) {
         result.rootPath = resolved.repoRoot
       }

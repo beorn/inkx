@@ -999,6 +999,13 @@ function* initWithFileLoading(
     }
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
+    // Performance pragmas for disk mode
+    db.run("PRAGMA journal_mode = WAL")
+    db.run("PRAGMA synchronous = NORMAL")
+    db.run("PRAGMA temp_store = MEMORY")
+    db.run("PRAGMA cache_size = -200000")
+    db.run("PRAGMA mmap_size = 268435456")
+    db.run("PRAGMA wal_autocheckpoint = 10000")
     migrateSchema(db)
     db.run(SCHEMA)
   } else {
@@ -1088,6 +1095,13 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
 
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
+    // Performance pragmas for disk mode
+    db.run("PRAGMA journal_mode = WAL")
+    db.run("PRAGMA synchronous = NORMAL")
+    db.run("PRAGMA temp_store = MEMORY")
+    db.run("PRAGMA cache_size = -200000")
+    db.run("PRAGMA mmap_size = 268435456")
+    db.run("PRAGMA wal_autocheckpoint = 10000")
     migrateSchema(db)
     db.run(SCHEMA)
     dataStore = createDBDataStore(db, { emitter })
