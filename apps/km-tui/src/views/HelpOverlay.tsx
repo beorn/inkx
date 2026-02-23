@@ -1,13 +1,9 @@
 /**
  * Help Overlay Component
  *
- * Displays keyboard shortcuts for the board TUI, auto-generated from the
- * keybinding registry and command definitions.
- *
- * Uses inkx flex layout throughout — no manual width calculations.
- * Fill component handles dot leaders and section header fills.
- *
+ * Displays keyboard shortcuts for the board TUI.
  * Multi-column layout with verb × location grid. Scrollable with j/k.
+ * Fill component handles dot leaders and section header fills.
  */
 import React, { useMemo } from "react"
 import { Box, Text, Fill } from "inkx"
@@ -27,12 +23,11 @@ interface HelpOverlayProps {
  * null = verb grid (special rendering). Sections not in any row
  * are appended at the end.
  */
-const SECTION_ROWS: Array<string[] | null> = [
+const SECTION_ROWS: Array<string[] | "verb-grid"> = [
   ["Navigation", "Editing"],
   ["Selection", "Task"],
   ["View", "Panes"],
-  ["System"],
-  null, // verb × location grid
+  ["System", "verb-grid"],
 ]
 
 // ── Key display formatting ──────────────────────────────────────────
@@ -67,13 +62,14 @@ function KeyText({ keys, prefix }: { keys: string; prefix: string }): React.Reac
 function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text dimColor>{"── "}</Text>
+      <Text>{"  "}</Text>
       <Text bold color="cyan">
         {title.toUpperCase()}
       </Text>
+      <Text>{" "}</Text>
       <Box flexGrow={1}>
         <Fill>
-          <Text dimColor>{" ─"}</Text>
+          <Text dimColor>{"─"}</Text>
         </Fill>
       </Box>
     </Box>
@@ -125,30 +121,28 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
   // Render section rows (multi-column)
   for (const row of SECTION_ROWS) {
-    if (row === null) {
-      lines.push(...buildVerbGridLines(contentWidth))
-      continue
-    }
-
-    const sectionData: HelpSection[] = []
+    // Collect columns for this row — sections or verb-grid
+    const cols: React.ReactElement[][] = []
     for (const name of row) {
-      const section = sectionMap.get(name)
-      if (section) {
-        sectionData.push(section)
-        rendered.add(name)
+      if (name === "verb-grid") {
+        cols.push(buildVerbGridLines())
+      } else {
+        const section = sectionMap.get(name)
+        if (section) {
+          cols.push(buildSectionLines(section, `s${cols.length}-${section.category}`))
+          rendered.add(name)
+        }
       }
     }
 
-    if (sectionData.length === 0) continue
+    if (cols.length === 0) continue
 
-    if (sectionData.length === 1) {
+    if (cols.length === 1) {
       // Single column — full width
-      const prefix = `s-${sectionData[0].category}`
-      lines.push(...buildSectionLines(sectionData[0], prefix))
+      lines.push(...cols[0])
     } else {
       // Multi-column: merge lines side by side using fixed-width Boxes
-      const colWidth = Math.floor(contentWidth / sectionData.length)
-      const cols = sectionData.map((s, ci) => buildSectionLines(s, `s${ci}-${s.category}`))
+      const colWidth = Math.floor(contentWidth / cols.length)
       const maxLines = Math.max(...cols.map((c) => c.length))
 
       for (let i = 0; i < maxLines; i++) {
@@ -182,52 +176,76 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 // ── Verb × Location grid ────────────────────────────────────────────
 
 /** Column widths for the verb grid */
-const VG_LOC_W = 14
-const VG_COL_W = 14
+const VG_LOC_W = 12
+const VG_COL_W = 10
 
 function GridCell({ value }: { value?: string }): React.ReactElement {
-  if (!value) return <Text dimColor>{"—"}</Text>
+  if (!value) return <Text dimColor>{"·"}</Text>
   return <Text color="yellow">{value}</Text>
 }
 
-function buildVerbGridLines(contentWidth: number): React.ReactElement[] {
+function buildVerbGridLines(): React.ReactElement[] {
   const lines: React.ReactElement[] = []
 
-  // Header
+  // Section header
   lines.push(
     <Box key="vg-hdr" flexDirection="row">
-      <Text dimColor>{"── "}</Text>
+      <Text>{"  "}</Text>
       <Text bold color="cyan">
-        {"VERBS × LOCATIONS"}
+        {"CHORDS"}
       </Text>
+      <Text>{" "}</Text>
       <Box flexGrow={1}>
         <Fill>
-          <Text dimColor>{" ─"}</Text>
+          <Text dimColor>{"─"}</Text>
         </Fill>
       </Box>
     </Box>,
   )
 
-  // Column headers
+  // Column headers (verb names)
   lines.push(
     <Box key="vg-col-hdr" flexDirection="row">
       <Text>{"  "}</Text>
       <Box width={VG_LOC_W}>
-        <Text dimColor>{""}</Text>
+        <Text dimColor>{"prefix"}</Text>
       </Box>
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
-          {"go (g)"}
+          {"go"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
-          {"move (m)"}
+          {"move"}
         </Text>
       </Box>
       <Text bold color="cyan">
-        {"add (a)"}
+        {"add"}
       </Text>
+    </Box>,
+  )
+
+  // Prefix row (chord key + ctrl alternative)
+  lines.push(
+    <Box key="vg-prefix" flexDirection="row">
+      <Text>{"  "}</Text>
+      <Box width={VG_LOC_W}>
+        <Text dimColor>{""}</Text>
+      </Box>
+      <Box width={VG_COL_W} flexDirection="row">
+        <Text color="yellow">{"g"}</Text>
+      </Box>
+      <Box width={VG_COL_W} flexDirection="row">
+        <Text color="yellow">{"m"}</Text>
+        <Text dimColor>{" / "}</Text>
+        <Text color="yellow">{"⌃r"}</Text>
+      </Box>
+      <Box flexDirection="row">
+        <Text color="yellow">{"a"}</Text>
+        <Text dimColor>{" / "}</Text>
+        <Text color="yellow">{"⌃l"}</Text>
+      </Box>
     </Box>,
   )
 
@@ -274,7 +292,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         data-dialog="help"
       >
         <Text color="white">Terminal too small</Text>
-        <Text dimColor>Press ? or ⎋</Text>
+        <Text dimColor>Press ? or Esc</Text>
       </Box>
     )
   }
@@ -305,7 +323,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   const footer = (
     <Box>
-      <Text dimColor>⎋ to close</Text>
+      <Text dimColor>Esc to close</Text>
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>

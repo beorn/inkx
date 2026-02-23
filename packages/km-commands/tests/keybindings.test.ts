@@ -831,7 +831,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(62) // 19 g + 5 m + 7 a + 9 t + 22 Ctrl+w
+    expect(chordBindings.length).toBe(63) // 19 g + 6 m + 7 a + 9 t + 22 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {

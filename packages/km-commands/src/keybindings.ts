@@ -687,6 +687,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "m", key: "i", commandId: "move_to_inbox" },
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
+      { chord: "m", key: "e", commandId: "move_to_archive" },
       { chord: "m", key: "+", commandId: "move_to_project" },
       { chord: "m", key: "p", commandId: "reparent_picker" },
 

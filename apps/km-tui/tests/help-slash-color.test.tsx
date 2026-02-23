@@ -43,13 +43,14 @@ describe("HelpOverlay", () => {
     }
   })
 
-  test("shows verb × location grid", () => {
+  test("shows chord grid", () => {
     const app = renderHelp()
-    expect(app.text).toContain("VERBS")
-    expect(app.text).toContain("LOCATIONS")
-    expect(app.text).toContain("go (g)")
-    expect(app.text).toContain("move (m)")
-    expect(app.text).toContain("add (a)")
+    expect(app.text).toContain("CHORDS")
+    // Column headers
+    expect(app.text).toMatch(/go\s+move\s+add/)
+    // Prefix row with ctrl alternatives
+    expect(app.text).toContain("⌃r")
+    expect(app.text).toContain("⌃l")
     // Grid rows
     expect(app.text).toContain("inbox")
     expect(app.text).toContain("journal")
@@ -108,7 +109,7 @@ describe("HelpOverlay", () => {
 
     const app40 = renderHelp({ height: smallHeight, scrollOffset: 40 })
     expect(app40.text).not.toContain("NAVIGATION")
-    expect(app40.text).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|VERBS/)
+    expect(app40.text).toMatch(/TASK|FOLD|VIEW|PANES|SYSTEM|CHORDS/)
   })
 
   test("renders footer with close instructions", () => {
