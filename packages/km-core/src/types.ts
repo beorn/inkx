@@ -242,7 +242,9 @@ export interface ValidationError {
  * - embed no children (checked at tree level, not here)
  * - item-allowed block types: table/hr/html/math/embed cannot be items
  */
-export function validateNode(node: Pick<KNode, "type" | "item" | "task_status" | "task_marker" | "embed_source">): ValidationError[] {
+export function validateNode(
+  node: Pick<KNode, "type" | "item" | "task_status" | "task_marker" | "embed_source">,
+): ValidationError[] {
   const errors: ValidationError[] = []
 
   // h requires item

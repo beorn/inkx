@@ -200,26 +200,26 @@ describe("getFirstChildPath", () => {
 
 describe("countVisibleNodes", () => {
   it("counts all nodes when nothing is folded", () => {
-    const count = countVisibleNodes(testNodes, new Set())
+    const count = countVisibleNodes(testNodes, new Map())
     expect(count).toBe(7) // All 7 nodes visible
   })
 
   it("excludes children of folded nodes", () => {
-    const foldedNodes = new Set(["col-a"])
+    const foldedNodes = new Map([["col-a", 0]])
     const count = countVisibleNodes(testNodes, foldedNodes)
     // col-a (visible) + col-b + card-3 = 3 (col-a's children hidden)
     expect(count).toBe(3)
   })
 
   it("handles deeply folded nodes", () => {
-    const foldedNodes = new Set(["card-1"])
+    const foldedNodes = new Map([["card-1", 0]])
     const count = countVisibleNodes(testNodes, foldedNodes)
     // All except item-1-1 and item-1-2 = 5
     expect(count).toBe(5)
   })
 
   it("returns 0 for empty nodes", () => {
-    expect(countVisibleNodes([], new Set())).toBe(0)
+    expect(countVisibleNodes([], new Map())).toBe(0)
   })
 })
 

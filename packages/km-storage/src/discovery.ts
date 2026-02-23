@@ -328,6 +328,7 @@ function isParseableFile(name: string): boolean {
  * Counts .md and .txt files. Follows symlinks with cycle detection.
  * Used for progress display only.
  */
+// oxlint-disable-next-line complexity/complexity -- stack-based directory walker, complexity from error handling
 function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): number {
   if (!existsSync(rootPath)) return 0
 

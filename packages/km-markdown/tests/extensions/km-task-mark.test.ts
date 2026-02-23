@@ -26,7 +26,9 @@ import { kmTaskMark, kmTaskMarkFromMarkdown } from "../../src/extensions/km-task
 
 function parse(md: string) {
   return fromMarkdown(md, {
-    extensions: [combineExtensions([gfmAutolinkLiteral(), gfmFootnote(), gfmStrikethrough(), gfmTable(), kmTaskMark()])],
+    extensions: [
+      combineExtensions([gfmAutolinkLiteral(), gfmFootnote(), gfmStrikethrough(), gfmTable(), kmTaskMark()]),
+    ],
     mdastExtensions: [
       gfmAutolinkLiteralFromMarkdown(),
       gfmFootnoteFromMarkdown(),

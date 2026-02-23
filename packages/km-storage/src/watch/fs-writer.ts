@@ -167,7 +167,8 @@ export class FsWriter implements FsSync {
     const node = getNode(this.db, event.target)
     if (
       node?.fs_path &&
-      node.type === "h" && node.item &&
+      node.type === "h" &&
+      node.item &&
       (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")
     ) {
       const absPath = toAbsoluteFsPath(this.repoPath, node.fs_path)

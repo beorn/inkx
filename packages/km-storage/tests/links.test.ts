@@ -147,7 +147,9 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the source file
-      const sourceFile = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile" && n.fs_path?.endsWith("source.md"))
+      const sourceFile = nodes.find(
+        (n) => n.type === "h" && n.item === true && n.fstype === "mdfile" && n.fs_path?.endsWith("source.md"),
+      )
       expect(sourceFile).toBeDefined()
 
       // The embedding should fall back to the file since section doesn't exist
@@ -199,7 +201,9 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the inbox folder
-      const inboxFolder = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "inbox")
+      const inboxFolder = nodes.find(
+        (n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "inbox",
+      )
       expect(inboxFolder).toBeDefined()
 
       // The embedding should point to the folder
@@ -222,7 +226,9 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the projects folder
-      const projectsFolder = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "projects")
+      const projectsFolder = nodes.find(
+        (n) => n.type === "h" && n.item === true && n.fstype === "folder" && n.name === "projects",
+      )
       expect(projectsFolder).toBeDefined()
 
       // The embedding's embed_source should point to the folder
@@ -417,7 +423,9 @@ describe("Links and Backlinks", () => {
       expect(embedNode).toBeDefined()
 
       // Find the Introduction section
-      const introSection = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.title === "Introduction")
+      const introSection = nodes.find(
+        (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.title === "Introduction",
+      )
       expect(introSection).toBeDefined()
 
       // The embed's embed_source should point to the Introduction section

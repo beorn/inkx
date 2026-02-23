@@ -138,7 +138,9 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
 
   // kmast v2: convert old type values to trait-based model
   // oi → h + item:true, li → p + item:true, link → embed + embed_source from link_to
-  const hasOldTypes = (db.query("SELECT COUNT(*) as cnt FROM nodes WHERE type IN ('oi', 'li', 'link')").get() as { cnt: number }).cnt
+  const hasOldTypes = (
+    db.query("SELECT COUNT(*) as cnt FROM nodes WHERE type IN ('oi', 'li', 'link')").get() as { cnt: number }
+  ).cnt
   if (hasOldTypes > 0) {
     db.run("UPDATE nodes SET type = 'h', item = 1 WHERE type = 'oi'")
     db.run("UPDATE nodes SET type = 'p', item = 1 WHERE type = 'li'")
@@ -151,7 +153,11 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   }
 
   // Drop old single-column parent index (superseded by covering index)
-  try { db.run("DROP INDEX IF EXISTS idx_nodes_parent") } catch { /* ignore */ }
+  try {
+    db.run("DROP INDEX IF EXISTS idx_nodes_parent")
+  } catch {
+    /* ignore */
+  }
 }
 
 /**

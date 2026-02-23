@@ -228,8 +228,7 @@ export class Verifier implements IVerifier {
 
     const fsNodes = nodes.filter(
       (n) =>
-        (n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile")) ||
-        (n.type === "h" && n.fstype === "folder"),
+        (n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile")) || (n.type === "h" && n.fstype === "folder"),
     )
 
     for (const node of fsNodes) {
@@ -325,9 +324,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter(
-      (n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path,
-    )
+    const fileNodes = nodes.filter((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!
@@ -393,9 +390,7 @@ export class Verifier implements IVerifier {
     const nodes = getAllNodes(db)
 
     // Only check file nodes that have fs_path
-    const fileNodes = nodes.filter(
-      (n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path,
-    )
+    const fileNodes = nodes.filter((n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path)
 
     for (const node of fileNodes) {
       const fsPath = node.fs_path!

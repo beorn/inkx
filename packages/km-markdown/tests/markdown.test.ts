@@ -721,7 +721,9 @@ Even more content.`
     // so they're no longer detected as multiple H1s
     expect(result.warnings).toHaveLength(0)
     // First H1 is merged into file, others become H2 children
-    expect(result.nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")?.title).toBe("First Title")
+    expect(result.nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")?.title).toBe(
+      "First Title",
+    )
     const sections = result.nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
     expect(sections).toHaveLength(2) // "Second Title" and "Third Title" as H2s
   })

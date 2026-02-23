@@ -92,12 +92,12 @@ export function getFirstChildPath(nodes: TNode[], path: TPath): TPath | null {
 /**
  * Count total visible nodes in tree (respecting fold state)
  */
-export function countVisibleNodes(nodes: TNode[], foldedNodes: Set<string>): number {
+export function countVisibleNodes(nodes: TNode[], foldDepths: Map<string, number>): number {
   let count = 0
   for (const node of nodes) {
     count++
-    if (!foldedNodes.has(node.id) && node.children.length > 0) {
-      count += countVisibleNodes(node.children, foldedNodes)
+    if (foldDepths.get(node.id) !== 0 && node.children.length > 0) {
+      count += countVisibleNodes(node.children, foldDepths)
     }
   }
   return count

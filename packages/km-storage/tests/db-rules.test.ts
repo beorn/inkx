@@ -157,7 +157,8 @@ describe("Database Rules", () => {
         ({ store }) => {
           const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
           )
           expect(openSection).toBeDefined()
 
@@ -193,7 +194,8 @@ describe("Database Rules", () => {
         ({ store }) => {
           const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
           )
           expect(openSection).toBeDefined()
 
@@ -240,21 +242,19 @@ describe("Database Rules", () => {
 
           const allNodes = store.getAllNodes()
           const todoSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@project status:todo",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@project status:todo",
           )
           const doneSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@project status:done",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@project status:done",
           )
 
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter(
-            (c) => c.type === "embed",
-          )
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter(
-            (c) => c.type === "embed",
-          )
+          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.type === "embed")
+          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.type === "embed")
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -286,7 +286,8 @@ describe("Database Rules", () => {
         ({ store }) => {
           const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
           )
           expect(openSection).toBeDefined()
 
@@ -351,7 +352,9 @@ describe("Database Rules", () => {
         },
         ({ store }) => {
           const allNodes = store.getAllNodes()
-          const inboxSection = allNodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add)
+          const inboxSection = allNodes.find(
+            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add,
+          )
           expect(inboxSection).toBeDefined()
 
           const ctx = createRuleContext()
@@ -458,7 +461,8 @@ describe("Database Rules", () => {
 
           const allNodes = store.getAllNodes()
           const openSection = allNodes.find(
-            (n) => n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
+            (n) =>
+              n.type === "h" && n.item === true && n.fstype === "mdsection" && n.rules?.add === "@issue status:todo",
           )
           expect(openSection).toBeDefined()
 

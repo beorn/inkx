@@ -35,7 +35,8 @@ function testDataStore(name: string, factory: () => DataStore) {
       test("adds a node with specified ID", () => {
         const id = store.addNode(null, {
           id: "custom-id",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Test",
         })
         expect(id).toBe("custom-id")
@@ -43,11 +44,13 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("adds a node under parent", () => {
         const parentId = store.addNode(null, {
-          type: "h", item: true,
+          type: "h",
+          item: true,
           content: "Parent",
         })
         const childId = store.addNode(parentId, {
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Child",
         })
 
@@ -57,7 +60,8 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("stores non-column fields in data blob", () => {
         const id = store.addNode(null, {
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Test",
           due_at: "2026-03-01T09:00",
           start_at: "2026-03-01T10:30",
@@ -142,7 +146,8 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("preserves unmodified properties", () => {
         const id = store.addNode(null, {
-          type: "p", item: true,
+          type: "p",
+          item: true,
           content: "Test",
           priority: 1,
         })

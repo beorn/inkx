@@ -136,17 +136,19 @@ function translateTypeCondition(value: string, op: string, params: (string | num
   const negated = op === "!="
   switch (value) {
     case "task":
-      return negated
-        ? " AND NOT (item = 1 AND task_marker IS NOT NULL)"
-        : " AND item = 1 AND task_marker IS NOT NULL"
+      return negated ? " AND NOT (item = 1 AND task_marker IS NOT NULL)" : " AND item = 1 AND task_marker IS NOT NULL"
     case "section":
-      return negated ? " AND NOT (type = 'h' AND item = 1 AND fstype IS NULL)" : " AND type = 'h' AND item = 1 AND fstype IS NULL"
+      return negated
+        ? " AND NOT (type = 'h' AND item = 1 AND fstype IS NULL)"
+        : " AND type = 'h' AND item = 1 AND fstype IS NULL"
     case "file":
       return negated
         ? " AND NOT (type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile'))"
         : " AND type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile')"
     case "folder":
-      return negated ? " AND NOT (type = 'h' AND item = 1 AND fstype = 'folder')" : " AND type = 'h' AND item = 1 AND fstype = 'folder'"
+      return negated
+        ? " AND NOT (type = 'h' AND item = 1 AND fstype = 'folder')"
+        : " AND type = 'h' AND item = 1 AND fstype = 'folder'"
     default:
       params.push(value)
       return negated ? ` AND (type != ? OR type IS NULL)` : ` AND type = ?`

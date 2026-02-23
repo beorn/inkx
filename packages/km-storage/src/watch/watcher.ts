@@ -355,6 +355,7 @@ export async function scanDirectoryAsync(
               isDirectory: stat.isDirectory(),
               isSymlink: true,
             })
+            return undefined
           })
           .catch(() => {
             log.debug?.(`broken symlink, skipping: ${fullPath}`)
@@ -373,6 +374,7 @@ export async function scanDirectoryAsync(
             mtime: stat.mtimeMs,
             isDirectory: entry.isDirectory(),
           })
+          return undefined
         })
         .catch(() => {
           // Skip inaccessible files

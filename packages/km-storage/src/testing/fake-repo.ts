@@ -383,7 +383,9 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         created_at: now,
         updated_at: now,
         version: "fake-0",
-        task_status: nodeData.task_status ?? (nodeData.item === true && nodeData.type !== "h" ? ("todo" as TaskStatus) : undefined),
+        task_status:
+          nodeData.task_status ??
+          (nodeData.item === true && nodeData.type !== "h" ? ("todo" as TaskStatus) : undefined),
         task_marker: nodeData.task_marker ?? (nodeData.item === true && nodeData.type !== "h" ? "[ ]" : undefined),
       } as KNode
 

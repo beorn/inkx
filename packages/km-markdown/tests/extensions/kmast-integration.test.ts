@@ -352,11 +352,9 @@ describe("kmast integration: combined features", () => {
   })
 
   test("multiple list items each have independent data", () => {
-    const md = [
-      "- [x] Done #tag1 rating:: 5 ^id1",
-      "- [ ] Open #tag2 @user ^id2",
-      "- [/] WIP status:: active",
-    ].join("\n")
+    const md = ["- [x] Done #tag1 rating:: 5 ^id1", "- [ ] Open #tag2 @user ^id2", "- [/] WIP status:: active"].join(
+      "\n",
+    )
     const tree = parse(md)
     const list = tree.children[0] as any
     const items = list.children

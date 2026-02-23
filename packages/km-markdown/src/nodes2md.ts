@@ -109,7 +109,9 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
     }
 
     const isCurrentList = isItem(child.type, child.item) && !isOutline(child.type, child.item)
-    const isNextList = nextChild ? isItem(nextChild.type, nextChild.item) && !isOutline(nextChild.type, nextChild.item) : false
+    const isNextList = nextChild
+      ? isItem(nextChild.type, nextChild.item) && !isOutline(nextChild.type, nextChild.item)
+      : false
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
@@ -200,7 +202,6 @@ function serializeNode(
   }
 
   switch (node.type) {
-
     case "p": {
       let paraContent = node.content ?? ""
       if (node.block_id) paraContent += ` ^${node.block_id}`

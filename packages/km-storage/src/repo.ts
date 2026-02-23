@@ -215,9 +215,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
     },
     getRepoRootNode() {
-      const row = db.prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'h' AND item = 1 AND fstype = 'folder'").get() as
-        | Record<string, unknown>
-        | undefined
+      const row = db
+        .prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'h' AND item = 1 AND fstype = 'folder'")
+        .get() as Record<string, unknown> | undefined
       if (!row) return null
       // Import rowToNode inline to avoid circular dependency
       return {
@@ -940,7 +940,9 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
 
   // Check root's structural children (files and folders that should map to fs entries)
   const rootStructural = (
-    db.prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'h' AND item = 1").get() as {
+    db
+      .prepare("SELECT COUNT(*) as cnt FROM nodes WHERE parent_id = '.' AND id != '.' AND type = 'h' AND item = 1")
+      .get() as {
       cnt: number
     }
   ).cnt

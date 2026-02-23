@@ -935,7 +935,9 @@ export class SyncManager extends EventEmitter {
 
     const nodes = getAllNodes(this.db)
     // CRITICAL: Only sync .md files to prevent corruption of source code/config files
-    const fileNodes = nodes.filter((n) => n.type === "h" && n.item && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"))
+    const fileNodes = nodes.filter(
+      (n) => n.type === "h" && n.item && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"),
+    )
 
     log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
 

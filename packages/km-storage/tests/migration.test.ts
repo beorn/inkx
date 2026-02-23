@@ -118,9 +118,11 @@ describe("SQLite performance optimizations", () => {
     const db = new Database(":memory:")
     db.run(SCHEMA)
 
-    const indexInfo = db
-      .prepare("PRAGMA index_info(idx_nodes_parent_order)")
-      .all() as { seqno: number; cid: number; name: string }[]
+    const indexInfo = db.prepare("PRAGMA index_info(idx_nodes_parent_order)").all() as {
+      seqno: number
+      cid: number
+      name: string
+    }[]
 
     expect(indexInfo).toHaveLength(2)
     expect(indexInfo[0].name).toBe("parent_id")
@@ -184,20 +186,12 @@ describe("SQLite performance optimizations", () => {
     db.run(SCHEMA)
 
     // Insert nodes with content — triggers auto-populate FTS via triggers
-    db.run(
-      "INSERT INTO nodes (id, type, content) VALUES ('n1', 'p', 'project planning document')"
-    )
-    db.run(
-      "INSERT INTO nodes (id, type, content) VALUES ('n2', 'p', 'programming in TypeScript')"
-    )
-    db.run(
-      "INSERT INTO nodes (id, type, content) VALUES ('n3', 'p', 'unrelated content here')"
-    )
+    db.run("INSERT INTO nodes (id, type, content) VALUES ('n1', 'p', 'project planning document')")
+    db.run("INSERT INTO nodes (id, type, content) VALUES ('n2', 'p', 'programming in TypeScript')")
+    db.run("INSERT INTO nodes (id, type, content) VALUES ('n3', 'p', 'unrelated content here')")
 
     // Prefix search — should match nodes containing words starting with "proj"
-    const results = db
-      .prepare("SELECT id FROM nodes_fts WHERE nodes_fts MATCH 'proj*'")
-      .all() as { id: string }[]
+    const results = db.prepare("SELECT id FROM nodes_fts WHERE nodes_fts MATCH 'proj*'").all() as { id: string }[]
 
     expect(results.length).toBeGreaterThanOrEqual(1)
     expect(results.map((r) => r.id)).toContain("n1")
@@ -217,12 +211,10 @@ describe("SQLite performance optimizations", () => {
     db.run("PRAGMA wal_autocheckpoint = 10000")
 
     // Verify pragmas are set correctly
-    const journalMode = (db.prepare("PRAGMA journal_mode").get() as { journal_mode: string })
-      .journal_mode
+    const journalMode = (db.prepare("PRAGMA journal_mode").get() as { journal_mode: string }).journal_mode
     expect(journalMode).toBe("wal")
 
-    const synchronous = (db.prepare("PRAGMA synchronous").get() as { synchronous: number })
-      .synchronous
+    const synchronous = (db.prepare("PRAGMA synchronous").get() as { synchronous: number }).synchronous
     expect(synchronous).toBe(1) // NORMAL = 1
 
     const tempStore = (db.prepare("PRAGMA temp_store").get() as { temp_store: number }).temp_store

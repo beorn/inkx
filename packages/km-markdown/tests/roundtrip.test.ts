@@ -793,7 +793,9 @@ describe("Round-trip: Task Metadata Formats", () => {
   })
 
   test("should preserve recurrence metadata", () => {
-    const task = parse(`- [ ] Recurring task 🔁 every week`).find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task = parse(`- [ ] Recurring task 🔁 every week`).find(
+      (n) => n.type === "p" && n.item === true && n.task_marker,
+    )
     expect(task).toBeDefined()
     expect(task!.data?.recurrence).toBe("every week")
   })

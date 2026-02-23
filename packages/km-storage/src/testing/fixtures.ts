@@ -137,8 +137,8 @@ function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: K
     title: builder._title,
     content: builder._content,
     item: builder._item === true ? true : undefined,
-    task_status: (builder._type === "p" && builder._item) ? (builder._done ? "done" : "todo") : undefined,
-    task_marker: (builder._type === "p" && builder._item) ? (builder._done ? "[x]" : "[ ]") : undefined,
+    task_status: builder._type === "p" && builder._item ? (builder._done ? "done" : "todo") : undefined,
+    task_marker: builder._type === "p" && builder._item ? (builder._done ? "[x]" : "[ ]") : undefined,
     created_at: now,
     updated_at: now,
   })

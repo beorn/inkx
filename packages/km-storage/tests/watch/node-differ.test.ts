@@ -41,7 +41,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile", parent_idx: 0 }),
         makeNode({
           id: "task-old",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           content: "Task 1",
@@ -51,7 +52,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile", parent_idx: 0 }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "Task 1",
@@ -75,7 +77,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
@@ -84,7 +87,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 1, // Different raw index, but same ordinal (0)
         }),
@@ -105,14 +109,16 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0.5,
           content: "A",
         }),
         makeNode({
           id: "task-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 1,
           content: "B",
@@ -122,14 +128,16 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "A",
         }),
         makeNode({
           id: "task-new-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 1,
           content: "B",
@@ -149,7 +157,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "node-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
@@ -158,7 +167,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "node-new",
-          type: "h", item: true, // Different type
+          type: "h",
+          item: true, // Different type
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -191,13 +201,15 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "section-1",
           parent_idx: 0,
         }),
@@ -206,13 +218,15 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "section-new",
           parent_idx: 0,
         }),
@@ -230,7 +244,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
@@ -239,13 +254,15 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "section-new",
           parent_idx: 0, // New node under existing section
         }),
@@ -264,7 +281,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           content: "Old content",
@@ -274,7 +292,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "New content",
@@ -293,7 +312,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           task_status: "todo",
@@ -303,7 +323,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           task_status: "done",
@@ -322,7 +343,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           data: { tags: ["old"] },
@@ -332,7 +354,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           data: { tags: ["new", "added"] },
@@ -353,7 +376,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           title: "Waiting",
@@ -365,7 +389,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           title: "",
@@ -390,7 +415,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile", content: "File" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
           content: "Task",
@@ -401,7 +427,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile", content: "File" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "Task",
@@ -422,7 +449,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -440,7 +468,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
@@ -459,7 +488,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "file-2",
-          type: "h", item: true,
+          type: "h",
+          item: true,
           fstype: "mdfile", // Extra file (shouldn't happen but handle gracefully)
         }),
       ]
@@ -479,7 +509,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -498,13 +529,15 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 1,
         }),
@@ -524,13 +557,15 @@ describe("diffNodes", () => {
         makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-2",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-1",
           parent_idx: 0, // Same position!
         }),
@@ -539,7 +574,8 @@ describe("diffNodes", () => {
         makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
-          type: "p", item: true,
+          type: "p",
+          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),

@@ -31,7 +31,6 @@ export type {
   NotificationLevel,
 } from "./types.ts"
 
-
 // Build info (auto-generated)
 export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"
 export type { BuildInfo } from "./build-info.gen.ts"

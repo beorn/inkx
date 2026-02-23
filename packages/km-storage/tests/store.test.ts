@@ -91,7 +91,9 @@ describe("MemoryStore", () => {
     expect(allNodes.length).toBeGreaterThan(0)
 
     // Should have files (3 .md + 3 non-md)
-    const files = allNodes.filter((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
+    const files = allNodes.filter(
+      (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"),
+    )
     expect(files.length).toBe(6) // tasks.md, notes.md, project-a.md, document.pdf, image.png, readme.txt
 
     // Should have folders (includes repo root node ".")

@@ -27,11 +27,7 @@ const log = createLogger("km:markdown:ast2nodes")
 import type { Root, RootContent, Heading, List, ListItem } from "mdast"
 import { parse as parseYaml } from "yaml"
 import type { KNode, NodeType, TaskStatus, TaskMarker } from "@km/core"
-import {
-  getStatusForMarker,
-  markToMarker,
-  parseTaskMetadataFromText,
-} from "@km/core"
+import { getStatusForMarker, markToMarker, parseTaskMetadataFromText } from "@km/core"
 import {
   parseMarkdown,
   extractFrontmatter,
@@ -242,9 +238,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
       // An H1 inside an H3 section becomes H4 (root section depth + 1).
       // At root level (no sections on stack), trust the markdown depth.
       const effectiveDepth =
-        sectionStack.length > 0
-          ? Math.max(heading.depth, sectionStack[0]!.depth + 1)
-          : heading.depth
+        sectionStack.length > 0 ? Math.max(heading.depth, (sectionStack[0]?.depth ?? 0) + 1) : heading.depth
 
       // Pop stack until we find a shallower heading (using effective depth)
       while (sectionStack.length > 0) {
@@ -339,12 +333,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
 /**
  * Convert a list item to nodes (may include nested items)
  */
-function convertListItem(
-  item: ListItem,
-  parent: KNode,
-  ordered: boolean,
-  sortOrder: number,
-): KNode[] {
+function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOrder: number): KNode[] {
   const nodes: KNode[] = []
   const now = Date.now()
 
@@ -656,7 +645,11 @@ function parseFrontmatterTimestamp(value: unknown): number | undefined {
  * The H1 title becomes the file's title, and H1's children become file's children.
  * Returns filtered childNodes (H1 removed) and whether an H1 was found.
  */
-function mergeH1IntoFileNode(fileNode: KNode, childNodes: KNode[], h1Ids: Set<string>): { childNodes: KNode[]; hadH1: boolean } {
+function mergeH1IntoFileNode(
+  fileNode: KNode,
+  childNodes: KNode[],
+  h1Ids: Set<string>,
+): { childNodes: KNode[]; hadH1: boolean } {
   const h1Section = childNodes.find((n) => h1Ids.has(n.id))
 
   if (!h1Section) {

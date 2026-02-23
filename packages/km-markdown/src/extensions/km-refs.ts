@@ -13,8 +13,9 @@ export function kmRefsTransform(tree: Root): void {
     const { tags, mentions, projects } = extractAllRefs(text)
 
     // Skip if no refs found
-    if (tags.length === 0 && mentions.length === 0 && projects.length === 0)
-      {return}
+    if (tags.length === 0 && mentions.length === 0 && projects.length === 0) {
+      return
+    }
 
     // Store on the node's data
     node.data = node.data || {}
@@ -26,9 +27,7 @@ export function kmRefsTransform(tree: Root): void {
     // (only for the FIRST paragraph in the list item)
     if (parent?.type === "listItem" && node.type === "paragraph") {
       const listItemChildren = (parent as any).children
-      const firstPara = listItemChildren?.find(
-        (c: any) => c.type === "paragraph",
-      )
+      const firstPara = listItemChildren?.find((c: any) => c.type === "paragraph")
       if (firstPara === node) {
         parent.data = parent.data || {}
         if (tags.length > 0) parent.data.tags = tags

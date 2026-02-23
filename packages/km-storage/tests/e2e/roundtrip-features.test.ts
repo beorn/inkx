@@ -157,7 +157,9 @@ describe("E2E Round-Trip Features", () => {
         expect(fileContent).toContain("tags:")
 
         // File node should have frontmatter data
-        const fileNode = nodes.find((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
+        const fileNode = nodes.find(
+          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"),
+        )
         expect(fileNode?.data?.tags).toContain("project")
         expect(fileNode?.data?.author).toBe("test")
       }))
@@ -261,7 +263,11 @@ describe("E2E Round-Trip Features", () => {
         // Find source tasks
         const allNodes = getAllNodes(data.database)
         const sourceFile = allNodes.find(
-          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("source"),
+          (n) =>
+            n.type === "h" &&
+            n.item === true &&
+            (n.fstype === "file" || n.fstype === "mdfile") &&
+            n.fs_path?.includes("source"),
         )!
         const sourceTasks = allNodes.filter((n) => n.task_status != null && n.parent_id === sourceFile.id)
         expect(sourceTasks).toHaveLength(2)
@@ -271,7 +277,11 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         const targetFile = getAllNodes(data.database).find(
-          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("target"),
+          (n) =>
+            n.type === "h" &&
+            n.item === true &&
+            (n.fstype === "file" || n.fstype === "mdfile") &&
+            n.fs_path?.includes("target"),
         )!
 
         // Step 3: Create embedding nodes programmatically (simulating `km add`)
@@ -323,7 +333,11 @@ describe("E2E Round-Trip Features", () => {
 
         const nodes = getAllNodes(data.database)
         const srcFile = nodes.find(
-          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("src"),
+          (n) =>
+            n.type === "h" &&
+            n.item === true &&
+            (n.fstype === "file" || n.fstype === "mdfile") &&
+            n.fs_path?.includes("src"),
         )!
         const srcTask = nodes.find((n) => n.task_status != null && n.parent_id === srcFile.id)!
 
@@ -332,7 +346,11 @@ describe("E2E Round-Trip Features", () => {
         await manager.syncFromFs()
 
         const tgtFile = getAllNodes(data.database).find(
-          (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path?.includes("tgt"),
+          (n) =>
+            n.type === "h" &&
+            n.item === true &&
+            (n.fstype === "file" || n.fstype === "mdfile") &&
+            n.fs_path?.includes("tgt"),
         )!
 
         // Create embedding with alias
