@@ -66,7 +66,7 @@ function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
       <Text bold color="cyan">
         {title.toUpperCase()}
       </Text>
-      <Text>{" "}</Text>
+      <Text> </Text>
       <Box flexGrow={1}>
         <Fill>
           <Text dimColor>{"─"}</Text>
@@ -194,7 +194,7 @@ function buildVerbGridLines(): React.ReactElement[] {
       <Text bold color="cyan">
         {"CHORDS"}
       </Text>
-      <Text>{" "}</Text>
+      <Text> </Text>
       <Box flexGrow={1}>
         <Fill>
           <Text dimColor>{"─"}</Text>

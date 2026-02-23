@@ -20,7 +20,16 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react"
-import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, useContentRect, useInterval, type PatchedConsole } from "inkx"
+import {
+  Box,
+  Text,
+  useApp,
+  ErrorBoundary,
+  HorizontalVirtualList,
+  useContentRect,
+  useInterval,
+  type PatchedConsole,
+} from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -183,26 +192,49 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
 // =============================================================================
 
 /**
- * Progressive column reveal via chained promises.
+ * Resource for Suspense — read() throws the promise while pending (inkx pattern).
+ * Once resolved, read() returns normally and the component renders.
+ */
+interface ColumnResource {
+  read(): void
+}
+
+/**
+ * Progressive column reveal via chained resources (throw-promise Suspense pattern).
  * Column 0 resolves immediately. Each subsequent column resolves after
  * the previous one MOUNTS (not just resolves) — ColumnGate calls onMounted
  * from useEffect, which fires after React commits + inkx paints.
  * setTimeout(0) between each ensures one column per paint frame.
+ *
+ * Uses the throw-promise pattern (not React.use()) because inkx's reconciler
+ * handles thrown promises in Suspense boundaries.
  */
-function createColumnPromises(count: number): {
-  promises: Promise<void>[]
+function createColumnResources(count: number): {
+  resources: ColumnResource[]
   onMounted: (index: number) => void
 } {
+  const resolved: boolean[] = Array(count).fill(false)
+  resolved[0] = true // Column 0 renders immediately
+
   const resolvers: (() => void)[] = []
   const promises = Array.from({ length: count }, (_, i) => {
     if (i === 0) return Promise.resolve()
     return new Promise<void>((r) => {
-      resolvers[i] = r
+      resolvers[i] = () => {
+        resolved[i] = true
+        r()
+      }
     })
   })
 
+  const resources: ColumnResource[] = promises.map((promise, i) => ({
+    read() {
+      if (!resolved[i]) throw promise
+    },
+  }))
+
   return {
-    promises,
+    resources,
     onMounted(index: number) {
       const next = resolvers[index + 1]
       if (next) setTimeout(next, 0)
@@ -211,44 +243,41 @@ function createColumnPromises(count: number): {
 }
 
 /**
- * Hook that creates and caches column reveal promises.
+ * Hook that creates and caches column reveal resources.
  * Recreates on rootId change (zoom). Returns null in test env.
  */
-function useColumnReveal(
-  columnCount: number,
-  rootId: string | null,
-): ReturnType<typeof createColumnPromises> | null {
+function useColumnReveal(columnCount: number, rootId: string | null): ReturnType<typeof createColumnResources> | null {
   // @ts-expect-error - React internal flag set by inkx test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const ref = useRef<ReturnType<typeof createColumnPromises> | null>(null)
+  const ref = useRef<ReturnType<typeof createColumnResources> | null>(null)
   const prevRootRef = useRef<string | null>(null)
 
   if (!isTest && rootId !== prevRootRef.current && columnCount > 0) {
     prevRootRef.current = rootId
-    ref.current = createColumnPromises(columnCount)
+    ref.current = createColumnResources(columnCount)
   }
 
   return isTest ? null : ref.current
 }
 
 /**
- * Gate component — suspends via React.use() until column's promise resolves.
- * Signals onMounted after mount so the next column's promise can resolve.
+ * Gate component — suspends via throw-promise until column's resource resolves.
+ * Signals onMounted after mount so the next column's resource can resolve.
  */
 function ColumnGate({
-  promise,
+  resource,
   index,
   onMounted,
   children,
 }: {
-  promise: Promise<void>
+  resource: ColumnResource
   index: number
   onMounted: (index: number) => void
   children: React.ReactNode
 }): React.ReactElement {
-  React.use(promise)
+  resource.read() // Throws promise if pending — inkx Suspense catches it
   useEffect(() => {
-    log.debug?.(`column ${index} mounted at +${Math.round(performance.now())}ms`)
+    process.stderr.write(`[reveal] col ${index} mounted +${Math.round(performance.now())}ms\n`)
     onMounted(index)
   }, [index, onMounted])
   return <>{children}</>
@@ -599,8 +628,8 @@ export function BoardCore({
                           height={contentHeight}
                         />
                       )
-                      const promise = columnReveal?.promises[index]
-                      if (!promise || !columnReveal) return columnEl
+                      const resource = columnReveal?.resources[index]
+                      if (!resource || !columnReveal) return columnEl
                       return (
                         <Suspense
                           fallback={
@@ -612,7 +641,7 @@ export function BoardCore({
                             />
                           }
                         >
-                          <ColumnGate promise={promise} index={index} onMounted={columnReveal.onMounted}>
+                          <ColumnGate resource={resource} index={index} onMounted={columnReveal.onMounted}>
                             {columnEl}
                           </ColumnGate>
                         </Suspense>
