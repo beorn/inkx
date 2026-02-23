@@ -4,7 +4,7 @@
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  *
  */
-import React, { useCallback, useEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
@@ -45,11 +45,14 @@ const ESTIMATED_CARD_HEIGHT = 4
 const OVERSCAN = 15
 
 /**
- * Maximum number of cards to render at once.
- * Lower than COLUMNS view (100) because cards are more expensive to render
- * (have borders, more complex layout).
+ * Card render limits for two-phase mount:
+ * - INITIAL: fast first paint (visible viewport + small buffer).
+ * - FULL: smooth scrolling after the column has painted.
+ * Columns start at INITIAL and escalate to FULL via setTimeout(0).
+ * In tests (IS_REACT_ACT_ENVIRONMENT), FULL is used immediately.
  */
-const MAX_RENDERED_CARDS = 50
+const INITIAL_MAX_CARDS = 8
+const FULL_MAX_CARDS = 20
 
 // =============================================================================
 // Card Component
@@ -555,6 +558,7 @@ export const Column = React.memo(function Column({
   width,
   height,
 }: ColumnProps): React.ReactElement {
+  const _colStart = performance.now()
   const repo = useRepo()
   const setUI = useSetUI()
   const {
@@ -808,7 +812,7 @@ export const Column = React.memo(function Column({
           height={height - 2 - (filterHiddenCount > 0 ? 1 : 0)}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
-          maxRendered={MAX_RENDERED_CARDS}
+          maxRendered={FULL_MAX_CARDS}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           overflowIndicator

@@ -2346,6 +2346,39 @@ describe("placeholder section titles", () => {
     expect(md).not.toContain("No Section")
     expect(md).toContain("Task B")
   })
+
+  test("empty-string section title is treated as placeholder (no heading emitted)", () => {
+    const data = makeDataWithSections([
+      {
+        title: "",
+        items: [{ sourceId: "t1", title: "Orphan task", status: "todo" }],
+      },
+      {
+        title: "Backlog",
+        items: [{ sourceId: "t2", title: "Backlog task", status: "todo" }],
+      },
+    ])
+    const md = convertToMd(data)
+    // Empty section should not create a heading — items go under project root
+    expect(md).toContain("Orphan task")
+    expect(md).toContain("## Backlog")
+    expect(md).toContain("Backlog task")
+    // No empty heading line (## followed by nothing meaningful)
+    expect(md).not.toMatch(/^##\s*$/m)
+  })
+
+  test("whitespace-only section title is treated as placeholder", () => {
+    const data = makeDataWithSections([
+      {
+        title: "   ",
+        items: [{ sourceId: "t1", title: "Loose task", status: "todo" }],
+      },
+    ])
+    const md = convertToMd(data)
+    expect(md).toContain("Loose task")
+    // No heading for whitespace-only section
+    expect(md).not.toMatch(/^##\s*$/m)
+  })
 })
 
 // ============================================================================

@@ -172,4 +172,24 @@ describe("omnibox", () => {
     expect(screenshot).toContain("gi")
     expect(screenshot).toContain("gj")
   })
+
+  it("search result parent context is not truncated by long title", () => {
+    // Use a board with a long task title and a recognizable column (parent) name.
+    // The task title is long enough to push parentContext off-screen if not laid out properly.
+    const { board } = testEnv(
+      () => [
+        ...item(
+          "FAMILY SPRINT",
+          item("Backlog", item("Move school chairs from living room to the office and organize them")),
+        ),
+      ],
+      { rows: 60, columns: 80 },
+    )
+    board.press(":")
+    // Search for "move school" — should match the long task
+    "move school".split("").forEach((ch) => board.press(ch))
+    const screenshot = board.screenshot()
+    // The parent context ("< in Backlog") must be visible even though title is long
+    expect(screenshot).toContain("Backlog")
+  })
 })

@@ -199,7 +199,7 @@ function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
       key: `search:${node.id}`,
       type: "search",
       label: title,
-      description: parentContext ? `in ${parentContext}` : "",
+      description: parentContext ?? "",
       nodeId: node.id,
       node,
     })

@@ -483,7 +483,10 @@ export interface NodeLineProps {
 /**
  * Compact one-line node display: icon + rich title + parent context + optional suffix.
  *
- * Used in SearchDialog, ProjectPicker, and any list that shows nodes as one-liners.
+ * Uses two-box layout so that parentContext is always visible (flexShrink=0)
+ * and the title truncates when space is limited (flexGrow=1, overflow=hidden).
+ *
+ * Used in SearchDialog, ProjectPicker, Omnibox, and any list that shows nodes as one-liners.
  */
 export function NodeLine({
   node,
@@ -496,18 +499,28 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "cyan" : "black"}>
-      <Text color={isSelected ? "black" : undefined} wrap="truncate">
-        {prefix}
-        <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
-        <InlineText text={title} />
-        {parentContext && (
-          <Text dimColor={!isSelected} color={isSelected ? "gray" : undefined}>
-            {` < ${parentContext}`}
+    <Box width="100%" height={1} backgroundColor={isSelected ? "cyan" : "black"} flexDirection="row">
+      {/* Title: fills remaining space, truncates on overflow */}
+      <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        <Text color={isSelected ? "black" : undefined} wrap="truncate">
+          {prefix}
+          <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
+          <InlineText text={title} />
+        </Text>
+      </Box>
+      {/* Parent context + suffix: fixed width, never truncated */}
+      {(parentContext || children) && (
+        <Box flexGrow={0} flexShrink={0}>
+          <Text color={isSelected ? "black" : undefined}>
+            {parentContext && (
+              <Text dimColor={!isSelected} color={isSelected ? "gray" : undefined}>
+                {` < ${parentContext}`}
+              </Text>
+            )}
+            {children}
           </Text>
-        )}
-        {children}
-      </Text>
+        </Box>
+      )}
     </Box>
   )
 }
