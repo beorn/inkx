@@ -56,9 +56,9 @@ describe("HelpOverlay", () => {
     expect(app.text).toContain("inbox")
     expect(app.text).toContain("journal")
     expect(app.text).toContain("home (next)")
-    // Target locations
+    // Target locations (wikilink types)
+    expect(app.text).toContain("item")
     expect(app.text).toContain("context")
-    expect(app.text).toContain("backlink")
   })
 
   test("shows combined entries with dot leaders", () => {

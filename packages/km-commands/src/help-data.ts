@@ -130,9 +130,8 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "i", location: "inbox", goto: "g i", move: "m i" },
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e" },
-  // Targets
-  { key: "p", location: "picker", goto: "g p", move: "m p", separator: true },
-  { key: "[", location: "backlink", goto: "g [", add: "a [" },
+  // Targets (pickers / wikilink types)
+  { key: "[", location: "item", goto: "g [", move: "m p", add: "a [", separator: true },
   { key: "#", location: "tag", goto: "g #", add: "#" },
   { key: "@", location: "context", goto: "g @", add: "@" },
   { key: "+", location: "project", goto: "g +", move: "m +", add: "+" },
