@@ -37,7 +37,6 @@ const baseUI: UIState = {
   navHistory: [],
   navHistoryIndex: 0,
   recentProjectIds: [],
-  isReady: true,
   dimensions: { columns: 80, rows: 24 },
   isLoading: false,
   loadingStartTime: null,

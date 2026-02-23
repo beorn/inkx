@@ -67,7 +67,6 @@ describe("CommandBox", () => {
     recentProjectIds: [],
 
     // Terminal state
-    isReady: true,
     dimensions: { columns: 80, rows: 24 },
 
     // Loading state

@@ -605,26 +605,8 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 })
 
 describe("production smoke: store dimensions", () => {
-  test("createInitialUIState: undefined dimensions → isReady false", () => {
-    // Regression guard: if dimensions are undefined (no TTY), isReady must
-    // be false to prevent rendering with NaN widths. tui.tsx must resolve
-    // dimensions via fallback before passing to createInitialUIState.
-    const ui = createInitialUIState(
-      "cards",
-      [],
-      {
-        columns: undefined as unknown as number,
-        rows: undefined as unknown as number,
-      },
-      "root",
-    )
-    expect(ui.isReady).toBe(false)
-    expect(ui.dimensions).toEqual({ columns: undefined, rows: undefined })
-  })
-
-  test("createInitialUIState: valid dimensions → isReady true", () => {
+  test("createInitialUIState: stores dimensions", () => {
     const ui = createInitialUIState("cards", [], { columns: 80, rows: 24 }, "root")
-    expect(ui.isReady).toBe(true)
     expect(ui.dimensions).toEqual({ columns: 80, rows: 24 })
   })
 

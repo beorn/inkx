@@ -120,7 +120,6 @@ export interface UIState {
   recentProjectIds: string[]
 
   // Terminal state
-  isReady: boolean
   dimensions: { columns: number; rows: number }
 
   // Loading state (for large repos)
@@ -351,9 +350,6 @@ export function createInitialUIState(
 
     recentProjectIds: [],
 
-    // Start as ready if dimensions are valid (not the default 80x24 placeholder)
-    // This avoids waiting for useEffect to fire which may not happen in all environments
-    isReady: dimensions.columns > 0 && dimensions.rows > 0,
     dimensions,
 
     isLoading: false,

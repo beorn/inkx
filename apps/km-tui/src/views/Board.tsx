@@ -144,40 +144,6 @@ export interface BoardCoreProps {
   foldDepths?: Map<string, number>
 }
 
-/**
- * SkeletonBoard — loading placeholder with column outlines.
- * Shown briefly while terminal dimensions are being detected.
- */
-function SkeletonBoard({ width, height }: { width: number; height: number }): React.ReactElement {
-  const colWidth = 30
-  const colCount = Math.max(1, Math.floor((width - 1) / (colWidth + 1)))
-  const cardHeight = 3 // border top + content + border bottom
-  const cardsPerCol = Math.max(1, Math.floor((height - 4) / cardHeight))
-
-  return (
-    <Box height={height} flexGrow={1} flexDirection="row" gap={1}>
-      {Array.from({ length: colCount }, (_, ci) => (
-        <Box key={ci} flexDirection="column" width={colWidth}>
-          {/* Column header */}
-          <Box height={1}>
-            <Text dimColor wrap="truncate">
-              {"░".repeat(8 + ((ci * 3) % 5))}
-            </Text>
-          </Box>
-          {/* Skeleton cards */}
-          {Array.from({ length: cardsPerCol }, (_, ri) => (
-            <Box key={ri} borderStyle="round" borderDimColor width={colWidth} height={cardHeight}>
-              <Text dimColor wrap="truncate">
-                {"░".repeat(6 + ((ri * 5 + ci * 7) % 12))}
-              </Text>
-            </Box>
-          ))}
-        </Box>
-      ))}
-    </Box>
-  )
-}
-
 // =============================================================================
 // Progressive Column Reveal
 // =============================================================================
@@ -1087,12 +1053,6 @@ export function Board({ patchedConsole }: BoardProps) {
     [ui.localSearch?.matchNodeIds],
   )
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
-
-  // Gate on terminal readiness before constructing the heavy rendering tree.
-  // isReady is false until terminal dimensions are detected (almost always true on first render).
-  if (!ui.isReady) {
-    return <SkeletonBoard width={ui.dimensions.columns} height={ui.dimensions.rows} />
-  }
 
   return (
     <CursorStoreProvider store={cursorStore}>
