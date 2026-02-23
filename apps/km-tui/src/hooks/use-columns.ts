@@ -134,10 +134,11 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
   // In test mode, use repoVersion directly for synchronous updates
   const effectiveVersion = isTest ? repoVersion : debouncedVersion
 
-  // Synchronous initial derivation (first render shows all columns immediately)
+  // Synchronous column derivation. Data is fast (<1ms with per-column memoization).
+  // Progressive rendering is handled at the view layer via Suspense (Board.tsx).
   const [columns, setColumns] = useState<ColumnView[]>(() => deriveColumnsFromRepo(repo, rootId, foldDepths))
 
-  // Track deps to detect changes — initial state matches useState initializer
+  // Track deps to detect changes
   const depsRef = useRef({ rootId, foldDepths, version: effectiveVersion })
 
   useEffect(() => {
@@ -146,31 +147,13 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
     depsRef.current = { rootId, foldDepths, version: effectiveVersion }
 
     if (isTest) {
-      // Synchronous in tests — act() needs immediate updates
       setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
       return
     }
 
-    // Incremental in production — yield per column, time-sliced
-    const gen = deriveColumnsIncremental(repo, rootId, foldDepths)
-    let cancelled = false
-    const result: ColumnView[] = []
-
-    function tick() {
-      if (cancelled) return
-      const deadline = performance.now() + 8 // 8ms budget per tick
-      let next = gen.next()
-      while (!next.done && performance.now() < deadline) {
-        result.push(next.value)
-        next = gen.next()
-      }
-      setColumns([...result])
-      if (!next.done && !cancelled) setTimeout(tick, 0)
-    }
-    tick()
-    return () => {
-      cancelled = true
-    }
+    // Coalesced derivation — runs after rapid version bumps settle.
+    // Per-column memoization makes non-zoom derivation fast (cache hits).
+    setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
   }, [effectiveVersion, rootId, foldDepths, isTest, repo])
 
   return columns

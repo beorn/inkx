@@ -51,13 +51,6 @@ const log = createLogger("km:tui:board-actions")
  */
 export const MAX_FOLD_DEPTH = 20
 
-/**
- * Threshold for "too much content" warning on unfold.
- * If unfolding a single card would reveal more than this many visible nodes,
- * log a warning (but still allow the unfold).
- */
-const UNFOLD_CONTENT_WARN_THRESHOLD = 500
-
 // Import handlers from specialized modules
 import {
   executeDelete,
@@ -595,23 +588,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
       }
       if (!changed) return boundary("fold", "maximum depth reached")
-
-      // "Too much content" warning: estimate visible nodes after unfold
-      // and log a warning if any single card would show too many nodes.
-      for (const nodeId of roots) {
-        const node = ctx.repo.getNode(nodeId)
-        if (!node) continue
-        const depth = newDepths.get(nodeId) ?? boardDepth
-        const visibleCount = countDescendantsAtDepth(ctx.repo, node, depth, UNFOLD_CONTENT_WARN_THRESHOLD + 1)
-        if (visibleCount > UNFOLD_CONTENT_WARN_THRESHOLD) {
-          log.warn(
-            "unfold: card %s would show ~%d nodes (threshold: %d)",
-            nodeId,
-            visibleCount,
-            UNFOLD_CONTENT_WARN_THRESHOLD,
-          )
-        }
-      }
 
       ctx.setFoldDepths(newDepths)
       return ok()
@@ -2015,27 +1991,6 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 // =============================================================================
 // Fold Helpers
 // =============================================================================
-
-/**
- * Estimate the number of visible descendants at a given fold depth.
- * Used for "too much content" warnings when unfolding.
- * Walks the tree up to `remainingDepth` levels deep, counting nodes.
- */
-function countDescendantsAtDepth(
-  repo: { getChildren(id: string): { id: string }[] },
-  node: { id: string },
-  remainingDepth: number,
-  limit: number,
-): number {
-  if (remainingDepth <= 0) return 0
-  const children = repo.getChildren(node.id)
-  let count = children.length
-  for (const child of children) {
-    if (count >= limit) return count
-    count += countDescendantsAtDepth(repo, child, remainingDepth - 1, limit - count)
-  }
-  return count
-}
 
 // =============================================================================
 // Detail pane cursor helpers — compute navigable items for j/k navigation

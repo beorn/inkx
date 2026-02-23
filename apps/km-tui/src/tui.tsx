@@ -234,9 +234,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     {
       using _ = run.span("render-setup")
-      // Show progress while React mount runs (~2s on large vaults).
-      // Visible on normal screen until alt screen takes over.
-      if (isInteractive) process.stdout.write("  ⠋ Rendering...\n")
+      // With progressive column loading, the first render is an empty board frame
+      // (fast), then columns fill in one-by-one on the alt screen. No need to show
+      // "Rendering..." — the board frame appears almost immediately.
       const handle = await boardApp.run(
         <RepoProvider repo={options.repo}>
           <InputLayerProvider>
@@ -247,6 +247,12 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
           : { cols, rows, stdout: process.stdout },
       )
+
+      // Log total startup time (from CLI invocation to first render)
+      if (options?.startTime) {
+        const totalMs = (performance.now() - options.startTime).toFixed(0)
+        log.debug?.(`total startup: ${totalMs}ms`)
+      }
 
       // Now that alternate screen is active, notify caller (CLI uses this
       // to flush buffered debug output to Console component)

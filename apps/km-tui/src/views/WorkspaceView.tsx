@@ -2,8 +2,11 @@
  * WorkspaceView — renders the workspace layout tree.
  *
  * For a single pane, renders children directly (no wrapper overhead).
- * For multiple panes, recursively splits using flexbox, with divider lines.
+ * For multiple panes, recursively splits using explicit pixel widths/heights.
  * Each pane shows a number label: [1], [2], [1d] (detail linked to pane 1).
+ *
+ * Note: flexx does not support percentage flexBasis, so we compute explicit
+ * pixel dimensions from the split ratio and available space.
  */
 
 import React from "react"
@@ -16,6 +19,10 @@ export interface WorkspaceViewProps {
   layout: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
+  /** Available width in columns for the workspace */
+  width: number
+  /** Available height in rows for the workspace */
+  height: number
   /** Render a pane's board content, receiving the pane ID for state isolation */
   renderPane: (paneId: string) => React.ReactNode
   /** Called when a pane is clicked (for click-to-focus) */
@@ -68,6 +75,8 @@ export function WorkspaceView({
   layout,
   panes,
   focusedPaneId,
+  width,
+  height,
   renderPane,
   onPaneClick,
 }: WorkspaceViewProps): React.ReactElement {
@@ -79,12 +88,14 @@ export function WorkspaceView({
   const paneLabels = derivePaneLabels(layout, panes)
 
   return (
-    <Box flexGrow={1}>
+    <Box width={width} height={height}>
       <LayoutNodeView
         node={layout}
         panes={panes}
         focusedPaneId={focusedPaneId}
         paneLabels={paneLabels}
+        width={width}
+        height={height}
         renderPane={renderPane}
         onPaneClick={onPaneClick}
       />
@@ -98,6 +109,8 @@ function LayoutNodeView({
   panes,
   focusedPaneId,
   paneLabels,
+  width,
+  height,
   renderPane,
   onPaneClick,
 }: {
@@ -105,6 +118,8 @@ function LayoutNodeView({
   panes: Map<string, PaneState>
   focusedPaneId: string
   paneLabels: Map<string, string>
+  width: number
+  height: number
   renderPane: (paneId: string) => React.ReactNode
   onPaneClick?: (paneId: string) => void
 }): React.ReactElement {
@@ -112,7 +127,7 @@ function LayoutNodeView({
     const pane = panes.get(node.paneId)
     if (!pane) {
       return (
-        <Box flexGrow={1}>
+        <Box width={width} height={height}>
           <Text>Missing pane: {node.paneId}</Text>
         </Box>
       )
@@ -125,7 +140,8 @@ function LayoutNodeView({
     // For multi-pane layouts, wrap each pane in a bordered box with number label
     return (
       <Box
-        flexGrow={1}
+        width={width}
+        height={height}
         flexDirection="column"
         borderStyle="single"
         borderColor={borderColor}
@@ -146,29 +162,36 @@ function LayoutNodeView({
     )
   }
 
-  // Split node — render children side by side (h) or stacked (v)
-  const flexDirection = node.direction === "h" ? "row" : "column"
-  const firstBasis = `${Math.round(node.ratio * 100)}%`
-  const secondBasis = `${Math.round((1 - node.ratio) * 100)}%`
+  // Split node — compute pixel sizes from ratio and available space.
+  // For horizontal splits, divide width; for vertical, divide height.
+  const isHorizontal = node.direction === "h"
+  const firstWidth = isHorizontal ? Math.floor(width * node.ratio) : width
+  const secondWidth = isHorizontal ? width - firstWidth : width
+  const firstHeight = isHorizontal ? height : Math.floor(height * node.ratio)
+  const secondHeight = isHorizontal ? height : height - firstHeight
 
   return (
-    <Box flexGrow={1} flexDirection={flexDirection}>
-      <Box flexBasis={firstBasis} flexGrow={0} flexShrink={0} flexDirection="column">
+    <Box width={width} height={height} flexDirection={isHorizontal ? "row" : "column"}>
+      <Box width={firstWidth} height={firstHeight} flexDirection="column">
         <LayoutNodeView
           node={node.left}
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
+          width={firstWidth}
+          height={firstHeight}
           renderPane={renderPane}
           onPaneClick={onPaneClick}
         />
       </Box>
-      <Box flexBasis={secondBasis} flexGrow={0} flexShrink={0} flexDirection="column">
+      <Box width={secondWidth} height={secondHeight} flexDirection="column">
         <LayoutNodeView
           node={node.right}
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
+          width={secondWidth}
+          height={secondHeight}
           renderPane={renderPane}
           onPaneClick={onPaneClick}
         />

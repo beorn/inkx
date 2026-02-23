@@ -574,11 +574,6 @@ export const Column = React.memo(function Column({
 
   // Check if the board is in a loading state (discoverOnly + background parse).
   // Used to show skeleton cards in empty columns instead of "(empty)".
-  // Four conditions trigger loading:
-  //   1. isLoading is true (watcher reported "syncing")
-  //   2. backgroundParsing is true (deferred-file parsing in progress)
-  //   3. watcherStatus is null (initial load, no watcher events received yet)
-  //   4. watcherStatus.state is "starting" (watcher is starting up)
   const isLoading = useUISelector(
     (state) =>
       state.isLoading || state.backgroundParsing || !state.watcherStatus || state.watcherStatus.state === "starting",

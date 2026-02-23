@@ -325,6 +325,19 @@ const moveToHome = {
   execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@home" }),
 } satisfies CommandDef
 
+// Move to archive (me chord — same as archive/e)
+const moveToArchive = {
+  id: "move_to_archive",
+  name: "Move to Archive",
+  description: "Move selected node(s) to archive",
+  category: "Edit",
+  shortcuts: ["me"],
+  execute: (ctx) => {
+    if (!ctx.currentNodeId) return null
+    return { type: "ARCHIVE_NODE", nodeId: ctx.currentNodeId }
+  },
+} satisfies CommandDef
+
 // Move to project (stub — not yet implemented)
 const moveToProject = {
   id: "move_to_project",
@@ -357,6 +370,7 @@ export const editCommands: CommandDef[] = [
   moveToJournal,
   moveToNext,
   moveToHome,
+  moveToArchive,
   moveToProject,
   addLink,
   reparentPicker,

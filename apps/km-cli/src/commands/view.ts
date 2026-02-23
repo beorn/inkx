@@ -25,6 +25,7 @@ export const viewCommand = new Command("view")
   .option("--as <mode>", `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
   .action(async (root, options) => {
+    const startTime = performance.now()
     using startup = log.span("startup", { path: root })
     debug.debug?.("view command", {
       root,
@@ -232,6 +233,7 @@ export const viewCommand = new Command("view")
       repo: createdRepo,
       patchedConsole: patchedConsole ?? undefined,
       onReady: enableConsoleDebug,
+      startTime,
     })
 
     // Signal background task to stop (don't wait - causes Bun crash on cleanup)

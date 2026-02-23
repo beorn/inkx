@@ -125,4 +125,9 @@ export interface TuiOptions {
    * Set up early (before loadRepo) to capture startup warnings.
    */
   patchedConsole?: import("inkx").PatchedConsole
+  /**
+   * Timestamp (performance.now()) when the view command started.
+   * Used to compute total startup time from CLI invocation to first render.
+   */
+  startTime?: number
 }

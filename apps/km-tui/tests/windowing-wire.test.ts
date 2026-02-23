@@ -13,7 +13,11 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createStore } from "zustand"
+import React from "react"
+import { createStore, type StoreApi } from "zustand"
+import { createRenderer } from "inkx/testing"
+import { createFocusManager, FocusManagerContext } from "inkx"
+import { StoreContext } from "inkx/runtime"
 import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import { createBoardState, createPaneState } from "../src/board-types.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
@@ -23,6 +27,8 @@ import { createToastQueue } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { buildBoardState } from "../src/state.ts"
+import { RepoProvider } from "../src/repo-context.tsx"
+import { BoardApp } from "../src/views/index.ts"
 
 // =============================================================================
 // Helpers
@@ -280,5 +286,71 @@ describe("windowing — visual rendering", () => {
     expect(board.screenshot()).not.toContain("[1]")
     // Board content should be visible
     expect(board.q("[data-view='board']").count()).toBe(1)
+  })
+
+  test("split pane renders both panes within terminal width (km-tui.pane-dimensions)", () => {
+    // Set up store with a 3-column board
+    const nodes = item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a")))
+    const repo = createFakeRepo({ nodes })
+    const initialState = buildBoardState(repo, "board")
+    const toastQueue = createToastQueue()
+    const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
+    const cols = 120
+    const rows = 30
+    const params: CreateBoardAppStoreParams = {
+      repo,
+      toastQueue,
+      navigator: createGridNavigator(),
+      cursorStore,
+      initialBoardState: createBoardState("board", null, "task-1"),
+      initialUIState: createInitialUIState("cards", [], { columns: cols, rows }, "board"),
+      dimensions: { columns: cols, rows },
+    }
+    const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+
+    // Split the focused pane horizontally (50/50)
+    store.getState().splitFocusedPane("h")
+    expect(store.getState().workspace.panes.size).toBe(2)
+
+    // Render BoardApp with the split store.
+    // Disable incremental check: the multi-pass stabilization (useContentRect
+    // width changes from fallback to actual) causes expected incremental mismatches.
+    const focusManager = createFocusManager()
+    const render = createRenderer({ cols, rows, singlePassLayout: true })
+    const result = render(
+      React.createElement(
+        StoreContext.Provider,
+        { value: store as StoreApi<unknown> },
+        React.createElement(
+          FocusManagerContext.Provider,
+          { value: focusManager },
+          React.createElement(RepoProvider, { repo }, React.createElement(BoardApp, { toastQueue })),
+        ),
+      ),
+      { incremental: false },
+    )
+
+    const text = result.text
+
+    // Both pane labels should be visible — proves both panes fit within terminal width
+    expect(text).toContain("[1]")
+    expect(text).toContain("[2]")
+
+    // Board content (column headers from pane 1) should be visible
+    expect(text).toContain("Inbox")
+
+    // Second pane shows "Empty pane" welcome text (it's a new empty pane)
+    expect(text).toContain("Empty pane")
+
+    // The board's data-view element should NOT span the full terminal width.
+    // With the fix, Board uses useContentRect() to get actual pane width (~60 cols for 50% of 120).
+    const boardView = result.locator("[data-view='board']")
+    expect(boardView.count()).toBeGreaterThan(0)
+    const boardBox = boardView.boundingBox()
+    expect(boardBox).not.toBeNull()
+    if (boardBox) {
+      // Board should be narrower than full terminal (accounting for pane borders)
+      expect(boardBox.width).toBeLessThan(cols)
+    }
   })
 })

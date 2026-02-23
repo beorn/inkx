@@ -10,8 +10,17 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, type PatchedConsole } from "inkx"
+import React, {
+  Suspense,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react"
+import { Box, Text, useApp, ErrorBoundary, HorizontalVirtualList, useContentRect, useInterval, type PatchedConsole } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -36,6 +45,7 @@ import type { UIState, FilterProperties } from "../ui-reducer.ts"
 import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
+import { createLogger } from "@beorn/logger"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { dispatchCommandById } from "../board-app.ts"
 import { popDialogMode } from "../dialog-guard.ts"
@@ -44,6 +54,8 @@ import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.ts
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { usePaneId } from "../pane-context.tsx"
+
+const log = createLogger("km:tui:board")
 
 // Extracted modules
 import {
@@ -143,7 +155,7 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
   const cardsPerCol = Math.max(1, Math.floor((height - 4) / cardHeight))
 
   return (
-    <Box height={height} width={width} flexDirection="row" gap={1}>
+    <Box height={height} flexGrow={1} flexDirection="row" gap={1}>
       {Array.from({ length: colCount }, (_, ci) => (
         <Box key={ci} flexDirection="column" width={colWidth}>
           {/* Column header */}
@@ -160,6 +172,159 @@ function SkeletonBoard({ width, height }: { width: number; height: number }): Re
               </Text>
             </Box>
           ))}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+// =============================================================================
+// Progressive Column Rendering via Suspense
+// =============================================================================
+
+interface RevealEntry {
+  promise: Promise<void>
+  resolve: () => void
+  resolved: boolean
+}
+
+/**
+ * Suspense resource for staggered column reveal.
+ *
+ * Uses the throw-promise pattern: `read(index)` either returns (column ready)
+ * or throws a promise (column suspended → Suspense shows skeleton).
+ *
+ * Flow: column 0 resolves immediately → mounts → onMounted(0) → setTimeout(0)
+ * → column 1 resolves → mounts → onMounted(1) → ... Each column gets its own
+ * paint frame because setTimeout(0) yields to inkx's render scheduler.
+ */
+function createRevealResource(count: number): {
+  read: (index: number) => void
+  onMounted: (index: number) => void
+} {
+  const entries: RevealEntry[] = []
+  const start = performance.now()
+
+  for (let i = 0; i < count; i++) {
+    let resolve!: () => void
+    const promise = new Promise<void>((r) => {
+      resolve = r
+    })
+    entries[i] = { promise, resolve, resolved: false }
+  }
+
+  // Resolve column 0 immediately
+  if (entries[0]) {
+    entries[0].resolved = true
+    entries[0].resolve()
+  }
+
+  return {
+    read(index: number): void {
+      const entry = entries[index]
+      if (!entry || entry.resolved) return
+      throw entry.promise
+    },
+    onMounted(index: number) {
+      log.debug?.(
+        `column ${index}/${count} mounted at +${(performance.now() - start).toFixed(0)}ms`,
+      )
+      // After this column paints, resolve the next one.
+      // setTimeout(0) yields to inkx's render scheduler (queueMicrotask-based),
+      // ensuring the terminal paints this column before the next one starts.
+      const next = entries[index + 1]
+      if (next && !next.resolved) {
+        setTimeout(() => {
+          next.resolved = true
+          next.resolve()
+        }, 0)
+      }
+    },
+  }
+}
+
+/**
+ * Hook that manages the Suspense reveal resource.
+ * Recreates on rootId change (zoom) for fresh progressive reveal.
+ * Returns null in test env (act() doesn't support async Suspense).
+ */
+function useProgressiveReveal(
+  columnCount: number,
+  rootId: string | null,
+): { read: (index: number) => void; onMounted: (index: number) => void } | null {
+  // @ts-expect-error - React internal flag set by inkx test renderer
+  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
+  const resourceRef = useRef<ReturnType<typeof createRevealResource> | null>(null)
+  const prevRootRef = useRef<string | null>(null)
+  const prevCountRef = useRef(-1)
+
+  if (
+    !isTest &&
+    (rootId !== prevRootRef.current || columnCount !== prevCountRef.current) &&
+    columnCount > 0
+  ) {
+    prevRootRef.current = rootId
+    prevCountRef.current = columnCount
+    resourceRef.current = createRevealResource(columnCount)
+  }
+
+  return isTest ? null : resourceRef.current
+}
+
+/**
+ * Gate component that suspends via the reveal resource.
+ * On mount, signals onMounted to trigger the next column's reveal.
+ */
+function RevealGate({
+  index,
+  resource,
+  children,
+}: {
+  index: number
+  resource: { read: (index: number) => void; onMounted: (index: number) => void }
+  children: React.ReactNode
+}): React.ReactElement {
+  resource.read(index)
+  useEffect(() => {
+    resource.onMounted(index)
+  }, [index, resource])
+  return <>{children}</>
+}
+
+/**
+ * Lightweight skeleton for a single column — shows the real column header name
+ * with placeholder cards below. Shown for columns not yet revealed.
+ */
+function ColumnSkeleton({
+  name,
+  width,
+  height,
+  colIndex,
+}: {
+  name: string
+  width: number
+  height: number
+  colIndex: number
+}): React.ReactElement {
+  const [pulse, setPulse] = useState(false)
+  useInterval(() => setPulse((p) => !p), 500)
+  const fill = pulse ? "▒" : "░"
+  const cardHeight = 3
+  const headerHeight = 2
+  const cardCount = Math.max(1, Math.floor((height - headerHeight) / cardHeight))
+  return (
+    <Box flexDirection="column" width={width} height={height}>
+      <Box height={1}>
+        <Text dimColor wrap="truncate">
+          {name || fill.repeat(8)}
+        </Text>
+      </Box>
+      <Text dimColor>{"─".repeat(width)}</Text>
+      {Array.from({ length: cardCount }, (_, ri) => (
+        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
+          <Text dimColor wrap="truncate">
+            {fill.repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
+          </Text>
         </Box>
       ))}
     </Box>
@@ -205,14 +370,8 @@ function BoardTopBar({
     : undefined
 
   return (
-    <Box
-      id="top-bar"
-      flexShrink={0}
-      width={termWidth}
-      flexDirection="column"
-      backgroundColor={isBoardSelected ? "yellow" : "white"}
-    >
-      <Box flexDirection="row" width={termWidth}>
+    <Box id="top-bar" flexShrink={0} flexDirection="column" backgroundColor={isBoardSelected ? "yellow" : "white"}>
+      <Box flexDirection="row">
         <Box flexGrow={1} overflow="hidden">
           <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
             {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
@@ -312,10 +471,18 @@ export function BoardCore({
   isZoomLoading = false,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
-  const termWidth = dimensions.columns
-  const termHeight = dimensions.rows
+
+  // Use actual pane dimensions from parent container (critical for multi-pane splits).
+  // Falls back to store dimensions on first render when contentRect is still zero.
+  const parentRect = useContentRect()
+  const termWidth = parentRect.width > 0 ? parentRect.width : dimensions.columns
+  const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
   const isBoardSelected = derivedSelectionLevel === "board"
+
+  // Progressive column reveal via Suspense — each column gets its own boundary.
+  // Returns null in tests (act() needs synchronous rendering).
+  const columnReveal = useProgressiveReveal(columns.length, rootId)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -421,7 +588,7 @@ export function BoardCore({
         data-card-index={cardIndex}
         {...(isBoardSelected && { "data-cursor": true })}
         flexDirection="column"
-        width={termWidth}
+        flexGrow={1}
         height={termHeight}
         minHeight={3}
         overflow="hidden"
@@ -458,15 +625,36 @@ export function BoardCore({
                     itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
                     gap={1}
                     scrollTo={isBoardSelected ? undefined : colIndex}
-                    renderItem={(col, index) => (
-                      <Column
-                        column={col}
-                        colIndex={index}
-                        isCollapsed={collapsedNodes.has(col.node.id)}
-                        width={collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth}
-                        height={contentHeight}
-                      />
-                    )}
+                    renderItem={(col, index) => {
+                      const colWidth = collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth
+                      const columnEl = (
+                        <Column
+                          column={col}
+                          colIndex={index}
+                          isCollapsed={collapsedNodes.has(col.node.id)}
+                          width={colWidth}
+                          height={contentHeight}
+                        />
+                      )
+                      // In tests: render columns directly (act() doesn't support async Suspense)
+                      if (!columnReveal) return columnEl
+                      return (
+                        <Suspense
+                          fallback={
+                            <ColumnSkeleton
+                              name={col.node.title || col.node.name || ""}
+                              width={colWidth}
+                              height={contentHeight}
+                              colIndex={index}
+                            />
+                          }
+                        >
+                          <RevealGate index={index} resource={columnReveal}>
+                            {columnEl}
+                          </RevealGate>
+                        </Suspense>
+                      )
+                    }}
                     renderOverflowIndicator={(dir) => (
                       <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />
                     )}
@@ -951,14 +1139,15 @@ export function Board({ patchedConsole }: BoardProps) {
   // NO useInput — keys handled by term:key in board-app.ts
 
   // Card inner width for line-aware title truncation.
-  // Uses actual column count + collapsed state (same math as BoardCore).
+  // Uses actual pane width (from useContentRect) to match BoardCore's layout.
+  const paneRect = useContentRect()
   const cardInnerWidth = useMemo(() => {
-    const termWidth = ui.dimensions.columns
+    const termWidth = paneRect.width > 0 ? paneRect.width : ui.dimensions.columns
     const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
     const boardWidth = termWidth - detailPaneWidth
     const { expandedWidth } = computeColumnWidths(boardWidth, filteredColumns, collapsedNodes)
     return expandedWidth - 2 // minus border left + right
-  }, [ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
+  }, [paneRect.width, ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
@@ -1065,6 +1254,8 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         layout={workspace.layout}
         panes={workspace.panes}
         focusedPaneId={workspace.focusedPaneId}
+        width={storeDimensions.columns}
+        height={storeDimensions.rows}
         renderPane={renderPane}
         onPaneClick={focusPaneById}
       />
