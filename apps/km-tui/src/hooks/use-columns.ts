@@ -29,9 +29,11 @@ const log = createLogger("km:tui:columns")
 
 /** Nodes with km.collapse:: true (e.g., imported comments/attachments/activity) are
  *  shown only in the detail pane, never as cards in columns.
- *  Also supports legacy detailOnly data flag. */
+ *  Also supports legacy detailOnly data flag and well-known Asana metadata sections. */
+const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
 export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
+  if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
   const rules = node.rules ?? parseHeadingRules(node.title || "").rules
   return rules.collapse === true
 }

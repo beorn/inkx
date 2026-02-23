@@ -51,7 +51,7 @@ const OVERSCAN = 15
  * Columns start at INITIAL and escalate to FULL via setTimeout(0).
  * In tests (IS_REACT_ACT_ENVIRONMENT), FULL is used immediately.
  */
-const INITIAL_MAX_CARDS = 8
+const INITIAL_MAX_CARDS = 5
 const FULL_MAX_CARDS = 20
 
 // =============================================================================
