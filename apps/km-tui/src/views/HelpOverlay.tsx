@@ -6,7 +6,7 @@
  * Fill component handles dot leaders and section header fills.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Fill } from "inkx"
+import { Box, Text } from "inkx"
 import { ModalDialog } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
@@ -59,7 +59,10 @@ function KeyText({ keys, prefix }: { keys: string; prefix: string }): React.Reac
 
 // ── Section header ──────────────────────────────────────────────────
 
-function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
+function SectionHeaderLine({ title, fillWidth }: { title: string; fillWidth: number }): React.ReactElement {
+  // Pre-compute dashes to fill remaining space after title.
+  // Avoids Fill component's useContentRect which causes a 3s layout cascade.
+  const dashCount = Math.max(0, fillWidth - title.length - 4) // 2 indent + 1 space + ~1 padding
   return (
     <Box flexDirection="row">
       <Text>{"  "}</Text>
@@ -67,28 +70,28 @@ function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
         {title.toUpperCase()}
       </Text>
       <Text> </Text>
-      <Box flexGrow={1}>
-        <Fill>
-          <Text dimColor>{"─"}</Text>
-        </Fill>
-      </Box>
+      <Text dimColor>{"─".repeat(dashCount)}</Text>
     </Box>
   )
 }
 
 // ── Entry line (key...description with dot leaders) ─────────────────
 
-function EntryLine({ keys, desc, prefix }: { keys: string; desc: string; prefix: string }): React.ReactElement {
+function EntryLine({
+  keys,
+  desc,
+  prefix,
+  fillWidth,
+}: { keys: string; desc: string; prefix: string; fillWidth: number }): React.ReactElement {
+  // Pre-compute dots to fill space between key and description.
+  const keyLen = keys.replace(/ \/ /g, " / ").length
+  const dotCount = Math.max(1, fillWidth - keyLen - desc.length - 5) // 2 indent + 2 spaces + ~1 padding
   return (
     <Box flexDirection="row">
       <Text>{"  "}</Text>
       <KeyText keys={keys} prefix={prefix} />
       <Text> </Text>
-      <Box flexGrow={1}>
-        <Fill>
-          <Text dimColor>{"."}</Text>
-        </Fill>
-      </Box>
+      <Text dimColor>{".".repeat(dotCount)}</Text>
       <Text> </Text>
       <Text>{desc}</Text>
     </Box>
@@ -97,14 +100,20 @@ function EntryLine({ keys, desc, prefix }: { keys: string; desc: string; prefix:
 
 // ── Section building ────────────────────────────────────────────────
 
-function buildSectionLines(section: HelpSection, keyPrefix: string): React.ReactElement[] {
+function buildSectionLines(section: HelpSection, keyPrefix: string, fillWidth: number): React.ReactElement[] {
   const lines: React.ReactElement[] = []
-  lines.push(<SectionHeaderLine key={`${keyPrefix}-hdr`} title={section.category} />)
+  lines.push(<SectionHeaderLine key={`${keyPrefix}-hdr`} title={section.category} fillWidth={fillWidth} />)
   for (let i = 0; i < section.items.length; i++) {
     const item = section.items[i]
     const keyStr = item.keys.join(" ")
     lines.push(
-      <EntryLine key={`${keyPrefix}-e${i}`} keys={keyStr} desc={item.description} prefix={`${keyPrefix}-e${i}`} />,
+      <EntryLine
+        key={`${keyPrefix}-e${i}`}
+        keys={keyStr}
+        desc={item.description}
+        prefix={`${keyPrefix}-e${i}`}
+        fillWidth={fillWidth}
+      />,
     )
   }
   return lines
@@ -121,15 +130,16 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
   // Render section rows (multi-column)
   for (const row of SECTION_ROWS) {
+    const colFillWidth = Math.floor(contentWidth / row.length)
     // Collect columns for this row — sections or verb-grid
     const cols: React.ReactElement[][] = []
     for (const name of row) {
       if (name === "verb-grid") {
-        cols.push(buildVerbGridLines())
+        cols.push(buildVerbGridLines(colFillWidth))
       } else {
         const section = sectionMap.get(name)
         if (section) {
-          cols.push(buildSectionLines(section, `s${cols.length}-${section.category}`))
+          cols.push(buildSectionLines(section, `s${cols.length}-${section.category}`, colFillWidth))
           rendered.add(name)
         }
       }
@@ -166,7 +176,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
   for (const section of sections) {
     if (rendered.has(section.category)) continue
     rendered.add(section.category)
-    lines.push(...buildSectionLines(section, `extra-${section.category}`))
+    lines.push(...buildSectionLines(section, `extra-${section.category}`, contentWidth))
     lines.push(<Text key={`blank-${lines.length}`}> </Text>)
   }
 
@@ -184,10 +194,11 @@ function GridCell({ value }: { value?: string }): React.ReactElement {
   return <Text color="yellow">{value}</Text>
 }
 
-function buildVerbGridLines(): React.ReactElement[] {
+function buildVerbGridLines(fillWidth: number): React.ReactElement[] {
   const lines: React.ReactElement[] = []
 
   // Section header
+  const dashCount = Math.max(0, fillWidth - "CHORDS".length - 4)
   lines.push(
     <Box key="vg-hdr" flexDirection="row">
       <Text>{"  "}</Text>
@@ -195,11 +206,7 @@ function buildVerbGridLines(): React.ReactElement[] {
         {"CHORDS"}
       </Text>
       <Text> </Text>
-      <Box flexGrow={1}>
-        <Fill>
-          <Text dimColor>{"─"}</Text>
-        </Fill>
-      </Box>
+      <Text dimColor>{"─".repeat(dashCount)}</Text>
     </Box>,
   )
 
