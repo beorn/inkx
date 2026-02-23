@@ -20,7 +20,7 @@ import { type UIState, getEditMode } from "../ui-reducer.ts"
 import type { ColumnView } from "../types.ts"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 
-// Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
+// Spinner frames (braille unicode dots animation)
 const SPINNER_FRAMES = [
   "\u280B",
   "\u2819",
