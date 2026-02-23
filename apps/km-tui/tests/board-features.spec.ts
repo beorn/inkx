@@ -103,11 +103,11 @@ describe("Content", () => {
 })
 
 describe("Dialogs", () => {
-  test("new item dialog shows on 'gn' chord and closes on Escape", () => {
+  test("new item dialog shows on 'n' key and closes on Escape", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    // gn opens dialog
-    board.press("g").press("n")
+    // n opens dialog
+    board.press("n")
     let output = board.screenshot()
     expect(output).toContain("New")
     expect(output).toContain("Enter create")

@@ -3,6 +3,9 @@
  * prefix is pending. Renders immediately when pendingChord is set (the chord
  * state machine ensures fast completions clear it before the next render).
  * Disappears instantly when a suffix or Escape is pressed.
+ *
+ * Layout: vertical list anchored above the command box. Each entry is one row:
+ *   k label
  */
 import React from "react"
 import { Box, Text } from "inkx"
@@ -21,49 +24,76 @@ const SHORT_LABELS: Record<string, string> = {
   goto_journal: "journal",
   goto_home: "home",
   goto_archive: "archive",
+  goto_next: "next",
+  goto_tag: "tag",
+  goto_assignee: "assignee",
+  goto_project: "project",
+  goto_backlink: "backlink",
   cursor_last: "last",
+  zoom_to_root: "root",
   // m-prefix (move)
   enter_move_mode: "move",
   move_to_inbox: "inbox",
   move_to_journal: "journal",
   move_to_home: "home",
+  move_to_archive: "archive",
+  move_to_project: "project",
   reparent_picker: "reparent",
   // a-prefix (add)
   add_tag: "tag",
   add_assignee: "assignee",
   add_project: "project",
   add_backlink: "backlink",
+  add_to_archive: "archive",
   insert_child: "child",
   add_sibling_below: "below",
   insert_at_parent: "parent",
+  // c-prefix (capture)
+  capture_dialog: "dialog",
+  capture_inbox: "inbox",
+  capture_home: "home",
+  capture_journal: "journal",
+  capture_archive: "archive",
   // t-prefix (task properties)
   noop: "...",
   task_dialog: "task",
+  clear_task: "clear",
   set_assignee: "assignee",
   set_due_date: "due date",
   set_priority: "priority",
   set_start_date: "start",
   set_label: "label",
   set_recurring: "recurring",
-  // toggle commands
-  toggle_collapse: "collapse",
+  // v-prefix (view)
+  visual_mode_enter: "visual",
   cycle_view_mode: "view",
+  toggle_collapse: "collapse",
   toggle_hide_done: "done",
+  ignore_node: "ignore",
+  filter: "filter",
+  clear_filters: "clear",
   // Ctrl+W-prefix (pane operations)
   pane_split_vertical: "vsplit",
   pane_split_horizontal: "hsplit",
   pane_close: "close",
-  pane_resize_grow: "grow",
-  pane_resize_shrink: "shrink",
+  pane_focus_left: "← focus",
+  pane_focus_down: "↓ focus",
+  pane_focus_up: "↑ focus",
+  pane_focus_right: "→ focus",
+  pane_focus_previous: "prev",
+  pane_focus_next: "next",
+  pane_focus_prev: "prev",
+  pane_resize_grow: "wider",
+  pane_resize_shrink: "narrower",
   pane_resize_grow_vertical: "taller",
   pane_resize_shrink_vertical: "shorter",
   pane_equalize: "equalize",
   pane_zoom: "zoom",
   pane_only: "only",
-  pane_swap_left: "swap left",
-  pane_swap_down: "swap down",
-  pane_swap_up: "swap up",
-  pane_swap_right: "swap right",
+  pane_swap_left: "swap ←",
+  pane_swap_down: "swap ↓",
+  pane_swap_up: "swap ↑",
+  pane_swap_right: "swap →",
 }
 
 function getLabel(commandId: string): string {
@@ -81,68 +111,31 @@ export function WhichKeyPopup({ prefix, termWidth }: WhichKeyPopupProps): React.
   const suffixes = getChordSuffixes(prefix)
   if (suffixes.length === 0) return null
 
-  // Build entries: { key, label }
   const entries = suffixes.map((s) => ({
     key: s.key,
     label: getLabel(s.commandId),
   }))
 
-  // Calculate layout: each entry takes "k label" + spacing
-  // Arrange in rows that fit within termWidth (minus border padding)
-  const maxContentWidth = termWidth - 4 // 2 for border + 2 for padding
-  const ENTRY_GAP = 2
-  const rows: { key: string; label: string }[][] = []
-  let currentRow: { key: string; label: string }[] = []
-  let currentWidth = 0
-
-  for (const entry of entries) {
-    // "k label" width = 1 (key) + 1 (space) + label.length
-    const entryWidth = 1 + 1 + entry.label.length
-    const neededWidth = currentRow.length > 0 ? entryWidth + ENTRY_GAP : entryWidth
-
-    if (currentWidth + neededWidth > maxContentWidth && currentRow.length > 0) {
-      rows.push(currentRow)
-      currentRow = [entry]
-      currentWidth = entryWidth
-    } else {
-      currentRow.push(entry)
-      currentWidth += neededWidth
-    }
-  }
-  if (currentRow.length > 0) rows.push(currentRow)
-
-  // Determine popup width: fit to content
-  const contentWidth = Math.max(
-    ...rows.map((row) => row.reduce((w, e, i) => w + 1 + 1 + e.label.length + (i > 0 ? ENTRY_GAP : 0), 0)),
-  )
-  // Add prefix header width
-  const headerWidth = prefix.length + 1 // "g:"
-  const popupWidth = Math.min(Math.max(contentWidth, headerWidth) + 4, termWidth) // +4 for border+padding
+  // Vertical layout: one entry per row, fit to widest entry
+  const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))
+  const popupWidth = Math.min(maxEntryWidth + 4, termWidth) // +4 for border+padding
 
   return (
     <Box
-      position="absolute"
-      marginLeft={Math.max(0, Math.floor((termWidth - popupWidth) / 2))}
-      marginBottom={1}
       width={popupWidth}
       flexDirection="column"
       borderStyle="round"
       borderColor="gray"
-      backgroundColor="black"
       paddingLeft={1}
       paddingRight={1}
     >
-      {rows.map((row, ri) => (
-        <Box key={ri} flexDirection="row" gap={ENTRY_GAP}>
-          {row.map((entry) => (
-            <Text key={entry.key}>
-              <Text color="yellow" bold>
-                {entry.key}
-              </Text>{" "}
-              <Text dimColor>{entry.label}</Text>
-            </Text>
-          ))}
-        </Box>
+      {entries.map((entry) => (
+        <Text key={entry.key}>
+          <Text color="yellow" bold>
+            {entry.key}
+          </Text>{" "}
+          <Text dimColor>{entry.label}</Text>
+        </Text>
       ))}
     </Box>
   )

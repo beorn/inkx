@@ -200,24 +200,24 @@ describe("SearchDialog lifecycle", () => {
 // ---------------------------------------------------------------------------
 
 describe("NewItemDialog lifecycle", () => {
-  test("gn opens new item dialog — store flag is set and screenshot shows title", () => {
+  test("n opens new item dialog — store flag is set and screenshot shows title", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
     board.press("j") // move to card level
-    board.press("g").press("n")
+    board.press("n")
 
     expect(store.getState().ui.showNewItemDialog).toBe(true)
     expect(board.screenshot()).toContain("New")
   })
 
-  test("gn -> Escape cancels new item dialog without creating nodes", () => {
+  test("n -> Escape cancels new item dialog without creating nodes", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
 
     board.press("j")
-    board.press("g").press("n")
+    board.press("n")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 
     board.press("Escape")
@@ -238,7 +238,7 @@ describe("NewItemDialog lifecycle", () => {
     const nodesBefore = repo.getChildren(col.id).length
 
     board.press("j")
-    board.press("g").press("n")
+    board.press("n")
 
     // Type a name but then cancel
     for (const ch of "Groceries") board.press(ch)
@@ -252,14 +252,14 @@ describe("NewItemDialog lifecycle", () => {
     expect(nodesAfter).toBe(nodesBefore)
   })
 
-  test("gn -> type name -> Enter creates the new item", () => {
+  test("n -> type name -> Enter creates the new item", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
 
     board.press("j")
-    board.press("g").press("n")
+    board.press("n")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 
     // Type name
@@ -308,7 +308,7 @@ describe("dialog state isolation", () => {
     board.press("Escape")
 
     // Open new item dialog
-    board.press("g").press("n")
+    board.press("n")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
     expect(store.getState().ui.datePrompt).toBeNull()
     expect(store.getState().ui.showSearchDialog).toBe(false)
@@ -335,7 +335,7 @@ describe("dialog state isolation", () => {
     board.press("Escape")
 
     // Cycle 3: new item dialog
-    board.press("g").press("n")
+    board.press("n")
     board.press("Escape")
 
     // All flags clean
