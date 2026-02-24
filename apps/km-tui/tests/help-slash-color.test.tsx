@@ -66,19 +66,19 @@ describe("HelpOverlay", () => {
     // Combined navigation entries
     expect(app.text).toMatch(/hjkl.*\.+.*navigate/)
     // Combined fold entries (slash-separated display: "H / L")
-    expect(app.text).toMatch(/H \/ L.*\.+.*fold\/unfold/)
+    expect(app.text).toMatch(/H \/ L.*\.+.*fold \/ unfold/)
   })
 
   test("shows task section with task commands", () => {
     const app = renderHelp()
     expect(app.text).toContain("TASK")
-    expect(app.text).toMatch(/x \/ X/)
+    expect(app.text).toMatch(/x\s+X/)
   })
 
   test("shows editing section with edit commands", () => {
     const app = renderHelp()
     expect(app.text).toContain("EDITING")
-    expect(app.text).toMatch(/o \/ O/)
+    expect(app.text).toMatch(/o\s+O/)
   })
 
   test("shows panes section with ⌃w chords", () => {
