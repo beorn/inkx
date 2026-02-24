@@ -147,16 +147,20 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
     return deriveColumnsFromRepo(repo, rootId, foldDepths)
   })
 
-  // Track deps to detect changes
-  const depsRef = useRef({ rootId, foldDepths, version: effectiveVersion })
+  // Track deps to detect changes. foldDepths is NOT tracked — fold expansion
+  // happens at the rendering layer (TreeNode/Jotai atoms), not in column derivation.
+  // kNodeToColumnView ignores foldDepths (param is _foldDepths).
+  const depsRef = useRef({ rootId, version: effectiveVersion })
+  const foldDepthsRef = useRef(foldDepths)
+  foldDepthsRef.current = foldDepths
 
   useEffect(() => {
     const prev = depsRef.current
-    if (prev.rootId === rootId && prev.foldDepths === foldDepths && prev.version === effectiveVersion) return
-    depsRef.current = { rootId, foldDepths, version: effectiveVersion }
+    if (prev.rootId === rootId && prev.version === effectiveVersion) return
+    depsRef.current = { rootId, version: effectiveVersion }
 
     if (isTest) {
-      setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
+      setColumns(deriveColumnsFromRepo(repo, rootId, foldDepthsRef.current))
       return
     }
 
@@ -164,8 +168,8 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
     // Per-column memoization makes non-zoom derivation fast (cache hits).
     // Preload on rootId change (zoom) — cache is already warm for version bumps.
     if (prev.rootId !== rootId) repo.preloadSubtree(rootId, 3)
-    setColumns(deriveColumnsFromRepo(repo, rootId, foldDepths))
-  }, [effectiveVersion, rootId, foldDepths, isTest, repo])
+    setColumns(deriveColumnsFromRepo(repo, rootId, foldDepthsRef.current))
+  }, [effectiveVersion, rootId, isTest, repo])
 
   return columns
 }

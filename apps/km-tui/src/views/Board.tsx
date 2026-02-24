@@ -73,7 +73,7 @@ import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { CommandBox } from "./CommandBox.tsx"
-import { WhichKeyPopup } from "./WhichKeyPopup.tsx"
+import { CommandFeedback } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { FindBar } from "./FindBar.tsx"
@@ -143,8 +143,6 @@ export interface BoardCoreProps {
   toastQueue?: ToastQueue
   /** Board dispatch (for cursor navigation from find bar) */
   dispatchBoard?: BoardAppStore["dispatchBoard"]
-  /** Fold depths — used by progressive reveal to reset on fold changes */
-  foldDepths?: Map<string, number>
 }
 
 // =============================================================================
@@ -161,26 +159,22 @@ export interface BoardCoreProps {
  * gets a paint frame for its skeleton before the next real column renders.
  * This yields to the event loop between each column, preventing long blocks.
  *
+ * Only resets on rootId change (zoom) — fold/unfold operations use per-column
+ * memoization (cache hits) so all columns re-derive instantly, no progressive
+ * reveal needed.
+ *
  * Returns columnCount in tests (IS_REACT_ACT_ENVIRONMENT) for synchronous rendering.
  */
-function useColumnReveal(
-  columnCount: number,
-  rootId: string | null,
-  foldDepths: Map<string, number> | undefined,
-): number {
+function useColumnReveal(columnCount: number, rootId: string | null): number {
   // @ts-expect-error - React internal flag set by inkx test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
   const [revealedCount, setRevealedCount] = useState(isTest ? columnCount : Math.min(1, columnCount))
-  const prevRef = useRef<{ rootId: string | null; foldDepths: Map<string, number> | undefined }>({
-    rootId,
-    foldDepths,
-  })
+  const prevRootId = useRef(rootId)
 
-  // Reset on rootId change (zoom) or foldDepths change (fold/unfold all).
-  // foldDepths uses reference identity — board-actions creates a new Map on every fold op.
-  // When foldDepths is undefined (tests), only rootId triggers reset.
-  if (rootId !== prevRef.current.rootId || (foldDepths !== undefined && foldDepths !== prevRef.current.foldDepths)) {
-    prevRef.current = { rootId, foldDepths }
+  // Reset only on rootId change (zoom). Fold/unfold changes foldDepths reference
+  // but column derivation hits per-column cache — no need for progressive reveal.
+  if (rootId !== prevRootId.current) {
+    prevRootId.current = rootId
     if (!isTest && columnCount > 0 && revealedCount !== 1) {
       setRevealedCount(1)
     }
@@ -248,12 +242,14 @@ function BoardTopBar({
   filterProperties,
   filterText,
   isBoardSelected,
+  viewMode,
 }: {
   rootId: string | null
   termWidth: number
   filterProperties: FilterProperties
   filterText: string
   isBoardSelected: boolean
+  viewMode?: string
 }): React.ReactElement {
   const repo = useRepo()
   const cursorPos = useCursorNodePosition()
@@ -283,10 +279,13 @@ function BoardTopBar({
             {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
           </Text>
         </Box>
+        <Text dimColor id="view-mode">
+          {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+        </Text>
         {filterIndicator && (
           <Box flexShrink={0}>
-            <Text color="cyan" id="filter-indicator">
-              {" F: "}
+            <Text color="#4477aa" id="filter-indicator">
+              {" [F] "}
               {filterIndicator}{" "}
             </Text>
           </Box>
@@ -374,7 +373,6 @@ export function BoardCore({
   consoleStats,
   toastQueue,
   dispatchBoard,
-  foldDepths: foldDepthsProp,
 }: BoardCoreProps): React.ReactElement {
   const repo = useRepo()
 
@@ -388,9 +386,8 @@ export function BoardCore({
 
   // Progressive column reveal — stagger one column per paint frame.
   // Returns how many columns to render (rest show skeletons).
-  // Uses foldDepths so reveal resets on fold/unfold-all, spreading the heavy
-  // re-render across frames instead of blocking for 10s.
-  const revealedCount = useColumnReveal(columns.length, rootId, foldDepthsProp)
+  // Only resets on zoom (rootId change). Fold/unfold hits column cache — no reveal needed.
+  const revealedCount = useColumnReveal(columns.length, rootId)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -502,6 +499,7 @@ export function BoardCore({
           filterProperties={ui.filterProperties}
           filterText={ui.filterText}
           isBoardSelected={isBoardSelected}
+          viewMode={ui.viewMode}
         />
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
@@ -734,8 +732,15 @@ export function BoardCore({
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
-        {/* Which-key popup (shows chord suffixes when prefix is pending) */}
-        {ui.pendingChord && <WhichKeyPopup prefix={ui.pendingChord} termWidth={termWidth} />}
+        {/* Command feedback pane (chord hints, bell, status) */}
+        {(ui.pendingChord || ui.bellState || ui.status) && (
+          <CommandFeedback
+            prefix={ui.pendingChord}
+            bellState={ui.bellState}
+            status={ui.status}
+            termWidth={termWidth}
+          />
+        )}
         {/* Find bar (inline search — only when active) */}
         {ui.localSearch && (
           <FindBar localSearch={ui.localSearch} width={termWidth} onQueryChange={handleFindQueryChange} />
@@ -746,6 +751,7 @@ export function BoardCore({
           columns={columns}
           termWidth={termWidth}
           storageMode={repo.mode}
+          rootPath={rootPath}
           nodeCount={repo.stats.nodeCount}
           moveMode={moveMode}
           consoleStats={consoleStats}
@@ -1151,7 +1157,6 @@ export function Board({ patchedConsole }: BoardProps) {
             consoleStats={consoleStats}
             toastQueue={toastQueue}
             dispatchBoard={dispatchBoard}
-            foldDepths={foldDepths}
           />
         </TreeRenderProvider>
       </CursorStoreProvider>
