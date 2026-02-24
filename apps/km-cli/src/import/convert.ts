@@ -578,13 +578,11 @@ function itemToNodes(
       const nameIsUrl = /^https?:\/\//.test(att.name)
       const href = att.localPath ?? (isAssetProxy && nameIsUrl ? att.name : att.url)
       // Build attachment link markdown:
-      // - Dead asset proxy with descriptive name → "name [Asana asset]"
+      // - Always render as a markdown link (even dead asset proxy URLs)
       // - [url](url) where name === href → bare URL
       // - Otherwise → standard markdown link
       const linkMd =
-        !att.localPath && isAssetProxy && !nameIsUrl
-          ? `${att.name} [Asana asset]`
-          : att.type === "image"
+        att.type === "image"
             ? `![${att.name}](${href})`
             : att.name === href
               ? href

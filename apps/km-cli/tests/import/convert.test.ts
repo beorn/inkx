@@ -3249,7 +3249,7 @@ describe("Asset proxy URLs in full pipeline (#10)", () => {
     expect(md).not.toContain("get_asset")
   })
 
-  test("attachment with asset proxy URL and non-URL name shows placeholder", () => {
+  test("attachment with asset proxy URL and non-URL name renders as link", () => {
     const nodes: import("@km/core").KNode[] = []
     const counter = { value: 0 }
     itemToNodes(
@@ -3269,7 +3269,7 @@ describe("Asset proxy URLs in full pipeline (#10)", () => {
       nodes,
     )
     const attachNode = nodes.find((n) => n.parent_id === "attachments-t1")!
-    expect(attachNode.content).toBe("Quarterly Report [Asana asset]")
+    expect(attachNode.content).toBe("[Quarterly Report](https://app.asana.com/app/asana/-/get_asset?asset_id=555)")
   })
 
   test("attachment with asset proxy URL and URL name uses name as href", () => {
