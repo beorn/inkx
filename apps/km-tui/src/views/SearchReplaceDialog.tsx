@@ -109,8 +109,8 @@ export function SearchReplaceDialog({
       borderStyle="round"
       borderColor="cyan"
       backgroundColor="black"
-      paddingLeft={1}
-      paddingRight={1}
+      paddingX={1}
+      paddingY={1}
       data-dialog="search-replace"
     >
       {/* Title bar */}

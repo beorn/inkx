@@ -42,6 +42,7 @@ export function FilterDialog({
       borderColor="cyan"
       backgroundColor="black"
       paddingX={2}
+      paddingY={1}
     >
       {/* Title bar */}
       <Box justifyContent="space-between">

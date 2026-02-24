@@ -112,7 +112,7 @@ const toggleShowIgnored = {
   name: "Toggle Show Ignored",
   description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
   category: "Fold",
-  shortcuts: ["gC"],
+  shortcuts: ["vC"],
   execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
 } satisfies CommandDef
 
@@ -155,6 +155,15 @@ const decreaseContentLines = {
   execute: () => ({ type: "DECREASE_CONTENT_LINES" }),
 } satisfies CommandDef
 
+const clearFilters = {
+  id: "clear_filters",
+  name: "Clear Filters",
+  description: "Remove all active view filters (hide-done, ignore, etc.)",
+  category: "View",
+  shortcuts: ["v-"],
+  execute: () => ({ type: "CLEAR_FILTERS" }),
+} satisfies CommandDef
+
 export const viewCommands: CommandDef[] = [
   cycleViewMode,
   cycleIconStyle,
@@ -172,4 +181,5 @@ export const viewCommands: CommandDef[] = [
   decreaseOutlineDepth,
   increaseContentLines,
   decreaseContentLines,
+  clearFilters,
 ]

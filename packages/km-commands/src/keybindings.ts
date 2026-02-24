@@ -673,9 +673,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
       { chord: "g", key: "n", commandId: "new_item" },
-      { chord: "v", key: "c", commandId: "toggle_collapse" },
-      { chord: "g", key: "C", commandId: "toggle_show_ignored" },
-      { chord: "g", key: "v", commandId: "cycle_view_mode" },
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
@@ -683,6 +680,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "+", commandId: "project_picker" },
       { chord: "g", key: "[", commandId: "noop" }, // TODO: create goto_node / backlink_picker command
       { chord: "g", key: "#", commandId: "noop" }, // TODO: create goto_tag / tag_picker command
+
+      // v-prefix chords (view operations)
+      { chord: "v", key: "c", commandId: "toggle_collapse" },
+      { chord: "v", key: "C", commandId: "toggle_show_ignored" },
+      { chord: "v", key: "m", commandId: "cycle_view_mode" },
+      { chord: "v", key: "d", commandId: "toggle_hide_done" },
+      { chord: "v", key: "h", commandId: "ignore_node" },
+      { chord: "v", key: "i", commandId: "cycle_icon_style" },
+      { chord: "v", key: "-", commandId: "clear_filters" },
 
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
@@ -713,7 +719,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "!", commandId: "set_priority" },
       { chord: "t", key: "s", commandId: "set_start_date" },
       { chord: "t", key: "r", commandId: "set_recurring" },
-      { chord: "t", key: "c", commandId: "toggle_hide_done" },
+      // toggle_hide_done moved to v d (view prefix)
       { chord: "t", key: "l", commandId: "set_label" },
     ],
   },
@@ -723,7 +729,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "view",
     bindings: [
       { key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { key: "V", commandId: "cycle_icon_style" }, // Not in v2 spec — candidate for removal
+      // cycle_icon_style moved to v i (view prefix)
       { key: "?", commandId: "show_help" },
       { key: "+", commandId: "increase_content_lines" },
       { key: "=", commandId: "increase_content_lines" },

@@ -383,6 +383,9 @@ interface ClearAllFilterPropertiesAction {
 interface ToggleHideDoneAction {
   type: "TOGGLE_HIDE_DONE"
 }
+interface ClearFiltersAction {
+  type: "CLEAR_FILTERS"
+}
 type FilterAction =
   | ShowFilterDialogAction
   | SetFilterAction
@@ -391,6 +394,7 @@ type FilterAction =
   | ClearFilterCategoryAction
   | ClearAllFilterPropertiesAction
   | ToggleHideDoneAction
+  | ClearFiltersAction
 
 interface CommandPaletteAction {
   type: "COMMAND_PALETTE"

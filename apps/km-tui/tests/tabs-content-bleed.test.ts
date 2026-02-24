@@ -30,7 +30,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     )
 
     // Switch to TABS view
-    board.press("g").press("v").press("g").press("v")
+    board.press("v").press("m").press("v").press("m")
 
     // Alpha tab should be active, breadcrumb should show Alpha
     let screen = board.screenshot()
@@ -69,7 +69,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("g").press("v").press("g").press("v")
+    board.press("v").press("m").press("v").press("m")
 
     const screen = board.screenshot()
     expect(screen).toContain("Alpha task one")
@@ -100,7 +100,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("g").press("v").press("g").press("v")
+    board.press("v").press("m").press("v").press("m")
 
     // First tab (TaskNotes) should show its content
     let screen = board.screenshot()
@@ -129,7 +129,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("g").press("v").press("g").press("v")
+    board.press("v").press("m").press("v").press("m")
 
     let screen = board.screenshot()
     expect(screen).toContain("First-unique-content-AAA")
@@ -158,7 +158,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("g").press("v").press("g").press("v")
+    board.press("v").press("m").press("v").press("m")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
     board.press("l").press("l").press("h").press("h").press("l")

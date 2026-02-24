@@ -143,7 +143,9 @@ function stripConsolidatedHeader(text: string): { content: string; date?: string
   }
   if (headerIdx === -1) return { content: text }
 
-  const date = parseConsolidatedDate(lines[headerIdx]!.trim())
+  const headerLine = lines[headerIdx]
+  if (!headerLine) return { content: text }
+  const date = parseConsolidatedDate(headerLine.trim())
   const content = lines
     .slice(headerIdx + 1)
     .join("\n")

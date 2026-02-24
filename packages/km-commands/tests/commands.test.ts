@@ -413,6 +413,7 @@ describe("viewCommands (fold and view config)", () => {
       ["decrease_outline_depth", "DECREASE_OUTLINE_DEPTH"],
       ["increase_content_lines", "INCREASE_CONTENT_LINES"],
       ["decrease_content_lines", "DECREASE_CONTENT_LINES"],
+      ["clear_filters", "CLEAR_FILTERS"],
     ] as const)("%s returns %s", (id, type) => {
       expectAction(viewCommands, id, { type })
     })

@@ -750,6 +750,7 @@ describe("chord keybindings", () => {
     // z is not a chord prefix (z = zoom_inwards standalone)
     // s-prefix removed (task properties now under t-prefix)
     expect(isChordPrefix("g")).toBe(true)
+    expect(isChordPrefix("v")).toBe(true)
     expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
@@ -772,6 +773,14 @@ describe("chord keybindings", () => {
     ["g", "j", "goto_journal"],
     ["g", "h", "goto_home"],
     ["g", "e", "goto_archive"],
+    // v-prefix chords (view operations)
+    ["v", "c", "toggle_collapse"],
+    ["v", "C", "toggle_show_ignored"],
+    ["v", "m", "cycle_view_mode"],
+    ["v", "d", "toggle_hide_done"],
+    ["v", "h", "ignore_node"],
+    ["v", "i", "cycle_icon_style"],
+    ["v", "-", "clear_filters"],
     // m-prefix chords (move to board)
     ["m", "m", "enter_move_mode"],
     ["m", "i", "move_to_inbox"],
@@ -812,7 +821,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(41) // 15 g + 10 m + 7 a + 9 t
+    expect(chordBindings.length).toBe(44) // 12 g + 7 v + 10 m + 7 a + 8 t
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -832,7 +841,13 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["#", "+", "C", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
+    expect(keys).toEqual(["#", "+", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p"])
+  })
+
+  it("getChordSuffixes returns v-prefix hints", () => {
+    const suffixes = getChordSuffixes("v")
+    const keys = suffixes.map((s) => s.key).sort()
+    expect(keys).toEqual(["-", "C", "c", "d", "h", "i", "m"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {

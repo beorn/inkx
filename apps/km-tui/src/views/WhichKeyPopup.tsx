@@ -161,8 +161,8 @@ export function FlashMessage({ message, color, termWidth }: {
       width={Math.min(message.length + 4, maxWidth)}
       borderStyle="round"
       borderColor={isFlash ? "white" : "gray"}
-      paddingLeft={1}
-      paddingRight={1}
+      paddingX={1}
+      paddingY={0}
     >
       <Text color={isFlash ? "white" : color} bold={isFlash} id="feedback-message">{message}</Text>
     </Box>
@@ -189,8 +189,8 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
         flexDirection="column"
         borderStyle="round"
         borderColor="gray"
-        paddingLeft={1}
-        paddingRight={1}
+        paddingX={1}
+        paddingY={1}
       >
         {entries.map((entry) => (
           <Text key={entry.key}>
@@ -207,7 +207,7 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
   // Priority 2: bell/status feedback
   if (bellState || status) {
     const message = status?.message ?? bellState ?? ""
-    const color = bellState ? undefined : STATUS_COLORS[status!.level]
+    const color = bellState ? undefined : status ? STATUS_COLORS[status.level] : undefined
     return <FlashMessage message={message} color={color} termWidth={termWidth} />
   }
 
