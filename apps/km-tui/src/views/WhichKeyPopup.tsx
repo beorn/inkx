@@ -164,7 +164,7 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
       <Box
         width={Math.min(message.length + 4, maxWidth)}
         borderStyle="round"
-        borderColor={isBell ? "white" : "gray"}
+        borderColor="gray"
         paddingLeft={1}
         paddingRight={1}
         backgroundColor={isBell ? "white" : undefined}
