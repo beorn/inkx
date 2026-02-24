@@ -27,7 +27,7 @@ const cycleTaskStatus = {
   name: "Cycle Status",
   description: "Cycle through task statuses",
   category: "Task",
-  shortcuts: ["X"],
+  shortLabel: "cycle",
   execute: (ctx) => {
     if (!ctx.currentNode || !ctx.currentNodeId) return null
     const node = ctx.currentNode
@@ -47,7 +47,7 @@ const toggleTaskDone = {
   name: "Toggle Done",
   description: "Toggle task between done and todo",
   category: "Task",
-  shortcuts: ["x"],
+  shortLabel: "toggle",
   execute: (ctx) => {
     if (!ctx.currentNode || !ctx.currentNodeId) return null
     if (!ctx.currentNode.isTask) return null
@@ -100,7 +100,7 @@ const setDueDate = {
   name: "Set Due Date",
   description: "Set or edit due date",
   category: "Task",
-  shortcuts: ["td"],
+  shortLabel: "due date",
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "SET_DUE_DATE", nodeId: ctx.currentNodeId }
@@ -112,7 +112,7 @@ const setStartDate = {
   name: "Set Start Date",
   description: "Set or edit start date",
   category: "Task",
-  shortcuts: ["ts"],
+  shortLabel: "start",
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "SET_START_DATE", nodeId: ctx.currentNodeId }
@@ -124,7 +124,7 @@ const setRecurring = {
   name: "Set Recurring",
   description: "Set recurrence rule",
   category: "Task",
-  shortcuts: ["tr"],
+  shortLabel: "recurring",
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "SET_RECURRING", nodeId: ctx.currentNodeId }
@@ -136,7 +136,7 @@ const setPriority = {
   name: "Set Priority",
   description: "Set task priority",
   category: "Task",
-  shortcuts: ["sp"],
+  shortLabel: "priority",
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "SET_PRIORITY", nodeId: ctx.currentNodeId }
@@ -148,7 +148,7 @@ const setLabel = {
   name: "Set Label",
   description: "Set or add label/tag",
   category: "Task",
-  shortcuts: ["sl"],
+  shortLabel: "label",
   execute: () => ({ type: "SET_LABEL" }),
 } satisfies CommandDef
 
@@ -157,7 +157,7 @@ const setAssignee = {
   name: "Set Assignee",
   description: "Set task assignee",
   category: "Task",
-  shortcuts: ["sa"],
+  shortLabel: "assignee",
   execute: () => ({ type: "SET_ASSIGNEE" }),
 } satisfies CommandDef
 
@@ -166,7 +166,7 @@ const clearTask = {
   name: "Clear Task",
   description: "Remove all task properties (status, dates, priority, assignee)",
   category: "Task",
-  shortcuts: ["t-"],
+  shortLabel: "clear",
   execute: (ctx): CommandAction | null => {
     if (!ctx.currentNodeId) return null
     return { type: "CLEAR_TASK", nodeId: ctx.currentNodeId }

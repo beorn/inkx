@@ -1,4 +1,5 @@
 import type { CommandMode, TNode } from "./types.ts"
+import type { ResolvedBinding } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
 import {
   textInputFocused,
@@ -14,6 +15,7 @@ import {
   inVisualMode,
   localFindActive,
   searchReplaceOpen,
+  hasKitty,
   not,
   and,
 } from "./when.ts"
@@ -23,13 +25,14 @@ export interface Keybinding {
   /** If true, matches any key (key field is ignored for matching) */
   wildcard?: boolean
   ctrl?: boolean
-  meta?: boolean
+  opt?: boolean
   shift?: boolean
-  alt?: boolean
-  super?: boolean
+  cmd?: boolean
   /** Chord prefix — if set, this binding requires the prefix key first (e.g., chord: "z" + key: "a" = "za") */
   chord?: string
   commandId: string
+  /** Destination target for location-aware commands (e.g., "i" for inbox) */
+  targetId?: string
   modes?: CommandMode[]
   when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
 }
@@ -61,6 +64,8 @@ export interface KeybindingContext {
   omniboxOpen?: boolean
   /** True when the search/replace dialog is open */
   searchReplaceOpen?: boolean
+  /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
+  hasKitty?: boolean
 }
 
 // Internal binding with registration order for priority interleaving
@@ -134,25 +139,23 @@ function matchBinding(
   key: string,
   modifiers: {
     ctrl?: boolean
-    meta?: boolean
+    opt?: boolean
     shift?: boolean
-    alt?: boolean
-    super?: boolean
+    cmd?: boolean
   },
   ctx: KeybindingContext,
 ): boolean {
   // Wildcards skip modifier checks — they absorb all keys regardless of modifiers
   if (!binding.wildcard) {
     if (!!binding.ctrl !== !!modifiers.ctrl) return false
-    if (!!binding.meta !== !!modifiers.meta) return false
-    if (!!binding.super !== !!modifiers.super) return false
+    if (!!binding.opt !== !!modifiers.opt) return false
+    if (!!binding.cmd !== !!modifiers.cmd) return false
     // For single uppercase letters (A-Z), the shift key is implicit in the character
     // Don't require explicit shift: true in the binding for capital letters
     const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
     if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) {
       return false
     }
-    if (!!binding.alt !== !!modifiers.alt) return false
   }
 
   // Check mode
@@ -170,19 +173,22 @@ export function resolveKeybinding(
   key: string,
   modifiers: {
     ctrl?: boolean
-    meta?: boolean
+    opt?: boolean
     shift?: boolean
-    alt?: boolean
-    super?: boolean
+    cmd?: boolean
   },
   ctx: KeybindingContext,
-): string | null {
+): ResolvedBinding | null {
   const bucket = keyMap.get(key) ?? []
+
+  function toResolved(binding: Keybinding): ResolvedBinding {
+    return binding.targetId ? { commandId: binding.commandId, targetId: binding.targetId } : { commandId: binding.commandId }
+  }
 
   // Fast path: no wildcards registered
   if (wildcardBindings.length === 0) {
     for (const binding of bucket) {
-      if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
+      if (matchBinding(binding, key, modifiers, ctx)) return toResolved(binding)
     }
     return null
   }
@@ -207,7 +213,7 @@ export function resolveKeybinding(
       wi++
     }
 
-    if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
+    if (matchBinding(binding, key, modifiers, ctx)) return toResolved(binding)
   }
   return null
 }
@@ -217,41 +223,86 @@ export function isChordPrefix(key: string): boolean {
   return chordPrefixes.has(key)
 }
 
-/** Resolve a chord (prefix + second key) to a command ID */
+/** Resolve a chord (prefix + second key) to a command + args */
 export function resolveChord(
   prefix: string,
   key: string,
   modifiers: {
     ctrl?: boolean
-    meta?: boolean
+    opt?: boolean
     shift?: boolean
-    alt?: boolean
-    super?: boolean
+    cmd?: boolean
   },
   ctx: KeybindingContext,
-): string | null {
+): ResolvedBinding | null {
   const chordKey = `${prefix}:${key}`
   const bucket = chordMap.get(chordKey)
   if (!bucket) return null
 
   for (const binding of bucket) {
-    if (matchBinding(binding, key, modifiers, ctx)) return binding.commandId
+    if (matchBinding(binding, key, modifiers, ctx)) {
+      return binding.targetId
+        ? { commandId: binding.commandId, targetId: binding.targetId }
+        : { commandId: binding.commandId }
+    }
   }
   return null
 }
 
 /** Get all suffix keys and their command IDs for a given chord prefix */
-export function getChordSuffixes(prefix: string): { key: string; commandId: string }[] {
-  const result: { key: string; commandId: string }[] = []
+export function getChordSuffixes(
+  prefix: string,
+): { key: string; commandId: string; targetId?: string }[] {
+  const result: { key: string; commandId: string; targetId?: string }[] = []
   const seen = new Set<string>()
   for (const [chordKey, bucket] of chordMap) {
     if (!chordKey.startsWith(`${prefix}:`)) continue
     const suffixKey = chordKey.slice(prefix.length + 1)
     if (seen.has(suffixKey)) continue
     seen.add(suffixKey)
-    // Use the first binding's commandId (highest priority)
+    // Use the first binding's commandId + targetId (highest priority)
     if (bucket.length > 0) {
-      result.push({ key: suffixKey, commandId: bucket[0].commandId })
+      const entry: { key: string; commandId: string; targetId?: string } = {
+        key: suffixKey,
+        commandId: bucket[0].commandId,
+      }
+      if (bucket[0].targetId) entry.targetId = bucket[0].targetId
+      result.push(entry)
+    }
+  }
+  return result
+}
+
+// =============================================================================
+// Keybinding Utilities
+// =============================================================================
+
+/** Format a keybinding as a human-readable hint string (e.g., "⌘z", "⌃k") */
+export function formatKeybinding(binding: Keybinding): string {
+  const parts: string[] = []
+  if (binding.chord) parts.push(binding.chord)
+  if (binding.cmd) parts.push("⌘")
+  if (binding.ctrl) parts.push("⌃")
+  if (binding.opt) parts.push("⌥")
+  if (binding.shift) parts.push("⇧")
+  parts.push(binding.key)
+  return parts.join("")
+}
+
+/** Get all keybindings for a specific command ID */
+export function getBindingsForCommand(commandId: string): Keybinding[] {
+  const result: Keybinding[] = []
+  for (const bucket of keyMap.values()) {
+    for (const b of bucket) {
+      if (b.commandId === commandId) result.push(b)
+    }
+  }
+  for (const b of wildcardBindings) {
+    if (b.commandId === commandId) result.push(b)
+  }
+  for (const bucket of chordMap.values()) {
+    for (const b of bucket) {
+      if (b.commandId === commandId) result.push(b)
     }
   }
   return result
@@ -312,7 +363,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "`", commandId: "console.toggle" },
       { key: "t", ctrl: true, commandId: "task_dialog" },
       { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
-      { key: "k", super: true, commandId: "command_palette" },
+      { key: "k", cmd: true, commandId: "command_palette" },
     ],
   },
 
@@ -348,11 +399,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
       { key: "Enter", shift: true, commandId: "search_replace.prev", when: searchReplaceOpen },
       { key: "r", ctrl: true, commandId: "search_replace.replace", when: searchReplaceOpen },
-      { key: "r", super: true, commandId: "search_replace.replace", when: searchReplaceOpen },
+      { key: "r", cmd: true, commandId: "search_replace.replace", when: searchReplaceOpen },
       { key: "r", ctrl: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
-      { key: "r", super: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
+      { key: "r", cmd: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
       { key: "x", ctrl: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
-      { key: "x", super: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+      { key: "x", cmd: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
     ],
   },
 
@@ -426,14 +477,14 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "inline-edit-barrier",
     bindings: [
-      // { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing }, // non-macOS
-      { key: "z", super: true, commandId: "undo", when: isInlineEditing },
-      // { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing }, // non-macOS
-      { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
+      { key: "z", ctrl: true, commandId: "undo", when: and(isInlineEditing, not(hasKitty)) },
+      { key: "z", cmd: true, commandId: "undo", when: isInlineEditing },
+      { key: "z", ctrl: true, shift: true, commandId: "redo", when: and(isInlineEditing, not(hasKitty)) },
+      { key: "z", cmd: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
       // Text formatting (Cmd+b/i — kitty protocol, text edit only)
-      { key: "b", super: true, commandId: "text.bold", when: isInlineEditing },
-      { key: "i", super: true, commandId: "text.italic", when: isInlineEditing },
+      { key: "b", cmd: true, commandId: "text.bold", when: isInlineEditing },
+      { key: "i", cmd: true, commandId: "text.italic", when: isInlineEditing },
       { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
     ],
   },
@@ -516,7 +567,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
       { key: "D", commandId: "toggle_detail_pane" },
       // Cmd+W: always close detail pane regardless of focus state
-      { key: "w", super: true, commandId: "close_detail_pane" },
+      { key: "w", cmd: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
       { key: "i", ctrl: true, commandId: "toggle_detail_pane" },
 
@@ -527,16 +578,16 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Cmd shortcuts (kitty protocol — macOS native feel)
       // Cmd+i: toggle detail pane (when not inline editing — Cmd+i is italic there)
-      { key: "i", super: true, commandId: "toggle_detail_pane", when: not(isInlineEditing) },
+      { key: "i", cmd: true, commandId: "toggle_detail_pane", when: not(isInlineEditing) },
       // Focus switching: Cmd+h = board, Cmd+l = detail pane
-      { key: "h", super: true, commandId: "focus_board" },
-      { key: "l", super: true, commandId: "focus_detail" },
+      { key: "h", cmd: true, commandId: "focus_board" },
+      { key: "l", cmd: true, commandId: "focus_detail" },
       // History: Cmd+[/] = back/forward
-      { key: "[", super: true, commandId: "nav_back" },
-      { key: "]", super: true, commandId: "nav_forward" },
+      { key: "[", cmd: true, commandId: "nav_back" },
+      { key: "]", cmd: true, commandId: "nav_forward" },
       // Smart open: Cmd+o = system open, Cmd+Shift+o = terminal/editor open
-      { key: "o", super: true, commandId: "open_in_system" },
-      { key: "o", super: true, shift: true, commandId: "open_in_terminal" },
+      { key: "o", cmd: true, commandId: "open_in_system" },
+      { key: "o", cmd: true, shift: true, commandId: "open_in_terminal" },
     ],
   },
 
@@ -551,7 +602,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
       { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
       // Cmd+A selects all (kitty protocol)
-      { key: "a", super: true, commandId: "select_all" },
+      { key: "a", cmd: true, commandId: "select_all" },
 
       // Extend selection with Shift+arrows (xterm modified arrow sequences)
       { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
@@ -574,7 +625,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Enter", shift: true, commandId: "noop" }, // TODO: enter_body_edit_end command needs to be created
 
       // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
-      { key: "d", commandId: "clipboard_cut" },
+      { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
       { key: "Backspace", shift: true, commandId: "clipboard_cut" },
       { key: "Backspace", commandId: "delete_node" },
       { key: "Delete", commandId: "delete_node" },
@@ -586,8 +637,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // o/O = new item below/above (outliner-style)
       { key: "o", commandId: "insert_below" },
       { key: "O", commandId: "insert_above" },
-      { key: "Enter", super: true, commandId: "insert_below" },
-      { key: "Enter", super: true, shift: true, commandId: "new_item" },
+      { key: "Enter", cmd: true, commandId: "insert_below" },
+      { key: "Enter", cmd: true, shift: true, commandId: "new_item" },
 
       // u/U = undo/redo (vim-style)
       { key: "u", commandId: "undo" },
@@ -595,38 +646,38 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Shifting (Cmd/Super+direction) — move nodes in tree
       // Also bound to Alt/Meta for terminals without Kitty protocol
-      { key: "ArrowUp", super: true, commandId: "shift_up" },
-      { key: "ArrowDown", super: true, commandId: "shift_down" },
-      { key: "ArrowLeft", super: true, commandId: "shift_left" },
-      { key: "ArrowRight", super: true, commandId: "shift_right" },
-      { key: "k", super: true, commandId: "shift_up" },
-      { key: "j", super: true, commandId: "shift_down" },
+      { key: "ArrowUp", cmd: true, commandId: "shift_up" },
+      { key: "ArrowDown", cmd: true, commandId: "shift_down" },
+      { key: "ArrowLeft", cmd: true, commandId: "shift_left" },
+      { key: "ArrowRight", cmd: true, commandId: "shift_right" },
+      { key: "k", cmd: true, commandId: "shift_up" },
+      { key: "j", cmd: true, commandId: "shift_down" },
       // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
       // Use Alt/Meta+h/l for shifting instead
-      { key: "ArrowUp", meta: true, commandId: "shift_up" },
-      { key: "ArrowDown", meta: true, commandId: "shift_down" },
-      { key: "ArrowLeft", meta: true, commandId: "shift_left" },
-      { key: "ArrowRight", meta: true, commandId: "shift_right" },
-      { key: "k", meta: true, commandId: "shift_up" },
-      { key: "j", meta: true, commandId: "shift_down" },
-      { key: "h", meta: true, commandId: "shift_left" },
-      { key: "l", meta: true, commandId: "shift_right" },
+      { key: "ArrowUp", opt: true, commandId: "shift_up" },
+      { key: "ArrowDown", opt: true, commandId: "shift_down" },
+      { key: "ArrowLeft", opt: true, commandId: "shift_left" },
+      { key: "ArrowRight", opt: true, commandId: "shift_right" },
+      { key: "k", opt: true, commandId: "shift_up" },
+      { key: "j", opt: true, commandId: "shift_down" },
+      { key: "h", opt: true, commandId: "shift_left" },
+      { key: "l", opt: true, commandId: "shift_right" },
 
       // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
       { key: "Tab", commandId: "indent_node" },
       { key: "Tab", shift: true, commandId: "outdent" },
 
-      // Clipboard (Cmd — macOS; Ctrl variants commented out)
-      // { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) }, // non-macOS
-      // { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) }, // non-macOS
-      // { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) }, // non-macOS
-      { key: "c", super: true, commandId: "clipboard_copy", when: not(textInputFocused) },
-      { key: "x", super: true, commandId: "clipboard_cut", when: not(textInputFocused) },
-      { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
+      // Clipboard (Cmd — macOS; Ctrl fallbacks when Kitty unavailable)
+      { key: "c", ctrl: true, commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "x", ctrl: true, commandId: "clipboard_cut", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "v", ctrl: true, commandId: "clipboard_paste", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "c", cmd: true, commandId: "clipboard_copy", when: not(textInputFocused) },
+      { key: "x", cmd: true, commandId: "clipboard_cut", when: not(textInputFocused) },
+      { key: "v", cmd: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
-      { key: "d", super: true, commandId: "duplicate_node" },
+      { key: "d", cmd: true, commandId: "duplicate_node" },
       // Cmd+n = capture dialog (kitty) — per help spec
-      { key: "n", super: true, commandId: "capture_dialog" },
+      { key: "n", cmd: true, commandId: "capture_dialog" },
     ],
   },
 
@@ -658,10 +709,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Bare symbol shortcuts (convenience aliases for common chord actions)
       // These only fire in node mode (not text edit, not dialog)
-      { key: "@", commandId: "add_assignee", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "#", commandId: "add_tag", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "@", commandId: "add", targetId: "@", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "#", commandId: "add", targetId: "#", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "+", commandId: "add", targetId: "+", when: and(not(textInputFocused), not(anyDialogOpen)) },
+      { key: "[", commandId: "add", targetId: "[", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
       // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
       { key: "g", commandId: "cursor_first" },
@@ -675,14 +726,27 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
-      // g n removed — n/N = find next/prev, new item via c/C/o/O
-      { chord: "g", key: "i", commandId: "goto_inbox" },
-      { chord: "g", key: "j", commandId: "goto_journal" },
-      { chord: "g", key: "h", commandId: "goto_home" },
-      { chord: "g", key: "e", commandId: "goto_archive" },
+      // Board locations (composable goto)
+      { chord: "g", key: "h", commandId: "goto", targetId: "h" },
+      { chord: "g", key: "i", commandId: "goto", targetId: "i" },
+      { chord: "g", key: "j", commandId: "goto", targetId: "j" },
+      { chord: "g", key: "a", commandId: "goto", targetId: "a" },
+      // Favorites (composable goto)
+      { chord: "g", key: "0", commandId: "goto", targetId: "0" },
+      { chord: "g", key: "1", commandId: "goto", targetId: "1" },
+      { chord: "g", key: "2", commandId: "goto", targetId: "2" },
+      { chord: "g", key: "3", commandId: "goto", targetId: "3" },
+      { chord: "g", key: "4", commandId: "goto", targetId: "4" },
+      { chord: "g", key: "5", commandId: "goto", targetId: "5" },
+      { chord: "g", key: "6", commandId: "goto", targetId: "6" },
+      { chord: "g", key: "7", commandId: "goto", targetId: "7" },
+      { chord: "g", key: "8", commandId: "goto", targetId: "8" },
+      { chord: "g", key: "9", commandId: "goto", targetId: "9" },
+      // Pickers (keep manual for now)
       { chord: "g", key: "+", commandId: "project_picker" },
-      { chord: "g", key: "[", commandId: "noop" }, // TODO: create goto_node / backlink_picker command
-      { chord: "g", key: "#", commandId: "noop" }, // TODO: create goto_tag / tag_picker command
+      { chord: "g", key: "[", commandId: "noop" },
+      { chord: "g", key: "#", commandId: "noop" },
+      { chord: "g", key: "@", commandId: "noop" },
 
       // v-prefix chords (view operations)
       { chord: "v", key: "c", commandId: "toggle_collapse" },
@@ -696,24 +760,30 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
       { chord: "m", key: "a", commandId: "archive" },
-      { chord: "m", key: "i", commandId: "move_to_inbox" },
-      { chord: "m", key: "j", commandId: "move_to_journal" },
-      { chord: "m", key: "h", commandId: "move_to_home" },
+      // Board locations (composable move)
+      { chord: "m", key: "h", commandId: "move", targetId: "h" },
+      { chord: "m", key: "i", commandId: "move", targetId: "i" },
+      { chord: "m", key: "j", commandId: "move", targetId: "j" },
+      // Pickers (keep manual)
       { chord: "m", key: "p", commandId: "reparent_picker" },
       { chord: "m", key: "+", commandId: "reparent_picker" },
-      { chord: "m", key: "[", commandId: "noop" }, // TODO: create move_to_node command
-      { chord: "m", key: "#", commandId: "noop" }, // TODO: create move_to_tag command
-      { chord: "m", key: "g", commandId: "noop" }, // TODO: create move_to_first command
-      { chord: "m", key: "G", commandId: "noop" }, // TODO: create move_to_last command
+      { chord: "m", key: "[", commandId: "noop" },
+      { chord: "m", key: "#", commandId: "noop" },
+      { chord: "m", key: "@", commandId: "noop" },
+      { chord: "m", key: "g", commandId: "noop" },
+      { chord: "m", key: "G", commandId: "noop" },
 
-      // a-prefix chords (add operations — v2 spec)
-      { chord: "a", key: "#", commandId: "add_tag" },
-      { chord: "a", key: "@", commandId: "add_assignee" },
-      { chord: "a", key: "+", commandId: "add_project" },
-      { chord: "a", key: "[", commandId: "add_backlink" },
+      // a-prefix chords (add operations — composable)
+      { chord: "a", key: "#", commandId: "add", targetId: "#" },
+      { chord: "a", key: "@", commandId: "add", targetId: "@" },
+      { chord: "a", key: "+", commandId: "add", targetId: "+" },
+      { chord: "a", key: "[", commandId: "add", targetId: "[" },
       { chord: "a", key: "i", commandId: "insert_child" },
       { chord: "a", key: "j", commandId: "add_sibling_below" },
       { chord: "a", key: "h", commandId: "insert_at_parent" },
+      { chord: "a", key: "H", commandId: "noop" }, // TODO: add link to home
+      { chord: "a", key: "I", commandId: "noop" }, // TODO: add link to inbox
+      { chord: "a", key: "J", commandId: "noop" }, // TODO: add link to journal
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },
@@ -755,13 +825,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "history",
     bindings: [
-      // { key: "z", ctrl: true, commandId: "undo" }, // non-macOS
-      { key: "z", super: true, commandId: "undo" },
-      // { key: "z", ctrl: true, shift: true, commandId: "redo" }, // non-macOS
-      { key: "z", super: true, shift: true, commandId: "redo" },
+      { key: "z", ctrl: true, commandId: "undo", when: not(hasKitty) },
+      { key: "z", cmd: true, commandId: "undo" },
+      { key: "z", ctrl: true, shift: true, commandId: "redo", when: not(hasKitty) },
+      { key: "z", cmd: true, shift: true, commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
-      // { key: "y", ctrl: true, commandId: "redo", when: not(textInputFocused) }, // non-macOS (Windows redo)
     ],
   },
 
@@ -819,28 +888,27 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
-      { key: "f", super: true, commandId: "search_replace" },
+      { key: "f", cmd: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
       { key: "S", commandId: "search_replace", when: not(textInputFocused) },
       { key: "F", commandId: "filter", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
-      { key: "t", super: true, commandId: "task_dialog" },
-      { key: "g", super: true, commandId: "filter" },
-      { key: "p", super: true, commandId: "toggle_detail_pane" },
-      { key: ",", super: true, commandId: "settings" },
+      { key: "t", cmd: true, commandId: "task_dialog" },
+      { key: "g", cmd: true, commandId: "filter" },
+      { key: "p", cmd: true, commandId: "toggle_detail_pane" },
+      { key: ",", cmd: true, commandId: "settings" },
 
-      // Favorites (0-9) — jump to favorite boards
-      // 0 is unbound — favorites use 1-9 (no favorite_0 command)
-      { key: "1", commandId: "favorite_1" },
-      { key: "2", commandId: "favorite_2" },
-      { key: "3", commandId: "favorite_3" },
-      { key: "4", commandId: "favorite_4" },
-      { key: "5", commandId: "favorite_5" },
-      { key: "6", commandId: "favorite_6" },
-      { key: "7", commandId: "favorite_7" },
-      { key: "8", commandId: "favorite_8" },
-      { key: "9", commandId: "favorite_9" },
+      // Favorites (1-9) — composable goto with target digit
+      { key: "1", commandId: "goto", targetId: "1" },
+      { key: "2", commandId: "goto", targetId: "2" },
+      { key: "3", commandId: "goto", targetId: "3" },
+      { key: "4", commandId: "goto", targetId: "4" },
+      { key: "5", commandId: "goto", targetId: "5" },
+      { key: "6", commandId: "goto", targetId: "6" },
+      { key: "7", commandId: "goto", targetId: "7" },
+      { key: "8", commandId: "goto", targetId: "8" },
+      { key: "9", commandId: "goto", targetId: "9" },
 
       // Contextual close/quit (Escape)
       // Closes dialogs, panes, modes, or quits if nothing to close

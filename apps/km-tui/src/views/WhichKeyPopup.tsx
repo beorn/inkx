@@ -9,97 +9,17 @@
  */
 import React, { useState, useEffect, useRef } from "react"
 import { Box, Text } from "inkx"
-import { getChordSuffixes, getCommand } from "@km/commands"
+import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 
-/** Short display labels for chord commands (falls back to command name) */
-const SHORT_LABELS: Record<string, string> = {
-  // g-prefix (goto)
-  cursor_first: "top",
-  open_in_system: "open",
-  open_in_terminal: "terminal",
-  project_picker: "project",
-  new_item: "new",
-  toggle_show_ignored: "ignored",
-  goto_inbox: "inbox",
-  goto_journal: "journal",
-  goto_home: "home",
-  goto_archive: "archive",
-  goto_next: "next",
-  goto_tag: "tag",
-  goto_assignee: "assignee",
-  goto_project: "project",
-  goto_backlink: "backlink",
-  cursor_last: "last",
-  zoom_to_root: "root",
-  // m-prefix (move)
-  enter_move_mode: "move",
-  move_to_inbox: "inbox",
-  move_to_journal: "journal",
-  move_to_home: "home",
-  move_to_archive: "archive",
-  move_to_project: "project",
-  reparent_picker: "reparent",
-  // a-prefix (add)
-  add_tag: "tag",
-  add_assignee: "assignee",
-  add_project: "project",
-  add_backlink: "backlink",
-  add_to_archive: "archive",
-  insert_child: "child",
-  add_sibling_below: "below",
-  insert_at_parent: "parent",
-  // c-prefix (capture)
-  capture_dialog: "dialog",
-  capture_inbox: "inbox",
-  capture_home: "home",
-  capture_journal: "journal",
-  capture_archive: "archive",
-  // t-prefix (task properties)
-  noop: "...",
-  task_dialog: "task",
-  clear_task: "clear",
-  set_assignee: "assignee",
-  set_due_date: "due date",
-  set_priority: "priority",
-  set_start_date: "start",
-  set_label: "label",
-  set_recurring: "recurring",
-  // v-prefix (view)
-  visual_mode_enter: "visual",
-  cycle_view_mode: "view",
-  toggle_collapse: "collapse",
-  toggle_hide_done: "done",
-  ignore_node: "ignore",
-  filter: "filter",
-  clear_filters: "clear",
-  // Ctrl+W-prefix (pane operations)
-  pane_split_vertical: "vsplit",
-  pane_split_horizontal: "hsplit",
-  pane_close: "close",
-  pane_focus_left: "← focus",
-  pane_focus_down: "↓ focus",
-  pane_focus_up: "↑ focus",
-  pane_focus_right: "→ focus",
-  pane_focus_previous: "prev",
-  pane_focus_next: "next",
-  pane_focus_prev: "prev",
-  pane_resize_grow: "wider",
-  pane_resize_shrink: "narrower",
-  pane_resize_grow_vertical: "taller",
-  pane_resize_shrink_vertical: "shorter",
-  pane_equalize: "equalize",
-  pane_zoom: "zoom",
-  pane_only: "only",
-  pane_swap_left: "swap ←",
-  pane_swap_down: "swap ↓",
-  pane_swap_up: "swap ↑",
-  pane_swap_right: "swap →",
-}
-
-function getLabel(commandId: string): string {
-  if (SHORT_LABELS[commandId]) return SHORT_LABELS[commandId]
+/** Get display label for a chord suffix entry */
+function getLabel(commandId: string, targetId?: string): string {
+  // Composable commands: derive label from target
+  if (targetId) return locationLabel(targetId)
+  // Other commands: use shortLabel or name
+  if (commandId === "noop") return "..."
   const cmd = getCommand(commandId)
-  return cmd?.name ?? commandId
+  if (!cmd) return commandId
+  return cmd.shortLabel ?? cmd.name
 }
 
 interface CommandFeedbackProps {
@@ -177,7 +97,7 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
 
     const entries = suffixes.map((s) => ({
       key: s.key,
-      label: getLabel(s.commandId),
+      label: getLabel(s.commandId, s.targetId),
     }))
 
     const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))

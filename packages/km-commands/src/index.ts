@@ -9,6 +9,7 @@ export type {
   CommandMode,
   CommandContext,
   CommandAction,
+  ResolvedBinding,
   TaskSetStatusAction,
   HistoryAction,
   HistoryUndoAction,
@@ -88,6 +89,8 @@ export {
   isChordPrefix,
   resolveChord,
   getChordSuffixes,
+  formatKeybinding,
+  getBindingsForCommand,
   defaultKeybindings,
   defaultKeybindingLayers,
   initDefaultKeybindings,
@@ -141,6 +144,7 @@ export {
   localFindActive,
   omniboxOpen,
   searchReplaceOpen,
+  hasKitty,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,
@@ -153,6 +157,9 @@ export {
   inDialogDatePrompt,
   inDialogFilter,
 } from "./when.ts"
+
+// Locations (composable command targets)
+export { BOARD_LOCATIONS, ADD_TARGETS, locationLabel } from "./locations.ts"
 
 // Help data (auto-generated from registry)
 export type { HelpItem, HelpSection, VerbGridRow } from "./help-data.ts"

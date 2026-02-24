@@ -5,33 +5,12 @@
  * - Quit
  * - New item dialog
  * - Project picker
- * - Favorites (1-9)
  * - Column jump (Shift+1-9)
  * - Escape (contextual close/quit)
  * - Outdent
  */
 
 import type { CommandDef, CommandAction } from "../types.ts"
-
-/** Shift+number symbol for each digit 1-9 */
-const SHIFT_NUMBER_SYMBOLS = ["!", "@", "#", "$", "%", "^", "&", "*", "("]
-
-/** Generate favorite commands (1-9): jump to favorite board N via number key */
-const favoriteCommands = ((): CommandDef[] =>
-  Array.from({ length: 9 }, (_, i) => {
-    const n = i + 1
-    return {
-      id: `favorite_${n}`,
-      name: `Favorite ${n}`,
-      description: `Jump to favorite board ${n}`,
-      category: "Navigation",
-      shortcuts: [`${n}`],
-      execute: (): CommandAction => ({
-        type: "JUMP_TO_FAVORITE",
-        favoriteNumber: n,
-      }),
-    }
-  }))()
 
 /** Generate column jump commands (1-9): jump to column N via Shift+number */
 // ORPHAN: no keybinding — column_1..column_9 are not wired in keybindings.ts
@@ -43,7 +22,6 @@ const columnJumpCommands = ((): CommandDef[] =>
       name: `Column ${n}`,
       description: `Jump to column ${n}`,
       category: "Navigation",
-      shortcuts: [SHIFT_NUMBER_SYMBOLS[i] ?? ""],
       execute: (): CommandAction => ({
         type: "JUMP_TO_COLUMN",
         columnNumber: n,
@@ -58,7 +36,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Quit",
     description: "Exit the TUI",
     category: "View",
-    shortcuts: ["q"],
+    shortLabel: "quit",
     execute: (): CommandAction => ({ type: "QUIT" }),
   },
 
@@ -68,7 +46,7 @@ export const tuiCommands: CommandDef[] = [
     name: "New Item",
     description: "Open new item dialog",
     category: "Edit",
-    shortcuts: ["n"],
+    shortLabel: "new",
     execute: (): CommandAction => ({ type: "SHOW_NEW_ITEM_DIALOG" }),
   },
 
@@ -78,7 +56,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Project Picker",
     description: "Open project picker",
     category: "Navigation",
-    shortcuts: ["p"],
+    shortLabel: "project",
     execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
   },
 
@@ -89,12 +67,8 @@ export const tuiCommands: CommandDef[] = [
     name: "Search",
     description: "Open search dialog",
     category: "Navigation",
-    shortcuts: ["/"],
     execute: (): CommandAction => ({ type: "SHOW_SEARCH_DIALOG" }),
   },
-
-  // Favorites (1-9)
-  ...favoriteCommands,
 
   // Column jump (Shift+1-9)
   ...columnJumpCommands,
@@ -105,7 +79,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Close/Quit",
     description: "Close current dialog/pane, or quit if nothing to close",
     category: "View",
-    shortcuts: ["Escape"],
+    shortLabel: "close",
     execute: (): CommandAction => ({ type: "CLOSE_OR_QUIT" }),
   },
 
@@ -115,7 +89,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Outdent",
     description: "Move item to parent level",
     category: "Edit",
-    shortcuts: ["Shift+Tab"],
     execute: (): CommandAction => ({ type: "OUTDENT_NODE" }),
   },
 
@@ -127,7 +100,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Dismiss Help",
     description: "Close help overlay",
     category: "View",
-    shortcuts: ["?", "Escape", "q"],
     execute: (): CommandAction => ({ type: "HIDE_HELP" }),
   },
   {
@@ -135,7 +107,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Help Scroll Up",
     description: "Scroll help overlay up",
     category: "View",
-    shortcuts: ["k", "ArrowUp"],
     execute: (): CommandAction => ({ type: "HELP_SCROLL_UP" }),
   },
   {
@@ -143,7 +114,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Help Scroll Down",
     description: "Scroll help overlay down",
     category: "View",
-    shortcuts: ["j", "ArrowDown"],
     execute: (): CommandAction => ({ type: "HELP_SCROLL_DOWN" }),
   },
 
@@ -153,7 +123,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Confirm Delete",
     description: "Execute pending deletion",
     category: "Edit",
-    shortcuts: ["Enter"],
     execute: (): CommandAction => ({ type: "DELETE_CONFIRM_EXECUTE" }),
   },
   {
@@ -170,7 +139,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Close Console",
     description: "Close console overlay",
     category: "View",
-    shortcuts: ["Escape", "`"],
     execute: (): CommandAction => ({ type: "CONSOLE_CLOSE" }),
   },
   {
@@ -178,7 +146,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Toggle Console",
     description: "Toggle console overlay",
     category: "View",
-    shortcuts: ["`"],
+    shortLabel: "console",
     execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
   },
 
@@ -189,7 +157,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Toggle Sync Pane",
     description: "Toggle sync activity pane",
     category: "View",
-    shortcuts: ["S"],
     execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
   },
 
@@ -199,7 +166,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Toggle Hide Done",
     description: "Toggle hiding done and dropped tasks",
     category: "View",
-    shortcuts: ["D"],
+    shortLabel: "done",
     execute: (): CommandAction => ({ type: "TOGGLE_HIDE_DONE" }),
   },
 
@@ -209,7 +176,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Dismiss Toast",
     description: "Dismiss active toast notification",
     category: "View",
-    shortcuts: ["Escape"],
     execute: (): CommandAction => ({ type: "TOAST_DISMISS" }),
   },
 
@@ -219,7 +185,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Test Toast",
     description: "Fire a random test toast (dev)",
     category: "View",
-    shortcuts: ["Ctrl+T"],
     execute: (): CommandAction => ({ type: "DEV_TEST_TOAST" }),
   },
 
@@ -229,7 +194,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Task Dialog",
     description: "Open task properties dialog",
     category: "Edit",
-    shortcuts: ["Cmd+T", "tt"],
+    shortLabel: "task",
     execute: (): CommandAction => ({ type: "SHOW_TASK_DIALOG" }),
   },
 
@@ -239,6 +204,7 @@ export const tuiCommands: CommandDef[] = [
     name: "No-op",
     description: "Absorb key without action",
     category: "View",
+    shortLabel: "...",
     execute: (): CommandAction => ({ type: "NOOP" }),
   },
 
@@ -248,7 +214,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Find",
     description: "Open inline find bar",
     category: "Navigation",
-    shortcuts: ["/", "Ctrl+F"],
+    shortLabel: "find",
     execute: (): CommandAction => ({ type: "LOCAL_FIND_OPEN" }),
   },
   {
@@ -256,7 +222,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Find Next",
     description: "Go to next match",
     category: "Navigation",
-    shortcuts: ["n"],
     execute: (): CommandAction => ({ type: "LOCAL_FIND_NEXT" }),
   },
   {
@@ -264,7 +229,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Find Previous",
     description: "Go to previous match",
     category: "Navigation",
-    shortcuts: ["N"],
     execute: (): CommandAction => ({ type: "LOCAL_FIND_PREV" }),
   },
   {
@@ -272,7 +236,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Close Find",
     description: "Close find bar and clear search",
     category: "Navigation",
-    shortcuts: ["Escape"],
     execute: (): CommandAction => ({ type: "LOCAL_FIND_CLOSE" }),
   },
   {
@@ -280,7 +243,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Confirm Find",
     description: "Close find bar but keep cursor on match",
     category: "Navigation",
-    shortcuts: ["Enter"],
     execute: (): CommandAction => ({ type: "LOCAL_FIND_CONFIRM" }),
   },
 
@@ -290,7 +252,7 @@ export const tuiCommands: CommandDef[] = [
     name: "Search & Replace",
     description: "Open search and replace dialog",
     category: "Edit",
-    shortcuts: ["F", "Cmd+F"],
+    shortLabel: "search",
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_OPEN" }),
   },
   {
@@ -298,7 +260,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Close Search & Replace",
     description: "Close search and replace dialog",
     category: "Edit",
-    shortcuts: ["Escape"],
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_CLOSE" }),
   },
   {
@@ -306,7 +267,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Search Replace Next",
     description: "Go to next search match",
     category: "Edit",
-    shortcuts: ["Enter"],
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_NEXT" }),
   },
   {
@@ -314,7 +274,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Search Replace Previous",
     description: "Go to previous search match",
     category: "Edit",
-    shortcuts: ["Shift+Enter"],
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_PREV" }),
   },
   {
@@ -343,7 +302,6 @@ export const tuiCommands: CommandDef[] = [
     name: "Switch Field",
     description: "Switch between search and replace fields",
     category: "Edit",
-    shortcuts: ["Tab"],
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_TAB_FIELD" }),
   },
 ]

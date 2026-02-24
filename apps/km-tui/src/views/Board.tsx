@@ -1034,7 +1034,7 @@ export function Board({ patchedConsole }: BoardProps) {
       } else if (result.commandId && storeRef) {
         // Dispatch command (goto or command types)
         const store = storeRef as import("zustand").StoreApi<BoardAppStore>
-        dispatchCommandById(result.commandId, store.getState.bind(store))
+        dispatchCommandById(result.commandId, store.getState.bind(store), () => {}, result.targetId)
       }
     },
     [setUI, storeRef, repo, baseDialogHandlers],

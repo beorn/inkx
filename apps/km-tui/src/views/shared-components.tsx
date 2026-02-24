@@ -290,21 +290,25 @@ function KeySegment({ segment, color = "yellow" }: { segment: string; color?: st
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
-      <Text color={color}>
+      <Text bold color={color}>
         {prefix}
         <Text dimColor>{"·"}</Text>
         {suffix}
       </Text>
     )
   }
-  return <Text color={color}>{segment}</Text>
+  return (
+    <Text bold color={color}>
+      {segment}
+    </Text>
+  )
 }
 
 /**
  * Render a key string with chord dots and dim ` / ` alternative separators.
  *
  * Handles three patterns:
- * - Alternatives: `"z / Z"` → z dim(/) Z
+ * - Alternatives: `"z / Z"` → z/Z (/ is dim)
  * - Chords: `"g c"` → g·c (dot is dim)
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
@@ -318,7 +322,7 @@ export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: s
     <>
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text dimColor>{" / "}</Text>}
+          {i > 0 && <Text color="#666666">{"/"}</Text>}
           <KeySegment segment={seg} color={color} />
         </React.Fragment>
       ))}

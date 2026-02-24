@@ -52,20 +52,18 @@ export function inkKeyToString(input: string, key: InkKeyEvent): string {
   return input
 }
 
-/** Convert Ink key event to modifier flags */
+/** Convert Ink key event to modifier flags (translates inkx names to km-commands names) */
 export function inkKeyToModifiers(key: InkKeyEvent): {
   ctrl: boolean
-  meta: boolean
+  opt: boolean
   shift: boolean
-  alt: boolean
-  super: boolean
+  cmd: boolean
 } {
   return {
     ctrl: !!key.ctrl,
-    meta: !!key.meta, // Alt/Option on macOS terminals
+    opt: !!key.meta, // inkx "meta" = Option (⌥) on macOS terminals
     shift: !!key.shift,
-    alt: false,
-    super: !!key.super, // Cmd on macOS (requires Kitty protocol)
+    cmd: !!key.super, // inkx "super" = Cmd (⌘) on macOS (requires Kitty protocol)
   }
 }
 
@@ -108,7 +106,7 @@ export function processInkKey(
 ): InkCommandResult {
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
-  const hasModifiers = !!modifiers.ctrl || !!modifiers.meta || !!modifiers.shift || !!modifiers.alt || !!modifiers.super
+  const hasModifiers = !!modifiers.ctrl || !!modifiers.opt || !!modifiers.shift || !!modifiers.cmd
 
   // Text input priority: when textInputFocused and input is a printable character
   // (not a special key), short-circuit to text insert BEFORE keybinding resolution.
@@ -151,16 +149,16 @@ export function processInkKey(
       case "pending":
         return { commandId: null, actions: null, handled: true, pending: chordResult.prefix }
       case "resolved": {
-        const actions = executeCommand(chordResult.commandId, ctx)
+        const actions = executeCommand(chordResult.commandId, ctx, chordResult.targetId)
         return { commandId: chordResult.commandId, actions, handled: true, chordResolved: true }
       }
       case "replay": {
         // Execute the standalone command
-        const standaloneActions = executeCommand(chordResult.standaloneId, ctx)
+        const standaloneActions = executeCommand(chordResult.standaloneId, ctx, chordResult.standaloneTargetId)
         // Then resolve the replayed key normally
-        const replayCommandId = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
-        if (replayCommandId) {
-          const replayActions = executeCommand(replayCommandId, ctx)
+        const resolved = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
+        if (resolved) {
+          const replayActions = executeCommand(resolved.commandId, ctx, resolved.targetId)
           // Return both actions combined
           const allActions: CommandAction[] = []
           if (standaloneActions) {
@@ -181,23 +179,23 @@ export function processInkKey(
         return { commandId: chordResult.standaloneId, actions: standaloneActions, handled: true }
       }
       case "fallback": {
-        const actions = executeCommand(chordResult.commandId, ctx)
+        const actions = executeCommand(chordResult.commandId, ctx, chordResult.targetId)
         return { commandId: chordResult.commandId, actions, handled: true }
       }
       // "passthrough" — continue to normal resolution below
     }
   }
 
-  const commandId = resolveKeybinding(keyStr, modifiers, kbCtx)
+  const resolved = resolveKeybinding(keyStr, modifiers, kbCtx)
 
-  if (!commandId) {
+  if (!resolved) {
     return { commandId: null, actions: null, handled: false }
   }
 
-  const actions = executeCommand(commandId, ctx)
+  const actions = executeCommand(resolved.commandId, ctx, resolved.targetId)
 
   return {
-    commandId,
+    commandId: resolved.commandId,
     actions,
     handled: true,
   }
@@ -216,11 +214,11 @@ export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext
   const prefix = chordState.timeout()
   if (!prefix) return null
 
-  const commandId = resolveKeybinding(prefix, {}, kbCtx)
-  if (!commandId) return null
+  const resolved = resolveKeybinding(prefix, {}, kbCtx)
+  if (!resolved) return null
 
-  const actions = executeCommand(commandId, ctx)
-  return { commandId, actions, handled: true }
+  const actions = executeCommand(resolved.commandId, ctx, resolved.targetId)
+  return { commandId: resolved.commandId, actions, handled: true }
 }
 
 /**
@@ -256,6 +254,8 @@ export function buildKeybindingContext(options: {
   localFindActive?: boolean
   /** True when the search/replace dialog is open */
   searchReplaceOpen?: boolean
+  /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
+  hasKitty?: boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -284,6 +284,7 @@ export function buildKeybindingContext(options: {
     omniboxOpen: options.omniboxOpen ?? false,
     localFindActive: options.localFindActive ?? false,
     searchReplaceOpen: options.searchReplaceOpen ?? false,
+    hasKitty: options.hasKitty ?? false,
   }
 }
 
@@ -294,7 +295,7 @@ export function buildKeybindingContext(options: {
 export function wouldHandleKey(input: string, key: InkKeyEvent, kbCtx: KeybindingContext): boolean {
   const keyStr = inkKeyToString(input, key)
   const modifiers = inkKeyToModifiers(key)
-  return resolveKeybinding(keyStr, modifiers, kbCtx) !== null
+  return resolveKeybinding(keyStr, modifiers, kbCtx) != null
 }
 
 // Re-export for convenience

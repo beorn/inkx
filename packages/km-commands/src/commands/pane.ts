@@ -5,7 +5,7 @@ const splitVertical = {
   name: "Split Vertical",
   description: "Split current pane vertically (side by side)",
   category: "Navigation",
-  shortcuts: ["Ctrl+W v"],
+  shortLabel: "vsplit",
   execute: () => ({ type: "PANE_SPLIT", direction: "vertical" }),
 } satisfies CommandDef
 
@@ -14,7 +14,7 @@ const splitHorizontal = {
   name: "Split Horizontal",
   description: "Split current pane horizontally (stacked)",
   category: "Navigation",
-  shortcuts: ["Ctrl+W s"],
+  shortLabel: "hsplit",
   execute: () => ({ type: "PANE_SPLIT", direction: "horizontal" }),
 } satisfies CommandDef
 
@@ -23,7 +23,7 @@ const closePane = {
   name: "Close Pane",
   description: "Close the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W q"],
+  shortLabel: "close",
   execute: () => ({ type: "PANE_CLOSE" }),
 } satisfies CommandDef
 
@@ -33,7 +33,7 @@ const paneFocusLeft = {
   name: "Focus Left Pane",
   description: "Move focus to the pane on the left",
   category: "Navigation",
-  shortcuts: ["Ctrl+W h"],
+  shortLabel: "\u2190 focus",
   execute: () => ({ type: "PANE_FOCUS", direction: "left" }),
 } satisfies CommandDef
 
@@ -42,7 +42,7 @@ const paneFocusDown = {
   name: "Focus Down Pane",
   description: "Move focus to the pane below",
   category: "Navigation",
-  shortcuts: ["Ctrl+W j"],
+  shortLabel: "\u2193 focus",
   execute: () => ({ type: "PANE_FOCUS", direction: "down" }),
 } satisfies CommandDef
 
@@ -51,7 +51,7 @@ const paneFocusUp = {
   name: "Focus Up Pane",
   description: "Move focus to the pane above",
   category: "Navigation",
-  shortcuts: ["Ctrl+W k"],
+  shortLabel: "\u2191 focus",
   execute: () => ({ type: "PANE_FOCUS", direction: "up" }),
 } satisfies CommandDef
 
@@ -60,7 +60,7 @@ const paneFocusRight = {
   name: "Focus Right Pane",
   description: "Move focus to the pane on the right",
   category: "Navigation",
-  shortcuts: ["Ctrl+W l"],
+  shortLabel: "\u2192 focus",
   execute: () => ({ type: "PANE_FOCUS", direction: "right" }),
 } satisfies CommandDef
 
@@ -70,7 +70,7 @@ const paneFocusPrevious = {
   name: "Previous Pane",
   description: "Toggle between last two focused panes",
   category: "Navigation",
-  shortcuts: ["Ctrl+W p"],
+  shortLabel: "prev",
   execute: () => ({ type: "PANE_FOCUS_PREVIOUS" }),
 } satisfies CommandDef
 
@@ -80,7 +80,7 @@ const paneFocusNext = {
   name: "Next Pane",
   description: "Cycle focus to next pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W Tab"],
+  shortLabel: "next",
   execute: () => ({ type: "PANE_FOCUS_CYCLE", direction: "next" }),
 } satisfies CommandDef
 
@@ -89,7 +89,7 @@ const paneFocusPrev = {
   name: "Prev Pane",
   description: "Cycle focus to previous pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W Shift+Tab"],
+  shortLabel: "prev",
   execute: () => ({ type: "PANE_FOCUS_CYCLE", direction: "prev" }),
 } satisfies CommandDef
 
@@ -99,7 +99,7 @@ const paneResizeGrow = {
   name: "Grow Pane",
   description: "Increase width of the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W >"],
+  shortLabel: "wider",
   execute: () => ({ type: "PANE_RESIZE", delta: 0.05 }),
 } satisfies CommandDef
 
@@ -108,7 +108,7 @@ const paneResizeShrink = {
   name: "Shrink Pane",
   description: "Decrease width of the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W <"],
+  shortLabel: "narrower",
   execute: () => ({ type: "PANE_RESIZE", delta: -0.05 }),
 } satisfies CommandDef
 
@@ -117,7 +117,7 @@ const paneResizeGrowVertical = {
   name: "Grow Pane Vertical",
   description: "Increase height of the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W +"],
+  shortLabel: "taller",
   execute: () => ({ type: "PANE_RESIZE_VERTICAL", delta: 0.05 }),
 } satisfies CommandDef
 
@@ -126,7 +126,7 @@ const paneResizeShrinkVertical = {
   name: "Shrink Pane Vertical",
   description: "Decrease height of the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W -"],
+  shortLabel: "shorter",
   execute: () => ({ type: "PANE_RESIZE_VERTICAL", delta: -0.05 }),
 } satisfies CommandDef
 
@@ -135,7 +135,7 @@ const paneEqualize = {
   name: "Equalize Panes",
   description: "Set all pane splits to equal sizes",
   category: "Navigation",
-  shortcuts: ["Ctrl+W ="],
+  shortLabel: "equalize",
   execute: () => ({ type: "PANE_EQUALIZE" }),
 } satisfies CommandDef
 
@@ -145,7 +145,7 @@ const paneZoom = {
   name: "Zoom Pane",
   description: "Toggle maximize/restore the focused pane",
   category: "Navigation",
-  shortcuts: ["Ctrl+W z"],
+  shortLabel: "zoom",
   execute: () => ({ type: "PANE_ZOOM" }),
 } satisfies CommandDef
 
@@ -155,7 +155,7 @@ const paneOnly = {
   name: "Close Other Panes",
   description: "Close all panes except the focused one",
   category: "Navigation",
-  shortcuts: ["Ctrl+W o"],
+  shortLabel: "only",
   execute: () => ({ type: "PANE_ONLY" }),
 } satisfies CommandDef
 
@@ -165,7 +165,7 @@ const paneSwapLeft = {
   name: "Swap Pane Left",
   description: "Swap the focused pane with the pane to the left",
   category: "Navigation",
-  shortcuts: ["Ctrl+W H"],
+  shortLabel: "swap \u2190",
   execute: () => ({ type: "PANE_SWAP", direction: "left" }),
 } satisfies CommandDef
 
@@ -174,7 +174,7 @@ const paneSwapDown = {
   name: "Swap Pane Down",
   description: "Swap the focused pane with the pane below",
   category: "Navigation",
-  shortcuts: ["Ctrl+W J"],
+  shortLabel: "swap \u2193",
   execute: () => ({ type: "PANE_SWAP", direction: "down" }),
 } satisfies CommandDef
 
@@ -183,7 +183,7 @@ const paneSwapUp = {
   name: "Swap Pane Up",
   description: "Swap the focused pane with the pane above",
   category: "Navigation",
-  shortcuts: ["Ctrl+W K"],
+  shortLabel: "swap \u2191",
   execute: () => ({ type: "PANE_SWAP", direction: "up" }),
 } satisfies CommandDef
 
@@ -192,7 +192,7 @@ const paneSwapRight = {
   name: "Swap Pane Right",
   description: "Swap the focused pane with the pane to the right",
   category: "Navigation",
-  shortcuts: ["Ctrl+W L"],
+  shortLabel: "swap \u2192",
   execute: () => ({ type: "PANE_SWAP", direction: "right" }),
 } satisfies CommandDef
 
@@ -201,7 +201,6 @@ const paneSplitAndPick = {
   name: "New Pane + Board Picker",
   description: "Split to new pane and open board picker",
   category: "Navigation",
-  shortcuts: ["gn"],
   execute: () => ({ type: "PANE_SPLIT_AND_PICK" }),
 } satisfies CommandDef
 

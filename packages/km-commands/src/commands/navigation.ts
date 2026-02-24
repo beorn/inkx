@@ -1,4 +1,5 @@
 import type { CommandDef } from "../types.ts"
+import { BOARD_LOCATIONS } from "../locations.ts"
 
 // Cursor movement - structural (not bound to default keys in board view)
 // These are available for tree/outline views or programmatic use
@@ -7,7 +8,6 @@ const cursorPrev = {
   name: "Move to Previous",
   description: "Move cursor to previous sibling",
   category: "Navigation",
-  shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "prev" }),
 } satisfies CommandDef
 
@@ -16,7 +16,6 @@ const cursorNext = {
   name: "Move to Next",
   description: "Move cursor to next sibling",
   category: "Navigation",
-  shortcuts: [], // Not bound by default
   execute: () => ({ type: "CURSOR_MOVE", dir: "next" }),
 } satisfies CommandDef
 
@@ -25,7 +24,6 @@ const cursorIn = {
   name: "Move to Child",
   description: "Move cursor into first child",
   category: "Navigation",
-  shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "in" }),
 } satisfies CommandDef
 
@@ -34,16 +32,15 @@ const cursorOut = {
   name: "Move to Parent",
   description: "Move cursor to parent",
   category: "Navigation",
-  shortcuts: [], // Not bound by default (h/l do cross-column in board view)
   execute: () => ({ type: "CURSOR_MOVE", dir: "out" }),
 } satisfies CommandDef
 
 const cursorFirst = {
   id: "cursor_first",
   name: "Move to First",
+  shortLabel: "top",
   description: "Move cursor to first sibling",
   category: "Navigation",
-  shortcuts: ["g"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "first" }),
 } satisfies CommandDef
 
@@ -52,7 +49,6 @@ const cursorLast = {
   name: "Move to Last",
   description: "Move cursor to last sibling",
   category: "Navigation",
-  shortcuts: ["G"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "last" }),
 } satisfies CommandDef
 
@@ -62,7 +58,6 @@ const cursorUp = {
   name: "Move Up",
   description: "Move cursor up visually",
   category: "Navigation",
-  shortcuts: ["k", "ArrowUp"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "up" }),
 } satisfies CommandDef
 
@@ -71,7 +66,6 @@ const cursorDown = {
   name: "Move Down",
   description: "Move cursor down visually",
   category: "Navigation",
-  shortcuts: ["j", "ArrowDown"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "down" }),
 } satisfies CommandDef
 
@@ -80,7 +74,6 @@ const cursorLeft = {
   name: "Move Left",
   description: "Move cursor left (cross-column)",
   category: "Navigation",
-  shortcuts: ["h", "ArrowLeft"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "left" }),
 } satisfies CommandDef
 
@@ -89,7 +82,6 @@ const cursorRight = {
   name: "Move Right",
   description: "Move cursor right (cross-column)",
   category: "Navigation",
-  shortcuts: ["l", "ArrowRight"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "right" }),
 } satisfies CommandDef
 
@@ -99,7 +91,6 @@ const navBack = {
   name: "Navigate Back",
   description: "Go back in navigation history",
   category: "Navigation",
-  shortcuts: ["["],
   execute: () => ({ type: "NAV_BACK" }),
 } satisfies CommandDef
 
@@ -108,7 +99,6 @@ const navForward = {
   name: "Navigate Forward",
   description: "Go forward in navigation history",
   category: "Navigation",
-  shortcuts: ["]"],
   execute: () => ({ type: "NAV_FORWARD" }),
 } satisfies CommandDef
 
@@ -118,7 +108,6 @@ const zoomIn = {
   name: "Zoom In",
   description: "Focus on current node as root",
   category: "Navigation",
-  shortcuts: ["z"],
   execute: (ctx) => {
     if (!ctx.currentNode) return null
     // BoardAction: just the nodeId, no tree data needed
@@ -132,7 +121,6 @@ const zoomOutwards = {
   name: "Zoom Outwards",
   description: "Zoom out one level (to parent of current root)",
   category: "Navigation",
-  shortcuts: ["Z"],
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
@@ -143,7 +131,6 @@ const toggleDetailPane = {
   name: "Toggle Detail",
   description: "Smart detail pane toggle (open+focus / focus / close)",
   category: "Navigation",
-  shortcuts: ["D"],
   execute: () => ({ type: "TOGGLE_DETAIL_PANE" }),
 } satisfies CommandDef
 
@@ -153,7 +140,6 @@ const closeDetailPane = {
   name: "Close Detail",
   description: "Close detail pane regardless of focus state",
   category: "Navigation",
-  shortcuts: ["Cmd+W"],
   execute: () => ({ type: "CLOSE_DETAIL_PANE" }),
 } satisfies CommandDef
 
@@ -163,7 +149,6 @@ const pageDown = {
   name: "Page Down",
   description: "Jump cursor down half a page",
   category: "Navigation",
-  shortcuts: ["Ctrl+D"],
   execute: () => ({ type: "PAGE_JUMP", direction: "down" }),
 } satisfies CommandDef
 
@@ -172,7 +157,6 @@ const pageUp = {
   name: "Page Up",
   description: "Jump cursor up half a page",
   category: "Navigation",
-  shortcuts: ["Ctrl+U"],
   execute: () => ({ type: "PAGE_JUMP", direction: "up" }),
 } satisfies CommandDef
 
@@ -182,7 +166,6 @@ const siblingBoardNext = {
   name: "Next Sibling Board",
   description: "Navigate to next sibling board",
   category: "Navigation",
-  shortcuts: ["Ctrl+J"],
   execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "next" }),
 } satisfies CommandDef
 
@@ -191,7 +174,6 @@ const siblingBoardPrev = {
   name: "Previous Sibling Board",
   description: "Navigate to previous sibling board",
   category: "Navigation",
-  shortcuts: ["Ctrl+K"],
   execute: () => ({ type: "NAV_SIBLING_BOARD", direction: "prev" }),
 } satisfies CommandDef
 
@@ -201,7 +183,6 @@ const zoomInwards = {
   name: "Zoom Inwards",
   description: "Zoom in one level closer to selected node",
   category: "Navigation",
-  shortcuts: ["i"],
   execute: () => ({ type: "ZOOM_INWARDS" }),
 } satisfies CommandDef
 
@@ -211,55 +192,42 @@ const followLink = {
   name: "Follow Link",
   description: "Go to embedded link target in context",
   category: "Navigation",
-  shortcuts: ["Ctrl+Enter"],
   execute: () => ({ type: "FOLLOW_LINK" }),
 } satisfies CommandDef
 
-// Goto board commands (g-prefix chords)
-const gotoInbox = {
-  id: "goto_inbox",
-  name: "Go to Inbox",
-  description: "Navigate to inbox board",
+// Composable goto command — dispatches to board or favorite based on ctx.targetId
+const goto = {
+  id: "goto",
+  name: "Go to",
+  shortLabel: "goto",
+  description: "Navigate to a board or favorite by target",
   category: "Navigation",
-  shortcuts: ["gi"],
-  execute: () => ({ type: "GOTO_BOARD", boardId: "@inbox" }),
+  execute: (ctx) => {
+    const target = ctx.targetId
+    if (!target) return null
+
+    // Digit targets jump to favorites (0-9)
+    if (/^\d$/.test(target)) {
+      return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(target) }
+    }
+
+    // Named targets look up board locations
+    const boardId = BOARD_LOCATIONS[target]
+    if (boardId) {
+      return { type: "GOTO_BOARD", boardId }
+    }
+
+    return null
+  },
 } satisfies CommandDef
 
-const gotoJournal = {
-  id: "goto_journal",
-  name: "Go to Journal",
-  description: "Navigate to journal board",
-  category: "Navigation",
-  shortcuts: ["gj"],
-  execute: () => ({ type: "GOTO_BOARD", boardId: "@journal" }),
-} satisfies CommandDef
-
-const gotoHome = {
-  id: "goto_home",
-  name: "Go to Home",
-  description: "Navigate to home (root) board",
-  category: "Navigation",
-  shortcuts: ["gh"],
-  execute: () => ({ type: "GOTO_BOARD", boardId: "@home" }),
-} satisfies CommandDef
-
-const gotoNext = {
-  id: "goto_next",
-  name: "Go to Next Actions",
-  description: "Navigate to next actions board",
-  category: "Navigation",
-  shortcuts: ["ge"],
-  execute: () => ({ type: "GOTO_BOARD", boardId: "@next" }),
-} satisfies CommandDef
-
-// All navigation commands
 // Open file/folder in macOS default app (Finder for folders, default editor for files)
 const openInSystem = {
   id: "open_in_system",
   name: "Open in System",
+  shortLabel: "open",
   description: "Open file/folder in macOS (Finder for folders, default app for files)",
   category: "Navigation",
-  shortcuts: ["o"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId ?? "" }
@@ -270,9 +238,9 @@ const openInSystem = {
 const openInTerminal = {
   id: "open_in_terminal",
   name: "Open in Terminal",
+  shortLabel: "terminal",
   description: "Open terminal at the closest folder",
   category: "Navigation",
-  shortcuts: ["O"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId ?? "" }
@@ -283,9 +251,9 @@ const openInTerminal = {
 const filter = {
   id: "filter",
   name: "Filter",
+  shortLabel: "filter",
   description: "Open filter dialog to filter visible cards",
   category: "Navigation",
-  shortcuts: ["Ctrl+G", "Ctrl+/"],
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
@@ -293,9 +261,9 @@ const filter = {
 const commandPalette = {
   id: "command_palette",
   name: "Command Palette",
+  shortLabel: "palette",
   description: "Open command palette",
   category: "Navigation",
-  shortcuts: [":", "Ctrl+K"],
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 
@@ -305,7 +273,6 @@ const blockNavDown = {
   name: "Block Down",
   description: "Move cursor down by block (auto-unfolds)",
   category: "Navigation",
-  shortcuts: ["J"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "block_down" }),
 } satisfies CommandDef
 
@@ -314,7 +281,6 @@ const blockNavUp = {
   name: "Block Up",
   description: "Move cursor up by block (auto-unfolds)",
   category: "Navigation",
-  shortcuts: ["K"],
   execute: () => ({ type: "CURSOR_MOVE", dir: "block_up" }),
 } satisfies CommandDef
 
@@ -322,29 +288,19 @@ const blockNavUp = {
 const settings = {
   id: "settings",
   name: "Settings",
+  shortLabel: "settings",
   description: "Open settings / view mode preferences",
   category: "Navigation",
-  shortcuts: [","],
   execute: () => ({ type: "SETTINGS" }),
-} satisfies CommandDef
-
-// Goto archive board
-const gotoArchive = {
-  id: "goto_archive",
-  name: "Go to Archive",
-  description: "Navigate to archive board",
-  category: "Navigation",
-  shortcuts: ["ge"],
-  execute: () => ({ type: "GOTO_BOARD", boardId: "@archive" }),
 } satisfies CommandDef
 
 // Focus board (Cmd+h — kitty)
 const focusBoard = {
   id: "focus_board",
   name: "Focus Board",
+  shortLabel: "board",
   description: "Switch focus to the board pane",
   category: "Navigation",
-  shortcuts: ["Cmd+H"],
   execute: () => ({ type: "FOCUS_BOARD" }),
 } satisfies CommandDef
 
@@ -352,9 +308,9 @@ const focusBoard = {
 const focusDetail = {
   id: "focus_detail",
   name: "Focus Detail",
+  shortLabel: "detail",
   description: "Switch focus to the detail pane",
   category: "Navigation",
-  shortcuts: ["Cmd+L"],
   execute: () => ({ type: "FOCUS_DETAIL" }),
 } satisfies CommandDef
 
@@ -385,11 +341,7 @@ export const navigationCommands: CommandDef[] = [
   openInTerminal,
   filter,
   commandPalette,
-  gotoInbox,
-  gotoJournal,
-  gotoHome,
-  gotoNext,
-  gotoArchive,
+  goto,
   blockNavDown,
   blockNavUp,
   settings,

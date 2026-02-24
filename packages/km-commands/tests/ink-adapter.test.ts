@@ -101,49 +101,49 @@ describe("inkKeyToModifiers", () => {
     const result = inkKeyToModifiers({ ctrl: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(false)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(false)
+
+    expect(result.opt).toBe(false)
   })
 
   it("extracts shift modifier", () => {
     const result = inkKeyToModifiers({ shift: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(true)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(false)
+
+    expect(result.opt).toBe(false)
   })
 
-  it("maps Ink meta to meta (Alt/Option on macOS)", () => {
-    // In Ink/inkx, meta represents Alt/Option — pass through as meta
+  it("maps Ink meta to opt (Alt/Option on macOS)", () => {
+    // In Ink/inkx, meta represents Alt/Option — mapped to opt
     const result = inkKeyToModifiers({ meta: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(true)
+
+    expect(result.opt).toBe(true)
   })
 
   it("handles multiple modifiers", () => {
     const result = inkKeyToModifiers({ ctrl: true, shift: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(true)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(false)
+
+    expect(result.opt).toBe(false)
   })
 
   it("handles all modifiers combined", () => {
     const result = inkKeyToModifiers({ ctrl: true, shift: true, meta: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(true)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(true) // Ink meta passes through
+
+    expect(result.opt).toBe(true) // Ink meta maps to opt
   })
 
   it("handles empty key event", () => {
     const result = inkKeyToModifiers({})
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
-    expect(result.alt).toBe(false)
-    expect(result.meta).toBe(false)
+
+    expect(result.opt).toBe(false)
   })
 
   it("treats undefined as false", () => {
@@ -154,7 +154,7 @@ describe("inkKeyToModifiers", () => {
     } as InkKeyEvent)
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
-    expect(result.alt).toBe(false)
+
   })
 })
 

@@ -170,7 +170,7 @@ describe("getChordSuffixes", () => {
     // Should include known g-prefix chords
     const keys = suffixes.map((s) => s.key)
     expect(keys).toContain("g") // gg = cursor_first
-    expect(keys).toContain("i") // gi = goto_inbox
+    expect(keys).toContain("i") // gi = goto (targetId: "i")
   })
 
   test("returns suffixes for m prefix", () => {
@@ -181,23 +181,26 @@ describe("getChordSuffixes", () => {
 
     const keys = suffixes.map((s) => s.key)
     expect(keys).toContain("m") // mm = enter_move_mode
-    expect(keys).toContain("i") // mi = move_to_inbox
+    expect(keys).toContain("i") // mi = move (targetId: "i")
   })
 
   test("returns suffixes for a prefix", () => {
     testEnv(() => item("board", item("col", item("task"))))
 
     const suffixes = getChordSuffixes("a")
-    expect(suffixes.length).toBe(7)
+    expect(suffixes.length).toBe(10)
 
     const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
-    expect(suffixMap["#"]).toBe("add_tag")
-    expect(suffixMap["@"]).toBe("add_assignee")
-    expect(suffixMap["+"]).toBe("add_project")
-    expect(suffixMap["["]).toBe("add_backlink")
+    expect(suffixMap["#"]).toBe("add")
+    expect(suffixMap["@"]).toBe("add")
+    expect(suffixMap["+"]).toBe("add")
+    expect(suffixMap["["]).toBe("add")
     expect(suffixMap["i"]).toBe("insert_child")
     expect(suffixMap["j"]).toBe("add_sibling_below")
     expect(suffixMap["h"]).toBe("insert_at_parent")
+    expect(suffixMap["H"]).toBe("noop")
+    expect(suffixMap["I"]).toBe("noop")
+    expect(suffixMap["J"]).toBe("noop")
   })
 
   test("returns empty for non-prefix key", () => {

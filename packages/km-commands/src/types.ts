@@ -44,14 +44,24 @@ export interface CommandContext {
   // State flags (for commands that need them)
   moveMode: boolean
   foldDepths: Map<string, number>
+
+  /** Destination for location-aware commands (e.g., "i" for inbox, "1" for favorite 1) */
+  targetId?: string
+}
+
+/** Result of resolving a keybinding (key → command + optional target) */
+export interface ResolvedBinding {
+  commandId: string
+  targetId?: string
 }
 
 export interface CommandDef {
   id: string
   name: string
+  /** Short label for which-key popup (falls back to name) */
+  shortLabel?: string
   description: string
   category: CommandCategory
-  shortcuts?: string[]
   modes?: CommandMode[]
   execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
 }

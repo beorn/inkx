@@ -5,28 +5,31 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import { createChordState, type ChordCallbacks } from "../src/chord-state.ts"
 
+/** Resolved binding shape returned by chord callbacks */
+type Resolved = { commandId: string; targetId?: string }
+
 /** Create a minimal chord callbacks mock */
 function createCallbacks(
   opts: {
     prefixes?: Set<string>
-    chords?: Map<string, string>
-    standalones?: Map<string, string>
+    chords?: Map<string, Resolved>
+    standalones?: Map<string, Resolved>
   } = {},
 ): ChordCallbacks {
   const prefixes = opts.prefixes ?? new Set(["z", "g"])
   const chords =
     opts.chords ??
-    new Map([
-      ["z:a", "toggle_fold"],
-      ["z:M", "fold_all"],
-      ["g:g", "cursor_first"],
-      ["g:p", "project_picker"],
+    new Map<string, Resolved>([
+      ["z:a", { commandId: "toggle_fold" }],
+      ["z:M", { commandId: "fold_all" }],
+      ["g:g", { commandId: "cursor_first" }],
+      ["g:p", { commandId: "project_picker" }],
     ])
   const standalones =
     opts.standalones ??
-    new Map([
-      ["z", "fold_all"],
-      ["g", "cursor_first"],
+    new Map<string, Resolved>([
+      ["z", { commandId: "fold_all" }],
+      ["g", { commandId: "cursor_first" }],
     ])
 
   return {
@@ -36,8 +39,8 @@ function createCallbacks(
   }
 }
 
-const noMods = { ctrl: false, meta: false, shift: false, alt: false }
-const ctrlMod = { ctrl: true, meta: false, shift: false, alt: false }
+const noMods = { ctrl: false, shift: false }
+const ctrlMod = { ctrl: true, shift: false }
 
 describe("ChordState", () => {
   let state: ReturnType<typeof createChordState>
@@ -131,9 +134,9 @@ describe("ChordState", () => {
     beforeEach(() => {
       ctrlWCb = createCallbacks({
         prefixes: new Set(["Ctrl+w"]),
-        chords: new Map([
-          ["Ctrl+w:q", "pane_close"],
-          ["Ctrl+w:v", "pane_split_vertical"],
+        chords: new Map<string, Resolved>([
+          ["Ctrl+w:q", { commandId: "pane_close" }],
+          ["Ctrl+w:v", { commandId: "pane_split_vertical" }],
         ]),
         standalones: new Map(), // Ctrl+w has no standalone fallback
       })
@@ -181,7 +184,7 @@ describe("ChordState", () => {
 
     test("passthrough when prefix has no standalone binding", () => {
       const noStandalone = createCallbacks({
-        standalones: new Map(), // No standalone bindings
+        standalones: new Map<string, Resolved>(), // No standalone bindings
       })
       state.processKey("z", false, noMods, {}, noStandalone)
       const r = state.processKey("q", false, noMods, {}, noStandalone)

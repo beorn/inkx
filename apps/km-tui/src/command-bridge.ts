@@ -16,8 +16,12 @@ import {
   type InkCommandResult,
   type TNode,
 } from "@km/commands"
+import { detectTerminalCaps } from "inkx"
 import type { ActionCtx } from "./tui-context.ts"
 import { getModeStack } from "./dialog-guard.ts"
+
+/** Cached Kitty keyboard protocol detection (static — doesn't change at runtime) */
+const kittySupported = detectTerminalCaps().kittyKeyboard
 
 let commandSystemInitialized = false
 export function ensureCommandSystemInitialized(): void {
@@ -86,6 +90,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     localFindActive: !!ui.localSearch,
     omniboxOpen: ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
+    hasKitty: kittySupported,
   })
 
   const { colIndex, cardIndex, columns } = ctx

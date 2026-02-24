@@ -16,7 +16,6 @@ const undoCommand = {
   name: "Undo",
   description: "Undo the last action",
   category: "Edit",
-  shortcuts: ["Ctrl+Z"],
   execute: () => {
     return { type: "HISTORY_UNDO" } satisfies HistoryUndoAction
   },
@@ -27,7 +26,6 @@ const redoCommand = {
   name: "Redo",
   description: "Redo the last undone action",
   category: "Edit",
-  shortcuts: ["Ctrl+Shift+Z", "Ctrl+Y"],
   execute: () => {
     return { type: "HISTORY_REDO" } satisfies HistoryRedoAction
   },

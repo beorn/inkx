@@ -6,6 +6,7 @@ const cycleViewMode = {
   name: "Cycle View Mode",
   description: "Cycle through view modes (columns, list, detail)",
   category: "View",
+  shortLabel: "view",
   execute: () => ({ type: "CYCLE_VIEW_MODE" }),
 } satisfies CommandDef
 
@@ -14,7 +15,7 @@ const cycleIconStyle = {
   name: "Cycle Icon Style",
   description: "Cycle between nerdfont, workflowy, and regular bullet icons",
   category: "View",
-  shortcuts: ["V"],
+  shortLabel: "icons",
   execute: () => ({ type: "CYCLE_ICON_STYLE" }),
 } satisfies CommandDef
 
@@ -23,7 +24,7 @@ const showHelp = {
   name: "Show Help",
   description: "Toggle help overlay",
   category: "View",
-  shortcuts: ["?"],
+  shortLabel: "help",
   execute: () => ({ type: "SHOW_HELP" }),
 } satisfies CommandDef
 
@@ -33,7 +34,6 @@ const toggleFold = {
   name: "Toggle Fold",
   description: "Fold or unfold current node",
   category: "Fold",
-  shortcuts: [], // Not directly bound — z is zoom_in, H/L fold/unfold
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_FOLD", nodeId: ctx.currentNodeId }
@@ -45,7 +45,7 @@ const toggleCollapse = {
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
   category: "Fold",
-  shortcuts: ["vc"],
+  shortLabel: "collapse",
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
@@ -57,7 +57,7 @@ const foldNode = {
   name: "Fold Node",
   description: "Fold just this node",
   category: "Fold",
-  shortcuts: ["H"],
+  shortLabel: "fold",
   execute: () => ({ type: "FOLD_NODE" }),
 } satisfies CommandDef
 
@@ -66,7 +66,7 @@ const unfoldNode = {
   name: "Unfold Node",
   description: "Unfold just this node",
   category: "Fold",
-  shortcuts: ["L"],
+  shortLabel: "unfold",
   execute: () => ({ type: "UNFOLD_NODE" }),
 } satisfies CommandDef
 
@@ -75,7 +75,6 @@ const unfoldRecursive = {
   name: "Unfold Recursive",
   description: "Unfold node and all descendants",
   category: "Fold",
-  shortcuts: [], // Not directly bound in keybindings
   execute: () => ({ type: "UNFOLD_RECURSIVE" }),
 } satisfies CommandDef
 
@@ -84,7 +83,6 @@ const foldAll = {
   name: "Fold All",
   description: "Fold all nodes at depth 1",
   category: "Fold",
-  shortcuts: ["<"],
   execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
 } satisfies CommandDef
 
@@ -93,7 +91,6 @@ const unfoldAll = {
   name: "Unfold All",
   description: "Unfold all nodes",
   category: "Fold",
-  shortcuts: [">"],
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
@@ -103,7 +100,7 @@ const ignoreNode = {
   name: "Ignore Node",
   description: "Hide or un-hide node from board (persisted in .km/ignored)",
   category: "Fold",
-  shortcuts: [], // Not directly bound in keybindings — C is capture_dialog
+  shortLabel: "ignore",
   execute: () => ({ type: "IGNORE_NODE" }),
 } satisfies CommandDef
 
@@ -112,7 +109,7 @@ const toggleShowIgnored = {
   name: "Toggle Show Ignored",
   description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
   category: "Fold",
-  shortcuts: ["vC"],
+  shortLabel: "ignored",
   execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
 } satisfies CommandDef
 
@@ -123,7 +120,6 @@ const increaseOutlineDepth = {
   name: "Increase Depth",
   description: "Show more nested levels",
   category: "View",
-  shortcuts: [">"],
   execute: () => ({ type: "INCREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
@@ -133,7 +129,6 @@ const decreaseOutlineDepth = {
   name: "Decrease Depth",
   description: "Show fewer nested levels",
   category: "View",
-  shortcuts: ["<"],
   execute: () => ({ type: "DECREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
@@ -142,7 +137,6 @@ const increaseContentLines = {
   name: "Show More Content",
   description: "Increase content preview lines",
   category: "View",
-  shortcuts: ["+", "="],
   execute: () => ({ type: "INCREASE_CONTENT_LINES" }),
 } satisfies CommandDef
 
@@ -151,7 +145,6 @@ const decreaseContentLines = {
   name: "Show Less Content",
   description: "Decrease content preview lines",
   category: "View",
-  shortcuts: ["-", "_"],
   execute: () => ({ type: "DECREASE_CONTENT_LINES" }),
 } satisfies CommandDef
 
@@ -160,7 +153,7 @@ const clearFilters = {
   name: "Clear Filters",
   description: "Remove all active view filters (hide-done, ignore, etc.)",
   category: "View",
-  shortcuts: ["v-"],
+  shortLabel: "clear",
   execute: () => ({ type: "CLEAR_FILTERS" }),
 } satisfies CommandDef
 

@@ -47,7 +47,6 @@ const selectAll = {
   name: "Select All",
   description: "Select all (column first, then board-wide)",
   category: "Selection",
-  shortcuts: ["A", "Ctrl+A"],
   execute: () => ({ type: "SELECT_ALL" }),
 } satisfies CommandDef
 
@@ -56,7 +55,6 @@ const clearSelection = {
   name: "Clear Selection",
   description: "Clear all selections",
   category: "Selection",
-  shortcuts: ["Escape"],
   execute: () => ({ type: "CLEAR_SELECTION" }),
 } satisfies CommandDef
 
@@ -66,7 +64,6 @@ const extendSelectUp = {
   name: "Extend Selection Up",
   description: "Extend selection upward",
   category: "Selection",
-  shortcuts: ["Shift+ArrowUp"],
   execute: () => ({ type: "EXTEND_SELECT_UP" }),
 } satisfies CommandDef
 
@@ -75,7 +72,6 @@ const extendSelectDown = {
   name: "Extend Selection Down",
   description: "Extend selection downward",
   category: "Selection",
-  shortcuts: ["Shift+ArrowDown"],
   execute: () => ({ type: "EXTEND_SELECT_DOWN" }),
 } satisfies CommandDef
 
@@ -84,7 +80,6 @@ const extendSelectLeft = {
   name: "Extend Selection Left",
   description: "Extend selection leftward",
   category: "Selection",
-  shortcuts: ["Shift+ArrowLeft"],
   execute: () => ({ type: "EXTEND_SELECT_LEFT" }),
 } satisfies CommandDef
 
@@ -93,7 +88,6 @@ const extendSelectRight = {
   name: "Extend Selection Right",
   description: "Extend selection rightward",
   category: "Selection",
-  shortcuts: ["Shift+ArrowRight"],
   execute: () => ({ type: "EXTEND_SELECT_RIGHT" }),
 } satisfies CommandDef
 
@@ -103,7 +97,6 @@ const visualModeEnter = {
   name: "Visual Mode",
   description: "Enter visual mode for range selection with hjkl",
   category: "Selection",
-  shortcuts: ["v"],
   execute: () => ({ type: "VISUAL_MODE_ENTER" }),
 } satisfies CommandDef
 

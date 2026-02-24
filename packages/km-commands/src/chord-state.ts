@@ -8,20 +8,26 @@
 
 export type ChordResult =
   | { type: "pending"; prefix: string }
-  | { type: "resolved"; commandId: string }
-  | { type: "fallback"; commandId: string }
+  | { type: "resolved"; commandId: string; targetId?: string }
+  | { type: "fallback"; commandId: string; targetId?: string }
   | { type: "passthrough" }
-  | { type: "replay"; standaloneId: string; replayKey: string }
+  | { type: "replay"; standaloneId: string; standaloneTargetId?: string; replayKey: string }
+
+/** Resolved binding from keybinding resolution */
+interface Resolved {
+  commandId: string
+  targetId?: string
+}
 
 export interface ChordCallbacks {
   isChordPrefix: (key: string) => boolean
   resolveChord: (
     prefix: string,
     key: string,
-    modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
+    modifiers: { ctrl?: boolean; opt?: boolean; shift?: boolean },
     ctx: unknown,
-  ) => string | null
-  resolveStandalone: (key: string) => string | null
+  ) => Resolved | null
+  resolveStandalone: (key: string) => Resolved | null
 }
 
 export interface ChordState {
@@ -31,7 +37,7 @@ export interface ChordState {
    * Process a key press through the chord state machine.
    *
    * @param key - The key string (e.g., "z", "a", "M")
-   * @param hasModifiers - True if any modifier (ctrl/meta/shift/alt) is held
+   * @param hasModifiers - True if any modifier (ctrl/opt/shift/cmd) is held
    * @param modifiers - The full modifier set (for chord resolution)
    * @param ctx - Keybinding context (for chord when predicates)
    * @param resolver - Callbacks for chord prefix/resolution queries
@@ -39,7 +45,7 @@ export interface ChordState {
   processKey(
     key: string,
     hasModifiers: boolean,
-    modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
+    modifiers: { ctrl?: boolean; opt?: boolean; shift?: boolean },
     ctx: unknown,
     resolver: ChordCallbacks,
   ): ChordResult
@@ -56,11 +62,11 @@ export interface ChordState {
  */
 function buildChordPrefix(
   key: string,
-  modifiers: { ctrl?: boolean; meta?: boolean; shift?: boolean; alt?: boolean },
+  modifiers: { ctrl?: boolean; opt?: boolean; shift?: boolean },
 ): string | null {
   const parts: string[] = []
   if (modifiers.ctrl) parts.push("Ctrl")
-  if (modifiers.meta) parts.push("Alt")
+  if (modifiers.opt) parts.push("Alt")
   if (modifiers.shift) parts.push("Shift")
   if (parts.length === 0) return null
   parts.push(key)
@@ -82,15 +88,19 @@ export function createChordState(): ChordState {
         pendingPrefix = null
 
         // Try to resolve the chord (prefix + second key)
-        const commandId = resolver.resolveChord(prefix, key, modifiers, ctx)
-        if (commandId) {
-          return { type: "resolved", commandId }
+        const resolved = resolver.resolveChord(prefix, key, modifiers, ctx)
+        if (resolved) {
+          return resolved.targetId
+            ? { type: "resolved", commandId: resolved.commandId, targetId: resolved.targetId }
+            : { type: "resolved", commandId: resolved.commandId }
         }
 
         // No chord match → replay: fire standalone for prefix + replay second key
-        const standaloneId = resolver.resolveStandalone(prefix)
-        if (standaloneId) {
-          return { type: "replay", standaloneId, replayKey: key }
+        const standalone = resolver.resolveStandalone(prefix)
+        if (standalone) {
+          return standalone.targetId
+            ? { type: "replay", standaloneId: standalone.commandId, standaloneTargetId: standalone.targetId, replayKey: key }
+            : { type: "replay", standaloneId: standalone.commandId, replayKey: key }
         }
 
         // No standalone either — just pass through the second key

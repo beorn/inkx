@@ -157,10 +157,10 @@ These fire in node mode only (not text edit, not dialog).
 
 | Key | TTY press | Command | Description |
 |-----|-----------|---------|-------------|
-| `@` | `Shift+2` | add_assignee | Add assignee |
-| `#` | `Shift+3` | add_tag | Add tag |
-| `+` | `+` | add_project | Add project |
-| `[` | `[` | add_backlink | Add backlink |
+| `@` | `Shift+2` | add (targetId: "@") | Add assignee |
+| `#` | `Shift+3` | add (targetId: "#") | Add tag |
+| `+` | `+` | add (targetId: "+") | Add project |
+| `[` | `[` | add (targetId: "[") | Add backlink |
 
 ### Fold
 
@@ -186,13 +186,10 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 | `gc` | `g` then `c` | toggle_collapse | Toggle column collapse |
 | `gC` | `g` then `Shift+c` | toggle_show_ignored | Reveal/hide ignored nodes (dimmed) |
 | `gv` | `g` then `v` | cycle_view_mode | Cycle view modes |
-| `gi` | `g` then `i` | goto_inbox | Go to inbox |
-| `gj` | `g` then `j` | goto_journal | Go to journal |
-| `gh` | `g` then `h` | goto_home | Go to home |
-| `ge` | `g` then `e` | goto_archive | Go to archive |
-| `g+` | `g` then `+` | goto_project | Go to project (picker) |
-| `g[` | `g` then `[` | goto_node | Go to node (picker) |
-| `g#` | `g` then `#` | goto_tag | Go to tag (picker) |
+| `gi` | `g` then `i` | goto (targetId: "i") | Go to inbox |
+| `gj` | `g` then `j` | goto (targetId: "j") | Go to journal |
+| `gh` | `g` then `h` | goto (targetId: "h") | Go to home |
+| `ga` | `g` then `a` | goto (targetId: "a") | Go to archive |
 
 ### Chords: `m` prefix (move to)
 
@@ -201,15 +198,11 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 | Key | TTY sequence | Command | Description |
 |-----|--------------|---------|-------------|
 | `mm` | `m` then `m` | enter_move_mode | Enter interactive move mode |
-| `mi` | `m` then `i` | move_to_inbox | Move to inbox |
-| `mj` | `m` then `j` | move_to_journal | Move to journal |
-| `mh` | `m` then `h` | move_to_home | Move to home |
+| `mi` | `m` then `i` | move (targetId: "i") | Move to inbox |
+| `mj` | `m` then `j` | move (targetId: "j") | Move to journal |
+| `mh` | `m` then `h` | move (targetId: "h") | Move to home |
 | `mp` | `m` then `p` | reparent_picker | Open reparent picker |
-| `m+` | `m` then `+` | move_to_project | Move to project (picker) |
-| `m[` | `m` then `[` | move_to_node | Move to node (picker) |
-| `m#` | `m` then `#` | move_to_tag | Move to tag (picker) |
-| `mg` | `m` then `g` | move_to_first | Move to first position |
-| `mG` | `m` then `Shift+g` | move_to_last | Move to last position |
+| `ma` | `m` then `a` | archive | Archive node |
 
 ### Chords: `a` prefix (add)
 
@@ -217,10 +210,10 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 
 | Key | TTY sequence | Command | Description |
 |-----|--------------|---------|-------------|
-| `a#` | `a` then `#` | add_tag | Add tag |
-| `a@` | `a` then `@` | add_assignee | Add assignee |
-| `a+` | `a` then `+` | add_project | Add project |
-| `a[` | `a` then `[` | add_backlink | Add backlink |
+| `a#` | `a` then `#` | add (targetId: "#") | Add tag |
+| `a@` | `a` then `@` | add (targetId: "@") | Add assignee |
+| `a+` | `a` then `+` | add (targetId: "+") | Add project |
+| `a[` | `a` then `[` | add (targetId: "[") | Add backlink |
 | `ai` | `a` then `i` | insert_child | Insert child node |
 | `aj` | `a` then `j` | add_sibling_below | Add sibling below |
 | `ah` | `a` then `h` | insert_at_parent | Insert at parent level |

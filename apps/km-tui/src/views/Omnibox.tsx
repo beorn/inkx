@@ -13,7 +13,7 @@ import React from "react"
 import { Box, Text } from "inkx"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import { getAllCommands, getAllKeybindings, fuzzyMatch, type CommandDef, type Keybinding } from "@km/commands"
+import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding, type CommandDef, type Keybinding } from "@km/commands"
 import { isOutline, isEmbed, type KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
@@ -38,6 +38,8 @@ export interface OmniboxResult {
   shortcutHint?: string
   /** Command ID to execute when selected (command/goto types) */
   commandId?: string
+  /** Target ID for composable commands (e.g., "i" for goto inbox) */
+  targetId?: string
   /** Node ID to navigate to (search type) */
   nodeId?: string
   /** Node object for rich rendering (search type) */
@@ -48,17 +50,6 @@ export interface OmniboxResult {
 // Result Sources
 // =============================================================================
 
-/** Format a keybinding as a human-readable hint string */
-function formatKeybinding(binding: Keybinding): string {
-  const parts: string[] = []
-  if (binding.chord) parts.push(binding.chord)
-  if (binding.super) parts.push("⌘")
-  if (binding.ctrl) parts.push("⌃")
-  if (binding.alt || binding.meta) parts.push("⌥")
-  if (binding.shift) parts.push("⇧")
-  parts.push(binding.key)
-  return parts.join("")
-}
 
 /** Commands that should be hidden from the palette (internal/text-editing) */
 const HIDDEN_CATEGORIES = new Set(["TextEdit"])
@@ -105,7 +96,8 @@ function buildGotoResults(): OmniboxResult[] {
       label: "Go to Inbox",
       description: "Navigate to inbox",
       shortcutHint: "gi",
-      commandId: "goto_inbox",
+      commandId: "goto",
+      targetId: "i",
     },
     {
       key: "goto:journal",
@@ -113,7 +105,8 @@ function buildGotoResults(): OmniboxResult[] {
       label: "Go to Journal",
       description: "Navigate to today's journal",
       shortcutHint: "gj",
-      commandId: "goto_journal",
+      commandId: "goto",
+      targetId: "j",
     },
     {
       key: "goto:home",
@@ -121,15 +114,17 @@ function buildGotoResults(): OmniboxResult[] {
       label: "Go to Home",
       description: "Navigate to home board",
       shortcutHint: "gh",
-      commandId: "goto_home",
+      commandId: "goto",
+      targetId: "h",
     },
     {
       key: "goto:archive",
       type: "goto",
       label: "Go to Archive",
       description: "Navigate to archive",
-      shortcutHint: "ge",
-      commandId: "goto_archive",
+      shortcutHint: "ga",
+      commandId: "goto",
+      targetId: "a",
     },
   ]
 }

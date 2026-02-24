@@ -199,7 +199,7 @@ filterCommands("cur")  // matches cursor_down, cursor_up, etc.
 
 ## Command Reference
 
-The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for which keys are bound. The `shortcuts` field on `CommandDef` is informational metadata only.
+The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for which keys are bound. Use `getBindingsForCommand(id)` to look up bindings programmatically.
 
 ### Navigation
 
@@ -303,7 +303,7 @@ The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for 
 | `new_item`       | New Item       | `n`                               |
 | `project_picker` | Project Picker | `p`                               |
 | `search`         | Search         | `/`                               |
-| `favorite_1`-`9` | Favorite 1-9  | `1`-`9`                           |
+| `goto` (targetId: 1-9) | Favorite 1-9 | `1`-`9`                     |
 | `column_1`-`9`  | Column 1-9     | `!@#$%^&*(` (Shift+1-9)          |
 | `close_or_quit`  | Close/Quit     | `Escape`, `Alt+Escape`, `Meta+Escape` |
 
