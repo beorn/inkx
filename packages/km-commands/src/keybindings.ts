@@ -322,6 +322,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
       { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "g", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
       { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
@@ -732,6 +733,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Filter and command palette
       { key: "/", ctrl: true, commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
+      { key: "g", ctrl: true, commandId: "filter" },
       { key: ":", commandId: "command_palette" },
     ],
   },

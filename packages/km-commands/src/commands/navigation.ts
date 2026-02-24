@@ -295,7 +295,7 @@ const filter = {
   name: "Filter",
   description: "Open filter dialog to filter visible cards",
   category: "Navigation",
-  shortcuts: ["Ctrl+/"],
+  shortcuts: ["Ctrl+G", "Ctrl+/"],
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
