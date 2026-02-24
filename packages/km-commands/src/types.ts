@@ -573,6 +573,14 @@ interface CaptureAction {
   location?: string
 }
 
+interface CaptureInboxAction {
+  type: "CAPTURE_INBOX"
+}
+
+interface CaptureDialogAction {
+  type: "CAPTURE_DIALOG"
+}
+
 interface SettingsAction {
   type: "SETTINGS"
 }
@@ -800,6 +808,8 @@ export type TUIAction =
   | ReparentPickerAction
   | ArchiveNodeAction
   | CaptureAction
+  | CaptureInboxAction
+  | CaptureDialogAction
   | SettingsAction
   | PaneSplitAction
   | PaneCloseAction

@@ -673,7 +673,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
       { chord: "g", key: "n", commandId: "new_item" },
-      { chord: "g", key: "c", commandId: "toggle_collapse" },
+      { chord: "v", key: "c", commandId: "toggle_collapse" },
       { chord: "g", key: "C", commandId: "toggle_show_ignored" },
       { chord: "g", key: "v", commandId: "cycle_view_mode" },
       { chord: "g", key: "i", commandId: "goto_inbox" },

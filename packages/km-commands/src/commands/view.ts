@@ -45,7 +45,7 @@ const toggleCollapse = {
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
   category: "Fold",
-  shortcuts: ["gc"],
+  shortcuts: ["vc"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
