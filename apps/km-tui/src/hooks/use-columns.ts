@@ -34,7 +34,7 @@ const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
 export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
-  const rules = node.rules ?? parseHeadingRules(node.title || "").rules
+  const rules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
   return rules.collapse === true
 }
 
@@ -277,7 +277,9 @@ export function deriveColumnsFromRepo(
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
 
   // Convert structural children to columns (with per-column memoization)
+  // Skip collapsed sections (e.g., Attachments, Comments, Activity) — they're detail-pane only
   for (const node of deduped) {
+    if (isCollapsedChild(node)) continue
     columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
   }
 
@@ -320,10 +322,13 @@ export function* deriveColumnsIncremental(
   }
 
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
+  let columnCount = 0
   for (const node of deduped) {
+    if (isCollapsedChild(node)) continue
     yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
+    columnCount++
   }
-  span.spanData.columns = (filteredBody.length > 0 ? 1 : 0) + deduped.length
+  span.spanData.columns = (filteredBody.length > 0 ? 1 : 0) + columnCount
 }
 
 // =============================================================================
@@ -437,8 +442,8 @@ function kNodeToColumnView(
   wipLimits: Map<string, number>,
   _foldDepths: Map<string, number>,
 ): ColumnView {
-  // Use node.rules if available, otherwise parse from title
-  const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || "").rules
+  // Use node.rules if available, otherwise parse from title (fall back to content for imported nodes)
+  const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
 
   // Look up WIP limit
   const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")

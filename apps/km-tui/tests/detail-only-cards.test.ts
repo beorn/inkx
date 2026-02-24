@@ -271,6 +271,85 @@ describe("structural children with km.collapse:: true hidden from card view", ()
     expect(cardIds).not.toContain("att-1")
     expect(cardIds).not.toContain("act-1")
   })
+
+  test("real Asana import nodes with collapse rule in content (no pre-parsed rules/title)", () => {
+    // Bug: km-tui.hide-attachments
+    // The Asana import creates heading nodes with content: "Attachments km.collapse:: true"
+    // but WITHOUT pre-parsed rules, title, or name fields. isCollapsedChild was only
+    // checking node.rules and node.title, missing the rule embedded in node.content.
+    const ts = Date.now()
+    const importedNodes: KNode[] = [
+      // Board root
+      {
+        id: "board", type: "h", item: true, fstype: "folder",
+        data: { name: "board" },
+        parent_id: null, parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Column
+      {
+        id: "col", type: "h", item: true, fstype: "folder",
+        data: { name: "col" },
+        parent_id: "board", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Regular task
+      {
+        id: "task-1", type: "p", item: true,
+        content: "A real task",
+        parent_id: "col", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Attachments heading — exactly as Asana import creates it:
+      // content has the collapse rule, but no title/name/rules fields
+      {
+        id: "attachments-123", type: "h", item: true,
+        content: "Attachments km.collapse:: true",
+        data: {},
+        parent_id: "col", parent_idx: 1, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Individual attachment child
+      {
+        id: "att-123-1", type: "p", item: true,
+        content: "[IMG_1704.jpg](attachments/IMG_1704.jpg)",
+        parent_id: "attachments-123", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Comments heading — same pattern
+      {
+        id: "comments-123", type: "h", item: true,
+        content: "Comments km.collapse:: true",
+        data: {},
+        parent_id: "col", parent_idx: 2, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // A comment child
+      {
+        id: "comment-123-1", type: "p", item: true,
+        content: "2024-01-15 @alice: Great work!",
+        parent_id: "comments-123", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+    ]
+
+    const repo = createFakeRepo({ nodes: importedNodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    expect(columns).toHaveLength(1)
+    const cardIds = columns[0]!.cardNodes.map((c) => c.id)
+
+    // Real task should be visible
+    expect(cardIds).toContain("task-1")
+
+    // Attachments and Comments headings should be hidden (collapse rule in content)
+    expect(cardIds).not.toContain("attachments-123")
+    expect(cardIds).not.toContain("comments-123")
+
+    // Their children should also be hidden (children of collapsed parents)
+    expect(cardIds).not.toContain("att-123-1")
+    expect(cardIds).not.toContain("comment-123-1")
+  })
 })
 
 describe("collapsed children hidden inside cards (sub-items)", () => {
