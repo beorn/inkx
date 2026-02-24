@@ -17,6 +17,7 @@
   "overrides": {
     "chalkx": "$chalkx",
     "@beorn/flexx": "$@beorn/flexx",
+    "@beorn/logger": "$@beorn/logger",
     "zod": "^4.3.6"
   },
   "bin": {
