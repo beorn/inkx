@@ -18,6 +18,8 @@ export function stripForDisplay(text: string): string {
       .replace(/\s*→\s*(?:\[\[)?\^\d+(?:\]\])?/g, "")
       // Strip embed block references ![[^numericId]] (Asana tag file cross-references)
       .replace(/\s*!\[\[\^\d+\]\]/g, "")
+      // Strip embed wikilinks ![[target]] and ![[target|alias]] — replace with alias or target name
+      .replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target: string, alias?: string) => alias ?? target)
       // Strip inline ^numeric-id references (Asana-style 10+ digit IDs) that are NOT inside [[...]]
       .replace(/\^\d{10,}/g, (match, offset: number, str: string) => {
         // Check if this ^ is inside a wikilink by looking for preceding [[ without intervening ]]
@@ -51,6 +53,7 @@ function stripInlineRules(text: string): string {
   return text
     .replace(PROP_REGEX, "")
     .replace(/\s*!\[\[\^\d+\]\]/g, "") // Strip embed block references ![[^numericId]]
+    .replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target: string, alias?: string) => alias ?? target) // Strip embed wikilinks ![[target]] / ![[target|alias]]
     .replace(/\s+/g, " ")
     .trim()
 }

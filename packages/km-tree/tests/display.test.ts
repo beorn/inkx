@@ -836,4 +836,26 @@ describe("stripForDisplay", () => {
   it("strips ^numeric-id outside wikilinks but preserves inside", () => {
     expect(stripForDisplay("ref ^1202466275397380 and [[^1203128650780856]]")).toBe("ref and [[^1203128650780856]]")
   })
+
+  // ── Embed wikilink syntax ![[target]] ─────────────────────────────────
+
+  it("strips embed wikilink ![[target]] replacing with target name", () => {
+    expect(stripForDisplay("![[file.jpg]]")).toBe("file.jpg")
+  })
+
+  it("strips embed wikilink from mixed content, keeping target name", () => {
+    expect(stripForDisplay("Organize into boxes ![[file.jpg]]")).toBe("Organize into boxes file.jpg")
+  })
+
+  it("strips multiple embed wikilinks from mixed content", () => {
+    expect(stripForDisplay("See ![[photo.png]] and ![[doc.pdf]]")).toBe("See photo.png and doc.pdf")
+  })
+
+  it("strips embed wikilink with alias, using alias for display", () => {
+    expect(stripForDisplay("Check ![[file.jpg|My Photo]]")).toBe("Check My Photo")
+  })
+
+  it("preserves regular wikilinks [[target]]", () => {
+    expect(stripForDisplay("See [[my note]] for details")).toBe("See [[my note]] for details")
+  })
 })
