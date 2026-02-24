@@ -106,6 +106,8 @@ interface CommandFeedbackProps {
   prefix?: string
   bellState?: string
   status?: { level: string; message: string } | null
+  /** Local search state — shows match count or "No matches" */
+  localSearch?: { query: string; matchIndex: number; matchCount: number } | null
   termWidth: number
 }
 
@@ -116,7 +118,7 @@ const STATUS_COLORS: Record<string, string | undefined> = {
   error: "red",
 }
 
-export function CommandFeedback({ prefix, bellState, status, termWidth }: CommandFeedbackProps): React.ReactElement | null {
+export function CommandFeedback({ prefix, bellState, status, localSearch, termWidth }: CommandFeedbackProps): React.ReactElement | null {
   // Priority 1: chord hints (existing behavior)
   if (prefix) {
     const suffixes = getChordSuffixes(prefix)
@@ -163,6 +165,23 @@ export function CommandFeedback({ prefix, bellState, status, termWidth }: Comman
         paddingRight={1}
       >
         <Text color={color}>{message}</Text>
+      </Box>
+    )
+  }
+
+  // Priority 3: local search match feedback
+  if (localSearch && localSearch.query.length > 0) {
+    const noMatches = localSearch.matchCount === 0
+    return (
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+      >
+        <Text color={noMatches ? "red" : "yellow"}>
+          {noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`}
+        </Text>
       </Box>
     )
   }

@@ -241,8 +241,8 @@ export function CommandBox({
         </Text>
         <Text dimColor> {">"} </Text>
         {localSearch ? (
-          /* Inline find: /query (N of M) */
-          <>
+          /* Inline find: /query */
+          <Box id="find-bar" flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
             <Text>{" / "}</Text>
             <Box flexGrow={1} flexShrink={1} overflow="hidden">
               {localSearch.isInputActive && onQueryChange ? (
@@ -251,16 +251,7 @@ export function CommandBox({
                 <Text>{localSearch.query}</Text>
               )}
             </Box>
-            <Box flexShrink={0}>
-              <Text color={localSearch.matchCount === 0 && localSearch.query.length > 0 ? "red" : "yellow"}>
-                {localSearch.query.length > 0
-                  ? localSearch.matchCount === 0
-                    ? " No matches"
-                    : ` (${localSearch.matchIndex + 1} of ${localSearch.matchCount})`
-                  : ""}
-              </Text>
-            </Box>
-          </>
+          </Box>
         ) : (
           /* Normal mode: chord/spinner/status */
           <>

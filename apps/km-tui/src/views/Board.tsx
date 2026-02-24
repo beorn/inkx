@@ -428,9 +428,9 @@ export function BoardCore({
           matchNodeIds: [],
         },
       })
-      // Debounce the expensive match computation
+      // Debounce the expensive match computation (skip in tests)
       clearTimeout(findTimerRef.current)
-      findTimerRef.current = setTimeout(() => {
+      const computeMatches = () => {
         const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
         if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
           dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
@@ -444,7 +444,13 @@ export function BoardCore({
             matchNodeIds,
           },
         })
-      }, 150)
+      }
+      // @ts-expect-error - React internal flag set by inkx test renderer
+      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+        computeMatches()
+      } else {
+        findTimerRef.current = setTimeout(computeMatches, 150)
+      }
     },
     [setUI, dispatchBoard],
   )
@@ -747,12 +753,13 @@ export function BoardCore({
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
-        {/* Command feedback pane (chord hints, bell, status) */}
-        {(ui.pendingChord || ui.bellState || ui.status) && (
+        {/* Command feedback pane (chord hints, bell, status, search matches) */}
+        {(ui.pendingChord || ui.bellState || ui.status || (ui.localSearch && ui.localSearch.query.length > 0)) && (
           <CommandFeedback
             prefix={ui.pendingChord}
             bellState={ui.bellState}
             status={ui.status}
+            localSearch={ui.localSearch}
             termWidth={termWidth}
           />
         )}
