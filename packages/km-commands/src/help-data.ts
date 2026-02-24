@@ -69,14 +69,13 @@ const HELP_SECTIONS: HelpSection[] = [
     category: "Task",
     items: [
       { keys: ["x / X"], command: "toggle_task_done", description: "toggle / cycle status" },
-      { keys: ["m a"], command: "archive", description: "archive" },
       { keys: ["⌃t", "⌘t", "t t"], command: "task_dialog", description: "task properties" },
       { keys: ["t -"], command: "clear_task", description: "clear taskness" },
       { keys: ["t o"], command: "set_assignee", description: "set owner" },
       { keys: ["t d"], command: "set_due_date", description: "set due date" },
-      { keys: ["t !"], command: "set_priority", description: "set priority" },
       { keys: ["t s"], command: "set_start_date", description: "set start date" },
       { keys: ["t l"], command: "set_label", description: "set label" },
+      { keys: ["t !"], command: "set_priority", description: "set priority" },
     ],
   },
   {
@@ -139,15 +138,11 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
-  { key: "0-9", location: "favorites", goto: "g 0-9", separator: true },
-  { key: "", location: "", goto: "0-9" },
-  // Targets (pickers)
-  { key: "#", location: "tag", add: "a #", separator: true },
-  { key: "", location: "", add: "#" },
-  { key: "@", location: "context", add: "a @" },
-  { key: "", location: "", add: "@" },
-  { key: "+", location: "project", goto: "g +", move: "m +", add: "a +" },
-  { key: "", location: "", add: "+" },
+  { key: "0-9", location: "favorites", goto: "g 0-9 / 0-9", separator: true },
+  // Targets (pickers) — bare key is shortcut for a-prefix chord
+  { key: "#", location: "tag", add: "a # / #", separator: true },
+  { key: "@", location: "context", add: "a @ / @" },
+  { key: "+", location: "project", goto: "g +", move: "m +", add: "a + / +" },
   { key: "[", location: "item", move: "m [", add: "a [" },
 ]
 

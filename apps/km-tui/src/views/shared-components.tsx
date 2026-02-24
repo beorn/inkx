@@ -275,9 +275,9 @@ export const MemoizedColumnHeader = React.memo(
 function isChord(segment: string): boolean {
   const parts = segment.split(" ")
   if (parts.length !== 2) return false
-  // Each part must be 1–2 visible characters
-  // (covers single chars like "g", modifier+key like "⌃w", symbols like "/")
-  return [...parts[0]].length <= 2 && [...parts[1]].length <= 2
+  // Each part must be 1–3 visible characters
+  // (covers single chars like "g", modifier+key like "⌃w", ranges like "0-9")
+  return [...parts[0]].length <= 3 && [...parts[1]].length <= 3
 }
 
 /**
