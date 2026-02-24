@@ -41,7 +41,7 @@ const VISUAL_HINTS: KeyHint[] = [
   { key: "j/k", action: "extend" },
   { key: "d", action: "cut" },
   { key: "y", action: "copy" },
-  { key: "e", action: "archive" },
+  { key: "m·a", action: "archive" },
   { key: "Esc", action: "cancel" },
 ]
 
@@ -58,7 +58,7 @@ const PANE_HINTS: KeyHint[] = [
 const MULTI_HINTS: KeyHint[] = [
   { key: "d", action: "cut" },
   { key: "y", action: "copy" },
-  { key: "e", action: "archive" },
+  { key: "m·a", action: "archive" },
   { key: "x", action: "done" },
   { key: "Space", action: "toggle" },
   { key: "Esc", action: "clear" },
