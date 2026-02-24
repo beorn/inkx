@@ -29,6 +29,7 @@ import type {
   ProjectNode,
   StrikethroughNode,
   TagNode,
+  TextDecoration,
   WikiLinkNode,
 } from "./inline-ast-types.ts"
 
@@ -70,39 +71,134 @@ function useInlineRenderContext(): InlineRenderContext {
 }
 
 // =============================================================================
+// Decoration Support
+// =============================================================================
+
+/** Props for threading decorations through the component tree */
+interface DecorationProps {
+  decorations?: TextDecoration[]
+  offset?: number
+}
+
+/**
+ * Compute the visible text length of an AST node.
+ * Must match the output of inlineNodesToPlainText for each node type.
+ * Used for tracking character offsets when applying decorations.
+ */
+function getNodeTextLength(node: InlineNode): number {
+  switch (node.type) {
+    case "plain":
+      return node.text.length
+    case "code":
+      return node.code.length
+    case "mention":
+      return node.name.length + 1 // @name
+    case "tag":
+      return node.name.length + 1 // #name
+    case "project":
+      return node.name.length + 1 // +name
+    case "wikilink":
+      return (node.alias ?? node.target).length
+    case "link":
+      return node.text.length
+    case "bareurl":
+      return prettifyUrl(node.url).length
+    case "field":
+      return 0 // metadata, not display text
+    case "blockref":
+      return 0 // metadata, not display text
+    case "bold":
+    case "italic":
+    case "strikethrough":
+      return node.children.reduce((sum, c) => sum + getNodeTextLength(c), 0)
+  }
+}
+
+/**
+ * Render text with decoration highlights applied.
+ * Splits text at decoration boundaries and wraps highlighted ranges in styled Text.
+ */
+function DecoratedText({
+  text,
+  decorations,
+  offset,
+}: {
+  text: string
+  decorations: TextDecoration[]
+  offset: number
+}): React.ReactElement {
+  const parts: React.ReactElement[] = []
+  let cursor = 0
+
+  // Map decorations to local coordinates and filter to overlapping ranges
+  const sorted = decorations
+    .map((d) => ({
+      localStart: Math.max(0, d.start - offset),
+      localEnd: Math.min(text.length, d.end - offset),
+      style: d.style,
+    }))
+    .filter((d) => d.localStart < d.localEnd)
+    .sort((a, b) => a.localStart - b.localStart)
+
+  for (const dec of sorted) {
+    if (dec.localStart > cursor) {
+      parts.push(<Text key={parts.length}>{text.slice(cursor, dec.localStart)}</Text>)
+    }
+    parts.push(
+      <Text key={parts.length} backgroundColor={dec.style.backgroundColor} color={dec.style.color}>
+        {text.slice(dec.localStart, dec.localEnd)}
+      </Text>,
+    )
+    cursor = dec.localEnd
+  }
+  if (cursor < text.length) {
+    parts.push(<Text key={parts.length}>{text.slice(cursor)}</Text>)
+  }
+  return <>{parts}</>
+}
+
+// =============================================================================
 // Node Components
 // =============================================================================
 
-export function InlinePlainText({ node }: { node: PlainTextNode }): React.ReactElement {
-  return <Text>{node.text}</Text>
+export function InlinePlainText({ node, decorations, offset }: { node: PlainTextNode } & DecorationProps): React.ReactElement {
+  if (!decorations?.length) return <Text>{node.text}</Text>
+  return <DecoratedText text={node.text} decorations={decorations} offset={offset ?? 0} />
 }
 
-export function InlineBold({ node }: { node: BoldNode }): React.ReactElement {
+export function InlineBold({ node, decorations, offset }: { node: BoldNode } & DecorationProps): React.ReactElement {
   return (
     <Text bold>
-      <InlineNodes nodes={node.children} />
+      <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
     </Text>
   )
 }
 
-export function InlineItalic({ node }: { node: ItalicNode }): React.ReactElement {
+export function InlineItalic({ node, decorations, offset }: { node: ItalicNode } & DecorationProps): React.ReactElement {
   return (
     <Text italic>
-      <InlineNodes nodes={node.children} />
+      <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
     </Text>
   )
 }
 
-export function InlineStrikethrough({ node }: { node: StrikethroughNode }): React.ReactElement {
+export function InlineStrikethrough({ node, decorations, offset }: { node: StrikethroughNode } & DecorationProps): React.ReactElement {
   return (
     <Text dim strikethrough>
-      <InlineNodes nodes={node.children} />
+      <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
     </Text>
   )
 }
 
-export function InlineCode({ node }: { node: CodeNode }): React.ReactElement {
+export function InlineCode({ node, decorations, offset }: { node: CodeNode } & DecorationProps): React.ReactElement {
   const ctx = useInlineRenderContext()
+  if (decorations?.length) {
+    return (
+      <Text color={ctx.noColor ? undefined : "cyan"}>
+        <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
+      </Text>
+    )
+  }
   return <Text color={ctx.noColor ? undefined : "cyan"}>{node.code}</Text>
 }
 
@@ -200,30 +296,51 @@ export function InlineBlockRef({ node: _node }: { node: BlockRefNode }): null {
 // Composite Renderer
 // =============================================================================
 
-/** Render an array of inline AST nodes */
-export function InlineNodes({ nodes }: { nodes: InlineNode[] }): React.ReactElement {
+/** Render an array of inline AST nodes, threading decorations with offset tracking */
+export function InlineNodes({ nodes, decorations, offset = 0 }: { nodes: InlineNode[] } & DecorationProps): React.ReactElement {
+  if (!decorations?.length) {
+    // Fast path: no decorations, render as before
+    return (
+      <>
+        {nodes.map((node, i) => (
+          <InlineNodeView key={i} node={node} />
+        ))}
+      </>
+    )
+  }
+
+  // Slow path: track offsets and filter decorations per node
+  let currentOffset = offset
   return (
     <>
-      {nodes.map((node, i) => (
-        <InlineNodeView key={i} node={node} />
-      ))}
+      {nodes.map((node, i) => {
+        const nodeOffset = currentOffset
+        const nodeLen = getNodeTextLength(node)
+        currentOffset += nodeLen
+        // Filter decorations overlapping this node's range
+        const nodeDecorations = decorations.filter((d) => d.start < nodeOffset + nodeLen && d.end > nodeOffset)
+        if (!nodeDecorations.length) {
+          return <InlineNodeView key={i} node={node} />
+        }
+        return <InlineNodeView key={i} node={node} decorations={nodeDecorations} offset={nodeOffset} />
+      })}
     </>
   )
 }
 
 /** Render a single inline AST node */
-export function InlineNodeView({ node }: { node: InlineNode }): React.ReactElement | null {
+export function InlineNodeView({ node, decorations, offset }: { node: InlineNode } & DecorationProps): React.ReactElement | null {
   switch (node.type) {
     case "plain":
-      return <InlinePlainText node={node} />
+      return <InlinePlainText node={node} decorations={decorations} offset={offset} />
     case "bold":
-      return <InlineBold node={node} />
+      return <InlineBold node={node} decorations={decorations} offset={offset} />
     case "italic":
-      return <InlineItalic node={node} />
+      return <InlineItalic node={node} decorations={decorations} offset={offset} />
     case "strikethrough":
-      return <InlineStrikethrough node={node} />
+      return <InlineStrikethrough node={node} decorations={decorations} offset={offset} />
     case "code":
-      return <InlineCode node={node} />
+      return <InlineCode node={node} decorations={decorations} offset={offset} />
     case "link":
       return <InlineLink node={node} />
     case "wikilink":
@@ -272,16 +389,21 @@ function SigilText({ sigil }: { sigil: string }): React.ReactElement {
  *   <InlineText text="**bold** @user [[link]]" />
  *   <InlineText text={title} context={{ excludeSigils: new Set(["@issue"]) }} />
  */
-export function InlineText({ text, context }: { text: string; context?: InlineRenderContext }): React.ReactElement {
+export function InlineText({
+  text,
+  context,
+  decorations,
+}: {
+  text: string
+  context?: InlineRenderContext
+  decorations?: TextDecoration[]
+}): React.ReactElement {
   const nodes = React.useMemo(() => parseInlineText(text), [text])
+  const inner = <InlineNodes nodes={nodes} decorations={decorations} />
   if (context) {
-    return (
-      <InlineRenderProvider value={context}>
-        <InlineNodes nodes={nodes} />
-      </InlineRenderProvider>
-    )
+    return <InlineRenderProvider value={context}>{inner}</InlineRenderProvider>
   }
-  return <InlineNodes nodes={nodes} />
+  return inner
 }
 
 /** Color an inline field value by its type */

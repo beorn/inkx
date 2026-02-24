@@ -16,6 +16,7 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
+import type { TextDecoration } from "../text/index.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -478,6 +479,8 @@ export interface NodeLineProps {
   isSelected?: boolean
   /** Optional suffix content (tags, badges, etc.) */
   children?: React.ReactNode
+  /** Search highlight decorations for the title */
+  decorations?: TextDecoration[]
 }
 
 /**
@@ -494,6 +497,7 @@ export function NodeLine({
   parentContext,
   isSelected = false,
   children,
+  decorations,
 }: NodeLineProps): React.ReactElement {
   const prefix = isSelected ? "▸ " : "  "
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
@@ -505,7 +509,7 @@ export function NodeLine({
         <Text color={isSelected ? "black" : undefined} wrap="truncate">
           {prefix}
           <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
-          <InlineText text={title} />
+          <InlineText text={title} decorations={decorations} />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}

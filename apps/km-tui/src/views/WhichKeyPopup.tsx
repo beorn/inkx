@@ -164,7 +164,7 @@ export function FlashMessage({ message, color, termWidth }: {
       paddingLeft={1}
       paddingRight={1}
     >
-      <Text color={isFlash ? "white" : color} bold={isFlash}>{message}</Text>
+      <Text color={isFlash ? "white" : color} bold={isFlash} id="feedback-message">{message}</Text>
     </Box>
   )
 }

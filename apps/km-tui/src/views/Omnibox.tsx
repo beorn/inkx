@@ -19,6 +19,7 @@ import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getParentName } from "./search-utils.ts"
+import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // =============================================================================
 // Types
@@ -282,10 +283,11 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
   )
 }
 
-function ResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
+function ResultItem({ result, isSelected, query }: { result: OmniboxResult; isSelected: boolean; query?: string }): React.ReactElement {
   if (result.type === "search" && result.node) {
+    const decorations = query ? computeSearchDecorationsFromSource(result.label, query, isSelected) : undefined
     return (
-      <NodeLine node={result.node} title={result.label} parentContext={result.description} isSelected={isSelected} />
+      <NodeLine node={result.node} title={result.label} parentContext={result.description} isSelected={isSelected} decorations={decorations} />
     )
   }
   return <CommandResultItem result={result} isSelected={isSelected} />
@@ -436,7 +438,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
             return (
               <React.Fragment key={result.key}>
                 {actualIndex === searchDividerIndex && <SectionDivider label="Search" />}
-                <ResultItem result={result} isSelected={actualIndex === selectedIndex} />
+                <ResultItem result={result} isSelected={actualIndex === selectedIndex} query={deferredQuery} />
               </React.Fragment>
             )
           })

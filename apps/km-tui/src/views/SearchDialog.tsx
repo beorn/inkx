@@ -14,6 +14,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
+import { computeSearchDecorationsFromSource } from "../text/index.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -78,9 +79,10 @@ interface SearchResultsProps {
   selectedIndex: number
   scrollOffset: number
   maxVisible: number
+  query: string
 }
 
-function SearchResults({ results, selectedIndex, scrollOffset, maxVisible }: SearchResultsProps): React.ReactElement {
+function SearchResults({ results, selectedIndex, scrollOffset, maxVisible, query }: SearchResultsProps): React.ReactElement {
   const visibleResults = results.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (results.length === 0) {
@@ -92,6 +94,7 @@ function SearchResults({ results, selectedIndex, scrollOffset, maxVisible }: Sea
       {visibleResults.map((result, i) => {
         const actualIndex = scrollOffset + i
         const isSelected = actualIndex === selectedIndex
+        const decorations = query ? computeSearchDecorationsFromSource(result.title, query, isSelected) : undefined
 
         return (
           <NodeLine
@@ -100,6 +103,7 @@ function SearchResults({ results, selectedIndex, scrollOffset, maxVisible }: Sea
             title={result.title}
             parentContext={result.parentContext}
             isSelected={isSelected}
+            decorations={decorations}
           >
             {result.tags.length > 0 && (
               <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
@@ -281,6 +285,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
               selectedIndex={selectedIndex}
               scrollOffset={scrollOffset}
               maxVisible={maxVisible}
+              query={trimmedQuery}
             />
           )}
         </Box>

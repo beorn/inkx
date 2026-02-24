@@ -138,8 +138,8 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "i", location: "inbox", goto: "g i", move: "m i", create: "c i" },
   { key: "j", location: "journal", goto: "g j", move: "m j", create: "c j" },
   { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e", create: "c e" },
-  // Favorites (0-9)
-  { key: "0-9", location: "favorite", goto: "g 0", move: "m 0", add: "a 0", separator: true },
+  // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
+  { key: "0-9", location: "favorite", goto: "0 / g 0", move: "m 0", add: "a 0", separator: true },
   // Targets (pickers / wikilink types)
   { key: "[", location: "item", goto: "g [", move: "m p", add: "a [", separator: true },
   { key: "#", location: "tag", goto: "g #", add: "#" },

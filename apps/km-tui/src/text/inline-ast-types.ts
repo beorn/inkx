@@ -83,6 +83,23 @@ export interface BareURLNode {
 }
 
 // =============================================================================
+// Decoration Type
+// =============================================================================
+
+/** A text decoration — ephemeral style applied to a character range */
+export interface TextDecoration {
+  /** Start offset in the source text (inclusive) */
+  start: number
+  /** End offset in the source text (exclusive) */
+  end: number
+  /** Style to apply to the decorated range */
+  style: {
+    backgroundColor?: string
+    color?: string
+  }
+}
+
+// =============================================================================
 // Union Type
 // =============================================================================
 

@@ -55,8 +55,9 @@ export {
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"
-export type { InlineNode } from "./inline-ast-types.ts"
+export type { InlineNode, TextDecoration } from "./inline-ast-types.ts"
 export { InlineNodes, InlineText, InlineRenderProvider, type InlineRenderContext } from "./InlineComponents.tsx"
+export { computeSearchDecorations, computeSearchDecorationsFromSource } from "./search-decorations.ts"
 
 // Board color system
 export {

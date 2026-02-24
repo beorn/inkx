@@ -188,7 +188,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
 /** Column widths for the verb grid */
 const VG_LOC_W = 16
-const VG_COL_W = 10
+const VG_COL_W = 12
 
 function GridCell({ value }: { value?: string }): React.ReactElement {
   if (!value) return <Text dimColor>{"·"}</Text>
@@ -218,7 +218,7 @@ function buildVerbGridLines(fillWidth: number): React.ReactElement[] {
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
-          {"go"}
+          {"go to"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
@@ -228,11 +228,11 @@ function buildVerbGridLines(fillWidth: number): React.ReactElement[] {
       </Box>
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
-          {"add"}
+          {"add/link"}
         </Text>
       </Box>
       <Text bold color="cyan">
-        {"create"}
+        {"create/new"}
       </Text>
     </Box>,
   )
