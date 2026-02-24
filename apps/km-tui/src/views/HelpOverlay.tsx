@@ -43,7 +43,6 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text>{"  "}</Text>
       <Text bold color="cyan">
         {title.toUpperCase()}
       </Text>
@@ -79,7 +78,6 @@ function DescText({ text }: { text: string }): React.ReactElement {
 function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text>{"  "}</Text>
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text>{" "}</Text>}
@@ -194,7 +192,6 @@ function buildVerbGridLines(): React.ReactElement[] {
   // Section header
   lines.push(
     <Box key="vg-hdr" flexDirection="row">
-      <Text>{"  "}</Text>
       <Text bold color="cyan">
         {"SHORTCUTS"}
       </Text>
@@ -210,7 +207,6 @@ function buildVerbGridLines(): React.ReactElement[] {
   // Column headers (verb names)
   lines.push(
     <Box key="vg-col-hdr" flexDirection="row">
-      <Text>{"  "}</Text>
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
         <Text bold color="cyan">
@@ -231,7 +227,6 @@ function buildVerbGridLines(): React.ReactElement[] {
   // Prefix key row (chord prefix + ctrl alternatives)
   lines.push(
     <Box key="vg-prefix" flexDirection="row">
-      <Text>{"  "}</Text>
       <Box width={VG_LOC_W}>
         <Text dimColor>{"prefix key"}</Text>
       </Box>
@@ -259,7 +254,6 @@ function buildVerbGridLines(): React.ReactElement[] {
     const showDot = row.key !== ""
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
-        <Text>{"  "}</Text>
         <Box width={VG_LOC_W} flexDirection="row">
           <Text color="yellow">{row.key}</Text>
           <Text>{" " + row.location}</Text>
