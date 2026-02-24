@@ -119,6 +119,7 @@ const STATUS_COLORS: Record<string, string | undefined> = {
 }
 
 const FLASH_MS = 300
+const MAX_FLASH_WIDTH = 44 // 40 content + 4 border/padding
 
 /** Flash white on new message, then fade to normal color */
 function useFlash(message: string | undefined): boolean {
@@ -140,11 +141,35 @@ function useFlash(message: string | undefined): boolean {
   return flash
 }
 
-export function CommandFeedback({ prefix, bellState, status, localSearch, termWidth }: CommandFeedbackProps): React.ReactElement | null {
-  // Flash state for single-line feedback (white → normal)
-  const feedbackMessage = status?.message ?? bellState ?? (localSearch?.query.length ? `${localSearch.matchIndex}/${localSearch.matchCount}` : undefined)
-  const isFlash = useFlash(feedbackMessage)
+/**
+ * FlashMessage — rounded bordered message that flashes white then fades to a normal color.
+ *
+ * Used for transient feedback: bell alerts, status messages, search match counts.
+ * On first appearance (or message change), renders with white border + bold white text
+ * for 300ms, then transitions to gray border + the specified color.
+ */
+export function FlashMessage({ message, color, termWidth }: {
+  message: string
+  /** Text color after flash (undefined = default terminal color) */
+  color?: string
+  termWidth?: number
+}): React.ReactElement {
+  const isFlash = useFlash(message)
+  const maxWidth = Math.min(MAX_FLASH_WIDTH, termWidth ?? MAX_FLASH_WIDTH)
+  return (
+    <Box
+      width={Math.min(message.length + 4, maxWidth)}
+      borderStyle="round"
+      borderColor={isFlash ? "white" : "gray"}
+      paddingLeft={1}
+      paddingRight={1}
+    >
+      <Text color={isFlash ? "white" : color} bold={isFlash}>{message}</Text>
+    </Box>
+  )
+}
 
+export function CommandFeedback({ prefix, bellState, status, localSearch, termWidth }: CommandFeedbackProps): React.ReactElement | null {
   // Priority 1: chord hints (existing behavior)
   if (prefix) {
     const suffixes = getChordSuffixes(prefix)
@@ -156,7 +181,7 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
     }))
 
     const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))
-    const popupWidth = Math.min(maxEntryWidth + 4, 44, termWidth) // +4 for border+padding, max 40 content
+    const popupWidth = Math.min(maxEntryWidth + 4, MAX_FLASH_WIDTH, termWidth)
 
     return (
       <Box
@@ -179,42 +204,18 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
     )
   }
 
-  // Max content width for single-line feedback (border+padding add 4)
-  const maxWidth = Math.min(44, termWidth)
-
   // Priority 2: bell/status feedback
   if (bellState || status) {
     const message = status?.message ?? bellState ?? ""
-    const normalColor = bellState ? undefined : STATUS_COLORS[status!.level]
-    return (
-      <Box
-        width={Math.min(message.length + 4, maxWidth)}
-        borderStyle="round"
-        borderColor={isFlash ? "white" : "gray"}
-        paddingLeft={1}
-        paddingRight={1}
-      >
-        <Text color={isFlash ? "white" : normalColor} bold={isFlash}>{message}</Text>
-      </Box>
-    )
+    const color = bellState ? undefined : STATUS_COLORS[status!.level]
+    return <FlashMessage message={message} color={color} termWidth={termWidth} />
   }
 
   // Priority 3: local search match feedback
   if (localSearch && localSearch.query.length > 0) {
     const noMatches = localSearch.matchCount === 0
     const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
-    const normalColor = noMatches ? "red" : "yellow"
-    return (
-      <Box
-        width={Math.min(text.length + 4, maxWidth)}
-        borderStyle="round"
-        borderColor={isFlash ? "white" : "gray"}
-        paddingLeft={1}
-        paddingRight={1}
-      >
-        <Text color={isFlash ? "white" : normalColor} bold={isFlash}>{text}</Text>
-      </Box>
-    )
+    return <FlashMessage message={text} color={noMatches ? "red" : "yellow"} termWidth={termWidth} />
   }
 
   return null
