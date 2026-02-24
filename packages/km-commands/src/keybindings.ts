@@ -659,12 +659,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // n = new item dialog (bare key, not chord)
       { key: "n", commandId: "new_item" },
 
-      // g/m/a/t/v/c standalone fallbacks for chord timeout
+      // g/m/a/t/v/w/c standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
       { key: "v", commandId: "noop" },
+      { key: "w", commandId: "noop" },
       { key: "c", commandId: "capture_dialog" },
 
       // g-prefix chords (go-to)
@@ -730,7 +731,31 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "c", key: "j", commandId: "capture_journal" },
       { chord: "c", key: "e", commandId: "capture_archive" },
 
-      // Ctrl+W-prefix chords (pane operations — windowing)
+      // w-prefix chords (pane operations — windowing, vim-style)
+      { chord: "w", key: "v", commandId: "pane_split_vertical" },
+      { chord: "w", key: "s", commandId: "pane_split_horizontal" },
+      { chord: "w", key: "q", commandId: "pane_close" },
+      { chord: "w", key: "h", commandId: "pane_focus_left" },
+      { chord: "w", key: "j", commandId: "pane_focus_down" },
+      { chord: "w", key: "k", commandId: "pane_focus_up" },
+      { chord: "w", key: "l", commandId: "pane_focus_right" },
+      { chord: "w", key: "p", commandId: "pane_focus_previous" },
+      { chord: "w", key: "Tab", commandId: "pane_focus_next" },
+      { chord: "w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
+      { chord: "w", key: ">", commandId: "pane_resize_grow" },
+      { chord: "w", key: "<", commandId: "pane_resize_shrink" },
+      { chord: "w", key: "+", commandId: "pane_resize_grow_vertical" },
+      { chord: "w", key: "-", commandId: "pane_resize_shrink_vertical" },
+      { chord: "w", key: "=", commandId: "pane_equalize" },
+      { chord: "w", key: "z", commandId: "pane_zoom" },
+      { chord: "w", key: "o", commandId: "pane_only" },
+      { chord: "w", key: "H", commandId: "pane_swap_left" },
+      { chord: "w", key: "J", commandId: "pane_swap_down" },
+      { chord: "w", key: "K", commandId: "pane_swap_up" },
+      { chord: "w", key: "L", commandId: "pane_swap_right" },
+      { chord: "w", key: "n", commandId: "pane_split_and_pick" },
+
+      // Ctrl+W-prefix chords (same as w-prefix, for vim muscle memory)
       { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
       { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
       { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
@@ -752,6 +777,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "Ctrl+w", key: "J", commandId: "pane_swap_down" },
       { chord: "Ctrl+w", key: "K", commandId: "pane_swap_up" },
       { chord: "Ctrl+w", key: "L", commandId: "pane_swap_right" },
+      { chord: "Ctrl+w", key: "n", commandId: "pane_split_and_pick" },
     ],
   },
 

@@ -331,6 +331,21 @@ describe("processInkKey", () => {
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("close_or_quit")
   })
+
+  it("Ctrl+w starts chord, then q resolves to pane_close", () => {
+    const kbCtx = buildKeybindingContext({})
+    const cmdCtx = createCommandContext()
+
+    // Step 1: Ctrl+w should start a chord (pending)
+    const r1 = processInkKey("w", { ctrl: true }, cmdCtx, kbCtx)
+    expect(r1.handled).toBe(true)
+    expect(r1.pending).toBe("Ctrl+w")
+
+    // Step 2: q should resolve the chord to pane_close (NOT quit)
+    const r2 = processInkKey("q", {}, cmdCtx, kbCtx)
+    expect(r2.handled).toBe(true)
+    expect(r2.commandId).toBe("pane_close")
+  })
 })
 
 describe("wouldHandleKey", () => {
