@@ -4,8 +4,9 @@
  * Shared constants for keyboard handling.
  */
 
-/** Default favorites: common boards accessed via 1-9 keys */
+/** Default favorites: common boards accessed via 0-9 keys */
 export const DEFAULT_FAVORITES: Record<string, string> = {
+  "0": "@inbox",
   "1": "@next",
   "2": "@someday",
   "3": "@waiting",

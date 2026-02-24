@@ -245,7 +245,7 @@ interface ShowSearchDialogAction {
 
 interface JumpToFavoriteAction {
   type: "JUMP_TO_FAVORITE"
-  favoriteNumber: number // 1-9
+  favoriteNumber: number // 0-9
 }
 
 interface JumpToColumnAction {

@@ -12,10 +12,10 @@
 
 import type { CommandDef, CommandAction } from "../types.ts"
 
-/** Generate favorite commands (1-9): jump to favorite board N via number key */
+/** Generate favorite commands (0-9): jump to favorite board N via number key */
 const favoriteCommands = ((): CommandDef[] =>
-  Array.from({ length: 9 }, (_, i) => {
-    const n = i + 1
+  Array.from({ length: 10 }, (_, i) => {
+    const n = i
     return {
       id: `favorite_${n}`,
       name: `Favorite ${n}`,

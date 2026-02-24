@@ -803,7 +803,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "p", super: true, commandId: "toggle_detail_pane" },
       { key: ",", super: true, commandId: "settings" },
 
-      // Favorites (1-9) — jump to favorite boards
+      // Favorites (0-9) — jump to favorite boards
+      { key: "0", commandId: "favorite_0" },
       { key: "1", commandId: "favorite_1" },
       { key: "2", commandId: "favorite_2" },
       { key: "3", commandId: "favorite_3" },

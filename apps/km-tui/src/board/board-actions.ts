@@ -1394,8 +1394,7 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
 }
 
 function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
-  const favoriteKey = `favorite${favoriteNumber}` as keyof typeof DEFAULT_FAVORITES
-  const favoriteId = DEFAULT_FAVORITES[favoriteKey]
+  const favoriteId = DEFAULT_FAVORITES[`${favoriteNumber}`]
 
   if (!favoriteId) return
 
