@@ -767,7 +767,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Pickers (keep manual)
       { chord: "m", key: "p", commandId: "reparent_picker" },
       { chord: "m", key: "+", commandId: "reparent_picker" },
-      { chord: "m", key: "[", commandId: "noop" },
+      { chord: "m", key: "[", commandId: "reparent_picker" },
       { chord: "m", key: "#", commandId: "noop" },
       { chord: "m", key: "@", commandId: "noop" },
       { chord: "m", key: "g", commandId: "noop" },

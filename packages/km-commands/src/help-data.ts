@@ -148,8 +148,7 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "", location: "", add: "@" },
   { key: "+", location: "project", goto: "g +", move: "m +", add: "a +" },
   { key: "", location: "", add: "+" },
-  { key: "[", location: "backlink", add: "a [" },
-  { key: "p", location: "reparent", move: "m p" },
+  { key: "[", location: "item", move: "m [", add: "a [" },
 ]
 
 // ── Public API ────────────────────────────────────────────────────────

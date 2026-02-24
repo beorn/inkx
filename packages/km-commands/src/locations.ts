@@ -31,7 +31,7 @@ const LOCATION_LABELS: Record<string, string> = {
   "#": "tag",
   "@": "assignee",
   "+": "project",
-  "[": "backlink",
+  "[": "item",
 }
 
 /** Get display label for a location target key */
