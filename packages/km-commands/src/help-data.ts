@@ -22,7 +22,6 @@ export interface VerbGridRow {
   goto?: string
   move?: string
   add?: string
-  create?: string
   /** Render a blank line before this row */
   separator?: boolean
 }
@@ -135,22 +134,22 @@ const HELP_SECTIONS: HelpSection[] = [
 
 export const VERB_GRID: VerbGridRow[] = [
   // Board locations
-  { key: "/", location: "root", goto: "g /" },
-  { key: "h", location: "home (@next)", goto: "g h", move: "m h", add: "a H", create: "c h" },
-  { key: "i", location: "inbox", goto: "g i", move: "m i", add: "a I", create: "c i" },
-  { key: "j", location: "journal", goto: "g j", move: "m j", add: "a J", create: "c j" },
-  { key: "a", location: "archive", goto: "g e", move: "m a", create: "c e" },
+  { key: "h", location: "home (@next)", goto: "g h", move: "m h" },
+  { key: "i", location: "inbox", goto: "g i", move: "m i" },
+  { key: "j", location: "journal", goto: "g j", move: "m j" },
+  { key: "a", location: "archive", goto: "g a", move: "m a" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
-  { key: "0-9", location: "favorites", goto: "g 0-9", move: "m 0-9", add: "a 0-9", separator: true },
+  { key: "0-9", location: "favorites", goto: "g 0-9", separator: true },
   { key: "", location: "", goto: "0-9" },
-  // Targets (pickers / wikilink types)
-  { key: "[", location: "item", goto: "g [", move: "m p", add: "a [", separator: true },
-  { key: "#", location: "tag", goto: "g #", move: "m #", add: "a #" },
+  // Targets (pickers)
+  { key: "#", location: "tag", add: "a #", separator: true },
   { key: "", location: "", add: "#" },
-  { key: "@", location: "context", goto: "g @", move: "m @", add: "a @" },
+  { key: "@", location: "context", add: "a @" },
   { key: "", location: "", add: "@" },
   { key: "+", location: "project", goto: "g +", move: "m +", add: "a +" },
   { key: "", location: "", add: "+" },
+  { key: "[", location: "backlink", add: "a [" },
+  { key: "p", location: "reparent", move: "m p" },
 ]
 
 // ── Public API ────────────────────────────────────────────────────────

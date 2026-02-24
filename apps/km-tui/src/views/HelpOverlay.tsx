@@ -218,13 +218,8 @@ function buildVerbGridLines(): React.ReactElement[] {
           {"move"}
         </Text>
       </Box>
-      <Box width={VG_COL_W}>
-        <Text bold color="cyan">
-          {"add/link"}
-        </Text>
-      </Box>
       <Text bold color="cyan">
-        {"create/new"}
+        {"add/link"}
       </Text>
     </Box>,
   )
@@ -244,12 +239,9 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{" / "}</Text>
         <Text color="yellow">{"⌃r"}</Text>
       </Box>
-      <Box width={VG_COL_W} flexDirection="row">
-        <Text color="yellow">{"a"}</Text>
-        <Text dimColor>{" / "}</Text>
-        <Text color="yellow">{"⌃l"}</Text>
-      </Box>
-      <Text color="yellow">{"c"}</Text>
+      <Text color="yellow">{"a"}</Text>
+      <Text dimColor>{" / "}</Text>
+      <Text color="yellow">{"⌃l"}</Text>
     </Box>,
   )
 
@@ -274,10 +266,7 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Box width={VG_COL_W}>
           <GridCell value={row.move} showDot={showDot} />
         </Box>
-        <Box width={VG_COL_W}>
-          <GridCell value={row.add} showDot={showDot} />
-        </Box>
-        <GridCell value={row.create} showDot={showDot} />
+        <GridCell value={row.add} showDot={showDot} />
       </Box>,
     )
   }
