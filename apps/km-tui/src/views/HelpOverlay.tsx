@@ -142,16 +142,20 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
       lines.push(...cols[0])
     } else {
       // Multi-column: merge lines side by side using fixed-width Boxes
-      const colWidth = Math.floor(contentWidth / cols.length)
+      const gap = 4
+      const colWidth = Math.floor((contentWidth - gap * (cols.length - 1)) / cols.length)
       const maxLines = Math.max(...cols.map((c) => c.length))
 
       for (let i = 0; i < maxLines; i++) {
         lines.push(
           <Box key={`row-${lines.length}`} flexDirection="row">
             {cols.map((col, ci) => (
-              <Box key={ci} width={colWidth}>
-                {col[i] ?? null}
-              </Box>
+              <React.Fragment key={ci}>
+                {ci > 0 && <Box width={gap} />}
+                <Box width={colWidth}>
+                  {col[i] ?? null}
+                </Box>
+              </React.Fragment>
             ))}
           </Box>,
         )
