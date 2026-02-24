@@ -1,5 +1,4 @@
 import type { CommandDef } from "../types.ts"
-import { BOARD_LOCATIONS } from "../locations.ts"
 
 // Cursor movement - structural (not bound to default keys in board view)
 // These are available for tree/outline views or programmatic use
@@ -203,21 +202,15 @@ const goto = {
   description: "Navigate to a board or favorite by target",
   category: "Navigation",
   execute: (ctx) => {
-    const target = ctx.targetId
-    if (!target) return null
+    const t = ctx.targetId
+    if (!t) return null
 
-    // Digit targets jump to favorites (0-9)
-    if (/^\d$/.test(target)) {
-      return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(target) }
-    }
+    if (t === "parent") return { type: "ZOOM_OUTWARDS" }
+    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("pick:")) return { type: "SHOW_PROJECT_PICKER" } // TODO: generic picker
 
-    // Named targets look up board locations
-    const boardId = BOARD_LOCATIONS[target]
-    if (boardId) {
-      return { type: "GOTO_BOARD", boardId }
-    }
-
-    return null
+    // Real node ID — navigate there
+    return { type: "GOTO_BOARD", boardId: t }
   },
 } satisfies CommandDef
 

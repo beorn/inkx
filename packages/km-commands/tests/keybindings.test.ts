@@ -764,7 +764,6 @@ describe("chord keybindings", () => {
       ["g", "g", "cursor_first"],
       ["g", "o", "open_in_system"],
       ["g", "O", "open_in_terminal"],
-      ["g", "p", "project_picker"],
       // v-prefix chords (view operations)
       ["v", "c", "toggle_collapse"],
       ["v", "C", "toggle_show_ignored"],
@@ -776,11 +775,6 @@ describe("chord keybindings", () => {
       // m-prefix chords (move to board)
       ["m", "a", "archive"],
       ["m", "m", "enter_move_mode"],
-      ["m", "p", "reparent_picker"],
-      // a-prefix chords (add operations) — non-composable
-      ["a", "i", "insert_child"],
-      ["a", "j", "add_sibling_below"],
-      ["a", "h", "insert_at_parent"],
       // t-prefix chords (task properties)
       ["t", "t", "task_dialog"],
       ["t", "-", "clear_task"],
@@ -822,19 +816,34 @@ describe("chord keybindings", () => {
   describe("chord resolution (composable commands with targetId)", () => {
     it.each([
       // g-prefix composable goto
-      ["g", "i", "goto", "i"],
-      ["g", "j", "goto", "j"],
-      ["g", "h", "goto", "h"],
-      ["g", "a", "goto", "a"],
+      ["g", "i", "goto", "@inbox"],
+      ["g", "j", "goto", "@journal"],
+      ["g", "h", "goto", "@next"],
+      ["g", "a", "goto", "@archive"],
+      ["g", "p", "goto", "parent"],
+      ["g", "+", "goto", "pick:+"],
+      ["g", "[", "goto", "pick:["],
+      ["g", "#", "goto", "pick:#"],
+      ["g", "@", "goto", "pick:@"],
       // m-prefix composable move
-      ["m", "i", "move", "i"],
-      ["m", "j", "move", "j"],
-      ["m", "h", "move", "h"],
+      ["m", "i", "move", "@inbox"],
+      ["m", "j", "move", "@journal"],
+      ["m", "h", "move", "@next"],
+      ["m", "p", "move", "parent"],
+      ["m", "g", "move", "first"],
+      ["m", "G", "move", "last"],
+      ["m", "+", "move", "pick:+"],
+      ["m", "[", "move", "pick:["],
+      ["m", "#", "move", "pick:#"],
+      ["m", "@", "move", "pick:@"],
       // a-prefix composable add
-      ["a", "#", "add", "#"],
-      ["a", "@", "add", "@"],
-      ["a", "+", "add", "+"],
-      ["a", "[", "add", "["],
+      ["a", "#", "add", "pick:#"],
+      ["a", "@", "add", "pick:@"],
+      ["a", "+", "add", "pick:+"],
+      ["a", "[", "add", "pick:["],
+      ["a", "h", "add", "@next"],
+      ["a", "i", "add", "@inbox"],
+      ["a", "j", "add", "@journal"],
     ] as const)("chord %s%s resolves to %s (targetId: %s)", (prefix, key, commandId, targetId) => {
       const ctx = createContext()
       expect(resolveChord(prefix, key, {}, ctx)).toEqual({ commandId, targetId })
@@ -857,7 +866,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(111) // 23 g + 8 v + 12 m + 10 a + 8 t + 1 c + 21 Ctrl+w + 20 Ctrl+g + 8 Ctrl+m
+    expect(chordBindings.length).toBe(140) // 23 g + 8 v + 24 m + 17 a + 8 t + 1 c + 21 Ctrl+w + 20 Ctrl+g + 20 Ctrl+m
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -867,16 +876,23 @@ describe("chord keybindings", () => {
       suffixes.map((s) => [s.key, s.targetId ? { commandId: s.commandId, targetId: s.targetId } : { commandId: s.commandId }]),
     )
     expect(suffixMap).toEqual({
-      "#": { commandId: "add", targetId: "#" },
-      "@": { commandId: "add", targetId: "@" },
-      "+": { commandId: "add", targetId: "+" },
-      "[": { commandId: "add", targetId: "[" },
-      i: { commandId: "insert_child" },
-      j: { commandId: "add_sibling_below" },
-      h: { commandId: "insert_at_parent" },
-      H: { commandId: "noop" },
-      I: { commandId: "noop" },
-      J: { commandId: "noop" },
+      "0": { commandId: "add", targetId: "fav:0" },
+      "1": { commandId: "add", targetId: "fav:1" },
+      "2": { commandId: "add", targetId: "fav:2" },
+      "3": { commandId: "add", targetId: "fav:3" },
+      "4": { commandId: "add", targetId: "fav:4" },
+      "5": { commandId: "add", targetId: "fav:5" },
+      "6": { commandId: "add", targetId: "fav:6" },
+      "7": { commandId: "add", targetId: "fav:7" },
+      "8": { commandId: "add", targetId: "fav:8" },
+      "9": { commandId: "add", targetId: "fav:9" },
+      "#": { commandId: "add", targetId: "pick:#" },
+      "@": { commandId: "add", targetId: "pick:@" },
+      "+": { commandId: "add", targetId: "pick:+" },
+      "[": { commandId: "add", targetId: "pick:[" },
+      h: { commandId: "add", targetId: "@next" },
+      i: { commandId: "add", targetId: "@inbox" },
+      j: { commandId: "add", targetId: "@journal" },
     })
   })
 
@@ -969,13 +985,13 @@ describe("chord keybindings", () => {
 
   it("a-prefix chords resolve correctly", () => {
     const ctx = createContext()
-    expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "#" })
-    expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "@" })
-    expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "+" })
-    expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "[" })
-    expect(resolveChord("a", "i", {}, ctx)).toEqual({ commandId: "insert_child" })
-    expect(resolveChord("a", "j", {}, ctx)).toEqual({ commandId: "add_sibling_below" })
-    expect(resolveChord("a", "h", {}, ctx)).toEqual({ commandId: "insert_at_parent" })
+    expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
+    expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
+    expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
+    expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
+    expect(resolveChord("a", "i", {}, ctx)).toEqual({ commandId: "add", targetId: "@inbox" })
+    expect(resolveChord("a", "j", {}, ctx)).toEqual({ commandId: "add", targetId: "@journal" })
+    expect(resolveChord("a", "h", {}, ctx)).toEqual({ commandId: "add", targetId: "@next" })
   })
 
   it("a standalone (chord timeout) resolves to noop", () => {
@@ -984,28 +1000,28 @@ describe("chord keybindings", () => {
   })
 
   describe("bare symbol shortcuts (convenience aliases)", () => {
-    it("@ in node mode → add with targetId @ (same as a@)", () => {
+    it("@ in node mode → add with targetId pick:@ (same as a@)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("@", {}, ctx)).toEqual({ commandId: "add", targetId: "@" })
-      expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "@" })
+      expect(resolveKeybinding("@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
+      expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
     })
 
-    it("# in node mode → add with targetId # (same as a#)", () => {
+    it("# in node mode → add with targetId pick:# (same as a#)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("#", {}, ctx)).toEqual({ commandId: "add", targetId: "#" })
-      expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "#" })
+      expect(resolveKeybinding("#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
+      expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
     })
 
-    it("+ in node mode → add with targetId + (same as a+)", () => {
+    it("+ in node mode → add with targetId pick:+ (same as a+)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("+", {}, ctx)).toEqual({ commandId: "add", targetId: "+" })
-      expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "+" })
+      expect(resolveKeybinding("+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
+      expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
     })
 
-    it("[ in node mode → add with targetId [ (same as a[)", () => {
+    it("[ in node mode → add with targetId pick:[ (same as a[)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "add", targetId: "[" })
-      expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "[" })
+      expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
+      expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
     })
 
     it("bare symbols are blocked during text input", () => {

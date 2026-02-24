@@ -156,10 +156,10 @@ describe("ChordState", () => {
       if (r.type === "resolved") expect(r.commandId).toBe("pane_close")
     })
 
-    test("Ctrl+w followed by unmatched key passes through (no standalone)", () => {
+    test("Ctrl+w followed by unmatched key cancels chord (no standalone)", () => {
       state.processKey("w", true, ctrlMod, {}, ctrlWCb)
       const r = state.processKey("x", false, noMods, {}, ctrlWCb)
-      expect(r.type).toBe("passthrough")
+      expect(r.type).toBe("cancelled")
     })
 
     test("timeout clears Ctrl+w pending state", () => {
@@ -182,13 +182,30 @@ describe("ChordState", () => {
       }
     })
 
-    test("passthrough when prefix has no standalone binding", () => {
+    test("cancelled when prefix has no standalone binding", () => {
       const noStandalone = createCallbacks({
         standalones: new Map<string, Resolved>(), // No standalone bindings
       })
       state.processKey("z", false, noMods, {}, noStandalone)
       const r = state.processKey("q", false, noMods, {}, noStandalone)
-      expect(r.type).toBe("passthrough")
+      expect(r.type).toBe("cancelled")
+    })
+
+    test("Escape cancels pending chord", () => {
+      state.processKey("z", false, noMods, {}, cb)
+      expect(state.pending).toBe("z")
+
+      const r = state.processKey("Escape", false, noMods, {}, cb)
+      expect(r.type).toBe("cancelled")
+      expect(state.pending).toBeNull()
+    })
+
+    test("Escape cancels chord even when standalone exists", () => {
+      // g has a standalone (cursor_first), but Escape should still cancel, not replay
+      state.processKey("g", false, noMods, {}, cb)
+      const r = state.processKey("Escape", false, noMods, {}, cb)
+      expect(r.type).toBe("cancelled")
+      expect(state.pending).toBeNull()
     })
   })
 

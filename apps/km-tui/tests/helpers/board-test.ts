@@ -68,7 +68,7 @@ import { createBoardState } from "../../src/board-types.ts"
 import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
 
-import { BoardCore, Board } from "../../src/views/Board.tsx"
+import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
 import { createInitialUIState } from "../../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -423,13 +423,13 @@ export function testEnv(
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()
 
-  // Render Board with StoreContext.Provider for L3 mode
-  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  // Render BoardApp with StoreContext.Provider for L3 mode.
+  // BoardApp handles workspace pane layout (including detail pane rendering)
+  // and reads dimensions from the store via useApp() selectors.
+  // singlePassLayout matches production's create-app.tsx rendering pipeline.
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
-  const boardElement = React.createElement(Board, {
+  const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
-    dimensions: { columns, rows },
-    onExit: () => {},
     toastQueue,
     navigator: registry,
   })
@@ -440,7 +440,7 @@ export function testEnv(
       React.createElement(
         FocusManagerContext.Provider,
         { value: focusManager },
-        React.createElement(RepoProvider, { repo, children: boardElement }),
+        React.createElement(RepoProvider, { repo, children: boardAppElement }),
       ),
     ),
     { incremental: options?.incremental ?? true },
@@ -1519,13 +1519,13 @@ export function testEnvWithRepo(
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()
 
-  // Render Board with StoreContext.Provider for L3 mode
-  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  // Render BoardApp with StoreContext.Provider for L3 mode.
+  // BoardApp handles workspace pane layout (including detail pane rendering)
+  // and reads dimensions from the store via useApp() selectors.
+  // singlePassLayout matches production's create-app.tsx rendering pipeline.
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
-  const boardElement = React.createElement(Board, {
+  const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
-    dimensions: { columns, rows },
-    onExit: () => {},
     toastQueue,
     navigator: registry,
   })
@@ -1536,7 +1536,7 @@ export function testEnvWithRepo(
       React.createElement(
         FocusManagerContext.Provider,
         { value: focusManager },
-        React.createElement(RepoProvider, { repo, children: boardElement }),
+        React.createElement(RepoProvider, { repo, children: boardAppElement }),
       ),
     ),
     { incremental: options?.incremental ?? true },

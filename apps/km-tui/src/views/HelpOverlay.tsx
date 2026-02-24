@@ -260,10 +260,10 @@ function buildVerbGridLines(): React.ReactElement[] {
           <Text color="yellow">{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
-        <Box width={VG_COL_W}>
+        <Box width={VG_COL_W} flexDirection="row">
           <GridCell value={row.goto} showDot={showDot} />
         </Box>
-        <Box width={VG_COL_W}>
+        <Box width={VG_COL_W} flexDirection="row">
           <GridCell value={row.move} showDot={showDot} />
         </Box>
         <GridCell value={row.add} showDot={showDot} />

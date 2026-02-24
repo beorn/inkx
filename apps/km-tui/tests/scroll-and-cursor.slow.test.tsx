@@ -40,7 +40,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     })
 
     // Jump to last card
-    board.press("G")
+    board.press("g").press("G")
 
     // Last card should be visible
     const screenshot = board.screenshot()
@@ -59,7 +59,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     })
 
     // Jump to last, then navigate up
-    board.press("G")
+    board.press("g").press("G")
     board.press("k")
     board.press("k")
     board.press("k")

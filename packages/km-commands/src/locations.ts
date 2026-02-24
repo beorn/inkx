@@ -1,42 +1,43 @@
 /**
- * Location Targets for Composable Verbs
+ * Repository Locations
  *
- * Maps target keys to board IDs for goto/move verbs, and to action types
- * for the add verb. Labels used by WhichKeyPopup for display.
+ * Well-known node IDs and dynamic location conventions for composable verbs.
+ * Keybindings carry real node IDs (@inbox, @next) or resolvable references
+ * (parent, fav:3) as targetId — no intermediate naming layer.
  */
-import type { CommandAction } from "./types.ts"
 
-/** Well-known board targets for goto/move verbs */
-export const BOARD_LOCATIONS: Record<string, string> = {
-  h: "@next", // home
-  i: "@inbox",
-  j: "@journal",
-  a: "@archive",
+/** Well-known repository locations (static node IDs) */
+export const REPO_LOCS = {
+  home: "@next",
+  inbox: "@inbox",
+  journal: "@journal",
+  archive: "@archive",
+} as const
+
+/** Human-readable names for targetId values (used by which-key popup) */
+const TARGET_LABELS: Record<string, string> = {
+  "@next": "home",
+  "@inbox": "inbox",
+  "@journal": "journal",
+  "@archive": "archive",
+  parent: "parent",
+  first: "first",
+  last: "last",
 }
 
-/** Action types for add verb targets (pickers that operate on current node) */
-export const ADD_TARGETS: Record<string, CommandAction> = {
-  "#": { type: "SET_LABEL" },
-  "@": { type: "SET_ASSIGNEE" },
-  "+": { type: "REPARENT_PICKER" },
-  "[": { type: "ADD_LINK" },
-}
-
-/** Display labels for which-key popup */
-const LOCATION_LABELS: Record<string, string> = {
-  h: "home",
-  i: "inbox",
-  j: "journal",
-  a: "archive",
+/** Picker labels for pick:* targets */
+const PICKER_LABELS: Record<string, string> = {
   "#": "tag",
   "@": "assignee",
   "+": "project",
   "[": "item",
 }
 
-/** Get display label for a location target key */
-export function locationLabel(target: string): string {
-  if (LOCATION_LABELS[target]) return LOCATION_LABELS[target]
-  if (/^\d$/.test(target)) return `fav ${target}`
-  return target
+/** Get display label for a targetId */
+export function locationLabel(targetId: string): string {
+  const label = TARGET_LABELS[targetId]
+  if (label) return label
+  if (targetId.startsWith("fav:")) return `fav ${targetId.slice(4)}`
+  if (targetId.startsWith("pick:")) return PICKER_LABELS[targetId.slice(5)] ?? targetId.slice(5)
+  return targetId.replace(/^@/, "")
 }

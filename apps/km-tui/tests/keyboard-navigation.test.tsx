@@ -415,25 +415,25 @@ describe("Keyboard Navigation: arrow keys (same as hjkl)", () => {
   })
 })
 
-describe("Keyboard Navigation: g/G (first/last)", () => {
-  test("G moves to last card in column", () => {
+describe("Keyboard Navigation: g·g/g·G (first/last)", () => {
+  test("g·G moves to last card in column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"))))
 
     board.expect("#1a[data-cursor]").toExist()
 
-    // Press G to go to last
-    board.press("G")
+    // Press g G (chord) to go to last
+    board.press("g").press("G")
     board.expect("#1d[data-cursor]").toExist()
   })
 
-  test("g moves to first card in column", () => {
+  test("g·g moves to first card in column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"), item("1d"))))
 
     // Navigate to last card
-    board.press("G")
+    board.press("g").press("G")
     board.expect("#1d[data-cursor]").toExist()
 
-    // Press g to go to first
+    // Press g g (chord) to go to first
     board.press("g").press("g")
     board.expect("#1a[data-cursor]").toExist()
   })

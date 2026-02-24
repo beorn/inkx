@@ -135,7 +135,7 @@ describe("Columns View", () => {
       board.press("j")
       board.expect("#1b[data-cursor]").toExist()
 
-      board.press("G")
+      board.press("g").press("G")
       board.expect("#1c[data-cursor]").toExist()
 
       board.press("g").press("g")
@@ -283,7 +283,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
       board.expect("#card0[data-cursor]").toExist()
-      board.press("G")
+      board.press("g").press("G")
       board.expect("#card99[data-cursor]").toExist()
       board.press("g").press("g")
       board.expect("#card0[data-cursor]").toExist()

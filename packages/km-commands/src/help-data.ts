@@ -132,15 +132,16 @@ const HELP_SECTIONS: HelpSection[] = [
 
 export const VERB_GRID: VerbGridRow[] = [
   // Navigation
-  { key: "g", location: "first", goto: "g g" },
-  { key: "G", location: "last", goto: "g G" },
+  { key: "g", location: "first", goto: "g g", move: "m g" },
+  { key: "G", location: "last", goto: "g G", move: "m G" },
+  { key: "p", location: "parent", goto: "g p", move: "m p" },
   // Board locations
-  { key: "h", location: "home (@next)", goto: "g h", move: "m h" },
-  { key: "i", location: "inbox", goto: "g i", move: "m i" },
-  { key: "j", location: "journal", goto: "g j", move: "m j" },
+  { key: "h", location: "home (@next)", goto: "g h", move: "m h", add: "a h" },
+  { key: "i", location: "inbox", goto: "g i", move: "m i", add: "a i" },
+  { key: "j", location: "journal", goto: "g j", move: "m j", add: "a j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
-  { key: "0-9", location: "favorites", goto: "g 0-9  0-9", separator: true },
+  { key: "0-9", location: "favorites", goto: "g 0-9  0-9", move: "m 0-9", add: "a 0-9", separator: true },
   // Targets (pickers) — bare key is shortcut for a-prefix chord
   { key: "#", location: "tag", add: "a #  #", separator: true },
   { key: "@", location: "context", add: "a @  @" },

@@ -123,8 +123,8 @@ describe("which-key popup rendering", () => {
     // a-prefix should show add-related suffixes
     const text = board.screenshot()
     expect(text).toContain("tag")
-    expect(text).toContain("child")
-    expect(text).toContain("below")
+    expect(text).toContain("home")
+    expect(text).toContain("inbox")
   })
 })
 
@@ -188,19 +188,16 @@ describe("getChordSuffixes", () => {
     testEnv(() => item("board", item("col", item("task"))))
 
     const suffixes = getChordSuffixes("a")
-    expect(suffixes.length).toBe(10)
+    expect(suffixes.length).toBe(17) // 4 pickers + 3 boards + 10 favorites
 
     const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
     expect(suffixMap["#"]).toBe("add")
     expect(suffixMap["@"]).toBe("add")
     expect(suffixMap["+"]).toBe("add")
     expect(suffixMap["["]).toBe("add")
-    expect(suffixMap["i"]).toBe("insert_child")
-    expect(suffixMap["j"]).toBe("add_sibling_below")
-    expect(suffixMap["h"]).toBe("insert_at_parent")
-    expect(suffixMap["H"]).toBe("noop")
-    expect(suffixMap["I"]).toBe("noop")
-    expect(suffixMap["J"]).toBe("noop")
+    expect(suffixMap["h"]).toBe("add")
+    expect(suffixMap["i"]).toBe("add")
+    expect(suffixMap["j"]).toBe("add")
   })
 
   test("returns empty for non-prefix key", () => {

@@ -1,5 +1,4 @@
 import type { CommandAction, CommandDef } from "../types.ts"
-import { BOARD_LOCATIONS, ADD_TARGETS } from "../locations.ts"
 
 // Move mode commands return minimal actions (MoveAction types).
 // TUI handler in board-actions.ts augments with context before dispatching to board.
@@ -158,11 +157,17 @@ const move = {
   description: "Move selected node(s) to a target board",
   category: "Edit",
   execute: (ctx): CommandAction | null => {
-    const target = ctx.targetId
-    if (!target) return null
-    const boardId = BOARD_LOCATIONS[target]
-    if (!boardId) return null
-    return { type: "MOVE_TO_BOARD", boardId }
+    const t = ctx.targetId
+    if (!t) return null
+
+    if (t === "parent") return { type: "OUTDENT_NODE" }
+    if (t === "first") return { type: "SHIFT_TO_TOP" }
+    if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
+    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" } // TODO: generic picker
+
+    // Real node ID — move there
+    return { type: "MOVE_TO_BOARD", boardId: t }
   },
 } satisfies CommandDef
 
@@ -175,11 +180,19 @@ const add = {
   description: "Add a property or link to the current node",
   category: "Edit",
   execute: (ctx): CommandAction | null => {
-    const target = ctx.targetId
-    if (!target) return null
-    const action = ADD_TARGETS[target]
-    if (!action) return null
-    return action
+    const t = ctx.targetId
+    if (!t) return null
+
+    // Pickers — open picker dialog, then add link to result
+    if (t === "pick:#") return { type: "SET_LABEL" }
+    if (t === "pick:@") return { type: "SET_ASSIGNEE" }
+    if (t === "pick:+") return { type: "REPARENT_PICKER" }
+    if (t === "pick:[") return { type: "ADD_LINK" }
+
+    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+
+    // Real node ID — add link to that board
+    return { type: "ADD_LINK_TO_BOARD", boardId: t }
   },
 } satisfies CommandDef
 

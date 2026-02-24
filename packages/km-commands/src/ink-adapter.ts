@@ -81,6 +81,8 @@ export interface InkCommandResult {
   pending?: string
   /** True when a chord prefix+suffix resolved to a command (for which-key popup dismissal) */
   chordResolved?: boolean
+  /** True when a pending chord was cancelled (invalid second key or Escape) — ring bell */
+  chordCancelled?: boolean
 }
 
 /** Check if a blocking modal is active (chords should not activate during these) */
@@ -182,6 +184,9 @@ export function processInkKey(
         const actions = executeCommand(chordResult.commandId, ctx, chordResult.targetId)
         return { commandId: chordResult.commandId, actions, handled: true }
       }
+      case "cancelled":
+        // Invalid chord second key or Escape — consume key, signal bell
+        return { commandId: null, actions: null, handled: true, chordCancelled: true }
       // "passthrough" — continue to normal resolution below
     }
   }

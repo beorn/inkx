@@ -11,6 +11,7 @@ export type ChordResult =
   | { type: "resolved"; commandId: string; targetId?: string }
   | { type: "fallback"; commandId: string; targetId?: string }
   | { type: "passthrough" }
+  | { type: "cancelled" }
   | { type: "replay"; standaloneId: string; standaloneTargetId?: string; replayKey: string }
 
 /** Resolved binding from keybinding resolution */
@@ -87,6 +88,11 @@ export function createChordState(): ChordState {
         const prefix = pendingPrefix
         pendingPrefix = null
 
+        // Escape always cancels a pending chord (silently, no bell)
+        if (key === "Escape") {
+          return { type: "cancelled" }
+        }
+
         // Try to resolve the chord (prefix + second key)
         const resolved = resolver.resolveChord(prefix, key, modifiers, ctx)
         if (resolved) {
@@ -103,8 +109,8 @@ export function createChordState(): ChordState {
             : { type: "replay", standaloneId: standalone.commandId, replayKey: key }
         }
 
-        // No standalone either — just pass through the second key
-        return { type: "passthrough" }
+        // No standalone either — invalid second key, cancel chord + ring bell
+        return { type: "cancelled" }
       }
 
       // No pending prefix — check if this key starts a chord

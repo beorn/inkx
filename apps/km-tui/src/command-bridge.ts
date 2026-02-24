@@ -20,8 +20,10 @@ import { detectTerminalCaps } from "inkx"
 import type { ActionCtx } from "./tui-context.ts"
 import { getModeStack } from "./dialog-guard.ts"
 
-/** Cached Kitty keyboard protocol detection (static — doesn't change at runtime) */
-const kittySupported = detectTerminalCaps().kittyKeyboard
+/** Cached Kitty keyboard protocol detection (static — doesn't change at runtime).
+ * In test environments, Kitty is disabled so bare y/d/p bindings work (tests don't
+ * use real Kitty protocol sequences). */
+const kittySupported = process.env.VITEST ? false : detectTerminalCaps().kittyKeyboard
 
 let commandSystemInitialized = false
 export function ensureCommandSystemInitialized(): void {

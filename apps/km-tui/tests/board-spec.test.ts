@@ -4,7 +4,7 @@
  * Comprehensive board-level tests using testEnv/board.press() for:
  * 1. Visual mode (v to enter, j/k extend, d cut, y copy, Esc cancel)
  * 2. J/K block navigation (drill in/out)
- * 3. Filter dialog (Ctrl+G open, j/k navigate, Space toggle, Esc cancel)
+ * 3. Filter dialog (G open, j/k navigate, Space toggle, Esc cancel)
  * 4. Help overlay (? to open, Esc/q to dismiss)
  * 5. Inline edit lifecycle (i to enter, Esc to cancel, Enter to confirm)
  */
@@ -38,7 +38,7 @@ describe("Visual mode", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Enter visual mode with v + space (chord)
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
     // Current card should be selected
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
@@ -48,7 +48,7 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
 
     // Move down to extend selection
@@ -61,7 +61,7 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
 
     // Extend down twice
     board.press("j")
@@ -78,7 +78,7 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode and extend selection
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     board.press("j")
     expect(store.getState().ui.visualMode).toBe(true)
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
@@ -94,7 +94,7 @@ describe("Visual mode", () => {
     )
 
     // Enter visual mode and extend selection to include task1 + task2
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     board.press("j")
     expect(store.getState().ui.visualMode).toBe(true)
 
@@ -116,7 +116,7 @@ describe("Visual mode", () => {
     expect(childIds(repo, "col1")).toEqual(["task1", "task2", "task3"])
 
     // Enter visual mode and select task1
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
 
     // Copy stages to clipboard
@@ -146,7 +146,7 @@ describe("Visual mode", () => {
     board.expect("#task2[data-cursor]").toExist()
 
     // Enter and exit visual mode
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
     board.press("Escape")
     expect(store.getState().ui.visualMode).toBe(false)
@@ -159,7 +159,7 @@ describe("Visual mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
 
     // Screen should show VISUAL mode indicator in status bar
     const screen = board.screenshot()
@@ -291,7 +291,7 @@ describe("J/K block navigation", () => {
 // =============================================================================
 
 describe("Filter dialog", () => {
-  test("Ctrl+G opens filter panel showing filter categories", () => {
+  test("G opens filter panel showing filter categories", () => {
     const { board } = testEnv(
       () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 120, rows: 24 },
@@ -301,7 +301,7 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).not.toContain("Filter")
 
     // Open filter panel
-    board.press("ctrl+g")
+    board.press("G")
     const screen = board.screenshot()
     expect(screen).toContain("Filter")
     expect(screen).toContain("Status")
@@ -311,7 +311,7 @@ describe("Filter dialog", () => {
   test("j/k navigates between filter rows", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("ctrl+g")
+    board.press("G")
 
     // Initially on Status row
     expect(board.screenshot()).toContain("> Status")
@@ -338,7 +338,7 @@ describe("Filter dialog", () => {
       rows: 24,
     })
 
-    board.press("ctrl+g")
+    board.press("G")
 
     // Toggle todo on
     board.press(" ")
@@ -352,7 +352,7 @@ describe("Filter dialog", () => {
   test("h/l navigates between values within a filter row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("ctrl+g")
+    board.press("G")
 
     // Move right to wip
     board.press("l")
@@ -370,7 +370,7 @@ describe("Filter dialog", () => {
   test("X clears all active filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("ctrl+g")
+    board.press("G")
 
     // Toggle a couple filters on
     board.press(" ") // todo on
@@ -393,7 +393,7 @@ describe("Filter dialog", () => {
     })
 
     // Open filter and toggle todo
-    board.press("ctrl+g")
+    board.press("G")
     board.press(" ") // toggle todo on
     expect(board.screenshot()).toContain("[x]todo")
 
@@ -407,22 +407,22 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).toContain("[F]")
   })
 
-  test("Ctrl+G toggles filter panel (open then close)", () => {
+  test("G toggles filter panel (open then close)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open
-    board.press("ctrl+g")
+    board.press("G")
     expect(board.screenshot()).toContain("Filter")
 
-    // Close with Ctrl+G again
-    board.press("ctrl+g")
+    // Close with G again
+    board.press("G")
     expect(board.screenshot()).not.toContain("> Status")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("ctrl+g")
+    board.press("G")
 
     // Enter toggles the current value
     board.press("Enter")
@@ -639,7 +639,7 @@ describe("Visual mode + clipboard integration", () => {
     )
 
     // Enter visual mode on A, extend to B
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     board.press("j")
 
     // Copy
@@ -663,7 +663,7 @@ describe("Visual mode + clipboard integration", () => {
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C", "D"])
 
     // Enter visual mode on A, extend to B
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     board.press("j")
 
     // Cut stages A and B to clipboard
@@ -703,7 +703,7 @@ describe("Escape priority layering", () => {
     expect(store.getState().ui.showDetailPane).toBe(true)
 
     // Enter visual mode via v+space chord
-    board.press("v").press(" ")
+    board.press("v").press("v").press(" ")
     expect(store.getState().ui.visualMode).toBe(true)
 
     // First Escape: exits visual mode (detail pane stays)
@@ -833,7 +833,7 @@ describe("Filter + navigation interaction", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Open filter
-    board.press("ctrl+g")
+    board.press("G")
 
     // j/k/h/l should control filter, not board
     board.press("j") // moves filter cursor, not board cursor
@@ -850,7 +850,7 @@ describe("Filter + navigation interaction", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open filter and toggle a value
-    board.press("ctrl+g")
+    board.press("G")
     board.press(" ") // toggle todo on
     expect(board.screenshot()).toContain("[x]todo")
 
@@ -858,7 +858,7 @@ describe("Filter + navigation interaction", () => {
     board.press("Escape")
 
     // Reopen and verify state persisted
-    board.press("ctrl+g")
+    board.press("G")
     expect(board.screenshot()).toContain("[x]todo")
 
     board.press("Escape")

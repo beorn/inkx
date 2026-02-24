@@ -378,6 +378,14 @@ function routeThroughCommandSystem(
     ctx.setUI({ pendingChord: null })
   }
 
+  // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
+  if (result.chordCancelled) {
+    parentSpan.spanData.outcome = "chord-cancelled"
+    ctx.setUI({ pendingChord: null, bellState: "chord-cancelled" })
+    process.stdout.write("\x07")
+    return
+  }
+
   if (!result.handled) {
     parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
     // Visual bell for unhandled keys (only outside dialogs)
@@ -399,6 +407,7 @@ function routeThroughCommandSystem(
       const isDialogOrTextCommand =
         result.commandId.startsWith("dialog.") ||
         result.commandId.startsWith("text.") ||
+        result.commandId === "filter" ||
         result.commandId.startsWith("filter.")
       if (!isDialogOrTextCommand) {
         parentSpan.spanData.outcome = "dialog-filtered"

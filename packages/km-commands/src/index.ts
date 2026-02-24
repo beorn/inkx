@@ -159,7 +159,7 @@ export {
 } from "./when.ts"
 
 // Locations (composable command targets)
-export { BOARD_LOCATIONS, ADD_TARGETS, locationLabel } from "./locations.ts"
+export { REPO_LOCS, locationLabel } from "./locations.ts"
 
 // Help data (auto-generated from registry)
 export type { HelpItem, HelpSection, VerbGridRow } from "./help-data.ts"

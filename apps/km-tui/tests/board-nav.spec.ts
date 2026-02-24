@@ -116,12 +116,12 @@ describe("Cursoring", () => {
       board.press("j")
       board.expect("#1b[data-cursor]").toExist()
 
-      // G to last
-      board.press("G")
+      // g G to last
+      board.press("g").press("G")
       board.expect("#1c[data-cursor]").toExist()
 
-      // G at last does nothing
-      board.press("G")
+      // g G at last does nothing
+      board.press("g").press("G")
       board.expect("#1c[data-cursor]").toExist()
 
       // g to first
@@ -176,7 +176,7 @@ describe("Cursoring", () => {
         board.expect("#2a[data-cursor]").toExist()
 
         // Jump to last card in column
-        board.press("G")
+        board.press("g").press("G")
         board.expect("#2c[data-cursor]").toExist()
 
         // Jump back to first - should stay in col2
@@ -253,7 +253,7 @@ describe("Cursoring", () => {
           ),
         )
         // Move to last card in col1
-        board.press("G")
+        board.press("g").press("G")
         board.expect("#1d[data-cursor]").toExist()
 
         // Move right to col2 (shorter column) - should clamp to last card
@@ -329,12 +329,12 @@ describe("Cursoring", () => {
       board.press("j") // 1a → 1b
       board.expect("#1b[data-cursor]").toExist()
 
-      // G to last in column
-      board.press("G")
+      // g G to last in column
+      board.press("g").press("G")
       board.expect("#1c[data-cursor]").toExist()
 
-      // G at last does nothing
-      board.press("G")
+      // g G at last does nothing
+      board.press("g").press("G")
       board.expect("#1c[data-cursor]").toExist()
 
       // g to first in column
@@ -540,7 +540,7 @@ describe("Boundaries and Edge Cases", () => {
       board.expect("#only[data-cursor]").toExist()
       board.press("g").press("g")
       board.expect("#only[data-cursor]").toExist()
-      board.press("G")
+      board.press("g").press("G")
       board.expect("#only[data-cursor]").toExist()
     })
   })
@@ -627,30 +627,19 @@ describe("Boundaries and Edge Cases", () => {
     board.expect("#3a[data-cursor]").toExist()
   })
 
-  test.each([
-    {
-      key: "g",
-      setup: [],
-      finalId: "#1a",
-      desc: "g does nothing at first card",
-    },
-    {
-      key: "G",
-      setup: ["G"],
-      finalId: "#1c",
-      desc: "G does nothing at last card",
-    },
-  ])("$desc", ({ key, setup, finalId }) => {
+  test("g does nothing at first card", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
-    // Setup: navigate to the boundary position
-    for (const k of setup) board.press(k)
-    board.expect(`${finalId}[data-cursor]`).toExist()
+    board.expect("#1a[data-cursor]").toExist()
+    board.press("g")
+    board.expect("#1a[data-cursor]").toExist()
+  })
 
-    // Repeatedly try the key - should stay put
-    board.press(key)
-    board.expect(`${finalId}[data-cursor]`).toExist()
-    board.press(key)
-    board.expect(`${finalId}[data-cursor]`).toExist()
+  test("g G does nothing at last card", () => {
+    const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
+    board.press("g").press("G")
+    board.expect("#1c[data-cursor]").toExist()
+    board.press("g").press("G")
+    board.expect("#1c[data-cursor]").toExist()
   })
 
   // Keys that should do nothing in specific contexts

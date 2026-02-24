@@ -273,8 +273,31 @@ interface MoveToBoardAction {
   boardId: string // Move selected node(s) to this board
 }
 
+interface MoveToFavoriteAction {
+  type: "MOVE_TO_FAVORITE"
+  favoriteNumber: number // 0-9
+}
+
+interface ShiftToTopAction {
+  type: "SHIFT_TO_TOP" // Move node to first position in list
+}
+
+interface ShiftToBottomAction {
+  type: "SHIFT_TO_BOTTOM" // Move node to last position in list
+}
+
 interface AddLinkAction {
   type: "ADD_LINK" // Open link/reference picker
+}
+
+interface AddLinkToBoardAction {
+  type: "ADD_LINK_TO_BOARD"
+  boardId: string // Add link/reference to this board
+}
+
+interface AddLinkToFavoriteAction {
+  type: "ADD_LINK_TO_FAVORITE"
+  favoriteNumber: number // 0-9
 }
 
 interface ReparentPickerAction {
@@ -815,7 +838,12 @@ export type TUIAction =
   | GotoBoardAction
   | MoveToBoardAction
   | AddLinkAction
+  | AddLinkToBoardAction
+  | AddLinkToFavoriteAction
   | ReparentPickerAction
+  | MoveToFavoriteAction
+  | ShiftToTopAction
+  | ShiftToBottomAction
   | ArchiveNodeAction
   | CaptureAction
   | CaptureInboxAction
