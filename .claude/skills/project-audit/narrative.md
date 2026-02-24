@@ -80,7 +80,7 @@ A user should know "Can I use this?" before they run `npm install`.
 ```
 ### Layout & Rendering
 - `useContentRect()` — components query their own dimensions (solves Ink's oldest issue)
-- Five-phase pipeline — only changed nodes re-render (122x faster interactive updates)
+- Five-phase pipeline — only changed nodes re-render (200x+ faster interactive updates)
 - Flexx layout engine — pure TS, 7KB, zero native deps
 
 ### Production Stability

@@ -19,7 +19,7 @@ description: Detailed audit checklist by category
 - [ ] **Wrong code examples**: Code samples that don't match current API signatures
 - [ ] **Broken internal links**: `](path/to/file.md)` where the target doesn't exist or was moved
 - [ ] **Performance numbers without provenance**: Benchmark claims without date, environment, methodology, or pointer to reproducible script
-- [ ] **Disagreeing numbers**: Same metric with different values in different docs (e.g., "122x faster" in one doc, "100x faster" in another)
+- [ ] **Disagreeing numbers**: Same metric with different values in different docs (e.g., "200x faster" in one doc, "100x faster" in another)
 - [ ] **Historical docs not marked**: Design RFCs, original proposals that describe planned rather than implemented behavior
 
 ## Naming Consistency

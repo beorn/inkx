@@ -35,86 +35,135 @@ X and Y contradict because Z.]
 
 Show this to the user. This is the "rubber duck" moment — sometimes the answer emerges here.
 
-### Phase 2: Gather Context
+### Phase 2: Gather Context — Be Generous
 
-Deep research is only as good as the context you provide. **Full files, not snippets.**
+Deep research is only as good as the context you provide. **Full files, not snippets. More is better.**
+
+The researcher has no IDE, no codebase access, no ability to browse around. Everything they
+need to reason about must be in the context file. Include **all the background code** they'd
+need to understand the system, not just the code you think is broken.
 
 | Context | How | Priority |
 |---------|-----|----------|
+| Full source files (current) | Append entire files to context | **Required** |
+| Full source files (original, before changes) | `git show <commit>:<path>` | **Required** |
 | Git diff of changes | `git diff <base-commit> HEAD -- <files>` | Required |
-| Current code (full files) | `cat` in the heredoc | Required |
-| Original code (before changes) | `git show <commit>:<path>` | Required |
 | Failing test code | Full test functions, not names | Required |
 | Exact error output | Copy-paste from test runner | Required |
-| Related code (callers/callees) | Relevant sections of other files | Recommended |
+| Type definitions / interfaces | Full type files the code depends on | Required |
+| Related code (callers/callees) | Full files or large sections | Required |
 | Passing tests your changes fix | Shows what WORKS, constrains solutions | Recommended |
-| Session history | `bun recall "<topic>"` | If available |
+| Architecture docs / CLAUDE.md | System overview the researcher can reference | Recommended |
+| Session history | `bun recall "<topic>"` — summarize findings | If available |
 
-**Context budget**: ~15-20KB of code is ideal. If files are huge, include full current code + diff instead of both full versions.
+**Context budget**: 20-50KB is the sweet spot. Deep research handles large contexts well.
+Don't trim code to save space — trim prose instead. The researcher needs to see how
+functions interact, not read your summary of how they interact.
 
-### Phase 3: Structure the Request
+**What to include beyond the "broken" code**:
+- **Type definitions**: If the code uses `InkxNode`, include the full `types.ts`
+- **The pipeline**: If you're fixing phase 3 of a 5-phase pipeline, include all 5 phases
+- **Callers and callees**: The function that calls the broken function, and what the broken function calls
+- **Test infrastructure**: Test helpers, setup functions, custom matchers
+- **Configuration**: Build config, test config if relevant to the failure
 
-Frame the question to **avoid anchoring** — let the researcher form their own model before evaluating yours.
+### Phase 3: Structure the Request — Lead with Symptoms, Not Diagnosis
+
+Frame the question to **avoid anchoring** — let the researcher form their own mental model
+of the system before seeing your theory. Present symptoms and system description first,
+diagnosis and failed attempts last.
 
 ```
-# [Domain]: Seeking Fresh Architectural Perspective
+# [Domain]: [Descriptive title — what the system does, not what's broken]
 
-## Goal
-[What the system should do — functional description]
+## The System
+[How this system works. Architecture, data flow, key invariants, terminology.
+Write enough that someone unfamiliar can understand all the code you're about
+to show them. 15-30 lines. Include diagrams if they help.]
 
-## How It Works
-[Key mechanisms, invariants, terminology. Enough that someone unfamiliar
-can understand the code. 10-20 lines max.]
+## What Should Happen
+[The correct behavior — functional specification. Be precise about ordering,
+timing, state transitions. "When X happens, Y should be true" not "Y should work."]
 
-## What Goes Wrong
-[Specific symptoms: test X fails with error Y at position Z.
-Test A passes but test B breaks. Exact error messages.]
+## What Actually Happens
+[Specific symptoms. Exact error messages, test output, cell coordinates, pixel
+positions. Don't paraphrase — copy-paste. Include:
+- Which tests fail and which pass
+- Exact error messages with line numbers
+- What the output looks like vs what it should look like
+- When it started failing (which change introduced it)]
 
-## The Core Tension
-[The fundamental contradiction between requirements. This is the most
-important section — if you can articulate this clearly, you're halfway
-to the answer.]
+## Approaches Tried (and Why They Failed)
+[For each attempt: what you changed, what happened, why it didn't work.
+Be honest about what you DON'T understand. These constrain the solution
+space — the researcher won't re-suggest things you've already tried.]
 
-## Approaches Tried
-[For each: what, result, why it failed. Be honest about what you
-DON'T understand.]
-
-## The Code
-### [file] (current — N lines)
-[full file]
-
-### [file] ORIGINAL (before changes — N lines)
-[full file OR git diff if files are large]
-
-### Test: [test name] ([file]:line)
-[full test code]
-
-### [other relevant files]
+1. [Approach]: [change made] → [result] → [why it failed or what new thing broke]
+2. ...
 
 ## Questions
-[Ask OPEN questions, not leading ones]
-1. Is there a simpler model that resolves the tension?
-2. What am I missing about [the interaction between X and Y]?
-3. Would a different abstraction make the conflicting requirements compatible?
-4. [Specific technical questions]
+[Ask OPEN, DISCOVERY questions — not confirmation questions]
+- What mechanism could cause [symptom]? (discovery)
+- What invariant am I violating? (discovery)
+- Is there a simpler model that handles both [requirement A] and [requirement B]? (design)
+- What am I missing about [the interaction between X and Y]? (gap-finding)
+
+[DON'T ask: "Is my approach correct?" "Should I use X or Y?" "Is this the right fix?"
+These anchor the researcher on your model instead of letting them reason independently.]
+
+## Source Code
+[Full files. Label each clearly with path and line count.
+Order: types/interfaces first, then core logic, then tests, then callers.]
+
+### types.ts (142 lines)
+[full file]
+
+### core-module.ts (380 lines)
+[full file]
+
+### core-module.ts ORIGINAL (before changes)
+[full file OR git diff if >500 lines changed]
+
+### caller.ts (relevant section, lines 200-350)
+[section with enough surrounding context]
+
+### test.test.ts — "test name that fails" (full test)
+[full test code]
+
+### test.test.ts — "test name that passes" (constraining)
+[full test code — shows what WORKS]
 ```
 
 **Framing tips**:
-- Lead with "what should the system do" not "how should I fix my code"
-- State the tension clearly — "A needs X, B needs Y, X contradicts Y"
-- Ask "what am I missing" not "is my approach right" (avoids confirmation bias)
-- Include what WORKS (passing tests) to constrain the solution space
+- Lead with "how the system works" not "how my code is broken"
+- Describe what SHOULD happen before what DOES happen
+- Include passing tests — they constrain solutions and prevent suggestions that would break working code
+- State failed approaches LAST — let the researcher think independently first
+- Ask "what mechanism could cause X" not "is my fix for X correct"
 
 ### Phase 4: Execute
 
 Build a context file, then launch in background:
 
 ```bash
-# Build context file (avoids shell quoting issues with code)
+# Build context file — preamble first, then append source files
 cat > /tmp/fresh-context.md << 'ENDOFFILE'
-[structured context from Phase 3]
+[structured context from Phase 3 — system description, symptoms, questions]
+
+## Source Code
 ENDOFFILE
-cat src/relevant-file.ts >> /tmp/fresh-context.md
+
+# Append full source files (use cat, not excerpts)
+echo '### types.ts' >> /tmp/fresh-context.md
+cat vendor/beorn-inkx/src/types.ts >> /tmp/fresh-context.md
+
+echo '### content-phase.ts' >> /tmp/fresh-context.md
+cat vendor/beorn-inkx/src/pipeline/content-phase.ts >> /tmp/fresh-context.md
+
+echo '### layout-phase.ts' >> /tmp/fresh-context.md
+cat vendor/beorn-inkx/src/pipeline/layout-phase.ts >> /tmp/fresh-context.md
+
+# ... etc — include ALL relevant files
 ```
 
 ```
@@ -144,9 +193,13 @@ If a bead is active, update its notes with the findings.
 | Don't | Why |
 |-------|-----|
 | Skip Phase 1 | The self-assessment often reveals the answer |
-| Send code snippets | Full files needed to reason about interactions |
-| Paraphrase errors | Exact messages matter for diagnosis |
+| Send code snippets instead of full files | Researcher can't see how functions interact |
+| Trim "irrelevant" code aggressively | What YOU think is irrelevant may be the key |
+| Paraphrase error messages | Exact messages matter for diagnosis |
+| Omit type definitions | Researcher needs types to understand the code |
 | Omit failed approaches | They constrain the solution space |
-| Ask leading questions | "Is my X correct?" anchors the researcher on your model |
+| Ask confirmation questions | "Is my X correct?" anchors on your model |
+| Describe code instead of including it | "It uses a pipeline" vs showing the pipeline code |
+| Lead with your diagnosis | Anchors the researcher — lead with symptoms |
 | Rush to implement | Present advice first, get user buy-in |
 | Forget `--no-recover` | Stale recovered responses waste $2-5 |

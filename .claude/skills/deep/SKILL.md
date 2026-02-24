@@ -86,36 +86,94 @@ Task(subagent_type="general-purpose", prompt="run deep research on X")
 
 **First**: Use `/recall` to search session history for prior work on the topic: `bun recall "topic"`. Read the results, extract relevant insights, and summarize them into `--context` — don't pass raw recall output.
 
-Deep research is powerful for specific code bugs when given **complete source code**. Don't be stingy — include entire files, not snippets.
+Deep research is powerful for specific code bugs when given **complete source code and background**. The researcher has no codebase access — everything they need must be in the context.
 
 ### What to Include
 
-1. **Full source files** - Not snippets. Include the entire file(s) involved.
-2. **Problem description** - Specific symptoms, error messages, reproduction steps
-3. **Project context** - Brief overview (TypeScript/Bun/Ink/SQLite TUI)
-4. **Specific questions** - What you want feedback on
+**Be generous with context. More is better. 20-50KB is the sweet spot.**
+
+1. **Full source files** — Not snippets. Include entire files involved in the problem.
+2. **Type definitions and interfaces** — The types that the code depends on. If a function takes an `InkxNode`, include the full `InkxNode` type definition.
+3. **The call chain** — Callers of the broken code AND callees. How does data flow through the system?
+4. **Related modules** — If you're fixing phase 3 of a 5-phase pipeline, include all phases. The researcher needs to see how the phases interact.
+5. **Test code** — Full test functions (passing AND failing). Passing tests constrain the solution space.
+6. **Exact error output** — Copy-paste, never paraphrase. Include line numbers, coordinates, values.
+7. **System description** — Architecture, invariants, data flow. Enough for someone unfamiliar to understand the code. 15-30 lines of prose.
+8. **Failed approaches** — What you already tried and why it didn't work. Put these LAST (after the code) to avoid anchoring.
+
+### What NOT to Include
+
+- Your diagnosis or theory (put it last if at all — leads to confirmation bias)
+- Summaries of code instead of the actual code ("it uses a pipeline" vs showing the pipeline)
+- Trimmed snippets with "..." — the trimmed part is often where the bug is
+
+### Asking Good Questions
+
+**Ask discovery questions, not confirmation questions:**
+
+| Good (discovery) | Bad (confirmation) |
+|-------------------|--------------------|
+| What mechanism could cause spaces in border chars? | Is my prevLayout sync correct? |
+| What invariant am I violating? | Should I use a flag or a function? |
+| What am I missing about how X and Y interact? | Is this the right approach? |
+| Is there a simpler model that resolves both constraints? | Do you agree with my fix? |
+
+Discovery questions let the researcher reason from first principles. Confirmation questions
+anchor them on your mental model — which is the one that got you stuck.
+
+**Lead with symptoms, not diagnosis:**
+- "Border chars render as spaces after resize" (symptom) not "prevLayout isn't syncing" (diagnosis)
+- "Test A passes but test B fails after the same change" (symptom) not "the skip condition is wrong" (diagnosis)
 
 ### Context Size Guidelines
 
 | Type | Guideline |
 |------|-----------|
-| Bug investigation | Include **full files** involved (2000+ lines OK) |
-| Architecture question | Include full files + docs excerpts |
+| Bug investigation | Include **full files** involved (2000+ lines OK) + types + callers |
+| Architecture question | Include full files + docs excerpts + related systems |
 | API design | Include existing similar APIs for comparison |
-| Refactoring | Include full before-state code |
+| Refactoring | Include full before-state code + all consumers |
+| Performance | Include full pipeline + benchmarks + profiling data |
 
-**Key insight**: Deep research handles large contexts. The more specific code you provide, the more actionable the response. Vague context = generic advice. Full source = precise fixes.
+**Key insight**: Deep research handles large contexts. The more complete the code, the more actionable the response. Vague context = generic advice. Full source = precise fixes. A 40KB context file with 5 full source files will get a far better answer than a 5KB file with cherry-picked snippets.
 
 ### Workflow
 
-1. **Gather files** — Read ALL relevant files completely (not excerpts). For bugs, typically 2-5 files.
-2. **Build context** — Write a context file with problem description + full source code.
+1. **Gather files** — Read ALL relevant files completely (not excerpts). For bugs, typically 3-8 files.
+2. **Build context** — Write a context file with system description + full source code + questions.
 3. **Execute** with `--context-file`:
 
 ```bash
-# Write context to a temp file (preamble + source files)
-# Then pass it with --context-file (PREFERRED for code — avoids shell quoting issues)
-bun llm --deep -y --context-file /tmp/deep-context.md "Review this rendering bug"
+# Build context file — preamble first, then append source files
+cat > /tmp/deep-context.md << 'ENDOFFILE'
+# System Description
+[Architecture, data flow, key invariants — 15-30 lines]
+
+## What Should Happen
+[Correct behavior — precise, not vague]
+
+## What Actually Happens
+[Exact symptoms, error messages, test output — copy-paste]
+
+## Questions
+[Open, discovery questions]
+
+## Source Code
+ENDOFFILE
+
+# Append full source files with clear labels
+echo -e '\n### src/types.ts (142 lines)\n```typescript' >> /tmp/deep-context.md
+cat src/types.ts >> /tmp/deep-context.md
+echo '```' >> /tmp/deep-context.md
+
+echo -e '\n### src/core.ts (380 lines)\n```typescript' >> /tmp/deep-context.md
+cat src/core.ts >> /tmp/deep-context.md
+echo '```' >> /tmp/deep-context.md
+
+# ... append ALL relevant files
+
+# Then launch (ALWAYS background)
+bun llm --deep -y --no-recover --context-file /tmp/deep-context.md "Review this rendering bug"
 ```
 
 **IMPORTANT**: Always use `--context-file` when context includes source code. The heredoc
@@ -123,13 +181,5 @@ approach (`--context "$(cat << 'EOF' ... EOF)"`) breaks when code contains backt
 `$(...)`, or unmatched quotes — the outer `$(...)` command substitution parses the content
 looking for its closing `)` and shell metacharacters in the code confuse the parser.
 
-**Building the context file**: Use Bash `cat >` with a heredoc for the preamble, then
-append source files:
-
-```bash
-cat > /tmp/deep-context.md << 'ENDOFFILE'
-# Problem description here
-## Source Code
-ENDOFFILE
-cat src/module.ts >> /tmp/deep-context.md
-```
+**IMPORTANT**: Always use `--no-recover` when you want fresh research, to avoid retrieving
+stale results from a prior unrelated call.
