@@ -710,7 +710,10 @@ function DetailSubitems({
         const isCursored = idx === cursorIndex
         const cursorBg = isCursored ? "#333333" : undefined
         // Collapsed sections render muted with just the title + count
-        const isSectionCollapsed = item.rules?.collapse === true
+        // Comments and Attachments expand by default in detail pane (collapse only affects board view)
+        const sectionName = getNodeDisplayName(repo, displayItem)
+        const expandInDetail = /^(Comments|Attachments)$/i.test(sectionName)
+        const isSectionCollapsed = item.rules?.collapse === true && !expandInDetail
         if (isSectionCollapsed) {
           const kidCount = repo.getChildren(item.id).length
           return (
