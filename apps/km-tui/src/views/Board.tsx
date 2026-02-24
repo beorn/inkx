@@ -76,7 +76,6 @@ import { CommandBox } from "./CommandBox.tsx"
 import { CommandFeedback } from "./WhichKeyPopup.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
-import { FindBar } from "./FindBar.tsx"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
 import {
   createFileDropHandler,
@@ -394,11 +393,10 @@ export function BoardCore({
   const boardWidth = termWidth - detailPaneWidth
 
   // Calculate content area height - space between top and bottom bars
-  // BOTTOM_BAR_HEIGHT = 1 (CommandBox). FindBar adds 1 row when active.
+  // BOTTOM_BAR_HEIGHT = 1 (CommandBox, find is inline). SyncPane adds rows when visible.
   const SYNC_PANE_HEIGHT = 6
-  const findBarHeight = ui.localSearch ? 1 : 0
   const contentHeight =
-    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - findBarHeight - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -413,25 +411,42 @@ export function BoardCore({
     // The resetKey mechanism auto-recovers, and DEBUG_LOG captures errors via React's own logging.
   }, [])
 
-  // Local find: query change callback — delegates to shared matching logic
+  // Local find: debounced query change — match computation is expensive on large boards.
+  // EditContext handles cursor display immediately; this only delays search highlighting.
+  const findTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const columnsRef = useRef(columns)
+  columnsRef.current = columns
   const handleFindQueryChange = useCallback(
     (query: string) => {
-      const matchNodeIds = findMatchingNodeIds(columns, query)
-      // Navigate cursor to first match
-      if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
-        dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
-      }
+      // Update query text immediately (so match indicator stays in sync)
       setUI({
         localSearch: {
           query,
           isInputActive: true,
           matchIndex: 0,
-          matchCount: matchNodeIds.length,
-          matchNodeIds,
+          matchCount: 0,
+          matchNodeIds: [],
         },
       })
+      // Debounce the expensive match computation
+      clearTimeout(findTimerRef.current)
+      findTimerRef.current = setTimeout(() => {
+        const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
+        if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
+          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+        }
+        setUI({
+          localSearch: {
+            query,
+            isInputActive: true,
+            matchIndex: 0,
+            matchCount: matchNodeIds.length,
+            matchNodeIds,
+          },
+        })
+      }, 150)
     },
-    [columns, setUI, dispatchBoard],
+    [setUI, dispatchBoard],
   )
 
   // Search & replace: search query change callback — delegates to shared matching logic
@@ -741,14 +756,9 @@ export function BoardCore({
             termWidth={termWidth}
           />
         )}
-        {/* Find bar (inline search — only when active) */}
-        {ui.localSearch && (
-          <FindBar localSearch={ui.localSearch} width={termWidth} onQueryChange={handleFindQueryChange} />
-        )}
-        {/* Command box — mode pill + status + counters */}
+        {/* Command box — mode pill + inline find + status + counters */}
         <CommandBox
           ui={ui}
-          columns={columns}
           termWidth={termWidth}
           storageMode={repo.mode}
           rootPath={rootPath}
@@ -756,6 +766,8 @@ export function BoardCore({
           moveMode={moveMode}
           consoleStats={consoleStats}
           toastQueue={toastQueue}
+          localSearch={ui.localSearch}
+          onQueryChange={handleFindQueryChange}
         />
         {/* Bell indicator - hidden element for test detection */}
         {ui.bellState && <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>}

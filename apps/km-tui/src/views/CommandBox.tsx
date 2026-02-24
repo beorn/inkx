@@ -13,12 +13,11 @@
 /* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
 
 import React, { useState, useEffect } from "react"
-import { Box, Text, useFocusManager, useInterval } from "inkx"
+import { Box, Text, useFocusManager, useEditContext, useInterval } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
-import { type UIState, getEditMode } from "../ui-reducer.ts"
-import type { ColumnView } from "../types.ts"
-import { useCursorNodePosition } from "../cursor-context.tsx"
+import { getEditMode } from "../ui-reducer.ts"
+import type { UIState, LocalSearchState } from "../ui-reducer.ts"
 
 // Spinner frames (braille unicode dots animation)
 const SPINNER_FRAMES = [
@@ -89,7 +88,6 @@ const MODE_COLORS: Record<string, string> = {
 
 export interface CommandBoxProps {
   ui: UIState
-  columns: ColumnView[]
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"
@@ -103,6 +101,10 @@ export interface CommandBoxProps {
   consoleStats?: { total: number; errors: number; warnings: number }
   /** Toast queue instance (for log toast notifications) */
   toastQueue?: ToastQueue
+  /** Local search state (find bar inline) */
+  localSearch?: LocalSearchState | null
+  /** Callback when find query changes */
+  onQueryChange?: (query: string) => void
 }
 
 /**
@@ -120,7 +122,6 @@ function shortenPath(path: string | null): string {
 
 export function CommandBox({
   ui,
-  columns,
   termWidth,
   storageMode,
   rootPath,
@@ -128,13 +129,9 @@ export function CommandBox({
   moveMode,
   consoleStats,
   toastQueue,
+  localSearch,
+  onQueryChange,
 }: CommandBoxProps): React.ReactElement {
-  const cursorPos = useCursorNodePosition()
-  const colIndex = columns.findIndex((c) => c.node.id === cursorPos.cursorColumnNodeId)
-  const layout = {
-    colIndex: colIndex >= 0 ? colIndex : 0,
-  }
-
   // Determine if we need spinner animation
   const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
   const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
@@ -236,43 +233,69 @@ export function CommandBox({
       data-status={ui.status?.level}
       backgroundColor={ui.bellState ? "red" : isCommandInput ? "#1a3a5c" : undefined}
     >
-      {/* Left side: mode pill + prompt + status */}
+      {/* Left side: mode pill + prompt + find/status */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
         {/* Mode indicator */}
         <Text color={modeColor} bold id="mode-label">
           {modeLabel}
         </Text>
         <Text dimColor> {">"} </Text>
-        {/* Chord prefix */}
-        {chordSuffix && (
-          <Text dimColor id="chord-prefix">
-            {chordSuffix}{" "}
-          </Text>
-        )}
-        {/* Loading spinner */}
-        {isLoading && !chordSuffix && (
-          <Text dimColor>
-            {spinnerFrame}
-            {elapsed > 1 ? ` ${elapsed}s ` : " "}
-          </Text>
-        )}
-        {/* Pane indicator (only when in detail pane) */}
-        {paneLabel && (
-          <Text dimColor id="pane-label">
-            {paneLabel}{" "}
-          </Text>
-        )}
-        {/* Multi-selection count */}
-        {multiSuffix && (
-          <Text color="cyan" id="multi-count">
-            {multiSuffix}{" "}
-          </Text>
-        )}
-        {/* Status message */}
-        {statusMessage && (
-          <Text dimColor={!statusColor} color={statusColor} id="status-message">
-            {statusMessage}
-          </Text>
+        {localSearch ? (
+          /* Inline find: /query (N of M) */
+          <>
+            <Text>{" / "}</Text>
+            <Box flexGrow={1} flexShrink={1} overflow="hidden">
+              {localSearch.isInputActive && onQueryChange ? (
+                <FindInput query={localSearch.query} onQueryChange={onQueryChange} />
+              ) : (
+                <Text>{localSearch.query}</Text>
+              )}
+            </Box>
+            <Box flexShrink={0}>
+              <Text color={localSearch.matchCount === 0 && localSearch.query.length > 0 ? "red" : "yellow"}>
+                {localSearch.query.length > 0
+                  ? localSearch.matchCount === 0
+                    ? " No matches"
+                    : ` (${localSearch.matchIndex + 1} of ${localSearch.matchCount})`
+                  : ""}
+              </Text>
+            </Box>
+          </>
+        ) : (
+          /* Normal mode: chord/spinner/status */
+          <>
+            {/* Chord prefix */}
+            {chordSuffix && (
+              <Text dimColor id="chord-prefix">
+                {chordSuffix}{" "}
+              </Text>
+            )}
+            {/* Loading spinner */}
+            {isLoading && !chordSuffix && (
+              <Text dimColor>
+                {spinnerFrame}
+                {elapsed > 1 ? ` ${elapsed}s ` : " "}
+              </Text>
+            )}
+            {/* Pane indicator (only when in detail pane) */}
+            {paneLabel && (
+              <Text dimColor id="pane-label">
+                {paneLabel}{" "}
+              </Text>
+            )}
+            {/* Multi-selection count */}
+            {multiSuffix && (
+              <Text color="cyan" id="multi-count">
+                {multiSuffix}{" "}
+              </Text>
+            )}
+            {/* Status message */}
+            {statusMessage && (
+              <Text dimColor={!statusColor} color={statusColor} id="status-message">
+                {statusMessage}
+              </Text>
+            )}
+          </>
         )}
       </Box>
       {/* Right side: storage path + counters */}
@@ -302,6 +325,34 @@ export function CommandBox({
         )}
       </Box>
     </Box>
+  )
+}
+
+/** Inline text input for the find query (uses EditContext for cursor/key routing) */
+function FindInput({
+  query,
+  onQueryChange,
+}: {
+  query: string
+  onQueryChange: (query: string) => void
+}): React.ReactElement {
+  const { beforeCursor, afterCursor } = useEditContext({
+    initialValue: query,
+    onConfirm: () => {},
+    onCancel: () => {},
+    onSave: (value: string) => onQueryChange(value),
+    onChange: (value: string) => onQueryChange(value),
+  })
+
+  const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
+  const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
+
+  return (
+    <Text>
+      {beforeCursor}
+      <Text inverse>{cursorChar}</Text>
+      {restAfterCursor}
+    </Text>
   )
 }
 

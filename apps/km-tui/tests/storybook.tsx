@@ -1646,7 +1646,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <CommandBox
         ui={mockUIState}
         rootPath="/tmp/test"
-        columns={[]}
+
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1658,7 +1658,7 @@ function ToastAndStatusSection(): React.ReactElement {
       <CommandBox
         ui={uiStateWithStatus}
         rootPath="/tmp/test"
-        columns={[]}
+
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1684,7 +1684,7 @@ function ToastAndStatusSection(): React.ReactElement {
           <CommandBox
             ui={uiStateWithStatus}
             rootPath="/tmp/test"
-            columns={[]}
+    
             termWidth={demoTermWidth}
             storageMode="disk"
             nodeCount={42}

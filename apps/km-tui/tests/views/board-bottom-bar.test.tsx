@@ -10,7 +10,6 @@ import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext } from "inkx"
 import { CommandBox } from "../../src/views/CommandBox.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
-import type { ColumnView } from "../../src/types.ts"
 
 const baseRender = createRenderer()
 
@@ -87,53 +86,13 @@ describe("CommandBox", () => {
   }
 
   const mockRootPath = "/tmp/test-repo"
-  const mockColumns: ColumnView[] = [
-    {
-      node: {
-        id: "section-1",
-        type: "h",
-        item: true,
-        fstype: "mdsection",
-        parent_id: "root-123",
-        parent_idx: 0,
-        embed_source: null,
-        title: "Todo",
-        content: "",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      cardNodes: [],
-      virtualCardIds: new Set(),
-    },
-    {
-      node: {
-        id: "section-2",
-        type: "h",
-        item: true,
-        fstype: "mdsection",
-        parent_id: "root-123",
-        parent_idx: 1,
-        embed_source: null,
-        title: "Done",
-        content: "",
-        data: {},
-        created_at: Date.now(),
-        updated_at: Date.now(),
-        version: "v1",
-      },
-      cardNodes: [],
-      virtualCardIds: new Set(),
-    },
-  ]
 
   it("shows NORMAL mode pill by default", () => {
     const app = render(
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -149,7 +108,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={123}
@@ -165,7 +124,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -182,7 +141,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -198,7 +157,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -236,7 +195,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithWatcher}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -252,7 +211,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="memory"
         nodeCount={42}
@@ -268,7 +227,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -284,7 +243,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -304,7 +263,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithStatus}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -325,7 +284,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithEdit}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -346,7 +305,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithVisual}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -362,7 +321,7 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-        columns={mockColumns}
+
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -383,7 +342,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -400,7 +359,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -411,7 +370,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={43}
@@ -427,7 +386,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -439,7 +398,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -465,7 +424,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={uiWithWatcher}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -484,7 +443,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={uiWithMoreFiles}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -501,7 +460,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -512,7 +471,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -528,7 +487,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -546,7 +505,7 @@ describe("CommandBox", () => {
         <CommandBox
           ui={mockUIState}
           rootPath={mockRootPath}
-          columns={mockColumns}
+  
           termWidth={80}
           storageMode="disk"
           nodeCount={42}

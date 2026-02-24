@@ -12,7 +12,6 @@ import { createRenderer } from "inkx/testing"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { UIState } from "../src/ui-reducer.ts"
-import type { ColumnView } from "../src/types.ts"
 
 const render = createRenderer({ cols: 80, rows: 1 })
 
@@ -47,27 +46,6 @@ const baseUI: UIState = {
 }
 
 const testRootPath = "/tmp/test"
-const testColumns: ColumnView[] = [
-  {
-    node: {
-      id: "col-1",
-      type: "h" as const,
-      item: true,
-      fstype: "mdsection" as const,
-      parent_id: "root-1",
-      parent_idx: 0,
-      embed_source: null,
-      title: "Col",
-      content: "",
-      data: {},
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      version: "v1",
-    },
-    cardNodes: [],
-    virtualCardIds: new Set(),
-  },
-]
 
 describe("Status bar corruption: view name bleeds into sync count", () => {
   // Unit tests for CommandBox component — view mode moved to TopBar
@@ -77,7 +55,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         <CommandBox
           ui={baseUI}
           rootPath={testRootPath}
-          columns={testColumns}
+
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -93,7 +71,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         <CommandBox
           ui={baseUI}
           rootPath={testRootPath}
-          columns={testColumns}
+
           termWidth={80}
           storageMode="disk"
           nodeCount={42}
@@ -121,7 +99,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         <CommandBox
           ui={uiWithWatcher}
           rootPath={testRootPath}
-          columns={testColumns}
+
           termWidth={80}
           storageMode="disk"
           nodeCount={42}

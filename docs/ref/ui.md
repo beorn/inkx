@@ -800,7 +800,7 @@ Toasts appear above the bottom bar:
 ├────────────────────────────────────────────────────┤
 │ ✓ 3 tasks archived  [z] Undo  Esc                  │  ← Toast
 ├────────────────────────────────────────────────────┤
-│ DISK 📁~/repo   📋123 📄45   CARDS VIEW            │  ← Bottom bar
+│ NORMAL >                DISK ~/repo  📋123 📄45    │  ← Command bar
 └────────────────────────────────────────────────────┘
 ```
 
