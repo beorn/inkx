@@ -155,32 +155,41 @@ describe("collapse/uncollapse columns", () => {
   // Pre-collapsed columns (via rules)
   // =========================================================================
 
-  test("column with km.collapse:: true starts collapsed", () => {
+  test("column with km.collapse:: true is hidden entirely (detail-pane only)", () => {
     const { board } = testEnv(() =>
       item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
-    // col1 should be collapsed from the start
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    // col1 with km.collapse:: true is filtered out of column view entirely
+    // (treated as detail-pane-only content, same as Activity/Comments sections)
+    expect(board.q("[data-collapsed]").count()).toBe(0)
 
-    // Cursor should be on col2's first card since col1 is collapsed
+    // Only col2 is visible
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("task-c")
+
+    // col1's cards should not be visible
+    expect(board.screenshot()).not.toContain("task-a")
+    expect(board.screenshot()).not.toContain("task-b")
   })
 
-  test("uncollapsing a km.collapse:: true column works", () => {
+  test("keypress collapse works as alternative to km.collapse:: true rule", () => {
     const { board } = testEnv(() =>
-      item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
+      item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
-    // Navigate to collapsed col1 header (h from col2's card)
-    board.press("h")
+    // Collapse col1 via keypress
+    board.press("v").press("c")
+    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
-    // Uncollapse
+    // Navigate right to col2
+    board.press("l")
+
+    // Uncollapse col1: go back left
+    board.press("h")
     board.press("v").press("c")
 
-    // Should now show cards
     // Navigate down into col1
     board.press("j")
     const cursor = board.q("[data-cursor]")
@@ -371,6 +380,8 @@ describe("collapse/uncollapse columns", () => {
 
 describe("collapsed column width", () => {
   it("collapsed column via keypress should be narrow (<=5 chars wide)", () => {
+    // Use wider terminal (120 cols) to avoid inkx EXCESS layout warnings
+    // when column widths change during collapse
     const { board } = testEnv(
       () =>
         item(
@@ -379,7 +390,7 @@ describe("collapsed column width", () => {
           item("col2", item("task-c"), item("task-d")),
           item("col3", item("task-e")),
         ),
-      { columns: 80, rows: 24 },
+      { columns: 120, rows: 24 },
     )
 
     // Navigate to col2 and collapse it
@@ -394,7 +405,7 @@ describe("collapsed column width", () => {
     expect(bbox!.width).toBeLessThanOrEqual(5)
   })
 
-  it("collapsed column via km.collapse:: true rule should be narrow (<=5 chars wide)", () => {
+  it("km.collapse:: true rule hides column entirely (not rendered as collapsed)", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -403,16 +414,21 @@ describe("collapsed column width", () => {
           item("col2 km.collapse:: true", item("task-c"), item("task-d")),
           item("col3", item("task-e")),
         ),
-      { columns: 80, rows: 24 },
+      { columns: 120, rows: 24 },
     )
 
-    // col2 should be collapsed from the start
+    // km.collapse:: true now hides the column from view entirely
+    // (treated as detail-pane-only content)
     const collapsed = board.q("[data-collapsed]")
-    expect(collapsed.count()).toBe(1)
+    expect(collapsed.count()).toBe(0)
 
-    const bbox = collapsed.boundingBox()
-    expect(bbox).not.toBeNull()
-    expect(bbox!.width).toBeLessThanOrEqual(5)
+    // Only col1 and col3 should be visible (col2 hidden)
+    const allColumns = board.q("[data-column]")
+    expect(allColumns.count()).toBe(2)
+
+    // col2's cards should not appear
+    expect(board.screenshot()).not.toContain("task-c")
+    expect(board.screenshot()).not.toContain("task-d")
   })
 
   it("expanded columns should get more space when sibling is collapsed", () => {

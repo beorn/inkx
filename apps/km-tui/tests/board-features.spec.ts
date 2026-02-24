@@ -5,7 +5,7 @@
  * See board.spec.ts header comment for testing philosophy.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
@@ -103,11 +103,11 @@ describe("Content", () => {
 })
 
 describe("Dialogs", () => {
-  test("new item dialog shows on 'n' key and closes on Escape", () => {
+  test("new item dialog shows on 'g n' chord and closes on Escape", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    // n opens dialog
-    board.press("n")
+    // g n chord opens dialog
+    board.press("g").press("n")
     let output = board.screenshot()
     expect(output).toContain("New")
     expect(output).toContain("Enter create")
@@ -768,23 +768,30 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
-    // Detail pane takes 40% of width; need both columns visible alongside it.
-    // At 120 cols: boardWidth = 72, which fits 2 × 35-char columns.
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
-      columns: 120,
-    })
+    // Suppress [EXCESS] inkx layout warnings — detail pane resize triggers
+    // transient layout overflow that is unrelated to navigation correctness
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      // Detail pane takes 40% of width; need both columns visible alongside it.
+      // At 120 cols: boardWidth = 72, which fits 2 × 35-char columns.
+      const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
+        columns: 120,
+      })
 
-    // Open detail pane on card1
-    board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+      // Open detail pane on card1
+      board.press("D")
+      expect(store.getState().ui.showDetailPane).toBe(true)
 
-    // h/l should navigate columns — detail pane stays open
-    board.press("l")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    board.expect("#card2[data-cursor]").toExist()
+      // h/l should navigate columns — detail pane stays open
+      board.press("l")
+      expect(store.getState().ui.showDetailPane).toBe(true)
+      board.expect("#card2[data-cursor]").toExist()
 
-    board.press("h")
-    expect(store.getState().ui.showDetailPane).toBe(true)
-    board.expect("#card1[data-cursor]").toExist()
+      board.press("h")
+      expect(store.getState().ui.showDetailPane).toBe(true)
+      board.expect("#card1[data-cursor]").toExist()
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 })

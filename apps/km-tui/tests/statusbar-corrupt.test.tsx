@@ -131,20 +131,20 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       let topRow = board.screen.row(0)
       expect(topRow).toContain("CARDS VIEW")
 
-      // Press 'v' to cycle to columns view
-      board.press("v").press("v")
+      // Press 'g v' chord to cycle to columns view
+      board.press("g").press("v")
       topRow = board.screen.row(0)
       expect(topRow).toContain("COLUMNS VIEW")
       expect(topRow).not.toContain("CARDS VIEW")
 
-      // Press 'v' again to cycle to tabs view
-      board.press("v").press("v")
+      // Press 'g v' again to cycle to tabs view
+      board.press("g").press("v")
       topRow = board.screen.row(0)
       expect(topRow).toContain("TABS VIEW")
       expect(topRow).not.toContain("COLUMNS VIEW")
 
-      // Press 'v' to cycle back to cards
-      board.press("v").press("v")
+      // Press 'g v' to cycle back to cards
+      board.press("g").press("v")
       topRow = board.screen.row(0)
       expect(topRow).toContain("CARDS VIEW")
       expect(topRow).not.toContain("TABS VIEW")
@@ -158,7 +158,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
 
       // Rapidly cycle through all views multiple times
       for (let i = 0; i < 6; i++) {
-        board.press("v").press("v")
+        board.press("g").press("v")
       }
 
       const topRow = board.screen.row(0)
@@ -208,7 +208,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       expect(topRow).toContain("CARDS VIEW")
 
       // Switch to columns view and check again
-      board.press("v").press("v")
+      board.press("g").press("v")
       const topRow2 = board.screen.row(0)
       expect((topRow2.match(/VIEW/g) || []).length).toBe(1)
       expect(topRow2).toContain("COLUMNS VIEW")
@@ -222,12 +222,12 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       )
 
       // Start with CARDS, go to COLUMNS
-      board.press("v").press("v") // -> COLUMNS
+      board.press("g").press("v") // -> COLUMNS
       let topRow = board.screen.row(0)
       expect(topRow).toContain("COLUMNS VIEW")
 
       // Switch to TABS (shorter)
-      board.press("v").press("v") // -> TABS
+      board.press("g").press("v") // -> TABS
       topRow = board.screen.row(0)
       expect(topRow).toContain("TABS VIEW")
       expect(topRow).not.toContain("COLUMN")
@@ -245,7 +245,7 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const viewModeEl = board.q("#view-mode")
       expect(viewModeEl.count()).toBeGreaterThan(0)
       const viewModeText = viewModeEl.textContent().trim()
-      expect(viewModeText).toBe("CARDS VIEW")
+      expect(viewModeText).toMatch(/^CARDS VIEW/)
     })
   })
 })

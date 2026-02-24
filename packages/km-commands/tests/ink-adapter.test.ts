@@ -332,19 +332,19 @@ describe("processInkKey", () => {
     expect(result.commandId).toBe("close_or_quit")
   })
 
-  it("Ctrl+w starts chord, then q resolves to pane_close", () => {
+  it("v starts chord, then c resolves to toggle_collapse", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    // Step 1: Ctrl+w should start a chord (pending)
-    const r1 = processInkKey("w", { ctrl: true }, cmdCtx, kbCtx)
+    // Step 1: v should start a chord (pending) — v is a chord prefix for view/visual
+    const r1 = processInkKey("v", {}, cmdCtx, kbCtx)
     expect(r1.handled).toBe(true)
-    expect(r1.pending).toBe("Ctrl+w")
+    expect(r1.pending).toBe("v")
 
-    // Step 2: q should resolve the chord to pane_close (NOT quit)
-    const r2 = processInkKey("q", {}, cmdCtx, kbCtx)
+    // Step 2: c should resolve the chord to toggle_collapse
+    const r2 = processInkKey("c", {}, cmdCtx, kbCtx)
     expect(r2.handled).toBe(true)
-    expect(r2.commandId).toBe("pane_close")
+    expect(r2.commandId).toBe("toggle_collapse")
   })
 })
 

@@ -42,7 +42,9 @@ describe("overflow indicator position in board columns", () => {
       dump.push(`${String(i).padStart(2)}: ${line}  ${flags.join(" ")}`)
     }
 
-    const gap = indicatorRow - lastCardBorderRow
+    // The last visible card may be partially clipped (no bottom border row),
+    // so measure gap from last card content row, not border row.
+    const gap = indicatorRow - lastCardContentRow
 
     // Fail with full dump
     expect({ indicatorRow, lastCardBorderRow, lastCardContentRow, gap, dump: "\n" + dump.join("\n") }).toEqual(

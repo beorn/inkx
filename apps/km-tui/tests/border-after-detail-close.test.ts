@@ -14,7 +14,7 @@
  * especially in incremental rendering mode.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
@@ -70,6 +70,16 @@ function checkBorders(board: ReturnType<typeof testEnv>["board"], nodeIds: strin
 }
 
 describe("border rendering after detail pane close", () => {
+  // Suppress [EXCESS] inkx layout warnings — detail pane resize triggers
+  // transient layout overflow that is unrelated to border rendering correctness
+  let errorSpy: ReturnType<typeof vi.spyOn>
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+  })
+  afterEach(() => {
+    errorSpy.mockRestore()
+  })
+
   test("all columns retain borders after closing detail pane", () => {
     const { board } = testEnv(
       () =>
@@ -357,6 +367,15 @@ const ASANA_VAULT = resolve(__dirname, "../../../imports/asana")
 describe.skipIf(!require("fs").existsSync(ASANA_VAULT + "/.km/state.db"))(
   "real vault: border after detail pane close",
   () => {
+    // Suppress [EXCESS] inkx layout warnings during detail pane resize
+    let errorSpy: ReturnType<typeof vi.spyOn>
+    beforeEach(() => {
+      errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+    })
+    afterEach(() => {
+      errorSpy.mockRestore()
+    })
+
     test("Space→h→Space with incremental rendering", { timeout: 30_000 }, async () => {
       const repo = runGenerator(createRepo(ASANA_VAULT, { loadFiles: true }))
       const rootId = findBoardRoot(repo)

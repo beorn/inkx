@@ -584,7 +584,13 @@ export function testEnv(
       if (!level) {
         return null
       }
-      // Status message is in #status-message element within bottom bar
+      // Status feedback is rendered in CommandFeedback's FlashMessage (#feedback-message)
+      // which floats above the bottom bar. Fall back to legacy #status-message in bottom bar.
+      const feedbackEl = result.locator("#feedback-message")
+      if (feedbackEl.count() > 0) {
+        const message = feedbackEl.textContent().trim()
+        return level && message ? { level, message } : null
+      }
       const statusEl = result.locator("#status-message")
       if (statusEl.count() === 0) {
         return null
@@ -1825,7 +1831,13 @@ class BoardTestImpl implements BoardTest {
     if (!level) {
       return null
     }
-    // Status message is in #status-message element within bottom bar
+    // Status feedback is rendered in CommandFeedback's FlashMessage (#feedback-message)
+    // which floats above the bottom bar. Fall back to legacy #status-message in bottom bar.
+    const feedbackEl = this.result.locator("#feedback-message")
+    if (feedbackEl.count() > 0) {
+      const message = feedbackEl.textContent().trim()
+      return level && message ? { level, message } : null
+    }
     const statusEl = this.result.locator("#status-message")
     if (statusEl.count() === 0) {
       return null

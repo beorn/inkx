@@ -117,7 +117,8 @@ describe("Escape Layering", () => {
   test("Escape closes new item dialog", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
-    // Open new item dialog with n key
+    // Open new item dialog with g n chord
+    board.press("g")
     board.press("n")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 

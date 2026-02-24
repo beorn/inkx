@@ -677,9 +677,9 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
     expect(resolveKeybinding("`", {}, ctx)).toBe("console.toggle")
   })
 
-  it("Ctrl+T fires dev toast", () => {
+  it("Ctrl+T fires task dialog", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("dev.test_toast")
+    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("task_dialog")
   })
 })
 
@@ -832,7 +832,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["#", "+", "C", "O", "[", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
+    expect(keys).toEqual(["#", "+", "C", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {

@@ -484,13 +484,9 @@ describe("zoom on body-only nodes", () => {
 
     expect(driver.getState().selectedNodeId).toBe("bodyOnlyNode")
 
-    // zoom_inwards: first z goes board → col1, second z goes col1 → bodyOnlyNode
-    driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    // zoom_in: z zooms directly to cursor node (bodyOnlyNode)
     driver.press("z") // root=bodyOnlyNode
-
-    const after = driver.store.getState()
-    expect(after.rootId).toBe("bodyOnlyNode")
+    expect(driver.store.getState().rootId).toBe("bodyOnlyNode")
   })
 
   it("should zoom via zoom_inwards into a body-only node", () => {
@@ -506,13 +502,9 @@ describe("zoom on body-only nodes", () => {
     driver.press("l")
     expect(driver.getState().selectedNodeId).toBe("bodyNode")
 
-    // zoom_inwards: first z goes board → bodyCol, second z goes bodyCol → bodyNode
-    driver.press("z") // root=bodyCol
-    expect(driver.store.getState().rootId).toBe("bodyCol")
+    // zoom_in: z zooms directly to cursor node (bodyNode)
     driver.press("z") // root=bodyNode
-
-    const after = driver.store.getState()
-    expect(after.rootId).toBe("bodyNode")
+    expect(driver.store.getState().rootId).toBe("bodyNode")
   })
 
   it("should zoom into a node that has structural children", () => {
@@ -520,13 +512,9 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_inwards: first z goes board → col1, second z goes col1 → card-with-children
-    driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    // zoom_in: z zooms directly to cursor node (card-with-children)
     driver.press("z") // root=card-with-children
-
-    const after = driver.store.getState()
-    expect(after.rootId).toBe("card-with-children")
+    expect(driver.store.getState().rootId).toBe("card-with-children")
   })
 
   it("should zoom into a node with mixed body and structural children", () => {
@@ -534,13 +522,9 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_inwards: first z goes board → col1, second z goes col1 → mixed
-    driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    // zoom_in: z zooms directly to cursor node (mixed)
     driver.press("z") // root=mixed
-
-    const after = driver.store.getState()
-    expect(after.rootId).toBe("mixed")
+    expect(driver.store.getState().rootId).toBe("mixed")
   })
 })
 

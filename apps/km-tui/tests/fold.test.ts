@@ -1205,39 +1205,38 @@ describe("progressive fold/unfold", () => {
       ),
     )
 
-  test("initial fold depth: nodes at depth >= 1 with children are folded", () => {
+  test("initial fold depth: cards render with remainingDepth=2, deepest children folded", () => {
     const { board } = testEnv(deepTree, { rows: 30 })
 
     const initial = board.screenshot()
-    // Phase 1/2 at depth 1 should be visible but folded (depth >= DEFAULT_FOLD_DEPTH=1)
+    // remainingDepth={2}: card content visible down to depth 2 from card root
+    // Phase 1/2 at depth 1 — visible
     expect(initial).toContain("Phase 1")
     expect(initial).toContain("Phase 2")
-    // Task A/B/C at depth 2 should be hidden (Phase 1/2 are folded)
-    expect(initial).not.toContain("Task A")
-    expect(initial).not.toContain("Task B")
-    expect(initial).not.toContain("Task C")
+    // Task A/B/C at depth 2 — visible (depth 0 = node shown but children folded)
+    expect(initial).toContain("Task A")
+    expect(initial).toContain("Task B")
+    expect(initial).toContain("Task C")
+    // subtask-x at depth 3 — hidden (Task A at depth 0 is folded, hiding children)
     expect(initial).not.toContain("subtask-x")
   })
 
-  test("L unfolds shallowest folded level, revealing deeper children", () => {
+  test("L unfolds per-card depth, eventually revealing deepest children", () => {
     // Disable incremental check: expanding folded nodes changes tree height,
     // which can cause fresh-render layout drift in inkx
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
-    // Initially Phase 1/2 are folded (Tasks hidden)
+    // Initially everything visible down to depth 2, subtask-x hidden
     expect(board.screenshot()).toContain("Phase 1")
-    expect(board.screenshot()).not.toContain("Task A")
+    expect(board.screenshot()).toContain("Task A")
+    expect(board.screenshot()).not.toContain("subtask-x")
 
-    // L unfolds Phase 1/2 (shallowest folded level)
-    // Progressive disclosure auto-folds children-with-children (Task A)
+    // First L: increases Project foldOverride from inherited 1 → 2 (same as default remainingDepth)
+    // No visible change since resolved depth was already 2
     board.press("L")
+    expect(board.screenshot()).not.toContain("subtask-x")
 
-    const afterL = board.screenshot()
-    expect(afterL).toContain("Task A") // visible but auto-folded
-    expect(afterL).toContain("Task B") // leaf, visible
-    expect(afterL).not.toContain("subtask-x") // Task A auto-folded
-
-    // Another L unfolds Task A
+    // Second L: increases Project foldOverride to 3, Task A gets depth 1, subtask-x visible
     board.press("L")
     expect(board.screenshot()).toContain("subtask-x")
   })
@@ -1368,17 +1367,20 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     expect(status?.message).toContain("already fully folded")
   })
 
-  test("< (fold all) at depth 0 rings bell", () => {
+  test("< (fold all) folds all cards to depth 0", () => {
     const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
 
-    // Fold all to depth 0
-    board.press("<") // depth 1 → 0
+    // Initially child-1 is visible
+    expect(board.screenshot()).toContain("child-1")
 
-    // Try again — should hit boundary
+    // Fold all — sets all cards to depth 0
     board.press("<")
-    expect(board.bell).toBe(true)
-    const status = board.getStatus()
-    expect(status?.message).toContain("already fully folded")
+    expect(board.screenshot()).not.toContain("child-1")
+    expect(board.screenshot()).toContain("Parent") // card title always visible
+
+    // Pressing < again is idempotent (FOLD_LEVEL always succeeds, no bell)
+    board.press("<")
+    expect(board.screenshot()).not.toContain("child-1")
   })
 
   test("L clears bell/status on valid unfold after boundary", () => {
@@ -1396,19 +1398,20 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     expect(board.screenshot()).toContain("child-1")
   })
 
-  test("> (unfold all) caps at MAX_FOLD_DEPTH and rings bell", () => {
+  test("> (unfold all) removes all per-card fold overrides", () => {
     const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
 
-    // Unfold many times to reach the cap
-    for (let i = 0; i < 25; i++) {
-      board.press(">")
-    }
+    // Fold first, then unfold all
+    board.press("<") // fold all cards to depth 0
+    expect(board.screenshot()).not.toContain("child-1")
 
-    // Should have hit the boundary at some point — verify bell is rung
-    // (bell is cleared on next keypress, so we need to check after the last press)
-    expect(board.bell).toBe(true)
-    const status = board.getStatus()
-    expect(status?.message).toContain("maximum depth reached")
+    // Unfold all — removes per-card overrides, cards inherit board depth
+    board.press(">")
+    expect(board.screenshot()).toContain("child-1")
+
+    // Pressing > again is idempotent (UNFOLD_LEVEL always succeeds, no bell)
+    board.press(">")
+    expect(board.screenshot()).toContain("child-1")
   })
 
   test("L (unfold node) caps at MAX_FOLD_DEPTH per card", () => {

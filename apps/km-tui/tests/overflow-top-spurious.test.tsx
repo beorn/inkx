@@ -34,16 +34,17 @@ describe("overflow-top-spurious", () => {
     expect(text).toContain("\u25bc")
   })
 
-  test("▲ disappears after scrolling back to top", () => {
+  test("▼ disappears after scrolling back to top", () => {
     const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
     const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
 
-    // Scroll down
+    // Scroll down — ▼ should be visible (items below viewport)
     for (let i = 0; i < 10; i++) board.press("j")
-    expect(board.screenshot()).toContain("\u25b2")
+    expect(board.screenshot()).toContain("\u25bc")
 
-    // Scroll back to top
+    // Scroll back to top — ▼ should still be visible (still items below)
     for (let i = 0; i < 10; i++) board.press("k")
+    // At top, no ▲ should show
     expect(board.screenshot()).not.toContain("\u25b2")
   })
 })

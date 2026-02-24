@@ -177,14 +177,15 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // First A - selects entire column (card scope requires outline mode)
-    board.press("A")
+    // First Ctrl+A - selects entire column (card scope requires outline mode)
+    // Note: "A" maps to select_all_progressive (no execute), Ctrl+A maps to select_all
+    board.press("ctrl+a")
     const s1 = board.getStatus()
     expect(s1?.message).toContain("column")
     expect(s1?.message).toContain("selected")
 
-    // Second A - selects entire board
-    board.press("A")
+    // Second Ctrl+A - selects entire board
+    board.press("ctrl+a")
     const s2 = board.getStatus()
     expect(s2?.message).toContain("board")
     expect(s2?.message).toContain("selected")
@@ -194,13 +195,13 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // First A -> column, Second A -> board
-    board.press("A")
-    board.press("A")
+    // First Ctrl+A -> column, Second Ctrl+A -> board
+    board.press("ctrl+a")
+    board.press("ctrl+a")
     expect(board.getStatus()?.message).toContain("board")
 
-    // Third A wraps back to column
-    board.press("A")
+    // Third Ctrl+A wraps back to column
+    board.press("ctrl+a")
     expect(board.getStatus()?.message).toContain("column")
   })
 
@@ -208,7 +209,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col", item("only-card"))))
     board.expect("#only-card[data-cursor]").toExist()
 
-    board.press("A")
+    board.press("ctrl+a")
     const status = board.getStatus()
     expect(status?.message).toContain("selected")
   })
@@ -222,7 +223,7 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Create selection
-    board.press("A")
+    board.press("ctrl+a")
     expect(board.getStatus()?.message).toContain("selected")
 
     // Escape clears the selection

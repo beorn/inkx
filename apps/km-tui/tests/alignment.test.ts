@@ -452,15 +452,17 @@ describe("alignment: date badges", () => {
 // =============================================================================
 
 describe("alignment: collapsed columns", () => {
-  // Shared fixture: left-collapsed col1 + col2, WIDE
+  // Shared fixture: left-collapsed col1 + col2, WIDE (collapsed via keypress)
   describe("left-collapsed column with normal column", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
       const env = testEnv(
-        () => item("board", item("col1 km.collapse:: true", item("1a")), item("col2", item("2a"))),
+        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
         WIDE,
       )
       board = env.board
+      // Collapse col1 via keypress (cursor starts on 1a in col1)
+      board.press("v").press("c")
     })
 
     test("collapsed column has border characters on both sides", () => {
@@ -509,9 +511,12 @@ describe("alignment: collapsed columns", () => {
 
   test("collapsed column on the right is also adjacent", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2 km.collapse:: true", item("2a"))),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
       WIDE,
     )
+    // Navigate to col2 and collapse it
+    board.press("l").press("v").press("c")
+
     const col1Box = board.screen.nodeBox("col1")
     const collapsed = board.q("[data-collapsed]")
     expect(collapsed.count()).toBeGreaterThan(0)
@@ -523,34 +528,37 @@ describe("alignment: collapsed columns", () => {
     expect(gap).toBeLessThanOrEqual(1)
   })
 
-  test("multiple collapsed columns between normal columns", () => {
+  test("multiple collapsed columns via keypress", () => {
     const { board } = testEnv(
       () =>
         item(
           "board",
           item("col1", item("1a")),
-          item("col2 km.collapse:: true", item("2a")),
-          item("col3 km.collapse:: true", item("3a")),
+          item("col2", item("2a")),
+          item("col3", item("3a")),
           item("col4", item("4a")),
         ),
       // Use extra-wide terminal to ensure all 4 columns fit
       { columns: 160, rows: 30 },
     )
-    // Both collapsed columns should be narrow
-    const collapsed = board.q("[data-collapsed]")
-    expect(collapsed.count()).toBe(2)
+    // Collapse col2: navigate right to col2, then collapse
+    board.press("l").press("v").press("c")
+    expect(board.q("[data-collapsed]").count()).toBe(1)
+
+    // Move to col3 and collapse it
+    board.press("l").press("v").press("c")
+    expect(board.q("[data-collapsed]").count()).toBe(2)
 
     // Verify col1 is visible
     const col1Box = board.screen.nodeBox("col1")
     expect(col1Box).not.toBeNull()
     expect(col1Box!.x).toBeLessThanOrEqual(1)
 
-    // Verify all 4 data-column elements exist
+    // Verify all 4 data-column elements exist (2 collapsed + 2 expanded)
     const allColumns = board.q("[data-column]")
     expect(allColumns.count()).toBe(4)
 
     // Verify the rightmost column extends to near terminal width
-    // Find the last column by checking all column bounding boxes
     let maxRight = 0
     for (let i = 0; i < 4; i++) {
       const colLoc = board.q(`[data-col-index="${i}"]`)
