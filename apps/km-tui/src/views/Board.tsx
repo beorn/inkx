@@ -418,16 +418,16 @@ export function BoardCore({
   columnsRef.current = columns
   const handleFindQueryChange = useCallback(
     (query: string) => {
-      // Update query text immediately (so match indicator stays in sync)
-      setUI({
+      // Update query text immediately; preserve previous match state to avoid flicker
+      setUI((prev) => ({
         localSearch: {
           query,
           isInputActive: true,
           matchIndex: 0,
-          matchCount: 0,
-          matchNodeIds: [],
+          matchCount: prev.localSearch?.matchCount ?? 0,
+          matchNodeIds: prev.localSearch?.matchNodeIds ?? [],
         },
-      })
+      }))
       // Debounce the expensive match computation (skip in tests)
       clearTimeout(findTimerRef.current)
       const computeMatches = () => {
@@ -449,7 +449,7 @@ export function BoardCore({
       if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
         computeMatches()
       } else {
-        findTimerRef.current = setTimeout(computeMatches, 150)
+        findTimerRef.current = setTimeout(computeMatches, 200)
       }
     },
     [setUI, dispatchBoard],
