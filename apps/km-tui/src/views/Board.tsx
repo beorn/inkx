@@ -10,7 +10,15 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import React, {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react"
 import {
   Box,
   Text,
@@ -57,6 +65,7 @@ import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.ts
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { usePaneId } from "../pane-context.tsx"
+import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
 const log = createLogger("km:tui:board")
 
@@ -181,9 +190,13 @@ function useColumnReveal(columnCount: number, rootId: string | null): number {
 
   // Chain: after each column renders, reveal the next one via setTimeout(0).
   // Each column gets one event-loop tick for inkx to paint before the next mounts.
+  // startTransition marks the update as non-urgent so React can yield (~5ms slices)
+  // instead of blocking the event loop for the entire column render.
   useEffect(() => {
     if (isTest || revealedCount >= columnCount) return
-    const id = setTimeout(() => setRevealedCount((c) => c + 1), 0)
+    const id = setTimeout(() => {
+      startTransition(() => setRevealedCount((c) => c + 1))
+    }, 0)
     return () => clearTimeout(id)
   }, [revealedCount, columnCount, isTest])
 
@@ -210,7 +223,10 @@ function ColumnSkeleton({
   const fill = pulse ? "▒" : "░"
   const cardHeight = 3
   const headerHeight = 2
-  const cardCount = Math.max(1, Math.floor((height - headerHeight) / cardHeight))
+  // Vary skeleton height per column (50-80% of available space) using stable hash
+  const fraction = 0.5 + ((colIndex * 2654435761) >>> 0) % 300 / 1000 // 0.50–0.80
+  const usableHeight = Math.floor((height - headerHeight) * fraction)
+  const cardCount = Math.max(1, Math.floor(usableHeight / cardHeight))
   return (
     <Box flexDirection="column" width={width} height={height}>
       <Box height={1}>
@@ -242,6 +258,7 @@ function BoardTopBar({
   filterText,
   isBoardSelected,
   viewMode,
+  maxContentLines,
 }: {
   rootId: string | null
   termWidth: number
@@ -249,6 +266,7 @@ function BoardTopBar({
   filterText: string
   isBoardSelected: boolean
   viewMode?: string
+  maxContentLines: number
 }): React.ReactElement {
   const repo = useRepo()
   const cursorPos = useCursorNodePosition()
@@ -280,6 +298,7 @@ function BoardTopBar({
         </Box>
         <Text dimColor id="view-mode">
           {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+          {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
         </Text>
         {filterIndicator && (
           <Box flexShrink={0}>
@@ -373,6 +392,7 @@ export function BoardCore({
   toastQueue,
   dispatchBoard,
 }: BoardCoreProps): React.ReactElement {
+  useComponentTiming(`BoardCore (${columns.length} columns)`)
   const repo = useRepo()
 
   // Use actual pane dimensions from parent container (critical for multi-pane splits).
@@ -536,6 +556,7 @@ export function BoardCore({
           filterText={ui.filterText}
           isBoardSelected={isBoardSelected}
           viewMode={ui.viewMode}
+          maxContentLines={ui.maxContentLines}
         />
         <Box height={1} flexShrink={0} />
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
@@ -1170,6 +1191,7 @@ export function Board({ patchedConsole }: BoardProps) {
           rootBoardId={ui.rootBoardId}
           searchMatchNodeIds={searchMatchNodeIds}
           currentMatchNodeId={currentMatchNodeId}
+          searchQuery={ui.localSearch?.query ?? null}
           jobRunner={jobRunner}
           undoHandle={undoHandle}
           taskStatusFilter={taskStatusFilter}

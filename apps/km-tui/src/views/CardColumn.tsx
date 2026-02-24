@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
+import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, useScreenRectCallback, useFocusWithin } from "inkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -42,16 +43,16 @@ const ESTIMATED_CARD_HEIGHT = 4
 
 /**
  * Number of extra cards to render above and below visible area.
- * Lower than COLUMNS view (20) because cards are taller, so fewer fit on screen.
+ * TUI scrolling is discrete (j/k keys), so 2 is sufficient to prevent pop-in.
  */
-const OVERSCAN = 15
+const OVERSCAN = 2
 
 /**
  * Maximum number of cards to render at once.
- * Lower than COLUMNS view (100) because cards are more expensive to render
- * (have borders, more complex layout).
+ * Cards are expensive (~15 hooks each), so keep this tight. VirtualList will
+ * always window the list — no bypass for small columns.
  */
-const MAX_RENDERED_CARDS = 50
+const MAX_RENDERED_CARDS = 20
 
 // =============================================================================
 // Card Component
@@ -278,6 +279,7 @@ const Card = React.memo(
           <TreeNode
             node={card}
             depth={0}
+            remainingDepth={2}
             isSelected={isSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -356,6 +358,7 @@ const Card = React.memo(
             <TreeNode
               node={card}
               depth={0}
+              remainingDepth={2}
               isSelected={isSelected}
               colIndex={colIndex}
               cardIndex={cardIndex}
@@ -393,6 +396,7 @@ const Card = React.memo(
         <TreeNode
           node={card}
           depth={0}
+          remainingDepth={2}
           isSelected={isSelected}
           colIndex={colIndex}
           cardIndex={cardIndex}
@@ -514,11 +518,16 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle, borderMode },
+    treeConfig: { iconStyle, borderMode, maxContentLines },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const nodeId = column.node.id
+
+  // Per-column mount timing — measure render → commit duration
+  useComponentTiming(
+    `Column ${colIndex} "${column.node.title ?? column.node.name}" (${column.cardNodes.length} cards)`,
+  )
 
   // Subscribe to column selection only (stable on j/k within same column).
   // NODE MODEL V2: Self-select by nodeId instead of positional index.
@@ -766,7 +775,7 @@ export const Column = React.memo(function Column({
           items={column.cardNodes}
           width={width - 1}
           height={height - 2 - (hiddenCount > 0 ? 1 : 0)}
-          itemHeight={ESTIMATED_CARD_HEIGHT}
+          itemHeight={maxContentLines + 2}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}

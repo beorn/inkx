@@ -11,11 +11,12 @@
 
 import { addWriter, setSuppressConsole } from "@beorn/logger"
 import createDebug from "debug"
-import { createWriteStream } from "fs"
+import { appendFileSync, createWriteStream } from "fs"
 import { relative } from "path"
 import { homedir } from "os"
 
 let stream: ReturnType<typeof createWriteStream> | null = null
+let logFilePath: string | null = null
 
 // Strip ANSI escape sequences for clean file output
 // eslint-disable-next-line no-control-regex
@@ -226,9 +227,14 @@ createDebug.log = customLog
 const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
+  logFilePath = logPath
   const logStream = createWriteStream(logPath, { flags: "a" })
   stream = logStream
-  addWriter((formatted) => logStream.write(stripAnsi(formatted) + "\n"))
+  // Use appendFileSync for @beorn/logger writer — stream.write() is async and
+  // may not flush before process exit (especially in non-interactive mode where
+  // the TUI renders once then exits immediately). appendFileSync guarantees writes
+  // are committed even during blocked event loops or rapid shutdown.
+  addWriter((formatted) => appendFileSync(logPath, stripAnsi(formatted) + "\n"))
   // Suppress @beorn/logger console output immediately (not just in enableConsoleDebug)
   // so startup log messages also go to file only
   setSuppressConsole(true)
