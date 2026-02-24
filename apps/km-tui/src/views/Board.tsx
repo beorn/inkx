@@ -779,7 +779,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const foldDepths = useAppStore<BoardAppStore, Map<string, number>>(
     (s) => s.workspace.panes.get(paneId)?.foldDepths ?? s.foldDepths,
   )
-  const collapsedNodes = useAppStore<BoardAppStore, Set<string>>(
+  const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>(
     (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
   )
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode)
@@ -904,6 +904,23 @@ export function Board({ patchedConsole }: BoardProps) {
   // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
   // with skeleton placeholders, then revealing one column per frame.
   const columns = useColumns(repo, rootId, foldDepths)
+
+  // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
+  // On root change (zoom), columns with rules.collapse should start collapsed.
+  // The user can then toggle them with 'c'. We only add — never remove — so user toggles stick.
+  const prevSyncedRootRef = useRef<string | null | undefined>(undefined)
+  const collapsedNodes = storeCollapsedNodes
+  useEffect(() => {
+    if (prevSyncedRootRef.current === rootId) return
+    prevSyncedRootRef.current = rootId
+
+    for (const col of columns) {
+      if (col.rules?.collapse === true && !storeCollapsedNodes.has(col.node.id)) {
+        dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: col.node.id })
+      }
+    }
+  }, [rootId, columns, storeCollapsedNodes, dispatchBoard])
+
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])

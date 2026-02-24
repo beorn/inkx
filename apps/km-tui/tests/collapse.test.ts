@@ -155,23 +155,21 @@ describe("collapse/uncollapse columns", () => {
   // Pre-collapsed columns (via rules)
   // =========================================================================
 
-  test("column with km.collapse:: true is hidden entirely (detail-pane only)", () => {
+  test("column with km.collapse:: true starts collapsed (narrow rendering)", () => {
     const { board } = testEnv(() =>
       item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
-    // col1 with km.collapse:: true is filtered out of column view entirely
-    // (treated as detail-pane-only content, same as Activity/Comments sections)
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    // col1 with km.collapse:: true should render as a narrow collapsed column
+    const collapsed = board.q("[data-collapsed]")
+    expect(collapsed.count()).toBe(1)
 
-    // Only col2 is visible
-    const cursor = board.q("[data-cursor]")
-    expect(cursor.count()).toBe(1)
-    expect(cursor.textContent()).toContain("task-c")
-
-    // col1's cards should not be visible
+    // col1's cards should not be visible (collapsed)
     expect(board.screenshot()).not.toContain("task-a")
     expect(board.screenshot()).not.toContain("task-b")
+
+    // col2's cards should be visible
+    expect(board.screenshot()).toContain("task-c")
   })
 
   test("keypress collapse works as alternative to km.collapse:: true rule", () => {
@@ -405,7 +403,7 @@ describe("collapsed column width", () => {
     expect(bbox!.width).toBeLessThanOrEqual(5)
   })
 
-  it("km.collapse:: true rule hides column entirely (not rendered as collapsed)", () => {
+  it("collapsed column via km.collapse:: true rule should be narrow", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -417,18 +415,21 @@ describe("collapsed column width", () => {
       { columns: 120, rows: 24 },
     )
 
-    // km.collapse:: true now hides the column from view entirely
-    // (treated as detail-pane-only content)
+    // km.collapse:: true renders as a narrow collapsed column
     const collapsed = board.q("[data-collapsed]")
-    expect(collapsed.count()).toBe(0)
+    expect(collapsed.count()).toBe(1)
 
-    // Only col1 and col3 should be visible (col2 hidden)
-    const allColumns = board.q("[data-column]")
-    expect(allColumns.count()).toBe(2)
+    const bbox = collapsed.boundingBox()
+    expect(bbox).not.toBeNull()
+    expect(bbox!.width).toBeLessThanOrEqual(5)
 
-    // col2's cards should not appear
+    // col2's cards should not be visible (collapsed)
     expect(board.screenshot()).not.toContain("task-c")
     expect(board.screenshot()).not.toContain("task-d")
+
+    // All 3 columns should exist (col2 is collapsed, not hidden)
+    const allColumns = board.q("[data-column]")
+    expect(allColumns.count()).toBe(3)
   })
 
   it("expanded columns should get more space when sibling is collapsed", () => {

@@ -38,6 +38,23 @@ export function isCollapsedChild(node: KNode): boolean {
   return rules.collapse === true
 }
 
+/** Like isCollapsedChild but only returns true for detail-only nodes
+ *  (detailOnly flag, well-known Asana metadata sections like Activity/Comments/Attachments).
+ *  Does NOT match nodes that only have km.collapse:: true — those should render
+ *  as narrow collapsed columns, not be hidden entirely. */
+export function isDetailOnly(node: KNode): boolean {
+  if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
+  if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
+  // Check content for well-known section names (Asana imports have the name in content, not node.name)
+  const rules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
+  if (rules.collapse === true) {
+    // Only hide if it's a well-known metadata section (by name extracted from content/title)
+    const rawName = (node.name || node.title || node.content || "").toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
+    if (COLLAPSED_SECTION_NAMES.has(rawName)) return true
+  }
+  return false
+}
+
 // =============================================================================
 // Cursor Position Derivation
 // =============================================================================
@@ -277,9 +294,10 @@ export function deriveColumnsFromRepo(
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
 
   // Convert structural children to columns (with per-column memoization)
-  // Skip collapsed sections (e.g., Attachments, Comments, Activity) — they're detail-pane only
+  // Skip detail-only sections (e.g., Attachments, Comments, Activity) — they're detail-pane only.
+  // Columns with km.collapse:: true are included (rendered as narrow collapsed columns).
   for (const node of deduped) {
-    if (isCollapsedChild(node)) continue
+    if (isDetailOnly(node)) continue
     columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
   }
 
@@ -324,7 +342,7 @@ export function* deriveColumnsIncremental(
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
   let columnCount = 0
   for (const node of deduped) {
-    if (isCollapsedChild(node)) continue
+    if (isDetailOnly(node)) continue
     yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
     columnCount++
   }
