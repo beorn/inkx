@@ -630,9 +630,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Backspace", commandId: "delete_node" },
       { key: "Delete", commandId: "delete_node" },
 
-      // y = copy (yank), p = paste
-      { key: "y", commandId: "clipboard_copy" },
-      { key: "p", commandId: "clipboard_paste" },
+      // y = copy (yank), p = paste — only without Kitty (conflicts with Kitty key protocol)
+      { key: "y", commandId: "clipboard_copy", when: not(hasKitty) },
+      { key: "p", commandId: "clipboard_paste", when: not(hasKitty) },
 
       // o/O = new item below/above (outliner-style)
       { key: "o", commandId: "insert_below" },

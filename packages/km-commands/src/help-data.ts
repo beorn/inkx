@@ -50,7 +50,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["⌘⇧⏎"], command: "new_item", description: "new item dialog" },
       { keys: ["⌫ / ⌦"], command: "delete_node", description: "delete / forward" },
       { keys: ["⌘d"], command: "duplicate_node", description: "duplicate" },
-      { keys: ["y / d / p", "⌘c/x/v"], command: "clipboard_copy", description: "copy / cut / paste" },
+      { keys: ["⌘c/x/v"], command: "clipboard_copy", description: "copy / cut / paste" },
       { keys: ["u / U", "⌘z"], command: "undo", description: "undo / redo" },
       { keys: ["⇥ / ⇧⇥"], command: "indent_node", description: "indent / outdent" },
       { keys: ["⌘↑↓←→", "⌥↑↓←→"], command: "shift_up", description: "shift node" },
