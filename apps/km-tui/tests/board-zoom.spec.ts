@@ -484,7 +484,9 @@ describe("zoom on body-only nodes", () => {
 
     expect(driver.getState().selectedNodeId).toBe("bodyOnlyNode")
 
-    // zoom_in: z zooms directly to cursor node (bodyOnlyNode)
+    // zoom_inwards: first z goes board → col1, second z goes col1 → bodyOnlyNode
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z") // root=bodyOnlyNode
     expect(driver.store.getState().rootId).toBe("bodyOnlyNode")
   })
@@ -502,7 +504,9 @@ describe("zoom on body-only nodes", () => {
     driver.press("l")
     expect(driver.getState().selectedNodeId).toBe("bodyNode")
 
-    // zoom_in: z zooms directly to cursor node (bodyNode)
+    // zoom_inwards: first z goes board → bodyCol, second z goes bodyCol → bodyNode
+    driver.press("z") // root=bodyCol
+    expect(driver.store.getState().rootId).toBe("bodyCol")
     driver.press("z") // root=bodyNode
     expect(driver.store.getState().rootId).toBe("bodyNode")
   })
@@ -512,7 +516,9 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (card-with-children)
+    // zoom_inwards: first z goes board → col1, second z goes col1 → card-with-children
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z") // root=card-with-children
     expect(driver.store.getState().rootId).toBe("card-with-children")
   })
@@ -522,7 +528,9 @@ describe("zoom on body-only nodes", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (mixed)
+    // zoom_inwards: first z goes board → col1, second z goes col1 → mixed
+    driver.press("z") // root=col1
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z") // root=mixed
     expect(driver.store.getState().rootId).toBe("mixed")
   })

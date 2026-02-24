@@ -402,7 +402,9 @@ describe("zoom into node with body content: cursor placement", () => {
     // Cursor on target-card
     expect(driver.getState().selectedNodeId).toBe("target-card")
 
-    // zoom_in: z zooms directly to cursor node (target-card)
+    // Zoom inwards: board → col1 → target-card (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("target-card")
 
@@ -425,7 +427,9 @@ describe("zoom into node with body content: cursor placement", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (section-with-hr)
+    // Zoom inwards: board → col1 → section-with-hr (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("section-with-hr")
 
@@ -483,7 +487,9 @@ describe("zoom into node with body content: cursor placement", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (section)
+    // Zoom inwards: board → col1 → section (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("section")
 
@@ -527,7 +533,9 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (root-section)
+    // Zoom inwards: board → col1 → root-section (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("root-section")
 
@@ -559,7 +567,9 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // zoom_in: z zooms directly to cursor node (target)
+    // Zoom inwards: board → col1 → target (one level per press)
+    driver.press("z")
+    expect(driver.store.getState().rootId).toBe("col1")
     driver.press("z")
     expect(driver.store.getState().rootId).toBe("target")
 

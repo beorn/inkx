@@ -2,7 +2,7 @@
  * Search & Replace Dialog Tests
  *
  * Tests for the floating search/replace dialog:
- * - Opening/closing with F key and Escape
+ * - Opening/closing with S key and Escape
  * - Search query matching
  * - Tab switches between search and replace fields
  * - Match count display
@@ -32,11 +32,11 @@ describe("Search & Replace", () => {
     )
   }
 
-  test("F opens the search/replace dialog", () => {
+  test("S opens the search/replace dialog", () => {
     const { board, store } = searchBoard()
     expect(store.getState().ui.searchReplace).toBeNull()
 
-    board.press("F")
+    board.press("S")
 
     const sr = store.getState().ui.searchReplace
     expect(sr).not.toBeNull()
@@ -49,7 +49,7 @@ describe("Search & Replace", () => {
   test("Escape closes the search/replace dialog", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     expect(store.getState().ui.searchReplace).not.toBeNull()
 
     board.press("Escape")
@@ -59,7 +59,7 @@ describe("Search & Replace", () => {
   test("typing updates the search query and shows matches", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     // Type "Buy" into the search field
     board.press("B").press("u").press("y")
 
@@ -73,7 +73,7 @@ describe("Search & Replace", () => {
   test("Tab switches between search and replace fields", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     expect(store.getState().ui.searchReplace!.focusedField).toBe("search")
 
     board.press("Tab")
@@ -86,7 +86,7 @@ describe("Search & Replace", () => {
   test("Enter navigates to next match", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     board.press("B").press("u").press("y")
 
     const sr1 = store.getState().ui.searchReplace!
@@ -110,7 +110,7 @@ describe("Search & Replace", () => {
   test("match count displays correctly with no matches", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     board.press("z").press("z").press("z")
 
     const sr = store.getState().ui.searchReplace!
@@ -121,7 +121,7 @@ describe("Search & Replace", () => {
   test("Ctrl+R replaces the current match", () => {
     const { board, store, repo } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     // Search for "Buy"
     board.press("B").press("u").press("y")
 
@@ -152,7 +152,7 @@ describe("Search & Replace", () => {
   test("replace all matches via command dispatch", () => {
     const { board, store, repo } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     board.press("B").press("u").press("y")
 
     const sr1 = store.getState().ui.searchReplace!
@@ -184,7 +184,7 @@ describe("Search & Replace", () => {
   test("Ctrl+X toggles regex mode", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
     expect(store.getState().ui.searchReplace!.useRegex).toBe(false)
 
     board.press("ctrl+x")
@@ -197,7 +197,7 @@ describe("Search & Replace", () => {
   test("regex search matches correctly", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
 
     // Enable regex
     board.press("ctrl+x")
@@ -215,7 +215,7 @@ describe("Search & Replace", () => {
   test("dialog renders in the board output", () => {
     const { board } = searchBoard()
 
-    board.press("F")
+    board.press("S")
 
     const output = board.screenshot()
     expect(output).toContain("[F]ind & Replace")
@@ -226,7 +226,7 @@ describe("Search & Replace", () => {
   test("invalid regex shows no matches instead of crashing", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.press("S")
 
     // Enable regex
     board.press("ctrl+x")

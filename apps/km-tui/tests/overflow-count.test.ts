@@ -189,7 +189,8 @@ describe("overflow indicator on cards", () => {
       { checkIncremental: false }, // zoom causes incremental mismatch (separate issue)
     )
 
-    // Zoom into zoomTarget: z → root=zoomTarget, sectionA is column, card1 is a card
+    // Zoom inwards toward zoomTarget: first z → root=col1, second z → root=zoomTarget
+    board.press("z")
     board.press("z")
 
     const screenshot = board.screenshot()

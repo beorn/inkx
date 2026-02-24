@@ -509,8 +509,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
       { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
 
-      // Zoom: z = zoom into cursor node, Z = zoom out one level
-      { key: "z", commandId: "zoom_in" },
+      // Zoom: z = zoom inwards one level, Z = zoom out one level
+      { key: "z", commandId: "zoom_inwards" },
       { key: "Z", commandId: "zoom_outwards" },
 
       // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
@@ -760,7 +760,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "/", commandId: "local_find" },
       { key: "f", super: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
-      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
+      { key: "S", commandId: "search_replace", when: not(textInputFocused) },
+      { key: "F", commandId: "filter", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
