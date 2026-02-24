@@ -34,7 +34,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["hjkl", "↑↓←→"], command: "cursor_down", description: "navigate" },
       { keys: ["z / Z"], command: "zoom_inwards", description: "zoom in / out" },
-      { keys: ["g g / g G"], command: "cursor_first", description: "first / last" },
+      { keys: ["g g/G"], command: "cursor_first", description: "first / last" },
       { keys: ["J / K"], command: "block_nav_down", description: "next / prev block" },
       { keys: ["⌃u/d", "PgUp / Dn"], command: "page_up", description: "half page up / down" },
       { keys: ["{ / }", "⌘[/]"], command: "nav_back", description: "back / forward" },
@@ -59,7 +59,7 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "Selection",
     items: [
-      { keys: ["v ␣"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: ["v v"], command: "visual_mode_enter", description: "visual mode" },
       { keys: ["␣"], command: "select_toggle", description: "toggle select" },
       { keys: ["⌃a", "⌘a"], command: "select_all", description: "select all" },
       { keys: ["⇧↑↓←→"], command: "extend_select_up", description: "extend selection" },
@@ -80,7 +80,7 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "View",
     items: [
-      { keys: ["v ␣"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: ["v v"], command: "visual_mode_enter", description: "visual mode" },
       { keys: ["v m"], command: "cycle_view_mode", description: "cycle view" },
       { keys: ["v c"], command: "toggle_collapse", description: "collapse column" },
       { keys: ["v d"], command: "toggle_hide_done", description: "toggle done" },
@@ -114,7 +114,7 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "System",
     items: [
-      { keys: ["G", "⌃g", "⌘g"], command: "filter", description: "filter" },
+      { keys: ["G", "⌘g"], command: "filter", description: "filter" },
       { keys: ["F", "⌘f"], command: "search_replace", description: "find & replace" },
       { keys: ["C", "c c", "⌘n"], command: "capture_dialog", description: "capture dialog" },
       { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
@@ -131,8 +131,11 @@ const HELP_SECTIONS: HelpSection[] = [
 // ── Verb x Location grid ──────────────────────────────────────────────
 
 export const VERB_GRID: VerbGridRow[] = [
+  // Navigation
+  { key: "g", location: "first", goto: "g g" },
+  { key: "G", location: "last", goto: "g G" },
   // Board locations
-  { key: "h", location: "home (@next)", goto: "g h", move: "m h" },
+  { key: "h", location: "home (@next)", goto: "g h", move: "m h", separator: true },
   { key: "i", location: "inbox", goto: "g i", move: "m i" },
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },

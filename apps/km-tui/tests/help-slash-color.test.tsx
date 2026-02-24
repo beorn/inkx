@@ -50,7 +50,8 @@ describe("HelpOverlay", () => {
     expect(app.text).toMatch(/go to\s+move\s+add\/link/)
     // Prefix key row with ctrl alternatives
     expect(app.text).toContain("prefix key")
-    expect(app.text).toContain("⌃r")
+    expect(app.text).toContain("⌃g")
+    expect(app.text).toContain("⌃m")
     expect(app.text).toContain("⌃l")
     // Board locations
     expect(app.text).toContain("inbox")

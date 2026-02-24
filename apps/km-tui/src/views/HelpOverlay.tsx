@@ -232,11 +232,13 @@ function buildVerbGridLines(): React.ReactElement[] {
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color="yellow">{"g"}</Text>
+        <Text dimColor>{" or "}</Text>
+        <Text color="yellow">{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
         <Text color="yellow">{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color="yellow">{"⌃r"}</Text>
+        <Text color="yellow">{"⌃m"}</Text>
       </Box>
       <Text color="yellow">{"a"}</Text>
       <Text dimColor>{" or "}</Text>

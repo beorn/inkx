@@ -373,7 +373,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
       { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
-      { key: "g", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      // ⌃g is now a goto chord prefix — no longer cancels filter dialog
       { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
@@ -574,7 +574,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Ctrl equivalents for chord prefixes and pickers
       { key: "l", ctrl: true, commandId: "add_link", when: not(textInputFocused) },
-      { key: "r", ctrl: true, commandId: "reparent_picker", when: not(textInputFocused) },
+      // ⌃r freed up (was reparent_picker — now use ⌃m prefix + p/[/+ with Kitty)
       { key: "o", ctrl: true, commandId: "open_in_system", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native feel)
@@ -716,7 +716,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "[", commandId: "add", targetId: "[", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
       // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
-      { key: "g", commandId: "noop" },
+      { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
@@ -758,6 +758,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "v", key: "h", commandId: "ignore_node" },
       { chord: "v", key: "i", commandId: "cycle_icon_style" },
       { chord: "v", key: "-", commandId: "clear_filters" },
+      { chord: "v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
 
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
@@ -800,6 +801,38 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // c-prefix chords (capture/create)
       { chord: "c", key: "c", commandId: "capture_dialog" },
+
+      // Ctrl+g chord prefix (alternative for g — goto)
+      { chord: "Ctrl+g", key: "g", commandId: "cursor_first" },
+      { chord: "Ctrl+g", key: "G", commandId: "cursor_last" },
+      { chord: "Ctrl+g", key: "o", commandId: "open_in_system" },
+      { chord: "Ctrl+g", key: "O", commandId: "open_in_terminal" },
+      { chord: "Ctrl+g", key: "p", commandId: "project_picker" },
+      { chord: "Ctrl+g", key: "h", commandId: "goto", targetId: "h" },
+      { chord: "Ctrl+g", key: "i", commandId: "goto", targetId: "i" },
+      { chord: "Ctrl+g", key: "j", commandId: "goto", targetId: "j" },
+      { chord: "Ctrl+g", key: "a", commandId: "goto", targetId: "a" },
+      { chord: "Ctrl+g", key: "0", commandId: "goto", targetId: "0" },
+      { chord: "Ctrl+g", key: "1", commandId: "goto", targetId: "1" },
+      { chord: "Ctrl+g", key: "2", commandId: "goto", targetId: "2" },
+      { chord: "Ctrl+g", key: "3", commandId: "goto", targetId: "3" },
+      { chord: "Ctrl+g", key: "4", commandId: "goto", targetId: "4" },
+      { chord: "Ctrl+g", key: "5", commandId: "goto", targetId: "5" },
+      { chord: "Ctrl+g", key: "6", commandId: "goto", targetId: "6" },
+      { chord: "Ctrl+g", key: "7", commandId: "goto", targetId: "7" },
+      { chord: "Ctrl+g", key: "8", commandId: "goto", targetId: "8" },
+      { chord: "Ctrl+g", key: "9", commandId: "goto", targetId: "9" },
+      { chord: "Ctrl+g", key: "+", commandId: "project_picker" },
+
+      // Ctrl+m chord prefix (alternative for m — move, Kitty only since ⌃m = Enter without Kitty)
+      { chord: "Ctrl+m", key: "m", commandId: "enter_move_mode", when: hasKitty },
+      { chord: "Ctrl+m", key: "a", commandId: "archive", when: hasKitty },
+      { chord: "Ctrl+m", key: "h", commandId: "move", targetId: "h", when: hasKitty },
+      { chord: "Ctrl+m", key: "i", commandId: "move", targetId: "i", when: hasKitty },
+      { chord: "Ctrl+m", key: "j", commandId: "move", targetId: "j", when: hasKitty },
+      { chord: "Ctrl+m", key: "p", commandId: "reparent_picker", when: hasKitty },
+      { chord: "Ctrl+m", key: "+", commandId: "reparent_picker", when: hasKitty },
+      { chord: "Ctrl+m", key: "[", commandId: "reparent_picker", when: hasKitty },
     ],
   },
 
@@ -807,7 +840,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "view",
     bindings: [
-      { key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      // v is a chord prefix (v c, v d, v m, etc.) — visual mode via v v chord
       // cycle_icon_style moved to v i (view prefix)
       { key: "?", commandId: "show_help" },
       { key: "+", commandId: "increase_content_lines" },
@@ -818,7 +851,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Filter and command palette
       { key: "/", ctrl: true, commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
-      { key: "g", ctrl: true, commandId: "filter" },
       { key: ":", commandId: "command_palette" },
     ],
   },

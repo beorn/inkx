@@ -427,7 +427,7 @@ describe("initDefaultKeybindings", () => {
     ["k", {}, "cursor_up"],
     ["h", {}, "cursor_left"],
     ["l", {}, "cursor_right"],
-    ["g", {}, "noop"],
+    ["g", {}, "cursor_first"],
     ["G", {}, "filter"],
     ["G", { shift: true }, "filter"], // Ink reports shift+G
     // Arrow key navigation (same as hjkl per docs/06-ui.md)
@@ -442,7 +442,7 @@ describe("initDefaultKeybindings", () => {
 
   it.each([
     // TUI: 'v' enters visual mode
-    ["v", {}, "visual_mode_enter"],
+    // v is now a chord prefix only — visual mode via v v chord
     // A reserved for Agent Dialog (removed select_all_progressive)
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
     ["Escape", {}, "close_or_quit"],
@@ -857,7 +857,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(82) // 23 g + 7 v + 12 m + 10 a + 8 t + 1 c + 21 Ctrl+w
+    expect(chordBindings.length).toBe(111) // 23 g + 8 v + 12 m + 10 a + 8 t + 1 c + 21 Ctrl+w + 20 Ctrl+g + 8 Ctrl+m
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -890,7 +890,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["-", "C", "c", "d", "h", "i", "m"])
+    expect(keys).toEqual(["-", "C", "c", "d", "h", "i", "m", "v"])
   })
 
   it("getChordSuffixes returns Ctrl+w-prefix hints", () => {
@@ -1048,7 +1048,7 @@ describe("text mode keybinding separation", () => {
       ["Tab", { shift: true }, "outdent"],
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
-      ["v", {}, "visual_mode_enter"],
+      // v is now chord-only (v v = visual mode), tested in chord section
       ["/", {}, "local_find"],
       ["?", {}, "show_help"],
       // v2 rebindings
