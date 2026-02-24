@@ -339,23 +339,37 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   const commandResults = React.useMemo(() => buildCommandResults(keybindingMap), [keybindingMap])
   const allResults = React.useMemo(() => [...gotoResults, ...commandResults], [gotoResults, commandResults])
 
-  // Filter and sort command/goto results based on query
+  // Debounce query for expensive filtering (200ms, immediate in tests)
   const query = editCtx.value.trim()
+  const [deferredQuery, setDeferredQuery] = React.useState(query)
+  const omniTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => {
+    clearTimeout(omniTimerRef.current)
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+      setDeferredQuery(query)
+    } else {
+      omniTimerRef.current = setTimeout(() => setDeferredQuery(query), 200)
+    }
+    return () => clearTimeout(omniTimerRef.current)
+  }, [query])
+
+  // Filter and sort command/goto results based on deferred query
   const filteredCommandResults = React.useMemo(() => {
-    if (!query) return allResults
+    if (!deferredQuery) return allResults
 
     const scored = allResults
-      .map((result) => ({ result, score: scoreResult(result, query) }))
+      .map((result) => ({ result, score: scoreResult(result, deferredQuery) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
 
     return scored.map(({ result }) => result)
-  }, [allResults, query])
+  }, [allResults, deferredQuery])
 
   // Vault-wide search results (FTS5, deferred until 2+ chars)
   const searchResults = React.useMemo(
-    () => buildSearchResults(repo, query),
-    [repo, query],
+    () => buildSearchResults(repo, deferredQuery),
+    [repo, deferredQuery],
   )
 
   // Merge: command/goto results first, then search results (with divider tracked by index)

@@ -455,30 +455,45 @@ export function BoardCore({
     [setUI, dispatchBoard],
   )
 
-  // Search & replace: search query change callback — delegates to shared matching logic
+  // Search & replace: debounced search query change — regex compilation + full text matching
   const searchReplaceRef = useRef(ui.searchReplace)
   searchReplaceRef.current = ui.searchReplace
+  const srTimerRef = useRef<ReturnType<typeof setTimeout>>()
   const handleSearchReplaceSearchChange = useCallback(
     (searchQuery: string) => {
       const sr = searchReplaceRef.current
       if (!sr) return
 
-      const matchNodeIds = searchReplaceMatchingNodeIds(columns, repo, searchQuery, sr.useRegex)
-      // Navigate cursor to first match
-      if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
-        dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+      // Update query text immediately; preserve previous match state to avoid flicker
+      setUI({ searchReplace: { ...sr, searchQuery } })
+
+      // Debounce the expensive match computation (skip in tests)
+      clearTimeout(srTimerRef.current)
+      const computeMatches = () => {
+        const latestSr = searchReplaceRef.current
+        if (!latestSr) return
+        const matchNodeIds = searchReplaceMatchingNodeIds(columnsRef.current, repo, searchQuery, latestSr.useRegex)
+        if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
+          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+        }
+        setUI({
+          searchReplace: {
+            ...latestSr,
+            searchQuery,
+            matchIndex: 0,
+            matchCount: matchNodeIds.length,
+            matchNodeIds,
+          },
+        })
       }
-      setUI({
-        searchReplace: {
-          ...sr,
-          searchQuery,
-          matchIndex: 0,
-          matchCount: matchNodeIds.length,
-          matchNodeIds,
-        },
-      })
+      // @ts-expect-error - React internal flag set by inkx test renderer
+      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+        computeMatches()
+      } else {
+        srTimerRef.current = setTimeout(computeMatches, 200)
+      }
     },
-    [columns, setUI, dispatchBoard, repo],
+    [setUI, dispatchBoard, repo],
   )
 
   // Search & replace: replace query change callback (just stores the value)

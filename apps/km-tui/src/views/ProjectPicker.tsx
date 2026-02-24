@@ -212,6 +212,20 @@ export function ProjectPicker({
     onCancel: () => onCancelRef.current(),
   })
 
+  // Debounce query for fuzzy scoring (200ms, immediate in tests)
+  const [deferredQuery, setDeferredQuery] = React.useState(editCtx.value)
+  const pickerTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => {
+    clearTimeout(pickerTimerRef.current)
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+      setDeferredQuery(editCtx.value)
+    } else {
+      pickerTimerRef.current = setTimeout(() => setDeferredQuery(editCtx.value), 200)
+    }
+    return () => clearTimeout(pickerTimerRef.current)
+  }, [editCtx.value])
+
   // Max visible items: height - borders(2) - paddingY(2) - title(1) - input(1) - spacer(1) - footer(1) = height - 8
   const maxVisible = Math.max(1, height - 8)
 
@@ -219,7 +233,7 @@ export function ProjectPicker({
   let scrollOffset = 0
   let filteredCount = 0
   if (loaderRef.current?.status === "resolved") {
-    const filtered = filterOptions(loaderRef.current.read(), editCtx.value)
+    const filtered = filterOptions(loaderRef.current.read(), deferredQuery)
     filteredCount = filtered.length
     scrollOffset = Math.max(
       0,
@@ -258,7 +272,7 @@ export function ProjectPicker({
           <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
             <ProjectOptions
               loader={loaderRef.current}
-              query={editCtx.value}
+              query={deferredQuery}
               selectedIndex={selectedIndex}
               scrollOffset={scrollOffset}
               maxVisible={maxVisible}
