@@ -9,7 +9,7 @@ import type { KNode, TaskMarker, TaskStatus } from "@km/core"
 import { getMarkerForStatus } from "@km/core"
 import { nodesToMarkdown } from "@km/markdown"
 import type { ImportData, ImportItem, ImportProject, ImportSection, FileMap } from "./types.ts"
-import { filterSystemComment } from "./adapters/asana/comment-filter.ts"
+import { splitConsolidatedComment } from "./adapters/asana/comment-filter.ts"
 import { htmlToMarkdown } from "./adapters/asana/html-to-md.ts"
 
 /** Slugify a title for use as filename — preserves Unicode letters (ø, é, ñ) */
@@ -462,11 +462,22 @@ function itemToNodes(
   }
 
   // Comments as child list nodes under a "Comments" parent
+  // Split consolidated comments (pre-2020 Asana merged multiple comments into one),
+  // extract dates from headers, filter system actions.
   if (item.comments?.length && !(convertOpts?.skipActivities ?? true)) {
-    const filtered = item.comments
-      .map((c) => ({ ...c, text: filterSystemComment(c.text, c.createdAt) }))
-      .filter((c) => c.text.trim())
-    if (filtered.length) {
+    const splitEntries: Array<{ text: string; date: string; author?: string; createdAt: number }> = []
+    for (const c of item.comments) {
+      const entries = splitConsolidatedComment(c.text, c.createdAt)
+      const authorSlug = c.author
+        ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
+        : ""
+      for (const entry of entries) {
+        const date = entry.date ?? c.createdAt.slice(0, 10)
+        const createdAt = entry.date ? new Date(entry.date).getTime() : new Date(c.createdAt).getTime()
+        splitEntries.push({ text: entry.text, date, author: authorSlug, createdAt })
+      }
+    }
+    if (splitEntries.length) {
       nodes.push(
         mkNode(counter, {
           id: `comments-${item.sourceId}`,
@@ -478,14 +489,9 @@ function itemToNodes(
           updated_at: itemUpdatedAt,
         }),
       )
-      for (const c of filtered) {
-        const date = c.createdAt.slice(0, 10)
-        const authorSlug = c.author
-          ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
-          : ""
-        const fullText = normalizeImportText(convertAsanaLinks(c.text.trim()))
+      for (const entry of splitEntries) {
+        const fullText = normalizeImportText(convertAsanaLinks(entry.text.trim()))
         const commentId = `comment-${item.sourceId}-${counter.value}`
-        const commentCreatedAt = new Date(c.createdAt).getTime()
 
         // Split comment at headings (same as body content)
         const sections = splitBodyAtHeadings(fullText)
@@ -499,8 +505,8 @@ function itemToNodes(
               type: "p",
               item: true,
               parent_id: `comments-${item.sourceId}`,
-              content: `${date} ${authorSlug}: ${fullText}`.trim(),
-              created_at: commentCreatedAt,
+              content: `${entry.date} ${entry.author}: ${fullText}`.trim(),
+              created_at: entry.createdAt,
               updated_at: itemUpdatedAt,
             }),
           )
@@ -512,8 +518,8 @@ function itemToNodes(
               type: "h",
               item: true,
               parent_id: `comments-${item.sourceId}`,
-              content: `${date} ${authorSlug}`.trim(),
-              created_at: commentCreatedAt,
+              content: `${entry.date} ${entry.author}`.trim(),
+              created_at: entry.createdAt,
               updated_at: itemUpdatedAt,
             }),
           )
@@ -527,7 +533,7 @@ function itemToNodes(
                   type: "p",
                   parent_id: parentForSection,
                   content: section.content,
-                  created_at: commentCreatedAt,
+                  created_at: entry.createdAt,
                   updated_at: itemUpdatedAt,
                 }),
               )
@@ -540,7 +546,7 @@ function itemToNodes(
                   item: true,
                   parent_id: commentId,
                   content: section.content,
-                  created_at: commentCreatedAt,
+                  created_at: entry.createdAt,
                   updated_at: itemUpdatedAt,
                 }),
               )

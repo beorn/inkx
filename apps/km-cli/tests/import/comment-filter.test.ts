@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { filterSystemComment, isSystemAction } from "../../src/import/adapters/asana/comment-filter.ts"
+import {
+  filterSystemComment,
+  isSystemAction,
+  splitConsolidatedComment,
+} from "../../src/import/adapters/asana/comment-filter.ts"
 
 describe("filterSystemComment", () => {
   // ── Pattern 1: Single consolidated system block with soft hyphen prefix ──
@@ -62,6 +66,69 @@ describe("filterSystemComment", () => {
       filterSystemComment("moved from Car & insurance to Health & exercise (@ Palo Alto)", "2018-05-28T09:54:56.692Z"),
     ).toBe("")
     expect(filterSystemComment("marked today", "2017-03-24T05:10:00.000Z")).toBe("")
+  })
+})
+
+describe("splitConsolidatedComment", () => {
+  it("splits two user comments separated by soft hyphen", () => {
+    const text =
+      "\u00AD\nBjorn Stabell on Friday Mar 03, 2017 06:37 AM:\nChecked:\n- living ok\n- kitchen & bedroom - pressure ok, return ok, but floor not warm\n- bath - ok, except return warm even when off\n\n\u00AD\nBjorn Stabell on Friday Mar 03, 2017 06:38 AM:\nThey should call us soon"
+    const result = splitConsolidatedComment(text, "2018-05-29T00:00:00Z")
+
+    expect(result).toHaveLength(2)
+    expect(result[0].date).toBe("2017-03-03")
+    expect(result[0].text).toBe(
+      "Checked:\n- living ok\n- kitchen & bedroom - pressure ok, return ok, but floor not warm\n- bath - ok, except return warm even when off",
+    )
+    expect(result[1].date).toBe("2017-03-03")
+    expect(result[1].text).toBe("They should call us soon")
+  })
+
+  it("filters system blocks and keeps user blocks", () => {
+    const text =
+      "\u00AD\nBjorn Stabell on Saturday Jan 21, 2017 08:06 AM:\nremoved the due date\n\n\u00AD\nBjorn Stabell on Monday Feb 05, 2018 04:06 AM:\nDid annual checkup - no problems"
+    const result = splitConsolidatedComment(text, "2018-05-28T09:15:04.331Z")
+
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBe("2018-02-05")
+    expect(result[0].text).toBe("Did annual checkup - no problems")
+  })
+
+  it("returns single comment with extracted date from header", () => {
+    const text =
+      "\u00AD\nBjorn Stabell on Monday Feb 05, 2018 04:06 AM:\nDid annual checkup with Dr Na"
+    const result = splitConsolidatedComment(text, "2018-05-28T09:15:04.331Z")
+
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBe("2018-02-05")
+    expect(result[0].text).toBe("Did annual checkup with Dr Na")
+  })
+
+  it("returns original text when no consolidated headers present", () => {
+    const text = "Just a plain comment"
+    const result = splitConsolidatedComment(text, "2022-05-29T01:36:36.425Z")
+
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBeUndefined()
+    expect(result[0].text).toBe("Just a plain comment")
+  })
+
+  it("returns empty array when all blocks are system actions", () => {
+    const text =
+      "\u00AD\nBjorn Stabell on Friday Mar 24, 2017 05:10 AM:\nmarked today\n\n\u00AD\nBjorn Stabell on Saturday Mar 25, 2017 05:34 AM:\nunmarked today"
+    const result = splitConsolidatedComment(text, "2018-05-28T09:54:56.692Z")
+
+    expect(result).toHaveLength(0)
+  })
+
+  it("post-2020 comments skip system filtering but still parse headers", () => {
+    const text =
+      "\u00AD\nBjorn Stabell on Monday Jan 06, 2020 10:00 AM:\nSome user content"
+    const result = splitConsolidatedComment(text, "2022-01-01T00:00:00Z")
+
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBe("2020-01-06")
+    expect(result[0].text).toBe("Some user content")
   })
 })
 

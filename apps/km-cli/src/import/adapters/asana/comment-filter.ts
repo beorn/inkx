@@ -116,6 +116,88 @@ export function filterSystemComment(text: string, createdAt: string): string {
   return text
 }
 
+/** Months for parsing consolidated header dates */
+const MONTHS: Record<string, string> = {
+  Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+  Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+}
+
+/** Parse date from consolidated header: "Name on Weekday Month DD, YYYY HH:MM AM/PM:" → YYYY-MM-DD */
+function parseConsolidatedDate(headerLine: string): string | undefined {
+  const m = headerLine.match(/on (?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\w* (\w+) (\d{1,2}), (\d{4}) /)
+  if (!m) return undefined
+  const month = MONTHS[m[1]]
+  if (!month) return undefined
+  return `${m[3]}-${month}-${m[2].padStart(2, "0")}`
+}
+
+/** Strip the consolidated "Name on Day Mon DD, YYYY HH:MM AM/PM:" header from a block's content */
+function stripConsolidatedHeader(text: string): { content: string; date?: string } {
+  const lines = text.split("\n")
+  let headerIdx = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (CONSOLIDATED_HEADER.test((lines[i] ?? "").trim())) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) return { content: text }
+
+  const date = parseConsolidatedDate(lines[headerIdx]!.trim())
+  const content = lines
+    .slice(headerIdx + 1)
+    .join("\n")
+    .trim()
+  return { content, date }
+}
+
+export interface SplitComment {
+  text: string
+  /** Extracted date (YYYY-MM-DD) from consolidated header, if present */
+  date?: string
+}
+
+/**
+ * Split a consolidated comment into separate user comment entries.
+ * Each entry gets the date extracted from its consolidated header.
+ * System action blocks are filtered out (for pre-2020 comments).
+ * Non-consolidated comments return as a single entry.
+ */
+export function splitConsolidatedComment(text: string, createdAt: string): SplitComment[] {
+  const blocks = splitIntoBlocks(text)
+
+  if (blocks.length <= 1) {
+    // Single block — check if it has a consolidated header to strip
+    const stripped = stripConsolidatedHeader(text)
+    if (stripped.content !== text && stripped.date) {
+      // Has consolidated header — check for system action
+      if (createdAt < SYSTEM_COMMENT_CUTOFF && isConsolidatedSystemBlock(text)) return []
+      if (!stripped.content.trim()) return []
+      return [{ text: stripped.content, date: stripped.date }]
+    }
+    // Plain text, no header
+    const plain = filterSystemComment(text, createdAt)
+    if (!plain.trim()) return []
+    return [{ text: plain }]
+  }
+
+  // Multi-block: process each block independently
+  const results: SplitComment[] = []
+  for (const block of blocks) {
+    const trimmed = block.trim()
+    if (!trimmed || !stripInvisible(trimmed)) continue
+
+    // Check for system action (pre-2020 only)
+    if (createdAt < SYSTEM_COMMENT_CUTOFF && isConsolidatedSystemBlock(trimmed)) continue
+
+    const stripped = stripConsolidatedHeader(trimmed)
+    const content = stripped.content || trimmed
+    if (!content.trim()) continue
+    results.push({ text: content, date: stripped.date })
+  }
+  return results
+}
+
 /** Result from fetchComments: user comments + system activity log */
 export interface FetchCommentsResult {
   comments: ImportComment[]
