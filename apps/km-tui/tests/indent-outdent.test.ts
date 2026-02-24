@@ -173,7 +173,7 @@ describe("Outdent (Shift+Tab)", () => {
       // Shift+Tab on card1 → card1 becomes sibling of col1 under board
       const { board, repo } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))))
 
-      board.press("Shift+Tab")
+      board.press("shift+Tab")
 
       expect(childIds(repo, "board")).toContain("card1")
       expect(childIds(repo, "col1")).toEqual(["card2"])
@@ -184,7 +184,7 @@ describe("Outdent (Shift+Tab)", () => {
       const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
       board.press("j") // → B
-      board.press("Shift+Tab")
+      board.press("shift+Tab")
 
       expect(childIds(repo, "col1")).toEqual(["A", "C"])
       expect(childIds(repo, "board")).toContain("B")
@@ -200,7 +200,7 @@ describe("Outdent (Shift+Tab)", () => {
       const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
       // Outdent A from col1 to board level
-      board.press("Shift+Tab")
+      board.press("shift+Tab")
       expect(childIds(repo, "board")).toContain("A")
       expect(childIds(repo, "col1")).toEqual(["B"])
 
@@ -214,7 +214,7 @@ describe("Outdent (Shift+Tab)", () => {
       // col1: [card1] — outdent card1 → board = [col1, card1]
       const { board, repo } = testEnv(() => item("board", item("col1", item("card1"))))
 
-      board.press("Shift+Tab")
+      board.press("shift+Tab")
 
       const boardKids = childIds(repo, "board")
       expect(boardKids).toContain("col1")
@@ -231,7 +231,7 @@ describe("Outdent (Shift+Tab)", () => {
       )
 
       board.press("j") // → B
-      board.press("Shift+Tab")
+      board.press("shift+Tab")
 
       // B should be placed after col1 in board's children
       const boardKids = childIds(repo, "board")
@@ -247,7 +247,7 @@ describe("Outdent (Shift+Tab)", () => {
       // col1: [A, B, C] — outdent A → A moves to board level, cursor follows A
       const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      board.press("Shift+Tab") // outdent A → cursor follows A to board level
+      board.press("shift+Tab") // outdent A → cursor follows A to board level
 
       expect(board.q("[data-cursor]").textContent()).toContain("A")
     })
@@ -363,7 +363,7 @@ describe("Different view modes", () => {
       viewMode: "columns",
     })
 
-    board.press("Shift+Tab") // outdent A from col1 to board
+    board.press("shift+Tab") // outdent A from col1 to board
 
     expect(childIds(repo, "board")).toContain("A")
   })
@@ -374,7 +374,7 @@ describe("Edge cases", () => {
     // board → col1 → card1 — Shift+Tab makes card1 sibling of col1
     const { board, repo } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))))
 
-    board.press("Shift+Tab")
+    board.press("shift+Tab")
 
     expect(childIds(repo, "board")).toContain("card1")
   })
@@ -393,7 +393,7 @@ describe("Edge cases", () => {
 
     // cursor is on B (clamped from index 2 to 1)
     // Outdent B (with C as child) from col1 to board
-    board.press("Shift+Tab")
+    board.press("shift+Tab")
     expect(childIds(repo, "board")).toContain("B")
     expect(childIds(repo, "col1")).toEqual(["A"])
 
@@ -433,7 +433,7 @@ describe("Edge cases", () => {
     const beforeCol1 = childIds(repo, "col1")
 
     board.press("Tab")
-    board.press("Shift+Tab")
+    board.press("shift+Tab")
 
     // Structure unchanged
     expect(childIds(repo, "board")).toEqual(beforeBoard)
@@ -456,8 +456,8 @@ describe("Multi-select indent (atomic batch)", () => {
     )
 
     board.press("j") // → B (index 1)
-    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
-    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    board.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    board.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
     board.press("Tab")
 
@@ -473,8 +473,8 @@ describe("Multi-select indent (atomic batch)", () => {
     // A is first child (no prev sibling) → entire batch fails
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
     board.press("Tab")
 
@@ -486,8 +486,8 @@ describe("Multi-select indent (atomic batch)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     board.press("j") // → B
-    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}
-    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
+    board.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}
+    board.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
     board.press("Tab")
 
     // After successful batch indent, no "selected" status
@@ -504,10 +504,10 @@ describe("Multi-select outdent (atomic batch)", () => {
     // Shift+Tab → all three move to board level
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→B
+    board.press("shift+ArrowDown") // range A→C, multiSelected={A:0,B:0,C:0}, cursor→C
 
-    board.press("Shift+Tab")
+    board.press("shift+Tab")
 
     expect(childIds(repo, "board")).toContain("A")
     expect(childIds(repo, "board")).toContain("B")

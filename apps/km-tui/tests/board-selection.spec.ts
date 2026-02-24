@@ -21,7 +21,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowDown") // Shift+J = extend_select_down
+    board.press("shift+ArrowDown") // Shift+J = extend_select_down
     board.expect("#1b[data-cursor]").toExist()
     // Status shows selection feedback
     const status = board.getStatus()
@@ -32,10 +32,10 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(board.getStatus()?.message).toMatch(/2 items/)
 
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     board.expect("#1c[data-cursor]").toExist()
     expect(board.getStatus()?.message).toMatch(/3 items/)
   })
@@ -45,11 +45,11 @@ describe("Selection", () => {
     board.press("j") // Move to 1b normally
     board.expect("#1b[data-cursor]").toExist()
 
-    board.press("Shift+ArrowDown") // Init selection anchor at 1b
+    board.press("shift+ArrowDown") // Init selection anchor at 1b
     const status1 = board.getStatus()
     expect(status1?.message).toContain("selected")
 
-    board.press("Shift+ArrowDown") // Try to extend past bottom - stays at 1b
+    board.press("shift+ArrowDown") // Try to extend past bottom - stays at 1b
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -62,7 +62,7 @@ describe("Selection", () => {
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
-    board.press("Shift+ArrowUp") // Shift+K = extend_select_up
+    board.press("shift+ArrowUp") // Shift+K = extend_select_up
     board.expect("#1b[data-cursor]").toExist()
     expect(board.getStatus()?.message).toContain("selected")
   })
@@ -72,10 +72,10 @@ describe("Selection", () => {
     board.press("j").press("j") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
-    board.press("Shift+ArrowUp")
+    board.press("shift+ArrowUp")
     expect(board.getStatus()?.message).toMatch(/2 items/)
 
-    board.press("Shift+ArrowUp")
+    board.press("shift+ArrowUp")
     board.expect("#1a[data-cursor]").toExist()
     expect(board.getStatus()?.message).toMatch(/3 items/)
   })
@@ -84,10 +84,10 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowUp") // Init selection anchor at 1a
+    board.press("shift+ArrowUp") // Init selection anchor at 1a
     expect(board.getStatus()?.message).toContain("selected")
 
-    board.press("Shift+ArrowUp") // Try to extend past top - stays at 1a
+    board.press("shift+ArrowUp") // Try to extend past top - stays at 1a
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -100,7 +100,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowRight") // Shift+L = extend_select_right
+    board.press("shift+ArrowRight") // Shift+L = extend_select_right
     const status = board.getStatus()
     expect(status?.message).toContain("2 columns")
     expect(status?.message).toContain("3 items")
@@ -112,7 +112,7 @@ describe("Selection", () => {
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowLeft") // Shift+H = extend_select_left
+    board.press("shift+ArrowLeft") // Shift+H = extend_select_left
     const status = board.getStatus()
     expect(status?.message).toContain("2 columns")
     expect(status?.message).toContain("3 items")
@@ -124,10 +124,10 @@ describe("Selection", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowRight")
+    board.press("shift+ArrowRight")
     expect(board.getStatus()?.message).toContain("2 columns")
 
-    board.press("Shift+ArrowRight")
+    board.press("shift+ArrowRight")
     expect(board.getStatus()?.message).toContain("3 columns")
   })
 
@@ -137,11 +137,11 @@ describe("Selection", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowRight") // cols 0-1
-    board.press("Shift+ArrowRight") // cols 0-2
+    board.press("shift+ArrowRight") // cols 0-1
+    board.press("shift+ArrowRight") // cols 0-2
     expect(board.getStatus()?.message).toContain("3 columns")
 
-    board.press("Shift+ArrowLeft") // Back to cols 0-1
+    board.press("shift+ArrowLeft") // Back to cols 0-1
     expect(board.getStatus()?.message).toContain("2 columns")
   })
 
@@ -149,7 +149,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowLeft") // At boundary — selects current column
+    board.press("shift+ArrowLeft") // At boundary — selects current column
     const status = board.getStatus()
     expect(status?.message).toContain("1 column")
     expect(status?.message).toContain("2 items")
@@ -161,7 +161,7 @@ describe("Selection", () => {
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowRight") // At boundary — selects current column
+    board.press("shift+ArrowRight") // At boundary — selects current column
     const status = board.getStatus()
     expect(status?.message).toContain("1 column")
     expect(status?.message).toContain("2 items")
@@ -178,7 +178,7 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // First Ctrl+A - selects entire column (card scope requires outline mode)
-    // Note: "A" maps to select_all_progressive (no execute), Ctrl+A maps to select_all
+    // Note: "A" reserved for Agent Dialog, Ctrl+A maps to select_all
     board.press("ctrl+a")
     const s1 = board.getStatus()
     expect(s1?.message).toContain("column")
@@ -236,7 +236,7 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Create column selection
-    board.press("Shift+ArrowRight")
+    board.press("shift+ArrowRight")
     expect(board.getStatus()?.message).toContain("column")
 
     // Escape clears it
@@ -261,7 +261,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
 
     // Create selection
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(board.getStatus()?.message).toContain("selected")
 
     // Open help overlay
@@ -290,7 +290,7 @@ describe("Selection", () => {
     board.press("l")
     board.expect("#2a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowDown") // Create card selection in col2
+    board.press("shift+ArrowDown") // Create card selection in col2
     expect(board.getStatus()?.message).toContain("selected")
 
     board.press("h") // Normal h — clears selection and navigates left
@@ -301,7 +301,7 @@ describe("Selection", () => {
 
   test("normal l clears active card selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
-    board.press("Shift+ArrowDown") // Create card selection
+    board.press("shift+ArrowDown") // Create card selection
     expect(board.getStatus()?.message).toContain("selected")
 
     board.press("l") // Normal l — clears selection and navigates right
@@ -317,7 +317,7 @@ describe("Selection", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowRight")
+    board.press("shift+ArrowRight")
     board.expect("#2a[data-cursor]").toExist()
   })
 
@@ -326,7 +326,7 @@ describe("Selection", () => {
     board.press("l") // Navigate to col2
     board.expect("#2a[data-cursor]").toExist()
 
-    board.press("Shift+ArrowLeft")
+    board.press("shift+ArrowLeft")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -339,13 +339,13 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Select current column at boundary
-    board.press("Shift+ArrowLeft")
+    board.press("shift+ArrowLeft")
     expect(board.getStatus()?.message).toContain("1 column")
     expect(board.getStatus()?.message).toContain("2 items")
 
     // Second H at boundary — status cleared at keypress start, handler returns early
     // Selection is still there but no new status feedback is set
-    board.press("Shift+ArrowLeft")
+    board.press("shift+ArrowLeft")
     // No status (cleared at keypress start, no-op handler didn't set new status)
     expect(board.getStatus()).toBeNull()
     // But cursor hasn't moved — still in col1
@@ -361,11 +361,11 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Card selection first
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(board.getStatus()?.message).toMatch(/items? selected/)
 
     // Then column selection — anchor stays at col 0, focus moves to col 1
-    board.press("Shift+ArrowRight")
+    board.press("shift+ArrowRight")
     expect(board.getStatus()?.message).toContain("column")
   })
 
@@ -378,15 +378,15 @@ describe("Selection", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Extend down twice
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     board.expect("#1b[data-cursor]").toExist()
 
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     board.expect("#1c[data-cursor]").toExist()
     expect(board.getStatus()?.message).toMatch(/3 items/)
 
     // Extend back up - shrinks selection toward anchor
-    board.press("Shift+ArrowUp")
+    board.press("shift+ArrowUp")
     board.expect("#1b[data-cursor]").toExist()
     // Selection shrinks: anchor(1a) to cursor(1b) = 2 items
     expect(board.getStatus()?.message).toMatch(/2 items/)

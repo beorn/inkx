@@ -18,7 +18,7 @@ describe("Move Mode UI", () => {
     expect(initial).not.toContain("MOVE")
 
     // Select current node with Shift+J (extend selection down)
-    board.press("Shift+ArrowDown") // Shift+J to select current and next
+    board.press("shift+ArrowDown") // Shift+J to select current and next
 
     // Enter move mode with 'm'
     board.press("m").press("m")
@@ -34,7 +34,7 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("shift+ArrowDown") // Shift+J to select
     board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("MOVE")
 
@@ -52,7 +52,7 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("shift+ArrowDown") // Shift+J to select
     board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("MOVE")
 
@@ -75,7 +75,7 @@ describe("Move Mode UI", () => {
     )
 
     // Select and enter move mode
-    board.press("Shift+ArrowDown") // Shift+J to select
+    board.press("shift+ArrowDown") // Shift+J to select
     board.press("m").press("m") // Enter move mode
     expect(board.screenshot()).toContain("MOVE")
 

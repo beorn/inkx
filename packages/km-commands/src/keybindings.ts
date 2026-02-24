@@ -426,9 +426,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "inline-edit-barrier",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing },
+      // { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing }, // non-macOS
       { key: "z", super: true, commandId: "undo", when: isInlineEditing },
-      { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
+      // { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing }, // non-macOS
       { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
       // Text formatting (Cmd+b/i — kitty protocol, text edit only)
@@ -545,7 +545,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Space = toggle selection (v2 spec)
       { key: " ", commandId: "select_toggle" },
       // Progressive select all with Shift+A
-      { key: "A", commandId: "select_all_progressive" },
+      // A reserved for Agent Dialog
       // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
       { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
       // Cmd+A selects all (kitty protocol)
@@ -614,10 +614,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Tab", commandId: "indent_node" },
       { key: "Tab", shift: true, commandId: "outdent" },
 
-      // Clipboard (Ctrl/Cmd)
-      { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) },
-      { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) },
-      { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) },
+      // Clipboard (Cmd — macOS; Ctrl variants commented out)
+      // { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) }, // non-macOS
+      // { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) }, // non-macOS
+      // { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) }, // non-macOS
       { key: "c", super: true, commandId: "clipboard_copy", when: not(textInputFocused) },
       { key: "x", super: true, commandId: "clipboard_cut", when: not(textInputFocused) },
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
@@ -635,8 +635,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // x = toggle done/not-done (quick), X = cycle through all statuses
       { key: "x", commandId: "toggle_task_done" },
       { key: "X", commandId: "cycle_task_status" },
-      // e = archive (remove from view, still searchable)
-      { key: "e", commandId: "archive" },
+      // e removed — archive is now m a (move to archive)
+      // { key: "e", commandId: "archive" }, // removed: too easy to hit accidentally
       // c = capture to inbox, C = capture with dialog
       { key: "c", commandId: "capture_inbox" },
       { key: "C", commandId: "capture_dialog" },
@@ -661,18 +661,19 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
       { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
-      // g/m/a/t standalone fallbacks for chord timeout
+      // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
+      { key: "c", commandId: "capture_inbox" },
 
       // g-prefix chords (go-to)
       { chord: "g", key: "g", commandId: "cursor_first" },
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
-      { chord: "g", key: "n", commandId: "new_item" },
+      // g n removed — n/N = find next/prev, new item via c/C/o/O
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
@@ -692,6 +693,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
+      { chord: "m", key: "a", commandId: "archive" },
       { chord: "m", key: "i", commandId: "move_to_inbox" },
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
@@ -713,7 +715,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },
-      { chord: "t", key: "-", commandId: "noop" }, // TODO: clear_taskness command needs to be created
+      { chord: "t", key: "-", commandId: "clear_task" },
       { chord: "t", key: "o", commandId: "set_assignee" },
       { chord: "t", key: "d", commandId: "set_due_date" },
       { chord: "t", key: "!", commandId: "set_priority" },
@@ -721,6 +723,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "r", commandId: "set_recurring" },
       // toggle_hide_done moved to v d (view prefix)
       { chord: "t", key: "l", commandId: "set_label" },
+
+      // c-prefix chords (capture/create)
+      { chord: "c", key: "c", commandId: "capture_dialog" },
     ],
   },
 
@@ -744,17 +749,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 13: History (undo/redo via Ctrl/Cmd) ---
+  // --- Layer 13: History (undo/redo via Cmd) ---
   {
     name: "history",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo" },
+      // { key: "z", ctrl: true, commandId: "undo" }, // non-macOS
       { key: "z", super: true, commandId: "undo" },
-      { key: "z", ctrl: true, shift: true, commandId: "redo" },
+      // { key: "z", ctrl: true, shift: true, commandId: "redo" }, // non-macOS
       { key: "z", super: true, shift: true, commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
-      { key: "y", ctrl: true, commandId: "redo", when: not(textInputFocused) },
+      // { key: "y", ctrl: true, commandId: "redo", when: not(textInputFocused) }, // non-macOS (Windows redo)
     ],
   },
 

@@ -48,7 +48,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["i", "⏎"], command: "enter_inline_edit", description: "edit" },
       { keys: ["o", "O", "⌘⏎"], command: "insert_below", description: "new item below / above" },
-      { keys: ["n", "⌘⇧⏎"], command: "new_item", description: "new item dialog" },
+      { keys: ["⌘⇧⏎"], command: "new_item", description: "new item dialog" },
       { keys: ["⌫", "⌦"], command: "delete_node", description: "delete" },
       { keys: ["⌘d"], command: "duplicate_node", description: "duplicate" },
       { keys: ["y", "d", "p", "⌘c/x/v"], command: "clipboard_copy", description: "copy / cut / paste" },
@@ -62,7 +62,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["v ␣"], command: "visual_mode_enter", description: "visual mode" },
       { keys: ["␣"], command: "select_toggle", description: "toggle select" },
-      { keys: ["A", "⌃a", "⌘a"], command: "select_all", description: "select all" },
+      { keys: ["⌃a", "⌘a"], command: "select_all", description: "select all" },
       { keys: ["⇧+↑↓←→"], command: "extend_select_up", description: "extend selection" },
     ],
   },
@@ -70,7 +70,7 @@ const HELP_SECTIONS: HelpSection[] = [
     category: "Task",
     items: [
       { keys: ["x", "X"], command: "toggle_task_done", description: "toggle / cycle status" },
-      { keys: ["e"], command: "archive", description: "archive" },
+      { keys: ["m a"], command: "archive", description: "archive" },
       { keys: ["⌃t", "⌘t", "t t"], command: "task_dialog", description: "task properties" },
       { keys: ["t -"], command: "clear_task", description: "clear taskness" },
       { keys: ["t o"], command: "set_assignee", description: "set owner" },
@@ -122,6 +122,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["C", "c c", "⌘n"], command: "capture_dialog", description: "capture dialog" },
       { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
       { keys: ["/", "⌃f"], command: "local_find", description: "find on screen" },
+      { keys: ["n", "N"], command: "find_next", description: "find next / prev" },
       { keys: ["?"], command: "show_help", description: "help" },
       { keys: [",", "⌘,"], command: "settings", description: "settings" },
       { keys: ["`"], command: "console.toggle", description: "console" },
@@ -138,7 +139,7 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "h", location: "home (@next)", goto: "g h", move: "m h", create: "c h" },
   { key: "i", location: "inbox", goto: "g i", move: "m i", create: "c i" },
   { key: "j", location: "journal", goto: "g j", move: "m j", create: "c j" },
-  { key: "e", location: "archive", goto: "g e", move: "m e", add: "a e", create: "c e" },
+  { key: "a", location: "archive", goto: "g e", move: "m a", add: "a e", create: "c e" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
   { key: "0-9", location: "favorite", goto: "0 / g 0", move: "m 0", add: "a 0", separator: true },
   // Targets (pickers / wikilink types)

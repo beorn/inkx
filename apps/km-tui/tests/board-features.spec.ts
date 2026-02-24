@@ -103,11 +103,11 @@ describe("Content", () => {
 })
 
 describe("Dialogs", () => {
-  test("new item dialog shows on 'g n' chord and closes on Escape", () => {
+  test("new item dialog shows on cmd+shift+Enter and closes on Escape", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    // g n chord opens dialog
-    board.press("g").press("n")
+    // cmd+shift+Enter opens new item dialog
+    board.press("cmd+shift+Enter")
     let output = board.screenshot()
     expect(output).toContain("New")
     expect(output).toContain("Enter create")

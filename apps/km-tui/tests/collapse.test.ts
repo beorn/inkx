@@ -14,7 +14,7 @@
  * - Incremental vs fresh render consistency
  * - Collapsed column card visibility
  * - Collapsed column border symmetry and alignment
- * - Collapsed column after shift (Meta+l)
+ * - Collapsed column after shift (opt+l)
  * - Uncollapse header rendering
  */
 
@@ -635,11 +635,11 @@ describe("collapsed column after shift", () => {
       board.expect("#Todo[data-cursor]").toExist()
       board.press("v").press("c")
       board.expect("[data-collapsed]").toExist()
-      board.press("Meta+l")
+      board.press("opt+l")
       board.expect("#Todo[data-cursor]").toExist()
     })
 
-    test("collapsed column borders intact after Meta+l shift right", () => {
+    test("collapsed column borders intact after opt+l shift right", () => {
       const box = board.screen.nodeBox("Todo")
       expect(box).not.toBeNull()
       if (!box) return
@@ -659,7 +659,7 @@ describe("collapsed column after shift", () => {
       }
     })
 
-    test("collapsed column width stays narrow after Meta+l shift", () => {
+    test("collapsed column width stays narrow after opt+l shift", () => {
       const collapsed = board.q("[data-collapsed]")
       expect(collapsed.count()).toBe(1)
       const bbox = collapsed.boundingBox()
@@ -694,7 +694,7 @@ describe("collapsed column after shift", () => {
     // Collapse Todo and shift right
     board.press("k")
     board.press("v").press("c")
-    board.press("Meta+l")
+    board.press("opt+l")
 
     const incBuffer = board._result.lastBuffer()!
     const freshBuffer = board._result.freshRender()
@@ -739,7 +739,7 @@ describe("collapsed column after shift", () => {
     board.press("v").press("c")
 
     // Shift collapsed Beta right (past Gamma)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#Beta[data-cursor]").toExist()
 
     // Verify Beta is still narrow and has proper borders

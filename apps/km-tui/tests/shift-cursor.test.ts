@@ -1,7 +1,7 @@
 /**
  * Bug: km-tui.shift-cursor — column shift moves cursor, should stay
  *
- * After shifting a column with Meta+l/Meta+h, the cursor should stay on
+ * After shifting a column with opt+l/opt+h, the cursor should stay on
  * the shifted column. Subsequent navigation (j to enter column, l/h to
  * move between columns) should work correctly from the new position.
  * Visual column order should also reflect the shift.
@@ -11,7 +11,7 @@ import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
-  test("Meta+l shifts column right — cursor stays on same column header", () => {
+  test("opt+l shifts column right — cursor stays on same column header", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
@@ -20,7 +20,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // Cursor should still be on col1 (now at position 1)
     board.expect("#col1[data-cursor]").toExist()
@@ -30,7 +30,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 
-  test("Meta+h shifts column left — cursor stays on same column header", () => {
+  test("opt+h shifts column left — cursor stays on same column header", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
@@ -40,7 +40,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    board.press("Meta+h")
+    board.press("opt+h")
 
     // Cursor should still be on col2 (now at position 0)
     board.expect("#col2[data-cursor]").toExist()
@@ -50,7 +50,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#2a[data-cursor]").toExist()
   })
 
-  test("Meta+l shifts column right — pressing l from shifted column moves to next column", () => {
+  test("opt+l shifts column right — pressing l from shifted column moves to next column", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
@@ -59,7 +59,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right (col1 is now at position 1, between col2 and col3)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // Press l to move to next column — should go to col3 (which is now at position 2)
@@ -67,7 +67,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col3[data-cursor]").toExist()
   })
 
-  test("Meta+h shifts column left — pressing h from shifted column moves to previous column", () => {
+  test("opt+h shifts column left — pressing h from shifted column moves to previous column", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
@@ -76,7 +76,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col3[data-cursor]").toExist()
 
     // Shift col3 left (col3 is now at position 1, between col1 and col2)
-    board.press("Meta+h")
+    board.press("opt+h")
     board.expect("#col3[data-cursor]").toExist()
 
     // Press h to move to previous column — should go to col1 (at position 0)
@@ -98,7 +98,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // Navigate down — should enter col1's first card
@@ -119,7 +119,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    board.press("Meta+h")
+    board.press("opt+h")
     board.expect("#col2[data-cursor]").toExist()
 
     // Navigate down — should enter col2's first card
@@ -131,7 +131,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#2b[data-cursor]").toExist()
   })
 
-  test("Meta+l visually reorders columns — all 3 columns visible", () => {
+  test("opt+l visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
     const { board } = testEnv(
       () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
@@ -139,7 +139,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     )
     // Navigate to col1 header and shift right
     board.press("k")
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // After shift: visual order should be col2, col1, col3
     const col1Box = board.q("#col1").boundingBox()
@@ -152,7 +152,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(col1Box!.x).toBeLessThan(col3Box!.x)
   })
 
-  test("Meta+h visually reorders columns — all 3 columns visible", () => {
+  test("opt+h visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
     const { board } = testEnv(
       () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
@@ -160,7 +160,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     )
     // Navigate to col2 header and shift left
     board.press("l").press("k")
-    board.press("Meta+h")
+    board.press("opt+h")
 
     // After shift: visual order should be col2, col1, col3
     const col1Box = board.q("#col1").boundingBox()
@@ -191,11 +191,11 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right three times (col1 moves: pos 0 -> 1 -> 2 -> 3)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // col1 should now be at the rightmost position
@@ -229,12 +229,12 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     const c2Before = board.q("#col2").boundingBox()!.x
 
     // Shift right (col1 moves to position 1)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
     expect(board.q("#col1").boundingBox()!.x, "col1 moved right").toBeGreaterThan(c1Before)
 
     // Shift left (col1 returns to position 0)
-    board.press("Meta+h")
+    board.press("opt+h")
     board.expect("#col1[data-cursor]").toExist()
     expect(board.q("#col1").boundingBox()!.x, "col1 returned to original").toBe(c1Before)
     expect(board.q("#col2").boundingBox()!.x, "col2 returned to original").toBe(c2Before)
@@ -247,11 +247,11 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     )
     board.press("k")
 
-    board.press("Meta+l") // col1: pos 0 → 1
-    board.press("Meta+l") // col1: pos 1 → 2
+    board.press("opt+l") // col1: pos 0 → 1
+    board.press("opt+l") // col1: pos 1 → 2
     board.expect("#col1[data-cursor]").toExist()
 
-    board.press("Meta+h") // col1: pos 2 → 1
+    board.press("opt+h") // col1: pos 2 → 1
     board.expect("#col1[data-cursor]").toExist()
 
     // Order should be: col2, col1, col3
@@ -274,7 +274,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // Cursor should still be on col1 — and col1 should be visible (in viewport)
     board.expect("#col1[data-cursor]").toExist()
@@ -304,7 +304,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board } = makeBoard()
 
     // Cursor starts on A (card 0)
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B
+    board.press("shift+ArrowDown") // anchor=A, cursor→B
 
     // After one J, the selection range should include both A and B
     // Check status message reflects 2 items selected
@@ -322,7 +322,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     repo.updateNode("C", { task_status: "todo", task_marker: "[ ]" })
 
     // Re-render to pick up node type changes
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
+    board.press("shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
 
     // Toggle status on selection
     board.press("x")
@@ -343,7 +343,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board, repo } = makeBoard()
 
     // Cursor on A, press J to select range A→B
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
 
     // Delete the selection
     board.press("Backspace")
@@ -364,7 +364,7 @@ describe("shift card boundary detection", () => {
       fixture: singleCol,
       opts: { columns: 60, rows: 20 },
       nav: [],
-      key: "Meta+k",
+      key: "opt+k",
       bell: true,
     },
     {
@@ -372,7 +372,7 @@ describe("shift card boundary detection", () => {
       fixture: () => item("board", item("Col", item("a"), item("b"))),
       opts: { columns: 60, rows: 20 },
       nav: ["j"],
-      key: "Meta+j",
+      key: "opt+j",
       bell: true,
     },
     {
@@ -380,7 +380,7 @@ describe("shift card boundary detection", () => {
       fixture: twoCols,
       opts: { columns: 80, rows: 20 },
       nav: [],
-      key: "Meta+h",
+      key: "opt+h",
       bell: true,
     },
     {
@@ -388,7 +388,7 @@ describe("shift card boundary detection", () => {
       fixture: twoCols,
       opts: { columns: 80, rows: 20 },
       nav: ["l"],
-      key: "Meta+l",
+      key: "opt+l",
       bell: true,
     },
     {
@@ -396,7 +396,7 @@ describe("shift card boundary detection", () => {
       fixture: singleCol,
       opts: { columns: 60, rows: 20 },
       nav: [],
-      key: "Meta+j",
+      key: "opt+j",
       bell: false,
     },
     {
@@ -404,7 +404,7 @@ describe("shift card boundary detection", () => {
       fixture: twoCols,
       opts: { columns: 80, rows: 20 },
       nav: ["k"],
-      key: "Meta+k",
+      key: "opt+k",
       bell: true,
     },
   ])("$name", ({ fixture, opts, nav, key, bell }) => {

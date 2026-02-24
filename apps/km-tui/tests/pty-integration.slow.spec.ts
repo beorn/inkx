@@ -258,9 +258,9 @@ describe("PTY integration: navigation correctness", () => {
     await pressAndWait(e, "v")
   }, 20000)
 
-  test("search opens with Cmd+f and closes with Escape", async () => {
+  test("search opens with cmd+f and closes with Escape", async () => {
     // Open search (Cmd+f triggers global search dialog)
-    e.press("Cmd+f")
+    e.press("cmd+f")
     await e.waitForStable(300, 5000)
 
     // Type a search term

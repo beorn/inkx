@@ -6,7 +6,7 @@ describe("cursor ancestors after outdent", () => {
   it("outdented li node becomes structural column (after oi sibling)", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
-    board.press("Shift+Tab") // outdent A to board level
+    board.press("shift+Tab") // outdent A to board level
 
     // A is now type "p" at board level, placed after col1 (h)
     const nodeA = repo.getNode("A")

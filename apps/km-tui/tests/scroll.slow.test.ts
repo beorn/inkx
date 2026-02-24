@@ -427,7 +427,7 @@ describe("header-j-scroll (km-tui.header-j-scroll)", () => {
 // =============================================================================
 
 describe("column shift with body column", () => {
-  test("Meta+l shifts column right when body column exists — cursor follows", () => {
+  test("opt+l shifts column right when body column exists — cursor follows", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -446,7 +446,7 @@ describe("column shift with body column", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // Cursor should stay on col1
     board.expect("#col1[data-cursor]").toExist()
@@ -456,7 +456,7 @@ describe("column shift with body column", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 
-  test("Meta+h shifts column left when body column exists — cursor follows", () => {
+  test("opt+h shifts column left when body column exists — cursor follows", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -474,7 +474,7 @@ describe("column shift with body column", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
-    board.press("Meta+h")
+    board.press("opt+h")
 
     // Cursor should stay on col2
     board.expect("#col2[data-cursor]").toExist()
@@ -496,7 +496,7 @@ describe("column shift with body column", () => {
 
     // Shift col1 left — target is body column (virtual, not in repo)
     // This should either boundary or handle gracefully
-    board.press("Meta+h")
+    board.press("opt+h")
 
     // Cursor should still be on col1 (not crash, not move to wrong place)
     board.expect("#col1[data-cursor]").toExist()
@@ -520,7 +520,7 @@ describe("column shift with body column", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // After shift: visual order should be Description, col2, col1, col3
     const col1Box = board.q("#col1").boundingBox()
@@ -551,7 +551,7 @@ describe("column shift with body column", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // Navigate down — should be in col1's cards, not col2's
@@ -577,7 +577,7 @@ describe("column shift with collapsed columns", () => {
     board.press("c")
 
     // Shift collapsed col1 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // Cursor should still be on col1
     board.expect("#col1[data-cursor]").toExist()
@@ -595,11 +595,11 @@ describe("column shift with collapsed columns", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right (swaps with col2)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right again (swaps with col3, col1 now at end)
-    board.press("Meta+l")
+    board.press("opt+l")
     board.expect("#col1[data-cursor]").toExist()
 
     // Navigate down into col1 should show col1's cards
@@ -623,7 +623,7 @@ describe("column shift with collapsed columns", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 right
-    board.press("Meta+l")
+    board.press("opt+l")
 
     // Cursor should stay on col2
     board.expect("#col2[data-cursor]").toExist()

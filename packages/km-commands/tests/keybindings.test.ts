@@ -443,8 +443,7 @@ describe("initDefaultKeybindings", () => {
   it.each([
     // TUI: 'v' enters visual mode
     ["v", {}, "visual_mode_enter"],
-    // Shift+A for progressive select all
-    ["A", {}, "select_all_progressive"],
+    // A reserved for Agent Dialog (removed select_all_progressive)
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
     ["Escape", {}, "close_or_quit"],
   ] as const)("selection: %s resolves to %s", (key, mods, commandId) => {
@@ -457,8 +456,7 @@ describe("initDefaultKeybindings", () => {
     ["Enter", {}, "normal", "enter_inline_edit"],
     // Enter in move mode = confirm_move (defined with modes: ["move"])
     ["Enter", {}, "move", "confirm_move"],
-    // v2: 'i' starts inline edit, 'o' inserts below, 'e' archives
-    ["e", {}, "normal", "archive"],
+    // v2: 'i' starts inline edit, 'o' inserts below, 'e' bare removed (archive is m a)
     ["o", {}, "normal", "insert_below"],
     ["i", {}, "normal", "enter_inline_edit"],
     // TUI: Escape is close_or_quit (contextual) in normal mode
@@ -481,11 +479,9 @@ describe("initDefaultKeybindings", () => {
   })
 
   it.each([
-    ["z", { ctrl: true }, "undo"],
-    ["z", { ctrl: true, shift: true }, "redo"],
-    // Ctrl+Y is now text.yank (when textInputFocused), not redo
-    // Redo only via Ctrl+Shift+Z
-  ] as const)("undo/redo: ctrl+%s resolves to %s", (key, mods, commandId) => {
+    ["z", { super: true }, "undo"],
+    ["z", { super: true, shift: true }, "redo"],
+  ] as const)("undo/redo: cmd+%s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
   })
@@ -707,8 +703,7 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("zoom_inwards")
     expect(commandIds).toContain("zoom_outwards")
 
-    // Selection
-    expect(commandIds).toContain("select_all_progressive")
+    // Selection (A removed — reserved for Agent Dialog)
     // Note: clear_selection is handled by close_or_quit (contextual)
     expect(commandIds).toContain("close_or_quit")
 
@@ -754,6 +749,7 @@ describe("chord keybindings", () => {
     expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
+    expect(isChordPrefix("c")).toBe(true)
     // Not chord prefixes
     expect(isChordPrefix("z")).toBe(false)
     expect(isChordPrefix("s")).toBe(false)
@@ -768,7 +764,7 @@ describe("chord keybindings", () => {
     ["g", "o", "open_in_system"],
     ["g", "O", "open_in_terminal"],
     ["g", "p", "project_picker"],
-    ["g", "n", "new_item"],
+    // g n removed — n/N = find next/prev
     ["g", "i", "goto_inbox"],
     ["g", "j", "goto_journal"],
     ["g", "h", "goto_home"],
@@ -782,6 +778,7 @@ describe("chord keybindings", () => {
     ["v", "i", "cycle_icon_style"],
     ["v", "-", "clear_filters"],
     // m-prefix chords (move to board)
+    ["m", "a", "archive"],
     ["m", "m", "enter_move_mode"],
     ["m", "i", "move_to_inbox"],
     ["m", "j", "move_to_journal"],
@@ -796,10 +793,13 @@ describe("chord keybindings", () => {
     ["a", "j", "add_sibling_below"],
     ["a", "h", "insert_at_parent"],
     // t-prefix chords (task properties)
+    ["t", "-", "clear_task"],
     ["t", "d", "set_due_date"],
     ["t", "s", "set_start_date"],
     ["t", "o", "set_assignee"],
     ["t", "l", "set_label"],
+    // c-prefix chords (capture/create)
+    ["c", "c", "capture_dialog"],
   ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
     const ctx = createContext()
     expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
@@ -821,7 +821,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(44) // 12 g + 7 v + 10 m + 7 a + 8 t
+    expect(chordBindings.length).toBe(45) // 11 g + 7 v + 11 m + 7 a + 8 t + 1 c
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -841,7 +841,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["#", "+", "O", "[", "e", "g", "h", "i", "j", "n", "o", "p"])
+    expect(keys).toEqual(["#", "+", "O", "[", "e", "g", "h", "i", "j", "o", "p"])
   })
 
   it("getChordSuffixes returns v-prefix hints", () => {
@@ -873,8 +873,7 @@ describe("chord keybindings", () => {
     // z → zoom_inwards (one level closer to cursor), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_inwards")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
-    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
-    expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
+    // v2: e bare removed (archive is m a), c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
     expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
     expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
@@ -997,7 +996,6 @@ describe("text mode keybinding separation", () => {
       // v2 rebindings
       ["x", {}, "toggle_task_done"],
       [" ", {}, "select_toggle"],
-      ["e", {}, "archive"],
       ["u", {}, "undo"],
       ["o", {}, "insert_below"],
       ["p", {}, "clipboard_paste"],
@@ -1068,12 +1066,12 @@ describe("text mode keybinding separation", () => {
   })
 
   describe("undo/redo work during inline editing", () => {
-    it("Ctrl+z → undo", () => {
-      expect(resolveKeybinding("z", { ctrl: true }, inlineCtx)).toBe("undo")
+    it("Cmd+z → undo", () => {
+      expect(resolveKeybinding("z", { super: true }, inlineCtx)).toBe("undo")
     })
 
-    it("Ctrl+Shift+z → redo", () => {
-      expect(resolveKeybinding("z", { ctrl: true, shift: true }, inlineCtx)).toBe("redo")
+    it("Cmd+Shift+z → redo", () => {
+      expect(resolveKeybinding("z", { super: true, shift: true }, inlineCtx)).toBe("redo")
     })
 
     it("Ctrl+y → text.yank", () => {

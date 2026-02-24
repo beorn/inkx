@@ -46,8 +46,8 @@ describe("Multi-select delete", () => {
 
     // Cursor starts on A. Move to B, then extend selection B→D (2 J presses).
     board.press("j") // → B (card 1)
-    board.press("Shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
-    board.press("Shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
+    board.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}, cursor→C
+    board.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}, cursor→D
 
     board.press("Backspace")
 
@@ -61,8 +61,8 @@ describe("Multi-select delete", () => {
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    board.press("Shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→parent
-    board.press("Shift+ArrowDown") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, multiSelected={A:0}, cursor→parent
+    board.press("shift+ArrowDown") // range A→C, multiSelected={A:0,parent:0,C:0}, cursor→C
 
     board.press("Backspace")
 
@@ -78,8 +78,8 @@ describe("Multi-select delete", () => {
     )
 
     // Cursor starts on A. Select A→C (2 J presses). parent has children.
-    board.press("Shift+ArrowDown") // anchor=A, cursor→parent
-    board.press("Shift+ArrowDown") // range A→C, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, cursor→parent
+    board.press("shift+ArrowDown") // range A→C, cursor→C
 
     board.press("Backspace") // triggers confirmation dialog
     board.press("Enter") // confirm delete
@@ -96,8 +96,8 @@ describe("Multi-select delete", () => {
     // Cursor starts on A. Move to C, extend C→E (2 J presses).
     board.press("j") // → B
     board.press("j") // → C
-    board.press("Shift+ArrowDown") // anchor=C, cursor→D
-    board.press("Shift+ArrowDown") // range C→E, cursor→E
+    board.press("shift+ArrowDown") // anchor=C, cursor→D
+    board.press("shift+ArrowDown") // range C→E, cursor→E
 
     board.press("Backspace")
 
@@ -109,8 +109,8 @@ describe("Multi-select delete", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, cursor→B
+    board.press("shift+ArrowDown") // range A→C, cursor→C
 
     board.press("Backspace")
 
@@ -141,8 +141,8 @@ describe("Multi-select status toggle", () => {
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, cursor→B
+    board.press("shift+ArrowDown") // range A→C, cursor→C
 
     board.press("X") // batch toggle
 
@@ -161,8 +161,8 @@ describe("Multi-select status toggle", () => {
     setTaskStatus(repo, ["A", "B", "C", "D"])
 
     // Cursor starts on A. Select A→C (2 J presses).
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, cursor→B
+    board.press("shift+ArrowDown") // range A→C, cursor→C
 
     board.press("X") // batch toggle: A→wip, B→wip, C→wip
 
@@ -190,8 +190,8 @@ describe("Multi-select status toggle", () => {
 
     // Move back to A. Select A→C (2 J presses). A=todo, B=blocked, C=todo.
     board.press("k") // → A
-    board.press("Shift+ArrowDown") // anchor=A, cursor→B
-    board.press("Shift+ArrowDown") // range A→C, cursor→C
+    board.press("shift+ArrowDown") // anchor=A, cursor→B
+    board.press("shift+ArrowDown") // range A→C, cursor→C
 
     board.press("X") // batch toggle
 

@@ -231,7 +231,7 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
       return app
     },
     search(query) {
-      driver.press("Cmd+f")
+      driver.press("cmd+f")
       for (const c of query) driver.press(c)
       driver.press("Enter")
       runInvariants()

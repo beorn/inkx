@@ -117,9 +117,8 @@ describe("Escape Layering", () => {
   test("Escape closes new item dialog", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
-    // Open new item dialog with g n chord
-    board.press("g")
-    board.press("n")
+    // Open new item dialog with Cmd+shift+Enter
+    board.press("cmd+shift+Enter")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 
     // Escape closes dialog
@@ -136,8 +135,8 @@ describe("Escape Layering", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Select multiple items with Shift+ArrowDown
-    board.press("Shift+ArrowDown")
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Escape clears selection
@@ -180,7 +179,7 @@ describe("Escape Layering", () => {
     const { board, store, focusManager } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Select items
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Open detail pane (focus stays on board)
@@ -219,7 +218,7 @@ describe("Escape Layering", () => {
     const { board, store, focusManager } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
 
     // Create selection
-    board.press("Shift+ArrowDown")
+    board.press("shift+ArrowDown")
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Open detail pane (focus stays on board)
