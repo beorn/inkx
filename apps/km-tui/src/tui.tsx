@@ -129,8 +129,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     log.debug?.("syncManager started")
 
     // Event-loop heartbeat: detect main-thread blocks >500ms
-    // Reports last key, render pipeline phase breakdown, and output size
+    // Reports last key, render pipeline phase breakdown, render count, and cause
     let lastHeartbeat = performance.now()
+    let lastRenderCount = 0
     const heartbeatInterval = setInterval(() => {
       const now = performance.now()
       const gap = now - lastHeartbeat
@@ -139,13 +140,21 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
         // Last key that was pressed (set by board-app handleKey)
         const lastKey = (globalThis as any).__km_last_key as string | undefined
-        if (lastKey) parts.push(`key='${lastKey}'`)
+        if (lastKey) {
+          parts.push(`after key='${lastKey}'`)
+        } else {
+          parts.push("(startup)")
+        }
 
         // Per-phase pipeline timing from last render
         const pipeline = (globalThis as any).__inkx_last_pipeline as
           | { measure: number; layout: number; content: number; output: number; total: number }
           | undefined
-        if (pipeline) {
+        const renderCount = ((globalThis as any).__inkx_render_count as number) ?? 0
+        const rendersSinceLastCheck = renderCount - lastRenderCount
+        lastRenderCount = renderCount
+
+        if (pipeline && rendersSinceLastCheck > 0) {
           const phases = [
             pipeline.content > 1 ? `content=${pipeline.content.toFixed(0)}ms` : null,
             pipeline.output > 1 ? `output=${pipeline.output.toFixed(0)}ms` : null,
@@ -155,6 +164,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
             .filter(Boolean)
             .join(" ")
           if (phases) parts.push(`render: ${phases} (total=${pipeline.total.toFixed(0)}ms)`)
+          if (rendersSinceLastCheck > 1) parts.push(`(${rendersSinceLastCheck} renders)`)
+        } else if (rendersSinceLastCheck === 0) {
+          parts.push("(no renders — React mount or sync I/O)")
         }
 
         log.warn?.(parts.join(" — "))
