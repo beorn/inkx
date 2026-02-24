@@ -34,7 +34,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["hjkl", "↑↓←→"], command: "cursor_down", description: "navigate" },
       { keys: ["z / Z"], command: "zoom_inwards", description: "zoom in / out" },
-      { keys: ["gg / G"], command: "cursor_first", description: "top / bottom" },
+      { keys: ["g g / g G"], command: "cursor_first", description: "first / last" },
       { keys: ["J / K"], command: "block_nav_down", description: "next / prev block" },
       { keys: ["⌃u/d", "PgUp / Dn"], command: "page_up", description: "half page up / down" },
       { keys: ["{ / }", "⌘[/]"], command: "nav_back", description: "back / forward" },
@@ -114,8 +114,8 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "System",
     items: [
-      { keys: ["F", "⌃g", "⌘g"], command: "filter", description: "filter" },
-      { keys: ["S", "⌘f"], command: "search_replace", description: "search & replace" },
+      { keys: ["G", "⌃g", "⌘g"], command: "filter", description: "filter" },
+      { keys: ["F", "⌘f"], command: "search_replace", description: "find & replace" },
       { keys: ["C", "c c", "⌘n"], command: "capture_dialog", description: "capture dialog" },
       { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
       { keys: ["/", "⌃f"], command: "local_find", description: "find on screen" },

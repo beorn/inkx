@@ -526,7 +526,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "k", commandId: "cursor_up" },
       { key: "h", commandId: "cursor_left" },
       { key: "l", commandId: "cursor_right" },
-      { key: "G", commandId: "cursor_last" },
+      { key: "G", commandId: "filter", when: not(textInputFocused) },
+      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Block navigation (J/K — jump by block, auto-unfolds)
       { key: "J", commandId: "block_nav_down" },
@@ -715,7 +716,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "[", commandId: "add", targetId: "[", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
       // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
-      { key: "g", commandId: "cursor_first" },
+      { key: "g", commandId: "noop" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
@@ -723,6 +724,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // g-prefix chords (go-to)
       { chord: "g", key: "g", commandId: "cursor_first" },
+      { chord: "g", key: "G", commandId: "cursor_last" },
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
@@ -892,8 +894,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "/", commandId: "local_find" },
       { key: "f", cmd: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
-      { key: "S", commandId: "search_replace", when: not(textInputFocused) },
-      { key: "F", commandId: "filter", when: not(textInputFocused) },
+      // S and F moved to navigation layer (G = filter, F = find & replace)
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", cmd: true, commandId: "task_dialog" },

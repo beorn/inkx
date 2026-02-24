@@ -427,9 +427,9 @@ describe("initDefaultKeybindings", () => {
     ["k", {}, "cursor_up"],
     ["h", {}, "cursor_left"],
     ["l", {}, "cursor_right"],
-    ["g", {}, "cursor_first"],
-    ["G", {}, "cursor_last"],
-    ["G", { shift: true }, "cursor_last"], // Ink reports shift+G
+    ["g", {}, "noop"],
+    ["G", {}, "filter"],
+    ["G", { shift: true }, "filter"], // Ink reports shift+G
     // Arrow key navigation (same as hjkl per docs/06-ui.md)
     ["ArrowDown", {}, "cursor_down"],
     ["ArrowUp", {}, "cursor_up"],
@@ -857,7 +857,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(81) // 22 g + 7 v + 12 m + 10 a + 8 t + 1 c + 21 Ctrl+w
+    expect(chordBindings.length).toBe(82) // 23 g + 7 v + 12 m + 10 a + 8 t + 1 c + 21 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -884,7 +884,7 @@ describe("chord keybindings", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
     // g a replaces g e (goto archive), plus digits 0-9 for favorites
-    expect(keys).toEqual(["#", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "@", "O", "[", "a", "g", "h", "i", "j", "o", "p"])
+    expect(keys).toEqual(["#", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "@", "G", "O", "[", "a", "g", "h", "i", "j", "o", "p"])
   })
 
   it("getChordSuffixes returns v-prefix hints", () => {
