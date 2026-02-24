@@ -27,7 +27,8 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
   ["Navigation", "Editing"],
   ["Selection", "Task"],
   ["View", "Panes"],
-  ["System", "verb-grid"],
+  ["System"],
+  ["verb-grid"],
 ]
 
 // ── Key display formatting ──────────────────────────────────────────

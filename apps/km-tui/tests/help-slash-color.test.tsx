@@ -46,8 +46,8 @@ describe("HelpOverlay", () => {
   test("shows chord grid", () => {
     const app = renderHelp()
     expect(app.text).toContain("SHORTCUTS")
-    // Column headers
-    expect(app.text).toMatch(/go\s+move\s+add/)
+    // Column headers (all 4 verbs visible)
+    expect(app.text).toMatch(/go\s+move\s+add\s+create/)
     // Prefix key row with ctrl alternatives
     expect(app.text).toContain("prefix key")
     expect(app.text).toContain("⌃r")
