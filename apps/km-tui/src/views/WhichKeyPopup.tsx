@@ -156,19 +156,20 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
   // Max content width for single-line feedback (border+padding add 4)
   const maxWidth = Math.min(44, termWidth)
 
-  // Priority 2: bell feedback (prefer status message when co-set, since it's human-readable)
+  // Priority 2: bell feedback — white bg/black text; status uses level colors
   if (bellState || status) {
     const message = status?.message ?? bellState ?? ""
-    const color = bellState ? "red" : STATUS_COLORS[status!.level]
+    const isBell = !!bellState
     return (
       <Box
         width={Math.min(message.length + 4, maxWidth)}
         borderStyle="round"
-        borderColor="gray"
+        borderColor={isBell ? "white" : "gray"}
         paddingLeft={1}
         paddingRight={1}
+        backgroundColor={isBell ? "white" : undefined}
       >
-        <Text color={color}>{message}</Text>
+        <Text color={isBell ? "black" : STATUS_COLORS[status!.level]}>{message}</Text>
       </Box>
     )
   }

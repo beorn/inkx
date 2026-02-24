@@ -99,7 +99,7 @@ const navBack = {
   name: "Navigate Back",
   description: "Go back in navigation history",
   category: "Navigation",
-  shortcuts: ["{"],
+  shortcuts: ["["],
   execute: () => ({ type: "NAV_BACK" }),
 } satisfies CommandDef
 
@@ -108,7 +108,7 @@ const navForward = {
   name: "Navigate Forward",
   description: "Go forward in navigation history",
   category: "Navigation",
-  shortcuts: ["}"],
+  shortcuts: ["]"],
   execute: () => ({ type: "NAV_FORWARD" }),
 } satisfies CommandDef
 
@@ -136,23 +136,13 @@ const zoomOutwards = {
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
-// Zoom to board root (skip all intermediate levels)
-const zoomToRoot = {
-  id: "zoom_to_root",
-  name: "Zoom to Board Root",
-  description: "Zoom all the way out to the board root in one step",
-  category: "Navigation",
-  shortcuts: ["g/"],
-  execute: () => ({ type: "ZOOM_TO_ROOT" }),
-} satisfies CommandDef
-
 // Open detail pane for current node
 const openDetailPane = {
   id: "open_detail_pane",
   name: "Open Detail",
   description: "Open detail pane for current node",
   category: "Navigation",
-  shortcuts: ["Ctrl+I"],
+  shortcuts: ["Enter"],
   execute: () => ({ type: "OPEN_DETAIL_PANE" }),
 } satisfies CommandDef
 
@@ -221,7 +211,7 @@ const zoomInwards = {
   name: "Zoom Inwards",
   description: "Zoom in one level closer to selected node",
   category: "Navigation",
-  shortcuts: [],
+  shortcuts: ["i"],
   execute: () => ({ type: "ZOOM_INWARDS" }),
 } satisfies CommandDef
 
@@ -268,7 +258,7 @@ const gotoNext = {
   name: "Go to Next Actions",
   description: "Navigate to next actions board",
   category: "Navigation",
-  shortcuts: ["gN"],
+  shortcuts: ["ge"],
   execute: () => ({ type: "GOTO_BOARD", boardId: "@next" }),
 } satisfies CommandDef
 
@@ -279,7 +269,7 @@ const openInSystem = {
   name: "Open in System",
   description: "Open file/folder in macOS (Finder for folders, default app for files)",
   category: "Navigation",
-  shortcuts: ["go"],
+  shortcuts: ["o"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_SYSTEM", nodeId: ctx.currentNodeId ?? "" }
@@ -292,7 +282,7 @@ const openInTerminal = {
   name: "Open in Terminal",
   description: "Open terminal at the closest folder",
   category: "Navigation",
-  shortcuts: ["gO"],
+  shortcuts: ["O"],
   execute: (ctx) => {
     // nodeId can be empty — handler falls back to repo root
     return { type: "OPEN_IN_TERMINAL", nodeId: ctx.currentNodeId ?? "" }
@@ -305,7 +295,7 @@ const filter = {
   name: "Filter",
   description: "Open filter dialog to filter visible cards",
   category: "Navigation",
-  shortcuts: ["Ctrl+G"],
+  shortcuts: ["Ctrl+/"],
   execute: () => ({ type: "SHOW_FILTER_DIALOG" }),
 } satisfies CommandDef
 
@@ -315,7 +305,7 @@ const commandPalette = {
   name: "Command Palette",
   description: "Open command palette",
   category: "Navigation",
-  shortcuts: [":"],
+  shortcuts: [":", "Ctrl+K"],
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 
@@ -358,43 +348,6 @@ const gotoArchive = {
   execute: () => ({ type: "GOTO_BOARD", boardId: "@archive" }),
 } satisfies CommandDef
 
-// Goto stubs for verb grid expansion (not yet implemented)
-const gotoTag = {
-  id: "goto_tag",
-  name: "Go to Tag",
-  description: "Filter by tag",
-  category: "Navigation",
-  shortcuts: ["g#"],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
-const gotoAssignee = {
-  id: "goto_assignee",
-  name: "Go to Assignee",
-  description: "Filter by assignee",
-  category: "Navigation",
-  shortcuts: ["g@"],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
-const gotoProject = {
-  id: "goto_project",
-  name: "Go to Project",
-  description: "Navigate to project board",
-  category: "Navigation",
-  shortcuts: ["g+"],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
-const gotoBacklink = {
-  id: "goto_backlink",
-  name: "Go to Backlink",
-  description: "Follow backlink",
-  category: "Navigation",
-  shortcuts: ["g["],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
 // Focus board (Cmd+h — kitty)
 const focusBoard = {
   id: "focus_board",
@@ -430,7 +383,6 @@ export const navigationCommands: CommandDef[] = [
   navForward,
   zoomIn,
   zoomOutwards,
-  zoomToRoot,
   openDetailPane,
   toggleDetailPane,
   closeDetailPane,
@@ -449,10 +401,6 @@ export const navigationCommands: CommandDef[] = [
   gotoHome,
   gotoNext,
   gotoArchive,
-  gotoTag,
-  gotoAssignee,
-  gotoProject,
-  gotoBacklink,
   blockNavDown,
   blockNavUp,
   settings,

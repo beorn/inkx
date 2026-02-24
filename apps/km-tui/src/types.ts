@@ -37,7 +37,7 @@ export interface ColumnView {
   rules?: SectionRules
   /** True for virtual body column (displays leading non-section content) */
   isVirtual?: boolean
-  /** Unfiltered card count before text/property filtering. Present only when filters are active. */
+  /** Total card count before filtering (undefined = no filter active) */
   totalCardCount?: number
 }
 
@@ -125,9 +125,4 @@ export interface TuiOptions {
    * Set up early (before loadRepo) to capture startup warnings.
    */
   patchedConsole?: import("inkx").PatchedConsole
-  /**
-   * Timestamp (performance.now()) when the view command started.
-   * Used to compute total startup time from CLI invocation to first render.
-   */
-  startTime?: number
 }

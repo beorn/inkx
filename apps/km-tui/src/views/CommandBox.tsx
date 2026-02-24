@@ -211,7 +211,7 @@ export function CommandBox({
       width={termWidth}
       id="bottom-bar"
       data-status={ui.status?.level}
-      backgroundColor={ui.bellState ? "red" : isCommandInput ? "#1a3a5c" : undefined}
+      backgroundColor={isCommandInput ? "#1a3a5c" : undefined}
     >
       {/* Left side: mode pill + prompt + find/status */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">

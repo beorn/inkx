@@ -3,14 +3,21 @@
  *
  * Uses inkx VirtualList for React-level virtualization of large card lists.
  *
+ * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
+ * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.
+ * No CardState wrapper — cards are plain KNode objects.
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback } from "inkx"
+import { Box, Text, useScreenRectCallback, useFocusWithin } from "inkx"
+import type { JobRunner } from "@km/core"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { ColumnView } from "../types.ts"
+import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
+import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { parseToPlainText, InlineText } from "../text/index.ts"
@@ -22,9 +29,6 @@ import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
-import { isCollapsedChild } from "../hooks/use-columns.ts"
-import { useAtomValue } from "jotai"
-import { nodeMultiSelectedAtom, nodeEditAtom, nodeFoldOverrideAtom, boardFocusedAtom } from "../node-atoms.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -43,14 +47,11 @@ const ESTIMATED_CARD_HEIGHT = 4
 const OVERSCAN = 15
 
 /**
- * Card render limits for two-phase mount:
- * - INITIAL: fast first paint (visible viewport + small buffer).
- * - FULL: smooth scrolling after the column has painted.
- * Columns start at INITIAL and escalate to FULL via setTimeout(0).
- * In tests (IS_REACT_ACT_ENVIRONMENT), FULL is used immediately.
+ * Maximum number of cards to render at once.
+ * Lower than COLUMNS view (100) because cards are more expensive to render
+ * (have borders, more complex layout).
  */
-const INITIAL_MAX_CARDS = 5
-const FULL_MAX_CARDS = 20
+const MAX_RENDERED_CARDS = 50
 
 // =============================================================================
 // Card Component
@@ -89,39 +90,6 @@ interface CardProps {
  * without causing re-renders. This enables h/l visual navigation across
  * columns with different scroll positions.
  */
-/**
- * Helper component that registers the Column's bounding box for mouse click targeting.
- * Must be rendered INSIDE the Column's outer Box to get the correct node context.
- * Enables clicking on column headers and empty space to select the column.
- */
-function ColumnLayoutRegistrar({ colIndex }: { colIndex: number }): null {
-  const registry = useNavigator()
-
-  const handleLayout = useCallback(
-    (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry) return
-      layoutLog.trace?.(`ColumnLayoutRegistrar: col=${colIndex} x=${computed.x} w=${computed.width}`)
-      registry.registerColumnBounds(colIndex, {
-        x: computed.x,
-        y: computed.y,
-        width: computed.width,
-        height: computed.height,
-      })
-    },
-    [registry, colIndex],
-  )
-
-  useScreenRectCallback(handleLayout)
-
-  useEffect(() => {
-    return () => {
-      registry?.unregisterColumnBounds(colIndex)
-    }
-  }, [registry, colIndex])
-
-  return null
-}
-
 /**
  * Helper component that registers the Card's screen position.
  * Must be rendered INSIDE the Card's Box to get the correct node context.
@@ -180,28 +148,27 @@ const Card = React.memo(
     const nodeId = card.id
 
     // Get selection state exclusively from CursorStore (self-subscription via nodeId).
+    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
     const isSelected = useIsCursorAtNode(nodeId)
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
+    // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
     const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
 
-    // Check if this card is in inline edit mode (for border color) — per-node Jotai atom
-    const editState = useAtomValue(nodeEditAtom(nodeId))
-    const isEditing = editState !== null
+    // Check if this card is in inline edit mode (for border color)
+    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
 
-    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L) — per-node Jotai atom
-    const isMultiSelected = useAtomValue(nodeMultiSelectedAtom(nodeId))
+    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
+    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
 
-    // Fold depth: per-card override from Jotai atom, or root-level fold (from fold-all), or default 1
-    const { rootBoardId } = useTreeRenderContext()
-    const cardFoldOverride = useAtomValue(nodeFoldOverrideAtom(nodeId))
-    const rootFoldOverride = useAtomValue(nodeFoldOverrideAtom(rootBoardId ?? ""))
-    const rootFoldDepth = cardFoldOverride ?? rootFoldOverride ?? 1
-
-    // Dual cursor: dim the cursor when board is not focused (from context via Board)
-    const boardFocused = useAtomValue(boardFocusedAtom)
+    // Dual cursor: dim the cursor when board is not focused.
+    // Board is "focused" when it has explicit focus OR the detail pane doesn't
+    // (covers initial render before autoFocus fires, when nothing has focus yet).
+    const focusWithinBoard = useFocusWithin("board-area")
+    const focusWithinDetail = useFocusWithin("detail-pane")
+    const boardFocused = focusWithinBoard || !focusWithinDetail
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -209,21 +176,16 @@ const Card = React.memo(
     const repo = useRepo()
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const children = useMemo(() => repo.getChildren(card.id).filter((c) => !isCollapsedChild(c)), [repo, card.id])
+    const children = useMemo(() => repo.getChildren(card.id), [repo, card.id])
     const childCount = childCountProp ?? children.length
     const directHidden = Math.max(0, childCount - maxChildren)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
-      // Batch grandchild count query: one SQL GROUP BY instead of N individual getChildren calls.
-      // Each card has ~3 visible children; without batching, that's 3 cold SQLite queries per card.
       const visibleChildren = children.slice(0, maxChildren)
-      if (visibleChildren.length > 0) {
-        const grandchildCounts = repo.getChildCounts(visibleChildren.map((c) => c.id))
-        for (const child of visibleChildren) {
-          const gcCount = grandchildCounts.get(child.id) ?? 0
-          if (gcCount > maxChildren) {
-            total += gcCount - maxChildren
-          }
+      for (const child of visibleChildren) {
+        const grandchildren = repo.getChildren(child.id)
+        if (grandchildren.length > maxChildren) {
+          total += grandchildren.length - maxChildren
         }
       }
       // Title wrap: TreeNode constrainText() allows titles up to 2 lines.
@@ -264,17 +226,10 @@ const Card = React.memo(
       // HR cards render borderless with padding (matching border width) for alignment.
       // Padding on all 4 sides matches border dimensions for layout stability.
       // When selected, they get a yellow border like other body blocks.
-      const hrLayoutProps =
-        isSelected || isMultiSelected || isColSelected
-          ? {
-              paddingLeft: 1,
-              paddingRight: 1,
-              paddingTop: 1,
-              paddingBottom: 1,
-              outlineStyle: "round" as const,
-              outlineColor: "yellow",
-              outlineDimColor: isSelected && !boardFocused,
-            }
+      const hrLayoutProps = isSelected
+        ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: !boardFocused }
+        : isMultiSelected || isColSelected
+          ? { borderStyle: "round" as const, borderColor: "yellow", borderDimColor: false }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
         <Box flexDirection="column" flexShrink={0} width={width} {...hrLayoutProps}>
@@ -331,7 +286,6 @@ const Card = React.memo(
             extraExcludedSigils={extraExcludedSigils}
             compactContent
             hideChildCount
-            remainingDepth={rootFoldDepth}
           />
         </Box>
       )
@@ -348,13 +302,9 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
-          paddingLeft={1}
-          paddingRight={1}
-          paddingTop={1}
-          paddingBottom={1}
-          outlineStyle="round"
-          outlineColor={collapsedBorder}
-          outlineDimColor={(!isSelected && !isMultiSelected && !isColSelected) || (isSelected && !boardFocused)}
+          borderStyle="round"
+          borderColor={collapsedBorder}
+          borderDimColor={(!isSelected && !isMultiSelected && !isColSelected) || (isSelected && !boardFocused)}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -397,13 +347,10 @@ const Card = React.memo(
           <Box
             flexDirection="column"
             width={width}
-            paddingLeft={1}
-            paddingRight={1}
-            paddingTop={1}
-            outlineStyle="round"
-            outlineBottom={false}
-            outlineColor={borderColor}
-            outlineDimColor={cursorDim}
+            borderStyle="round"
+            borderBottom={false}
+            borderColor={borderColor}
+            borderDimColor={cursorDim}
           >
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
@@ -416,7 +363,6 @@ const Card = React.memo(
               childCount={childCount}
               extraExcludedSigils={extraExcludedSigils}
               hideChildCount
-              remainingDepth={rootFoldDepth}
             />
           </Box>
           <Box width={width} height={1} flexShrink={0}>
@@ -439,13 +385,9 @@ const Card = React.memo(
         flexDirection="column"
         flexShrink={0}
         width={width}
-        paddingLeft={1}
-        paddingRight={1}
-        paddingTop={1}
-        paddingBottom={1}
-        outlineStyle="round"
-        outlineColor={borderColor}
-        outlineDimColor={cursorDim}
+        borderStyle="round"
+        borderColor={borderColor}
+        borderDimColor={cursorDim}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
@@ -458,7 +400,6 @@ const Card = React.memo(
           childCount={childCount}
           extraExcludedSigils={extraExcludedSigils}
           hideChildCount
-          remainingDepth={rootFoldDepth}
         />
       </Box>
     )
@@ -487,7 +428,7 @@ const Card = React.memo(
 // =============================================================================
 
 /** Shared layout props for body blocks (virtual cards and HRs).
- * Always uses padding+outline for consistent sizing — outlineColor varies by state.
+ * Always uses border for consistent sizing — borderColor varies by state.
  * Layout invariant: selecting/deselecting must NOT shift content. */
 function bodyBlockLayoutProps(
   showBorder: boolean,
@@ -499,14 +440,11 @@ function bodyBlockLayoutProps(
   defaultBorderColor = "gray",
   cursorDim = false,
 ) {
-  const base = { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
-  if (showBorder)
-    {return { ...base, outlineStyle: "round" as const, outlineColor: borderColor, outlineDimColor: cursorDim }}
+  if (showBorder) return { borderStyle: "round" as const, borderColor, borderDimColor: cursorDim }
   return {
-    ...base,
-    outlineStyle: "round" as const,
-    outlineColor: isMultiSelected || isColumnSelected ? "yellow" : defaultBorderColor,
-    outlineDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
+    borderStyle: "round" as const,
+    borderColor: isMultiSelected || isColumnSelected ? "yellow" : defaultBorderColor,
+    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
   }
 }
 
@@ -535,7 +473,7 @@ function SkeletonCards({
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} outlineStyle="round" outlineDimColor paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1} width={width} height={cardHeight}>
+        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
           <Text dimColor wrap="truncate">
             {"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
           </Text>
@@ -576,13 +514,14 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle },
-    jobRunner,
-    undoHandle,
+    treeConfig: { iconStyle, borderMode },
   } = useTreeRenderContext()
+  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
+  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
+  // NODE MODEL V2: Self-select by nodeId instead of positional index.
   // ScrollTrackingVirtualList handles cardIndex subscription.
   const columnSelected = useIsColumnSelectedByNode(nodeId)
   const isSelected = columnSelected.isSelected
@@ -598,21 +537,15 @@ export const Column = React.memo(function Column({
 
   // Check if the board is in a loading state (discoverOnly + background parse).
   // Used to show skeleton cards in empty columns instead of "(empty)".
+  // Four conditions trigger loading:
+  //   1. isLoading is true (watcher reported "syncing")
+  //   2. backgroundParsing is true (deferred-file parsing in progress)
+  //   3. watcherStatus is null (initial load, no watcher events received yet)
+  //   4. watcherStatus.state is "starting" (watcher is starting up)
   const isLoading = useUISelector(
     (state) =>
       state.isLoading || state.backgroundParsing || !state.watcherStatus || state.watcherStatus.state === "starting",
   )
-
-  // Lazy card escalation: mount with few cards for fast first paint,
-  // then escalate to full count after the column has rendered once.
-  // @ts-expect-error - React internal flag set by inkx test renderer
-  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const [maxCards, setMaxCards] = useState(isTest ? FULL_MAX_CARDS : INITIAL_MAX_CARDS)
-  useEffect(() => {
-    if (isTest || maxCards >= FULL_MAX_CARDS) return
-    const id = setTimeout(() => setMaxCards(FULL_MAX_CARDS), 0)
-    return () => clearTimeout(id)
-  }, [isTest, maxCards])
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
   const name = parseToPlainText(getNodeDisplayName(repo, column.node))
@@ -620,7 +553,7 @@ export const Column = React.memo(function Column({
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
-  const filterHiddenCount = column.totalCardCount != null ? column.totalCardCount - column.cardNodes.length : 0
+  const hiddenCount = (column.totalCardCount ?? column.cardNodes.length) - column.cardNodes.length
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
@@ -669,8 +602,12 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && selectionLevel === "column"
 
-  // Dual cursor: dim the cursor when board is not focused (from context via Board)
-  const boardFocused = useAtomValue(boardFocusedAtom)
+  // Dual cursor: dim the cursor when board is not focused.
+  // Board is "focused" when it has explicit focus OR the detail pane doesn't
+  // (covers initial render before autoFocus fires, when nothing has focus yet).
+  const focusWithinBoard = useFocusWithin("board-area")
+  const focusWithinDetail = useFocusWithin("detail-pane")
+  const boardFocused = focusWithinBoard || !focusWithinDetail
   const colCursorDim = isColumnSelected && !boardFocused
 
   // Derive column header presentation props (icon, colors, style)
@@ -750,18 +687,13 @@ export const Column = React.memo(function Column({
         height={height}
         overflow="hidden"
       >
-        <ColumnLayoutRegistrar colIndex={colIndex} />
         <Box
           flexDirection="column"
           width={width}
           flexGrow={1}
-          paddingLeft={1}
-          paddingRight={1}
-          paddingTop={1}
-          paddingBottom={1}
-          outlineStyle="round"
-          outlineColor={borderColor}
-          outlineDimColor={colCursorDim}
+          borderStyle="round"
+          borderColor={borderColor}
+          borderDimColor={colCursorDim}
           overflow="hidden"
           backgroundColor={isColumnSelected && !colCursorDim ? "yellow" : undefined}
         >
@@ -805,7 +737,6 @@ export const Column = React.memo(function Column({
       height={height}
       overflow="hidden"
     >
-      <ColumnLayoutRegistrar colIndex={colIndex} />
       {/* Column header — unified NodeView component */}
       <ColumnHeader
         node={column.node}
@@ -834,17 +765,17 @@ export const Column = React.memo(function Column({
           isSelected={isSelected}
           items={column.cardNodes}
           width={width - 1}
-          height={height - 2 - (filterHiddenCount > 0 ? 1 : 0)}
+          height={height - 2 - (hiddenCount > 0 ? 1 : 0)}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
-          maxRendered={maxCards}
+          maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           overflowIndicator
           scrollAnchor={columnScrollAnchor}
         />
       ) : isLoading ? (
-        <SkeletonCards width={width - 1} height={height - 2} colIndex={colIndex} />
+        <SkeletonCards width={width - 1} height={height - 2 - (hiddenCount > 0 ? 1 : 0)} colIndex={colIndex} />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1} paddingLeft={3}>
@@ -852,9 +783,9 @@ export const Column = React.memo(function Column({
           </Box>
         </Box>
       )}
-      {filterHiddenCount > 0 && (
-        <Box paddingLeft={3} height={1} flexShrink={0}>
-          <Text dimColor>+{filterHiddenCount} hidden</Text>
+      {hiddenCount > 0 && (
+        <Box height={1} justifyContent="center">
+          <Text dimColor>+{hiddenCount} hidden</Text>
         </Box>
       )}
     </Box>

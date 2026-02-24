@@ -1,4 +1,4 @@
-import type { CommandAction, CommandDef } from "../types.ts"
+import type { CommandDef } from "../types.ts"
 
 // View mode
 const cycleViewMode = {
@@ -14,17 +14,8 @@ const cycleIconStyle = {
   name: "Cycle Icon Style",
   description: "Cycle between nerdfont, workflowy, and regular bullet icons",
   category: "View",
-  shortcuts: [],
+  shortcuts: ["V"],
   execute: () => ({ type: "CYCLE_ICON_STYLE" }),
-} satisfies CommandDef
-
-const clearFilters = {
-  id: "clear_filters",
-  name: "Clear Filters",
-  description: "Clear all active filters and filter text",
-  category: "View",
-  shortcuts: ["v-"],
-  execute: (): CommandAction => ({ type: "CLEAR_FILTER" }),
 } satisfies CommandDef
 
 const showHelp = {
@@ -42,7 +33,7 @@ const toggleFold = {
   name: "Toggle Fold",
   description: "Fold or unfold current node",
   category: "Fold",
-  shortcuts: [],
+  shortcuts: [], // Not directly bound — z is zoom_in, H/L fold/unfold
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_FOLD", nodeId: ctx.currentNodeId }
@@ -54,7 +45,7 @@ const toggleCollapse = {
   name: "Toggle Collapse",
   description: "Collapse or expand top-level column",
   category: "Fold",
-  shortcuts: ["vc"],
+  shortcuts: ["gc"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "TOGGLE_COLLAPSE", nodeId: ctx.currentNodeId }
@@ -84,26 +75,26 @@ const unfoldRecursive = {
   name: "Unfold Recursive",
   description: "Unfold node and all descendants",
   category: "Fold",
-  shortcuts: [],
+  shortcuts: [], // Not directly bound in keybindings
   execute: () => ({ type: "UNFOLD_RECURSIVE" }),
 } satisfies CommandDef
 
 const foldAll = {
   id: "fold_all",
   name: "Fold All",
-  description: "Fold one level board-wide (progressive)",
+  description: "Fold all nodes at depth 1",
   category: "Fold",
   shortcuts: ["<"],
-  execute: () => ({ type: "FOLD_NODE", scope: "root" }),
+  execute: () => ({ type: "FOLD_LEVEL", depth: 1 }),
 } satisfies CommandDef
 
 const unfoldAll = {
   id: "unfold_all",
   name: "Unfold All",
-  description: "Unfold one level board-wide (progressive)",
+  description: "Unfold all nodes",
   category: "Fold",
   shortcuts: [">"],
-  execute: () => ({ type: "UNFOLD_NODE", scope: "root" }),
+  execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
 // Ignore operations
@@ -112,7 +103,7 @@ const ignoreNode = {
   name: "Ignore Node",
   description: "Hide or un-hide node from board (persisted in .km/ignored)",
   category: "Fold",
-  shortcuts: [],
+  shortcuts: [], // Not directly bound in keybindings — C is capture_dialog
   execute: () => ({ type: "IGNORE_NODE" }),
 } satisfies CommandDef
 
@@ -121,26 +112,28 @@ const toggleShowIgnored = {
   name: "Toggle Show Ignored",
   description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
   category: "Fold",
-  shortcuts: ["vH"],
+  shortcuts: ["gC"],
   execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
 } satisfies CommandDef
 
 // View configuration
+// ORPHAN: no keybinding — shortcuts </>  conflict with fold_all/unfold_all in keybindings.ts. Candidate for removal.
 const increaseOutlineDepth = {
   id: "increase_outline_depth",
   name: "Increase Depth",
   description: "Show more nested levels",
   category: "View",
-  shortcuts: [],
+  shortcuts: [">"],
   execute: () => ({ type: "INCREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
+// ORPHAN: no keybinding — shortcuts </>  conflict with fold_all/unfold_all in keybindings.ts. Candidate for removal.
 const decreaseOutlineDepth = {
   id: "decrease_outline_depth",
   name: "Decrease Depth",
   description: "Show fewer nested levels",
   category: "View",
-  shortcuts: [],
+  shortcuts: ["<"],
   execute: () => ({ type: "DECREASE_OUTLINE_DEPTH" }),
 } satisfies CommandDef
 
@@ -165,7 +158,6 @@ const decreaseContentLines = {
 export const viewCommands: CommandDef[] = [
   cycleViewMode,
   cycleIconStyle,
-  clearFilters,
   showHelp,
   toggleFold,
   foldNode,

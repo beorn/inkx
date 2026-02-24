@@ -6,16 +6,20 @@
  * - New item dialog
  * - Project picker
  * - Favorites (1-9)
+ * - Column jump (Shift+1-9)
  * - Escape (contextual close/quit)
  * - Outdent
  */
 
 import type { CommandDef, CommandAction } from "../types.ts"
 
-/** Generate favorite commands (0-9): jump to favorite board N via number key */
+/** Shift+number symbol for each digit 1-9 */
+const SHIFT_NUMBER_SYMBOLS = ["!", "@", "#", "$", "%", "^", "&", "*", "("]
+
+/** Generate favorite commands (1-9): jump to favorite board N via number key */
 const favoriteCommands = ((): CommandDef[] =>
-  Array.from({ length: 10 }, (_, i) => {
-    const n = i
+  Array.from({ length: 9 }, (_, i) => {
+    const n = i + 1
     return {
       id: `favorite_${n}`,
       name: `Favorite ${n}`,
@@ -25,6 +29,24 @@ const favoriteCommands = ((): CommandDef[] =>
       execute: (): CommandAction => ({
         type: "JUMP_TO_FAVORITE",
         favoriteNumber: n,
+      }),
+    }
+  }))()
+
+/** Generate column jump commands (1-9): jump to column N via Shift+number */
+// ORPHAN: no keybinding — column_1..column_9 are not wired in keybindings.ts
+const columnJumpCommands = ((): CommandDef[] =>
+  Array.from({ length: 9 }, (_, i) => {
+    const n = i + 1
+    return {
+      id: `column_${n}`,
+      name: `Column ${n}`,
+      description: `Jump to column ${n}`,
+      category: "Navigation",
+      shortcuts: [SHIFT_NUMBER_SYMBOLS[i] ?? ""],
+      execute: (): CommandAction => ({
+        type: "JUMP_TO_COLUMN",
+        columnNumber: n,
       }),
     }
   }))()
@@ -46,7 +68,7 @@ export const tuiCommands: CommandDef[] = [
     name: "New Item",
     description: "Open new item dialog",
     category: "Edit",
-    shortcuts: ["gn"],
+    shortcuts: ["n"],
     execute: (): CommandAction => ({ type: "SHOW_NEW_ITEM_DIALOG" }),
   },
 
@@ -56,22 +78,26 @@ export const tuiCommands: CommandDef[] = [
     name: "Project Picker",
     description: "Open project picker",
     category: "Navigation",
-    shortcuts: ["gp"],
+    shortcuts: ["p"],
     execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
   },
 
-  // Search dialog (no keybinding — accessible via command palette)
+  // Search dialog
+  // ORPHAN: no keybinding — superseded by local_find (/) in keybindings.ts
   {
     id: "search",
     name: "Search",
     description: "Open search dialog",
     category: "Navigation",
-    shortcuts: [],
+    shortcuts: ["/"],
     execute: (): CommandAction => ({ type: "SHOW_SEARCH_DIALOG" }),
   },
 
   // Favorites (1-9)
   ...favoriteCommands,
+
+  // Column jump (Shift+1-9)
+  ...columnJumpCommands,
 
   // Close/Quit (contextual Escape)
   {
@@ -156,13 +182,24 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
   },
 
+  // Sync Pane
+  // ORPHAN: no keybinding — sync_pane.toggle is not wired in keybindings.ts
+  {
+    id: "sync_pane.toggle",
+    name: "Toggle Sync Pane",
+    description: "Toggle sync activity pane",
+    category: "View",
+    shortcuts: ["S"],
+    execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
+  },
+
   // Toggle hide done/dropped tasks
   {
     id: "toggle_hide_done",
     name: "Toggle Hide Done",
     description: "Toggle hiding done and dropped tasks",
     category: "View",
-    shortcuts: ["tc"],
+    shortcuts: ["D"],
     execute: (): CommandAction => ({ type: "TOGGLE_HIDE_DONE" }),
   },
 
@@ -174,6 +211,16 @@ export const tuiCommands: CommandDef[] = [
     category: "View",
     shortcuts: ["Escape"],
     execute: (): CommandAction => ({ type: "TOAST_DISMISS" }),
+  },
+
+  // Dev
+  {
+    id: "dev.test_toast",
+    name: "Test Toast",
+    description: "Fire a random test toast (dev)",
+    category: "View",
+    shortcuts: ["Ctrl+T"],
+    execute: (): CommandAction => ({ type: "DEV_TEST_TOAST" }),
   },
 
   // Task dialog (Cmd+T / tt — v2 spec)

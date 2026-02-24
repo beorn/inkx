@@ -321,7 +321,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "filter-dialog",
     bindings: [
       { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
-      { key: "g", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
       { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
@@ -425,8 +425,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "inline-edit-barrier",
     bindings: [
-      // Ctrl+Z reserved for SIGTSTP (suspend) — use Cmd+Z or u for undo
+      { key: "z", ctrl: true, commandId: "undo", when: isInlineEditing },
       { key: "z", super: true, commandId: "undo", when: isInlineEditing },
+      { key: "z", ctrl: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "z", super: true, shift: true, commandId: "redo", when: isInlineEditing },
       { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
       // Text formatting (Cmd+b/i — kitty protocol, text edit only)
@@ -440,17 +441,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "detail-pane",
     bindings: [
-      // Escape/h unfocuses pane (returns to board) — pane stays open per v2 spec
+      // Escape unfocuses pane (returns to board) — pane stays open per v2 spec
       // isInDetailPane = focus tree activeId === "detail-pane", NOT showDetailPane
       { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
-      { key: "h", commandId: "detail_pane.close", when: isInDetailPane },
-      // j/k navigate the cursor within the detail pane items
-      { key: "j", commandId: "detail_pane.cursor_down", when: isInDetailPane },
-      { key: "k", commandId: "detail_pane.cursor_up", when: isInDetailPane },
-      { key: "ArrowDown", commandId: "detail_pane.cursor_down", when: isInDetailPane },
-      { key: "ArrowUp", commandId: "detail_pane.cursor_up", when: isInDetailPane },
-      // Enter zooms into the selected child
-      { key: "Return", commandId: "detail_pane.enter", when: isInDetailPane },
     ],
   },
 
@@ -515,8 +508,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
       { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
 
-      // Zoom: z = zoom inwards one level (toward cursor), Z = zoom out one level
-      { key: "z", commandId: "zoom_inwards" },
+      // Zoom: z = zoom into cursor node, Z = zoom out one level
+      { key: "z", commandId: "zoom_in" },
       { key: "Z", commandId: "zoom_outwards" },
 
       // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
@@ -550,9 +543,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       // Space = toggle selection (v2 spec)
       { key: " ", commandId: "select_toggle" },
-      // Select all (progressive: column first, then board-wide)
-      { key: "A", commandId: "select_all" },
+      // Progressive select all with Shift+A
+      { key: "A", commandId: "select_all_progressive" },
+      // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
       { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
+      // Cmd+A selects all (kitty protocol)
       { key: "a", super: true, commandId: "select_all" },
 
       // Extend selection with Shift+arrows (xterm modified arrow sequences)
@@ -571,8 +566,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Enter", commandId: "confirm_move", modes: ["move"] },
       { key: "Escape", commandId: "cancel_move", modes: ["move"] },
 
+      // I = enter body edit at start, Shift+Enter = enter body edit at end
+      { key: "I", commandId: "noop" }, // TODO: enter_body_edit command needs to be created
+      { key: "Enter", shift: true, commandId: "noop" }, // TODO: enter_body_edit_end command needs to be created
+
       // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
       { key: "d", commandId: "clipboard_cut" },
+      { key: "Backspace", shift: true, commandId: "clipboard_cut" },
       { key: "Backspace", commandId: "delete_node" },
       { key: "Delete", commandId: "delete_node" },
 
@@ -613,14 +613,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Tab", commandId: "indent_node" },
       { key: "Tab", shift: true, commandId: "outdent" },
 
-      // Clipboard (Cmd/Super only — Ctrl+C/X/V are reserved for process signals)
+      // Clipboard (Ctrl/Cmd)
+      { key: "c", ctrl: true, commandId: "clipboard_copy", when: not(textInputFocused) },
+      { key: "x", ctrl: true, commandId: "clipboard_cut", when: not(textInputFocused) },
+      { key: "v", ctrl: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       { key: "c", super: true, commandId: "clipboard_copy", when: not(textInputFocused) },
       { key: "x", super: true, commandId: "clipboard_cut", when: not(textInputFocused) },
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
       { key: "d", super: true, commandId: "duplicate_node" },
-      // Cmd+n = capture dialog (kitty)
-      { key: "n", super: true, commandId: "capture_dialog" },
+      // Cmd+n = capture new to inbox (kitty)
+      { key: "n", super: true, commandId: "capture_inbox" },
     ],
   },
 
@@ -633,7 +636,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "X", commandId: "cycle_task_status" },
       // e = archive (remove from view, still searchable)
       { key: "e", commandId: "archive" },
-      // C = capture with dialog (shifted C is not a chord prefix)
+      // c = capture to inbox, C = capture with dialog
+      { key: "c", commandId: "capture_inbox" },
       { key: "C", commandId: "capture_dialog" },
     ],
   },
@@ -656,43 +660,40 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "+", commandId: "add_project", when: and(not(textInputFocused), not(anyDialogOpen)) },
       { key: "[", commandId: "add_backlink", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
-      // n = new item dialog (bare key, not chord)
-      { key: "n", commandId: "new_item" },
-
-      // g/m/a/t/v/w/c standalone fallbacks for chord timeout
+      // g/m/a/t standalone fallbacks for chord timeout
       { key: "g", commandId: "cursor_first" },
       { key: "m", commandId: "enter_move_mode" },
       { key: "a", commandId: "noop" },
       { key: "t", commandId: "noop" },
-      { key: "v", commandId: "noop" },
-      { key: "w", commandId: "noop" },
-      { key: "c", commandId: "capture_dialog" },
 
       // g-prefix chords (go-to)
       { chord: "g", key: "g", commandId: "cursor_first" },
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
       { chord: "g", key: "p", commandId: "project_picker" },
+      { chord: "g", key: "n", commandId: "new_item" },
+      { chord: "g", key: "c", commandId: "toggle_collapse" },
+      { chord: "g", key: "C", commandId: "toggle_show_ignored" },
+      { chord: "g", key: "v", commandId: "cycle_view_mode" },
       { chord: "g", key: "i", commandId: "goto_inbox" },
       { chord: "g", key: "j", commandId: "goto_journal" },
       { chord: "g", key: "h", commandId: "goto_home" },
-      { chord: "g", key: "/", commandId: "zoom_to_root" },
       { chord: "g", key: "e", commandId: "goto_archive" },
-      { chord: "g", key: "N", commandId: "goto_next" },
-      { chord: "g", key: "#", commandId: "goto_tag" },
-      { chord: "g", key: "@", commandId: "goto_assignee" },
-      { chord: "g", key: "+", commandId: "goto_project" },
-      { chord: "g", key: "[", commandId: "goto_backlink" },
-      { chord: "g", key: "G", commandId: "cursor_last" },
+      { chord: "g", key: "+", commandId: "project_picker" },
+      { chord: "g", key: "[", commandId: "noop" }, // TODO: create goto_node / backlink_picker command
+      { chord: "g", key: "#", commandId: "noop" }, // TODO: create goto_tag / tag_picker command
 
       // m-prefix chords (move to board)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
       { chord: "m", key: "i", commandId: "move_to_inbox" },
       { chord: "m", key: "j", commandId: "move_to_journal" },
       { chord: "m", key: "h", commandId: "move_to_home" },
-      { chord: "m", key: "e", commandId: "move_to_archive" },
-      { chord: "m", key: "+", commandId: "move_to_project" },
       { chord: "m", key: "p", commandId: "reparent_picker" },
+      { chord: "m", key: "+", commandId: "reparent_picker" },
+      { chord: "m", key: "[", commandId: "noop" }, // TODO: create move_to_node command
+      { chord: "m", key: "#", commandId: "noop" }, // TODO: create move_to_tag command
+      { chord: "m", key: "g", commandId: "noop" }, // TODO: create move_to_first command
+      { chord: "m", key: "G", commandId: "noop" }, // TODO: create move_to_last command
 
       // a-prefix chords (add operations — v2 spec)
       { chord: "a", key: "#", commandId: "add_tag" },
@@ -702,82 +703,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "a", key: "i", commandId: "insert_child" },
       { chord: "a", key: "j", commandId: "add_sibling_below" },
       { chord: "a", key: "h", commandId: "insert_at_parent" },
-      { chord: "a", key: "e", commandId: "add_to_archive" },
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },
-      { chord: "t", key: "-", commandId: "clear_task" },
+      { chord: "t", key: "-", commandId: "noop" }, // TODO: clear_taskness command needs to be created
       { chord: "t", key: "o", commandId: "set_assignee" },
       { chord: "t", key: "d", commandId: "set_due_date" },
       { chord: "t", key: "!", commandId: "set_priority" },
       { chord: "t", key: "s", commandId: "set_start_date" },
       { chord: "t", key: "r", commandId: "set_recurring" },
+      { chord: "t", key: "c", commandId: "toggle_hide_done" },
       { chord: "t", key: "l", commandId: "set_label" },
-
-      // v-prefix chords (view/visual — v2 spec)
-      { chord: "v", key: " ", commandId: "visual_mode_enter" },
-      { chord: "v", key: "v", commandId: "cycle_view_mode" },
-      { chord: "v", key: "c", commandId: "toggle_collapse" },
-      { chord: "v", key: "d", commandId: "toggle_hide_done" },
-      { chord: "v", key: "h", commandId: "ignore_node" },
-      { chord: "v", key: "H", commandId: "toggle_show_ignored" },
-      { chord: "v", key: "f", commandId: "filter" },
-      { chord: "v", key: "-", commandId: "clear_filters" },
-
-      // c-prefix chords (capture to location)
-      { chord: "c", key: "c", commandId: "capture_dialog" },
-      { chord: "c", key: "i", commandId: "capture_inbox" },
-      { chord: "c", key: "h", commandId: "capture_home" },
-      { chord: "c", key: "j", commandId: "capture_journal" },
-      { chord: "c", key: "e", commandId: "capture_archive" },
-
-      // w-prefix chords (pane operations — windowing, vim-style)
-      { chord: "w", key: "v", commandId: "pane_split_vertical" },
-      { chord: "w", key: "s", commandId: "pane_split_horizontal" },
-      { chord: "w", key: "q", commandId: "pane_close" },
-      { chord: "w", key: "h", commandId: "pane_focus_left" },
-      { chord: "w", key: "j", commandId: "pane_focus_down" },
-      { chord: "w", key: "k", commandId: "pane_focus_up" },
-      { chord: "w", key: "l", commandId: "pane_focus_right" },
-      { chord: "w", key: "p", commandId: "pane_focus_previous" },
-      { chord: "w", key: "Tab", commandId: "pane_focus_next" },
-      { chord: "w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
-      { chord: "w", key: ">", commandId: "pane_resize_grow" },
-      { chord: "w", key: "<", commandId: "pane_resize_shrink" },
-      { chord: "w", key: "+", commandId: "pane_resize_grow_vertical" },
-      { chord: "w", key: "-", commandId: "pane_resize_shrink_vertical" },
-      { chord: "w", key: "=", commandId: "pane_equalize" },
-      { chord: "w", key: "z", commandId: "pane_zoom" },
-      { chord: "w", key: "o", commandId: "pane_only" },
-      { chord: "w", key: "H", commandId: "pane_swap_left" },
-      { chord: "w", key: "J", commandId: "pane_swap_down" },
-      { chord: "w", key: "K", commandId: "pane_swap_up" },
-      { chord: "w", key: "L", commandId: "pane_swap_right" },
-      { chord: "w", key: "n", commandId: "pane_split_and_pick" },
-
-      // Ctrl+W-prefix chords (same as w-prefix, for vim muscle memory)
-      { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
-      { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
-      { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
-      { chord: "Ctrl+w", key: "h", commandId: "pane_focus_left" },
-      { chord: "Ctrl+w", key: "j", commandId: "pane_focus_down" },
-      { chord: "Ctrl+w", key: "k", commandId: "pane_focus_up" },
-      { chord: "Ctrl+w", key: "l", commandId: "pane_focus_right" },
-      { chord: "Ctrl+w", key: "p", commandId: "pane_focus_previous" },
-      { chord: "Ctrl+w", key: "Tab", commandId: "pane_focus_next" },
-      { chord: "Ctrl+w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
-      { chord: "Ctrl+w", key: ">", commandId: "pane_resize_grow" },
-      { chord: "Ctrl+w", key: "<", commandId: "pane_resize_shrink" },
-      { chord: "Ctrl+w", key: "+", commandId: "pane_resize_grow_vertical" },
-      { chord: "Ctrl+w", key: "-", commandId: "pane_resize_shrink_vertical" },
-      { chord: "Ctrl+w", key: "=", commandId: "pane_equalize" },
-      { chord: "Ctrl+w", key: "z", commandId: "pane_zoom" },
-      { chord: "Ctrl+w", key: "o", commandId: "pane_only" },
-      { chord: "Ctrl+w", key: "H", commandId: "pane_swap_left" },
-      { chord: "Ctrl+w", key: "J", commandId: "pane_swap_down" },
-      { chord: "Ctrl+w", key: "K", commandId: "pane_swap_up" },
-      { chord: "Ctrl+w", key: "L", commandId: "pane_swap_right" },
-      { chord: "Ctrl+w", key: "n", commandId: "pane_split_and_pick" },
     ],
   },
 
@@ -785,6 +721,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "view",
     bindings: [
+      { key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      { key: "V", commandId: "cycle_icon_style" }, // Not in v2 spec — candidate for removal
       { key: "?", commandId: "show_help" },
       { key: "+", commandId: "increase_content_lines" },
       { key: "=", commandId: "increase_content_lines" },
@@ -792,7 +730,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "_", commandId: "decrease_content_lines" },
       { key: ",", commandId: "settings" },
 
-      // Command palette
+      // Filter and command palette
+      { key: "/", ctrl: true, commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
       { key: ":", commandId: "command_palette" },
     ],
   },
@@ -801,8 +740,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "history",
     bindings: [
-      // Ctrl+Z reserved for SIGTSTP (suspend) — use Cmd+Z or u for undo
+      { key: "z", ctrl: true, commandId: "undo" },
       { key: "z", super: true, commandId: "undo" },
+      { key: "z", ctrl: true, shift: true, commandId: "redo" },
       { key: "z", super: true, shift: true, commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
       { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
@@ -816,21 +756,18 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
+      { key: "f", super: true, commandId: "search_replace" },
       { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
-      { key: "/", ctrl: true, commandId: "local_find" },
-      { key: "F", commandId: "filter", when: not(textInputFocused) },
-      { key: "S", commandId: "search_replace", when: not(textInputFocused) },
+      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
       { key: "t", super: true, commandId: "task_dialog" },
-      { key: "f", super: true, commandId: "search_replace" },
       { key: "g", super: true, commandId: "filter" },
-      { key: "g", ctrl: true, commandId: "filter" },
       { key: "p", super: true, commandId: "toggle_detail_pane" },
       { key: ",", super: true, commandId: "settings" },
 
       // Favorites (0-9) — jump to favorite boards
-      { key: "0", commandId: "favorite_0" },
+      // 0 is unbound — favorites use 1-9 (no favorite_0 command)
       { key: "1", commandId: "favorite_1" },
       { key: "2", commandId: "favorite_2" },
       { key: "3", commandId: "favorite_3" },

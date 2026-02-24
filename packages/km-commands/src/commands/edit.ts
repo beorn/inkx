@@ -82,7 +82,7 @@ const renameNode = {
   name: "Rename",
   description: "Rename current node",
   category: "Edit",
-  shortcuts: [],
+  shortcuts: ["sr"],
   execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
 } satisfies CommandDef
 
@@ -91,7 +91,7 @@ const deleteNode = {
   name: "Delete Node",
   description: "Delete current node",
   category: "Edit",
-  shortcuts: ["Backspace"],
+  shortcuts: ["Backspace", "Delete"],
   execute: (ctx) => {
     if (!ctx.currentNodeId) return null
     return { type: "DELETE_NODE", nodeId: ctx.currentNodeId }
@@ -188,7 +188,7 @@ const moveToNext = {
   name: "Move to Next Actions",
   description: "Move selected node(s) to next actions",
   category: "Edit",
-  shortcuts: [],
+  shortcuts: ["me"],
   execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@next" }),
 } satisfies CommandDef
 
@@ -225,32 +225,24 @@ const archiveNode = {
   },
 } satisfies CommandDef
 
-// Capture locations — data-driven config for c-chord capture commands
-export const CAPTURE_LOCATIONS = [
-  { key: "i", id: "inbox", boardId: "@inbox", label: "Inbox" },
-  { key: "h", id: "home", boardId: "@home", label: "Home" },
-  { key: "j", id: "journal", boardId: "@journal", label: "Journal" },
-  { key: "e", id: "archive", boardId: "@archive", label: "Archive" },
-] as const
+// Capture new item to inbox (quick-add) — stub
+const captureInbox = {
+  id: "capture_inbox",
+  name: "Capture to Inbox",
+  description: "Quick-add a new item to inbox",
+  category: "Edit",
+  shortcuts: ["c"],
+  execute: () => ({ type: "CAPTURE_INBOX" }),
+} satisfies CommandDef
 
-// Factory-generated capture commands (one per location)
-const captureLocationCommands: CommandDef[] = CAPTURE_LOCATIONS.map((loc) => ({
-  id: `capture_${loc.id}`,
-  name: `Capture to ${loc.label}`,
-  description: `Quick-capture a new item to ${loc.label.toLowerCase()}`,
-  category: "Edit" as const,
-  shortcuts: [`c${loc.key}`],
-  execute: () => ({ type: "CAPTURE" as const, location: loc.boardId }),
-}))
-
-// Capture with dialog (no preset location → dialog opens with location picker)
+// Capture with dialog — stub
 const captureDialog = {
   id: "capture_dialog",
   name: "Capture with Dialog",
   description: "Add a new item via capture dialog",
   category: "Edit",
   shortcuts: ["C"],
-  execute: () => ({ type: "CAPTURE" }),
+  execute: () => ({ type: "CAPTURE_DIALOG" }),
 } satisfies CommandDef
 
 // Add child item (a-prefix chord: ai)
@@ -333,39 +325,6 @@ const moveToHome = {
   execute: () => ({ type: "MOVE_TO_BOARD", boardId: "@home" }),
 } satisfies CommandDef
 
-// Move to archive (me chord — same as archive/e)
-const moveToArchive = {
-  id: "move_to_archive",
-  name: "Move to Archive",
-  description: "Move selected node(s) to archive",
-  category: "Edit",
-  shortcuts: ["me"],
-  execute: (ctx) => {
-    if (!ctx.currentNodeId) return null
-    return { type: "ARCHIVE_NODE", nodeId: ctx.currentNodeId }
-  },
-} satisfies CommandDef
-
-// Move to project (stub — not yet implemented)
-const moveToProject = {
-  id: "move_to_project",
-  name: "Move to Project",
-  description: "Move selected node(s) to a project",
-  category: "Edit",
-  shortcuts: ["m+"],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
-// Add to archive (stub — add new item directly to archive board)
-const addToArchive = {
-  id: "add_to_archive",
-  name: "Add to Archive",
-  description: "Add a new item to the archive board",
-  category: "Edit",
-  shortcuts: ["ae"],
-  execute: () => ({ type: "NOOP" }),
-} satisfies CommandDef
-
 export const editCommands: CommandDef[] = [
   enterMoveMode,
   confirmMove,
@@ -388,12 +347,10 @@ export const editCommands: CommandDef[] = [
   moveToJournal,
   moveToNext,
   moveToHome,
-  moveToArchive,
-  moveToProject,
   addLink,
   reparentPicker,
   archiveNode,
-  ...captureLocationCommands,
+  captureInbox,
   captureDialog,
   insertChild,
   addSiblingBelow,
@@ -402,5 +359,4 @@ export const editCommands: CommandDef[] = [
   addAssignee,
   addProject,
   addBacklink,
-  addToArchive,
 ]

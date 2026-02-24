@@ -36,11 +36,10 @@ type Modifiers = {
 function createNode(id: string, opts?: Partial<TNode>): TNode {
   return {
     id,
-    type: "h",
-    item: true,
+    type: "oi",
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    link_to: null,
     name: id,
     title: id,
     children: [],
@@ -442,10 +441,10 @@ describe("initDefaultKeybindings", () => {
   })
 
   it.each([
-    // TUI: 'v' is chord prefix (v␣=visual mode)
-    ["v", {}, "noop"],
-    // Shift+A for select all
-    ["A", {}, "select_all"],
+    // TUI: 'v' enters visual mode
+    ["v", {}, "visual_mode_enter"],
+    // Shift+A for progressive select all
+    ["A", {}, "select_all_progressive"],
     // Escape is close_or_quit (contextual: clears selection, closes dialogs, or quits)
     ["Escape", {}, "close_or_quit"],
   ] as const)("selection: %s resolves to %s", (key, mods, commandId) => {
@@ -481,31 +480,14 @@ describe("initDefaultKeybindings", () => {
     expectKey(key, commandId, { meta: true })
   })
 
-  // Ctrl+Z is reserved for SIGTSTP (suspend) — undo via Cmd+Z or u
   it.each([
-    ["z", { super: true }, "undo"],
-    ["z", { super: true, shift: true }, "redo"],
-  ] as const)("undo/redo: %s with %s resolves to %s", (key, mods, commandId) => {
+    ["z", { ctrl: true }, "undo"],
+    ["z", { ctrl: true, shift: true }, "redo"],
+    // Ctrl+Y is now text.yank (when textInputFocused), not redo
+    // Redo only via Ctrl+Shift+Z
+  ] as const)("undo/redo: ctrl+%s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
-  })
-
-  it("Ctrl+Z is NOT bound to undo (reserved for SIGTSTP suspend)", () => {
-    initDefaultKeybindings()
-    const ctx = createContext()
-    // Ctrl+Z must not resolve to undo — it's handled as raw stdin byte \x1a
-    // for terminal suspend (SIGTSTP). Only Cmd+Z (super) does undo.
-    const result = resolveKeybinding("z", { ctrl: true }, ctx)
-    expect(result).not.toBe("undo")
-    expect(result).not.toBe("redo")
-  })
-
-  it("Ctrl+Z is NOT bound to undo during inline editing either", () => {
-    initDefaultKeybindings()
-    const ctx = createContext({ isInlineEditing: true, textInputFocused: true })
-    const result = resolveKeybinding("z", { ctrl: true }, ctx)
-    expect(result).not.toBe("undo")
-    expect(result).not.toBe("redo")
   })
 
   it.each([
@@ -516,8 +498,8 @@ describe("initDefaultKeybindings", () => {
     ["j", { ctrl: true }, "sibling_board_next"],
     // Ctrl+K → command_palette (global layer 2, higher priority than sibling_board_prev)
     ["k", { ctrl: true }, "command_palette"],
-    // v2: z = zoom_inwards (focus cursor node as root)
-    ["z", {}, "zoom_inwards"],
+    // v2: z = zoom_in (focus cursor node as root)
+    ["z", {}, "zoom_in"],
   ] as const)("ctrl/misc: %s resolves to %s", (key, mods, commandId) => {
     initDefaultKeybindings()
     expectKey(key, commandId, mods)
@@ -695,9 +677,9 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
     expect(resolveKeybinding("`", {}, ctx)).toBe("console.toggle")
   })
 
-  it("Ctrl+T fires task dialog", () => {
+  it("Ctrl+T fires dev toast", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("task_dialog")
+    expect(resolveKeybinding("t", { ctrl: true }, ctx)).toBe("dev.test_toast")
   })
 })
 
@@ -722,11 +704,11 @@ describe("defaultKeybindings", () => {
     // Navigation (j/k use cursor_down/up for visual navigation)
     expect(commandIds).toContain("cursor_down")
     expect(commandIds).toContain("cursor_up")
-    expect(commandIds).toContain("zoom_inwards")
+    expect(commandIds).toContain("zoom_in")
     expect(commandIds).toContain("zoom_outwards")
 
     // Selection
-    expect(commandIds).toContain("select_all")
+    expect(commandIds).toContain("select_all_progressive")
     // Note: clear_selection is handled by close_or_quit (contextual)
     expect(commandIds).toContain("close_or_quit")
 
@@ -771,7 +753,6 @@ describe("chord keybindings", () => {
     expect(isChordPrefix("m")).toBe(true)
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
-    expect(isChordPrefix("v")).toBe(true)
     // Not chord prefixes
     expect(isChordPrefix("z")).toBe(false)
     expect(isChordPrefix("s")).toBe(false)
@@ -786,11 +767,11 @@ describe("chord keybindings", () => {
     ["g", "o", "open_in_system"],
     ["g", "O", "open_in_terminal"],
     ["g", "p", "project_picker"],
+    ["g", "n", "new_item"],
     ["g", "i", "goto_inbox"],
     ["g", "j", "goto_journal"],
     ["g", "h", "goto_home"],
     ["g", "e", "goto_archive"],
-    ["g", "N", "goto_next"],
     // m-prefix chords (move to board)
     ["m", "m", "enter_move_mode"],
     ["m", "i", "move_to_inbox"],
@@ -810,12 +791,6 @@ describe("chord keybindings", () => {
     ["t", "s", "set_start_date"],
     ["t", "o", "set_assignee"],
     ["t", "l", "set_label"],
-    // c-prefix chords (capture to location)
-    ["c", "c", "capture_dialog"],
-    ["c", "i", "capture_inbox"],
-    ["c", "h", "capture_home"],
-    ["c", "j", "capture_journal"],
-    ["c", "e", "capture_archive"],
   ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
     const ctx = createContext()
     expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
@@ -837,7 +812,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(95) // 15 g + 6 m + 8 a + 9 t + 7 v + 5 c + 22 w + 22 Ctrl+w
+    expect(chordBindings.length).toBe(41) // 15 g + 10 m + 7 a + 9 t
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -848,7 +823,6 @@ describe("chord keybindings", () => {
       "@": "add_assignee",
       "+": "add_project",
       "[": "add_backlink",
-      e: "add_to_archive",
       i: "insert_child",
       j: "add_sibling_below",
       h: "insert_at_parent",
@@ -858,7 +832,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns g-prefix hints", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["#", "+", "/", "@", "G", "N", "O", "[", "e", "g", "h", "i", "j", "o", "p"])
+    expect(keys).toEqual(["#", "+", "C", "O", "[", "c", "e", "g", "h", "i", "j", "n", "o", "p", "v"])
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {
@@ -881,12 +855,12 @@ describe("chord keybindings", () => {
     // v2: u → undo, U → redo
     expect(resolveKeybinding("u", {}, ctx)).toBe("undo")
     expect(resolveKeybinding("U", {}, ctx)).toBe("redo")
-    // v2: z → zoom_inwards (focus cursor node as root), Z → zoom_outwards
-    expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_inwards")
+    // v2: z → zoom_in (focus cursor node as root), Z → zoom_outwards
+    expect(resolveKeybinding("z", {}, ctx)).toBe("zoom_in")
     expect(resolveKeybinding("Z", {}, ctx)).toBe("zoom_outwards")
-    // v2: e → archive, c → capture_dialog (chord fallback), C → capture_dialog, D → toggle_detail_pane (Smart-D)
+    // v2: e → archive, c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("e", {}, ctx)).toBe("archive")
-    expect(resolveKeybinding("c", {}, ctx)).toBe("capture_dialog")
+    expect(resolveKeybinding("c", {}, ctx)).toBe("capture_inbox")
     expect(resolveKeybinding("C", {}, ctx)).toBe("capture_dialog")
     expect(resolveKeybinding("D", {}, ctx)).toBe("toggle_detail_pane")
     // v2: Space → select_toggle
@@ -902,8 +876,8 @@ describe("chord keybindings", () => {
     // v2: : → command_palette, , → settings
     expect(resolveKeybinding(":", {}, ctx)).toBe("command_palette")
     expect(resolveKeybinding(",", {}, ctx)).toBe("settings")
-    // Ctrl+G → filter
-    expect(resolveKeybinding("g", { ctrl: true }, ctx)).toBe("filter")
+    // Ctrl+/ → filter
+    expect(resolveKeybinding("/", { ctrl: true }, ctx)).toBe("filter")
   })
 
   it("Smart-D: D key maps to toggle_detail_pane", () => {
@@ -1002,7 +976,7 @@ describe("text mode keybinding separation", () => {
       ["Tab", { shift: true }, "outdent"],
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
-      ["v", {}, "noop"], // v is now chord prefix (v␣=visual, vv=cycle view, etc.)
+      ["v", {}, "visual_mode_enter"],
       ["/", {}, "local_find"],
       ["?", {}, "show_help"],
       // v2 rebindings
@@ -1014,8 +988,8 @@ describe("text mode keybinding separation", () => {
       ["p", {}, "clipboard_paste"],
       ["d", {}, "clipboard_cut"],
       ["y", {}, "clipboard_copy"],
-      ["c", {}, "capture_dialog"],
-      ["z", {}, "zoom_inwards"],
+      ["c", {}, "capture_inbox"],
+      ["z", {}, "zoom_in"],
     ])("%s (normally %s) is blocked in text mode", (key, mods, normalCmd) => {
       // Verify it works in node mode
       expect(resolveKeybinding(key, mods, nodeCtx)).toBe(normalCmd)
@@ -1079,12 +1053,12 @@ describe("text mode keybinding separation", () => {
   })
 
   describe("undo/redo work during inline editing", () => {
-    it("Cmd+z → undo", () => {
-      expect(resolveKeybinding("z", { super: true }, inlineCtx)).toBe("undo")
+    it("Ctrl+z → undo", () => {
+      expect(resolveKeybinding("z", { ctrl: true }, inlineCtx)).toBe("undo")
     })
 
-    it("Cmd+Shift+z → redo", () => {
-      expect(resolveKeybinding("z", { super: true, shift: true }, inlineCtx)).toBe("redo")
+    it("Ctrl+Shift+z → redo", () => {
+      expect(resolveKeybinding("z", { ctrl: true, shift: true }, inlineCtx)).toBe("redo")
     })
 
     it("Ctrl+y → text.yank", () => {
@@ -1172,8 +1146,8 @@ describe("Cmd shortcuts (kitty protocol, super modifier)", () => {
       expectKey("o", "open_in_terminal", { super: true, shift: true })
     })
 
-    it("Cmd+n → capture_dialog (capture new)", () => {
-      expectKey("n", "capture_dialog", sup)
+    it("Cmd+n → capture_inbox (capture new)", () => {
+      expectKey("n", "capture_inbox", sup)
     })
 
     it("Cmd+k → command_palette (omnibox)", () => {
