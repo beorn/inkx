@@ -178,8 +178,10 @@ function serializeNode(
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
-  // Embed nodes (type === "embed" or any node with embed_source)
-  if (isEmbed(node.type) || node.embed_source) {
+  // Embed nodes (type === "embed" or nodes with embed_source)
+  // Exception: outline heading nodes with task_marker + embed_source serialize as
+  // headings with inline embed ref (import cross-project dedup)
+  if (isEmbed(node.type) || (node.embed_source && !(isOutline(node.type, node.item) && node.task_marker))) {
     return serializeEmbedding(node, ctx)
   }
 
@@ -241,6 +243,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   // Prepend task marker if present (e.g., "## [x] Task title")
   const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
   let headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
+  if (node.embed_source) headingLine += ` ![[${node.embed_source}]]`
   if (node.block_id) headingLine += ` ^${node.block_id}`
   let md = headingLine + "\n\n"
 

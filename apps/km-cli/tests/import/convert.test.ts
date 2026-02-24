@@ -2760,8 +2760,9 @@ describe("Embed nodes use actual task title", () => {
     )
     const refNode = nodes.find((n) => n.id === "ref-shared-1")!
     expect(refNode).toBeDefined()
-    // Content includes both title and embed reference
-    expect(refNode.content).toBe("Actual Task Title ![[^shared-1]]")
+    // Content is clean title, embed reference is in embed_source
+    expect(refNode.content).toBe("Actual Task Title")
+    expect(refNode.embed_source).toBe("^shared-1")
     // Only one node emitted (no child paragraph)
     expect(nodes).toHaveLength(1)
   })

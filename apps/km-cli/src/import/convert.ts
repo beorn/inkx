@@ -317,13 +317,12 @@ function itemToNodes(
     return
   }
   // Cross-project dedup: if already rendered in another project, emit embed reference
-  // Use the task's actual title as the node content so it's identifiable in listings,
-  // with the embed reference ![[^GID]] as a child paragraph node
+  // Use the task's actual title as content and embed_source to link to the original node
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
     const refNodeId = `ref-${item.sourceId}`
-    const embedTitle = prettifyTitle(item.title || `![[^${item.sourceId}]]`)
+    const embedTitle = prettifyTitle(item.title || `(ref:${item.sourceId.slice(0, 6)})`)
     nodes.push(
       mkNode(counter, {
         id: refNodeId,
@@ -332,7 +331,8 @@ function itemToNodes(
         parent_id: parentId,
         task_marker: marker as TaskMarker,
         task_status: status,
-        content: `${embedTitle} ![[^${item.sourceId}]]`,
+        content: embedTitle,
+        embed_source: `^${item.sourceId}`,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
         updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
       }),
