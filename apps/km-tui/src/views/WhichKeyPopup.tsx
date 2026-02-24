@@ -7,7 +7,7 @@
  * Layout: vertical list anchored above the command box. Each entry is one row:
  *   k label
  */
-import React from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Box, Text } from "inkx"
 import { getChordSuffixes, getCommand } from "@km/commands"
 
@@ -118,7 +118,33 @@ const STATUS_COLORS: Record<string, string | undefined> = {
   error: "red",
 }
 
+const FLASH_MS = 300
+
+/** Flash white on new message, then fade to normal color */
+function useFlash(message: string | undefined): boolean {
+  const [flash, setFlash] = useState(true)
+  const prevRef = useRef(message)
+
+  useEffect(() => {
+    if (message !== prevRef.current) {
+      prevRef.current = message
+      setFlash(true)
+    }
+    if (!message) return
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    const timer = setTimeout(() => setFlash(false), FLASH_MS)
+    return () => clearTimeout(timer)
+  }, [message])
+
+  return flash
+}
+
 export function CommandFeedback({ prefix, bellState, status, localSearch, termWidth }: CommandFeedbackProps): React.ReactElement | null {
+  // Flash state for single-line feedback (white → normal)
+  const feedbackMessage = status?.message ?? bellState ?? (localSearch?.query.length ? `${localSearch.matchIndex}/${localSearch.matchCount}` : undefined)
+  const isFlash = useFlash(feedbackMessage)
+
   // Priority 1: chord hints (existing behavior)
   if (prefix) {
     const suffixes = getChordSuffixes(prefix)
@@ -156,19 +182,19 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
   // Max content width for single-line feedback (border+padding add 4)
   const maxWidth = Math.min(44, termWidth)
 
-  // Priority 2: bell feedback — white border+text (like selected card); status uses level colors
+  // Priority 2: bell/status feedback
   if (bellState || status) {
     const message = status?.message ?? bellState ?? ""
-    const isBell = !!bellState
+    const normalColor = bellState ? undefined : STATUS_COLORS[status!.level]
     return (
       <Box
         width={Math.min(message.length + 4, maxWidth)}
         borderStyle="round"
-        borderColor={isBell ? "white" : "gray"}
+        borderColor={isFlash ? "white" : "gray"}
         paddingLeft={1}
         paddingRight={1}
       >
-        <Text color={isBell ? "white" : STATUS_COLORS[status!.level]} bold={isBell}>{message}</Text>
+        <Text color={isFlash ? "white" : normalColor} bold={isFlash}>{message}</Text>
       </Box>
     )
   }
@@ -177,15 +203,16 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
   if (localSearch && localSearch.query.length > 0) {
     const noMatches = localSearch.matchCount === 0
     const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
+    const normalColor = noMatches ? "red" : "yellow"
     return (
       <Box
         width={Math.min(text.length + 4, maxWidth)}
         borderStyle="round"
-        borderColor="gray"
+        borderColor={isFlash ? "white" : "gray"}
         paddingLeft={1}
         paddingRight={1}
       >
-        <Text color={noMatches ? "red" : "yellow"}>{text}</Text>
+        <Text color={isFlash ? "white" : normalColor} bold={isFlash}>{text}</Text>
       </Box>
     )
   }
