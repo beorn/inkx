@@ -135,7 +135,7 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "g", location: "first", goto: "g g" },
   { key: "G", location: "last", goto: "g G" },
   // Board locations
-  { key: "h", location: "home (@next)", goto: "g h", move: "m h", separator: true },
+  { key: "h", location: "home (@next)", goto: "g h", move: "m h" },
   { key: "i", location: "inbox", goto: "g i", move: "m i" },
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },
