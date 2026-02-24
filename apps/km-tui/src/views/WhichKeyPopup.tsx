@@ -130,7 +130,7 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
     }))
 
     const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))
-    const popupWidth = Math.min(maxEntryWidth + 4, termWidth) // +4 for border+padding
+    const popupWidth = Math.min(maxEntryWidth + 4, 44, termWidth) // +4 for border+padding, max 40 content
 
     return (
       <Box
@@ -153,12 +153,16 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
     )
   }
 
+  // Max content width for single-line feedback (border+padding add 4)
+  const maxWidth = Math.min(44, termWidth)
+
   // Priority 2: bell feedback (prefer status message when co-set, since it's human-readable)
   if (bellState || status) {
     const message = status?.message ?? bellState ?? ""
     const color = bellState ? "red" : STATUS_COLORS[status!.level]
     return (
       <Box
+        width={Math.min(message.length + 4, maxWidth)}
         borderStyle="round"
         borderColor="gray"
         paddingLeft={1}
@@ -172,16 +176,16 @@ export function CommandFeedback({ prefix, bellState, status, localSearch, termWi
   // Priority 3: local search match feedback
   if (localSearch && localSearch.query.length > 0) {
     const noMatches = localSearch.matchCount === 0
+    const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
     return (
       <Box
+        width={Math.min(text.length + 4, maxWidth)}
         borderStyle="round"
         borderColor="gray"
         paddingLeft={1}
         paddingRight={1}
       >
-        <Text color={noMatches ? "red" : "yellow"}>
-          {noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`}
-        </Text>
+        <Text color={noMatches ? "red" : "yellow"}>{text}</Text>
       </Box>
     )
   }
