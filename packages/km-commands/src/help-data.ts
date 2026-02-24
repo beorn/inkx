@@ -140,11 +140,11 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "j", location: "journal", goto: "g j", move: "m j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works
-  { key: "0-9", location: "favorites", goto: "g 0-9 / 0-9", separator: true },
+  { key: "0-9", location: "favorites", goto: "g 0-9  0-9", separator: true },
   // Targets (pickers) — bare key is shortcut for a-prefix chord
-  { key: "#", location: "tag", add: "a # / #", separator: true },
-  { key: "@", location: "context", add: "a @ / @" },
-  { key: "+", location: "project", goto: "g +", move: "m +", add: "a + / +" },
+  { key: "#", location: "tag", add: "a #  #", separator: true },
+  { key: "@", location: "context", add: "a @  @" },
+  { key: "+", location: "project", goto: "g +", move: "m +", add: "a +  +" },
   { key: "[", location: "item", move: "m [", add: "a [" },
 ]
 

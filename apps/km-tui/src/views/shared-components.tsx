@@ -328,6 +328,21 @@ function KeySegment({ segment, color = "yellow" }: { segment: string; color?: st
  * - Plain: `"hjkl"` → hjkl
  */
 export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: string }): React.ReactElement {
+  // Double-space separator: "a #  #" → a·# (space) # (no slash)
+  if (keys.includes("  ")) {
+    const segments = keys.split("  ")
+    return (
+      <>
+        {segments.map((seg, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <Text>{" "}</Text>}
+            <KeySegment segment={seg} color={color} />
+          </React.Fragment>
+        ))}
+      </>
+    )
+  }
+  // Slash separator: "z / Z" → z dim(/) Z
   if (!keys.includes(" / ")) {
     return <KeySegment segment={keys} color={color} />
   }
