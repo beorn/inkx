@@ -19,6 +19,70 @@ import { rowToNode } from "./utils.ts"
 const log = createLogger("km:storage:db:queries")
 
 // =============================================================================
+// Name Index — in-memory map for O(1) name-based lookups
+// =============================================================================
+
+/** Pre-built name → nodeId index for fast wikilink resolution during rendering.
+ * Maps lowercase basename (without .md) → nodeId. Ambiguous names (multiple nodes)
+ * are stored as null to prevent incorrect resolution. */
+let nameIndex: Map<string, string | null> | null = null
+let nameIndexDb: WeakRef<Database> | null = null
+
+/** Build or retrieve the name index for the given database. Lazy — built on first access. */
+export function getNameIndex(db: Database): Map<string, string | null> {
+  // Rebuild if db changed (different instance)
+  if (nameIndex && nameIndexDb?.deref() === db) return nameIndex
+
+  const t0 = performance.now()
+  const map = new Map<string, string | null>()
+  const rows = db
+    .query("SELECT id, name, fs_path FROM nodes WHERE name IS NOT NULL OR fs_path IS NOT NULL")
+    .all() as Array<{ id: string; name: string | null; fs_path: string | null }>
+
+  for (const row of rows) {
+    // Index by name field (lowercased, without .md)
+    if (row.name) {
+      const key = row.name.toLowerCase().replace(/\.md$/i, "")
+      if (map.has(key)) {
+        map.set(key, null) // ambiguous — multiple nodes share this name
+      } else {
+        map.set(key, row.id)
+      }
+    }
+    // Also index by basename from fs_path
+    if (row.fs_path) {
+      const basename = row.fs_path.split("/").pop()?.replace(/\.md$/i, "")?.toLowerCase()
+      if (basename && !map.has(basename)) {
+        map.set(basename, row.id)
+      }
+    }
+  }
+
+  log.debug?.(`buildNameIndex: ${map.size} entries from ${rows.length} nodes in ${(performance.now() - t0).toFixed(0)}ms`)
+  nameIndex = map
+  nameIndexDb = new WeakRef(db)
+  return map
+}
+
+/** Clear the name index (call when DB is mutated) */
+export function clearNameIndex(): void {
+  nameIndex = null
+  nameIndexDb = null
+}
+
+/** Fast name-based resolution using pre-built index. O(1) lookup.
+ * Returns the node if found by name, null if not found or ambiguous. */
+export function resolveByName(db: Database, name: string): KNode | null {
+  if (!name?.trim()) return null
+  const index = getNameIndex(db)
+  const key = name.toLowerCase().replace(/\.md$/i, "")
+  const nodeId = index.get(key)
+  if (!nodeId) return null // not found or ambiguous
+  const row = db.query("SELECT * FROM nodes WHERE id = ?").get(nodeId) as Record<string, unknown> | null
+  return row ? rowToNode(row) : null
+}
+
+// =============================================================================
 // Smart Node Resolution
 // =============================================================================
 
@@ -45,20 +109,55 @@ interface ResolveOptions {
  * @param typeOrOptions - Optional type filter string or options object
  * @returns The matching node, or null if not found
  */
+// Global resolution cache — automatically invalidated when DB instance changes
+let resolveCache = new Map<string, KNode | null>()
+let resolveCacheDb: WeakRef<Database> | null = null
+export function clearResolveCache(): void {
+  resolveCache.clear()
+  resolveCacheDb = null
+}
+
 export function resolveNode(db: Database, query: string, typeOrOptions?: string | ResolveOptions): KNode | null {
   const options: ResolveOptions = typeof typeOrOptions === "string" ? { type: typeOrOptions } : (typeOrOptions ?? {})
 
   // Normalize trailing slashes - "docs/" clearly means the docs directory
-  const q = query.endsWith("/") ? query.slice(0, -1) : query
+  let q = query.endsWith("/") ? query.slice(0, -1) : query
+
+  // Strip leaked wikilink syntax (e.g., "target]]" from malformed [[target]])
+  q = q.replace(/\]{2,}$/, "").replace(/^\[{2,}/, "")
+
+  // Guard: empty/whitespace queries would match everything via LIKE '%' — bail early
+  if (!q?.trim()) return null
+
+  // Invalidate cache if DB instance changed (e.g., different repo in tests)
+  if (resolveCacheDb?.deref() !== db) {
+    resolveCache = new Map()
+    resolveCacheDb = new WeakRef(db)
+  }
+
+  // Check global cache (keyed by normalized query + options)
+  const cacheKey = options.type || options.taskOnly ? `${q}\0${options.type ?? ""}\0${options.taskOnly ? "1" : ""}` : q
+  const cached = resolveCache.get(cacheKey)
+  if (cached !== undefined) return cached
+
   const ctx = createQueryContext(db, q, options)
 
+  const t0 = log.debug ? performance.now() : 0
   log.debug?.(`resolveNode: ${q} (type=${options.type ?? "any"}, taskOnly=${options.taskOnly ?? false})`)
 
   // Try each resolution strategy in order
-  if (isExplicitPath(q)) return resolveExplicitPath(ctx)
-  if (q.includes("/")) return resolveRelativePath(ctx)
+  let result: KNode | null = null
+  if (isExplicitPath(q)) result = resolveExplicitPath(ctx)
+  else if (q.includes("/")) result = resolveRelativePath(ctx)
+  else result = resolveBareName(ctx) ?? resolveBlockId(ctx) ?? resolveIdFuzzy(ctx) ?? resolveContent(ctx)
 
-  return resolveBareName(ctx) ?? resolveBlockId(ctx) ?? resolveIdFuzzy(ctx) ?? resolveContent(ctx)
+  if (t0) {
+    const elapsed = performance.now() - t0
+    if (elapsed > 5) log.debug?.(`resolveNode: ${q} took ${elapsed.toFixed(0)}ms ${result ? "→ found" : "→ null"}`)
+  }
+
+  resolveCache.set(cacheKey, result)
+  return result
 }
 
 // =============================================================================
@@ -103,12 +202,22 @@ function createQueryContext(db: Database, q: string, options: ResolveOptions): Q
     repoRoot: options.repoRoot,
 
     getOne(sql, ...p) {
+      const t = log.debug ? performance.now() : 0
       const row = db.query(sql).get(...p) as Record<string, unknown> | null
+      if (t) {
+        const ms = performance.now() - t
+        if (ms > 5) log.debug?.(`  SQL ${ms.toFixed(0)}ms: ${sql.slice(0, 60)}… [${p.slice(0, 2).join(", ")}]`)
+      }
       return row ? rowToNode(row) : null
     },
 
     getAll(sql, ...p) {
+      const t = log.debug ? performance.now() : 0
       const rows = db.query(sql).all(...p) as Record<string, unknown>[]
+      if (t) {
+        const ms = performance.now() - t
+        if (ms > 5) log.debug?.(`  SQL ${ms.toFixed(0)}ms (${rows.length} rows): ${sql.slice(0, 60)}… [${p.slice(0, 2).join(", ")}]`)
+      }
       return rows.map(rowToNode)
     },
 
@@ -219,7 +328,7 @@ function resolveBareName(ctx: QueryContext): KNode | null {
   )
   if (exactFsMatch) return exactFsMatch
 
-  // fs_path suffix (filename match for nested paths)
+  // fs_path suffix (filename match for nested paths) — expensive LIKE '%/...' full table scan
   const suffixMatch = checkAmbiguity(
     getAll(`SELECT * FROM nodes WHERE fs_path LIKE ?${filterClause}`, `%/${q}`, ...params),
     "fs_path suffix",
@@ -257,6 +366,9 @@ function resolveBlockId(ctx: QueryContext): KNode | null {
 /** Strategy 4: Fuzzy ID matching (prefix/suffix) */
 function resolveIdFuzzy(ctx: QueryContext): KNode | null {
   const { q, filterClause, params, getAll, checkAmbiguity } = ctx
+
+  // Short queries produce expensive full-table scans via LIKE — require minimum length
+  if (q.length < 8) return null
 
   // ID prefix match
   const prefixMatch = checkAmbiguity(

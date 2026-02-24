@@ -181,6 +181,8 @@ export interface TreeRenderCtx {
   taskStatusFilter: ReadonlySet<string>
   /** Board-wide: whether the board pane has focus (for cursor dimming) */
   boardFocused: boolean
+  /** Current local search query (for text-span highlighting in cards) */
+  searchQuery: string | null
 }
 
 const TreeRenderContext = createContext<TreeRenderCtx | null>(null)
@@ -223,7 +225,8 @@ function createSigilColorResolver(repo: Repo): (sigil: string) => string | undef
     if (cache.has(sigil)) return cache.get(sigil)
     // Strip the sigil prefix (@, #, +) to get the node name
     const name = sigil.slice(1)
-    const node = repo.resolveNode(name)
+    // Use in-memory name index (O(1)) instead of resolveNode (6+ SQL queries)
+    const node = repo.resolveByName?.(name) ?? repo.getNode(name)
     const color = node ? getOwnColor(node) : undefined
     cache.set(sigil, color)
     return color
@@ -247,6 +250,7 @@ export function TreeRenderProvider({
   undoHandle,
   taskStatusFilter,
   boardFocused,
+  searchQuery,
   children,
 }: {
   treeConfig: TreeConfig
@@ -258,6 +262,7 @@ export function TreeRenderProvider({
   undoHandle: UndoableRepoHandle
   taskStatusFilter: ReadonlySet<string>
   boardFocused: boolean
+  searchQuery?: string | null
   children: React.ReactNode
 }): React.ReactElement {
   const repo = useRepo()
@@ -266,6 +271,7 @@ export function TreeRenderProvider({
   const resolveSigilColor = useMemo(() => createSigilColorResolver(repo), [repo])
   const matchIds = searchMatchNodeIds ?? EMPTY_SET
   const matchNode = currentMatchNodeId ?? null
+  const effectiveSearchQuery = searchQuery ?? null
   const ctx = useMemo(
     () => ({
       treeConfig,
@@ -279,8 +285,9 @@ export function TreeRenderProvider({
       undoHandle,
       taskStatusFilter,
       boardFocused,
+      searchQuery: effectiveSearchQuery,
     }),
-    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode, jobRunner, undoHandle, taskStatusFilter, boardFocused],
+    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode, jobRunner, undoHandle, taskStatusFilter, boardFocused, effectiveSearchQuery],
   )
   return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }

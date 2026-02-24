@@ -30,7 +30,7 @@ import {
   updateTargetName as dbUpdateTargetName,
   type Link,
 } from "./db-links.ts"
-import { resolveNode as dbResolveNode } from "./db-queries/smart-resolver.ts"
+import { resolveNode as dbResolveNode, resolveByName as dbResolveByName } from "./db-queries/smart-resolver.ts"
 import {
   getAllTasks as dbGetAllTasks,
   getLinksTo as dbGetLinksTo,
@@ -213,6 +213,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
     resolveNode(queryStr: string, typeOrOptions?: string | { type?: string; taskOnly?: boolean }) {
       const baseOpts = typeof typeOrOptions === "string" ? { type: typeOrOptions } : (typeOrOptions ?? {})
       return dbResolveNode(db, queryStr, { ...baseOpts, repoRoot: rootPath })
+    },
+    resolveByName(name: string) {
+      return dbResolveByName(db, name)
     },
     getRepoRootNode() {
       const row = db
@@ -714,6 +717,10 @@ export interface Repo extends Disposable {
    * @param typeOrOptions - Optional type filter
    */
   resolveNode(query: string, typeOrOptions?: string | { type?: string; taskOnly?: boolean }): KNode | null
+
+  /** Fast name-based resolution using pre-built in-memory index. O(1) lookup.
+   * Use for render-time wikilink resolution instead of resolveNode. */
+  resolveByName(name: string): KNode | null
 
   /** Batch get child counts for multiple parent IDs */
   getChildCounts(parentIds: string[]): Map<string, number>

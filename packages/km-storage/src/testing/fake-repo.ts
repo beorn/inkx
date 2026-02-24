@@ -321,6 +321,16 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return null
     },
 
+    resolveByName(name: string) {
+      ensureNotClosed()
+      const lower = name.toLowerCase().replace(/\.md$/i, "")
+      for (const node of nodes.values()) {
+        const nodeName = node.name?.toLowerCase().replace(/\.md$/i, "")
+        if (nodeName === lower) return node
+      }
+      return null
+    },
+
     getRepoRootNode() {
       ensureNotClosed()
       // Find the folder node with no parent (repo root)

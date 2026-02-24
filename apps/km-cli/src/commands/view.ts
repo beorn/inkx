@@ -115,6 +115,13 @@ export const viewCommand = new Command("view")
         state = result
         return result
       },
+      buildNameIndex() {
+        // Pre-build in-memory name index for O(1) wikilink/sigil resolution during rendering.
+        // Lazy-built on first resolveByName call if not pre-built here.
+        if (createdRepo) {
+          storageModule.getNameIndex(createdRepo.database)
+        }
+      },
       initBoard() {
         // Placeholder step — the TUI sets up store, sync manager, React mount.
         // This step completes immediately; the actual init happens after steps finish.

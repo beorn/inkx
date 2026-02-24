@@ -38,7 +38,9 @@ import {
   getFoldMarker,
   isSigilName,
   InlineText,
+  computeSearchDecorationsFromSource,
   type InlineRenderContext,
+  type TextDecoration,
   type StatusIcon,
 } from "../text/index.ts"
 import { makeSelectionKey } from "../types.ts"
@@ -216,8 +218,11 @@ function TreeNodeImpl({
   hideChildCount = false,
   remainingDepth = Infinity,
 }: TreeNodeProps): React.ReactElement {
+  const _tnStart = renderLog.debug ? performance.now() : 0
+  renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
+
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, jobRunner, undoHandle, taskStatusFilter } =
+  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery, jobRunner, undoHandle, taskStatusFilter } =
     useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
@@ -267,10 +272,13 @@ function TreeNodeImpl({
   const childCount = childCountProp ?? children.length
   const hasChildren = childCount > 0
 
-  // Debug logging for render tracking
-  renderLog.debug?.(
-    `TreeNode ${sid(node.id)} children=${children.length} childCount=${childCount} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
-  )
+  // Debug logging for render tracking (includes hook duration)
+  if (_tnStart) {
+    const hookMs = (performance.now() - _tnStart).toFixed(0)
+    renderLog.debug?.(
+      `TreeNode ${sid(node.id)} hooks=${hookMs}ms children=${children.length} childCount=${childCount} content=${displayNode.content?.slice(0, 30) ?? "(empty)"}`,
+    )
+  }
 
   const nodeIsTask = isTask(displayNode)
 
@@ -301,9 +309,9 @@ function TreeNodeImpl({
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isMultiSelected
-  const effectiveBg = searchHighlight ? (isCurrentMatch ? "white" : "#bbbbbb") : style.backgroundColor
-  const tc = searchHighlight ? "black" : style.textColor
-  const sd = searchHighlight ? false : style.shouldDim
+  const effectiveBg = style.backgroundColor
+  const tc = style.textColor
+  const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -523,15 +531,23 @@ function TreeNodeImpl({
   // Memoize inline render context - only recalc when sigil config changes
   const inlineContext: InlineRenderContext = useMemo(() => {
     const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
-    // Resolve [[target]] wikilinks to display titles
+    // Resolve [[target]] wikilinks to display titles — cached to avoid repeated DB lookups
+    const wikiLinkCache = new Map<string, string | null>()
     const resolveWikiLink = (target: string): string | null => {
-      const resolved = repo.resolveNode(target)
-      if (resolved) return getNodeDisplayName(repo, resolved)
-      if (target.startsWith("^")) {
-        const byId = repo.resolveNode(target.slice(1)) ?? repo.getNode(target.slice(1))
-        if (byId) return getNodeDisplayName(repo, byId)
+      if (!target?.trim()) return null
+      const cached = wikiLinkCache.get(target)
+      if (cached !== undefined) return cached
+      // Use in-memory name index (O(1)) instead of resolveNode (6+ SQL queries)
+      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+      let result: string | null = null
+      if (resolved) {
+        result = getNodeDisplayName(repo, resolved)
+      } else if (target.startsWith("^")) {
+        const byId = repo.getNode(target.slice(1))
+        if (byId) result = getNodeDisplayName(repo, byId)
       }
-      return null
+      wikiLinkCache.set(target, result)
+      return result
     }
     return {
       excludeSigils: excludeSet,
@@ -541,6 +557,15 @@ function TreeNodeImpl({
       hideFields: true,
     }
   }, [excludedSigils, sigilColors, resolveSigilColor, repo])
+
+  // Search decorations — character-level highlighting of search matches
+  const searchDecorations = useMemo(
+    () =>
+      searchHighlight && searchQuery
+        ? computeSearchDecorationsFromSource(processedContent, searchQuery, isCurrentMatch)
+        : undefined,
+    [searchHighlight, processedContent, searchQuery, isCurrentMatch],
+  )
 
   // Info suffix props — rendered as React component below
   const infoSuffixProps = useMemo(
@@ -634,19 +659,30 @@ function TreeNodeImpl({
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
   // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
-  const filteredChildren = useMemo(() => {
-    if (taskStatusFilter.size === 0) return children
-    return children.filter((child) => {
-      const status = child.task_status ?? getStatusForMarker(child.task_marker)
-      return !status || taskStatusFilter.has(status)
-    })
-  }, [children, taskStatusFilter])
-
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
   // In oneliner mode, a fixed cap prevents performance issues with large nodes.
   const maxChildren = variant === "multiline" ? maxContentLines : VARIANT_CONFIG.oneliner.maxChildren
-  const visibleChildren = filteredChildren.slice(0, maxChildren)
-  const hiddenCount = filteredChildren.length - visibleChildren.length
+
+  // Combined filter + slice with early exit: stop after collecting maxChildren matches.
+  // For a card with 2,628 children and maxChildren=3, this scans ~3-10 items (not 2,628).
+  const { visibleChildren, hiddenCount } = useMemo(() => {
+    if (taskStatusFilter.size === 0) {
+      return {
+        visibleChildren: children.length <= maxChildren ? children : children.slice(0, maxChildren),
+        hiddenCount: Math.max(0, children.length - maxChildren),
+      }
+    }
+    const visible: typeof children = []
+    let totalPassing = 0
+    for (const child of children) {
+      const status = child.task_status ?? getStatusForMarker(child.task_marker)
+      if (!status || taskStatusFilter.has(status)) {
+        totalPassing++
+        if (visible.length < maxChildren) visible.push(child)
+      }
+    }
+    return { visibleChildren: visible, hiddenCount: totalPassing - visible.length }
+  }, [children, taskStatusFilter, maxChildren])
 
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
@@ -735,7 +771,7 @@ function TreeNodeImpl({
                 {isVerbatim ? (
                   processedContent
                 ) : (
-                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }} />
+                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }} decorations={searchDecorations} />
                 )}
                 {sigilName && (
                   <>
@@ -940,13 +976,14 @@ function cleanContentForDisplay(content: string | undefined): string {
 /** Try to resolve an embed reference (block_id or filename) to a human-readable title.
  * Only returns a result if the resolved node has real content (not itself an embed). */
 function tryResolveEmbedRef(
-  repo: { getNode(id: string): KNode | undefined; resolveNode?(query: string): KNode | null },
+  repo: { getNode(id: string): KNode | undefined; resolveByName?(name: string): KNode | null; resolveNode?(query: string): KNode | null },
   ref: string,
 ): string | null {
-  if (!repo.resolveNode) return null
+  if (!repo.resolveByName && !repo.resolveNode) return null
 
   const resolveAndFormat = (query: string): string | null => {
-    const target = repo.resolveNode?.(query) ?? null
+    // Use fast name index first, fall back to getNode (by ID), then resolveNode
+    const target = repo.resolveByName?.(query) ?? repo.getNode(query) ?? null
     if (!target) return null
     const content = cleanContentForDisplay(target.content)
     // Guard: don't return content that's itself an embed reference
@@ -1157,7 +1194,9 @@ const FoldedChildRow = React.memo(
     childCount?: number
     extraExcludedSigils?: string[]
   }): React.ReactElement {
-    const { treeConfig, sigilColors, resolveSigilColor, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
+    renderLog.debug?.(`FoldedChildRow ${sid(node.id)} depth=${depth}`)
+
+    const { treeConfig, sigilColors, resolveSigilColor, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery } =
       useTreeRenderContext()
     const repo = useRepo()
 
@@ -1170,9 +1209,9 @@ const FoldedChildRow = React.memo(
     const isSearchMatch = searchMatchNodeIds.has(node.id)
     const isCurrentMatch = node.id === currentMatchNodeId
     const searchHighlight = isSearchMatch
-    const effectiveBg = searchHighlight ? (isCurrentMatch ? "white" : "#bbbbbb") : style.backgroundColor
-    const foldTc = searchHighlight ? "black" : style.textColor
-    const foldSd = searchHighlight ? false : style.shouldDim
+    const effectiveBg = style.backgroundColor
+    const foldTc = style.textColor
+    const foldSd = style.shouldDim
 
     // Bullet icon — always folded
     const { iconStyle } = treeConfig
@@ -1205,18 +1244,34 @@ const FoldedChildRow = React.memo(
       return [...rootSigils, ...extraExcludedSigils]
     }, [repo, rootBoardId, extraExcludedSigils])
     const inlineContext: InlineRenderContext = useMemo(
-      () => ({
-        excludeSigils: excludedSigils.length > 0 ? new Set(excludedSigils) : undefined,
-        sigilColors,
-        resolveSigilColor,
-        resolveWikiLink: (target: string): string | null => {
-          const resolved = repo.resolveNode(target)
-          if (resolved) return getNodeDisplayName(repo, resolved)
-          return null
-        },
-        hideFields: true,
-      }),
+      () => {
+        const wikiLinkCache = new Map<string, string | null>()
+        return {
+          excludeSigils: excludedSigils.length > 0 ? new Set(excludedSigils) : undefined,
+          sigilColors,
+          resolveSigilColor,
+          resolveWikiLink: (target: string): string | null => {
+            if (!target?.trim()) return null
+            const cached = wikiLinkCache.get(target)
+            if (cached !== undefined) return cached
+            const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+            const result = resolved ? getNodeDisplayName(repo, resolved) : null
+            wikiLinkCache.set(target, result)
+            return result
+          },
+          hideFields: true,
+        }
+      },
       [excludedSigils, sigilColors, resolveSigilColor, repo],
+    )
+
+    // Search decorations — character-level highlighting of search matches
+    const foldSearchDecorations = useMemo(
+      () =>
+        searchHighlight && searchQuery
+          ? computeSearchDecorationsFromSource(displayContent, searchQuery, isCurrentMatch)
+          : undefined,
+      [searchHighlight, displayContent, searchQuery, isCurrentMatch],
     )
 
     return (
@@ -1249,7 +1304,7 @@ const FoldedChildRow = React.memo(
             {node.type === "code" || node.type === "table" ? (
               displayContent
             ) : (
-              <InlineText text={displayContent} context={inlineContext} />
+              <InlineText text={displayContent} context={inlineContext} decorations={foldSearchDecorations} />
             )}
           </Text>
         </Box>

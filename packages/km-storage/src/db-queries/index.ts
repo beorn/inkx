@@ -48,7 +48,7 @@ export {
 export { findFileByName, findChildByContent } from "./wikilink-resolver.ts"
 
 // Smart Resolver (resolveNode, resolveTask)
-export { resolveNode, resolveTask } from "./smart-resolver.ts"
+export { resolveNode, resolveTask, clearResolveCache, resolveByName, clearNameIndex, getNameIndex } from "./smart-resolver.ts"
 
 // Full-Text Search (search, searchWithSnippet)
 export { toFts5Query, search, searchWithSnippet, type SearchResult } from "./full-text-search.ts"
