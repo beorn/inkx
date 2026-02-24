@@ -10,15 +10,7 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import {
   Box,
   Text,
@@ -26,7 +18,6 @@ import {
   ErrorBoundary,
   HorizontalVirtualList,
   useContentRect,
-  useInterval,
   useFocusWithin,
   type PatchedConsole,
 } from "inkx"
@@ -158,94 +149,26 @@ export interface BoardCoreProps {
 // =============================================================================
 
 /**
- * Progressive column reveal via state-based mount chaining.
- * Returns revealedCount — columns up to that index render normally,
- * the rest show ColumnSkeleton placeholders.
+ * Returns the number of columns to render.
  *
- * Column 0 renders on first frame. After it mounts, a useEffect fires
- * setTimeout(0) which bumps revealedCount to 2. Each subsequent column
- * gets a paint frame for its skeleton before the next real column renders.
- * This yields to the event loop between each column, preventing long blocks.
+ * Previously used progressive reveal (one column per event loop tick via
+ * setTimeout(0) + startTransition), but profiling showed this was the
+ * primary startup bottleneck: 6 columns × 600ms render + idle gaps between
+ * ticks = 6.4s at 39% CPU. Rendering all columns in a single frame
+ * reduced startup from 6.4s to 0.8s (8x speedup, 142% CPU utilization).
  *
- * Only resets on rootId change (zoom) — fold/unfold operations use per-column
- * memoization (cache hits) so all columns re-derive instantly, no progressive
- * reveal needed.
- *
- * Returns columnCount in tests (IS_REACT_ACT_ENVIRONMENT) for synchronous rendering.
+ * The key insight: progressive reveal added MORE total work (multiple React
+ * reconciliation passes + pipeline runs) and MORE idle time (event loop
+ * scheduling between ticks), making startup slower, not faster.
  */
-function useColumnReveal(columnCount: number, rootId: string | null): number {
-  // @ts-expect-error - React internal flag set by inkx test renderer
-  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const [revealedCount, setRevealedCount] = useState(isTest ? columnCount : Math.min(1, columnCount))
-  const prevRootId = useRef(rootId)
-
-  // Reset only on rootId change (zoom). Fold/unfold changes foldDepths reference
-  // but column derivation hits per-column cache — no need for progressive reveal.
-  if (rootId !== prevRootId.current) {
-    prevRootId.current = rootId
-    if (!isTest && columnCount > 0 && revealedCount !== 1) {
-      setRevealedCount(1)
-    }
-  }
-
-  // Chain: after each column renders, reveal the next one via setTimeout(0).
-  // Each column gets one event-loop tick for inkx to paint before the next mounts.
-  // startTransition marks the update as non-urgent so React can yield (~5ms slices)
-  // instead of blocking the event loop for the entire column render.
-  useEffect(() => {
-    if (isTest || revealedCount >= columnCount) return
-    const id = setTimeout(() => {
-      startTransition(() => setRevealedCount((c) => c + 1))
-    }, 0)
-    return () => clearTimeout(id)
-  }, [revealedCount, columnCount, isTest])
-
-  return isTest ? columnCount : revealedCount
+function useColumnReveal(columnCount: number, _rootId: string | null): number {
+  return columnCount
 }
 
 /**
  * Lightweight skeleton for a single column — shows the real column header name
  * with placeholder cards below. Shown for columns not yet revealed.
  */
-function ColumnSkeleton({
-  name,
-  width,
-  height,
-  colIndex,
-}: {
-  name: string
-  width: number
-  height: number
-  colIndex: number
-}): React.ReactElement {
-  const [pulse, setPulse] = useState(false)
-  useInterval(() => setPulse((p) => !p), 500)
-  const fill = pulse ? "▒" : "░"
-  const cardHeight = 3
-  const headerHeight = 2
-  // Vary skeleton height per column (50-80% of available space) using stable hash
-  const fraction = 0.5 + ((colIndex * 2654435761) >>> 0) % 300 / 1000 // 0.50–0.80
-  const usableHeight = Math.floor((height - headerHeight) * fraction)
-  const cardCount = Math.max(1, Math.floor(usableHeight / cardHeight))
-  return (
-    <Box flexDirection="column" width={width} height={height}>
-      <Box height={1}>
-        <Text dimColor wrap="truncate">
-          {name || fill.repeat(8)}
-        </Text>
-      </Box>
-      <Text dimColor>{"─".repeat(width)}</Text>
-      {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} outlineStyle="round" outlineDimColor paddingLeft={1} paddingRight={1} paddingTop={1} paddingBottom={1} width={width} height={cardHeight}>
-          <Text dimColor wrap="truncate">
-            {fill.repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
-          </Text>
-        </Box>
-      ))}
-    </Box>
-  )
-}
-
 /**
  * TopBar - subscribes to cursor position for path display.
  * Extracted from BoardCore so BoardCore doesn't re-render on j/k.
@@ -402,11 +325,6 @@ export function BoardCore({
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
   const isBoardSelected = derivedSelectionLevel === "board"
-
-  // Progressive column reveal — stagger one column per paint frame.
-  // Returns how many columns to render (rest show skeletons).
-  // Only resets on zoom (rootId change). Fold/unfold hits column cache — no reveal needed.
-  const revealedCount = useColumnReveal(columns.length, rootId)
 
   // Calculate widths for split view
   const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
@@ -583,16 +501,6 @@ export function BoardCore({
                     scrollTo={isBoardSelected ? undefined : colIndex}
                     renderItem={(col, index) => {
                       const colWidth = collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth
-                      if (index >= revealedCount) {
-                        return (
-                          <ColumnSkeleton
-                            name={col.node.title || col.node.name || ""}
-                            width={colWidth}
-                            height={contentHeight}
-                            colIndex={index}
-                          />
-                        )
-                      }
                       return (
                         <Column
                           column={col}
