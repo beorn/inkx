@@ -750,6 +750,7 @@ describe("chord keybindings", () => {
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
     expect(isChordPrefix("c")).toBe(true)
+    expect(isChordPrefix("Ctrl+w")).toBe(true)
     // Not chord prefixes
     expect(isChordPrefix("z")).toBe(false)
     expect(isChordPrefix("s")).toBe(false)
@@ -793,13 +794,37 @@ describe("chord keybindings", () => {
     ["a", "j", "add_sibling_below"],
     ["a", "h", "insert_at_parent"],
     // t-prefix chords (task properties)
+    ["t", "t", "task_dialog"],
     ["t", "-", "clear_task"],
     ["t", "d", "set_due_date"],
+    ["t", "!", "set_priority"],
     ["t", "s", "set_start_date"],
+    ["t", "r", "set_recurring"],
     ["t", "o", "set_assignee"],
     ["t", "l", "set_label"],
     // c-prefix chords (capture/create)
     ["c", "c", "capture_dialog"],
+    // Ctrl+W-prefix chords (pane operations)
+    ["Ctrl+w", "v", "pane_split_vertical"],
+    ["Ctrl+w", "s", "pane_split_horizontal"],
+    ["Ctrl+w", "q", "pane_close"],
+    ["Ctrl+w", "h", "pane_focus_left"],
+    ["Ctrl+w", "j", "pane_focus_down"],
+    ["Ctrl+w", "k", "pane_focus_up"],
+    ["Ctrl+w", "l", "pane_focus_right"],
+    ["Ctrl+w", "p", "pane_focus_previous"],
+    ["Ctrl+w", "Tab", "pane_focus_next"],
+    ["Ctrl+w", ">", "pane_resize_grow"],
+    ["Ctrl+w", "<", "pane_resize_shrink"],
+    ["Ctrl+w", "+", "pane_resize_grow_vertical"],
+    ["Ctrl+w", "-", "pane_resize_shrink_vertical"],
+    ["Ctrl+w", "=", "pane_equalize"],
+    ["Ctrl+w", "z", "pane_zoom"],
+    ["Ctrl+w", "o", "pane_only"],
+    ["Ctrl+w", "H", "pane_swap_left"],
+    ["Ctrl+w", "J", "pane_swap_down"],
+    ["Ctrl+w", "K", "pane_swap_up"],
+    ["Ctrl+w", "L", "pane_swap_right"],
   ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
     const ctx = createContext()
     expect(resolveChord(prefix, key, {}, ctx)).toBe(commandId)
@@ -821,7 +846,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(45) // 11 g + 7 v + 11 m + 7 a + 8 t + 1 c
+    expect(chordBindings.length).toBe(66) // 11 g + 7 v + 11 m + 7 a + 8 t + 1 c + 21 Ctrl+w
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -848,6 +873,17 @@ describe("chord keybindings", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
     expect(keys).toEqual(["-", "C", "c", "d", "h", "i", "m"])
+  })
+
+  it("getChordSuffixes returns Ctrl+w-prefix hints", () => {
+    const suffixes = getChordSuffixes("Ctrl+w")
+    const keys = suffixes.map((s) => s.key).sort()
+    expect(keys).toEqual(["+", "-", "<", "=", ">", "H", "J", "K", "L", "Tab", "h", "j", "k", "l", "o", "p", "q", "s", "v", "z"])
+  })
+
+  it("Ctrl+w Shift+Tab resolves to pane_focus_prev", () => {
+    const ctx = createContext()
+    expect(resolveChord("Ctrl+w", "Tab", { shift: true }, ctx)).toBe("pane_focus_prev")
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {
@@ -1090,8 +1126,8 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("j", { ctrl: true }, inlineCtx)).toBe("noop")
     })
 
-    it("Ctrl+i (open detail pane) is blocked", () => {
-      expect(resolveKeybinding("i", { ctrl: true }, nodeCtx)).toBe("open_detail_pane")
+    it("Ctrl+i (toggle detail pane) is blocked", () => {
+      expect(resolveKeybinding("i", { ctrl: true }, nodeCtx)).toBe("toggle_detail_pane")
       expect(resolveKeybinding("i", { ctrl: true }, inlineCtx)).toBe("noop")
     })
   })
@@ -1159,8 +1195,8 @@ describe("Cmd shortcuts (kitty protocol, super modifier)", () => {
       expectKey("o", "open_in_terminal", { super: true, shift: true })
     })
 
-    it("Cmd+n → capture_inbox (capture new)", () => {
-      expectKey("n", "capture_inbox", sup)
+    it("Cmd+n → capture_dialog (capture with dialog)", () => {
+      expectKey("n", "capture_dialog", sup)
     })
 
     it("Cmd+k → command_palette (omnibox)", () => {

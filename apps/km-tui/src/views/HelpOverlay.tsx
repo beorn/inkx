@@ -7,7 +7,7 @@
  */
 import React, { useMemo } from "react"
 import { Box, Text } from "inkx"
-import { ModalDialog } from "./shared-components.tsx"
+import { KeyBinding, ModalDialog } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
 interface HelpOverlayProps {
@@ -32,31 +32,7 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 ]
 
 // ── Key display formatting ──────────────────────────────────────────
-
-/**
- * Render key string with dim ` / ` separators for alternatives.
- * Keys are yellow, ` / ` separators are dim grey.
- */
-function KeyText({ keys, prefix }: { keys: string; prefix: string }): React.ReactElement {
-  if (!keys.includes(" / ")) {
-    return (
-      <Text key={`${prefix}-k0`} color="yellow">
-        {keys}
-      </Text>
-    )
-  }
-  const segments = keys.split(" / ")
-  return (
-    <>
-      {segments.map((seg, i) => (
-        <React.Fragment key={`${prefix}-k${i}`}>
-          {i > 0 && <Text dimColor>{" / "}</Text>}
-          <Text color="yellow">{seg}</Text>
-        </React.Fragment>
-      ))}
-    </>
-  )
-}
+// Uses KeyBinding from shared-components for chord dot separators and / alternatives.
 
 // ── Section header ──────────────────────────────────────────────────
 
@@ -81,16 +57,21 @@ function SectionHeaderLine({ title, fillWidth }: { title: string; fillWidth: num
 function EntryLine({
   keys,
   desc,
-  prefix,
   fillWidth,
-}: { keys: string; desc: string; prefix: string; fillWidth: number }): React.ReactElement {
+}: { keys: string[]; desc: string; fillWidth: number }): React.ReactElement {
   // Pre-compute dots to fill space between key and description.
-  const keyLen = keys.replace(/ \/ /g, " / ").length
+  // Visual width: each key's length + spaces between them.
+  const keyLen = keys.join(" ").replace(/ \/ /g, " / ").length
   const dotCount = Math.max(1, fillWidth - keyLen - desc.length - 5) // 2 indent + 2 spaces + ~1 padding
   return (
     <Box flexDirection="row">
       <Text>{"  "}</Text>
-      <KeyText keys={keys} prefix={prefix} />
+      {keys.map((k, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <Text>{" "}</Text>}
+          <KeyBinding keys={k} />
+        </React.Fragment>
+      ))}
       <Text> </Text>
       <Text dimColor>{".".repeat(dotCount)}</Text>
       <Text> </Text>
@@ -106,13 +87,11 @@ function buildSectionLines(section: HelpSection, keyPrefix: string, fillWidth: n
   lines.push(<SectionHeaderLine key={`${keyPrefix}-hdr`} title={section.category} fillWidth={fillWidth} />)
   for (let i = 0; i < section.items.length; i++) {
     const item = section.items[i]
-    const keyStr = item.keys.join(" ")
     lines.push(
       <EntryLine
         key={`${keyPrefix}-e${i}`}
-        keys={keyStr}
+        keys={item.keys}
         desc={item.description}
-        prefix={`${keyPrefix}-e${i}`}
         fillWidth={fillWidth}
       />,
     )
@@ -192,7 +171,7 @@ const VG_COL_W = 12
 
 function GridCell({ value }: { value?: string }): React.ReactElement {
   if (!value) return <Text dimColor>{"·"}</Text>
-  return <Text color="yellow">{value}</Text>
+  return <KeyBinding keys={value} />
 }
 
 function buildVerbGridLines(fillWidth: number): React.ReactElement[] {

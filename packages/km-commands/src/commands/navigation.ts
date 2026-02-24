@@ -136,16 +136,6 @@ const zoomOutwards = {
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
-// Open detail pane for current node
-const openDetailPane = {
-  id: "open_detail_pane",
-  name: "Open Detail",
-  description: "Open detail pane for current node",
-  category: "Navigation",
-  shortcuts: ["Enter"],
-  execute: () => ({ type: "OPEN_DETAIL_PANE" }),
-} satisfies CommandDef
-
 // Smart-D: context-aware detail pane toggle (v2 spec)
 // Closed -> open+focus, open+board-focused -> focus pane, open+pane-focused -> close
 const toggleDetailPane = {
@@ -383,7 +373,6 @@ export const navigationCommands: CommandDef[] = [
   navForward,
   zoomIn,
   zoomOutwards,
-  openDetailPane,
   toggleDetailPane,
   closeDetailPane,
   pageDown,

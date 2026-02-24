@@ -261,6 +261,72 @@ export const MemoizedColumnHeader = React.memo(
 )
 
 // =============================================================================
+// KeyBinding Component — renders keybindings with chord dot separators
+// =============================================================================
+
+/**
+ * Detect whether a key segment (no ` / ` inside) is a chord sequence.
+ *
+ * A chord is exactly 2 space-separated parts where each part is a
+ * short key-like token (1–2 visible chars). Examples:
+ *   "g c" → chord    "v m" → chord    "t t" → chord    "⌃w v" → chord
+ *   "hjkl" → no      "⌃a" → no       "⌃w hjkl" → no (second part 4 chars)
+ */
+function isChord(segment: string): boolean {
+  const parts = segment.split(" ")
+  if (parts.length !== 2) return false
+  // Each part must be 1–2 visible characters
+  // (covers single chars like "g", modifier+key like "⌃w", symbols like "/")
+  return [...parts[0]].length <= 2 && [...parts[1]].length <= 2
+}
+
+/**
+ * Render a single key segment with chord dot separator.
+ *
+ * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
+ * Otherwise renders the segment as-is in yellow.
+ */
+function KeySegment({ segment, color = "yellow" }: { segment: string; color?: string }): React.ReactElement {
+  if (isChord(segment)) {
+    const [prefix, suffix] = segment.split(" ")
+    return (
+      <Text color={color}>
+        {prefix}
+        <Text dimColor>{"·"}</Text>
+        {suffix}
+      </Text>
+    )
+  }
+  return <Text color={color}>{segment}</Text>
+}
+
+/**
+ * Render a key string with chord dots and dim ` / ` alternative separators.
+ *
+ * Handles three patterns:
+ * - Alternatives: `"z / Z"` → z dim(/) Z
+ * - Chords: `"g c"` → g·c (dot is dim)
+ * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
+ * - Plain: `"hjkl"` → hjkl
+ */
+export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: string }): React.ReactElement {
+  if (!keys.includes(" / ")) {
+    return <KeySegment segment={keys} color={color} />
+  }
+  const segments = keys.split(" / ")
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <React.Fragment key={i}>
+          {i > 0 && <Text dimColor>{" / "}</Text>}
+          <KeySegment segment={seg} color={color} />
+        </React.Fragment>
+      ))}
+    </>
+  )
+}
+
+// =============================================================================
 // Modal Dialog Component
 // =============================================================================
 

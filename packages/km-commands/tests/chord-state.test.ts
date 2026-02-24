@@ -113,7 +113,7 @@ describe("ChordState", () => {
   })
 
   describe("modifier keys", () => {
-    test("modifier keys skip chord detection", () => {
+    test("modifier keys skip chord detection for bare prefixes", () => {
       const r = state.processKey("z", true, ctrlMod, {}, cb)
       expect(r.type).toBe("passthrough")
       expect(state.pending).toBeNull()
@@ -122,6 +122,49 @@ describe("ChordState", () => {
     test("non-prefix key passes through", () => {
       const r = state.processKey("j", false, noMods, {}, cb)
       expect(r.type).toBe("passthrough")
+    })
+  })
+
+  describe("composite chord prefix (Ctrl+w)", () => {
+    let ctrlWCb: ChordCallbacks
+
+    beforeEach(() => {
+      ctrlWCb = createCallbacks({
+        prefixes: new Set(["Ctrl+w"]),
+        chords: new Map([
+          ["Ctrl+w:q", "pane_close"],
+          ["Ctrl+w:v", "pane_split_vertical"],
+        ]),
+        standalones: new Map(), // Ctrl+w has no standalone fallback
+      })
+    })
+
+    test("Ctrl+w enters pending state with composite prefix", () => {
+      const r = state.processKey("w", true, ctrlMod, {}, ctrlWCb)
+      expect(r.type).toBe("pending")
+      if (r.type === "pending") expect(r.prefix).toBe("Ctrl+w")
+      expect(state.pending).toBe("Ctrl+w")
+    })
+
+    test("Ctrl+w q resolves to pane_close", () => {
+      state.processKey("w", true, ctrlMod, {}, ctrlWCb)
+      const r = state.processKey("q", false, noMods, {}, ctrlWCb)
+      expect(r.type).toBe("resolved")
+      if (r.type === "resolved") expect(r.commandId).toBe("pane_close")
+    })
+
+    test("Ctrl+w followed by unmatched key passes through (no standalone)", () => {
+      state.processKey("w", true, ctrlMod, {}, ctrlWCb)
+      const r = state.processKey("x", false, noMods, {}, ctrlWCb)
+      expect(r.type).toBe("passthrough")
+    })
+
+    test("timeout clears Ctrl+w pending state", () => {
+      state.processKey("w", true, ctrlMod, {}, ctrlWCb)
+      expect(state.pending).toBe("Ctrl+w")
+      const prefix = state.timeout()
+      expect(prefix).toBe("Ctrl+w")
+      expect(state.pending).toBeNull()
     })
   })
 

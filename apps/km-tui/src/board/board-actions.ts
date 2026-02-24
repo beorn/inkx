@@ -267,31 +267,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "HELP_SCROLL_DOWN":
       ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
-    case "OPEN_DETAIL_PANE": {
-      // If current node has children, zoom into it instead of opening detail pane.
-      // Exception: folders always get the detail pane (shows contents outline).
-      const curNodeId = card?.id ?? col?.node.id
-      const curNode = curNodeId ? ctx.repo.getNode(curNodeId) : undefined
-      // Resolve embedded links to get the actual target node type
-      const embedTarget = curNode?.embed_source
-      const resolvedNode = embedTarget ? ctx.repo.getNode(embedTarget) : curNode
-      const isFolder = resolvedNode
-        ? isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder"
-        : false
-      log.debug?.(`OPEN_DETAIL_PANE: curNodeId=${curNodeId} isFolder=${isFolder}`)
-      if (curNodeId && !isFolder) {
-        const children = ctx.repo.getChildren(curNodeId)
-        log.debug?.(`OPEN_DETAIL_PANE: children=${children.length}`)
-        if (children.length > 0) {
-          // Use handleZoomInNode to support both card and column level zoom
-          return handleZoomInNode(ctx, curNodeId)
-        }
-      }
-      // No children, or folder — open detail pane via workspace and focus it
-      ctx.openDetailPane()
-      ctx.focus("detail-pane")
-      return ok()
-    }
     case "CLOSE_DETAIL_PANE":
       ctx.closeDetailPane()
       ctx.focus("board-area")

@@ -180,10 +180,6 @@ interface ZoomOutwardsAction {
   type: "ZOOM_OUTWARDS"
 }
 
-interface OpenDetailPaneAction {
-  type: "OPEN_DETAIL_PANE"
-}
-
 interface CloseDetailPaneAction {
   type: "CLOSE_DETAIL_PANE"
 }
@@ -838,7 +834,6 @@ export type TUIAction =
 
 export type UIAction =
   | ZoomOutwardsAction
-  | OpenDetailPaneAction
   | CloseDetailPaneAction
   | ToggleDetailPaneAction
   | ShowHelpAction

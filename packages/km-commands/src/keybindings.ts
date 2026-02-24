@@ -518,7 +518,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Cmd+W: always close detail pane regardless of focus state
       { key: "w", super: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
-      { key: "i", ctrl: true, commandId: "open_detail_pane" },
+      { key: "i", ctrl: true, commandId: "toggle_detail_pane" },
 
       // Ctrl equivalents for chord prefixes and pickers
       { key: "l", ctrl: true, commandId: "add_link", when: not(textInputFocused) },
@@ -526,6 +526,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "o", ctrl: true, commandId: "open_in_system", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native feel)
+      // Cmd+i: toggle detail pane (when not inline editing — Cmd+i is italic there)
+      { key: "i", super: true, commandId: "toggle_detail_pane", when: not(isInlineEditing) },
       // Focus switching: Cmd+h = board, Cmd+l = detail pane
       { key: "h", super: true, commandId: "focus_board" },
       { key: "l", super: true, commandId: "focus_detail" },
@@ -623,8 +625,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "v", super: true, commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
       { key: "d", super: true, commandId: "duplicate_node" },
-      // Cmd+n = capture new to inbox (kitty)
-      { key: "n", super: true, commandId: "capture_inbox" },
+      // Cmd+n = capture dialog (kitty) — per help spec
+      { key: "n", super: true, commandId: "capture_dialog" },
     ],
   },
 
@@ -763,7 +765,55 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 14: TUI-specific ---
+  // --- Layer 14: Pane management (Ctrl+W chord prefix, vim-style) ---
+  {
+    name: "pane",
+    bindings: [
+      // Ctrl+W is a chord prefix — second key selects the pane action.
+      // Split
+      { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
+      { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
+
+      // Focus (hjkl)
+      { chord: "Ctrl+w", key: "h", commandId: "pane_focus_left" },
+      { chord: "Ctrl+w", key: "j", commandId: "pane_focus_down" },
+      { chord: "Ctrl+w", key: "k", commandId: "pane_focus_up" },
+      { chord: "Ctrl+w", key: "l", commandId: "pane_focus_right" },
+
+      // Resize width (> / <)
+      { chord: "Ctrl+w", key: ">", commandId: "pane_resize_grow" },
+      { chord: "Ctrl+w", key: "<", commandId: "pane_resize_shrink" },
+
+      // Resize height (+ / -)
+      { chord: "Ctrl+w", key: "+", commandId: "pane_resize_grow_vertical" },
+      { chord: "Ctrl+w", key: "-", commandId: "pane_resize_shrink_vertical" },
+
+      // Swap (HJKL — uppercase)
+      { chord: "Ctrl+w", key: "H", commandId: "pane_swap_left" },
+      { chord: "Ctrl+w", key: "J", commandId: "pane_swap_down" },
+      { chord: "Ctrl+w", key: "K", commandId: "pane_swap_up" },
+      { chord: "Ctrl+w", key: "L", commandId: "pane_swap_right" },
+
+      // Focus toggle/cycle (p / Tab / Shift+Tab)
+      { chord: "Ctrl+w", key: "p", commandId: "pane_focus_previous" },
+      { chord: "Ctrl+w", key: "Tab", commandId: "pane_focus_next" },
+      { chord: "Ctrl+w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
+
+      // Close others
+      { chord: "Ctrl+w", key: "o", commandId: "pane_only" },
+
+      // Close pane
+      { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
+
+      // Zoom (maximize toggle)
+      { chord: "Ctrl+w", key: "z", commandId: "pane_zoom" },
+
+      // Equalize
+      { chord: "Ctrl+w", key: "=", commandId: "pane_equalize" },
+    ],
+  },
+
+  // --- Layer 15: TUI-specific ---
   {
     name: "tui",
     bindings: [
