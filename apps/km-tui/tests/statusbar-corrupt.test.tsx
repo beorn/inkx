@@ -70,9 +70,9 @@ const testColumns: ColumnView[] = [
 ]
 
 describe("Status bar corruption: view name bleeds into sync count", () => {
-  // Unit tests for CommandBox component
+  // Unit tests for CommandBox component — view mode moved to TopBar
   describe("CommandBox unit", () => {
-    it("view mode text does not overlap with node count", () => {
+    it("view mode is no longer in CommandBox (moved to TopBar)", () => {
       const app = render(
         <CommandBox
           ui={baseUI}
@@ -85,14 +85,30 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         />,
       )
       const output = app.text
-      const viewModeIdx = output.indexOf("CARDS VIEW")
-      const nodeCountIdx = output.indexOf("📋42")
-      expect(viewModeIdx).toBeGreaterThan(-1)
-      expect(nodeCountIdx).toBeGreaterThan(-1)
-      expect(viewModeIdx).toBeGreaterThan(nodeCountIdx)
+      expect(output).not.toContain("VIEW")
     })
 
-    it("view mode text does not overlap with watcher status when syncing", () => {
+    it("storage path and node count are present and non-overlapping", () => {
+      const app = render(
+        <CommandBox
+          ui={baseUI}
+          rootPath={testRootPath}
+          columns={testColumns}
+          termWidth={80}
+          storageMode="disk"
+          nodeCount={42}
+          moveMode={false}
+        />,
+      )
+      const output = app.text
+      const diskIdx = output.indexOf("DISK")
+      const nodeCountIdx = output.indexOf("📋42")
+      expect(diskIdx).toBeGreaterThan(-1)
+      expect(nodeCountIdx).toBeGreaterThan(-1)
+      expect(nodeCountIdx).toBeGreaterThan(diskIdx)
+    })
+
+    it("watcher status does not overlap with storage path", () => {
       const uiWithWatcher: UIState = {
         ...baseUI,
         watcherStatus: {
@@ -113,146 +129,73 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
         />,
       )
       const output = app.text
-
-      const viewModeIdx = output.indexOf("CARDS VIEW")
+      const diskIdx = output.indexOf("DISK")
       const watcherIdx = output.indexOf("sync:3")
       const nodeCountIdx = output.indexOf("📋42")
-      expect(viewModeIdx).toBeGreaterThan(-1)
+      expect(diskIdx).toBeGreaterThan(-1)
       expect(watcherIdx).toBeGreaterThan(-1)
       expect(nodeCountIdx).toBeGreaterThan(-1)
 
+      expect(nodeCountIdx).toBeGreaterThan(diskIdx)
       expect(watcherIdx).toBeGreaterThan(nodeCountIdx)
-      expect(viewModeIdx).toBeGreaterThan(watcherIdx)
-    })
-
-    it("view mode and watcher count are visually separated in buffer", () => {
-      const uiWithWatcher: UIState = {
-        ...baseUI,
-        watcherStatus: {
-          state: "idle",
-          pendingPaths: 0,
-          watchedPaths: 5,
-        },
-      }
-      const app = render(
-        <CommandBox
-          ui={uiWithWatcher}
-          rootPath={testRootPath}
-          columns={testColumns}
-          termWidth={80}
-          storageMode="disk"
-          nodeCount={42}
-          moveMode={false}
-        />,
-      )
-
-      const viewModeEl = app.locator("#view-mode")
-      const watcherEl = app.locator("#watcher-status")
-      expect(viewModeEl.count()).toBeGreaterThan(0)
-      expect(watcherEl.count()).toBeGreaterThan(0)
-
-      // View mode should contain exactly "CARDS VIEW" — no watcher text mixed in
-      expect(viewModeEl.textContent().trim()).toBe("CARDS VIEW")
-      // Watcher text should not contain view mode text
-      expect(watcherEl.textContent()).not.toContain("VIEW")
-      expect(watcherEl.textContent()).not.toContain("CARDS")
-    })
-
-    it("switching view modes clears old view text from buffer", () => {
-      const app = render(
-        <CommandBox
-          ui={{ ...baseUI, viewMode: "cards" }}
-          rootPath={testRootPath}
-          columns={testColumns}
-          termWidth={80}
-          storageMode="disk"
-          nodeCount={42}
-          moveMode={false}
-        />,
-      )
-      expect(app.text).toContain("CARDS VIEW")
-
-      // Switch to "columns" (longer text)
-      app.rerender(
-        <CommandBox
-          ui={{ ...baseUI, viewMode: "columns" }}
-          rootPath={testRootPath}
-          columns={testColumns}
-          termWidth={80}
-          storageMode="disk"
-          nodeCount={42}
-          moveMode={false}
-        />,
-      )
-      const output = app.text
-      expect(output).toContain("COLUMNS VIEW")
-      expect(output).not.toContain("CARDS")
     })
   })
 
-  // Integration test using full Board with view cycling
+  // Integration test using full Board — view mode now in top bar
   describe("full Board integration", () => {
-    it("bottom row shows clean view mode text after cycling views", () => {
+    it("top bar shows clean view mode text after cycling views", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
       )
 
-      // Initial state should be CARDS VIEW
-      const lastRow = board.screen.rows.length - 1
-      let bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("CARDS VIEW")
+      // View mode is now in the top bar (row 0)
+      let topRow = board.screen.row(0)
+      expect(topRow).toContain("CARDS VIEW")
 
       // Press 'v' to cycle to columns view
       board.press("v").press("v")
-      bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("COLUMNS VIEW")
-      // Old view mode text should NOT be present
-      expect(bottomRow).not.toContain("CARDS")
+      topRow = board.screen.row(0)
+      expect(topRow).toContain("COLUMNS VIEW")
+      expect(topRow).not.toContain("CARDS VIEW")
 
       // Press 'v' again to cycle to tabs view
       board.press("v").press("v")
-      bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("TABS VIEW")
-      // Old view mode text should NOT be present
-      expect(bottomRow).not.toContain("COLUMNS")
-      expect(bottomRow).not.toContain("CARDS")
+      topRow = board.screen.row(0)
+      expect(topRow).toContain("TABS VIEW")
+      expect(topRow).not.toContain("COLUMNS VIEW")
 
       // Press 'v' to cycle back to cards
       board.press("v").press("v")
-      bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("CARDS VIEW")
-      // Old view mode text should NOT be present
-      expect(bottomRow).not.toContain("TABS")
-      expect(bottomRow).not.toContain("COLUMNS")
+      topRow = board.screen.row(0)
+      expect(topRow).toContain("CARDS VIEW")
+      expect(topRow).not.toContain("TABS VIEW")
     })
 
-    it("bottom row has no character corruption after rapid view cycling", () => {
+    it("top bar has no character corruption after rapid view cycling", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
       )
-
-      const lastRow = board.screen.rows.length - 1
 
       // Rapidly cycle through all views multiple times
       for (let i = 0; i < 6; i++) {
         board.press("v").press("v")
       }
 
-      const bottomRow = board.screen.row(lastRow)
+      const topRow = board.screen.row(0)
 
       // The view mode text should be clean — one of the valid view modes
       const hasValidView =
-        bottomRow.includes("CARDS VIEW") || bottomRow.includes("COLUMNS VIEW") || bottomRow.includes("TABS VIEW")
+        topRow.includes("CARDS VIEW") || topRow.includes("COLUMNS VIEW") || topRow.includes("TABS VIEW")
       expect(hasValidView).toBe(true)
 
-      // "VIEW" should appear exactly once
-      const viewMatches = bottomRow.match(/VIEW/g)
+      // "VIEW" should appear exactly once in the top bar
+      const viewMatches = topRow.match(/VIEW/g)
       expect(viewMatches?.length).toBe(1)
     })
 
-    it("node count text is clean and not corrupted by adjacent elements", () => {
+    it("node count text is clean and not corrupted in bottom bar", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
@@ -261,47 +204,40 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
       const lastRow = board.screen.rows.length - 1
       const bottomRow = board.screen.row(lastRow)
 
-      // Node count text should be present
+      // Node count text should be present in the bottom bar
       const nodeCountEl = board.q("#node-count")
       expect(nodeCountEl.count()).toBeGreaterThan(0)
       const nodeCountText = nodeCountEl.textContent()
       // Should contain clipboard icon followed by a number
       expect(nodeCountText).toMatch(/📋\d+/)
 
-      // View mode should not overlap into the node count area
-      const nodeCountBox = nodeCountEl.boundingBox()
-      const viewModeBox = board.q("#view-mode").boundingBox()
-      if (nodeCountBox && viewModeBox) {
-        const nodeCountRight = nodeCountBox.x + nodeCountBox.width
-        expect(viewModeBox.x).toBeGreaterThanOrEqual(nodeCountRight)
-      }
+      // View mode should NOT be in the bottom bar
+      expect(bottomRow).not.toContain("VIEW")
     })
 
-    it("view mode text does not overwrite watcher/sync text in buffer cells", () => {
+    it("view mode text in top bar does not overlap with other elements", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
       )
 
-      const lastRow = board.screen.rows.length - 1
-      const bottomRow = board.screen.row(lastRow)
+      const topRow = board.screen.row(0)
 
-      // "VIEW" should appear exactly once
-      const viewCount = (bottomRow.match(/VIEW/g) || []).length
+      // "VIEW" should appear exactly once in the top bar
+      const viewCount = (topRow.match(/VIEW/g) || []).length
       expect(viewCount).toBe(1)
 
-      expect(bottomRow).toContain("CARDS VIEW")
-      expect((bottomRow.match(/VIEW/g) || []).length).toBe(1)
+      expect(topRow).toContain("CARDS VIEW")
 
       // Switch to columns view and check again
       board.press("v").press("v")
-      const bottomRow2 = board.screen.row(lastRow)
-      expect((bottomRow2.match(/VIEW/g) || []).length).toBe(1)
-      expect(bottomRow2).toContain("COLUMNS VIEW")
-      expect(bottomRow2).not.toContain("CARDS")
+      const topRow2 = board.screen.row(0)
+      expect((topRow2.match(/VIEW/g) || []).length).toBe(1)
+      expect(topRow2).toContain("COLUMNS VIEW")
+      expect(topRow2).not.toContain("CARDS VIEW")
     })
 
-    it("switching from long view name to short clears leftover chars", () => {
+    it("switching from long view name to short clears leftover chars in top bar", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 80, rows: 24 },
@@ -309,43 +245,29 @@ describe("Status bar corruption: view name bleeds into sync count", () => {
 
       // Start with CARDS, go to COLUMNS
       board.press("v").press("v") // -> COLUMNS
-      const lastRow = board.screen.rows.length - 1
-      let bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("COLUMNS VIEW")
+      let topRow = board.screen.row(0)
+      expect(topRow).toContain("COLUMNS VIEW")
 
       // Switch to TABS (shorter)
       board.press("v").press("v") // -> TABS
-      bottomRow = board.screen.row(lastRow)
-      expect(bottomRow).toContain("TABS VIEW")
-      expect(bottomRow).not.toContain("COLUMN")
-      expect(bottomRow).not.toContain("OLUMNS")
-      expect(bottomRow).not.toContain("NS ")
-
-      // Extract the region after "TABS VIEW"
-      const viewIdx = bottomRow.indexOf("TABS VIEW")
-      if (viewIdx > -1) {
-        const afterView = bottomRow.slice(viewIdx + "TABS VIEW".length)
-        expect(afterView.trim()).toBe("")
-      }
+      topRow = board.screen.row(0)
+      expect(topRow).toContain("TABS VIEW")
+      expect(topRow).not.toContain("COLUMN")
+      expect(topRow).not.toContain("OLUMNS")
     })
 
-    it("node count number does not bleed into view mode text (2ARDS VIEW W regression)", () => {
+    it("view mode in top bar is clean on narrow terminal (no digit bleed)", () => {
       const { board } = testEnv(
         () => item("board", item("Todo", item("task 1"), item("task 2")), item("Done", item("task 3"))),
         { columns: 60, rows: 24 },
       )
 
-      const lastRow = board.screen.rows.length - 1
-      const bottomRow = board.screen.row(lastRow)
+      const topRow = board.screen.row(0)
 
       const viewModeEl = board.q("#view-mode")
       expect(viewModeEl.count()).toBeGreaterThan(0)
       const viewModeText = viewModeEl.textContent().trim()
       expect(viewModeText).toBe("CARDS VIEW")
-
-      expect(bottomRow).not.toMatch(/\d+ARDS/)
-      const viewIdx = bottomRow.indexOf("CARDS VIEW")
-      expect(viewIdx).toBeGreaterThan(-1)
     })
   })
 })

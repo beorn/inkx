@@ -1114,8 +1114,12 @@ const FoldedChildRow = React.memo(
     }
     const prefix = buildPrefix(bulletIcon)
 
-    // Content — simplified version of getDisplayContent
-    const rawContent = getDisplayContent(repo, node, node, null, node.embed_source != null)
+    // Content — resolve embeds like TreeNode does (line 250-256)
+    const embedSource = node.embed_source
+    const isEmbedded = embedSource != null
+    const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
+    const displayNode = resolvedNode ?? node
+    const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
     const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
     // Inline render context — minimal, no memoization needed (component is memo'd)

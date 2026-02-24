@@ -102,41 +102,70 @@ function getLabel(commandId: string): string {
   return cmd?.name ?? commandId
 }
 
-interface WhichKeyPopupProps {
-  prefix: string
+interface CommandFeedbackProps {
+  prefix?: string
+  bellState?: string
+  status?: { level: string; message: string } | null
   termWidth: number
 }
 
-export function WhichKeyPopup({ prefix, termWidth }: WhichKeyPopupProps): React.ReactElement | null {
-  const suffixes = getChordSuffixes(prefix)
-  if (suffixes.length === 0) return null
+const STATUS_COLORS: Record<string, string | undefined> = {
+  info: undefined,
+  success: "green",
+  warning: "yellow",
+  error: "red",
+}
 
-  const entries = suffixes.map((s) => ({
-    key: s.key,
-    label: getLabel(s.commandId),
-  }))
+export function CommandFeedback({ prefix, bellState, status, termWidth }: CommandFeedbackProps): React.ReactElement | null {
+  // Priority 1: chord hints (existing behavior)
+  if (prefix) {
+    const suffixes = getChordSuffixes(prefix)
+    if (suffixes.length === 0) return null
 
-  // Vertical layout: one entry per row, fit to widest entry
-  const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))
-  const popupWidth = Math.min(maxEntryWidth + 4, termWidth) // +4 for border+padding
+    const entries = suffixes.map((s) => ({
+      key: s.key,
+      label: getLabel(s.commandId),
+    }))
 
-  return (
-    <Box
-      width={popupWidth}
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="gray"
-      paddingLeft={1}
-      paddingRight={1}
-    >
-      {entries.map((entry) => (
-        <Text key={entry.key}>
-          <Text color="yellow" bold>
-            {entry.key}
-          </Text>{" "}
-          <Text dimColor>{entry.label}</Text>
-        </Text>
-      ))}
-    </Box>
-  )
+    const maxEntryWidth = Math.max(...entries.map((e) => 1 + 1 + e.label.length))
+    const popupWidth = Math.min(maxEntryWidth + 4, termWidth) // +4 for border+padding
+
+    return (
+      <Box
+        width={popupWidth}
+        flexDirection="column"
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+      >
+        {entries.map((entry) => (
+          <Text key={entry.key}>
+            <Text color="yellow" bold>
+              {entry.key}
+            </Text>{" "}
+            <Text dimColor>{entry.label}</Text>
+          </Text>
+        ))}
+      </Box>
+    )
+  }
+
+  // Priority 2: bell feedback (prefer status message when co-set, since it's human-readable)
+  if (bellState || status) {
+    const message = status?.message ?? bellState ?? ""
+    const color = bellState ? "red" : STATUS_COLORS[status!.level]
+    return (
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+      >
+        <Text color={color}>{message}</Text>
+      </Box>
+    )
+  }
+
+  return null
 }

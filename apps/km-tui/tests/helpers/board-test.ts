@@ -2171,7 +2171,7 @@ class BoardTestImpl implements BoardTest {
   }
 
   getStorageMode(): string {
-    return this.getTextContent("#storage-mode")
+    return this.getTextContent("#storage-path")
   }
 
   getRepoPath(): string {

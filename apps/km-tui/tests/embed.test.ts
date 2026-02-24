@@ -341,6 +341,92 @@ describe("embed display", () => {
 })
 
 // =============================================================================
+// Folded embed display (FoldedChildRow)
+// =============================================================================
+
+describe("folded embed display (FoldedChildRow)", () => {
+  test("FoldedChildRow resolves embed_source directly, not just via resolveNode fallback", () => {
+    // Default fold depth = 1: card children render as FoldedChildRow (remainingDepth=0).
+    // Bug: FoldedChildRow passed null for resolvedNode to getDisplayContent,
+    // so it relied on the resolveNode fallback which doesn't always work
+    // (e.g., short alphanumeric block IDs that don't match \d{5,} regex).
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item.folder("Parent Card", item("embed-child-1"), item("embed-child-2"))))
+
+        // Target nodes with short alphanumeric block_id (not matched by resolveNode's \d{5,} regex)
+        nodes.push({
+          id: "target-task-abc",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Buy milk from store",
+          block_id: "abc",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        nodes.push({
+          id: "target-task-xyz",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 1,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Walk the dog outside",
+          block_id: "xyz",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Patch embed children: block-ref format with resolved embed_source.
+        // embed_source points directly to the target node ID.
+        // Content uses ![[^blockid]] which resolveNode can't resolve for short IDs.
+        for (const n of nodes) {
+          if (n.id === "embed-child-1") {
+            n.type = "embed"
+            n.embed_source = "target-task-abc"
+            n.content = "![[^abc]]"
+            n.data = {}
+          }
+          if (n.id === "embed-child-2") {
+            n.type = "embed"
+            n.embed_source = "target-task-xyz"
+            n.content = "![[^xyz]]"
+            n.data = {}
+          }
+        }
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    // With default rootFoldDepth=1, card children render as FoldedChildRow initially
+    const text = stripAnsi(board.screenshot())
+    // FoldedChildRow should resolve embed targets via embed_source and show content
+    expect(text).toContain("Buy milk")
+    expect(text).toContain("Walk the dog")
+    // Should NOT show raw block references or short ID fallback
+    expect(text).not.toContain("^abc")
+    expect(text).not.toContain("^xyz")
+    expect(text).not.toContain("![[")
+  })
+})
+
+// =============================================================================
 // Link title resolution (km-tui.link-title)
 // =============================================================================
 

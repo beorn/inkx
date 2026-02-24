@@ -404,7 +404,7 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).not.toContain("> Status")
 
     // Filter indicator should show in top bar (filter is still active)
-    expect(board.screenshot()).toContain("F:")
+    expect(board.screenshot()).toContain("[F]")
   })
 
   test("Ctrl+G toggles filter panel (open then close)", () => {

@@ -2,7 +2,7 @@
  * Bell message tests.
  *
  * Verifies that pressing an unmapped key shows a status message
- * ("Unmapped key: X") in the bottom bar alongside the visual bell.
+ * ("Unmapped key: X") in the command feedback pane alongside the visual bell.
  */
 
 import { describe, test, expect } from "vitest"
@@ -12,18 +12,18 @@ describe("bell message on unmapped key", () => {
   test("pressing unmapped printable key shows message in bottom bar", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    // 'w' is not mapped to any command in cards view
-    board.press("w")
+    // 'Q' is not mapped to any command in cards view
+    board.press("Q")
 
     const screenshot = board.screenshot()
     // Should show the unmapped key message
-    expect(screenshot).toContain("Unmapped key: w")
+    expect(screenshot).toContain("Unmapped key: Shift+Q")
   })
 
   test("bell state is set on unmapped key", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    board.press("w")
+    board.press("Q")
 
     // The bottom bar should have bell flash (red background)
     board.expect("#bottom-bar").toExist()
@@ -47,8 +47,8 @@ describe("bell message on unmapped key", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Press unmapped key
-    board.press("w")
-    expect(board.screenshot()).toContain("Unmapped key: w")
+    board.press("Q")
+    expect(board.screenshot()).toContain("Unmapped key: Shift+Q")
 
     // Press mapped key (j = cursor down)
     board.press("j")

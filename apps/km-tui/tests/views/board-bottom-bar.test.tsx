@@ -160,7 +160,7 @@ describe("CommandBox", () => {
     expect(output).toContain("📋123")
   })
 
-  it("shows view mode", () => {
+  it("shows storage path (DISK + shortened path)", () => {
     const app = render(
       <CommandBox
         ui={mockUIState}
@@ -173,10 +173,11 @@ describe("CommandBox", () => {
       />,
     )
     const output = app.text
-    expect(output).toContain("COLUMNS VIEW")
+    expect(output).toContain("DISK")
+    expect(output).toContain("/tmp/test-repo")
   })
 
-  it("shows column position in columns view", () => {
+  it("view mode is not shown in bottom bar (moved to top bar)", () => {
     const app = render(
       <CommandBox
         ui={mockUIState}
@@ -189,23 +190,7 @@ describe("CommandBox", () => {
       />,
     )
     const output = app.text
-    expect(output).toContain("col 1/2")
-  })
-
-  it("does not show column position in single column view", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-        columns={[mockColumns[0]!]}
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).not.toContain("col")
+    expect(output).not.toContain("VIEW")
   })
 
   it("does not show spinner when not loading", () => {

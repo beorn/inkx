@@ -93,6 +93,8 @@ export interface CommandBoxProps {
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"
+  /** Root path of the current board (null for in-memory) */
+  rootPath: string | null
   /** Total node count in database */
   nodeCount: number
   /** Move mode active (from board state) */
@@ -108,11 +110,20 @@ export interface CommandBoxProps {
  *
  * Layout: [MODE] > status/chord                    counters · view
  */
+/** Shorten a path by replacing the home directory prefix with ~ */
+function shortenPath(path: string | null): string {
+  if (!path) return ""
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
+  if (home && path.startsWith(home)) return "~" + path.slice(home.length)
+  return path
+}
+
 export function CommandBox({
   ui,
   columns,
   termWidth,
   storageMode,
+  rootPath,
   nodeCount,
   moveMode,
   consoleStats,
@@ -213,9 +224,8 @@ export function CommandBox({
   const watcherInfo = ui.watcherStatus
     ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
     : ""
-  const viewModeStr = (ui.viewMode?.toUpperCase() ?? "CARDS") + " VIEW"
-  const showColPosition = ui.viewMode === "columns" && columns.length > 1
-  const storageLabel = storageMode === "memory" ? "MEM" : ""
+  // Command bar is "active" when the user is typing into it (omnibox, find, search-replace)
+  const isCommandInput = !!(ui.showOmnibox || ui.localSearch || ui.searchReplace)
 
   return (
     <Box
@@ -224,7 +234,7 @@ export function CommandBox({
       width={termWidth}
       id="bottom-bar"
       data-status={ui.status?.level}
-      backgroundColor={ui.bellState ? "red" : undefined}
+      backgroundColor={ui.bellState ? "red" : isCommandInput ? "#1a3a5c" : undefined}
     >
       {/* Left side: mode pill + prompt + status */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
@@ -264,16 +274,13 @@ export function CommandBox({
             {statusMessage}
           </Text>
         )}
-        {/* Memory mode indicator (only for non-disk) */}
-        {storageLabel && (
-          <Text dimColor id="storage-mode">
-            {"  "}
-            {storageLabel}
-          </Text>
-        )}
       </Box>
-      {/* Right side: counters + view info */}
+      {/* Right side: storage path + counters */}
       <Box flexGrow={0} flexShrink={0} flexDirection="row">
+        {/* Storage mode + path */}
+        <Text dimColor id="storage-path">
+          {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}{"  "}
+        </Text>
         {/* Log counter (only when logs exist) */}
         {logTotal > 0 && (
           <Text dimColor={!logFlash} id="console-indicator">
@@ -293,16 +300,6 @@ export function CommandBox({
             {watcherInfo}
           </Text>
         )}
-        {showColPosition && (
-          <Text dimColor id="column-position">
-            {"   "}col {layout.colIndex + 1}/{columns.length}
-          </Text>
-        )}
-        {/* View mode label */}
-        <Text dimColor id="view-mode">
-          {"   "}
-          {viewModeStr}{" "}
-        </Text>
       </Box>
     </Box>
   )

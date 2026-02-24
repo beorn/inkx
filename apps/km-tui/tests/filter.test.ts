@@ -140,7 +140,7 @@ describe("P2: Filter feature", () => {
 
     // No filter indicator initially
     let screen = board.screenshot()
-    expect(screen).not.toContain("F:")
+    expect(screen).not.toContain("[F]")
 
     // Open filter and toggle todo status
     board.press("ctrl+g")
@@ -151,7 +151,7 @@ describe("P2: Filter feature", () => {
 
     screen = board.screenshot()
     // Filter indicator should be visible in top bar
-    expect(screen).toContain("F:")
+    expect(screen).toContain("[F]")
     expect(screen).toContain("todo")
   })
 
