@@ -297,11 +297,13 @@ function TreeNodeImpl({
     dim,
   ])
 
-  // Search match highlighting: inverse white for matches, brighter for current
+  // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
-  const effectiveBg =
-    isSearchMatch && !isSelected && !isMultiSelected ? (isCurrentMatch ? "#555555" : "#333333") : style.backgroundColor
+  const searchHighlight = isSearchMatch && !isSelected && !isMultiSelected
+  const effectiveBg = searchHighlight ? (isCurrentMatch ? "white" : "#bbbbbb") : style.backgroundColor
+  const tc = searchHighlight ? "black" : style.textColor
+  const sd = searchHighlight ? false : style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -687,11 +689,11 @@ function TreeNodeImpl({
         >
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
-            <Text color={style.textColor} dimColor={style.shouldDim}>
+            <Text color={tc} dimColor={sd}>
               <Text
                 color={
                   isSelected || isMultiSelected
-                    ? style.textColor
+                    ? tc
                     : style.isDoneOrDropped
                       ? undefined
                       : prefix.markerColor
@@ -706,7 +708,7 @@ function TreeNodeImpl({
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
           <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
             {editingTitle ? (
-              <Text color={style.textColor} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
+              <Text color={tc} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
                 <InlineEditField
                   initialValue={editContent}
                   onConfirm={handleInlineEditConfirm}
@@ -719,36 +721,36 @@ function TreeNodeImpl({
                 />
               </Text>
             ) : isHR ? (
-              <Text color={style.textColor} dimColor={style.shouldDim} wrap="truncate">
+              <Text color={tc} dimColor={sd} wrap="truncate">
                 {cleanContent.trim()}
               </Text>
             ) : (
               <Text
                 bold={depth === 0}
-                color={dimUntitled ? "gray" : (style.textColor ?? style.ownColor)}
-                dimColor={style.shouldDim || dimUntitled}
+                color={dimUntitled ? "gray" : (tc ?? style.ownColor)}
+                dimColor={sd || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
                 {isVerbatim ? (
                   processedContent
                 ) : (
-                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: shouldStripColor }} />
+                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }} />
                 )}
                 {sigilName && (
                   <>
                     {" "}
-                    <Text dimColor={style.shouldDim}>{sigilName}</Text>
+                    <Text dimColor={sd}>{sigilName}</Text>
                   </>
                 )}
                 {!childrenHidden && (
-                  <Text dimColor={style.shouldDim}>
-                    <InfoSuffix {...infoSuffixProps} noColor={shouldStripColor} />
+                  <Text dimColor={sd}>
+                    <InfoSuffix {...infoSuffixProps} noColor={searchHighlight || shouldStripColor} />
                   </Text>
                 )}
                 {showInlineChildCount && <Text dimColor> {childCount}</Text>}
                 {!childrenHidden && showInlineContext && (
-                  <Text dimColor={style.shouldDim} italic>
+                  <Text dimColor={sd} italic>
                     {contextSuffix}
                   </Text>
                 )}
@@ -762,19 +764,19 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${childCount}`}</Text>
+              <Text color={isHighlighted ? tc : "gray"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
           {isBlocked && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? style.textColor : "red"}>{" blocked"}</Text>
+              <Text color={isHighlighted ? tc : "red"}>{" blocked"}</Text>
             </Box>
           )}
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
           {subtaskBadge && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? style.textColor : "gray"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isHighlighted ? tc : "gray"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -782,7 +784,7 @@ function TreeNodeImpl({
           {/* Rightmost element in the row — dates are the last thing on the line */}
           {hasDateBadge && !isInlineEditing && !style.isDoneOrDropped && (
             <Box flexShrink={0}>
-              <Text color={style.textColor} wrap="truncate">
+              <Text color={tc} wrap="truncate">
                 {" "}
                 <DateBadge node={displayNode} noColor={shouldStripColor} />
               </Text>
@@ -1056,6 +1058,76 @@ function composeRawEditContent(node: KNode): string {
 }
 
 // =============================================================================
+// FoldAwareChild — Per-node fold override check (avoids global foldDepths subscription)
+// =============================================================================
+
+/**
+ * Reads per-node fold override via Jotai atom instead of subscribing to the
+ * entire foldDepths Map from Zustand. When any fold changes, only the affected
+ * node's FoldAwareChild re-renders — not every NodeChildren in the tree.
+ */
+const FoldAwareChild = React.memo(function FoldAwareChild({
+  node,
+  isSelected,
+  depth,
+  colIndex,
+  cardIndex,
+  dim,
+  dimInactiveChildren,
+  getChildren,
+  getParentContext,
+  getBoardPills,
+  extraExcludedSigils,
+  childCount,
+}: {
+  node: KNode
+  isSelected: boolean
+  depth: number
+  colIndex: number
+  cardIndex: number
+  dim: boolean
+  dimInactiveChildren: boolean
+  getChildren?: (id: string) => KNode[]
+  getParentContext?: (node: KNode) => string | null
+  getBoardPills?: GetBoardPillsFn
+  extraExcludedSigils?: string[]
+  childCount: number
+}): React.ReactElement {
+  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+
+  // If this child has an explicit unfold override or is the cursor target,
+  // use full TreeNode (cursor can land here via J/K block navigation)
+  if ((foldOverride !== undefined && foldOverride > 0) || isSelected) {
+    return (
+      <TreeNode
+        node={node}
+        depth={depth}
+        isSelected={isSelected}
+        colIndex={colIndex}
+        cardIndex={cardIndex}
+        dim={dim}
+        dimInactiveChildren={dimInactiveChildren}
+        getChildren={getChildren}
+        getParentContext={getParentContext}
+        getBoardPills={getBoardPills}
+        extraExcludedSigils={extraExcludedSigils}
+        remainingDepth={foldOverride ?? 0}
+      />
+    )
+  }
+
+  return (
+    <FoldedChildRow
+      node={node}
+      depth={depth}
+      dim={dim}
+      childCount={childCount}
+      extraExcludedSigils={extraExcludedSigils}
+    />
+  )
+})
+
+// =============================================================================
 // FoldedChildRow — Lightweight replacement for TreeNode when folded
 // =============================================================================
 
@@ -1094,9 +1166,13 @@ const FoldedChildRow = React.memo(
     const style = getNodeStyle(node, false, false, false, depth, false)
     if (dim) style.shouldDim = true
 
-    // Search match highlighting
+    // Search match highlighting: white bg / black fg (current match brighter)
     const isSearchMatch = searchMatchNodeIds.has(node.id)
-    const effectiveBg = isSearchMatch ? (node.id === currentMatchNodeId ? "#555555" : "#333333") : style.backgroundColor
+    const isCurrentMatch = node.id === currentMatchNodeId
+    const searchHighlight = isSearchMatch
+    const effectiveBg = searchHighlight ? (isCurrentMatch ? "white" : "#bbbbbb") : style.backgroundColor
+    const foldTc = searchHighlight ? "black" : style.textColor
+    const foldSd = searchHighlight ? false : style.shouldDim
 
     // Bullet icon — always folded
     const { iconStyle } = treeConfig
@@ -1154,7 +1230,7 @@ const FoldedChildRow = React.memo(
         height={1}
       >
         <Box width={prefix.length} flexShrink={0}>
-          <Text color={style.textColor} dimColor={style.shouldDim}>
+          <Text color={foldTc} dimColor={foldSd}>
             <Text
               color={style.isDoneOrDropped ? undefined : prefix.markerColor}
             >
@@ -1165,8 +1241,8 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text
-            color={style.textColor ?? style.ownColor}
-            dimColor={style.shouldDim}
+            color={foldTc ?? style.ownColor}
+            dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
           >
@@ -1255,9 +1331,7 @@ function NodeChildren({
 
   // Fast path: when remainingDepth <= 0, ALL children will be folded (no sub-children).
   // Use FoldedChildRow (2 hooks, 3 elements) instead of TreeNode (15+ hooks, 15 elements).
-  // This saves ~300-400ms on initial render with 90+ folded children on screen.
-  // Exception: children with explicit foldDepth overrides may need full TreeNode.
-  const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => s.foldDepths)
+  // Exception: children with explicit foldDepth overrides use FoldAwareChild (per-node atom).
   const allFolded = remainingDepth !== undefined && remainingDepth <= 0
   const repo = useRepo()
 
@@ -1269,51 +1343,43 @@ function NodeChildren({
   )
 
   // Get cursor position from CursorStore to determine which child is selected.
-  // Only subscribed when NOT in folded fast path (folded children can't have cursor).
   const { cursorNodeId } = useCursorNodePosition()
 
   if (allFolded) {
+    // Cap folded children at terminal height — no card can show more children
+    // than the terminal has rows. Prevents rendering thousands of invisible
+    // components (e.g. a card with 2,628 children).
+    const maxVisible = process.stdout.rows ?? 50
+    const displayChildren =
+      orderedChildren.length > maxVisible
+        ? orderedChildren.slice(0, maxVisible)
+        : orderedChildren
+    const truncatedCount = orderedChildren.length - displayChildren.length
+    const totalHiddenCount = hiddenCount + truncatedCount
+
     return (
       <Box flexDirection="column">
-        {orderedChildren.map((item) => {
-          // If this child has an explicit unfold override or is the cursor target,
-          // use full TreeNode (cursor can land here via J/K block navigation)
-          const override = foldDepths.get(item.node.id)
-          const isChildSelected = cursorNodeId === item.node.id
-          if ((override !== undefined && override > 0) || isChildSelected) {
-            return (
-              <TreeNode
-                key={item.node.id}
-                node={item.node}
-                depth={depth + 1}
-                isSelected={isChildSelected}
-                colIndex={colIndex}
-                cardIndex={cardIndex}
-                dim={parentDim}
-                dimInactiveChildren={dimInactiveChildren || item.isBody}
-                getChildren={getChildren}
-                getParentContext={getParentContext}
-                getBoardPills={getBoardPills}
-                extraExcludedSigils={extraExcludedSigils}
-                remainingDepth={override ?? 0}
-              />
-            )
-          }
-          return (
-            <FoldedChildRow
-              key={item.node.id}
-              node={item.node}
-              depth={depth + 1}
-              dim={parentDim || item.isBody}
-              childCount={childCounts?.get(item.node.id) ?? 0}
-              extraExcludedSigils={extraExcludedSigils}
-            />
-          )
-        })}
-        {hiddenCount > 0 && showOverflowIndicator && (
+        {displayChildren.map((item) => (
+          <FoldAwareChild
+            key={item.node.id}
+            node={item.node}
+            isSelected={cursorNodeId === item.node.id}
+            depth={depth + 1}
+            colIndex={colIndex}
+            cardIndex={cardIndex}
+            dim={parentDim || item.isBody}
+            dimInactiveChildren={dimInactiveChildren || item.isBody}
+            getChildren={getChildren}
+            getParentContext={getParentContext}
+            getBoardPills={getBoardPills}
+            extraExcludedSigils={extraExcludedSigils}
+            childCount={childCounts?.get(item.node.id) ?? 0}
+          />
+        ))}
+        {totalHiddenCount > 0 && showOverflowIndicator && (
           <Box flexDirection="column" alignItems="center">
             <Text dimColor wrap="truncate">
-              +{hiddenCount} more
+              +{totalHiddenCount} more
             </Text>
           </Box>
         )}
