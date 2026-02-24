@@ -863,10 +863,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "Ctrl+w", key: "K", commandId: "pane_swap_up" },
       { chord: "Ctrl+w", key: "L", commandId: "pane_swap_right" },
 
-      // Focus toggle/cycle (p / Tab / Shift+Tab)
+      // Focus toggle/cycle (p / Tab / Shift+Tab / n/N when find inactive)
       { chord: "Ctrl+w", key: "p", commandId: "pane_focus_previous" },
       { chord: "Ctrl+w", key: "Tab", commandId: "pane_focus_next" },
       { chord: "Ctrl+w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
+      { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
+      { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },
 
       // Close others
       { chord: "Ctrl+w", key: "o", commandId: "pane_only" },
