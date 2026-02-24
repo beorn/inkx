@@ -18,6 +18,7 @@ export {
   findChildByContent,
   resolveNode,
   resolveTask,
+  getNameIndex,
   getChildren,
   getChildrenByType,
   getBodyChildren,
