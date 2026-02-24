@@ -244,7 +244,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           </InputLayerProvider>
         </RepoProvider>,
         isInteractive
-          ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
+          ? { alternateScreen: true, kitty: true, mouse: true, textSizing: "auto", slowFrameThreshold: 33 }
           : { cols, rows, stdout: process.stdout },
       )
 
