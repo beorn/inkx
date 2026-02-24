@@ -129,12 +129,35 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     log.debug?.("syncManager started")
 
     // Event-loop heartbeat: detect main-thread blocks >500ms
+    // Reports last key, render pipeline phase breakdown, and output size
     let lastHeartbeat = performance.now()
     const heartbeatInterval = setInterval(() => {
       const now = performance.now()
       const gap = now - lastHeartbeat
       if (gap > 500) {
-        log.warn?.(`event loop blocked for ${gap.toFixed(0)}ms`)
+        const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
+
+        // Last key that was pressed (set by board-app handleKey)
+        const lastKey = (globalThis as any).__km_last_key as string | undefined
+        if (lastKey) parts.push(`key='${lastKey}'`)
+
+        // Per-phase pipeline timing from last render
+        const pipeline = (globalThis as any).__inkx_last_pipeline as
+          | { measure: number; layout: number; content: number; output: number; total: number }
+          | undefined
+        if (pipeline) {
+          const phases = [
+            pipeline.content > 1 ? `content=${pipeline.content.toFixed(0)}ms` : null,
+            pipeline.output > 1 ? `output=${pipeline.output.toFixed(0)}ms` : null,
+            pipeline.layout > 1 ? `layout=${pipeline.layout.toFixed(0)}ms` : null,
+            pipeline.measure > 1 ? `measure=${pipeline.measure.toFixed(0)}ms` : null,
+          ]
+            .filter(Boolean)
+            .join(" ")
+          if (phases) parts.push(`render: ${phases} (total=${pipeline.total.toFixed(0)}ms)`)
+        }
+
+        log.warn?.(parts.join(" — "))
       }
       lastHeartbeat = now
     }, 200)
@@ -244,7 +267,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           </InputLayerProvider>
         </RepoProvider>,
         isInteractive
-          ? { alternateScreen: true, kitty: true, mouse: true, textSizing: "auto", slowFrameThreshold: 33 }
+          ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
           : { cols, rows, stdout: process.stdout },
       )
 

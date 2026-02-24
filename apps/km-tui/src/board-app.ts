@@ -182,6 +182,9 @@ export function handleKey(
   const { input, key } = data
   const { get } = ctx
 
+  // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
+  ;(globalThis as any).__km_last_key = key.escape ? "Escape" : key.return ? "Enter" : key.backspace ? "Backspace" : key.tab ? "Tab" : key.upArrow ? "Up" : key.downArrow ? "Down" : key.leftArrow ? "Left" : key.rightArrow ? "Right" : input || "?"
+
   // Cache focus manager from EventHandlerContext (singleton, set once)
   if (!cachedFocusManager) {
     cachedFocusManager = ctx.focusManager
@@ -348,7 +351,11 @@ function routeThroughCommandSystem(
   {
     using _dispatch = parentSpan.span("dispatch")
     result = processKeyWithContext(input, key, ctx)
-    if (result.commandId) parentSpan.spanData.command = result.commandId
+    if (result.commandId) {
+      parentSpan.spanData.command = result.commandId
+      // Update last key label to include command (for heartbeat diagnostics)
+      ;(globalThis as any).__km_last_key += ` → ${result.commandId}`
+    }
   }
 
   // When a dialog is open, unhandled keys are expected (limited key set).
