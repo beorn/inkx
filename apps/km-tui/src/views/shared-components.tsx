@@ -293,7 +293,21 @@ function KeySegment({ segment, color = "yellow" }: { segment: string; color?: st
       <Text bold color={color}>
         {prefix}
         <Text dimColor>{"·"}</Text>
-        {suffix}
+        <KeySegment segment={suffix} color={color} />
+      </Text>
+    )
+  }
+  // Render bare `/` inside compact groups (e.g., ⌘[/], >/<) as dim
+  if (segment.includes("/")) {
+    const parts = segment.split("/")
+    return (
+      <Text bold color={color}>
+        {parts.map((part, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <Text color="#666666">{"/"}</Text>}
+            {part}
+          </React.Fragment>
+        ))}
       </Text>
     )
   }
