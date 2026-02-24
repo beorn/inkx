@@ -64,6 +64,7 @@ import {
   handleDuplicateNode,
   handleIndentColumn,
   handleShiftCard,
+  handleShiftToExtreme,
   handleTaskStatusCycle,
   handleClearTask,
 } from "./board-actions-edit.ts"
@@ -165,6 +166,26 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "MOVE_TO_BOARD":
       handleMoveToBoard(ctx, action.boardId)
+      return ok()
+    case "MOVE_TO_FAVORITE":
+      ctx.toastQueue.info(`Move to favorite ${action.favoriteNumber} not yet implemented`)
+      ctx.setUI({})
+      return ok()
+    case "SHIFT_TO_TOP":
+      // Move node to first position among siblings
+      handleShiftToExtreme(ctx, "top")
+      return ok()
+    case "SHIFT_TO_BOTTOM":
+      // Move node to last position among siblings
+      handleShiftToExtreme(ctx, "bottom")
+      return ok()
+    case "ADD_LINK_TO_BOARD":
+      ctx.toastQueue.info(`Add link to board not yet implemented`)
+      ctx.setUI({})
+      return ok()
+    case "ADD_LINK_TO_FAVORITE":
+      ctx.toastQueue.info(`Add link to favorite ${action.favoriteNumber} not yet implemented`)
+      ctx.setUI({})
       return ok()
     case "ADD_LINK":
       // Stub: link picker not yet implemented

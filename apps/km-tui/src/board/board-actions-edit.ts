@@ -586,6 +586,33 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
 }
 
 /**
+ * Move card(s) to the first or last position among siblings.
+ */
+export function handleShiftToExtreme(ctx: ActionCtx, direction: "top" | "bottom"): ActionResult {
+  const col = ctx.columns[ctx.colIndex]
+  const card = ctx.card
+  if (!col || !card) return boundary(direction)
+
+  const cards = col.cardNodes
+  if (cards.length <= 1) return ok()
+
+  const currentIndex = ctx.cardIndex
+  const targetIndex = direction === "top" ? 0 : cards.length - 1
+  if (currentIndex === targetIndex) return ok()
+
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+
+  // Move to before first card or after last card
+  const targetCard = cards[targetIndex]
+  if (!targetCard) return boundary(direction)
+  const newSortOrder = direction === "top" ? targetCard.parent_idx - 1 : targetCard.parent_idx + 1
+  ctx.repo.moveNode(card.id, col.node.id, newSortOrder)
+
+  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
+  return ok()
+}
+
+/**
  * Reorder a column by swapping its sort order with the adjacent column.
  */
 function moveColumn(
