@@ -79,6 +79,7 @@ import { StoreContext } from "inkx/runtime"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
+import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
 import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
@@ -159,15 +160,37 @@ const defaultCursorStore = createCursorStore({
 })
 
 // Wrap children with all providers TreeNode needs
+const storybookJotaiStore = createJotaiStore()
+const noopUndoHandle = {
+  startBatch: () => {},
+  endBatch: () => {},
+  setCursor: () => {},
+  setCursorAfter: () => {},
+  undo: () => ({ success: false }),
+  redo: () => ({ success: false }),
+  canUndo: () => false,
+  canRedo: () => false,
+}
+
 function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
   const treeConfig = deriveTreeConfig(mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore}>
-      <CursorStoreProvider store={defaultCursorStore}>
-        <TreeRenderProvider treeConfig={treeConfig} setUI={() => {}} rootBoardId={null}>
-          {children}
-        </TreeRenderProvider>
-      </CursorStoreProvider>
+      <JotaiProvider store={storybookJotaiStore}>
+        <CursorStoreProvider store={defaultCursorStore}>
+          <TreeRenderProvider
+            treeConfig={treeConfig}
+            setUI={() => {}}
+            rootBoardId={null}
+            jobRunner={{ submit: () => ({ cancel() {} }) } as any}
+            undoHandle={noopUndoHandle as any}
+            taskStatusFilter={new Set<string>()}
+            boardFocused={true}
+          >
+            {children}
+          </TreeRenderProvider>
+        </CursorStoreProvider>
+      </JotaiProvider>
     </StoreContext.Provider>
   )
 }

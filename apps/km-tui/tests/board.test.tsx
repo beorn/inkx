@@ -13,6 +13,7 @@ import { renderCard } from "../src/render.ts"
 import { renderStatic } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { createStore, type StoreApi } from "zustand"
+import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
 import type { InitialBoardData } from "../src/types.ts"
 
 import { BoardCore } from "../src/views/Board.tsx"
@@ -65,18 +66,42 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     setUI: () => {},
   }))
   const treeConfig = deriveTreeConfig(initialUI)
+  const jotaiStore = createJotaiStore()
+  const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
+  const noopUndoHandle = {
+    startBatch: () => {},
+    endBatch: () => {},
+    setCursor: () => {},
+    setCursorAfter: () => {},
+    undo: () => ({ success: false }),
+    redo: () => ({ success: false }),
+    canUndo: () => false,
+    canRedo: () => false,
+  }
   const wrappedElement = React.createElement(
     TreeRenderProvider,
-    { treeConfig, setUI: () => {}, rootBoardId: null },
+    {
+      treeConfig,
+      setUI: () => {},
+      rootBoardId: null,
+      jobRunner: noopJobRunner as any,
+      undoHandle: noopUndoHandle as any,
+      taskStatusFilter: new Set<string>(),
+      boardFocused: true,
+    },
     boardCoreElement,
   )
   return React.createElement(
     StoreContext.Provider,
     { value: store as StoreApi<unknown> },
-    React.createElement(RepoProvider, {
-      repo,
-      children: wrappedElement,
-    }),
+    React.createElement(
+      JotaiProvider,
+      { store: jotaiStore },
+      React.createElement(RepoProvider, {
+        repo,
+        children: wrappedElement,
+      }),
+    ),
   )
 }
 

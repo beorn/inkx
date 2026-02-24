@@ -8,10 +8,10 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
+import { useApp as useAppStore } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
-import type { JobRunner } from "@km/core"
-import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
+import { useAtomValue } from "jotai"
+import { nodeMultiSelectedAtom, nodeEditAtom, nodeFoldOverrideAtom, nodeExcludedSigilsAtom } from "../node-atoms.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
@@ -42,7 +42,7 @@ import {
   type StatusIcon,
 } from "../text/index.ts"
 import { makeSelectionKey } from "../types.ts"
-import { useTreeRenderContext, deriveExcludedSigils, useUISelector } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
@@ -217,46 +217,33 @@ function TreeNodeImpl({
   remainingDepth = Infinity,
 }: TreeNodeProps): React.ReactElement {
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId } =
+  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, jobRunner, undoHandle, taskStatusFilter } =
     useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
-  // Single store subscription for per-node state only.
-  // On cursor move: none of these change → no re-render from store.
-  const selectionKey = makeSelectionKey(node.id)
-  const nodeState = useAppShallow<
-    BoardAppStore,
-    {
-      isMultiSelected: boolean
-      foldDepthOverride: number | undefined
-      editBlockIndex: number | null
-      editInitialCursorPos: "start" | "end" | undefined
-      editStickyX: number | undefined
-    }
-  >((s) => ({
-    isMultiSelected: s.ui.multiSelected.has(selectionKey),
-    foldDepthOverride: s.foldDepths.get(node.id),
-    editBlockIndex: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.blockIndex : null,
-    editInitialCursorPos: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.initialCursorPos : undefined,
-    editStickyX: s.ui.inlineEditBlock?.nodeId === node.id ? s.ui.inlineEditBlock.stickyX : undefined,
-  }))
-  // Fold depth: per-node override from foldDepths Map, or inherited remainingDepth from parent
-  const effectiveDepth = nodeState.foldDepthOverride ?? remainingDepth
-  const isMultiSelected = nodeState.isMultiSelected
-  const isFolded = effectiveDepth <= 0
-  const editBlockIndex = nodeState.editBlockIndex
+  // Per-node state via Jotai atoms — only this node re-renders when its state changes
+  const isMultiSelected = useAtomValue(nodeMultiSelectedAtom(makeSelectionKey(node.id)))
+  const editState = useAtomValue(nodeEditAtom(node.id))
+  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+  // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
+  const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
+  const isFolded = resolvedDepth <= 0
+  const editBlockIndex = editState?.blockIndex ?? null
   const isInlineEditing = editBlockIndex !== null
   const editingTitle = editBlockIndex === 0
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
   const repo = useRepo()
-  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
-  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
+  // Excluded sigils: use Jotai-derived ancestry if available, fallback for compatibility
+  const jotaiExcludedSigils = useAtomValue(nodeExcludedSigilsAtom(node.id))
   const excludedSigils = useMemo(() => {
+    // If Jotai ancestry is hydrated, use it directly
+    if (jotaiExcludedSigils.length > 0) return jotaiExcludedSigils
+    // Fallback: derive from rootBoardId + extraExcludedSigils
     const rootSigils = deriveExcludedSigils(repo, rootBoardId)
     if (!extraExcludedSigils?.length) return rootSigils
     return [...rootSigils, ...extraExcludedSigils]
-  }, [repo, rootBoardId, extraExcludedSigils])
+  }, [jotaiExcludedSigils, repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
@@ -644,7 +631,7 @@ function TreeNodeImpl({
 
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
-  const taskStatusFilter = useUISelector((s) => s.filterProperties.taskStatus)
+  // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
   const filteredChildren = useMemo(() => {
     if (taskStatusFilter.size === 0) return children
     return children.filter((child) => {
@@ -727,8 +714,8 @@ function TreeNodeImpl({
                   onSave={handleTitleSave}
                   onSplitAtBoundary={handleSplitAtBoundary}
                   onMergeBackward={handleMergeBackward}
-                  initialCursorPos={nodeState.editInitialCursorPos}
-                  stickyX={nodeState.editStickyX}
+                  initialCursorPos={editState?.initialCursorPos}
+                  stickyX={editState?.stickyX}
                 />
               </Text>
             ) : isHR ? (
@@ -824,8 +811,8 @@ function TreeNodeImpl({
                   }}
                   onCancel={handleInlineEditCancel}
                   onSave={(v) => handleBlockSave(child.id, v)}
-                  initialCursorPos={nodeState.editInitialCursorPos}
-                  stickyX={nodeState.editStickyX}
+                  initialCursorPos={editState?.initialCursorPos}
+                  stickyX={editState?.stickyX}
                   onSplitAtBoundary={(offset) => {
                     try {
                       undoHandle.setCursor(displayNode.id)
@@ -895,7 +882,7 @@ function TreeNodeImpl({
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
             showOverflowIndicator={!suppressChildOverflow}
-            remainingDepth={effectiveDepth - 1}
+            remainingDepth={resolvedDepth - 1}
           />
         </ErrorBoundary>
       )}

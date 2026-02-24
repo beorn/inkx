@@ -19,9 +19,12 @@ import {
   HorizontalVirtualList,
   useContentRect,
   useInterval,
+  useFocusWithin,
   type PatchedConsole,
 } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
+import { createStore, Provider as JotaiProvider } from "jotai"
+import { hydrateNodeAtoms, syncCursorToAtoms, syncFoldDepthsToAtoms, syncMultiSelectedToAtoms, syncEditToAtoms } from "../node-atoms-hydrate.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -65,7 +68,7 @@ import {
   COLLAPSED_COL_WIDTH,
   computeColumnWidths,
 } from "./board-layout.ts"
-import { TreeRenderProvider, deriveTreeConfig, type TreeConfig } from "../ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
@@ -814,6 +817,74 @@ export function Board({ patchedConsole }: BoardProps) {
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
+  const jobRunner = useAppStore<BoardAppStore, import("@km/core").JobRunner>((s) => s.jobRunner)
+  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
+    (s) => s.undoHandle,
+  )
+  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>(
+    (s) => s.ui.filterProperties.taskStatus,
+  )
+
+  // Board focus state — subscribe once, pass via context instead of per-card useFocusWithin
+  const focusWithinBoard = useFocusWithin("board-area")
+  const focusWithinDetail = useFocusWithin("detail-pane")
+  const boardFocused = focusWithinBoard || !focusWithinDetail
+
+  // Jotai store — per-pane scope, stable across re-renders
+  const jotaiStore = useMemo(() => createStore(), [])
+
+  // Hydrate Jotai atoms on initial load and root change (zoom)
+  const multiSelected = useAppStore<BoardAppStore, Set<import("../types.ts").SelectionKey>>(
+    (s) => s.ui.multiSelected,
+  )
+  useEffect(() => {
+    hydrateNodeAtoms(jotaiStore, repo, rootId, foldDepths, multiSelected)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
+  }, [jotaiStore, repo, rootId])
+
+  // Incrementally sync fold depth changes to Jotai atoms
+  const prevFoldDepthsRef = useRef(foldDepths)
+  useEffect(() => {
+    const prev = prevFoldDepthsRef.current
+    if (prev !== foldDepths) {
+      syncFoldDepthsToAtoms(jotaiStore, prev, foldDepths)
+      prevFoldDepthsRef.current = foldDepths
+    }
+  }, [jotaiStore, foldDepths])
+
+  // Incrementally sync multi-selection changes to Jotai atoms
+  const prevMultiSelectedRef = useRef(multiSelected)
+  useEffect(() => {
+    const prev = prevMultiSelectedRef.current
+    if (prev !== multiSelected) {
+      syncMultiSelectedToAtoms(jotaiStore, prev, multiSelected)
+      prevMultiSelectedRef.current = multiSelected
+    }
+  }, [jotaiStore, multiSelected])
+
+  // Incrementally sync inline edit state to Jotai atoms
+  const inlineEditBlock = useUISelector((s) => s.inlineEditBlock)
+  const prevInlineEditRef = useRef(inlineEditBlock)
+  useEffect(() => {
+    const prev = prevInlineEditRef.current
+    if (prev !== inlineEditBlock) {
+      syncEditToAtoms(
+        jotaiStore,
+        prev?.nodeId ?? null,
+        inlineEditBlock?.nodeId ?? null,
+        inlineEditBlock,
+      )
+      prevInlineEditRef.current = inlineEditBlock
+    }
+  }, [jotaiStore, inlineEditBlock])
+
+  // Sync cursor state to Jotai atoms when CursorStore changes
+  useEffect(() => {
+    const sync = () => syncCursorToAtoms(jotaiStore, cursorStore.getState(), boardFocused)
+    sync() // Initial sync
+    return cursorStore.subscribe(sync)
+  }, [jotaiStore, cursorStore, boardFocused])
+
   // Layout is derived on demand — no store sync needed
 
   // Console stats via direct subscription
@@ -953,9 +1024,6 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
   const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
-  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
-    (s) => s.undoHandle,
-  )
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const baseDialogHandlers = useBoardDialogs({
     repo,
@@ -1054,34 +1122,40 @@ export function Board({ patchedConsole }: BoardProps) {
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
 
   return (
-    <CursorStoreProvider store={cursorStore}>
-      <TreeRenderProvider
-        treeConfig={treeConfig}
-        setUI={setUI}
-        rootBoardId={ui.rootBoardId}
-        searchMatchNodeIds={searchMatchNodeIds}
-        currentMatchNodeId={currentMatchNodeId}
-      >
-        <BoardCore
-          rootId={rootId}
-          rootPath={rootPath}
-          columns={filteredColumns}
-          colIndex={visibleColIndex}
-          cardIndex={columnsLayout.cardIndex}
-          ui={ui}
-          derivedSelectionLevel={derivedSelectionLevel}
-          dimensions={ui.dimensions}
+    <JotaiProvider store={jotaiStore}>
+      <CursorStoreProvider store={cursorStore}>
+        <TreeRenderProvider
+          treeConfig={treeConfig}
           setUI={setUI}
-          dialogHandlers={dialogHandlers}
-          collapsedNodes={collapsedNodes}
-          moveMode={moveMode}
-          consoleStats={consoleStats}
-          toastQueue={toastQueue}
-          dispatchBoard={dispatchBoard}
-          foldDepths={foldDepths}
-        />
-      </TreeRenderProvider>
-    </CursorStoreProvider>
+          rootBoardId={ui.rootBoardId}
+          searchMatchNodeIds={searchMatchNodeIds}
+          currentMatchNodeId={currentMatchNodeId}
+          jobRunner={jobRunner}
+          undoHandle={undoHandle}
+          taskStatusFilter={taskStatusFilter}
+          boardFocused={boardFocused}
+        >
+          <BoardCore
+            rootId={rootId}
+            rootPath={rootPath}
+            columns={filteredColumns}
+            colIndex={visibleColIndex}
+            cardIndex={columnsLayout.cardIndex}
+            ui={ui}
+            derivedSelectionLevel={derivedSelectionLevel}
+            dimensions={ui.dimensions}
+            setUI={setUI}
+            dialogHandlers={dialogHandlers}
+            collapsedNodes={collapsedNodes}
+            moveMode={moveMode}
+            consoleStats={consoleStats}
+            toastQueue={toastQueue}
+            dispatchBoard={dispatchBoard}
+            foldDepths={foldDepths}
+          />
+        </TreeRenderProvider>
+      </CursorStoreProvider>
+    </JotaiProvider>
   )
 }
 

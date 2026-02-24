@@ -8,13 +8,9 @@ import React, { useCallback, useEffect, useMemo, useState } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
-import { Box, Text, useScreenRectCallback, useFocusWithin } from "inkx"
-import type { JobRunner } from "@km/core"
-import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
+import { Box, Text, useScreenRectCallback } from "inkx"
 import type { ColumnView } from "../types.ts"
-import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
-import type { BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { parseToPlainText, InlineText } from "../text/index.ts"
@@ -27,6 +23,8 @@ import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
+import { useAtomValue } from "jotai"
+import { nodeMultiSelectedAtom, nodeEditAtom, nodeFoldOverrideAtom, boardFocusedAtom } from "../node-atoms.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -189,25 +187,21 @@ const Card = React.memo(
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
     const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
 
-    // Check if this card is in inline edit mode (for border color)
-    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
+    // Check if this card is in inline edit mode (for border color) — per-node Jotai atom
+    const editState = useAtomValue(nodeEditAtom(nodeId))
+    const isEditing = editState !== null
 
-    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
-    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
+    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L) — per-node Jotai atom
+    const isMultiSelected = useAtomValue(nodeMultiSelectedAtom(nodeId))
 
-    // Fold depth: per-card override or root's depth budget
-    const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
-      const cardOverride = s.foldDepths.get(nodeId)
-      if (cardOverride !== undefined) return cardOverride
-      return s.foldDepths.get(s.rootId ?? "") ?? 1
-    })
+    // Fold depth: per-card override from Jotai atom, or root-level fold (from fold-all), or default 1
+    const { rootBoardId } = useTreeRenderContext()
+    const cardFoldOverride = useAtomValue(nodeFoldOverrideAtom(nodeId))
+    const rootFoldOverride = useAtomValue(nodeFoldOverrideAtom(rootBoardId ?? ""))
+    const rootFoldDepth = cardFoldOverride ?? rootFoldOverride ?? 1
 
-    // Dual cursor: dim the cursor when board is not focused.
-    // Board is "focused" when it has explicit focus OR the detail pane doesn't
-    // (covers initial render before autoFocus fires, when nothing has focus yet).
-    const focusWithinBoard = useFocusWithin("board-area")
-    const focusWithinDetail = useFocusWithin("detail-pane")
-    const boardFocused = focusWithinBoard || !focusWithinDetail
+    // Dual cursor: dim the cursor when board is not focused (from context via Board)
+    const boardFocused = useAtomValue(boardFocusedAtom)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -583,9 +577,9 @@ export const Column = React.memo(function Column({
   const setUI = useSetUI()
   const {
     treeConfig: { iconStyle },
+    jobRunner,
+    undoHandle,
   } = useTreeRenderContext()
-  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
-  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
   const nodeId = column.node.id
 
   // Subscribe to column selection only (stable on j/k within same column).
@@ -675,12 +669,8 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && selectionLevel === "column"
 
-  // Dual cursor: dim the cursor when board is not focused.
-  // Board is "focused" when it has explicit focus OR the detail pane doesn't
-  // (covers initial render before autoFocus fires, when nothing has focus yet).
-  const focusWithinBoard = useFocusWithin("board-area")
-  const focusWithinDetail = useFocusWithin("detail-pane")
-  const boardFocused = focusWithinBoard || !focusWithinDetail
+  // Dual cursor: dim the cursor when board is not focused (from context via Board)
+  const boardFocused = useAtomValue(boardFocusedAtom)
   const colCursorDim = isColumnSelected && !boardFocused
 
   // Derive column header presentation props (icon, colors, style)

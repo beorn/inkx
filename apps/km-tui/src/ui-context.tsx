@@ -12,6 +12,8 @@ import type { UIState, IconStyle, BorderMode } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { useRepo, type Repo } from "./repo-context.tsx"
 import { getOwnColor } from "./board-pills.ts"
+import type { JobRunner } from "@km/core"
+import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
 // =============================================================================
 // Core Hooks
@@ -171,6 +173,14 @@ export interface TreeRenderCtx {
   searchMatchNodeIds: ReadonlySet<string>
   /** The currently focused match node ID (highlighted differently from other matches) */
   currentMatchNodeId: string | null
+  /** Board-wide: job runner for background operations (no per-node subscription needed) */
+  jobRunner: JobRunner
+  /** Board-wide: undo handle for undo/redo operations */
+  undoHandle: UndoableRepoHandle
+  /** Board-wide: task status filter (same for all nodes) */
+  taskStatusFilter: ReadonlySet<string>
+  /** Board-wide: whether the board pane has focus (for cursor dimming) */
+  boardFocused: boolean
 }
 
 const TreeRenderContext = createContext<TreeRenderCtx | null>(null)
@@ -233,6 +243,10 @@ export function TreeRenderProvider({
   rootBoardId,
   searchMatchNodeIds,
   currentMatchNodeId,
+  jobRunner,
+  undoHandle,
+  taskStatusFilter,
+  boardFocused,
   children,
 }: {
   treeConfig: TreeConfig
@@ -240,6 +254,10 @@ export function TreeRenderProvider({
   rootBoardId: string | null
   searchMatchNodeIds?: ReadonlySet<string>
   currentMatchNodeId?: string | null
+  jobRunner: JobRunner
+  undoHandle: UndoableRepoHandle
+  taskStatusFilter: ReadonlySet<string>
+  boardFocused: boolean
   children: React.ReactNode
 }): React.ReactElement {
   const repo = useRepo()
@@ -257,8 +275,12 @@ export function TreeRenderProvider({
       rootBoardId,
       searchMatchNodeIds: matchIds,
       currentMatchNodeId: matchNode,
+      jobRunner,
+      undoHandle,
+      taskStatusFilter,
+      boardFocused,
     }),
-    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode],
+    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode, jobRunner, undoHandle, taskStatusFilter, boardFocused],
   )
   return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }
