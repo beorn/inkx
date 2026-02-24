@@ -254,7 +254,7 @@ describe("CommandBox", () => {
     expect(output).not.toContain("MOVE")
   })
 
-  it("shows MOVE mode alongside status message", () => {
+  it("shows MOVE mode even when status is set (status shown in CommandFeedback above)", () => {
     const uiWithStatus: UIState = {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
@@ -272,7 +272,8 @@ describe("CommandBox", () => {
     )
     const output = app.text
     expect(output).toContain("MOVE")
-    expect(output).toMatch(/Test mes/)
+    // Status messages are now shown in CommandFeedback pane, not in CommandBox
+    expect(output).not.toMatch(/Test mes/)
   })
 
   it("shows INSERT mode when inline editing", () => {

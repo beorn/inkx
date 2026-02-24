@@ -187,35 +187,15 @@ export function CommandBox({
   // Multi-selection count
   const multiSuffix = ui.multiSelected.size > 0 ? `[${ui.multiSelected.size}]` : ""
 
-  // Status message
-  let statusMessage = ""
-  let statusColor: string | undefined
-  if (ui.status) {
-    const icons = {
-      info: "i:",
-      success: "ok:",
-      warning: "!:",
-      error: "ERR:",
-    } as const
-    const colors = {
-      info: undefined,
-      success: "green",
-      warning: "yellow",
-      error: "red",
-    } as const
-    const icon = icons[ui.status.level]
-    statusColor = colors[ui.status.level]
-    statusMessage = `${icon} ${ui.status.message}`
-  } else {
-    const parts: string[] = []
-    if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-      parts.push(`[Drop:${ui.droppedFiles.length}]`)
-    }
-    if (ui.isMouseDragging && ui.mouseSelection) {
-      parts.push("[Sel]")
-    }
-    statusMessage = parts.join("  ")
+  // Status indicators (status/bell feedback moved to CommandFeedback pane above)
+  const statusParts: string[] = []
+  if (ui.showDropNotification && ui.droppedFiles.length > 0) {
+    statusParts.push(`[Drop:${ui.droppedFiles.length}]`)
   }
+  if (ui.isMouseDragging && ui.mouseSelection) {
+    statusParts.push("[Sel]")
+  }
+  const statusMessage = statusParts.join("  ")
 
   // Right side info
   const watcherInfo = ui.watcherStatus
@@ -280,9 +260,9 @@ export function CommandBox({
                 {multiSuffix}{" "}
               </Text>
             )}
-            {/* Status message */}
+            {/* Transient status (drop/mouse only — feedback moved to CommandFeedback) */}
             {statusMessage && (
-              <Text dimColor={!statusColor} color={statusColor} id="status-message">
+              <Text dimColor id="status-message">
                 {statusMessage}
               </Text>
             )}

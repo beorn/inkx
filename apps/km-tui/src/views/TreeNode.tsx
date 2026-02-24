@@ -297,11 +297,11 @@ function TreeNodeImpl({
     dim,
   ])
 
-  // Search match highlighting: dim highlight for non-current matches, brighter for current
+  // Search match highlighting: inverse white for matches, brighter for current
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const effectiveBg =
-    isSearchMatch && !isSelected && !isMultiSelected ? (isCurrentMatch ? "#665500" : "#333300") : style.backgroundColor
+    isSearchMatch && !isSelected && !isMultiSelected ? (isCurrentMatch ? "#555555" : "#333333") : style.backgroundColor
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
@@ -1096,7 +1096,7 @@ const FoldedChildRow = React.memo(
 
     // Search match highlighting
     const isSearchMatch = searchMatchNodeIds.has(node.id)
-    const effectiveBg = isSearchMatch ? (node.id === currentMatchNodeId ? "#665500" : "#333300") : style.backgroundColor
+    const effectiveBg = isSearchMatch ? (node.id === currentMatchNodeId ? "#555555" : "#333333") : style.backgroundColor
 
     // Bullet icon — always folded
     const { iconStyle } = treeConfig
