@@ -12,6 +12,7 @@ import { Text } from "inkx"
 import { WorkspaceView } from "../../src/views/WorkspaceView.tsx"
 import type { LayoutNode, PaneState, PaneViewType } from "../../src/board-types.ts"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
+import { usePaneLabel } from "../../src/pane-context.tsx"
 
 const render = createRenderer()
 
@@ -43,9 +44,10 @@ function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState 
   })
 }
 
-/** Simple board content used by renderBoard */
+/** Board content that reads pane label from context (like real Board does via BoardTopBar) */
 function BoardContent() {
-  return <Text>Board Content</Text>
+  const label = usePaneLabel()
+  return <Text>{label ? `[${label}] ` : ""}Board Content</Text>
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +65,6 @@ describe("WorkspaceView — single leaf", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="main"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -109,8 +109,6 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId={focusedId}
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -120,7 +118,7 @@ describe("WorkspaceView — multi-pane layout", () => {
     expect(app.text).toContain("Board Content")
   })
 
-  it("focused pane gets green border color, unfocused gets gray", () => {
+  it("focused pane gets white border color, unfocused gets gray", () => {
     const { panes, layout } = twoPane({ focusedId: "pane-1" })
 
     const app = render(
@@ -128,13 +126,11 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-1"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
 
-    // Locate label text nodes — focused [1] should be bold+green, unfocused [2] should be gray
+    // Locate label text nodes — focused [1] should be bold+white, unfocused [2] should be gray
     // (color is set on the Box borderColor prop — verified structurally via text presence)
     expect(app.text).toContain("[1]")
     expect(app.text).toContain("[2]")
@@ -148,8 +144,6 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-2"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -166,17 +160,15 @@ describe("WorkspaceView — multi-pane layout", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="pane-1"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
 
-    // The empty pane should show "empty" dim text next to its label
-    expect(app.text).toContain("empty")
-    // Both labels still present
+    // The empty pane should show "Empty" in the pane title bar
+    expect(app.text).toContain("Empty")
+    // Both labels present (may be truncated at pane edge)
     expect(app.text).toContain("[1]")
-    expect(app.text).toContain("[2]")
+    expect(app.text).toContain("[2")
   })
 })
 
@@ -205,8 +197,6 @@ describe("WorkspaceView — pane numbering", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="a"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -236,8 +226,6 @@ describe("WorkspaceView — pane numbering", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="main"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -275,8 +263,6 @@ describe("WorkspaceView — pane numbering", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="first"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -312,8 +298,6 @@ describe("WorkspaceView — split direction", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="left"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -343,8 +327,6 @@ describe("WorkspaceView — split direction", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="top"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )
@@ -377,8 +359,6 @@ describe("WorkspaceView — edge cases", () => {
         layout={layout}
         panes={panes}
         focusedPaneId="real"
-        width={80}
-        height={24}
         renderPane={() => <BoardContent />}
       />,
     )

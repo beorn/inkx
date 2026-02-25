@@ -4,7 +4,7 @@
 
 // Layout constants - centralized to avoid magic numbers scattered through rendering code
 export const TOP_BAR_HEIGHT = 2
-export const BOTTOM_BAR_HEIGHT = 1
+export const BOTTOM_BAR_HEIGHT = 0 // Status counters now float as absolute overlay
 export const FILTER_PANEL_WIDTH = 60
 export const COLLAPSED_COL_WIDTH = 3
 

@@ -258,7 +258,7 @@ describe("Columns View", () => {
       const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
       board.press("j")
       board.expect("#task2[data-cursor]").toExist()
-      board.press("v")
+      board.press("v").press("m")
       board.expect("#task2[data-cursor]").toExist()
     })
 
@@ -266,7 +266,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
       board.press("j")
       board.expect("#task2[data-cursor]").toExist()
-      board.press("v")
+      board.press("v").press("m")
       board.expect("#task2[data-cursor]").toExist()
     })
 

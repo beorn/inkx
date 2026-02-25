@@ -44,18 +44,21 @@ describe("TUI View Tests", () => {
     const initial = board.screenshot()
     expect(initial.length).toBeGreaterThan(0)
 
-    // Press 'v' to switch to columns view
+    // Press 'v m' to cycle to columns view
     board.press("v")
+    board.press("m")
     const columns = board.screenshot()
     expect(columns.length).toBeGreaterThan(0)
 
-    // Press 'v' again to switch to list view
+    // Press 'v m' again to cycle to tabs view
     board.press("v")
+    board.press("m")
     const list = board.screenshot()
     expect(list.length).toBeGreaterThan(0)
 
-    // Press 'v' again to go back to cards view
+    // Press 'v m' again to go back to cards view
     board.press("v")
+    board.press("m")
     const backToCards = board.screenshot()
     expect(backToCards.length).toBeGreaterThan(0)
   })

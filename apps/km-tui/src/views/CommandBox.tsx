@@ -1,19 +1,17 @@
 /**
- * CommandBox — compact status/input area at the bottom of the board.
+ * CommandBox — compact floating command/status box at bottom-left.
  *
- * Replaces the old KeyBar + BottomBar combo with a single-line chrome:
- *   [MODE] > chord/status                              counters · view
+ * Contains both the command feedback (chord hints, flash messages) stacked
+ * above the mode pill. Both share the same container width via flex.
  *
- * States:
- * - Idle: mode pill + prompt
- * - Chord in progress: mode pill + pending chord prefix
- * - Feedback: status message (auto-clears)
- * - Loading: spinner
+ * Hidden in NORMAL mode unless there's feedback, input, or multi-selection.
+ * Outline: white by default, light blue when input-focused (find/omnibox).
  */
-/* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
+/* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Box, Text, useFocusManager, useEditContext, useInterval } from "inkx"
+import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { getEditMode } from "../ui-reducer.ts"
@@ -36,6 +34,13 @@ const SPINNER_INTERVAL = 80
 
 const FLASH_DURATION = 3000
 
+/** Minimum inner width of the command box (excluding border chars) */
+export const CMD_BOX_WIDTH = 38
+
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+
 /** Hook for 3-second flash when a value changes */
 function useFlashOnChange(value: number): boolean {
   const [flash, setFlash] = useState(false)
@@ -46,7 +51,6 @@ function useFlashOnChange(value: number): boolean {
     prevRef.current = value
     if (value === 0) return
     setFlash(true)
-    // Skip timer during tests
     // @ts-expect-error - React internal flag set by inkx test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     const timer = setTimeout(() => setFlash(false), FLASH_DURATION)
@@ -78,13 +82,147 @@ function useSpinnerFrame(enabled: boolean): string {
   return SPINNER_FRAMES[frameIndex] ?? "\u280B"
 }
 
-/** Mode colors for the mode pill */
+const FLASH_MS = 300
+
+/** Flash white on new message, then fade to normal color */
+function useFlash(message: string | undefined): boolean {
+  const [flash, setFlash] = useState(true)
+  const prevRef = useRef(message)
+
+  useEffect(() => {
+    if (message !== prevRef.current) {
+      prevRef.current = message
+      setFlash(true)
+    }
+    if (!message) return
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    const timer = setTimeout(() => setFlash(false), FLASH_MS)
+    return () => clearTimeout(timer)
+  }, [message])
+
+  return flash
+}
+
+// ---------------------------------------------------------------------------
+// Feedback sub-components (rendered inside the CommandBox container)
+// ---------------------------------------------------------------------------
+
+const STATUS_COLORS: Record<string, string | undefined> = {
+  info: undefined,
+  success: "green",
+  warning: "yellow",
+  error: "red",
+}
+
+/** Get display label for a chord suffix entry */
+function getLabel(commandId: string, targetId?: string): string {
+  if (targetId) return locationLabel(targetId)
+  if (commandId === "noop") return "..."
+  const cmd = getCommand(commandId)
+  if (!cmd) return commandId
+  return cmd.shortLabel ?? cmd.name
+}
+
+/** Flash message — shows status/bell text with a brief white flash */
+function FlashMessage({ message, color }: {
+  message: string
+  color?: string
+}): React.ReactElement {
+  const isFlash = useFlash(message)
+  return (
+    <Box
+      flexDirection="row"
+      borderStyle="round"
+      borderColor={isFlash ? "white" : "gray"}
+      backgroundColor="black"
+      paddingX={1}
+      overflow="hidden"
+    >
+      <Text color={isFlash ? "white" : color} bold={isFlash} wrap="truncate" id="feedback-message">{message}</Text>
+    </Box>
+  )
+}
+
+/** Chord hints — shows available suffixes for the pending chord prefix */
+function ChordHints({ prefix }: { prefix: string }): React.ReactElement | null {
+  const suffixes = getChordSuffixes(prefix)
+  if (suffixes.length === 0) return null
+
+  const entries = suffixes.map((s) => ({
+    key: s.key,
+    label: getLabel(s.commandId, s.targetId),
+  }))
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="gray"
+      backgroundColor="black"
+      paddingX={1}
+      paddingY={1}
+      overflow="hidden"
+    >
+      {entries.map((entry) => (
+        <Text key={entry.key}>
+          <Text color="yellow" bold>
+            {entry.key}
+          </Text>{" "}
+          <Text dimColor>{entry.label}</Text>
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
+/** Feedback area — chord hints, bell/status flash, or search match count.
+ *  When local search is active, search feedback absorbs bell/status to avoid overlap. */
+function CommandFeedback({ ui, localSearch }: {
+  ui: UIState
+  localSearch?: LocalSearchState | null
+}): React.ReactElement | null {
+  // Priority 1: chord hints
+  if (ui.pendingChord) {
+    return <ChordHints prefix={ui.pendingChord} />
+  }
+
+  // Priority 2: local search — absorbs bell/status to show a single message
+  if (localSearch && localSearch.query.length > 0) {
+    // Bell during search (e.g. "can't find") overrides the match count
+    if (ui.bellState) {
+      return <FlashMessage message={ui.bellState} color="red" />
+    }
+    const noMatches = localSearch.matchCount === 0
+    const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
+    return <FlashMessage message={text} color={noMatches ? "red" : "yellow"} />
+  }
+
+  // Priority 3: bell/status feedback (only when NOT in local search)
+  if (ui.bellState || ui.status) {
+    const message = ui.status?.message ?? ui.bellState ?? ""
+    const color = ui.bellState ? undefined : ui.status ? STATUS_COLORS[ui.status.level] : undefined
+    return <FlashMessage message={message} color={color} />
+  }
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Mode colors
+// ---------------------------------------------------------------------------
+
 const MODE_COLORS: Record<string, string> = {
   NORMAL: "green",
   INSERT: "yellow",
   VISUAL: "cyan",
   MOVE: "magenta",
+  FIND: "yellow",
 }
+
+// ---------------------------------------------------------------------------
+// CommandBox — main export
+// ---------------------------------------------------------------------------
 
 export interface CommandBoxProps {
   ui: UIState
@@ -107,19 +245,6 @@ export interface CommandBoxProps {
   onQueryChange?: (query: string) => void
 }
 
-/**
- * CommandBox component - mode pill + prompt + status + counters
- *
- * Layout: [MODE] > status/chord                    counters · view
- */
-/** Shorten a path by replacing the home directory prefix with ~ */
-function shortenPath(path: string | null): string {
-  if (!path) return ""
-  const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
-  if (home && path.startsWith(home)) return "~" + path.slice(home.length)
-  return path
-}
-
 export function CommandBox({
   ui,
   termWidth,
@@ -131,36 +256,9 @@ export function CommandBox({
   toastQueue,
   localSearch,
   onQueryChange,
-}: CommandBoxProps): React.ReactElement {
-  // Determine if we need spinner animation
-  const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
-  const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
-  const spinnerFrame = useSpinnerFrame(isLoading)
-
-  // Elapsed time counter for long operations
-  const [elapsed, setElapsed] = useState(0)
-  const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
-
-  // Reset to 0 when not loading; compute initial value on mount
-  useEffect(() => {
-    if (!ui.loadingStartTime) {
-      setElapsed(0)
-      return
-    }
-    tick()
-  }, [ui.loadingStartTime])
-
-  // Tick every second while loading (useInterval skips the initial call)
-  useInterval(tick, 1000, !!ui.loadingStartTime)
-
-  // Flash white for 3s when any counter changes
+}: CommandBoxProps): React.ReactElement | null {
+  // Toast when first console log arrives
   const logTotal = consoleStats?.total ?? 0
-  const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
-  const logFlash = useFlashOnChange(logTotal)
-  const nodeFlash = useFlashOnChange(nodeCount)
-  const fileFlash = useFlashOnChange(ui.watcherStatus?.watchedPaths ?? 0)
-
-  // Toast notification when new logs arrive
   useLogToast(logTotal, toastQueue)
 
   // Derive mode label
@@ -170,6 +268,8 @@ export function CommandBox({
     modeLabel = "MOVE"
   } else if (ui.visualMode) {
     modeLabel = "VISUAL"
+  } else if (localSearch) {
+    modeLabel = "FIND"
   } else if (editMode === "text") {
     modeLabel = "INSERT"
   } else {
@@ -187,117 +287,148 @@ export function CommandBox({
   // Multi-selection count
   const multiSuffix = ui.multiSelected.size > 0 ? `[${ui.multiSelected.size}]` : ""
 
-  // Status indicators (status/bell feedback moved to CommandFeedback pane above)
-  const statusParts: string[] = []
-  if (ui.showDropNotification && ui.droppedFiles.length > 0) {
-    statusParts.push(`[Drop:${ui.droppedFiles.length}]`)
-  }
-  if (ui.isMouseDragging && ui.mouseSelection) {
-    statusParts.push("[Sel]")
-  }
-  const statusMessage = statusParts.join("  ")
+  // Command bar is "active" when the user is typing into it (omnibox, find input, search-replace)
+  const isCommandInput = !!(ui.showOmnibox || localSearch?.isInputActive || ui.searchReplace)
 
-  // Right side info
-  const watcherInfo = ui.watcherStatus
-    ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
-    : ""
-  // Command bar is "active" when the user is typing into it (omnibox, find, search-replace)
-  const isCommandInput = !!(ui.showOmnibox || ui.localSearch || ui.searchReplace)
+  // Feedback and command independently decide visibility
+  const hasFeedback = !!(ui.pendingChord || ui.bellState || ui.status || (localSearch && localSearch.query.length > 0))
+  const hasCommand =
+    modeLabel !== "NORMAL" ||
+    isCommandInput ||
+    multiSuffix !== ""
+
+  // Nothing to show
+  if (!hasFeedback && !hasCommand) return null
+
+  // Border color: light blue when input-focused, white otherwise
+  const borderColor = isCommandInput ? "#5599dd" : "white"
 
   return (
     <Box
-      flexDirection="row"
-      flexShrink={0}
-      width={termWidth}
+      flexDirection="column"
+      width={CMD_BOX_WIDTH + 2} // +2 for border
       id="bottom-bar"
       data-status={ui.status?.level}
-      backgroundColor={isCommandInput ? "#1a3a5c" : undefined}
     >
-      {/* Left side: mode pill + prompt + find/status */}
-      <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-        {/* Mode indicator */}
-        <Text color={modeColor} bold id="mode-label">
-          {modeLabel}
-        </Text>
-        <Text dimColor> {">"} </Text>
-        {localSearch ? (
-          /* Inline find: /query */
-          <Box id="find-bar" flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-            <Text>{" / "}</Text>
-            <Box flexGrow={1} flexShrink={1} overflow="hidden">
-              {localSearch.isInputActive && onQueryChange ? (
-                <FindInput query={localSearch.query} onQueryChange={onQueryChange} />
-              ) : (
-                <Text>{localSearch.query}</Text>
+      {/* Stack: feedback on top, command on bottom.
+          If no command, feedback falls to the bottom position. */}
+      {hasFeedback && <CommandFeedback ui={ui} localSearch={localSearch} />}
+      {hasCommand && (
+        <Box
+          flexDirection="row"
+          borderStyle="round"
+          borderColor={borderColor}
+          backgroundColor="black"
+          overflow="hidden"
+        >
+          <Text color={modeColor} bold id="mode-label">
+            {modeLabel}
+          </Text>
+          <Text dimColor> </Text>
+          {localSearch ? (
+            <Box id="find-bar" flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
+              <Text color={localSearch.isInputActive ? undefined : "yellow"}>/</Text>
+              <Box flexGrow={1} flexShrink={1} overflow="hidden">
+                {localSearch.isInputActive && onQueryChange ? (
+                  <FindInput query={localSearch.query} onQueryChange={onQueryChange} />
+                ) : (
+                  <Text color="yellow">{localSearch.query}</Text>
+                )}
+              </Box>
+            </Box>
+          ) : (
+            <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
+              {chordSuffix && (
+                <Text dimColor id="chord-prefix">
+                  {chordSuffix}
+                </Text>
+              )}
+              {paneLabel && !chordSuffix && (
+                <Text dimColor id="pane-label">
+                  {paneLabel}
+                </Text>
+              )}
+              {multiSuffix && (
+                <Text color="cyan" id="multi-count">
+                  {multiSuffix}
+                </Text>
               )}
             </Box>
-          </Box>
-        ) : (
-          /* Normal mode: chord/spinner/status */
-          <>
-            {/* Chord prefix */}
-            {chordSuffix && (
-              <Text dimColor id="chord-prefix">
-                {chordSuffix}{" "}
-              </Text>
-            )}
-            {/* Loading spinner */}
-            {isLoading && !chordSuffix && (
-              <Text dimColor>
-                {spinnerFrame}
-                {elapsed > 1 ? ` ${elapsed}s ` : " "}
-              </Text>
-            )}
-            {/* Pane indicator (only when in detail pane) */}
-            {paneLabel && (
-              <Text dimColor id="pane-label">
-                {paneLabel}{" "}
-              </Text>
-            )}
-            {/* Multi-selection count */}
-            {multiSuffix && (
-              <Text color="cyan" id="multi-count">
-                {multiSuffix}{" "}
-              </Text>
-            )}
-            {/* Transient status (drop/mouse only — feedback moved to CommandFeedback) */}
-            {statusMessage && (
-              <Text dimColor id="status-message">
-                {statusMessage}
-              </Text>
-            )}
-          </>
-        )}
-      </Box>
-      {/* Right side: storage path + counters */}
-      <Box flexGrow={0} flexShrink={0} flexDirection="row">
-        {/* Storage mode + path */}
-        <Text dimColor id="storage-path">
-          {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}{"  "}
-        </Text>
-        {/* Log counter (only when logs exist) */}
-        {logTotal > 0 && (
-          <Text dimColor={!logFlash} id="console-indicator">
-            {" "}
-            {hasWarnings ? "\u26A0" : "💬"}
-            {logTotal}
-          </Text>
-        )}
-        {/* Node counter */}
-        <Text dimColor={!nodeFlash} id="node-count">
-          {" "}
-          📋{nodeCount}
-        </Text>
-        {/* Watcher/file counter */}
-        {watcherInfo && (
-          <Text dimColor={!fileFlash} id="watcher-status">
-            {watcherInfo}
-          </Text>
-        )}
-      </Box>
+          )}
+        </Box>
+      )}
     </Box>
   )
 }
+
+// ---------------------------------------------------------------------------
+// StatusCounters — bottom-right status line (separate from CommandBox)
+// ---------------------------------------------------------------------------
+
+/** Shorten a path by replacing the home directory prefix with ~ */
+function shortenPath(path: string | null): string {
+  if (!path) return ""
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
+  if (home && path.startsWith(home)) return "~" + path.slice(home.length)
+  return path
+}
+
+export function StatusCounters({
+  ui,
+  storageMode,
+  rootPath,
+  nodeCount,
+  consoleStats,
+}: {
+  ui: UIState
+  storageMode: "memory" | "disk"
+  rootPath: string | null
+  nodeCount: number
+  consoleStats?: { total: number; errors: number; warnings: number }
+}): React.ReactElement {
+  const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
+  const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
+  const spinnerFrame = useSpinnerFrame(isLoading)
+
+  const logTotal = consoleStats?.total ?? 0
+  const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
+  const logFlash = useFlashOnChange(logTotal)
+  const nodeFlash = useFlashOnChange(nodeCount)
+  const fileFlash = useFlashOnChange(ui.watcherStatus?.watchedPaths ?? 0)
+
+  const watcherInfo = ui.watcherStatus
+    ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
+    : ""
+
+  return (
+    <Box flexDirection="row" flexShrink={0}>
+      <Text dimColor id="storage-path">
+        {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
+      </Text>
+      {logTotal > 0 && (
+        <Text dimColor={!logFlash} id="console-indicator">
+          {" "}
+          {hasWarnings ? "\u26A0" : "💬"}
+          {logTotal}
+        </Text>
+      )}
+      <Text dimColor={!nodeFlash} id="node-count">
+        {" "}📋{nodeCount}
+      </Text>
+      {watcherInfo && (
+        <Text dimColor={!fileFlash} id="watcher-status">
+          {watcherInfo}
+        </Text>
+      )}
+    </Box>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+const FIND_DEBOUNCE_MS = 150
 
 /** Inline text input for the find query (uses EditContext for cursor/key routing) */
 function FindInput({
@@ -307,12 +438,23 @@ function FindInput({
   query: string
   onQueryChange: (query: string) => void
 }): React.ReactElement {
+  // Debounce propagation to avoid full board re-render on every keystroke
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const debouncedChange = useRef((value: string) => {
+    clearTimeout(timerRef.current)
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+      onQueryChange(value)
+    } else {
+      timerRef.current = setTimeout(() => onQueryChange(value), FIND_DEBOUNCE_MS)
+    }
+  }).current
+
   const { beforeCursor, afterCursor } = useEditContext({
     initialValue: query,
     onConfirm: () => {},
     onCancel: () => {},
-    onSave: (value: string) => onQueryChange(value),
-    onChange: (value: string) => onQueryChange(value),
+    onChange: debouncedChange,
   })
 
   const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
@@ -327,9 +469,6 @@ function FindInput({
   )
 }
 
-/**
- * Render watcher status indicator
- */
 function renderWatcherStatus(status: WatcherStatus): string {
   const { state, pendingPaths, watchedPaths } = status
   const fileCount = watchedPaths ? `📄${watchedPaths}` : "📄0"

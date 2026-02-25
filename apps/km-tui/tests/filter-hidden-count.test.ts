@@ -10,7 +10,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 /** Open and close filter dialog to flush Zustand → React render cycle */
 function flushFilter(board: { press: (key: string) => void }) {
-  board.press("G")
+  board.press("V")
   board.press("Escape")
 }
 

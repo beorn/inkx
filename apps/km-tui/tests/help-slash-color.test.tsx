@@ -45,6 +45,7 @@ describe("HelpOverlay", () => {
 
   test("shows chord grid", () => {
     const app = renderHelp()
+    // Chord grid has its own SHORTCUTS section
     expect(app.text).toContain("SHORTCUTS")
     // Column headers (3 verbs visible)
     expect(app.text).toMatch(/go to\s+move\s+add\/link/)
@@ -82,10 +83,11 @@ describe("HelpOverlay", () => {
     expect(app.text).toMatch(/o\s*\/\s*O/)
   })
 
-  test("shows panes section with ⌃w chords", () => {
+  test("shows panes section with v-prefix chords", () => {
     const app = renderHelp()
     expect(app.text).toContain("PANES")
-    expect(app.text).toContain("⌃w")
+    expect(app.text).toContain("v·s")
+    expect(app.text).toContain("v·h/l")
   })
 
   test("uses macOS key icons", () => {

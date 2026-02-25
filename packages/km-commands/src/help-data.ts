@@ -13,6 +13,8 @@ export interface HelpItem {
 
 export interface HelpSection {
   category: string
+  /** Optional hint rendered dim after the section header */
+  hint?: string
   items: HelpItem[]
 }
 
@@ -22,6 +24,7 @@ export interface VerbGridRow {
   goto?: string
   move?: string
   add?: string
+  create?: string
   /** Render a blank line before this row */
   separator?: boolean
 }
@@ -34,7 +37,7 @@ const HELP_SECTIONS: HelpSection[] = [
     items: [
       { keys: ["hjkl", "↑↓←→"], command: "cursor_down", description: "navigate" },
       { keys: ["z / Z"], command: "zoom_inwards", description: "zoom in / out" },
-      { keys: ["g g/G"], command: "cursor_first", description: "first / last" },
+      { keys: ["g / G"], command: "cursor_first", description: "first / last" },
       { keys: ["J / K"], command: "block_nav_down", description: "next / prev block" },
       { keys: ["⌃u/d", "PgUp / Dn"], command: "page_up", description: "half page up / down" },
       { keys: ["{ / }", "⌘[/]"], command: "nav_back", description: "back / forward" },
@@ -81,13 +84,10 @@ const HELP_SECTIONS: HelpSection[] = [
     category: "View",
     items: [
       { keys: ["v v"], command: "visual_mode_enter", description: "visual mode" },
-      { keys: ["v m"], command: "cycle_view_mode", description: "cycle view" },
-      { keys: ["v c"], command: "toggle_collapse", description: "collapse column" },
-      { keys: ["v d"], command: "toggle_hide_done", description: "toggle done" },
-      { keys: ["v h"], command: "ignore_node", description: "ignore (hide)" },
-      { keys: ["v C"], command: "toggle_show_ignored", description: "show ignored" },
-      { keys: ["v i"], command: "cycle_icon_style", description: "cycle icons" },
-      { keys: ["v -"], command: "clear_filters", description: "clear filters" },
+      { keys: ["v -"], command: "clear_filters", description: "reset view" },
+      { keys: ["V", "v ,"], command: "filter", description: "view settings" },
+      { keys: ["v m/i"], command: "cycle_view_mode", description: "cycle view / icons" },
+      { keys: ["v X"], command: "toggle_show_ignored", description: "show ignored" },
       { keys: ["H / L"], command: "fold_node", description: "fold / unfold" },
       { keys: ["< / >"], command: "fold_all", description: "fold / unfold all" },
       { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
@@ -99,24 +99,21 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "Panes",
     items: [
-      { keys: ["⌃w v/s"], command: "pane_split_vertical", description: "split v / h" },
-      { keys: ["⌃w hjkl"], command: "pane_focus_left", description: "focus pane" },
-      { keys: ["⌃w >/<"], command: "pane_resize_grow", description: "grow / shrink width" },
-      { keys: ["⌃w +/-"], command: "pane_resize_grow_vertical", description: "grow / shrink height" },
-      { keys: ["⌃w HJKL"], command: "pane_swap_left", description: "swap pane" },
-      { keys: ["n/N", "⌃w ⇥"], command: "pane_focus_next", description: "cycle panes" },
-      { keys: ["⌃w o"], command: "pane_only", description: "close others" },
-      { keys: ["⌃w q"], command: "pane_close", description: "close pane" },
-      { keys: ["⌃w z"], command: "pane_zoom", description: "zoom pane" },
-      { keys: ["⌃w ="], command: "pane_equalize", description: "equalize" },
+      { keys: ["v s"], command: "pane_split_vertical", description: "split" },
+      { keys: ["v h/l"], command: "pane_focus_left", description: "focus left / right" },
+      { keys: ["v j/k"], command: "pane_focus_down", description: "focus down / up" },
+      { keys: ["n/N", "v n/N"], command: "pane_focus_next", description: "next / prev pane" },
+      { keys: ["v H/L"], command: "pane_swap_left", description: "swap left / right" },
+      { keys: ["v J/K"], command: "pane_swap_down", description: "swap down / up" },
+      { keys: ["v w  v >/<  v ="], command: "pane_close", description: "close / resize / equalize" },
+      { keys: ["v o"], command: "pane_only", description: "close others" },
     ],
   },
   {
     category: "System",
     items: [
-      { keys: ["G", "⌘g"], command: "filter", description: "filter" },
       { keys: ["F", "⌘f"], command: "search_replace", description: "find & replace" },
-      { keys: ["C", "c c", "⌘n"], command: "capture_dialog", description: "capture dialog" },
+      { keys: ["C", "c i", "⌘n"], command: "capture_dialog", description: "capture" },
       { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
       { keys: ["/", "⌃f"], command: "local_find", description: "find on screen" },
       { keys: ["n / N"], command: "find_next", description: "find next / prev (during find)" },
@@ -137,7 +134,7 @@ export const VERB_GRID: VerbGridRow[] = [
   { key: "p", location: "parent", goto: "g p", move: "m p" },
   // Board locations
   { key: "h", location: "home (@next)", goto: "g h", move: "m h", add: "a h" },
-  { key: "i", location: "inbox", goto: "g i", move: "m i", add: "a i" },
+  { key: "i", location: "inbox", goto: "g i", move: "m i", add: "a i", create: "c i" },
   { key: "j", location: "journal", goto: "g j", move: "m j", add: "a j" },
   { key: "a", location: "archive", goto: "g a", move: "m a" },
   // Favorites (0-9) — bare 0-9 jumps directly, g 0-9 also works

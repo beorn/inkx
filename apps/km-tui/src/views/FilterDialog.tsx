@@ -1,26 +1,24 @@
 /**
- * Filter Dialog Component
+ * View Settings Dialog
  *
- * Property-based filter panel positioned in the top-right corner.
- * Ctrl+G / Cmd+G toggles the panel. Navigate with j/k, toggle with Space/Enter.
- * Escape closes. Shift+X clears all filters.
+ * V / v, opens the view settings panel in the top-right corner.
+ * Shows view mode, icon style, and property-based filters.
+ * Navigate with j/k, select with Space/Enter, X clears filters.
  *
  * Purely presentational — all state is in UIState, all key handling
  * goes through the command system (keybindings layer "filter-dialog").
- *
- * Filter categories:
- * - Task status (todo, wip, blocked, done, dropped)
- * - Priority (P1-P4)
- * - Due date (overdue, today, this-week, no-date)
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import type { FilterProperties } from "../ui-reducer.ts"
-import { FILTER_ROWS } from "../ui-reducer.ts"
+import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
+import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
+import type { ViewMode } from "../board-types.ts"
 
 interface FilterDialogProps {
   filterProperties: FilterProperties
   filterText: string
+  viewMode: ViewMode
+  iconStyle: IconStyle
   cursorRow: number
   cursorVal: number
   width: number
@@ -29,11 +27,15 @@ interface FilterDialogProps {
 export function FilterDialog({
   filterProperties,
   filterText,
+  viewMode,
+  iconStyle,
   cursorRow,
   cursorVal,
   width,
 }: FilterDialogProps): React.ReactElement {
   const innerWidth = Math.max(0, width - 6) // account for border (2) + paddingX (2*2)
+
+  let lastSection: string | undefined
   return (
     <Box
       flexDirection="column"
@@ -47,31 +49,34 @@ export function FilterDialog({
       {/* Title bar */}
       <Box justifyContent="space-between">
         <Text color="cyan" bold>
-          {"Filter"}
+          {"View Settings"}
         </Text>
         <Text dimColor>{"esc close"}</Text>
       </Box>
 
       <Text dimColor>{"─".repeat(innerWidth)}</Text>
 
-      {/* Filter rows */}
-      {FILTER_ROWS.map((row, ri) => {
+      {/* Rows */}
+      {VIEW_DIALOG_ROWS.map((row, ri) => {
         const isActiveRow = ri === cursorRow
         const prefix = isActiveRow ? "> " : "  "
-        const hasActive = filterProperties[row.category].size > 0
 
-        // Build values inline
-        const valueParts = row.values.map((v, vi) => {
-          const isActive = filterProperties[row.category].has(v.value)
-          const isCursor = isActiveRow && vi === cursorVal
-          const check = isActive ? "[x]" : "[ ]"
-          return { text: `${check}${v.label}`, isActive, isCursor }
-        })
+        // Section separator
+        const section = row.section
+        const showSection = section && section !== lastSection
+        if (section) lastSection = section
+
+        const { hasActive, valueParts } = buildValueParts(row, isActiveRow, cursorVal, filterProperties, viewMode, iconStyle)
 
         return (
-          <React.Fragment key={row.category}>
-            {/* Blank line between categories (not before first) */}
-            {ri > 0 && <Text> </Text>}
+          <React.Fragment key={row.kind === "filter" ? row.category : row.key}>
+            {/* Section header */}
+            {showSection && ri > 0 && <Text> </Text>}
+            {showSection && (
+              <Text dimColor wrap="truncate">
+                {`  ${section}`}
+              </Text>
+            )}
             {/* Category label */}
             <Text wrap="truncate">
               <Text color={isActiveRow ? "cyan" : hasActive ? "white" : "gray"} bold={isActiveRow || hasActive}>
@@ -114,10 +119,41 @@ export function FilterDialog({
       {/* Hint footer */}
       <Text dimColor>{"─".repeat(innerWidth)}</Text>
       <Text dimColor wrap="truncate">
-        {"j/k:row  h/l:value  spc:toggle  X:clear"}
+        {"j/k:row  h/l:value  spc:select  X:clear"}
       </Text>
     </Box>
   )
+}
+
+function buildValueParts(
+  row: ViewDialogRow,
+  isActiveRow: boolean,
+  cursorVal: number,
+  filterProperties: FilterProperties,
+  viewMode: ViewMode,
+  iconStyle: IconStyle,
+): { hasActive: boolean; valueParts: Array<{ text: string; isActive: boolean; isCursor: boolean }> } {
+  if (row.kind === "filter") {
+    const active = filterProperties[row.category]
+    const hasActive = active.size > 0
+    const valueParts = row.values.map((v, vi) => {
+      const isActive = active.has(v.value)
+      const isCursor = isActiveRow && vi === cursorVal
+      const check = isActive ? "[x]" : "[ ]"
+      return { text: `${check}${v.label}`, isActive, isCursor }
+    })
+    return { hasActive, valueParts }
+  }
+
+  // Radio row
+  const currentValue = row.key === "viewMode" ? viewMode : iconStyle
+  const valueParts = row.values.map((v, vi) => {
+    const isActive = v.value === currentValue
+    const isCursor = isActiveRow && vi === cursorVal
+    const bullet = isActive ? "●" : "○"
+    return { text: `${bullet} ${v.label}`, isActive, isCursor }
+  })
+  return { hasActive: true, valueParts }
 }
 
 /**

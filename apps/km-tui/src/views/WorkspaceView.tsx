@@ -1,30 +1,29 @@
 /**
  * WorkspaceView — renders the workspace layout tree.
  *
- * For a single pane, renders children directly (no wrapper overhead).
- * For multiple panes, recursively splits using explicit pixel widths/heights.
- * Each pane shows a number label: [1], [2], [1d] (detail linked to pane 1).
+ * For a single pane, renders board directly with PaneBar above.
+ * For multiple panes, recursively splits using flexGrow based on split ratios.
+ * Only vertical (side-by-side) splits are supported; horizontal splits are not yet implemented.
  *
- * Note: flexx does not support percentage flexBasis, so we compute explicit
- * pixel dimensions from the split ratio and available space.
+ * Pane chrome: each pane has a PaneBar (colored top bar). No outer borders —
+ * only a vertical separator between adjacent panes.
  */
 
 import React from "react"
 import { Box, Text } from "inkx"
 import type { LayoutNode, PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
+import { PaneLabelProvider } from "../pane-context.tsx"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 
 export interface WorkspaceViewProps {
   layout: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
-  /** Available width in columns for the workspace */
-  width: number
-  /** Available height in rows for the workspace */
-  height: number
   /** Render a pane's board content, receiving the pane ID for state isolation */
   renderPane: (paneId: string) => React.ReactNode
+  /** Render a detail pane's content */
+  renderDetailPane?: (paneId: string) => React.ReactNode
   /** Called when a pane is clicked (for click-to-focus) */
   onPaneClick?: (paneId: string) => void
 }
@@ -69,15 +68,14 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
  * Render the workspace layout.
  *
  * - Single pane: renders board directly, no wrapper
- * - Multiple panes: recursive split layout with divider lines
+ * - Multiple panes: recursive split layout with vertical separator
  */
 export function WorkspaceView({
   layout,
   panes,
   focusedPaneId,
-  width,
-  height,
   renderPane,
+  renderDetailPane,
   onPaneClick,
 }: WorkspaceViewProps): React.ReactElement {
   // Single pane (the common case) — render board directly, no overhead
@@ -88,17 +86,48 @@ export function WorkspaceView({
   const paneLabels = derivePaneLabels(layout, panes)
 
   return (
-    <Box width={width} height={height}>
+    <Box flexGrow={1}>
       <LayoutNodeView
         node={layout}
         panes={panes}
         focusedPaneId={focusedPaneId}
         paneLabels={paneLabels}
-        width={width}
-        height={height}
         renderPane={renderPane}
+        renderDetailPane={renderDetailPane}
         onPaneClick={onPaneClick}
+        isLeftChild={true}
       />
+    </Box>
+  )
+}
+
+/**
+ * PaneTitleBar — simple top bar for non-board panes (detail, empty).
+ *
+ * Shows the pane type/label on the left and [N] indicator on the right.
+ * Dimmed when unfocused.
+ */
+function PaneTitleBar({
+  label,
+  suffix,
+  isFocused,
+}: {
+  label: string | undefined
+  suffix?: string
+  isFocused: boolean
+}): React.ReactElement {
+  return (
+    <Box flexDirection="row" flexShrink={0}>
+      <Box flexGrow={1} overflow="hidden">
+        <Text dimColor={!isFocused} bold={isFocused} wrap="truncate">
+          {suffix || "Pane"}
+        </Text>
+      </Box>
+      <Box flexShrink={0}>
+        <Text dimColor={!isFocused} bold={isFocused}>
+          [{label ?? "?"}]
+        </Text>
+      </Box>
     </Box>
   )
 }
@@ -109,93 +138,110 @@ function LayoutNodeView({
   panes,
   focusedPaneId,
   paneLabels,
-  width,
-  height,
   renderPane,
+  renderDetailPane,
   onPaneClick,
+  isLeftChild,
 }: {
   node: LayoutNode
   panes: Map<string, PaneState>
   focusedPaneId: string
   paneLabels: Map<string, string>
-  width: number
-  height: number
   renderPane: (paneId: string) => React.ReactNode
+  renderDetailPane?: (paneId: string) => React.ReactNode
   onPaneClick?: (paneId: string) => void
+  isLeftChild: boolean
 }): React.ReactElement {
   if (node.type === "leaf") {
     const pane = panes.get(node.paneId)
+    const isFocused = node.paneId === focusedPaneId
+    const label = paneLabels.get(node.paneId)
+
     if (!pane) {
       return (
-        <Box width={width} height={height}>
+        <Box flexGrow={1} flexDirection="column">
           <Text>Missing pane: {node.paneId}</Text>
         </Box>
       )
     }
 
-    const isFocused = node.paneId === focusedPaneId
-    const borderColor = isFocused ? "green" : "gray"
-    const label = paneLabels.get(node.paneId)
+    const isBoard = pane.viewType === "board"
+    const labelSuffix = pane.viewType === "detail" ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
-    // For multi-pane layouts, wrap each pane in a bordered box with number label
     return (
       <Box
-        width={width}
-        height={height}
+        flexGrow={1}
         flexDirection="column"
-        borderStyle="single"
-        borderColor={borderColor}
         onMouseDown={() => onPaneClick?.(node.paneId)}
       >
-        {label && (
-          <Box>
-            <Text color={borderColor} bold={isFocused}>
-              [{label}]
-            </Text>
-            {pane.viewType === "empty" && <Text dimColor> empty</Text>}
-          </Box>
+        {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
+        {/* Non-board panes: PaneTitleBar provides the top bar */}
+        {!isBoard && (
+          <PaneTitleBar label={label} suffix={labelSuffix} isFocused={isFocused} />
         )}
         <Box flexGrow={1} flexDirection="column">
-          {pane.viewType === "board" ? renderPane(node.paneId) : <EmptyPaneWelcome />}
+          {isBoard ? (
+            <PaneLabelProvider value={label ?? "?"}>
+              {renderPane(node.paneId)}
+            </PaneLabelProvider>
+          ) : pane.viewType === "detail" ? (
+            renderDetailPane ? (
+              renderDetailPane(node.paneId)
+            ) : (
+              <Text dimColor>Detail pane</Text>
+            )
+          ) : (
+            <EmptyPaneWelcome />
+          )}
         </Box>
       </Box>
     )
   }
 
-  // Split node — compute pixel sizes from ratio and available space.
-  // For horizontal splits, divide width; for vertical, divide height.
-  const isHorizontal = node.direction === "h"
-  const firstWidth = isHorizontal ? Math.floor(width * node.ratio) : width
-  const secondWidth = isHorizontal ? width - firstWidth : width
-  const firstHeight = isHorizontal ? height : Math.floor(height * node.ratio)
-  const secondHeight = isHorizontal ? height : height - firstHeight
+  // Split node — only vertical (side-by-side) splits supported
+  const leftGrow = Math.round(node.ratio * 100)
+  const rightGrow = 100 - leftGrow
 
   return (
-    <Box width={width} height={height} flexDirection={isHorizontal ? "row" : "column"}>
-      <Box width={firstWidth} height={firstHeight} flexDirection="column">
+    <Box flexGrow={1} flexDirection="row">
+      <Box flexGrow={leftGrow} flexBasis={0} flexDirection="column">
         <LayoutNodeView
           node={node.left}
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
-          width={firstWidth}
-          height={firstHeight}
           renderPane={renderPane}
+          renderDetailPane={renderDetailPane}
           onPaneClick={onPaneClick}
+          isLeftChild={true}
         />
       </Box>
-      <Box width={secondWidth} height={secondHeight} flexDirection="column">
+      {/* Vertical separator between panes */}
+      <Box flexShrink={0} flexDirection="column">
+        <PaneSeparator />
+      </Box>
+      <Box flexGrow={rightGrow} flexBasis={0} flexDirection="column">
         <LayoutNodeView
           node={node.right}
           panes={panes}
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
-          width={secondWidth}
-          height={secondHeight}
           renderPane={renderPane}
+          renderDetailPane={renderDetailPane}
           onPaneClick={onPaneClick}
+          isLeftChild={false}
         />
       </Box>
+    </Box>
+  )
+}
+
+/** Vertical separator between adjacent panes — a single │ column */
+function PaneSeparator(): React.ReactElement {
+  const SEPARATOR_FILL = "│\n".repeat(200)
+  return (
+    <Box flexGrow={1} overflow="hidden">
+      <Text dimColor>{SEPARATOR_FILL}</Text>
     </Box>
   )
 }

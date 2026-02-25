@@ -1,7 +1,7 @@
 /**
  * P2 Feature: km-tui.filter — Property-based filtering
  *
- * G opens a filter panel in the top-right corner.
+ * V opens a filter panel in the top-right corner.
  * Navigate with j/k (rows) and h/l (values), toggle with Space/Enter.
  * X clears all filters. Escape closes the panel.
  *
@@ -15,7 +15,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
 describe("P2: Filter feature", () => {
-  test("G toggles filter panel", () => {
+  test("V toggles filter panel", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -30,8 +30,8 @@ describe("P2: Filter feature", () => {
     let screen = board.screenshot()
     expect(screen).not.toContain("Filter")
 
-    // Open filter panel with G
-    board.press("G")
+    // Open filter panel with V
+    board.press("V")
     screen = board.screenshot()
     expect(screen).toContain("Filter")
     expect(screen).toContain("Status")
@@ -45,7 +45,7 @@ describe("P2: Filter feature", () => {
       rows: 24,
     })
 
-    board.press("G")
+    board.press("V")
     let screen = board.screenshot()
     expect(screen).toContain("Filter")
 
@@ -57,8 +57,9 @@ describe("P2: Filter feature", () => {
   test("j/k navigates between filter rows", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
-    // Initially on Status row (row 0)
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
     let screen = board.screenshot()
     expect(screen).toContain("> Status")
 
@@ -84,8 +85,9 @@ describe("P2: Filter feature", () => {
       rows: 24,
     })
 
-    board.press("G")
-    // On Status row, first value (todo)
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
     // Toggle 'todo' on
     board.press(" ")
     let screen = board.screenshot()
@@ -100,7 +102,9 @@ describe("P2: Filter feature", () => {
   test("h/l navigates between values in a row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
     // Move right to second value (wip)
     board.press("l")
     board.press(" ") // toggle wip on
@@ -118,7 +122,9 @@ describe("P2: Filter feature", () => {
   test("X clears all filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
     // Toggle some filters on
     board.press(" ") // todo on
     board.press("l")
@@ -142,8 +148,9 @@ describe("P2: Filter feature", () => {
     let screen = board.screenshot()
     expect(screen).not.toContain("[F]")
 
-    // Open filter and toggle todo status
-    board.press("G")
+    // Open filter and navigate to Status row, toggle todo
+    board.press("V")
+    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
 
     // Close filter panel
@@ -180,7 +187,7 @@ describe("P2: Filter feature", () => {
     // Set filter text programmatically (text search via SET_FILTER action)
     store.getState().setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.press("G")
+    board.press("V")
     board.press("Escape")
 
     screen = board.screenshot()
@@ -207,7 +214,7 @@ describe("P2: Filter feature", () => {
     // Apply text filter "Fix" programmatically
     store.getState().setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.press("G")
+    board.press("V")
     board.press("Escape")
 
     // In cards view, only Fix items visible (skip breadcrumb in top bar)
@@ -217,23 +224,23 @@ describe("P2: Filter feature", () => {
     expect(cardArea).not.toContain("Buy groceries")
 
     // Switch to columns view — filter should persist
-    board.press("v")
+    board.press("v").press("m")
     screen = board.screenshot()
     cardArea = screen.split("\n").slice(2).join("\n")
     expect(cardArea).toContain("Fix bug")
     expect(cardArea).not.toContain("Buy groceries")
   })
 
-  test("G closes filter panel when already open (toggle)", () => {
+  test("V closes filter panel when already open (toggle)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open
-    board.press("G")
+    board.press("V")
     let screen = board.screenshot()
     expect(screen).toContain("Filter")
 
     // Close via G again
-    board.press("G")
+    board.press("V")
     screen = board.screenshot()
     expect(screen).not.toContain("Status")
   })
@@ -404,7 +411,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(screen).toContain("Normal task")
 
     // Apply 'todo' status filter
-    board.press("G") // open filter
+    board.press("V") // open filter
+    board.press("j").press("j") // navigate to Status row
     board.press(" ") // toggle todo
     board.press("Escape") // close filter
 
@@ -425,7 +433,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     })
 
     // Apply 'done' status filter
-    board.press("G") // open filter
+    board.press("V") // open filter
+    board.press("j").press("j") // navigate to Status row
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
     board.press("l").press("l").press("l") // move to 'done'

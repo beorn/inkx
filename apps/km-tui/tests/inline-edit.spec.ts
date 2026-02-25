@@ -1079,24 +1079,19 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("INSERT mode indicator appears in command box during inline edit", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
 
-    // Before editing: should show NORMAL mode
-    const beforeEdit = board.q("#bottom-bar").textContent()
-    expect(beforeEdit).toContain("NORMAL")
-    expect(beforeEdit).not.toContain("INSERT")
+    // Before editing: command box is hidden in NORMAL mode
+    expect(board.screenshot()).not.toContain("INSERT")
 
     // Enter edit mode
     board.press("Enter")
 
-    // During editing: INSERT mode indicator visible
-    const duringEdit = board.q("#bottom-bar").textContent()
-    expect(duringEdit).toContain("INSERT")
+    // During editing: INSERT mode indicator visible in floating command box
+    expect(board.screenshot()).toContain("INSERT")
 
     // Exit edit mode
     board.press("Escape")
 
-    // After editing: back to NORMAL mode
-    const afterEdit = board.q("#bottom-bar").textContent()
-    expect(afterEdit).toContain("NORMAL")
-    expect(afterEdit).not.toContain("INSERT")
+    // After editing: command box hidden again (NORMAL mode)
+    expect(board.screenshot()).not.toContain("INSERT")
   })
 })

@@ -840,9 +840,9 @@ export function createBoardAppStoreState(
         set((state) => {
           const { workspace } = state
 
-          // Don't close the last pane
+          // Don't close the last pane — ring bell for feedback
           if (workspace.panes.size <= 1) {
-            return state
+            return { ui: { ...state.ui, bellState: "visual" } }
           }
 
           const focusedId = workspace.focusedPaneId

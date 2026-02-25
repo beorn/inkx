@@ -32,7 +32,7 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
   ["Selection", "Task"],
   ["View", "Panes"],
   ["System"],
-  ["verb-grid"],
+  "verb-grid",
 ]
 
 // ── Key display formatting ──────────────────────────────────────────
@@ -40,12 +40,18 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 
 // ── Section header ──────────────────────────────────────────────────
 
-function SectionHeaderLine({ title }: { title: string }): React.ReactElement {
+function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
       <Text bold color="cyan">
         {title.toUpperCase()}
       </Text>
+      {hint && (
+        <>
+          <Text> </Text>
+          <Text dimColor>{hint}</Text>
+        </>
+      )}
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
@@ -105,6 +111,9 @@ function buildSectionLines(section: HelpSection, keyPrefix: string): React.React
     const item = section.items[i]
     lines.push(<EntryLine key={`${keyPrefix}-e${i}`} keys={item.keys} desc={item.description} />)
   }
+  if (section.category === "Panes") {
+    lines.push(<Text key={`${keyPrefix}-foot`} dimColor>{"⌃v or v both work as prefixes"}</Text>)
+  }
   return lines
 }
 
@@ -119,17 +128,19 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
   // Render section rows (multi-column)
   for (const row of SECTION_ROWS) {
-    // Collect columns for this row — sections or verb-grid
+    // Verb grid — special rendering
+    if (row === "verb-grid") {
+      lines.push(...buildVerbGridLines())
+      lines.push(<Text key={`blank-${lines.length}`}> </Text>)
+      continue
+    }
+
     const cols: React.ReactElement[][] = []
     for (const name of row) {
-      if (name === "verb-grid") {
-        cols.push(buildVerbGridLines())
-      } else {
-        const section = sectionMap.get(name)
-        if (section) {
-          cols.push(buildSectionLines(section, `s${cols.length}-${section.category}`))
-          rendered.add(name)
-        }
+      const section = sectionMap.get(name)
+      if (section) {
+        cols.push(buildSectionLines(section, `s${cols.length}-${section.category}`))
+        rendered.add(name)
       }
     }
 
@@ -190,19 +201,7 @@ function buildVerbGridLines(): React.ReactElement[] {
   const lines: React.ReactElement[] = []
 
   // Section header
-  lines.push(
-    <Box key="vg-hdr" flexDirection="row">
-      <Text bold color="cyan">
-        {"SHORTCUTS"}
-      </Text>
-      <Text> </Text>
-      <Box flexGrow={1} flexBasis={0}>
-        <Fill>
-          <Text dimColor>{"─"}</Text>
-        </Fill>
-      </Box>
-    </Box>,
-  )
+  lines.push(<SectionHeaderLine key="vg-hdr" title="Shortcuts" />)
 
   // Column headers (verb names)
   lines.push(
@@ -218,8 +217,13 @@ function buildVerbGridLines(): React.ReactElement[] {
           {"move"}
         </Text>
       </Box>
+      <Box width={VG_COL_W}>
+        <Text bold color="cyan">
+          {"add/link"}
+        </Text>
+      </Box>
       <Text bold color="cyan">
-        {"add/link"}
+        {"create"}
       </Text>
     </Box>,
   )
@@ -240,9 +244,12 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{" or "}</Text>
         <Text color="yellow">{"⌃m"}</Text>
       </Box>
-      <Text color="yellow">{"a"}</Text>
-      <Text dimColor>{" or "}</Text>
-      <Text color="yellow">{"⌃l"}</Text>
+      <Box width={VG_COL_W} flexDirection="row">
+        <Text color="yellow">{"a"}</Text>
+        <Text dimColor>{" or "}</Text>
+        <Text color="yellow">{"⌃l"}</Text>
+      </Box>
+      <Text color="yellow">{"c"}</Text>
     </Box>,
   )
 
@@ -266,7 +273,10 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Box width={VG_COL_W} flexDirection="row">
           <GridCell value={row.move} showDot={showDot} />
         </Box>
-        <GridCell value={row.add} showDot={showDot} />
+        <Box width={VG_COL_W} flexDirection="row">
+          <GridCell value={row.add} showDot={showDot} />
+        </Box>
+        <GridCell value={row.create} showDot={showDot} />
       </Box>,
     )
   }

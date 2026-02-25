@@ -1,14 +1,16 @@
 /**
- * CommandBox Component Tests
+ * CommandBox & StatusCounters Component Tests
  *
- * Tests the command box (bottom bar) including mode pill, counters, and flash behavior.
+ * Tests the command box (floating overlay) and status counters (bottom-right).
+ * CommandBox is hidden in NORMAL mode — only visible in non-NORMAL modes or with active input.
+ * StatusCounters is always visible showing storage, counters, watcher info.
  */
 
 import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext } from "inkx"
-import { CommandBox } from "../../src/views/CommandBox.tsx"
+import { CommandBox, StatusCounters } from "../../src/views/CommandBox.tsx"
 import type { UIState } from "../../src/ui-reducer.ts"
 
 const baseRender = createRenderer()
@@ -87,139 +89,19 @@ describe("CommandBox", () => {
 
   const mockRootPath = "/tmp/test-repo"
 
-  it("shows NORMAL mode pill by default", () => {
+  it("returns null in NORMAL mode (hidden)", () => {
     const app = render(
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
         moveMode={false}
       />,
     )
-    const output = app.text
-    expect(output).toContain("NORMAL")
-  })
-
-  it("shows node count with clipboard icon", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={123}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).toContain("📋123")
-  })
-
-  it("shows storage path (DISK + shortened path)", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).toContain("DISK")
-    expect(output).toContain("/tmp/test-repo")
-  })
-
-  it("view mode is not shown in bottom bar (moved to top bar)", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).not.toContain("VIEW")
-  })
-
-  it("does not show spinner when not loading", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    // Spinner frames should not appear when not loading
-    const spinnerFrames = [
-      "\u280B",
-      "\u2819",
-      "\u2839",
-      "\u2838",
-      "\u283C",
-      "\u2834",
-      "\u2826",
-      "\u2827",
-      "\u2807",
-      "\u280F",
-    ]
-    const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
-    expect(hasSpinner).toBe(false)
-  })
-
-  it("shows watcher status when present", () => {
-    const uiWithWatcher: UIState = {
-      ...mockUIState,
-      watcherStatus: {
-        state: "idle",
-        pendingPaths: 0,
-        watchedPaths: 5,
-      },
-    }
-    const app = render(
-      <CommandBox
-        ui={uiWithWatcher}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="disk"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).toContain("📄5")
-  })
-
-  it("shows memory storage mode indicator", () => {
-    const app = render(
-      <CommandBox
-        ui={mockUIState}
-        rootPath={mockRootPath}
-
-        termWidth={80}
-        storageMode="memory"
-        nodeCount={42}
-        moveMode={false}
-      />,
-    )
-    const output = app.text
-    expect(output).toContain("MEM")
+    // CommandBox returns null in NORMAL mode
+    expect(app.text).toBe("")
   })
 
   it("shows MOVE mode pill when in move mode", () => {
@@ -227,7 +109,6 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -243,7 +124,6 @@ describe("CommandBox", () => {
       <CommandBox
         ui={mockUIState}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -254,7 +134,7 @@ describe("CommandBox", () => {
     expect(output).not.toContain("MOVE")
   })
 
-  it("shows MOVE mode even when status is set (status shown in CommandFeedback above)", () => {
+  it("stacks feedback above command when both are visible", () => {
     const uiWithStatus: UIState = {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
@@ -263,7 +143,6 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithStatus}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -272,8 +151,7 @@ describe("CommandBox", () => {
     )
     const output = app.text
     expect(output).toContain("MOVE")
-    // Status messages are now shown in CommandFeedback pane, not in CommandBox
-    expect(output).not.toMatch(/Test mes/)
+    expect(output).toContain("Test message")
   })
 
   it("shows INSERT mode when inline editing", () => {
@@ -285,7 +163,6 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithEdit}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -306,7 +183,6 @@ describe("CommandBox", () => {
       <CommandBox
         ui={uiWithVisual}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
@@ -317,20 +193,150 @@ describe("CommandBox", () => {
     expect(output).toContain("VISUAL")
   })
 
-  it("has bottom-bar id for locator queries", () => {
+  it("view mode is not shown in command box (moved to top bar)", () => {
     const app = render(
       <CommandBox
-        ui={mockUIState}
+        ui={{ ...mockUIState, visualMode: true, visualAnchor: "n1" }}
         rootPath={mockRootPath}
-
         termWidth={80}
         storageMode="disk"
         nodeCount={42}
         moveMode={false}
       />,
     )
-    const bar = app.locator("#bottom-bar")
-    expect(bar.count()).toBeGreaterThan(0)
+    const output = app.text
+    expect(output).not.toContain("VIEW")
+  })
+
+  it("does not show spinner when not loading", () => {
+    // Use VISUAL mode so CommandBox is visible
+    const app = render(
+      <CommandBox
+        ui={{ ...mockUIState, visualMode: true, visualAnchor: "n1" }}
+        rootPath={mockRootPath}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={false}
+      />,
+    )
+    const output = app.text
+    const spinnerFrames = [
+      "\u280B", "\u2819", "\u2839", "\u2838", "\u283C",
+      "\u2834", "\u2826", "\u2827", "\u2807", "\u280F",
+    ]
+    const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
+    expect(hasSpinner).toBe(false)
+  })
+
+  it("has round border outline", () => {
+    const app = render(
+      <CommandBox
+        ui={mockUIState}
+        rootPath={mockRootPath}
+        termWidth={80}
+        storageMode="disk"
+        nodeCount={42}
+        moveMode={true}
+      />,
+    )
+    const box = app.locator("#bottom-bar")
+    expect(box.count()).toBeGreaterThan(0)
+  })
+})
+
+describe("StatusCounters", () => {
+  const mockUIState: UIState = {
+    viewMode: "columns",
+    showDetailPane: false,
+    maxContentLines: 3,
+    rootBoardId: null,
+    showHelp: false,
+    showProjectPicker: false,
+    showNewItemDialog: false,
+    showSearchDialog: false,
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+    collapsedColumns: new Set(),
+    foldDepths: new Map(),
+    mouseSelection: null,
+    isMouseDragging: false,
+    droppedFiles: [],
+    showDropNotification: false,
+    navHistory: [],
+    navHistoryIndex: 0,
+    recentProjectIds: [],
+    dimensions: { columns: 80, rows: 24 },
+    isLoading: false,
+    loadingStartTime: null,
+    watcherStatus: null,
+    bellState: null,
+    showConsole: false,
+    status: null,
+  }
+
+  const mockRootPath = "/tmp/test-repo"
+
+  it("shows node count with clipboard icon", () => {
+    const app = render(
+      <StatusCounters
+        ui={mockUIState}
+        rootPath={mockRootPath}
+        storageMode="disk"
+        nodeCount={123}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("📋123")
+  })
+
+  it("shows storage path (DISK + shortened path)", () => {
+    const app = render(
+      <StatusCounters
+        ui={mockUIState}
+        rootPath={mockRootPath}
+        storageMode="disk"
+        nodeCount={42}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("DISK")
+    expect(output).toContain("/tmp/test-repo")
+  })
+
+  it("shows watcher status when present", () => {
+    const uiWithWatcher: UIState = {
+      ...mockUIState,
+      watcherStatus: {
+        state: "idle",
+        pendingPaths: 0,
+        watchedPaths: 5,
+      },
+    }
+    const app = render(
+      <StatusCounters
+        ui={uiWithWatcher}
+        rootPath={mockRootPath}
+        storageMode="disk"
+        nodeCount={42}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("📄5")
+  })
+
+  it("shows memory storage mode indicator", () => {
+    const app = render(
+      <StatusCounters
+        ui={mockUIState}
+        rootPath={mockRootPath}
+        storageMode="memory"
+        nodeCount={42}
+      />,
+    )
+    const output = app.text
+    expect(output).toContain("MEM")
   })
 
   // ===========================================================================
@@ -340,14 +346,11 @@ describe("CommandBox", () => {
   describe("flash-on-update", () => {
     it("node count starts dim (no flash on initial render)", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       const nodeCountEl = app.locator("#node-count")
@@ -357,25 +360,19 @@ describe("CommandBox", () => {
 
     it("node count flashes bright when value changes", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       app.rerender(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={43}
-          moveMode={false}
         />,
       )
       const nodeCountEl = app.locator("#node-count")
@@ -384,26 +381,20 @@ describe("CommandBox", () => {
 
     it("console indicator flashes when log count changes", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
           consoleStats={{ total: 5, errors: 0, warnings: 0 }}
         />,
       )
       app.rerender(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
           consoleStats={{ total: 10, errors: 0, warnings: 0 }}
         />,
       )
@@ -422,14 +413,11 @@ describe("CommandBox", () => {
         },
       }
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={uiWithWatcher}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       const uiWithMoreFiles: UIState = {
@@ -441,14 +429,11 @@ describe("CommandBox", () => {
         },
       }
       app.rerender(
-        <CommandBox
+        <StatusCounters
           ui={uiWithMoreFiles}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       const watcherEl = app.locator("#watcher-status")
@@ -458,25 +443,19 @@ describe("CommandBox", () => {
 
     it("no flash when value stays the same", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       app.rerender(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
         />,
       )
       const nodeCountEl = app.locator("#node-count")
@@ -485,14 +464,11 @@ describe("CommandBox", () => {
 
     it("console indicator shows warning icon when errors present", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
           consoleStats={{ total: 3, errors: 1, warnings: 0 }}
         />,
       )
@@ -503,14 +479,11 @@ describe("CommandBox", () => {
 
     it("console indicator not shown when total is 0", () => {
       const app = render(
-        <CommandBox
+        <StatusCounters
           ui={mockUIState}
           rootPath={mockRootPath}
-  
-          termWidth={80}
           storageMode="disk"
           nodeCount={42}
-          moveMode={false}
           consoleStats={{ total: 0, errors: 0, warnings: 0 }}
         />,
       )

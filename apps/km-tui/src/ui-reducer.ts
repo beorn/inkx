@@ -253,17 +253,40 @@ export function hasActivePropertyFilters(props: FilterProperties): boolean {
   )
 }
 
-/** Filter row definitions for the filter panel */
-export interface FilterRowDef {
-  category: keyof FilterProperties
-  label: string
-  values: Array<{ value: string; label: string }>
-}
+/** View settings dialog row definitions */
+export type ViewDialogRow =
+  | { kind: "filter"; category: keyof FilterProperties; label: string; values: Array<{ value: string; label: string }>; section?: string }
+  | { kind: "radio"; key: "viewMode" | "iconStyle"; label: string; values: Array<{ value: string; label: string }>; section?: string }
 
-export const FILTER_ROWS: FilterRowDef[] = [
+export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
+  // View settings (radio — single select)
   {
+    kind: "radio",
+    key: "viewMode",
+    label: "View",
+    section: "View",
+    values: [
+      { value: "cards", label: "cards" },
+      { value: "columns", label: "columns" },
+      { value: "tabs", label: "tabs" },
+    ],
+  },
+  {
+    kind: "radio",
+    key: "iconStyle",
+    label: "Icons",
+    values: [
+      { value: "nerdfont", label: "nerd" },
+      { value: "workflowy", label: "workflowy" },
+      { value: "regular", label: "regular" },
+    ],
+  },
+  // Filters (checkbox — multi select)
+  {
+    kind: "filter",
     category: "taskStatus",
     label: "Status",
+    section: "Filter",
     values: [
       { value: "todo", label: "todo" },
       { value: "wip", label: "wip" },
@@ -273,6 +296,7 @@ export const FILTER_ROWS: FilterRowDef[] = [
     ],
   },
   {
+    kind: "filter",
     category: "priority",
     label: "Priority",
     values: [
@@ -283,6 +307,7 @@ export const FILTER_ROWS: FilterRowDef[] = [
     ],
   },
   {
+    kind: "filter",
     category: "dueDate",
     label: "Due",
     values: [
@@ -293,6 +318,9 @@ export const FILTER_ROWS: FilterRowDef[] = [
     ],
   },
 ]
+
+/** @deprecated Use VIEW_DIALOG_ROWS instead */
+export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter((r): r is Extract<ViewDialogRow, { kind: "filter" }> => r.kind === "filter")
 
 // =============================================================================
 // Initial State Factory

@@ -41,7 +41,7 @@ import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory 
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
-import { createEmptyFilterProperties, FILTER_ROWS } from "../ui-reducer.ts"
+import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -1179,7 +1179,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DIALOG_NAV_DOWN":
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
-          filterCursorRow: Math.min(prev.filterCursorRow + 1, FILTER_ROWS.length - 1),
+          filterCursorRow: Math.min(prev.filterCursorRow + 1, VIEW_DIALOG_ROWS.length - 1),
           filterCursorVal: 0,
         }))
         return ok()
@@ -1195,7 +1195,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "DIALOG_NAV_RIGHT":
       if (ctx.ui.showFilterDialog) {
-        const row = FILTER_ROWS[ctx.ui.filterCursorRow]
+        const row = VIEW_DIALOG_ROWS[ctx.ui.filterCursorRow]
         if (row) {
           ctx.setUI((prev) => ({
             filterCursorVal: Math.min(prev.filterCursorVal + 1, row.values.length - 1),
@@ -1205,20 +1205,30 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "DIALOG_CONFIRM": {
       if (ctx.ui.showFilterDialog) {
-        // Toggle the currently selected filter value
-        const row = FILTER_ROWS[ctx.ui.filterCursorRow]
+        const row = VIEW_DIALOG_ROWS[ctx.ui.filterCursorRow]
         const val = row?.values[ctx.ui.filterCursorVal]
         if (row && val) {
-          const current = ctx.ui.filterProperties[row.category]
-          const next = new Set(current)
-          if (next.has(val.value)) {
-            next.delete(val.value)
+          if (row.kind === "radio") {
+            // Radio: set the value directly
+            if (row.key === "viewMode") {
+              ctx.navigator.clearStickyY()
+              ctx.setUI({ viewMode: val.value as ViewMode })
+            } else {
+              ctx.setUI({ [row.key]: val.value })
+            }
           } else {
-            next.add(val.value)
+            // Checkbox: toggle filter property
+            const current = ctx.ui.filterProperties[row.category]
+            const next = new Set(current)
+            if (next.has(val.value)) {
+              next.delete(val.value)
+            } else {
+              next.add(val.value)
+            }
+            ctx.setUI({
+              filterProperties: { ...ctx.ui.filterProperties, [row.category]: next },
+            })
           }
-          ctx.setUI({
-            filterProperties: { ...ctx.ui.filterProperties, [row.category]: next },
-          })
         }
         return ok()
       }

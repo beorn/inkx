@@ -91,9 +91,8 @@ function FolderDetailPane({
   cursorIndex = 0,
 }: DetailPaneProps & { focused?: boolean }): React.ReactElement {
   const repo = useRepo()
-  // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
-  const fullWidth = Math.max(10, width - 2) // subtract border only
-  const contentWidth = Math.max(8, fullWidth - 2) // 1-space padding each side for text content
+  // No outer border — WorkspaceView provides pane chrome
+  const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
   const title = getNodeDisplayName(repo, node)
   const children = repo.getChildren(node.id)
 
@@ -118,35 +117,18 @@ function FolderDetailPane({
   const hasMore = entries.length >= maxEntries
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="round"
-      borderColor="yellow"
-      borderDimColor={!detailFocused}
-      backgroundColor="black"
-    >
+    <Box flexDirection="column" flexGrow={1} width={width} height={height} backgroundColor="black">
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title — yellow bg spans full width, text padded; dim when detail pane is not focused */}
-        <Box width={fullWidth} backgroundColor={detailFocused ? "yellow" : undefined} paddingX={1}>
-          <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
-            <Text dimColor bold={false}>
-              [
-            </Text>
-            <Text bold>D</Text>
-            <Text dimColor bold={false}>
-              ]
-            </Text>{" "}
-            <InlineText text={title} />
-          </Text>
-        </Box>
-
-        {/* Separator — full width with 1-space padding */}
+        {/* Separator below pane label */}
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
+          {/* Title */}
+          <Text bold wrap="wrap">
+            <InlineText text={title} />
+          </Text>
+
           {/* Counts */}
           <Box>
             <Text>
@@ -218,9 +200,8 @@ function TaskDetailPane({
     return null
   }
 
-  // Full width inside border (no paddingX on outer Box — title bar spans edge-to-edge)
-  const fullWidth = Math.max(10, width - 2) // subtract border only
-  const contentWidth = Math.max(8, fullWidth - 2) // 1-space padding each side for text content
+  // No outer border — WorkspaceView provides pane chrome
+  const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
   const title = getNodeDisplayName(repo, node)
 
   const statusInfo = getStatusDisplay(node.task_status)
@@ -279,49 +260,24 @@ function TaskDetailPane({
   const maxBacklinks = 5
 
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="round"
-      borderColor="yellow"
-      borderDimColor={!detailFocused}
-      backgroundColor="black"
-    >
+    <Box flexDirection="column" flexGrow={1} width={width} height={height} backgroundColor="black">
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Title header — yellow bg when focused, dim yellow text when inactive */}
-        <Box
-          flexDirection="column"
-          width={fullWidth}
-          backgroundColor={detailFocused ? "yellow" : undefined}
-          paddingX={1}
-        >
-          {/* Location breadcrumb */}
-          {projectPath.length > 0 && (
-            <Text color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="truncate">
-              {projectPath.join(" / ")}
-            </Text>
-          )}
-
-          {/* Title — InlineText styles sigils but keeps all content visible */}
-          <Text bold color={detailFocused ? "black" : "yellow"} dimColor={!detailFocused} wrap="wrap">
-            <Text dimColor bold={false}>
-              [
-            </Text>
-            <Text bold>D</Text>
-            <Text dimColor bold={false}>
-              ]
-            </Text>{" "}
-            {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
-            <InlineText text={title} />
-          </Text>
-        </Box>
-
-        {/* Separator below title — full width with 1-space padding */}
+        {/* Separator below pane label */}
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
+          {/* Title + breadcrumb */}
+          {projectPath.length > 0 && (
+            <Text dimColor wrap="truncate">
+              {projectPath.join(" / ")}
+            </Text>
+          )}
+          <Text bold wrap="wrap">
+            {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
+            <InlineText text={title} />
+          </Text>
+
           {/* Metadata fields — aligned key:value table */}
           <MetadataTable
             node={node}

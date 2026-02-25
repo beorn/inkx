@@ -291,7 +291,7 @@ describe("J/K block navigation", () => {
 // =============================================================================
 
 describe("Filter dialog", () => {
-  test("G opens filter panel showing filter categories", () => {
+  test("V opens filter panel showing filter categories", () => {
     const { board } = testEnv(
       () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 120, rows: 24 },
@@ -301,7 +301,7 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).not.toContain("Filter")
 
     // Open filter panel
-    board.press("G")
+    board.press("V")
     const screen = board.screenshot()
     expect(screen).toContain("Filter")
     expect(screen).toContain("Status")
@@ -311,9 +311,10 @@ describe("Filter dialog", () => {
   test("j/k navigates between filter rows", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
 
-    // Initially on Status row
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
     expect(board.screenshot()).toContain("> Status")
 
     // Navigate down
@@ -338,7 +339,9 @@ describe("Filter dialog", () => {
       rows: 24,
     })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
 
     // Toggle todo on
     board.press(" ")
@@ -352,7 +355,9 @@ describe("Filter dialog", () => {
   test("h/l navigates between values within a filter row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
 
     // Move right to wip
     board.press("l")
@@ -370,7 +375,9 @@ describe("Filter dialog", () => {
   test("X clears all active filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
 
     // Toggle a couple filters on
     board.press(" ") // todo on
@@ -392,8 +399,9 @@ describe("Filter dialog", () => {
       rows: 24,
     })
 
-    // Open filter and toggle todo
-    board.press("G")
+    // Open filter and navigate to Status row, toggle todo
+    board.press("V")
+    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
     expect(board.screenshot()).toContain("[x]todo")
 
@@ -407,22 +415,24 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).toContain("[F]")
   })
 
-  test("G toggles filter panel (open then close)", () => {
+  test("V toggles filter panel (open then close)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open
-    board.press("G")
+    board.press("V")
     expect(board.screenshot()).toContain("Filter")
 
-    // Close with G again
-    board.press("G")
+    // Close with V again
+    board.press("V")
     expect(board.screenshot()).not.toContain("> Status")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("G")
+    board.press("V")
+    // Navigate to Status row (row 2, after View and Icons rows)
+    board.press("j").press("j")
 
     // Enter toggles the current value
     board.press("Enter")
@@ -833,7 +843,7 @@ describe("Filter + navigation interaction", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Open filter
-    board.press("G")
+    board.press("V")
 
     // j/k/h/l should control filter, not board
     board.press("j") // moves filter cursor, not board cursor
@@ -849,8 +859,9 @@ describe("Filter + navigation interaction", () => {
   test("filter state persists after closing and reopening filter panel", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    // Open filter and toggle a value
-    board.press("G")
+    // Open filter and navigate to Status row, toggle a value
+    board.press("V")
+    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
     expect(board.screenshot()).toContain("[x]todo")
 
@@ -858,7 +869,7 @@ describe("Filter + navigation interaction", () => {
     board.press("Escape")
 
     // Reopen and verify state persisted
-    board.press("G")
+    board.press("V")
     expect(board.screenshot()).toContain("[x]todo")
 
     board.press("Escape")

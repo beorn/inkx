@@ -55,7 +55,7 @@ import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-co
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
-import { usePaneId } from "../pane-context.tsx"
+import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
 const log = createLogger("km:tui:board")
@@ -72,8 +72,7 @@ import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } 
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
-import { CommandBox } from "./CommandBox.tsx"
-import { CommandFeedback } from "./WhichKeyPopup.tsx"
+import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
@@ -174,6 +173,90 @@ function useColumnReveal(columnCount: number, _rootId: string | null): number {
  * Extracted from BoardCore so BoardCore doesn't re-render on j/k.
  * Also shows compact filter indicator in the right side when filters are active.
  */
+/** Long ─ fill for combined pane/top bar (truncated to fit) */
+
+
+/** Shared top bar props */
+interface TopBarProps {
+  rootId: string | null
+  termWidth: number
+  filterProperties: FilterProperties
+  filterText: string
+  isBoardSelected: boolean
+  viewMode?: string
+  maxContentLines: number
+}
+
+/**
+ * PaneBoardTopBar — multi-pane board top bar.
+ *
+ * Renders: path > segments          CARDS VIEW  [F] filter  [1]
+ * Separated into its own component so useAppStore is only called in multi-pane mode
+ * (avoids "useApp must be used within createApp" errors in test setups without store context).
+ *
+ * Left: path segments. Right: view mode, filter indicator, [N] pane label.
+ * Dimmed when pane is not focused.
+ */
+function PaneBoardTopBar({
+  paneLabel,
+  pathContent,
+  isBoardSelected,
+  boardColor,
+  viewMode,
+  maxContentLines,
+  filterIndicator,
+  selectedPathSegments,
+}: {
+  paneLabel: string
+  pathContent: string
+  isBoardSelected: boolean
+  boardColor: string | undefined
+  viewMode?: string
+  maxContentLines: number
+  filterIndicator: string | undefined
+  selectedPathSegments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>
+}): React.ReactElement {
+  const paneId = usePaneId()
+  const focusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
+  const isPaneFocused = paneId === focusedPaneId
+
+  return (
+    <Box
+      id="top-bar"
+      flexShrink={0}
+      flexDirection="row"
+      backgroundColor={isPaneFocused ? (isBoardSelected ? "yellow" : "white") : undefined}
+    >
+      {/* Left: path segments */}
+      <Box flexGrow={1} overflow="hidden">
+        <Text
+          color={isPaneFocused ? (isBoardSelected ? "black" : "gray") : "gray"}
+          dimColor={!isPaneFocused}
+          wrap="truncate"
+        >
+          {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
+        </Text>
+      </Box>
+      {/* Right: view mode + filter + pane label */}
+      <Box flexShrink={0} flexDirection="row">
+        <Text dimColor={!isPaneFocused} id="view-mode">
+          {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+          {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
+        </Text>
+        {filterIndicator && (
+          <Text color={isPaneFocused ? "#4477aa" : "gray"} id="filter-indicator">
+            {" [F] "}
+            {filterIndicator}
+          </Text>
+        )}
+        <Text dimColor={!isPaneFocused} bold={isPaneFocused}>
+          {" "}[{paneLabel}]
+        </Text>
+      </Box>
+    </Box>
+  )
+}
+
 function BoardTopBar({
   rootId,
   termWidth,
@@ -182,18 +265,11 @@ function BoardTopBar({
   isBoardSelected,
   viewMode,
   maxContentLines,
-}: {
-  rootId: string | null
-  termWidth: number
-  filterProperties: FilterProperties
-  filterText: string
-  isBoardSelected: boolean
-  viewMode?: string
-  maxContentLines: number
-}): React.ReactElement {
+}: TopBarProps): React.ReactElement {
   const repo = useRepo()
   const cursorPos = useCursorNodePosition()
   const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+  const paneLabel = usePaneLabel()
 
   const pathNodeId =
     selectionLevel === "board" || !cursorColumnNodeId
@@ -211,25 +287,42 @@ function BoardTopBar({
     ? (getOwnColor(rootNode) ?? getBoardColorByName(normalizeBoardName(getNodeDisplayName(repo, rootNode))))
     : undefined
 
+  // Multi-pane mode: delegate to PaneBoardTopBar (separate component for store access)
+  if (paneLabel) {
+    return (
+      <PaneBoardTopBar
+        paneLabel={paneLabel}
+        pathContent={renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
+        isBoardSelected={isBoardSelected}
+        boardColor={boardColor}
+        viewMode={viewMode}
+        maxContentLines={maxContentLines}
+        filterIndicator={filterIndicator}
+        selectedPathSegments={selectedPathSegments}
+      />
+    )
+  }
+
+  // Single-pane mode: standard top bar with background color
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="column" backgroundColor={isBoardSelected ? "yellow" : "white"}>
-      <Box flexDirection="row">
-        <Box flexGrow={1} overflow="hidden">
-          <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
-            {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
-          </Text>
-        </Box>
+    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={isBoardSelected ? "yellow" : "white"}>
+      {/* Left: path segments */}
+      <Box flexGrow={1} overflow="hidden">
+        <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
+          {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
+        </Text>
+      </Box>
+      {/* Right: view mode + filter */}
+      <Box flexShrink={0} flexDirection="row">
         <Text dimColor id="view-mode">
-          {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+          {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
           {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
         </Text>
         {filterIndicator && (
-          <Box flexShrink={0}>
-            <Text color="#4477aa" id="filter-indicator">
-              {" [F] "}
-              {filterIndicator}{" "}
-            </Text>
-          </Box>
+          <Text color="#4477aa" id="filter-indicator">
+            {" [F] "}
+            {filterIndicator}
+          </Text>
         )}
       </Box>
     </Box>
@@ -240,12 +333,15 @@ function BoardTopBar({
  * CursorAwareDetailPane - only subscribes to cursor position when visible.
  * Prevents BoardCore from subscribing just for detail pane cursor tracking.
  */
-function CursorAwareDetailPane({ width, height }: { width: number; height: number }): React.ReactElement | null {
+function CursorAwareDetailPane(): React.ReactElement | null {
   const cursorPos = useCursorNodePosition()
   const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
   const detailCursorIndex = useAppStore<BoardAppStore, number>((s) => s.ui.detailCursorIndex)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
+  const parentRect = useContentRect()
+  const width = parentRect.width > 0 ? parentRect.width : 40
+  const height = parentRect.height > 0 ? parentRect.height : 20
   // Show detail for card, column, or board node (whichever cursor level)
   const nodeId = cursorPos.cursorCardNodeId ?? cursorPos.cursorColumnNodeId
   const node = nodeId ? repo.getNode(nodeId) : undefined
@@ -325,16 +421,15 @@ export function BoardCore({
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
   const isBoardSelected = derivedSelectionLevel === "board"
-
-  // Calculate widths for split view
-  const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
-  const boardWidth = termWidth - detailPaneWidth
+  const paneLabel = usePaneLabel()
 
   // Calculate content area height - space between top and bottom bars
-  // BOTTOM_BAR_HEIGHT = 1 (CommandBox, find is inline). SyncPane adds rows when visible.
+  // Multi-pane mode: no spacer line below top bar (TOP_BAR_HEIGHT includes the spacer)
+  // BOTTOM_BAR_HEIGHT = 0 (all bottom elements float as absolute overlays).
   const SYNC_PANE_HEIGHT = 6
+  const topBarHeight = paneLabel ? 1 : TOP_BAR_HEIGHT
   const contentHeight =
-    termHeight - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+    termHeight - topBarHeight - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -448,7 +543,7 @@ export function BoardCore({
 
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
-  const { expandedWidth } = computeColumnWidths(boardWidth, columns, collapsedNodes)
+  const { expandedWidth } = computeColumnWidths(termWidth, columns, collapsedNodes)
 
   return (
     <ConstraintRoot>
@@ -476,7 +571,8 @@ export function BoardCore({
           viewMode={ui.viewMode}
           maxContentLines={ui.maxContentLines}
         />
-        <Box height={1} flexShrink={0} />
+        {/* Spacer below top bar — omitted in multi-pane mode (combined border/top bar) */}
+        {!paneLabel && <Box height={1} flexShrink={0} />}
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Board area — focusable container for all card/column/list views */}
           <Box focusable autoFocus testID="board-area" flexGrow={1} flexDirection="column">
@@ -488,13 +584,13 @@ export function BoardCore({
                 onError={handleRenderError}
               >
                 {columns.length === 0 ? (
-                  <Box flexDirection="column" padding={1} width={boardWidth} height={contentHeight}>
+                  <Box flexDirection="column" padding={1} width={termWidth} height={contentHeight}>
                     <Text dimColor>Empty board</Text>
                   </Box>
                 ) : (
                   <HorizontalVirtualList
                     items={columns}
-                    width={boardWidth}
+                    width={termWidth}
                     height={contentHeight}
                     itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
                     gap={1}
@@ -526,7 +622,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ColumnsView columns={columns} width={boardWidth} height={contentHeight} />
+                <ColumnsView columns={columns} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : ui.viewMode === "list" ? (
               <ErrorBoundary
@@ -534,7 +630,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ListView columns={columns} width={boardWidth} height={contentHeight} />
+                <ListView columns={columns} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : (
               <ErrorBoundary
@@ -542,16 +638,10 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <TabsView columns={columns} width={boardWidth} height={contentHeight} />
+                <TabsView columns={columns} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             )}
           </Box>
-          {/* Detail pane — subscribes to cursor position independently */}
-          {ui.showDetailPane && (
-            <Box focusable testID="detail-pane">
-              <CursorAwareDetailPane width={detailPaneWidth} height={contentHeight} />
-            </Box>
-          )}
           {/* Project picker modal */}
           {ui.showProjectPicker && (
             <DialogBox
@@ -620,6 +710,8 @@ export function BoardCore({
               <FilterDialog
                 filterProperties={ui.filterProperties}
                 filterText={ui.filterText}
+                viewMode={ui.viewMode}
+                iconStyle={ui.iconStyle}
                 cursorRow={ui.filterCursorRow}
                 cursorVal={ui.filterCursorVal}
                 width={FILTER_PANEL_WIDTH}
@@ -697,31 +789,41 @@ export function BoardCore({
         <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
-        {/* Command feedback pane (chord hints, bell, status, search matches) */}
-        {(ui.pendingChord || ui.bellState || ui.status || (ui.localSearch && ui.localSearch.query.length > 0)) && (
-          <CommandFeedback
-            prefix={ui.pendingChord}
-            bellState={ui.bellState}
-            status={ui.status}
-            localSearch={ui.localSearch}
-            termWidth={termWidth}
-          />
-        )}
-        {/* Command box — mode pill + inline find + status + counters */}
-        <CommandBox
-          ui={ui}
-          termWidth={termWidth}
-          storageMode={repo.mode}
-          rootPath={rootPath}
-          nodeCount={repo.stats.nodeCount}
-          moveMode={moveMode}
-          consoleStats={consoleStats}
-          toastQueue={toastQueue}
-          localSearch={ui.localSearch}
-          onQueryChange={handleFindQueryChange}
-        />
         {/* Bell indicator - hidden element for test detection */}
         {ui.bellState && <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>}
+        {/* Bottom overlays — absolute, floating on top of content */}
+        <Box
+          position="absolute"
+          height={termHeight}
+          width={termWidth}
+          flexDirection="column-reverse"
+          alignItems="flex-start"
+          paddingLeft={1}
+        >
+          {/* Status counters — bottom-right */}
+          <Box flexDirection="row" width={termWidth - 2} justifyContent="flex-end" id="bottom-bar" data-status={ui.status?.level}>
+            <StatusCounters
+              ui={ui}
+              storageMode={repo.mode}
+              rootPath={rootPath}
+              nodeCount={repo.stats.nodeCount}
+              consoleStats={consoleStats}
+            />
+          </Box>
+          {/* Command box — bottom-left, stacked above status */}
+          <CommandBox
+            ui={ui}
+            termWidth={termWidth}
+            storageMode={repo.mode}
+            rootPath={rootPath}
+            nodeCount={repo.stats.nodeCount}
+            moveMode={moveMode}
+            consoleStats={consoleStats}
+            toastQueue={toastQueue}
+            localSearch={ui.localSearch}
+            onQueryChange={handleFindQueryChange}
+          />
+        </Box>
       </Box>
     </ConstraintRoot>
   )
@@ -1088,11 +1190,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneRect = useContentRect()
   const cardInnerWidth = useMemo(() => {
     const termWidth = paneRect.width > 0 ? paneRect.width : ui.dimensions.columns
-    const detailPaneWidth = ui.showDetailPane ? Math.floor(termWidth * 0.4) : 0
-    const boardWidth = termWidth - detailPaneWidth
-    const { expandedWidth } = computeColumnWidths(boardWidth, filteredColumns, collapsedNodes)
+    const { expandedWidth } = computeColumnWidths(termWidth, filteredColumns, collapsedNodes)
     return expandedWidth - 3 // card width is expandedWidth - 1 (CardColumn renderItem), minus 2 for padding left + right
-  }, [paneRect.width, ui.dimensions.columns, ui.showDetailPane, filteredColumns, collapsedNodes])
+  }, [paneRect.width, ui.dimensions.columns, filteredColumns, collapsedNodes])
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
@@ -1169,6 +1269,8 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
   const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)
+  // Cursor store — shared between board and detail pane so detail pane can track cursor position
+  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => s.cursorStore)
 
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
@@ -1189,6 +1291,17 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     [initialViewMode, storeDimensions, exit, toastQueue, navigator, patchedConsole],
   )
 
+  const renderDetailPane = useCallback(
+    (paneId: string) => (
+      <PaneIdProvider value={paneId}>
+        <CursorStoreProvider store={cursorStore}>
+          <CursorAwareDetailPane />
+        </CursorStoreProvider>
+      </PaneIdProvider>
+    ),
+    [cursorStore],
+  )
+
   // Single pane (common case) — render Board directly, no wrapper overhead
   if (workspace.panes.size <= 1) {
     return (
@@ -1200,14 +1313,13 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
   // Multiple panes — use WorkspaceView for split layout
   return (
-    <Box flexDirection="column" height={storeDimensions.rows}>
+    <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
       <WorkspaceView
         layout={workspace.layout}
         panes={workspace.panes}
         focusedPaneId={workspace.focusedPaneId}
-        width={storeDimensions.columns}
-        height={storeDimensions.rows}
         renderPane={renderPane}
+        renderDetailPane={renderDetailPane}
         onPaneClick={focusPaneById}
       />
     </Box>

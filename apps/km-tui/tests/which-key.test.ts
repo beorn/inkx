@@ -108,10 +108,10 @@ describe("which-key popup rendering", () => {
     board.press("j")
     board.press("m")
 
-    // m-prefix should show move-related suffixes
+    // m-prefix should show move-related suffixes (location labels)
     const text = board.screenshot()
-    expect(text).toContain("move")
     expect(text).toContain("inbox")
+    expect(text).toContain("journal")
   })
 
   test("a-prefix popup shows add-related suffixes", () => {

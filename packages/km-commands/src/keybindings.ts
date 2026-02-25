@@ -239,8 +239,16 @@ export function resolveChord(
   const bucket = chordMap.get(chordKey)
   if (!bucket) return null
 
+  // Mask out modifiers that are part of the chord prefix so holding
+  // the prefix modifier through the second key still works.
+  // E.g., "Ctrl+w q" matches even if user holds Ctrl while pressing q.
+  const masked = { ...modifiers }
+  if (prefix.includes("Ctrl")) masked.ctrl = false
+  if (prefix.includes("Alt")) masked.opt = false
+  if (prefix.includes("Shift")) masked.shift = false
+
   for (const binding of bucket) {
-    if (matchBinding(binding, key, modifiers, ctx)) {
+    if (matchBinding(binding, key, masked, ctx)) {
       return binding.targetId
         ? { commandId: binding.commandId, targetId: binding.targetId }
         : { commandId: binding.commandId }
@@ -526,7 +534,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "k", commandId: "cursor_up" },
       { key: "h", commandId: "cursor_left" },
       { key: "l", commandId: "cursor_right" },
-      { key: "G", commandId: "filter", when: not(textInputFocused) },
+      { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
       { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Block navigation (J/K — jump by block, auto-unfolds)
@@ -750,15 +758,38 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "g", key: "#", commandId: "goto", targetId: "pick:#" },
       { chord: "g", key: "@", commandId: "goto", targetId: "pick:@" },
 
-      // v-prefix chords (view operations)
-      { chord: "v", key: "c", commandId: "toggle_collapse" },
-      { chord: "v", key: "C", commandId: "toggle_show_ignored" },
-      { chord: "v", key: "m", commandId: "cycle_view_mode" },
-      { chord: "v", key: "d", commandId: "toggle_hide_done" },
-      { chord: "v", key: "h", commandId: "ignore_node" },
-      { chord: "v", key: "i", commandId: "cycle_icon_style" },
-      { chord: "v", key: "-", commandId: "clear_filters" },
+      // v-prefix chords — VIEW operations
       { chord: "v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      { chord: "v", key: "m", commandId: "cycle_view_mode" },
+      { chord: "v", key: "i", commandId: "cycle_icon_style" },
+      { chord: "v", key: "c", commandId: "toggle_collapse" },
+      { chord: "v", key: "X", commandId: "toggle_show_ignored" },
+      { chord: "v", key: "d", commandId: "toggle_hide_done" },
+      { chord: "v", key: "x", commandId: "ignore_node" },
+      { chord: "v", key: "-", commandId: "clear_filters" },
+      { chord: "v", key: ",", commandId: "filter" },
+
+      // v-prefix chords — PANE operations
+      { chord: "v", key: "s", commandId: "pane_split_vertical" },
+      { chord: "v", key: "h", commandId: "pane_focus_left" },
+      { chord: "v", key: "j", commandId: "pane_focus_down" },
+      { chord: "v", key: "k", commandId: "pane_focus_up" },
+      { chord: "v", key: "l", commandId: "pane_focus_right" },
+      { chord: "v", key: ">", commandId: "pane_resize_grow" },
+      { chord: "v", key: "<", commandId: "pane_resize_shrink" },
+      { chord: "v", key: "=", commandId: "pane_equalize" },
+      { chord: "v", key: "H", commandId: "pane_swap_left" },
+      { chord: "v", key: "J", commandId: "pane_swap_down" },
+      { chord: "v", key: "K", commandId: "pane_swap_up" },
+      { chord: "v", key: "L", commandId: "pane_swap_right" },
+      { chord: "v", key: "n", commandId: "pane_focus_next" },
+      { chord: "v", key: "N", commandId: "pane_focus_prev" },
+      { chord: "v", key: "p", commandId: "pane_focus_previous" },
+      { chord: "v", key: "Tab", commandId: "pane_focus_next" },
+      { chord: "v", key: "Tab", shift: true, commandId: "pane_focus_prev" },
+      { chord: "v", key: "w", commandId: "pane_close" },
+      { chord: "v", key: "o", commandId: "pane_only" },
+      { chord: "v", key: "z", commandId: "pane_zoom" },
 
       // m-prefix chords (move)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
@@ -820,8 +851,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // toggle_hide_done moved to v d (view prefix)
       { chord: "t", key: "l", commandId: "set_label" },
 
-      // c-prefix chords (capture/create)
-      { chord: "c", key: "c", commandId: "capture_dialog" },
+      // c-prefix chords (create — composable verb)
+      { chord: "c", key: "i", commandId: "capture_dialog" },
 
       // Ctrl+g chord prefix (alternative for g — goto)
       { chord: "Ctrl+g", key: "g", commandId: "cursor_first" },
@@ -874,7 +905,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "view",
     bindings: [
       // v is a chord prefix (v c, v d, v m, etc.) — visual mode via v v chord
-      // cycle_icon_style moved to v i (view prefix)
+      // V (uppercase) = view settings (opens filter dialog)
+      { key: "V", commandId: "filter" },
       { key: "?", commandId: "show_help" },
       { key: "+", commandId: "increase_content_lines" },
       { key: "=", commandId: "increase_content_lines" },
@@ -901,53 +933,44 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 14: Pane management (Ctrl+W chord prefix, vim-style) ---
+  // --- Layer 14: Ctrl+V chord prefix (alternative for v — view & pane) ---
   {
-    name: "pane",
+    name: "ctrl-v",
     bindings: [
-      // Ctrl+W is a chord prefix — second key selects the pane action.
-      // Split
-      { chord: "Ctrl+w", key: "v", commandId: "pane_split_vertical" },
-      { chord: "Ctrl+w", key: "s", commandId: "pane_split_horizontal" },
+      // View operations (mirrors v-prefix)
+      { chord: "Ctrl+v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      { chord: "Ctrl+v", key: "m", commandId: "cycle_view_mode" },
+      { chord: "Ctrl+v", key: "i", commandId: "cycle_icon_style" },
+      { chord: "Ctrl+v", key: "c", commandId: "toggle_collapse" },
+      { chord: "Ctrl+v", key: "X", commandId: "toggle_show_ignored" },
+      { chord: "Ctrl+v", key: "d", commandId: "toggle_hide_done" },
+      { chord: "Ctrl+v", key: "x", commandId: "ignore_node" },
+      { chord: "Ctrl+v", key: "-", commandId: "clear_filters" },
+      { chord: "Ctrl+v", key: ",", commandId: "filter" },
+      // Pane operations (mirrors v-prefix)
+      { chord: "Ctrl+v", key: "s", commandId: "pane_split_vertical" },
+      { chord: "Ctrl+v", key: "h", commandId: "pane_focus_left" },
+      { chord: "Ctrl+v", key: "j", commandId: "pane_focus_down" },
+      { chord: "Ctrl+v", key: "k", commandId: "pane_focus_up" },
+      { chord: "Ctrl+v", key: "l", commandId: "pane_focus_right" },
+      { chord: "Ctrl+v", key: ">", commandId: "pane_resize_grow" },
+      { chord: "Ctrl+v", key: "<", commandId: "pane_resize_shrink" },
+      { chord: "Ctrl+v", key: "=", commandId: "pane_equalize" },
+      { chord: "Ctrl+v", key: "H", commandId: "pane_swap_left" },
+      { chord: "Ctrl+v", key: "J", commandId: "pane_swap_down" },
+      { chord: "Ctrl+v", key: "K", commandId: "pane_swap_up" },
+      { chord: "Ctrl+v", key: "L", commandId: "pane_swap_right" },
+      { chord: "Ctrl+v", key: "n", commandId: "pane_focus_next" },
+      { chord: "Ctrl+v", key: "N", commandId: "pane_focus_prev" },
+      { chord: "Ctrl+v", key: "p", commandId: "pane_focus_previous" },
+      { chord: "Ctrl+v", key: "Tab", commandId: "pane_focus_next" },
+      { chord: "Ctrl+v", key: "w", commandId: "pane_close" },
+      { chord: "Ctrl+v", key: "o", commandId: "pane_only" },
+      { chord: "Ctrl+v", key: "z", commandId: "pane_zoom" },
 
-      // Focus (hjkl)
-      { chord: "Ctrl+w", key: "h", commandId: "pane_focus_left" },
-      { chord: "Ctrl+w", key: "j", commandId: "pane_focus_down" },
-      { chord: "Ctrl+w", key: "k", commandId: "pane_focus_up" },
-      { chord: "Ctrl+w", key: "l", commandId: "pane_focus_right" },
-
-      // Resize width (> / <)
-      { chord: "Ctrl+w", key: ">", commandId: "pane_resize_grow" },
-      { chord: "Ctrl+w", key: "<", commandId: "pane_resize_shrink" },
-
-      // Resize height (+ / -)
-      { chord: "Ctrl+w", key: "+", commandId: "pane_resize_grow_vertical" },
-      { chord: "Ctrl+w", key: "-", commandId: "pane_resize_shrink_vertical" },
-
-      // Swap (HJKL — uppercase)
-      { chord: "Ctrl+w", key: "H", commandId: "pane_swap_left" },
-      { chord: "Ctrl+w", key: "J", commandId: "pane_swap_down" },
-      { chord: "Ctrl+w", key: "K", commandId: "pane_swap_up" },
-      { chord: "Ctrl+w", key: "L", commandId: "pane_swap_right" },
-
-      // Focus toggle/cycle (p / Tab / Shift+Tab / n/N when find inactive)
-      { chord: "Ctrl+w", key: "p", commandId: "pane_focus_previous" },
-      { chord: "Ctrl+w", key: "Tab", commandId: "pane_focus_next" },
-      { chord: "Ctrl+w", key: "Tab", shift: true, commandId: "pane_focus_prev" },
+      // Bare n/N for pane cycling (when find is not active)
       { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
       { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },
-
-      // Close others
-      { chord: "Ctrl+w", key: "o", commandId: "pane_only" },
-
-      // Close pane
-      { chord: "Ctrl+w", key: "q", commandId: "pane_close" },
-
-      // Zoom (maximize toggle)
-      { chord: "Ctrl+w", key: "z", commandId: "pane_zoom" },
-
-      // Equalize
-      { chord: "Ctrl+w", key: "=", commandId: "pane_equalize" },
     ],
   },
 

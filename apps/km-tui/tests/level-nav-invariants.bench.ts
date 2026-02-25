@@ -131,8 +131,9 @@ describe("Level navigation invariants", () => {
       checkStability: false,
     })
 
-    // Change view mode
+    // Change view mode (v m = cycle view mode)
     await driver.press("v")
+    await driver.press("m")
 
     // Then navigate levels (incremental should still match fresh)
     await driver.cmd.up!()

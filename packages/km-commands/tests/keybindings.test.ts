@@ -428,8 +428,8 @@ describe("initDefaultKeybindings", () => {
     ["h", {}, "cursor_left"],
     ["l", {}, "cursor_right"],
     ["g", {}, "cursor_first"],
-    ["G", {}, "filter"],
-    ["G", { shift: true }, "filter"], // Ink reports shift+G
+    ["G", {}, "cursor_last"],
+    ["G", { shift: true }, "cursor_last"], // Ink reports shift+G
     // Arrow key navigation (same as hjkl per docs/06-ui.md)
     ["ArrowDown", {}, "cursor_down"],
     ["ArrowUp", {}, "cursor_up"],
@@ -750,8 +750,9 @@ describe("chord keybindings", () => {
     expect(isChordPrefix("a")).toBe(true)
     expect(isChordPrefix("t")).toBe(true)
     expect(isChordPrefix("c")).toBe(true)
-    expect(isChordPrefix("Ctrl+w")).toBe(true)
-    // Not chord prefixes
+    expect(isChordPrefix("Ctrl+v")).toBe(true)
+    // Not chord prefixes (Ctrl+w removed — pane ops moved to v prefix)
+    expect(isChordPrefix("Ctrl+w")).toBe(false)
     expect(isChordPrefix("z")).toBe(false)
     expect(isChordPrefix("s")).toBe(false)
     expect(isChordPrefix("j")).toBe(false)
@@ -766,12 +767,33 @@ describe("chord keybindings", () => {
       ["g", "O", "open_in_terminal"],
       // v-prefix chords (view operations)
       ["v", "c", "toggle_collapse"],
-      ["v", "C", "toggle_show_ignored"],
+      ["v", "X", "toggle_show_ignored"],
       ["v", "m", "cycle_view_mode"],
       ["v", "d", "toggle_hide_done"],
-      ["v", "h", "ignore_node"],
+      ["v", "x", "ignore_node"],
       ["v", "i", "cycle_icon_style"],
       ["v", "-", "clear_filters"],
+      ["v", ",", "filter"],
+      // v-prefix chords (pane operations)
+      ["v", "s", "pane_split_vertical"],
+      ["v", "h", "pane_focus_left"],
+      ["v", "j", "pane_focus_down"],
+      ["v", "k", "pane_focus_up"],
+      ["v", "l", "pane_focus_right"],
+      ["v", ">", "pane_resize_grow"],
+      ["v", "<", "pane_resize_shrink"],
+      ["v", "=", "pane_equalize"],
+      ["v", "H", "pane_swap_left"],
+      ["v", "J", "pane_swap_down"],
+      ["v", "K", "pane_swap_up"],
+      ["v", "L", "pane_swap_right"],
+      ["v", "n", "pane_focus_next"],
+      ["v", "N", "pane_focus_prev"],
+      ["v", "p", "pane_focus_previous"],
+      ["v", "Tab", "pane_focus_next"],
+      ["v", "w", "pane_close"],
+      ["v", "o", "pane_only"],
+      ["v", "z", "pane_zoom"],
       // m-prefix chords (move to board)
       ["m", "a", "archive"],
       ["m", "m", "enter_move_mode"],
@@ -785,28 +807,7 @@ describe("chord keybindings", () => {
       ["t", "o", "set_assignee"],
       ["t", "l", "set_label"],
       // c-prefix chords (capture/create)
-      ["c", "c", "capture_dialog"],
-      // Ctrl+W-prefix chords (pane operations)
-      ["Ctrl+w", "v", "pane_split_vertical"],
-      ["Ctrl+w", "s", "pane_split_horizontal"],
-      ["Ctrl+w", "q", "pane_close"],
-      ["Ctrl+w", "h", "pane_focus_left"],
-      ["Ctrl+w", "j", "pane_focus_down"],
-      ["Ctrl+w", "k", "pane_focus_up"],
-      ["Ctrl+w", "l", "pane_focus_right"],
-      ["Ctrl+w", "p", "pane_focus_previous"],
-      ["Ctrl+w", "Tab", "pane_focus_next"],
-      ["Ctrl+w", ">", "pane_resize_grow"],
-      ["Ctrl+w", "<", "pane_resize_shrink"],
-      ["Ctrl+w", "+", "pane_resize_grow_vertical"],
-      ["Ctrl+w", "-", "pane_resize_shrink_vertical"],
-      ["Ctrl+w", "=", "pane_equalize"],
-      ["Ctrl+w", "z", "pane_zoom"],
-      ["Ctrl+w", "o", "pane_only"],
-      ["Ctrl+w", "H", "pane_swap_left"],
-      ["Ctrl+w", "J", "pane_swap_down"],
-      ["Ctrl+w", "K", "pane_swap_up"],
-      ["Ctrl+w", "L", "pane_swap_right"],
+      ["c", "i", "capture_dialog"],
     ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
       const ctx = createContext()
       expect(resolveChord(prefix, key, {}, ctx)).toEqual({ commandId })
@@ -866,7 +867,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(140) // 23 g + 8 v + 24 m + 17 a + 8 t + 1 c + 21 Ctrl+w + 20 Ctrl+g + 20 Ctrl+m
+    expect(chordBindings.length).toBe(168) // 23 g + 29 v + 22 m + 17 a + 8 t + 1 c + 20 Ctrl+g + 20 Ctrl+m + 28 Ctrl+v
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -906,18 +907,19 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["-", "C", "c", "d", "h", "i", "m", "v"])
+    // View: - , X c d i m v x | Pane: < = > H J K L N Tab h j k l n o p s w z
+    expect(keys).toEqual([",", "-", "<", "=", ">", "H", "J", "K", "L", "N", "Tab", "X", "c", "d", "h", "i", "j", "k", "l", "m", "n", "o", "p", "s", "v", "w", "x", "z"])
   })
 
-  it("getChordSuffixes returns Ctrl+w-prefix hints", () => {
-    const suffixes = getChordSuffixes("Ctrl+w")
+  it("getChordSuffixes returns Ctrl+v-prefix hints", () => {
+    const suffixes = getChordSuffixes("Ctrl+v")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual(["+", "-", "<", "=", ">", "H", "J", "K", "L", "Tab", "h", "j", "k", "l", "o", "p", "q", "s", "v", "z"])
+    expect(keys).toEqual([",", "-", "<", "=", ">", "H", "J", "K", "L", "N", "Tab", "X", "c", "d", "h", "i", "j", "k", "l", "m", "n", "o", "p", "s", "v", "w", "x", "z"])
   })
 
-  it("Ctrl+w Shift+Tab resolves to pane_focus_prev", () => {
+  it("v Shift+Tab resolves to pane_focus_prev", () => {
     const ctx = createContext()
-    expect(resolveChord("Ctrl+w", "Tab", { shift: true }, ctx)).toEqual({ commandId: "pane_focus_prev" })
+    expect(resolveChord("v", "Tab", { shift: true }, ctx)).toEqual({ commandId: "pane_focus_prev" })
   })
 
   it("getChordSuffixes returns empty for non-chord prefix", () => {

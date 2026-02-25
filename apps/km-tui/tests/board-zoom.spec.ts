@@ -362,8 +362,8 @@ describe("View Modes", () => {
     board.press("j")
     board.expect("#task2[data-cursor]").toExist()
 
-    // Switch view mode (v cycles view modes)
-    board.press("v")
+    // Switch view mode (v m cycles view modes)
+    board.press("v").press("m")
 
     // Cursor should still be on task2 (same logical node)
     // Note: x/y coordinates may differ because layouts vary by view mode

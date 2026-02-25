@@ -60,7 +60,7 @@ import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
 import { createBoardState } from "./board-types.ts"
 
-import { Board } from "./views/Board.tsx"
+import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
@@ -215,13 +215,13 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const registry = createCommandRegistry()
   registry.registerAll(allCommands)
 
-  // Render Board component with StoreContext.Provider for L3 mode
-  // singlePassLayout matches production's create-app.tsx rendering pipeline
+  // Render BoardApp component with StoreContext.Provider for L3 mode.
+  // BoardApp handles workspace pane layout (including detail pane rendering)
+  // and reads dimensions from the store via useApp() selectors.
+  // singlePassLayout matches production's create-app.tsx rendering pipeline.
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
-  const boardElement = React.createElement(Board, {
+  const boardAppElement = React.createElement(BoardApp, {
     initialViewMode: viewMode,
-    dimensions: { columns, rows },
-    onExit: () => {},
     toastQueue,
     navigator,
   })
@@ -234,7 +234,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         { value: focusManager },
         React.createElement(RepoProvider, {
           repo,
-          children: boardElement,
+          children: boardAppElement,
         }),
       ),
     ),
