@@ -56,6 +56,8 @@ export interface InlineRenderContext {
   stripKnownMentions?: boolean
   /** Resolve wiki link targets to display titles */
   resolveWikiLink?: (target: string) => string | null
+  /** Resolve block ref IDs to display titles */
+  resolveBlockRef?: (id: string) => string | null
   /** Strip all foreground colors (for selected/highlighted items) */
   noColor?: boolean
   /** Hide inline fields from display */
@@ -106,7 +108,7 @@ function getNodeTextLength(node: InlineNode): number {
     case "field":
       return 0 // metadata, not display text
     case "blockref":
-      return 0 // metadata, not display text
+      return 0 // resolved display varies; decorations across blockrefs are rare
     case "bold":
     case "italic":
     case "strikethrough":
@@ -213,10 +215,18 @@ export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
 
 export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  const display = node.alias ?? ctx.resolveWikiLink?.(node.target) ?? node.target
+  const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
+  if (resolved) {
+    return (
+      <Text color={ctx.noColor ? undefined : "green"} underline>
+        {resolved}
+      </Text>
+    )
+  }
+  // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
   return (
-    <Text color={ctx.noColor ? undefined : "green"} underline>
-      {display}
+    <Text dim>
+      {node.target}
     </Text>
   )
 }
@@ -287,8 +297,17 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   )
 }
 
-export function InlineBlockRef({ node: _node }: { node: BlockRefNode }): null {
-  // Block refs are metadata-only; not rendered in display
+export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement | null {
+  const ctx = useInlineRenderContext()
+  const resolved = ctx.resolveBlockRef?.(node.id)
+  if (resolved) {
+    return (
+      <Text color={ctx.noColor ? undefined : "green"} underline>
+        {resolved}
+      </Text>
+    )
+  }
+  // Unresolved block refs are hidden (metadata-only)
   return null
 }
 

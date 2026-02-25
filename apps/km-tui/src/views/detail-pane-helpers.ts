@@ -189,8 +189,13 @@ function stripKnownFromNodes(nodes: InlineNode[]): string {
         case "tag":
         case "project":
         case "field":
-        case "blockref":
           return ""
+        case "blockref":
+          // Preserve blockrefs — they may resolve to titles in InlineText
+          return ` ^${node.id}`
+        case "wikilink":
+          // Preserve wikilinks — they may resolve to titles in InlineText
+          return node.alias ? `[[${node.target}|${node.alias}]]` : `[[${node.target}]]`
         case "bold":
         case "italic":
         case "strikethrough":

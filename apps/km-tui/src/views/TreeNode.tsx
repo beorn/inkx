@@ -222,7 +222,7 @@ function TreeNodeImpl({
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
 
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery, jobRunner, undoHandle, taskStatusFilter } =
+  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery, jobRunner, undoHandle, taskStatusFilter, boardFocused } =
     useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
@@ -286,7 +286,7 @@ function TreeNodeImpl({
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
-    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
+    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing, boardFocused)
     if (dim) s.shouldDim = true
     return s
   }, [
@@ -303,6 +303,7 @@ function TreeNodeImpl({
     depth,
     isInlineEditing,
     dim,
+    boardFocused,
   ])
 
   // Search match highlighting: white bg / black fg (current match brighter)
@@ -549,11 +550,21 @@ function TreeNodeImpl({
       wikiLinkCache.set(target, result)
       return result
     }
+    const resolveBlockRef = (id: string): string | null => {
+      if (!id?.trim()) return null
+      const cached = wikiLinkCache.get(`^${id}`)
+      if (cached !== undefined) return cached
+      const resolved = repo.getNode(id)
+      const result = resolved ? getNodeDisplayName(repo, resolved) : null
+      wikiLinkCache.set(`^${id}`, result)
+      return result
+    }
     return {
       excludeSigils: excludeSet,
       sigilColors,
       resolveSigilColor,
       resolveWikiLink,
+      resolveBlockRef,
       hideFields: true,
     }
   }, [excludedSigils, sigilColors, resolveSigilColor, repo])
@@ -675,14 +686,16 @@ function TreeNodeImpl({
     const visible: typeof children = []
     let totalPassing = 0
     for (const child of children) {
-      const status = child.task_status ?? getStatusForMarker(child.task_marker)
+      // For embed children, resolve to source node to get task_status
+      const filterNode = child.embed_source ? (repo.getNode(child.embed_source) ?? child) : child
+      const status = filterNode.task_status ?? getStatusForMarker(filterNode.task_marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++
         if (visible.length < maxChildren) visible.push(child)
       }
     }
     return { visibleChildren: visible, hiddenCount: totalPassing - visible.length }
-  }, [children, taskStatusFilter, maxChildren])
+  }, [children, taskStatusFilter, maxChildren, repo])
 
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
@@ -1266,6 +1279,16 @@ const FoldedChildRow = React.memo(
             const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
             const result = resolved ? getNodeDisplayName(repo, resolved) : null
             wikiLinkCache.set(target, result)
+            return result
+          },
+          resolveBlockRef: (id: string): string | null => {
+            if (!id?.trim()) return null
+            const cacheKey = `^${id}`
+            const cached = wikiLinkCache.get(cacheKey)
+            if (cached !== undefined) return cached
+            const resolved = repo.getNode(id)
+            const result = resolved ? getNodeDisplayName(repo, resolved) : null
+            wikiLinkCache.set(cacheKey, result)
             return result
           },
           hideFields: true,

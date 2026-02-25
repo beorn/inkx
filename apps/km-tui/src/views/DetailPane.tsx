@@ -12,8 +12,9 @@ import type { KNode } from "@km/core"
 import { decomposeDatetime, isOutline, isItem } from "@km/core"
 import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
+import { usePaneLabel } from "../pane-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { InlineText, getNodeIcon, getStatusIcon, hyperlink, prettifyUrl } from "../text/index.ts"
+import { InlineText, getNodeIcon, getStatusIcon, getColumnHeaderIcon, hyperlink, prettifyUrl } from "../text/index.ts"
 import {
   formatDate,
   getStatusDisplay,
@@ -24,7 +25,8 @@ import {
 } from "./detail-pane-helpers.ts"
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
-import { computeDetailItems, computeFolderDetailItems, type DetailItem } from "./detail-pane-items.ts"
+import { PaneBar } from "./PaneBar.tsx"
+import { computeFolderDetailItems } from "./detail-pane-items.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -83,6 +85,31 @@ interface InternalDetailPaneProps {
   detailCursorNodeId: string | null
 }
 
+/** Top bar for detail panes — icon + title, styled like ColumnHeader via PaneBar */
+function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean }): React.ReactElement {
+  const repo = useRepo()
+  const paneLabel = usePaneLabel()
+  const title = getNodeDisplayName(repo, node)
+
+  // Pick icon: task status icon for tasks, column header icon for outlines
+  const icon = node.task_status != null
+    ? getNodeIcon(node.task_status, undefined, true)
+    : getColumnHeaderIcon(node, "regular", false)
+
+  return (
+    <PaneBar
+      isFocused={isFocused}
+      paneLabel={paneLabel}
+      left={
+        <Text dimColor={!isFocused} bold={isFocused} wrap="truncate">
+          {" "}<Text color={isFocused ? "black" : icon.color}>{icon.char}</Text>{" "}
+          <InlineText text={title} />
+        </Text>
+      }
+    />
+  )
+}
+
 function FolderDetailPane({
   node,
   width,
@@ -93,7 +120,6 @@ function FolderDetailPane({
   const repo = useRepo()
   // No outer border — WorkspaceView provides pane chrome
   const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
-  const title = getNodeDisplayName(repo, node)
   const children = repo.getChildren(node.id)
 
   // Compute navigable items for cursor tracking
@@ -120,35 +146,24 @@ function FolderDetailPane({
   const hasMore = entries.length >= maxEntries
 
   return (
-    <Box flexDirection="column" flexGrow={1} width={width} height={height} backgroundColor="black">
+    <Box flexDirection="column" flexGrow={1} width={width} height={height}>
+      <DetailPaneTopBar node={node} isFocused={detailFocused} />
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Separator below pane label */}
-        <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
-
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
-          {/* Title */}
-          <Text bold wrap="wrap">
-            <InlineText text={title} />
+          {/* Item count */}
+          <Text>
+            {totalChildren} item{totalChildren !== 1 ? "s" : ""}
           </Text>
-
-          {/* Counts */}
-          <Box>
-            <Text>
-              <Text dimColor>Contents: </Text>
-              <Text>
-                {totalChildren} item{totalChildren !== 1 ? "s" : ""}
-              </Text>
-            </Text>
-          </Box>
+          <Text> </Text>
 
           {/* Outline — uses NodeLineView for consistent icon + title rendering */}
-          <Box flexDirection="column" marginTop={1}>
+          <Box flexDirection="column">
             {entries.map((entry, i) => {
               // Cursor highlight: match by nodeId for depth-0 (navigable) entries
               const isCursored = detailFocused && entry.depth === 0 && entry.node.id === detailCursorNodeId
               return (
-                <Box key={`${entry.node.id}-${i}`} backgroundColor={isCursored ? "#333333" : undefined}>
+                <Box key={`${entry.node.id}-${i}`} inverse={isCursored || undefined}>
                   <NodeLineView
                     node={entry.node}
                     displayName={getNodeDisplayName(repo, entry.node)}
@@ -201,9 +216,15 @@ function TaskDetailPane({
     return null
   }
 
+  // Block ref resolver: resolves ^id to the node's display title
+  const resolveBlockRef = (id: string): string | null => {
+    const resolved = repo.resolveNode(id) ?? repo.getNode(id)
+    if (resolved) return getNodeDisplayName(repo, resolved)
+    return null
+  }
+
   // No outer border — WorkspaceView provides pane chrome
   const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
-  const title = getNodeDisplayName(repo, node)
 
   const statusInfo = getStatusDisplay(node.task_status)
   const isDone = node.task_status === "done" || node.task_status === "dropped"
@@ -261,23 +282,17 @@ function TaskDetailPane({
   const maxBacklinks = 5
 
   return (
-    <Box flexDirection="column" flexGrow={1} width={width} height={height} backgroundColor="black">
+    <Box flexDirection="column" flexGrow={1} width={width} height={height}>
+      <DetailPaneTopBar node={node} isFocused={detailFocused} />
       <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
-        {/* Separator below pane label */}
-        <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
-
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
-          {/* Title + breadcrumb */}
+          {/* Breadcrumb path */}
           {projectPath.length > 0 && (
             <Text dimColor wrap="truncate">
               {projectPath.join(" / ")}
             </Text>
           )}
-          <Text bold wrap="wrap">
-            {node.task_status && <Text>{getStatusIcon(node.task_status).char} </Text>}
-            <InlineText text={title} />
-          </Text>
 
           {/* Metadata fields — aligned key:value table */}
           <MetadataTable
@@ -290,8 +305,8 @@ function TaskDetailPane({
             refs={refs}
           />
 
-          {/* Content area — separator then body + children */}
-          <Text dimColor>{"─".repeat(contentWidth)}</Text>
+          {/* Content area */}
+          <Text> </Text>
 
           {bodyChildren.length === 0 && structuralChildren.length === 0 && <Text dimColor>(empty)</Text>}
 
@@ -318,7 +333,7 @@ function TaskDetailPane({
             return (
               <React.Fragment key={`${child.id}-${i}`}>
                 {needsSpace && <Text> </Text>}
-                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} resolveWikiLink={resolveWikiLink} />
+                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} resolveWikiLink={resolveWikiLink} resolveBlockRef={resolveBlockRef} />
               </React.Fragment>
             )
           })}
@@ -349,12 +364,12 @@ function TaskDetailPane({
                 const backlinkCursorId = `__backlink__${bl.id}`
                 const isCursored = detailFocused && detailCursorNodeId === backlinkCursorId
                 return (
-                  <Box key={bl.id} backgroundColor={isCursored ? "#333333" : undefined}>
+                  <Box key={bl.id} inverse={isCursored || undefined}>
                     <Text wrap="truncate">
                       {"  "}
                       <Text dimColor>{breadcrumb}</Text>
                       <Text bold>
-                        <InlineText text={blTitle} context={{ resolveWikiLink }} />
+                        <InlineText text={blTitle} context={{ resolveWikiLink, resolveBlockRef }} />
                       </Text>
                     </Text>
                   </Box>
@@ -669,7 +684,7 @@ function DetailSubitems({
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const isCursored = item.id === cursorNodeId
-        const cursorBg = isCursored ? "#333333" : undefined
+        const cursorInverse = isCursored || undefined
         // Collapsed sections render muted with just the title + count
         // Comments and Attachments expand by default in detail pane (collapse only affects board view)
         const sectionName = getNodeDisplayName(repo, displayItem)
@@ -682,7 +697,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
+              <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -704,7 +719,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
+              <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -745,7 +760,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg}>
+            <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}
@@ -811,13 +826,15 @@ function OutlineTree({
   return (
     <>
       {items.map((item, idx) => {
-        // Collapsed sections are hidden from the outline tree
-        if (item.rules?.collapse === true) return null
         // Context-dependent rendering: resolve embed targets for display
         const displayItem = resolveEmbed(repo, item)
+        const title = getNodeDisplayName(repo, displayItem)
+        // Collapsed sections are hidden from the outline tree
+        // (but Comments and Attachments expand by default in detail pane)
+        const expandInOutline = /^(Comments|Attachments)$/i.test(title)
+        if (item.rules?.collapse === true && !expandInOutline) return null
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
-        const title = getNodeDisplayName(repo, displayItem)
         const resolvedId = displayItem !== item ? displayItem.id : item.id
         const embedTarget = item.embed_source
         const childrenSourceId = embedTarget && repo.getNode(embedTarget) ? embedTarget : resolvedId
@@ -882,12 +899,14 @@ function BodyBlock({
   content,
   innerWidth,
   resolveWikiLink,
+  resolveBlockRef,
 }: {
   content: string
   innerWidth: number
   resolveWikiLink?: (target: string) => string | null
+  resolveBlockRef?: (id: string) => string | null
 }): React.ReactElement {
-  const richOpts = resolveWikiLink ? { resolveWikiLink } : undefined
+  const richOpts = resolveWikiLink || resolveBlockRef ? { resolveWikiLink, resolveBlockRef } : undefined
   const lines = content.split("\n")
   return (
     <Box flexDirection="column" width={innerWidth}>

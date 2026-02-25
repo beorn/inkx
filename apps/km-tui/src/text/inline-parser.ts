@@ -72,9 +72,14 @@ function phrasingToInline(nodes: PhrasingContent[]): InlineNode[] {
         break
       case "kmWikilink": {
         const wl = node as unknown as KmWikilink
+        // Build the full target: target + optional section + optional blockRef
+        // e.g., [[target#section^blockRef]], [[^blockRef]], [[target]]
+        let fullTarget = wl.target
+        if (wl.section) fullTarget += `#${wl.section}`
+        if (wl.blockRef) fullTarget += (fullTarget ? "^" : "^") + wl.blockRef
         result.push({
           type: "wikilink",
-          target: wl.target,
+          target: fullTarget,
           alias: wl.alias,
           isEmbed: wl.embedded,
         })
@@ -253,6 +258,11 @@ export function parseInlineText(text: string): InlineNode[] {
     if (i > 0) result.push({ type: "plain", text: "\n" })
     if (child?.type === "paragraph" && "children" in child) {
       result.push(...phrasingToInline(child.children))
+      // Re-emit block ID stripped by kmBlockIdTransform as a blockref node
+      const blockId = (child.data as Record<string, unknown> | undefined)?.blockId
+      if (typeof blockId === "string") {
+        result.push({ type: "blockref", id: blockId })
+      }
     } else {
       // Fallback for non-paragraph blocks (headings, code blocks, etc.)
       const start = child?.position?.start?.offset ?? 0
@@ -289,8 +299,11 @@ export function inlineNodesToPlainText(nodes: InlineNode[]): string {
           return node.code
         case "link":
           return node.text
-        case "wikilink":
-          return node.alias ?? node.target
+        case "wikilink": {
+          const display = node.alias ?? node.target
+          // Pure blockref targets (^numericId) are metadata, not display text
+          return /^\^\d+$/.test(display) ? "" : display
+        }
         case "mention":
           return `@${node.name}`
         case "tag":
