@@ -31,11 +31,20 @@ const log = createLogger("km:tui:columns")
  *  shown only in the detail pane, never as cards in columns.
  *  Also supports legacy detailOnly data flag and well-known Asana metadata sections. */
 const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
+
+/** Parse collapse rules from a node, preferring pre-parsed rules, then content (which
+ *  may contain unparsed km.collapse:: true from imports), then title as fallback. */
+function getCollapseRules(node: KNode): { collapse?: boolean } {
+  if (node.rules) return node.rules
+  // Prefer content over title: content may contain unparsed "km.collapse:: true"
+  // while title is the clean display text (e.g., "Attachments" without the rule).
+  return parseHeadingRules(node.content || node.title || "").rules
+}
+
 export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
-  const rules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
-  return rules.collapse === true
+  return getCollapseRules(node).collapse === true
 }
 
 /** Like isCollapsedChild but only returns true for detail-only nodes
@@ -46,7 +55,7 @@ export function isDetailOnly(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
   // Check content for well-known section names (Asana imports have the name in content, not node.name)
-  const rules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
+  const rules = getCollapseRules(node)
   if (rules.collapse === true) {
     // Only hide if it's a well-known metadata section (by name extracted from content/title)
     const rawName = (node.name || node.title || node.content || "").toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
@@ -460,8 +469,9 @@ function kNodeToColumnView(
   wipLimits: Map<string, number>,
   _foldDepths: Map<string, number>,
 ): ColumnView {
-  // Use node.rules if available, otherwise parse from title (fall back to content for imported nodes)
-  const rules: SectionRules = node.rules ?? parseHeadingRules(node.title || node.content || "").rules
+  // Use node.rules if available, otherwise parse from content (which may contain
+  // unparsed rules like "km.collapse:: true"), falling back to title.
+  const rules: SectionRules = node.rules ?? parseHeadingRules(node.content || node.title || "").rules
 
   // Look up WIP limit
   const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")

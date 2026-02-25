@@ -30,6 +30,7 @@ import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
+import { isCollapsedChild } from "../hooks/use-columns.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -177,7 +178,10 @@ const Card = React.memo(
     const repo = useRepo()
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const children = useMemo(() => repo.getChildren(card.id), [repo, card.id])
+    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id])
+    // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
+    // only shown in the detail pane and must not inflate the overflow count.
+    const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
     const childCount = childCountProp ?? children.length
     const directHidden = Math.max(0, childCount - maxChildren)
     const { hasOverflow, hiddenCount } = useMemo(() => {

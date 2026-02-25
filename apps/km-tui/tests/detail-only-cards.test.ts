@@ -350,6 +350,201 @@ describe("structural children with km.collapse:: true hidden from card view", ()
     expect(cardIds).not.toContain("att-123-1")
     expect(cardIds).not.toContain("comment-123-1")
   })
+
+  test("Asana metadata sections at column level (zoomed into task) are hidden by isDetailOnly", () => {
+    // Bug: km-tui.hide-attachments
+    // When zoomed into a task, Attachments/Comments/Activity become column-level
+    // nodes (direct children of the zoom root). These go through isDetailOnly()
+    // at the column derivation level. The function must correctly identify them
+    // as detail-only even when nodes lack pre-parsed name/title/rules fields.
+    const ts = Date.now()
+    const importedNodes: KNode[] = [
+      // Task node (zoom root)
+      {
+        id: "task-root", type: "h", item: true, fstype: "folder",
+        data: { name: "task-root" },
+        parent_id: null, parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Real subtask column
+      {
+        id: "subtask-col", type: "h", item: true, fstype: "folder",
+        data: { name: "subtask-col" },
+        parent_id: "task-root", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "sub-1", type: "p", item: true,
+        content: "A real subtask",
+        parent_id: "subtask-col", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Attachments heading at column level — Asana import style (content only, no name/title/rules)
+      {
+        id: "attachments-456", type: "h", item: true,
+        content: "Attachments km.collapse:: true",
+        data: {},
+        parent_id: "task-root", parent_idx: 1, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "att-456-1", type: "p", item: true,
+        content: "![photo.jpg](attachments/photo.jpg)",
+        parent_id: "attachments-456", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Comments heading at column level
+      {
+        id: "comments-456", type: "h", item: true,
+        content: "Comments km.collapse:: true",
+        data: {},
+        parent_id: "task-root", parent_idx: 2, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "comment-456-1", type: "p", item: true,
+        content: "2024-03-01 @bob: Looks good",
+        parent_id: "comments-456", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Activity heading at column level
+      {
+        id: "activity-456", type: "h", item: true,
+        content: "Activity km.collapse:: true",
+        data: {},
+        parent_id: "task-root", parent_idx: 3, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "act-456-1", type: "p", item: true,
+        content: "2024-03-01 Task created",
+        parent_id: "activity-456", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+    ]
+
+    const repo = createFakeRepo({ nodes: importedNodes })
+    const columns = deriveColumnsFromRepo(repo, "task-root", new Map())
+
+    // Should have exactly 1 column (subtask-col) — metadata sections should be hidden
+    expect(columns).toHaveLength(1)
+    expect(columns[0]!.node.id).toBe("subtask-col")
+
+    // Verify the attachment/comment/activity columns are NOT present
+    const colIds = columns.map((c) => c.node.id)
+    expect(colIds).not.toContain("attachments-456")
+    expect(colIds).not.toContain("comments-456")
+    expect(colIds).not.toContain("activity-456")
+  })
+
+  test("Asana metadata sections at column level after markdown round-trip (with name/title/rules)", () => {
+    // After markdown sync, nodes have name, title, and rules set by the parser.
+    // Verify isDetailOnly works correctly with fully-parsed nodes too.
+    const ts = Date.now()
+    const parsedNodes: KNode[] = [
+      {
+        id: "task-root", type: "h", item: true, fstype: "folder",
+        data: { name: "task-root" },
+        parent_id: null, parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "subtask-col", type: "h", item: true, fstype: "mdsection",
+        name: "subtasks",
+        title: "Subtasks",
+        content: "Subtasks",
+        data: {},
+        parent_id: "task-root", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "sub-1", type: "p", item: true,
+        content: "A subtask",
+        parent_id: "subtask-col", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // After round-trip: parser sets name="attachments", title="Attachments", rules={collapse:true}
+      {
+        id: "attachments-sec", type: "h", item: true, fstype: "mdsection",
+        name: "attachments",
+        title: "Attachments",
+        content: "Attachments",
+        rules: { collapse: true },
+        data: { rules: { collapse: true }, title: "Attachments" },
+        parent_id: "task-root", parent_idx: 1, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "att-1", type: "p", item: true,
+        content: "[doc.pdf](attachments/doc.pdf)",
+        parent_id: "attachments-sec", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+    ]
+
+    const repo = createFakeRepo({ nodes: parsedNodes })
+    const columns = deriveColumnsFromRepo(repo, "task-root", new Map())
+
+    expect(columns).toHaveLength(1)
+    expect(columns[0]!.node.id).toBe("subtask-col")
+
+    const colIds = columns.map((c) => c.node.id)
+    expect(colIds).not.toContain("attachments-sec")
+  })
+
+  test("isCollapsedChild handles node with title but collapse rule only in content", () => {
+    // Edge case: a node might have title="Attachments" (clean) set separately
+    // but the collapse rule only in content. If isCollapsedChild uses
+    // node.title || node.content, the title takes precedence and the rule is missed.
+    const ts = Date.now()
+    const edgeCaseNodes: KNode[] = [
+      {
+        id: "board", type: "h", item: true, fstype: "folder",
+        data: { name: "board" },
+        parent_id: null, parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "col", type: "h", item: true, fstype: "folder",
+        data: { name: "col" },
+        parent_id: "board", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "task-1", type: "p", item: true,
+        content: "Real task",
+        parent_id: "col", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      // Node with title set to clean value but collapse rule in content only
+      // This could happen if some code path sets title without parsing rules
+      {
+        id: "attachments-edge", type: "h", item: true,
+        title: "Attachments",
+        content: "Attachments km.collapse:: true",
+        data: {},
+        parent_id: "col", parent_idx: 1, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+      {
+        id: "att-edge-1", type: "p", item: true,
+        content: "[file.zip](attachments/file.zip)",
+        parent_id: "attachments-edge", parent_idx: 0, embed_source: null,
+        created_at: ts, updated_at: ts, version: "v1",
+      },
+    ]
+
+    const repo = createFakeRepo({ nodes: edgeCaseNodes })
+    const columns = deriveColumnsFromRepo(repo, "board", new Map())
+
+    expect(columns).toHaveLength(1)
+    const cardIds = columns[0]!.cardNodes.map((c) => c.id)
+
+    expect(cardIds).toContain("task-1")
+    // The attachments heading should be hidden even though title is clean
+    expect(cardIds).not.toContain("attachments-edge")
+    expect(cardIds).not.toContain("att-edge-1")
+  })
 })
 
 describe("collapsed children hidden inside cards (sub-items)", () => {
