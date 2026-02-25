@@ -714,8 +714,8 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
     }
 
     if (target.kind === "column") {
-      // Column header or empty space click → select the column (move cursor to column level)
-      actionCtx.dispatchBoard({ type: "SELECT", nodeId: target.columnNodeId })
+      // Column background / empty space click → deselect all, cursor to board root
+      actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
       lastClick = { time: now, x: mouse.x, y: mouse.y }
       return
     }

@@ -2,9 +2,8 @@
  * Mouse Click Targeting Tests
  *
  * Tests that mouse clicks correctly target:
- * - Column headers → select the column (column-level cursor)
+ * - Column headers / empty space → deselect all (cursor to board root)
  * - Cards → select the card (card-level cursor)
- * - Empty space below cards → select the column
  * - Ctrl-click → toggle multi-selection
  */
 
@@ -16,8 +15,8 @@ import { testEnv, item } from "./helpers/board-test.ts"
 // =============================================================================
 
 describe("mouse click targeting", () => {
-  test("clicking a column header selects the column", () => {
-    const { board } = testEnv(
+  test("clicking a column header deselects all cards (cursor to board root)", () => {
+    const { board, store } = testEnv(
       () =>
         item.root(
           "board",
@@ -38,16 +37,10 @@ describe("mouse click targeting", () => {
     expect(col2Box).not.toBeNull()
 
     // Click on the column header area (row 0 of the column, which is the header)
-    // The column header is at the top of the column's bounding box
     board.click(col2Box!.x + 2, col2Box!.y)
 
-    // After clicking, cursor should be at column level on the second column
-    const cursor2 = board.q("[data-cursor]")
-    expect(cursor2.count()).toBeGreaterThan(0)
-    // data-card-index=-1 indicates column-level selection
-    expect(cursor2.getAttribute("data-card-index")).toBe("-1")
-    // It should be the second column
-    expect(cursor2.getAttribute("data-col-index")).toBe("1")
+    // After clicking column background, cursor should be on the board root (no card selected)
+    expect(store.getState().cursorNodeId).toBe(store.getState().rootId)
   })
 
   test("clicking a card selects that card", () => {
@@ -127,15 +120,15 @@ describe("mouse click targeting", () => {
     expect(cursorText).toContain("task-2")
   })
 
-  test("clicking first column header when cursor is on a card in that column", () => {
-    const { board } = testEnv(
+  test("clicking column header deselects card in same column", () => {
+    const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
       { columns: 80, rows: 24 },
     )
 
-    // Initially cursor should be on a card in the first column
     // Navigate to second card
     board.press("j")
+    expect(store.getState().cursorNodeId).not.toBe(store.getState().rootId)
 
     // Find the first column's header area
     const col1 = board.q("[data-col-index='0'][data-column]")
@@ -143,13 +136,10 @@ describe("mouse click targeting", () => {
     const col1Box = col1.boundingBox()
     expect(col1Box).not.toBeNull()
 
-    // Click on the column header (y=0 of the column box = header row)
+    // Click on the column header → deselects to board root
     board.click(col1Box!.x + 2, col1Box!.y)
 
-    // After clicking, cursor should be at column level (data-card-index=-1)
-    const cursor = board.q("[data-cursor]")
-    expect(cursor.count()).toBeGreaterThan(0)
-    expect(cursor.getAttribute("data-card-index")).toBe("-1")
-    expect(cursor.getAttribute("data-col-index")).toBe("0")
+    // Cursor should be on board root (no card selected)
+    expect(store.getState().cursorNodeId).toBe(store.getState().rootId)
   })
 })
