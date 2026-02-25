@@ -15,6 +15,7 @@ import type { LayoutNode, PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
+import { PaneBar } from "./PaneBar.tsx"
 
 export interface WorkspaceViewProps {
   layout: LayoutNode
@@ -102,10 +103,10 @@ export function WorkspaceView({
 }
 
 /**
- * PaneTitleBar — simple top bar for non-board panes (detail, empty).
+ * PaneTitleBar — top bar for non-board panes (detail, empty).
  *
- * Shows the pane type/label on the left and [N] indicator on the right.
- * Dimmed when unfocused.
+ * Uses shared PaneBar for consistent styling with board panes.
+ * Shows the pane type on the left and [N] indicator on the right.
  */
 function PaneTitleBar({
   label,
@@ -117,18 +118,15 @@ function PaneTitleBar({
   isFocused: boolean
 }): React.ReactElement {
   return (
-    <Box flexDirection="row" flexShrink={0}>
-      <Box flexGrow={1} overflow="hidden">
+    <PaneBar
+      isFocused={isFocused}
+      paneLabel={label ?? "?"}
+      left={
         <Text dimColor={!isFocused} bold={isFocused} wrap="truncate">
           {suffix || "Pane"}
         </Text>
-      </Box>
-      <Box flexShrink={0}>
-        <Text dimColor={!isFocused} bold={isFocused}>
-          [{label ?? "?"}]
-        </Text>
-      </Box>
-    </Box>
+      }
+    />
   )
 }
 

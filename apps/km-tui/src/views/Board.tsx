@@ -62,6 +62,7 @@ import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome } from "./WorkspaceChrome.tsx"
+import { PaneBar } from "./PaneBar.tsx"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -160,7 +161,6 @@ interface TopBarProps {
  */
 function PaneBoardTopBar({
   paneLabel,
-  pathContent,
   isBoardSelected,
   boardColor,
   viewMode,
@@ -169,7 +169,6 @@ function PaneBoardTopBar({
   selectedPathSegments,
 }: {
   paneLabel: string
-  pathContent: string
   isBoardSelected: boolean
   boardColor: string | undefined
   viewMode?: string
@@ -182,14 +181,11 @@ function PaneBoardTopBar({
   const isPaneFocused = paneId === focusedPaneId
 
   return (
-    <Box
-      id="top-bar"
-      flexShrink={0}
-      flexDirection="row"
-      backgroundColor={isPaneFocused ? (isBoardSelected ? "yellow" : "white") : undefined}
-    >
-      {/* Left: path segments */}
-      <Box flexGrow={1} overflow="hidden">
+    <PaneBar
+      isFocused={isPaneFocused}
+      backgroundColor={isBoardSelected ? "yellow" : undefined}
+      paneLabel={paneLabel}
+      left={
         <Text
           color={isPaneFocused ? (isBoardSelected ? "black" : "gray") : "gray"}
           dimColor={!isPaneFocused}
@@ -197,24 +193,22 @@ function PaneBoardTopBar({
         >
           {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
         </Text>
-      </Box>
-      {/* Right: view mode + filter + pane label */}
-      <Box flexShrink={0} flexDirection="row">
-        <Text dimColor={!isPaneFocused} id="view-mode">
-          {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-          {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
-        </Text>
-        {filterIndicator && (
-          <Text color={isPaneFocused ? "#4477aa" : "gray"} id="filter-indicator">
-            {" [F] "}
-            {filterIndicator}
+      }
+      right={
+        <>
+          <Text dimColor={!isPaneFocused} id="view-mode">
+            {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+            {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
           </Text>
-        )}
-        <Text dimColor={!isPaneFocused} bold={isPaneFocused}>
-          {" "}[{paneLabel}]
-        </Text>
-      </Box>
-    </Box>
+          {filterIndicator && (
+            <Text color={isPaneFocused ? "#4477aa" : "gray"} id="filter-indicator">
+              {" [F] "}
+              {filterIndicator}
+            </Text>
+          )}
+        </>
+      }
+    />
   )
 }
 
@@ -253,7 +247,6 @@ function BoardTopBar({
     return (
       <PaneBoardTopBar
         paneLabel={paneLabel}
-        pathContent={renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
         isBoardSelected={isBoardSelected}
         boardColor={boardColor}
         viewMode={viewMode}
@@ -264,29 +257,31 @@ function BoardTopBar({
     )
   }
 
-  // Single-pane mode: standard top bar with background color
+  // Single-pane mode: standard top bar with PaneBar
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={isBoardSelected ? "yellow" : "white"}>
-      {/* Left: path segments */}
-      <Box flexGrow={1} overflow="hidden">
+    <PaneBar
+      isFocused={true}
+      backgroundColor={isBoardSelected ? "yellow" : undefined}
+      left={
         <Text color={isBoardSelected ? "black" : "gray"} wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
         </Text>
-      </Box>
-      {/* Right: view mode + filter */}
-      <Box flexShrink={0} flexDirection="row">
-        <Text dimColor id="view-mode">
-          {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-          {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
-        </Text>
-        {filterIndicator && (
-          <Text color="#4477aa" id="filter-indicator">
-            {" [F] "}
-            {filterIndicator}
+      }
+      right={
+        <>
+          <Text dimColor id="view-mode">
+            {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+            {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
           </Text>
-        )}
-      </Box>
-    </Box>
+          {filterIndicator && (
+            <Text color="#4477aa" id="filter-indicator">
+              {" [F] "}
+              {filterIndicator}
+            </Text>
+          )}
+        </>
+      }
+    />
   )
 }
 
