@@ -59,6 +59,28 @@ describe("embed syntax leak", () => {
     expect(name).toContain("Organize into boxes")
   })
 
+  // ── Embed wikilink with alias ────────────────────────────────────────
+
+  test("getNodeDisplayName uses alias for ![[target|alias]]", () => {
+    const node: KNode = {
+      id: "alias-node",
+      type: "p",
+      item: true,
+      content: "Attach ![[photo.jpg|My Photo]] here",
+      embed_source: null,
+      parent_id: null,
+      parent_idx: 0,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const name = getNodeDisplayName(node)
+    expect(name).not.toContain("![[")
+    expect(name).toContain("My Photo")
+    expect(name).toContain("Attach")
+  })
+
   // ── TUI rendering tests ────────────────────────────────────────────────
 
   test("mixed text + embed wikilink does not show raw ![[ in card", () => {

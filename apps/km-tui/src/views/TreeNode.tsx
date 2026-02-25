@@ -967,10 +967,19 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
  * system via InlineRenderContext.hideFields. */
 function cleanContentForDisplay(content: string | undefined): string {
   if (!content) return ""
-  // Strip Asana-style "#@mention" tag syntax — the "#" is an orphan prefix
-  // that doesn't form a valid sigil with the following "@". Strip it before
-  // further processing so it doesn't leave trailing "#" characters.
-  return content.replace(/#@/g, "@")
+  return (
+    content
+      // Strip Asana-style "#@mention" tag syntax — the "#" is an orphan prefix
+      // that doesn't form a valid sigil with the following "@". Strip it before
+      // further processing so it doesn't leave trailing "#" characters.
+      .replace(/#@/g, "@")
+      // Strip inline embed wikilinks ![[target]] and ![[target|alias]] —
+      // replace with alias or target name so raw ![[  never leaks to display.
+      // The inline parser (InlineText) also handles this, but stripping here
+      // provides defense-in-depth for any code path that uses the returned
+      // string without going through InlineText (e.g., search, top bar, CLI).
+      .replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target: string, alias?: string) => alias ?? target)
+  )
 }
 
 /** Try to resolve an embed reference (block_id or filename) to a human-readable title.
