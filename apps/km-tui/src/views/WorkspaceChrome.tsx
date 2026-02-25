@@ -152,9 +152,7 @@ export function WorkspaceChrome({
   const activeToastQueue = toastQueue ?? storeToastQueue
 
   // Registered handlers from the focused Board connector
-  const findQueryHandler = useAppStore<BoardAppStore, ((query: string) => void) | null>(
-    (s) => s._findQueryHandler,
-  )
+  const findQueryHandler = useAppStore<BoardAppStore, ((query: string) => void) | null>((s) => s._findQueryHandler)
   const searchReplaceSearchHandler = useAppStore<BoardAppStore, ((query: string) => void) | null>(
     (s) => s._searchReplaceSearchHandler,
   )
@@ -210,7 +208,7 @@ export function WorkspaceChrome({
     <>
       {/* Toast stack - bottom-right corner (already position=absolute internally) */}
       <ToastStack toasts={activeToastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
-      {/* Bottom overlays — absolute, floating on top of content */}
+      {/* Absolute overlays — floating on top of content */}
       <Box
         position="absolute"
         height={termHeight}
@@ -223,17 +221,7 @@ export function WorkspaceChrome({
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
         {/* Bell indicator - hidden element for test detection */}
         {ui.bellState && <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>}
-        {/* Status counters — bottom-right */}
-        <Box flexDirection="row" width={termWidth - 2} justifyContent="flex-end" id="bottom-bar" data-status={ui.status?.level}>
-          <StatusCounters
-            ui={ui}
-            storageMode={repo.mode}
-            rootPath={rootPath}
-            nodeCount={repo.stats.nodeCount}
-            consoleStats={consoleStats}
-          />
-        </Box>
-        {/* Command box — bottom-left, stacked above status */}
+        {/* Command box — absolute overlay, appears above the bottom bar when active */}
         <CommandBox
           ui={ui}
           termWidth={termWidth}
@@ -332,11 +320,7 @@ export function WorkspaceChrome({
       )}
       {/* Delete confirmation dialog */}
       {ui.deleteConfirm && (
-        <DeleteConfirmDialogBox
-          termWidth={termWidth}
-          contentHeight={contentHeight}
-          deleteConfirm={ui.deleteConfirm}
-        />
+        <DeleteConfirmDialogBox termWidth={termWidth} contentHeight={contentHeight} deleteConfirm={ui.deleteConfirm} />
       )}
       {/* Date prompt dialog */}
       {ui.datePrompt && (
@@ -397,5 +381,39 @@ export function WorkspaceChrome({
       {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} scrollOffset={ui.helpScrollOffset} />}
       {/* Console now uses screen switching (pause/resume) instead of overlay */}
     </>
+  )
+}
+
+// =============================================================================
+// WorkspaceBottomBar — real layout element, takes 1 row at bottom of workspace
+// =============================================================================
+
+export interface WorkspaceBottomBarProps {
+  consoleStats?: { total: number; errors: number; warnings: number }
+}
+
+export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
+  const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
+  const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
+  const repo = useRepo()
+
+  return (
+    <Box
+      flexDirection="row"
+      flexShrink={0}
+      height={1}
+      justifyContent="flex-end"
+      paddingX={1}
+      id="bottom-bar"
+      data-status={ui.status?.level}
+    >
+      <StatusCounters
+        ui={ui}
+        storageMode={repo.mode}
+        rootPath={rootPath}
+        nodeCount={repo.stats.nodeCount}
+        consoleStats={consoleStats}
+      />
+    </Box>
   )
 }

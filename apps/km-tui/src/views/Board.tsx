@@ -62,7 +62,7 @@ import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } 
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
-import { WorkspaceChrome } from "./WorkspaceChrome.tsx"
+import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
 import { PaneBar } from "./PaneBar.tsx"
 import {
   createFileDropHandler,
@@ -991,11 +991,14 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     />
   )
 
+  const bottomBar = <WorkspaceBottomBar consoleStats={consoleStats} />
+
   // Single pane (common case) — render Board directly, no wrapper overhead
   if (workspace.panes.size <= 1) {
     return (
       <Box flexDirection="column" height={storeDimensions.rows}>
         {renderPane("main")}
+        {bottomBar}
         {chrome}
       </Box>
     )
@@ -1012,6 +1015,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         renderDetailPane={renderDetailPane}
         onPaneClick={focusPaneById}
       />
+      {bottomBar}
       {chrome}
     </Box>
   )
