@@ -17,14 +17,13 @@ import { runGenerator } from "@km/core"
 import { createBoardDriver } from "../src/driver.ts"
 import { item } from "./helpers/board-test.ts"
 
-// Enable both buffer-level and ANSI output verification
+// Enable buffer-level + ANSI output verification.
+// INKX_STRICT now includes INKX_STRICT_OUTPUT automatically.
 beforeEach(() => {
   process.env.INKX_STRICT = "1"
-  process.env.INKX_STRICT_OUTPUT = "1"
 })
 afterEach(() => {
   delete process.env.INKX_STRICT
-  delete process.env.INKX_STRICT_OUTPUT
 })
 
 describe("Incremental ANSI output verification", () => {

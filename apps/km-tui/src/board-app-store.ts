@@ -94,6 +94,12 @@ export interface BoardAppState {
   // --- Undo/redo ---
   undoStack: UndoStack
   undoHandle: UndoableRepoHandle
+
+  // --- Handler registration for workspace chrome ---
+  // Set by the focused Board connector so workspace-level components can call them.
+  _findQueryHandler: ((query: string) => void) | null
+  _searchReplaceSearchHandler: ((query: string) => void) | null
+  _searchReplaceReplaceHandler: ((query: string) => void) | null
 }
 
 /**
@@ -474,6 +480,11 @@ export function createBoardAppStoreState(
       // Undo/redo
       undoStack,
       undoHandle,
+
+      // Handler registration for workspace chrome (null until Board connector mounts)
+      _findQueryHandler: null,
+      _searchReplaceSearchHandler: null,
+      _searchReplaceReplaceHandler: null,
 
       // --- Board action dispatcher (inlined from boardReducer) ---
 

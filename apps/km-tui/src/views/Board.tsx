@@ -28,29 +28,19 @@ import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { DetailPane } from "./DetailPane.tsx"
-import { ProjectPicker } from "./ProjectPicker.tsx"
-import { HelpOverlay } from "./HelpOverlay.tsx"
-import { NewItemDialog } from "./NewItemDialog.tsx"
-import { DatePromptDialog } from "./DatePromptDialog.tsx"
-import { SearchDialog } from "./SearchDialog.tsx"
-import { FilterDialog, formatFilterIndicator } from "./FilterDialog.tsx"
-import { Omnibox } from "./Omnibox.tsx"
+import { formatFilterIndicator } from "./FilterDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
-import { ConfirmDialog } from "./shared-components.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
 import type { UIState, FilterProperties } from "../ui-reducer.ts"
 import { hasActivePropertyFilters } from "../ui-reducer.ts"
-import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "@beorn/logger"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
-import { dispatchCommandById } from "../board-app.ts"
-import { popDialogMode } from "../dialog-guard.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
@@ -64,7 +54,6 @@ const log = createLogger("km:tui:board")
 import {
   TOP_BAR_HEIGHT,
   BOTTOM_BAR_HEIGHT,
-  FILTER_PANEL_WIDTH,
   COLLAPSED_COL_WIDTH,
   computeColumnWidths,
 } from "./board-layout.ts"
@@ -72,10 +61,7 @@ import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } 
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
-import { CommandBox, StatusCounters } from "./CommandBox.tsx"
-import { ToastStack } from "./ToastStack.tsx"
-import { SyncPane } from "./SyncPane.tsx"
-import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
+import { WorkspaceChrome } from "./WorkspaceChrome.tsx"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -102,8 +88,6 @@ export { makeSelectionKey } from "../types.ts"
 export interface BoardCoreProps {
   /** Root node ID */
   rootId: string | null
-  /** Filesystem path to the board root (for display in bottom bar) */
-  rootPath: string | null
   /** Derived columns for rendering */
   columns: ColumnView[]
   /** Current column index (derived from cursorNodeId) */
@@ -116,31 +100,8 @@ export interface BoardCoreProps {
   derivedSelectionLevel: "board" | "column" | "card"
   /** Terminal dimensions */
   dimensions: { columns: number; rows: number }
-  /** Direct UI state setter */
-  setUI: BoardAppStore["setUI"]
-  /** Dialog handlers (types match ProjectPicker, NewItemDialog, and SearchDialog props) */
-  dialogHandlers: {
-    handleProjectSelect: (targetNode: KNode) => void
-    handleProjectCancel: () => void
-    handleNewItemCreate: (newNodeId: string) => void
-    handleNewItemCancel: () => void
-    handleSearchSelect: (targetNode: KNode) => void
-    handleSearchCancel: () => void
-    handleDatePromptConfirm: () => void
-    handleDatePromptCancel: () => void
-    handleOmniboxSelect: (result: import("./Omnibox.tsx").OmniboxResult) => void
-    handleOmniboxCancel: () => void
-  }
   /** Collapsed nodes (node IDs) */
   collapsedNodes: Set<string>
-  /** Move mode active (from board state) */
-  moveMode: boolean
-  /** Console stats for bottom bar indicator */
-  consoleStats?: { total: number; errors: number; warnings: number }
-  /** Toast queue instance (injected, not global). Optional for static render tests. */
-  toastQueue?: ToastQueue
-  /** Board dispatch (for cursor navigation from find bar) */
-  dispatchBoard?: BoardAppStore["dispatchBoard"]
 }
 
 // =============================================================================
@@ -369,26 +330,6 @@ function CursorAwareDetailPane(): React.ReactElement | null {
 }
 
 /**
- * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
- */
-function CursorAwareNewItemDialog({
-  onCreate,
-  onCancel,
-  width,
-  height,
-}: {
-  onCreate: (newNodeId: string) => void
-  onCancel: () => void
-  width: number
-  height: number
-}): React.ReactElement {
-  const cursorPos = useCursorNodePosition()
-  const repo = useRepo()
-  const cursorNode = cursorPos.cursorCardNodeId ? (repo.getNode(cursorPos.cursorCardNodeId) ?? null) : null
-  return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
-}
-
-/**
  * Pure rendering component - NO cursor subscription.
  * Uses derivedSelectionLevel prop (stable on j/k).
  * TopBar, DetailPane, and NewItemDialog subscribe independently.
@@ -396,23 +337,15 @@ function CursorAwareNewItemDialog({
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
 export function BoardCore({
   rootId,
-  rootPath,
   columns,
   colIndex,
   cardIndex,
   ui,
   derivedSelectionLevel,
   dimensions,
-  setUI,
-  dialogHandlers,
   collapsedNodes,
-  moveMode,
-  consoleStats,
-  toastQueue,
-  dispatchBoard,
 }: BoardCoreProps): React.ReactElement {
   useComponentTiming(`BoardCore (${columns.length} columns)`)
-  const repo = useRepo()
 
   // Use actual pane dimensions from parent container (critical for multi-pane splits).
   // Falls back to store dimensions on first render when contentRect is still zero.
@@ -423,13 +356,10 @@ export function BoardCore({
   const isBoardSelected = derivedSelectionLevel === "board"
   const paneLabel = usePaneLabel()
 
-  // Calculate content area height - space between top and bottom bars
-  // Multi-pane mode: no spacer line below top bar (TOP_BAR_HEIGHT includes the spacer)
-  // BOTTOM_BAR_HEIGHT = 0 (all bottom elements float as absolute overlays).
-  const SYNC_PANE_HEIGHT = 6
+  // Calculate content area height - space between top bar and bottom of pane.
+  // Bottom bar, sync pane, toasts, and dialogs are now rendered at workspace level.
   const topBarHeight = paneLabel ? 1 : TOP_BAR_HEIGHT
-  const contentHeight =
-    termHeight - topBarHeight - BOTTOM_BAR_HEIGHT - (ui.showSyncPane ? SYNC_PANE_HEIGHT : 0)
+  const contentHeight = termHeight - topBarHeight - BOTTOM_BAR_HEIGHT
 
   // ErrorBoundary resetKey — changes when board navigation state changes.
   // This ensures ErrorBoundaries auto-recover after transient render errors
@@ -443,103 +373,6 @@ export function BoardCore({
     // Intentionally silent: logging here triggers console output which fails tests.
     // The resetKey mechanism auto-recovers, and DEBUG_LOG captures errors via React's own logging.
   }, [])
-
-  // Local find: debounced query change — match computation is expensive on large boards.
-  // EditContext handles cursor display immediately; this only delays search highlighting.
-  const findTimerRef = useRef<ReturnType<typeof setTimeout>>()
-  const columnsRef = useRef(columns)
-  columnsRef.current = columns
-  const handleFindQueryChange = useCallback(
-    (query: string) => {
-      // Update query text immediately; preserve previous match state to avoid flicker
-      setUI((prev) => ({
-        localSearch: {
-          query,
-          isInputActive: true,
-          matchIndex: 0,
-          matchCount: prev.localSearch?.matchCount ?? 0,
-          matchNodeIds: prev.localSearch?.matchNodeIds ?? [],
-        },
-      }))
-      // Debounce the expensive match computation (skip in tests)
-      clearTimeout(findTimerRef.current)
-      const computeMatches = () => {
-        const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
-        if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
-          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
-        }
-        setUI({
-          localSearch: {
-            query,
-            isInputActive: true,
-            matchIndex: 0,
-            matchCount: matchNodeIds.length,
-            matchNodeIds,
-          },
-        })
-      }
-      // @ts-expect-error - React internal flag set by inkx test renderer
-      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
-        computeMatches()
-      } else {
-        findTimerRef.current = setTimeout(computeMatches, 200)
-      }
-    },
-    [setUI, dispatchBoard],
-  )
-
-  // Search & replace: debounced search query change — regex compilation + full text matching
-  const searchReplaceRef = useRef(ui.searchReplace)
-  searchReplaceRef.current = ui.searchReplace
-  const srTimerRef = useRef<ReturnType<typeof setTimeout>>()
-  const handleSearchReplaceSearchChange = useCallback(
-    (searchQuery: string) => {
-      const sr = searchReplaceRef.current
-      if (!sr) return
-
-      // Update query text immediately; preserve previous match state to avoid flicker
-      setUI({ searchReplace: { ...sr, searchQuery } })
-
-      // Debounce the expensive match computation (skip in tests)
-      clearTimeout(srTimerRef.current)
-      const computeMatches = () => {
-        const latestSr = searchReplaceRef.current
-        if (!latestSr) return
-        const matchNodeIds = searchReplaceMatchingNodeIds(columnsRef.current, repo, searchQuery, latestSr.useRegex)
-        if (matchNodeIds.length > 0 && matchNodeIds[0] && dispatchBoard) {
-          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
-        }
-        setUI({
-          searchReplace: {
-            ...latestSr,
-            searchQuery,
-            matchIndex: 0,
-            matchCount: matchNodeIds.length,
-            matchNodeIds,
-          },
-        })
-      }
-      // @ts-expect-error - React internal flag set by inkx test renderer
-      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
-        computeMatches()
-      } else {
-        srTimerRef.current = setTimeout(computeMatches, 200)
-      }
-    },
-    [setUI, dispatchBoard, repo],
-  )
-
-  // Search & replace: replace query change callback (just stores the value)
-  const handleSearchReplaceReplaceChange = useCallback(
-    (replaceQuery: string) => {
-      const sr = searchReplaceRef.current
-      if (!sr) return
-      setUI({
-        searchReplace: { ...sr, replaceQuery },
-      })
-    },
-    [setUI],
-  )
 
   // Column width calculation — uniform expanded width with space reserved for separators
   const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
@@ -642,187 +475,6 @@ export function BoardCore({
               </ErrorBoundary>
             )}
           </Box>
-          {/* Project picker modal */}
-          {ui.showProjectPicker && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={80}
-              topFraction={1 / 2}
-              data-dialog="project-picker"
-            >
-              <ProjectPicker
-                onSelect={dialogHandlers.handleProjectSelect}
-                onCancel={dialogHandlers.handleProjectCancel}
-                width={Math.min(80, Math.floor(termWidth / 2))}
-                height={Math.floor(contentHeight / 2)}
-                recentProjectIds={ui.recentProjectIds}
-              />
-            </DialogBox>
-          )}
-          {/* New item dialog modal */}
-          {ui.showNewItemDialog && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={70}
-              topFraction={1 / 3}
-              data-dialog="new-item"
-            >
-              <CursorAwareNewItemDialog
-                onCreate={dialogHandlers.handleNewItemCreate}
-                onCancel={dialogHandlers.handleNewItemCancel}
-                width={Math.min(70, Math.floor(termWidth / 2))}
-                height={10}
-              />
-            </DialogBox>
-          )}
-          {/* Search dialog modal */}
-          {ui.showSearchDialog && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={90}
-              widthFraction={2 / 3}
-              topFraction={1 / 6}
-              data-dialog="search"
-            >
-              <SearchDialog
-                onSelect={dialogHandlers.handleSearchSelect}
-                onCancel={dialogHandlers.handleSearchCancel}
-                width={Math.min(90, Math.floor((termWidth * 2) / 3))}
-                maxHeight={Math.floor((contentHeight * 2) / 3)}
-                initialInput={ui.searchDialogInitialInput}
-                onConsumeInitialInput={() => setUI({ searchDialogInitialInput: "" })}
-                scope={ui.searchScope}
-                scopeNodeIds={ui.searchScopeNodeIds}
-              />
-            </DialogBox>
-          )}
-          {/* Filter panel — top-right corner */}
-          {ui.showFilterDialog && (
-            <Box
-              position="absolute"
-              marginLeft={Math.max(0, termWidth - FILTER_PANEL_WIDTH)}
-              marginTop={0}
-              data-dialog="filter"
-            >
-              <FilterDialog
-                filterProperties={ui.filterProperties}
-                filterText={ui.filterText}
-                viewMode={ui.viewMode}
-                iconStyle={ui.iconStyle}
-                cursorRow={ui.filterCursorRow}
-                cursorVal={ui.filterCursorVal}
-                width={FILTER_PANEL_WIDTH}
-              />
-            </Box>
-          )}
-          {/* Delete confirmation dialog */}
-          {ui.deleteConfirm && (
-            <DeleteConfirmDialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              deleteConfirm={ui.deleteConfirm}
-            />
-          )}
-          {/* Date prompt dialog */}
-          {ui.datePrompt && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={60}
-              topFraction={1 / 3}
-              data-dialog="date-prompt"
-            >
-              <DatePromptDialog
-                field={ui.datePrompt.field}
-                currentValue={ui.datePrompt.currentValue}
-                onConfirm={dialogHandlers.handleDatePromptConfirm}
-                onCancel={dialogHandlers.handleDatePromptCancel}
-                width={Math.min(60, Math.floor(termWidth / 2))}
-                height={14}
-              />
-            </DialogBox>
-          )}
-          {/* Omnibox / command palette */}
-          {ui.showOmnibox && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={80}
-              widthFraction={2 / 3}
-              topFraction={1 / 6}
-              data-dialog="omnibox"
-            >
-              <Omnibox
-                onSelect={dialogHandlers.handleOmniboxSelect}
-                onCancel={dialogHandlers.handleOmniboxCancel}
-                width={Math.min(80, Math.floor((termWidth * 2) / 3))}
-                maxHeight={Math.floor((contentHeight * 2) / 3)}
-              />
-            </DialogBox>
-          )}
-          {/* Search & replace dialog */}
-          {ui.searchReplace && (
-            <DialogBox
-              termWidth={termWidth}
-              contentHeight={contentHeight}
-              maxWidth={70}
-              widthFraction={0.6}
-              topFraction={1 / 6}
-              data-dialog="search-replace"
-            >
-              <SearchReplaceDialog
-                state={ui.searchReplace}
-                width={Math.min(70, Math.floor(termWidth * 0.6))}
-                onSearchChange={handleSearchReplaceSearchChange}
-                onReplaceChange={handleSearchReplaceReplaceChange}
-              />
-            </DialogBox>
-          )}
-          {/* Help overlay */}
-          {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} scrollOffset={ui.helpScrollOffset} />}
-          {/* Console now uses screen switching (pause/resume) instead of overlay */}
-        </Box>
-        {/* Toast stack - bottom-right corner */}
-        <ToastStack toasts={toastQueue?.getAll() ?? []} termWidth={termWidth} termHeight={termHeight} />
-        {/* Sync activity pane (above bottom bar) */}
-        {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
-        {/* Bell indicator - hidden element for test detection */}
-        {ui.bellState && <Text data-bell={ui.bellState}>{/* Bell triggered */}</Text>}
-        {/* Bottom overlays — absolute, floating on top of content */}
-        <Box
-          position="absolute"
-          height={termHeight}
-          width={termWidth}
-          flexDirection="column-reverse"
-          alignItems="flex-start"
-          paddingLeft={1}
-        >
-          {/* Status counters — bottom-right */}
-          <Box flexDirection="row" width={termWidth - 2} justifyContent="flex-end" id="bottom-bar" data-status={ui.status?.level}>
-            <StatusCounters
-              ui={ui}
-              storageMode={repo.mode}
-              rootPath={rootPath}
-              nodeCount={repo.stats.nodeCount}
-              consoleStats={consoleStats}
-            />
-          </Box>
-          {/* Command box — bottom-left, stacked above status */}
-          <CommandBox
-            ui={ui}
-            termWidth={termWidth}
-            storageMode={repo.mode}
-            rootPath={rootPath}
-            nodeCount={repo.stats.nodeCount}
-            moveMode={moveMode}
-            consoleStats={consoleStats}
-            toastQueue={toastQueue}
-            localSearch={ui.localSearch}
-            onQueryChange={handleFindQueryChange}
-          />
         </Box>
       </Box>
     </ConstraintRoot>
@@ -871,9 +523,6 @@ export function Board({ patchedConsole }: BoardProps) {
   // Non-focused panes read from their saved PaneState snapshot.
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
   const rootId = useAppStore<BoardAppStore, string | null>((s) => s.workspace.panes.get(paneId)?.rootId ?? s.rootId)
-  const rootPath = useAppStore<BoardAppStore, string | null>(
-    (s) => s.workspace.panes.get(paneId)?.rootPath ?? s.rootPath,
-  )
   // CursorStore provides cursor state without triggering Board re-render on SELECT
   const cursorStore = useAppStore<BoardAppStore, CursorStore>(
     (s) => s.workspace.panes.get(paneId)?.cursorStore ?? s.cursorStore,
@@ -884,7 +533,6 @@ export function Board({ patchedConsole }: BoardProps) {
   const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>(
     (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
   )
-  const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.workspace.panes.get(paneId)?.moveMode ?? s.moveMode)
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -957,30 +605,6 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [jotaiStore, cursorStore, boardFocused])
 
   // Layout is derived on demand — no store sync needed
-
-  // Console stats via direct subscription
-  const [consoleStats, setConsoleStats] = useState<{ total: number; errors: number; warnings: number } | undefined>()
-  useEffect(() => {
-    if (!patchedConsole) return
-    const initial = patchedConsole.getStats()
-    let prevTotal = initial.total
-    if (initial.total > 0) setConsoleStats(initial)
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null
-    const unsub = patchedConsole.subscribe(() => {
-      if (debounceTimer) clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        debounceTimer = null
-        const stats = patchedConsole.getStats()
-        if (stats.total === prevTotal) return
-        prevTotal = stats.total
-        setConsoleStats(stats)
-      }, 200)
-    })
-    return () => {
-      unsub()
-      if (debounceTimer) clearTimeout(debounceTimer)
-    }
-  }, [patchedConsole])
 
   // Screen switching for console
   useEffect(() => {
@@ -1110,50 +734,111 @@ export function Board({ patchedConsole }: BoardProps) {
     }))
   }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
 
-  // Dialog handlers — read cursorNodeId from Zustand (silently mutated by SELECT)
-  const dialogCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
-  const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
-  const baseDialogHandlers = useBoardDialogs({
-    repo,
-    setUI,
-    dispatchBoard,
-    openDetailPane,
-    cursorNodeId: dialogCursorNodeId,
-    rootId,
-    undoHandle,
-  })
-
-  // Omnibox handlers — need store access for dispatchCommandById
+  // Register find/search-replace handlers for workspace chrome.
+  // These run in the focused Board connector which has access to filtered columns.
   const storeRef = React.useContext(StoreContext)
-  const handleOmniboxSelect = useCallback(
-    (result: import("./Omnibox.tsx").OmniboxResult) => {
-      popDialogMode()
-      setUI({ showOmnibox: false })
-      if (result.type === "search" && result.nodeId) {
-        // Navigate to search result — reuse the search handler
-        const node = repo.getNode(result.nodeId)
-        if (node) baseDialogHandlers.handleSearchSelect(node)
-      } else if (result.commandId && storeRef) {
-        // Dispatch command (goto or command types)
-        const store = storeRef as import("zustand").StoreApi<BoardAppStore>
-        dispatchCommandById(result.commandId, store.getState.bind(store), () => {}, result.targetId)
+  const columnsRef = useRef(filteredColumns)
+  columnsRef.current = filteredColumns
+  const findTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const handleFindQueryChange = useCallback(
+    (query: string) => {
+      setUI((prev) => ({
+        localSearch: {
+          query,
+          isInputActive: true,
+          matchIndex: 0,
+          matchCount: prev.localSearch?.matchCount ?? 0,
+          matchNodeIds: prev.localSearch?.matchNodeIds ?? [],
+        },
+      }))
+      clearTimeout(findTimerRef.current)
+      const computeMatches = () => {
+        const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
+        if (matchNodeIds.length > 0 && matchNodeIds[0]) {
+          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+        }
+        setUI({
+          localSearch: {
+            query,
+            isInputActive: true,
+            matchIndex: 0,
+            matchCount: matchNodeIds.length,
+            matchNodeIds,
+          },
+        })
+      }
+      // @ts-expect-error - React internal flag set by inkx test renderer
+      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+        computeMatches()
+      } else {
+        findTimerRef.current = setTimeout(computeMatches, 200)
       }
     },
-    [setUI, storeRef, repo, baseDialogHandlers],
+    [setUI, dispatchBoard],
   )
-  const handleOmniboxCancel = useCallback(() => {
-    popDialogMode()
-    setUI({ showOmnibox: false })
-  }, [setUI])
 
-  const dialogHandlers = useMemo(
-    () => ({
-      ...baseDialogHandlers,
-      handleOmniboxSelect,
-      handleOmniboxCancel,
-    }),
-    [baseDialogHandlers, handleOmniboxSelect, handleOmniboxCancel],
+  const searchReplaceRef = useRef(ui.searchReplace)
+  searchReplaceRef.current = ui.searchReplace
+  const srTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const handleSearchReplaceSearchChange = useCallback(
+    (searchQuery: string) => {
+      const sr = searchReplaceRef.current
+      if (!sr) return
+      setUI({ searchReplace: { ...sr, searchQuery } })
+      clearTimeout(srTimerRef.current)
+      const computeMatches = () => {
+        const latestSr = searchReplaceRef.current
+        if (!latestSr) return
+        const matchNodeIds = searchReplaceMatchingNodeIds(columnsRef.current, repo, searchQuery, latestSr.useRegex)
+        if (matchNodeIds.length > 0 && matchNodeIds[0]) {
+          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+        }
+        setUI({
+          searchReplace: {
+            ...latestSr,
+            searchQuery,
+            matchIndex: 0,
+            matchCount: matchNodeIds.length,
+            matchNodeIds,
+          },
+        })
+      }
+      // @ts-expect-error - React internal flag set by inkx test renderer
+      if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
+        computeMatches()
+      } else {
+        srTimerRef.current = setTimeout(computeMatches, 200)
+      }
+    },
+    [setUI, dispatchBoard, repo],
   )
+
+  const handleSearchReplaceReplaceChange = useCallback(
+    (replaceQuery: string) => {
+      const sr = searchReplaceRef.current
+      if (!sr) return
+      setUI({ searchReplace: { ...sr, replaceQuery } })
+    },
+    [setUI],
+  )
+
+  // Register handlers in the store for workspace chrome to read
+  useEffect(() => {
+    if (!storeRef) return
+    const store = storeRef as import("zustand").StoreApi<BoardAppStore>
+    store.setState({
+      _findQueryHandler: handleFindQueryChange,
+      _searchReplaceSearchHandler: handleSearchReplaceSearchChange,
+      _searchReplaceReplaceHandler: handleSearchReplaceReplaceChange,
+    })
+    return () => {
+      store.setState({
+        _findQueryHandler: null,
+        _searchReplaceSearchHandler: null,
+        _searchReplaceReplaceHandler: null,
+      })
+    }
+  }, [storeRef, handleFindQueryChange, handleSearchReplaceSearchChange, handleSearchReplaceReplaceChange])
 
   // Initialize command system
   useEffect(() => {
@@ -1224,20 +909,13 @@ export function Board({ patchedConsole }: BoardProps) {
         >
           <BoardCore
             rootId={rootId}
-            rootPath={rootPath}
             columns={filteredColumns}
             colIndex={visibleColIndex}
             cardIndex={columnsLayout.cardIndex}
             ui={ui}
             derivedSelectionLevel={derivedSelectionLevel}
             dimensions={ui.dimensions}
-            setUI={setUI}
-            dialogHandlers={dialogHandlers}
             collapsedNodes={collapsedNodes}
-            moveMode={moveMode}
-            consoleStats={consoleStats}
-            toastQueue={toastQueue}
-            dispatchBoard={dispatchBoard}
           />
         </TreeRenderProvider>
       </CursorStoreProvider>
@@ -1275,6 +953,30 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
 
+  // Console stats via direct subscription (workspace-level, shared across panes)
+  const [consoleStats, setConsoleStats] = useState<{ total: number; errors: number; warnings: number } | undefined>()
+  useEffect(() => {
+    if (!patchedConsole) return
+    const initial = patchedConsole.getStats()
+    let prevTotal = initial.total
+    if (initial.total > 0) setConsoleStats(initial)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    const unsub = patchedConsole.subscribe(() => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null
+        const stats = patchedConsole.getStats()
+        if (stats.total === prevTotal) return
+        prevTotal = stats.total
+        setConsoleStats(stats)
+      }, 200)
+    })
+    return () => {
+      unsub()
+      if (debounceTimer) clearTimeout(debounceTimer)
+    }
+  }, [patchedConsole])
+
   const renderPane = useCallback(
     (paneId: string) => (
       <PaneIdProvider value={paneId}>
@@ -1302,11 +1004,23 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     [cursorStore],
   )
 
+  // Workspace chrome (bottom bar, dialogs, toasts) rendered once for entire terminal
+  const chrome = (
+    <WorkspaceChrome
+      termWidth={storeDimensions.columns}
+      termHeight={storeDimensions.rows}
+      consoleStats={consoleStats}
+      toastQueue={toastQueue}
+      cursorStore={cursorStore}
+    />
+  )
+
   // Single pane (common case) — render Board directly, no wrapper overhead
   if (workspace.panes.size <= 1) {
     return (
       <Box flexDirection="column" height={storeDimensions.rows}>
         {renderPane("main")}
+        {chrome}
       </Box>
     )
   }
@@ -1322,6 +1036,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         renderDetailPane={renderDetailPane}
         onPaneClick={focusPaneById}
       />
+      {chrome}
     </Box>
   )
 }
@@ -1377,62 +1092,3 @@ function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean
   return true
 }
 
-// =============================================================================
-// Dialog Layout Helpers
-// =============================================================================
-
-function DialogBox({
-  termWidth,
-  contentHeight,
-  maxWidth,
-  widthFraction = 1 / 2,
-  topFraction,
-  children,
-  ...rest
-}: {
-  termWidth: number
-  contentHeight: number
-  maxWidth: number
-  widthFraction?: number
-  topFraction: number
-  children: React.ReactNode
-  "data-dialog": string
-}): React.ReactElement {
-  const w = Math.min(maxWidth, Math.floor(termWidth * widthFraction))
-  return (
-    <Box
-      position="absolute"
-      marginLeft={Math.floor((termWidth - w) / 2)}
-      marginTop={Math.floor(contentHeight * topFraction)}
-      {...rest}
-    >
-      {children}
-    </Box>
-  )
-}
-
-function DeleteConfirmDialogBox({
-  termWidth,
-  contentHeight,
-  deleteConfirm: dc,
-}: {
-  termWidth: number
-  contentHeight: number
-  deleteConfirm: { nodeIds: string[]; title: string; childCount: number; backlinkCount: number; hasMetadata?: boolean }
-}): React.ReactElement {
-  const dialogWidth = Math.min(50, Math.floor(termWidth / 2))
-  const warnings: string[] = []
-  if (dc.childCount > 0) warnings.push(`${dc.childCount} child${dc.childCount !== 1 ? "ren" : ""} will be deleted`)
-  if (dc.backlinkCount > 0) warnings.push(`${dc.backlinkCount} backlink${dc.backlinkCount !== 1 ? "s" : ""} will break`)
-  if (dc.hasMetadata) warnings.push("Has metadata (frontmatter)")
-  return (
-    <Box
-      position="absolute"
-      marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
-      marginTop={Math.floor(contentHeight / 3)}
-      data-dialog="delete-confirm"
-    >
-      <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
-    </Box>
-  )
-}
