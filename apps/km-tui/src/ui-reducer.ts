@@ -172,6 +172,8 @@ export interface UIState {
 
   // Pending chord prefix (for which-key popup)
   pendingChord: string | null
+  /** True after the chord timeout fires (standalone executed) — hints go dim */
+  chordTimedOut: boolean
 
   // Filter state — persistent property-based + text filter across views
   showFilterDialog: boolean
@@ -410,6 +412,7 @@ export function createInitialUIState(
     bellState: null,
     status: null,
     pendingChord: null,
+    chordTimedOut: false,
 
     showFilterDialog: false,
     filterText: "",

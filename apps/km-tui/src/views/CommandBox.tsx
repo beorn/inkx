@@ -144,8 +144,9 @@ function FlashMessage({ message, color }: {
   )
 }
 
-/** Chord hints — shows available suffixes for the pending chord prefix */
-function ChordHints({ prefix }: { prefix: string }): React.ReactElement | null {
+/** Chord hints — shows available suffixes for the pending chord prefix.
+ *  Yellow + bold when active (waiting for suffix), grey + dim after timeout fires. */
+function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): React.ReactElement | null {
   const suffixes = getChordSuffixes(prefix)
   if (suffixes.length === 0) return null
 
@@ -158,15 +159,15 @@ function ChordHints({ prefix }: { prefix: string }): React.ReactElement | null {
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="gray"
+      borderColor={dimmed ? "#555" : "gray"}
       backgroundColor="black"
       paddingX={1}
       paddingY={1}
       overflow="hidden"
     >
       {entries.map((entry) => (
-        <Text key={entry.key}>
-          <Text color="yellow" bold>
+        <Text key={entry.key} dimColor={dimmed}>
+          <Text color={dimmed ? "gray" : "yellow"} bold={!dimmed}>
             {entry.key}
           </Text>{" "}
           <Text dimColor>{entry.label}</Text>
@@ -182,9 +183,9 @@ function CommandFeedback({ ui, localSearch }: {
   ui: UIState
   localSearch?: LocalSearchState | null
 }): React.ReactElement | null {
-  // Priority 1: chord hints
+  // Priority 1: chord hints (yellow = active, grey = timed out)
   if (ui.pendingChord) {
-    return <ChordHints prefix={ui.pendingChord} />
+    return <ChordHints prefix={ui.pendingChord} dimmed={ui.chordTimedOut} />
   }
 
   // Priority 2: local search — absorbs bell/status to show a single message
@@ -281,8 +282,9 @@ export function CommandBox({
   const { activeId: focusedActiveId } = useFocusManager()
   const paneLabel = focusedActiveId === "detail-pane" ? "detail" : ""
 
-  // Chord prefix (only when pending)
+  // Chord prefix (only when pending). Yellow = active, dim = timed out.
   const chordSuffix = ui.pendingChord ? `${ui.pendingChord}\u2026` : ""
+  const chordActive = ui.pendingChord !== null && !ui.chordTimedOut
 
   // Multi-selection count
   const multiSuffix = ui.multiSelected.size > 0 ? `[${ui.multiSelected.size}]` : ""
@@ -339,7 +341,7 @@ export function CommandBox({
           ) : (
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
               {chordSuffix && (
-                <Text dimColor id="chord-prefix">
+                <Text color={chordActive ? "yellow" : undefined} dimColor={!chordActive} bold={chordActive} id="chord-prefix">
                   {chordSuffix}
                 </Text>
               )}

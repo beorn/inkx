@@ -149,14 +149,19 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 let chordTimer: ReturnType<typeof setTimeout> | null = null
 const CHORD_TIMEOUT_MS = 300
 
+// After chord timeout fires, hints stay visible (dimmed) for this long before auto-dismissing.
+const CHORD_DIMMED_DISPLAY_MS = 1200
+
 // Minimum display duration for the which-key popup (ms).
 // The popup stays visible for at least this long after appearing, even after
 // the chord timeout fires the standalone command. Only dismissed by:
 // (1) valid suffix key, (2) Escape, (3) any key after min duration elapsed.
-const WHICH_KEY_MIN_DISPLAY_MS = 1500
+const WHICH_KEY_MIN_DISPLAY_MS = CHORD_TIMEOUT_MS + CHORD_DIMMED_DISPLAY_MS
 
 // Timestamp when pendingChord was set (for minimum display duration)
 let pendingChordShownAt = 0
+// Auto-dismiss timer (clears pendingChord after dimmed display period)
+let chordDismissTimer: ReturnType<typeof setTimeout> | null = null
 
 // When the chord timeout fires and resolves the prefix as a standalone command
 // (e.g., 't' → set_due_date), the user's intended chord-completion key ('d')
@@ -232,7 +237,11 @@ export function handleKey(
     const elapsed = now - pendingChordShownAt
     if (key.escape || elapsed >= WHICH_KEY_MIN_DISPLAY_MS) {
       // Dismiss: Escape cancels, or min display time elapsed + any key
-      get().setUI({ pendingChord: null })
+      if (chordDismissTimer !== null) {
+        clearTimeout(chordDismissTimer)
+        chordDismissTimer = null
+      }
+      get().setUI({ pendingChord: null, chordTimedOut: false })
     }
     // If within min display time: pendingChord stays set.
     // The chord state machine still processes the key (suffix → resolve, which clears pendingChord below).
@@ -281,8 +290,13 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
       }
     }
   }
-  // Clear chord status indicator (but keep pendingChord for which-key popup minimum display duration)
-  freshCtx.setUI({ status: null })
+  // Mark chord as timed out (hints go dimmed), but keep pendingChord for visual display.
+  freshCtx.setUI({ status: null, chordTimedOut: true })
+  // Auto-dismiss after the dimmed display period (no keypress needed)
+  chordDismissTimer = setTimeout(() => {
+    chordDismissTimer = null
+    get().setUI({ pendingChord: null, chordTimedOut: false })
+  }, CHORD_DIMMED_DISPLAY_MS)
 }
 
 /**
@@ -387,7 +401,11 @@ function routeThroughCommandSystem(
   if (result.pending) {
     parentSpan.spanData.outcome = "chord"
     pendingChordShownAt = performance.now()
-    ctx.setUI({ status: { level: "info", message: `${result.pending}-` }, pendingChord: result.pending })
+    if (chordDismissTimer !== null) {
+      clearTimeout(chordDismissTimer)
+      chordDismissTimer = null
+    }
+    ctx.setUI({ status: { level: "info", message: `${result.pending}-` }, pendingChord: result.pending, chordTimedOut: false })
     chordTimer = setTimeout(() => {
       chordTimer = null
       fireChordTimeout(get, exitApp)
@@ -397,13 +415,21 @@ function routeThroughCommandSystem(
 
   // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
   if (result.chordResolved && get().ui.pendingChord !== null) {
-    ctx.setUI({ pendingChord: null })
+    if (chordDismissTimer !== null) {
+      clearTimeout(chordDismissTimer)
+      chordDismissTimer = null
+    }
+    ctx.setUI({ pendingChord: null, chordTimedOut: false })
   }
 
   // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
   if (result.chordCancelled) {
     parentSpan.spanData.outcome = "chord-cancelled"
-    ctx.setUI({ pendingChord: null, bellState: "chord-cancelled" })
+    if (chordDismissTimer !== null) {
+      clearTimeout(chordDismissTimer)
+      chordDismissTimer = null
+    }
+    ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
     process.stdout.write("\x07")
     return
   }
