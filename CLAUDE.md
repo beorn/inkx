@@ -114,4 +114,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [perf/](.claude/skills/perf/)                                       | Performance diagnostics and profiling (all layers)                    |
+| [troubleshoot/](.claude/skills/troubleshoot/)                       | Systematic troubleshooting (reproduce, instrument, bisect, escalate)  |
 | [batch-refactor](vendor/beorn-tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
