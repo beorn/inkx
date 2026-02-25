@@ -33,9 +33,9 @@ export function FilterDialog({
   cursorVal,
   width,
 }: FilterDialogProps): React.ReactElement {
-  const innerWidth = Math.max(0, width - 6) // account for border (2) + paddingX (2*2)
+  // Determine where the blank separator goes (between filters and radios)
+  const firstRadioIdx = VIEW_DIALOG_ROWS.findIndex((r) => r.kind === "radio")
 
-  let lastSection: string | undefined
   return (
     <Box
       flexDirection="column"
@@ -54,41 +54,34 @@ export function FilterDialog({
         <Text dimColor>{"esc close"}</Text>
       </Box>
 
-      <Text dimColor>{"─".repeat(innerWidth)}</Text>
+      <Text>{" "}</Text>
 
-      {/* Rows */}
+      {/* Rows — single-line: label + values */}
       {VIEW_DIALOG_ROWS.map((row, ri) => {
         const isActiveRow = ri === cursorRow
-        const prefix = isActiveRow ? "> " : "  "
 
-        // Section separator
-        const section = row.section
-        const showSection = section && section !== lastSection
-        if (section) lastSection = section
+        // Blank line separator before radio section
+        const showSeparator = ri === firstRadioIdx && firstRadioIdx > 0
 
         const { hasActive, valueParts } = buildValueParts(row, isActiveRow, cursorVal, filterProperties, viewMode, iconStyle)
 
         return (
           <React.Fragment key={row.kind === "filter" ? row.category : row.key}>
-            {/* Section header */}
-            {showSection && ri > 0 && <Text> </Text>}
-            {showSection && (
-              <Text dimColor wrap="truncate">
-                {`  ${section}`}
-              </Text>
-            )}
-            {/* Category label */}
+            {showSeparator && <Text>{" "}</Text>}
             <Text wrap="truncate">
-              <Text color={isActiveRow ? "cyan" : hasActive ? "white" : "gray"} bold={isActiveRow || hasActive}>
-                {`${prefix}${row.label}`}
+              {/* Row label */}
+              <Text
+                color={isActiveRow ? "cyan" : hasActive ? "white" : "gray"}
+                bold={isActiveRow || hasActive}
+                inverse={isActiveRow}
+              >
+                {` ${row.label} `}
               </Text>
-            </Text>
-            {/* Values row — indented under the label */}
-            <Text wrap="truncate">
-              <Text>{"    "}</Text>
+              <Text>{" "}</Text>
+              {/* Values inline */}
               {valueParts.map((vp, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <Text> </Text>}
+                  {i > 0 && <Text>{" "}</Text>}
                   <Text
                     color={vp.isActive ? "cyan" : vp.isCursor ? "white" : "gray"}
                     bold={vp.isActive}
@@ -106,7 +99,7 @@ export function FilterDialog({
       {/* Active filter text indicator */}
       {filterText && (
         <>
-          <Text> </Text>
+          <Text>{" "}</Text>
           <Text wrap="truncate">
             <Text color="gray">{"  text: "}</Text>
             <Text color="cyan" bold>
@@ -116,10 +109,10 @@ export function FilterDialog({
         </>
       )}
 
-      {/* Hint footer */}
-      <Text dimColor>{"─".repeat(innerWidth)}</Text>
+      {/* Footer */}
+      <Text>{" "}</Text>
       <Text dimColor wrap="truncate">
-        {"j/k:row  h/l:value  spc:select  X:clear"}
+        {"j/k row  h/l value  spc select  X clear  esc close"}
       </Text>
     </Box>
   )
@@ -139,8 +132,8 @@ function buildValueParts(
     const valueParts = row.values.map((v, vi) => {
       const isActive = active.has(v.value)
       const isCursor = isActiveRow && vi === cursorVal
-      const check = isActive ? "[x]" : "[ ]"
-      return { text: `${check}${v.label}`, isActive, isCursor }
+      const check = isActive ? "\u2713" : "\u25A1"
+      return { text: `${check} ${v.label}`, isActive, isCursor }
     })
     return { hasActive, valueParts }
   }
@@ -150,7 +143,7 @@ function buildValueParts(
   const valueParts = row.values.map((v, vi) => {
     const isActive = v.value === currentValue
     const isCursor = isActiveRow && vi === cursorVal
-    const bullet = isActive ? "●" : "○"
+    const bullet = isActive ? "\u25CF" : "\u25CB"
     return { text: `${bullet} ${v.label}`, isActive, isCursor }
   })
   return { hasActive: true, valueParts }

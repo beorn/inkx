@@ -8,6 +8,8 @@
  * Filter categories: task status, priority, due date.
  * Text search persists from old implementation.
  * Filter state persists across view mode changes.
+ *
+ * Row order: Status, Priority, Due (filters first), then View, Icons (radio).
  */
 
 import { describe, test, expect } from "vitest"
@@ -28,12 +30,12 @@ describe("P2: Filter feature", () => {
 
     // Initially no filter panel
     let screen = board.screenshot()
-    expect(screen).not.toContain("Filter")
+    expect(screen).not.toContain("View Settings")
 
     // Open filter panel with V
     board.press("V")
     screen = board.screenshot()
-    expect(screen).toContain("Filter")
+    expect(screen).toContain("View Settings")
     expect(screen).toContain("Status")
     expect(screen).toContain("Priority")
     expect(screen).toContain("Due")
@@ -47,7 +49,7 @@ describe("P2: Filter feature", () => {
 
     board.press("V")
     let screen = board.screenshot()
-    expect(screen).toContain("Filter")
+    expect(screen).toContain("View Settings")
 
     board.press("Escape")
     screen = board.screenshot()
@@ -58,25 +60,25 @@ describe("P2: Filter feature", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is now row 0 (first row) — cursor starts there
     let screen = board.screenshot()
-    expect(screen).toContain("> Status")
+    // Status row should be active (first row)
+    expect(screen).toContain("Status")
 
     // Move down to Priority
     board.press("j")
     screen = board.screenshot()
-    expect(screen).toContain("> Priority")
+    expect(screen).toContain("Priority")
 
     // Move down to Due
     board.press("j")
     screen = board.screenshot()
-    expect(screen).toContain("> Due")
+    expect(screen).toContain("Due")
 
     // Move back up
     board.press("k")
     screen = board.screenshot()
-    expect(screen).toContain("> Priority")
+    expect(screen).toContain("Priority")
   })
 
   test("Space toggles a filter value", () => {
@@ -86,59 +88,56 @@ describe("P2: Filter feature", () => {
     })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
     // Toggle 'todo' on
     board.press(" ")
     let screen = board.screenshot()
-    expect(screen).toContain("[x]todo")
+    expect(screen).toContain("✓ todo")
 
     // Toggle it off
     board.press(" ")
     screen = board.screenshot()
-    expect(screen).toContain("[ ]todo")
+    expect(screen).toContain("□ todo")
   })
 
   test("h/l navigates between values in a row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
     // Move right to second value (wip)
     board.press("l")
     board.press(" ") // toggle wip on
     let screen = board.screenshot()
-    expect(screen).toContain("[x]wip")
+    expect(screen).toContain("✓ wip")
 
     // Move left back to first value (todo)
     board.press("h")
     board.press(" ") // toggle todo on
     screen = board.screenshot()
-    expect(screen).toContain("[x]todo")
-    expect(screen).toContain("[x]wip")
+    expect(screen).toContain("✓ todo")
+    expect(screen).toContain("✓ wip")
   })
 
   test("X clears all filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
     // Toggle some filters on
     board.press(" ") // todo on
     board.press("l")
     board.press(" ") // wip on
 
     let screen = board.screenshot()
-    expect(screen).toContain("[x]todo")
-    expect(screen).toContain("[x]wip")
+    expect(screen).toContain("✓ todo")
+    expect(screen).toContain("✓ wip")
 
     // Clear all
     board.press("X")
     screen = board.screenshot()
-    expect(screen).toContain("[ ]todo")
-    expect(screen).toContain("[ ]wip")
+    expect(screen).toContain("□ todo")
+    expect(screen).toContain("□ wip")
   })
 
   test("filter indicator shows in top bar when filters active", () => {
@@ -148,9 +147,8 @@ describe("P2: Filter feature", () => {
     let screen = board.screenshot()
     expect(screen).not.toContain("[F]")
 
-    // Open filter and navigate to Status row, toggle todo
+    // Open filter — Status is row 0, toggle todo
     board.press("V")
-    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
 
     // Close filter panel
@@ -237,9 +235,9 @@ describe("P2: Filter feature", () => {
     // Open
     board.press("V")
     let screen = board.screenshot()
-    expect(screen).toContain("Filter")
+    expect(screen).toContain("View Settings")
 
-    // Close via G again
+    // Close via V again
     board.press("V")
     screen = board.screenshot()
     expect(screen).not.toContain("Status")
@@ -410,10 +408,9 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(screen).toContain("Source task 1") // embed1 resolves to src1's display
     expect(screen).toContain("Normal task")
 
-    // Apply 'todo' status filter
+    // Apply 'todo' status filter — Status is row 0
     board.press("V") // open filter
-    board.press("j").press("j") // navigate to Status row
-    board.press(" ") // toggle todo
+    board.press(" ") // toggle todo (Status row, first value)
     board.press("Escape") // close filter
 
     screen = board.screenshot()
@@ -432,9 +429,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
       checkIncremental: false,
     })
 
-    // Apply 'done' status filter
+    // Apply 'done' status filter — Status is row 0
     board.press("V") // open filter
-    board.press("j").press("j") // navigate to Status row
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
     board.press("l").press("l").press("l") // move to 'done'

@@ -272,34 +272,11 @@ export type ViewDialogRow =
     }
 
 export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
-  // View settings (radio — single select)
-  {
-    kind: "radio",
-    key: "viewMode",
-    label: "View",
-    section: "View",
-    values: [
-      { value: "cards", label: "cards" },
-      { value: "columns", label: "columns" },
-      { value: "tabs", label: "tabs" },
-    ],
-  },
-  {
-    kind: "radio",
-    key: "iconStyle",
-    label: "Icons",
-    values: [
-      { value: "nerdfont", label: "nerd" },
-      { value: "workflowy", label: "workflowy" },
-      { value: "regular", label: "regular" },
-    ],
-  },
-  // Filters (checkbox — multi select)
+  // Filters (checkbox — multi select, most used)
   {
     kind: "filter",
     category: "taskStatus",
     label: "Status",
-    section: "Filter",
     values: [
       { value: "todo", label: "todo" },
       { value: "wip", label: "wip" },
@@ -328,6 +305,27 @@ export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
       { value: "today", label: "today" },
       { value: "this-week", label: "week" },
       { value: "no-date", label: "none" },
+    ],
+  },
+  // View settings (radio — single select)
+  {
+    kind: "radio",
+    key: "viewMode",
+    label: "View",
+    values: [
+      { value: "cards", label: "cards" },
+      { value: "columns", label: "columns" },
+      { value: "tabs", label: "tabs" },
+    ],
+  },
+  {
+    kind: "radio",
+    key: "iconStyle",
+    label: "Icons",
+    values: [
+      { value: "nerdfont", label: "nerd" },
+      { value: "workflowy", label: "circles" },
+      { value: "regular", label: "regular" },
     ],
   },
 ]

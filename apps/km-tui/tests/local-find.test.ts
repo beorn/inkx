@@ -22,9 +22,9 @@ describe("Local Find", () => {
     board.expect("#find-bar").toExist()
   })
 
-  test("Ctrl+f opens the find bar", () => {
+  test("Cmd+f opens the find bar", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.press("ctrl+f")
+    board.press("cmd+f")
     expect(store.getState().ui.localSearch).not.toBeNull()
     expect(store.getState().ui.localSearch?.isInputActive).toBe(true)
     board.expect("#find-bar").toExist()

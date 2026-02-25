@@ -84,6 +84,7 @@ const HELP_SECTIONS: HelpSection[] = [
     category: "View",
     items: [
       { keys: ["v v"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: ["v d"], command: "toggle_hide_done", description: "hide done" },
       { keys: ["v -"], command: "clear_filters", description: "reset view" },
       { keys: ["V", "v ,"], command: "filter", description: "view settings" },
       { keys: ["v m/i"], command: "cycle_view_mode", description: "cycle view / icons" },
@@ -112,11 +113,11 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "System",
     items: [
-      { keys: ["F", "⌘f"], command: "search_replace", description: "find & replace" },
+      { keys: ["⌘⇧f"], command: "search_replace", description: "find & replace" },
       { keys: ["C", "c i", "⌘n"], command: "capture_dialog", description: "capture" },
       { keys: [":", "⌃k", "⌘k"], command: "command_palette", description: "command palette" },
-      { keys: ["/", "⌃f"], command: "local_find", description: "find on screen" },
-      { keys: ["n / N"], command: "find_next", description: "find next / prev (during find)" },
+      { keys: ["/", "⌘f"], command: "local_find", description: "find on screen" },
+      { keys: ["n / N", "⌃n/p"], command: "find_next", description: "find next / prev" },
       { keys: ["?"], command: "show_help", description: "help" },
       { keys: [",", "⌘,"], command: "settings", description: "settings" },
       { keys: ["`"], command: "console.toggle", description: "console" },

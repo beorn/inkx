@@ -53,6 +53,8 @@ export interface CommandContext {
 export interface ResolvedBinding {
   commandId: string
   targetId?: string
+  /** Direct execute function — bypasses command registry lookup when set */
+  execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
 }
 
 export interface CommandDef {

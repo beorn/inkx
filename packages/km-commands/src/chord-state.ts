@@ -6,10 +6,13 @@
  * 300ms timeout: if no second key, fires standalone command for the prefix.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExecuteFn = ((...args: any[]) => any) | undefined
+
 export type ChordResult =
   | { type: "pending"; prefix: string }
-  | { type: "resolved"; commandId: string; targetId?: string }
-  | { type: "fallback"; commandId: string; targetId?: string }
+  | { type: "resolved"; commandId: string; targetId?: string; execute?: AnyExecuteFn }
+  | { type: "fallback"; commandId: string; targetId?: string; execute?: AnyExecuteFn }
   | { type: "passthrough" }
   | { type: "cancelled" }
   | { type: "replay"; standaloneId: string; standaloneTargetId?: string; replayKey: string }
@@ -18,6 +21,7 @@ export type ChordResult =
 interface Resolved {
   commandId: string
   targetId?: string
+  execute?: AnyExecuteFn
 }
 
 export interface ChordCallbacks {
@@ -96,9 +100,10 @@ export function createChordState(): ChordState {
         // Try to resolve the chord (prefix + second key)
         const resolved = resolver.resolveChord(prefix, key, modifiers, ctx)
         if (resolved) {
-          return resolved.targetId
-            ? { type: "resolved", commandId: resolved.commandId, targetId: resolved.targetId }
-            : { type: "resolved", commandId: resolved.commandId }
+          const result: ChordResult & { type: "resolved" } = { type: "resolved", commandId: resolved.commandId }
+          if (resolved.targetId) result.targetId = resolved.targetId
+          if (resolved.execute) result.execute = resolved.execute
+          return result
         }
 
         // No chord match → replay: fire standalone for prefix + replay second key

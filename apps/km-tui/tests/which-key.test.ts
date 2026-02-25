@@ -188,7 +188,7 @@ describe("getChordSuffixes", () => {
     testEnv(() => item("board", item("col", item("task"))))
 
     const suffixes = getChordSuffixes("a")
-    expect(suffixes.length).toBe(17) // 4 pickers + 3 boards + 10 favorites
+    expect(suffixes.length).toBe(18) // 4 pickers + 4 boards (h,i,j,a) + 10 favorites
 
     const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
     expect(suffixMap["#"]).toBe("add")
@@ -198,6 +198,7 @@ describe("getChordSuffixes", () => {
     expect(suffixMap["h"]).toBe("add")
     expect(suffixMap["i"]).toBe("add")
     expect(suffixMap["j"]).toBe("add")
+    expect(suffixMap["a"]).toBe("add")
   })
 
   test("returns empty for non-prefix key", () => {

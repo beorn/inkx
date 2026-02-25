@@ -298,12 +298,12 @@ describe("Filter dialog", () => {
     )
 
     // Initially no filter panel
-    expect(board.screenshot()).not.toContain("Filter")
+    expect(board.screenshot()).not.toContain("View Settings")
 
     // Open filter panel
     board.press("V")
     const screen = board.screenshot()
-    expect(screen).toContain("Filter")
+    expect(screen).toContain("View Settings")
     expect(screen).toContain("Status")
     expect(screen).toContain("Priority")
   })
@@ -313,24 +313,23 @@ describe("Filter dialog", () => {
 
     board.press("V")
 
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
-    expect(board.screenshot()).toContain("> Status")
+    // Status is row 0 (first row) — cursor starts there
+    expect(board.screenshot()).toContain("Status")
 
-    // Navigate down
+    // Navigate down to Priority
     board.press("j")
-    expect(board.screenshot()).toContain("> Priority")
+    expect(board.screenshot()).toContain("Priority")
 
-    // Navigate further down
+    // Navigate further down to Due
     board.press("j")
-    expect(board.screenshot()).toContain("> Due")
+    expect(board.screenshot()).toContain("Due")
 
     // Navigate back up
     board.press("k")
-    expect(board.screenshot()).toContain("> Priority")
+    expect(board.screenshot()).toContain("Priority")
 
     board.press("k")
-    expect(board.screenshot()).toContain("> Status")
+    expect(board.screenshot()).toContain("Status")
   })
 
   test("Space toggles filter value on/off", () => {
@@ -340,57 +339,54 @@ describe("Filter dialog", () => {
     })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
 
     // Toggle todo on
     board.press(" ")
-    expect(board.screenshot()).toContain("[x]todo")
+    expect(board.screenshot()).toContain("✓ todo")
 
     // Toggle todo off
     board.press(" ")
-    expect(board.screenshot()).toContain("[ ]todo")
+    expect(board.screenshot()).toContain("□ todo")
   })
 
   test("h/l navigates between values within a filter row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
 
     // Move right to wip
     board.press("l")
     board.press(" ") // toggle wip on
-    expect(board.screenshot()).toContain("[x]wip")
+    expect(board.screenshot()).toContain("✓ wip")
 
     // Move left back to todo
     board.press("h")
     board.press(" ") // toggle todo on
     const screen = board.screenshot()
-    expect(screen).toContain("[x]todo")
-    expect(screen).toContain("[x]wip")
+    expect(screen).toContain("✓ todo")
+    expect(screen).toContain("✓ wip")
   })
 
   test("X clears all active filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
 
     // Toggle a couple filters on
     board.press(" ") // todo on
     board.press("l")
     board.press(" ") // wip on
-    expect(board.screenshot()).toContain("[x]todo")
-    expect(board.screenshot()).toContain("[x]wip")
+    expect(board.screenshot()).toContain("✓ todo")
+    expect(board.screenshot()).toContain("✓ wip")
 
     // Clear all
     board.press("X")
     const screen = board.screenshot()
-    expect(screen).toContain("[ ]todo")
-    expect(screen).toContain("[ ]wip")
+    expect(screen).toContain("□ todo")
+    expect(screen).toContain("□ wip")
   })
 
   test("Escape closes filter panel without losing toggled filters", () => {
@@ -399,17 +395,16 @@ describe("Filter dialog", () => {
       rows: 24,
     })
 
-    // Open filter and navigate to Status row, toggle todo
+    // Open filter — Status is row 0, toggle todo
     board.press("V")
-    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
-    expect(board.screenshot()).toContain("[x]todo")
+    expect(board.screenshot()).toContain("✓ todo")
 
     // Close with Escape
     board.press("Escape")
 
     // Filter panel should be closed
-    expect(board.screenshot()).not.toContain("> Status")
+    expect(board.screenshot()).not.toContain("View Settings")
 
     // Filter indicator should show in top bar (filter is still active)
     expect(board.screenshot()).toContain("[F]")
@@ -420,27 +415,26 @@ describe("Filter dialog", () => {
 
     // Open
     board.press("V")
-    expect(board.screenshot()).toContain("Filter")
+    expect(board.screenshot()).toContain("View Settings")
 
     // Close with V again
     board.press("V")
-    expect(board.screenshot()).not.toContain("> Status")
+    expect(board.screenshot()).not.toContain("View Settings")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     board.press("V")
-    // Navigate to Status row (row 2, after View and Icons rows)
-    board.press("j").press("j")
+    // Status is row 0 — cursor starts there
 
     // Enter toggles the current value
     board.press("Enter")
-    expect(board.screenshot()).toContain("[x]todo")
+    expect(board.screenshot()).toContain("✓ todo")
 
     // Enter toggles it back off
     board.press("Enter")
-    expect(board.screenshot()).toContain("[ ]todo")
+    expect(board.screenshot()).toContain("□ todo")
   })
 })
 
@@ -859,18 +853,17 @@ describe("Filter + navigation interaction", () => {
   test("filter state persists after closing and reopening filter panel", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    // Open filter and navigate to Status row, toggle a value
+    // Open filter — Status is row 0, toggle todo
     board.press("V")
-    board.press("j").press("j") // Navigate to Status row
     board.press(" ") // toggle todo on
-    expect(board.screenshot()).toContain("[x]todo")
+    expect(board.screenshot()).toContain("✓ todo")
 
     // Close
     board.press("Escape")
 
     // Reopen and verify state persisted
     board.press("V")
-    expect(board.screenshot()).toContain("[x]todo")
+    expect(board.screenshot()).toContain("✓ todo")
 
     board.press("Escape")
   })

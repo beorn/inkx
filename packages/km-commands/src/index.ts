@@ -161,6 +161,19 @@ export {
 // Locations (composable command targets)
 export { REPO_LOCS, locationLabel } from "./locations.ts"
 
+// Verb x Location composable vocabulary
+export type { TargetResolver, Execute, VerbDef } from "./verb-locations.ts"
+export {
+  // Target resolvers
+  inbox, journal, home, archive, parent, first, last, fav, pick,
+  // Verb constructors
+  goTo, moveTo, addTo, createIn,
+  // Registries
+  SYSTEM_LOCS, PICKER_LOCS, VERBS,
+  // Grid generators
+  verbLocationGrid, ctrlVerbLocationGrid,
+} from "./verb-locations.ts"
+
 // Help data (auto-generated from registry)
 export type { HelpItem, HelpSection, VerbGridRow } from "./help-data.ts"
 export { getHelpScreenData, VERB_GRID } from "./help-data.ts"

@@ -1,4 +1,4 @@
-import type { CommandMode, TNode } from "./types.ts"
+import type { CommandMode, TNode, CommandContext, CommandAction } from "./types.ts"
 import type { ResolvedBinding } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
 import {
@@ -19,6 +19,7 @@ import {
   not,
   and,
 } from "./when.ts"
+import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
 
 export interface Keybinding {
   key: string
@@ -33,6 +34,8 @@ export interface Keybinding {
   commandId: string
   /** Destination target for location-aware commands (e.g., "i" for inbox) */
   targetId?: string
+  /** Direct execute function — bypasses command registry when set (verb x location grid) */
+  execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
   modes?: CommandMode[]
   when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
 }
@@ -182,9 +185,10 @@ export function resolveKeybinding(
   const bucket = keyMap.get(key) ?? []
 
   function toResolved(binding: Keybinding): ResolvedBinding {
-    return binding.targetId
-      ? { commandId: binding.commandId, targetId: binding.targetId }
-      : { commandId: binding.commandId }
+    const result: ResolvedBinding = { commandId: binding.commandId }
+    if (binding.targetId) result.targetId = binding.targetId
+    if (binding.execute) result.execute = binding.execute
+    return result
   }
 
   // Fast path: no wildcards registered
@@ -251,9 +255,10 @@ export function resolveChord(
 
   for (const binding of bucket) {
     if (matchBinding(binding, key, masked, ctx)) {
-      return binding.targetId
-        ? { commandId: binding.commandId, targetId: binding.targetId }
-        : { commandId: binding.commandId }
+      const result: ResolvedBinding = { commandId: binding.commandId }
+      if (binding.targetId) result.targetId = binding.targetId
+      if (binding.execute) result.execute = binding.execute
+      return result
     }
   }
   return null
@@ -269,12 +274,13 @@ export function getChordSuffixes(prefix: string): { key: string; commandId: stri
     if (seen.has(suffixKey)) continue
     seen.add(suffixKey)
     // Use the first binding's commandId + targetId (highest priority)
-    if (bucket.length > 0) {
+    const first = bucket[0]
+    if (first) {
       const entry: { key: string; commandId: string; targetId?: string } = {
         key: suffixKey,
-        commandId: bucket[0].commandId,
+        commandId: first.commandId,
       }
-      if (bucket[0].targetId) entry.targetId = bucket[0].targetId
+      if (first.targetId) entry.targetId = first.targetId
       result.push(entry)
     }
   }
@@ -424,6 +430,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Find bar input active (text input focused): Enter confirms, Escape cancels
       { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused) },
       { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
+      { key: "n", ctrl: true, commandId: "find_next", when: and(localFindActive, textInputFocused) },
+      { key: "p", ctrl: true, commandId: "find_prev", when: and(localFindActive, textInputFocused) },
       // Find bar closed but matches remain: n/N navigate, Escape clears
       { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
       { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
@@ -736,33 +744,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "t", commandId: "noop" },
       { key: "c", commandId: "capture_inbox" },
 
-      // g-prefix chords (go-to)
+      // g-prefix chords (go-to — non-location entries)
       { chord: "g", key: "g", commandId: "cursor_first" },
       { chord: "g", key: "G", commandId: "cursor_last" },
       { chord: "g", key: "o", commandId: "open_in_system" },
       { chord: "g", key: "O", commandId: "open_in_terminal" },
-      { chord: "g", key: "p", commandId: "goto", targetId: "parent" },
-      // Repo locations (composable goto)
-      { chord: "g", key: "h", commandId: "goto", targetId: "@next" },
-      { chord: "g", key: "i", commandId: "goto", targetId: "@inbox" },
-      { chord: "g", key: "j", commandId: "goto", targetId: "@journal" },
-      { chord: "g", key: "a", commandId: "goto", targetId: "@archive" },
-      // Favorites (composable goto)
-      { chord: "g", key: "0", commandId: "goto", targetId: "fav:0" },
-      { chord: "g", key: "1", commandId: "goto", targetId: "fav:1" },
-      { chord: "g", key: "2", commandId: "goto", targetId: "fav:2" },
-      { chord: "g", key: "3", commandId: "goto", targetId: "fav:3" },
-      { chord: "g", key: "4", commandId: "goto", targetId: "fav:4" },
-      { chord: "g", key: "5", commandId: "goto", targetId: "fav:5" },
-      { chord: "g", key: "6", commandId: "goto", targetId: "fav:6" },
-      { chord: "g", key: "7", commandId: "goto", targetId: "fav:7" },
-      { chord: "g", key: "8", commandId: "goto", targetId: "fav:8" },
-      { chord: "g", key: "9", commandId: "goto", targetId: "fav:9" },
-      // Pickers (composable goto — opens picker, then navigates to result)
-      { chord: "g", key: "+", commandId: "goto", targetId: "pick:+" },
-      { chord: "g", key: "[", commandId: "goto", targetId: "pick:[" },
-      { chord: "g", key: "#", commandId: "goto", targetId: "pick:#" },
-      { chord: "g", key: "@", commandId: "goto", targetId: "pick:@" },
 
       // v-prefix chords — VIEW operations
       { chord: "v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
@@ -797,54 +783,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "v", key: "o", commandId: "pane_only" },
       { chord: "v", key: "z", commandId: "pane_zoom" },
 
-      // m-prefix chords (move)
+      // m-prefix chords (move — non-location entries)
       { chord: "m", key: "m", commandId: "enter_move_mode" },
       { chord: "m", key: "a", commandId: "archive" },
-      // Repo locations (composable move)
-      { chord: "m", key: "h", commandId: "move", targetId: "@next" },
-      { chord: "m", key: "i", commandId: "move", targetId: "@inbox" },
-      { chord: "m", key: "j", commandId: "move", targetId: "@journal" },
-      { chord: "m", key: "p", commandId: "move", targetId: "parent" },
-      { chord: "m", key: "g", commandId: "move", targetId: "first" },
-      { chord: "m", key: "G", commandId: "move", targetId: "last" },
-      // Favorites (composable move)
-      { chord: "m", key: "0", commandId: "move", targetId: "fav:0" },
-      { chord: "m", key: "1", commandId: "move", targetId: "fav:1" },
-      { chord: "m", key: "2", commandId: "move", targetId: "fav:2" },
-      { chord: "m", key: "3", commandId: "move", targetId: "fav:3" },
-      { chord: "m", key: "4", commandId: "move", targetId: "fav:4" },
-      { chord: "m", key: "5", commandId: "move", targetId: "fav:5" },
-      { chord: "m", key: "6", commandId: "move", targetId: "fav:6" },
-      { chord: "m", key: "7", commandId: "move", targetId: "fav:7" },
-      { chord: "m", key: "8", commandId: "move", targetId: "fav:8" },
-      { chord: "m", key: "9", commandId: "move", targetId: "fav:9" },
-      // Pickers (composable move — opens picker, then moves to result)
-      { chord: "m", key: "+", commandId: "move", targetId: "pick:+" },
-      { chord: "m", key: "[", commandId: "move", targetId: "pick:[" },
-      { chord: "m", key: "#", commandId: "move", targetId: "pick:#" },
-      { chord: "m", key: "@", commandId: "move", targetId: "pick:@" },
-
-      // a-prefix chords (add/link — composable)
-      // Pickers (composable add — opens picker, then adds link to result)
-      { chord: "a", key: "#", commandId: "add", targetId: "pick:#" },
-      { chord: "a", key: "@", commandId: "add", targetId: "pick:@" },
-      { chord: "a", key: "+", commandId: "add", targetId: "pick:+" },
-      { chord: "a", key: "[", commandId: "add", targetId: "pick:[" },
-      // Repo locations (composable add — link to board)
-      { chord: "a", key: "h", commandId: "add", targetId: "@next" },
-      { chord: "a", key: "i", commandId: "add", targetId: "@inbox" },
-      { chord: "a", key: "j", commandId: "add", targetId: "@journal" },
-      // Favorites (composable add)
-      { chord: "a", key: "0", commandId: "add", targetId: "fav:0" },
-      { chord: "a", key: "1", commandId: "add", targetId: "fav:1" },
-      { chord: "a", key: "2", commandId: "add", targetId: "fav:2" },
-      { chord: "a", key: "3", commandId: "add", targetId: "fav:3" },
-      { chord: "a", key: "4", commandId: "add", targetId: "fav:4" },
-      { chord: "a", key: "5", commandId: "add", targetId: "fav:5" },
-      { chord: "a", key: "6", commandId: "add", targetId: "fav:6" },
-      { chord: "a", key: "7", commandId: "add", targetId: "fav:7" },
-      { chord: "a", key: "8", commandId: "add", targetId: "fav:8" },
-      { chord: "a", key: "9", commandId: "add", targetId: "fav:9" },
 
       // t-prefix chords (task properties — v2 spec)
       { chord: "t", key: "t", commandId: "task_dialog" },
@@ -857,52 +798,19 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // toggle_hide_done moved to v d (view prefix)
       { chord: "t", key: "l", commandId: "set_label" },
 
-      // c-prefix chords (create — composable verb)
-      { chord: "c", key: "i", commandId: "capture_dialog" },
+      // Verb x location grid (composable chords: g/m/a/c x locations)
+      ...verbLocationGrid(),
 
-      // Ctrl+g chord prefix (alternative for g — goto)
+      // Ctrl+g/Ctrl+m non-location entries
       { chord: "Ctrl+g", key: "g", commandId: "cursor_first" },
       { chord: "Ctrl+g", key: "G", commandId: "cursor_last" },
       { chord: "Ctrl+g", key: "o", commandId: "open_in_system" },
       { chord: "Ctrl+g", key: "O", commandId: "open_in_terminal" },
-      { chord: "Ctrl+g", key: "p", commandId: "goto", targetId: "parent" },
-      { chord: "Ctrl+g", key: "h", commandId: "goto", targetId: "@next" },
-      { chord: "Ctrl+g", key: "i", commandId: "goto", targetId: "@inbox" },
-      { chord: "Ctrl+g", key: "j", commandId: "goto", targetId: "@journal" },
-      { chord: "Ctrl+g", key: "a", commandId: "goto", targetId: "@archive" },
-      { chord: "Ctrl+g", key: "0", commandId: "goto", targetId: "fav:0" },
-      { chord: "Ctrl+g", key: "1", commandId: "goto", targetId: "fav:1" },
-      { chord: "Ctrl+g", key: "2", commandId: "goto", targetId: "fav:2" },
-      { chord: "Ctrl+g", key: "3", commandId: "goto", targetId: "fav:3" },
-      { chord: "Ctrl+g", key: "4", commandId: "goto", targetId: "fav:4" },
-      { chord: "Ctrl+g", key: "5", commandId: "goto", targetId: "fav:5" },
-      { chord: "Ctrl+g", key: "6", commandId: "goto", targetId: "fav:6" },
-      { chord: "Ctrl+g", key: "7", commandId: "goto", targetId: "fav:7" },
-      { chord: "Ctrl+g", key: "8", commandId: "goto", targetId: "fav:8" },
-      { chord: "Ctrl+g", key: "9", commandId: "goto", targetId: "fav:9" },
-      { chord: "Ctrl+g", key: "+", commandId: "goto", targetId: "pick:+" },
-
-      // Ctrl+m chord prefix (alternative for m — move, Kitty only since ⌃m = Enter without Kitty)
       { chord: "Ctrl+m", key: "m", commandId: "enter_move_mode", when: hasKitty },
       { chord: "Ctrl+m", key: "a", commandId: "archive", when: hasKitty },
-      { chord: "Ctrl+m", key: "h", commandId: "move", targetId: "@next", when: hasKitty },
-      { chord: "Ctrl+m", key: "i", commandId: "move", targetId: "@inbox", when: hasKitty },
-      { chord: "Ctrl+m", key: "j", commandId: "move", targetId: "@journal", when: hasKitty },
-      { chord: "Ctrl+m", key: "p", commandId: "move", targetId: "parent", when: hasKitty },
-      { chord: "Ctrl+m", key: "g", commandId: "move", targetId: "first", when: hasKitty },
-      { chord: "Ctrl+m", key: "G", commandId: "move", targetId: "last", when: hasKitty },
-      { chord: "Ctrl+m", key: "0", commandId: "move", targetId: "fav:0", when: hasKitty },
-      { chord: "Ctrl+m", key: "1", commandId: "move", targetId: "fav:1", when: hasKitty },
-      { chord: "Ctrl+m", key: "2", commandId: "move", targetId: "fav:2", when: hasKitty },
-      { chord: "Ctrl+m", key: "3", commandId: "move", targetId: "fav:3", when: hasKitty },
-      { chord: "Ctrl+m", key: "4", commandId: "move", targetId: "fav:4", when: hasKitty },
-      { chord: "Ctrl+m", key: "5", commandId: "move", targetId: "fav:5", when: hasKitty },
-      { chord: "Ctrl+m", key: "6", commandId: "move", targetId: "fav:6", when: hasKitty },
-      { chord: "Ctrl+m", key: "7", commandId: "move", targetId: "fav:7", when: hasKitty },
-      { chord: "Ctrl+m", key: "8", commandId: "move", targetId: "fav:8", when: hasKitty },
-      { chord: "Ctrl+m", key: "9", commandId: "move", targetId: "fav:9", when: hasKitty },
-      { chord: "Ctrl+m", key: "+", commandId: "move", targetId: "pick:+", when: hasKitty },
-      { chord: "Ctrl+m", key: "[", commandId: "move", targetId: "pick:[", when: hasKitty },
+
+      // Ctrl+prefix verb x location grid (Kitty terminal alternatives)
+      ...ctrlVerbLocationGrid(),
     ],
   },
 
@@ -986,8 +894,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
-      { key: "f", cmd: true, commandId: "search_replace" },
-      { key: "f", ctrl: true, commandId: "local_find", when: not(textInputFocused) },
+      { key: "f", cmd: true, commandId: "local_find" },
+      { key: "f", cmd: true, shift: true, commandId: "search_replace" },
       // S and F moved to navigation layer (G = filter, F = find & replace)
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)

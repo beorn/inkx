@@ -13,6 +13,18 @@ import { registerCommands, clearRegistry } from "./registry.ts"
 import { allCommands } from "./commands/index.ts"
 import { createChordState, type ChordState } from "./chord-state.ts"
 
+/** Resolve actions from a binding — prefer execute function over registry lookup */
+function resolveActions(
+  resolved: { commandId: string; targetId?: string; execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null },
+  ctx: CommandContext,
+): CommandAction | CommandAction[] | null {
+  if (resolved.execute) {
+    const effectiveCtx = resolved.targetId ? { ...ctx, targetId: resolved.targetId } : ctx
+    return resolved.execute(effectiveCtx)
+  }
+  return executeCommand(resolved.commandId, ctx, resolved.targetId)
+}
+
 /** Ink's Key event structure */
 export interface InkKeyEvent {
   escape?: boolean
@@ -151,7 +163,7 @@ export function processInkKey(
       case "pending":
         return { commandId: null, actions: null, handled: true, pending: chordResult.prefix }
       case "resolved": {
-        const actions = executeCommand(chordResult.commandId, ctx, chordResult.targetId)
+        const actions = resolveActions(chordResult, ctx)
         return { commandId: chordResult.commandId, actions, handled: true, chordResolved: true }
       }
       case "replay": {
@@ -160,7 +172,7 @@ export function processInkKey(
         // Then resolve the replayed key normally
         const resolved = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
         if (resolved) {
-          const replayActions = executeCommand(resolved.commandId, ctx, resolved.targetId)
+          const replayActions = resolveActions(resolved, ctx)
           // Return both actions combined
           const allActions: CommandAction[] = []
           if (standaloneActions) {
@@ -181,7 +193,7 @@ export function processInkKey(
         return { commandId: chordResult.standaloneId, actions: standaloneActions, handled: true }
       }
       case "fallback": {
-        const actions = executeCommand(chordResult.commandId, ctx, chordResult.targetId)
+        const actions = resolveActions(chordResult, ctx)
         return { commandId: chordResult.commandId, actions, handled: true }
       }
       case "cancelled":
@@ -197,7 +209,7 @@ export function processInkKey(
     return { commandId: null, actions: null, handled: false }
   }
 
-  const actions = executeCommand(resolved.commandId, ctx, resolved.targetId)
+  const actions = resolveActions(resolved, ctx)
 
   return {
     commandId: resolved.commandId,
@@ -222,7 +234,7 @@ export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext
   const resolved = resolveKeybinding(prefix, {}, kbCtx)
   if (!resolved) return null
 
-  const actions = executeCommand(resolved.commandId, ctx, resolved.targetId)
+  const actions = resolveActions(resolved, ctx)
   return { commandId: resolved.commandId, actions, handled: true }
 }
 

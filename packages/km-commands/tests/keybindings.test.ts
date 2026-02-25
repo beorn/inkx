@@ -806,8 +806,6 @@ describe("chord keybindings", () => {
       ["t", "r", "set_recurring"],
       ["t", "o", "set_assignee"],
       ["t", "l", "set_label"],
-      // c-prefix chords (capture/create)
-      ["c", "i", "capture_dialog"],
     ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
       const ctx = createContext()
       expect(resolveChord(prefix, key, {}, ctx)).toEqual({ commandId })
@@ -845,9 +843,11 @@ describe("chord keybindings", () => {
       ["a", "h", "add", "@next"],
       ["a", "i", "add", "@inbox"],
       ["a", "j", "add", "@journal"],
+      // c-prefix composable create
+      ["c", "i", "create_in", "@inbox"],
     ] as const)("chord %s%s resolves to %s (targetId: %s)", (prefix, key, commandId, targetId) => {
       const ctx = createContext()
-      expect(resolveChord(prefix, key, {}, ctx)).toEqual({ commandId, targetId })
+      expect(resolveChord(prefix, key, {}, ctx)).toMatchObject({ commandId, targetId })
     })
   })
 
@@ -867,7 +867,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => b.chord)
-    expect(chordBindings.length).toBe(168) // 23 g + 29 v + 22 m + 17 a + 8 t + 1 c + 20 Ctrl+g + 20 Ctrl+m + 28 Ctrl+v
+    expect(chordBindings.length).toBe(181) // 25 g + 29 v + 23 m + 18 a + 8 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -891,6 +891,7 @@ describe("chord keybindings", () => {
       "@": { commandId: "add", targetId: "pick:@" },
       "+": { commandId: "add", targetId: "pick:+" },
       "[": { commandId: "add", targetId: "pick:[" },
+      a: { commandId: "add", targetId: "@archive" },
       h: { commandId: "add", targetId: "@next" },
       i: { commandId: "add", targetId: "@inbox" },
       j: { commandId: "add", targetId: "@journal" },
@@ -987,13 +988,13 @@ describe("chord keybindings", () => {
 
   it("a-prefix chords resolve correctly", () => {
     const ctx = createContext()
-    expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
-    expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
-    expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
-    expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
-    expect(resolveChord("a", "i", {}, ctx)).toEqual({ commandId: "add", targetId: "@inbox" })
-    expect(resolveChord("a", "j", {}, ctx)).toEqual({ commandId: "add", targetId: "@journal" })
-    expect(resolveChord("a", "h", {}, ctx)).toEqual({ commandId: "add", targetId: "@next" })
+    expect(resolveChord("a", "#", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
+    expect(resolveChord("a", "@", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
+    expect(resolveChord("a", "+", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
+    expect(resolveChord("a", "[", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:[" })
+    expect(resolveChord("a", "i", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@inbox" })
+    expect(resolveChord("a", "j", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@journal" })
+    expect(resolveChord("a", "h", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@next" })
   })
 
   it("a standalone (chord timeout) resolves to noop", () => {
@@ -1005,25 +1006,25 @@ describe("chord keybindings", () => {
     it("@ in node mode → add with targetId pick:@ (same as a@)", () => {
       const ctx = createContext()
       expect(resolveKeybinding("@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
-      expect(resolveChord("a", "@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
+      expect(resolveChord("a", "@", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
     })
 
     it("# in node mode → add with targetId pick:# (same as a#)", () => {
       const ctx = createContext()
       expect(resolveKeybinding("#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
-      expect(resolveChord("a", "#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
+      expect(resolveChord("a", "#", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
     })
 
     it("+ in node mode → add with targetId pick:+ (same as a+)", () => {
       const ctx = createContext()
       expect(resolveKeybinding("+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
-      expect(resolveChord("a", "+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
+      expect(resolveChord("a", "+", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
     })
 
     it("[ in node mode → add with targetId pick:[ (same as a[)", () => {
       const ctx = createContext()
       expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
-      expect(resolveChord("a", "[", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:[" })
+      expect(resolveChord("a", "[", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:[" })
     })
 
     it("bare symbols are blocked during text input", () => {
@@ -1219,8 +1220,8 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expectKey("d", "duplicate_node", sup)
     })
 
-    it("Cmd+f → search_replace (search/replace dialog)", () => {
-      expectKey("f", "search_replace", sup)
+    it("Cmd+f → local_find (find on screen)", () => {
+      expectKey("f", "local_find", sup)
     })
   })
 
