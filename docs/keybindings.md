@@ -144,8 +144,8 @@ Important actions should be reachable via multiple tiers:
 |-------------|-----------|---------------|
 | Bare key (node) | Vim | `/` |
 | Capital (node) | App | `S` (Search dialog) |
-| Ctrl (both modes) | App | `Ctrl+F` |
 | Cmd (both modes) | Browser | `Cmd+F` (needs Kitty) |
+| Cmd+Shift (both modes) | Extended | `Cmd+Shift+F` (search & replace) |
 
 Not every action needs all four paths.
 
@@ -183,16 +183,20 @@ Important actions must be reachable while editing text.
 Cmd handles app commands. Ctrl is free for emacs:
 
 ```
-Cmd+F  = find (app command)
-Ctrl+F = emacs forward-char (text editing)
+Cmd+F       = local find (app command)
+Cmd+Shift+F = search & replace (app command)
+Ctrl+F      = emacs forward-char (text editing)
 ```
 
 ### Without Kitty protocol
 
-Ctrl is the only modifier that reaches edit mode:
+Ctrl is the only modifier that reaches edit mode. Find is accessed via `/` in
+node mode (no Ctrl binding needed since Cmd+F covers both modes with Kitty):
 
 ```
-Ctrl+F = find (app command — overrides emacs forward-char)
+/      = local find (node mode only)
+Ctrl+N = find next (when find bar active + text input)
+Ctrl+P = find prev (when find bar active + text input)
 ```
 
 ### Sacred bindings (always keep)

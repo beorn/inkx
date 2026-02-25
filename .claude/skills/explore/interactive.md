@@ -251,10 +251,9 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 | Key | TTY press | Command | Description |
 |-----|-----------|---------|-------------|
 | `/` | `/` | local_find | Open local find bar |
-| `Ctrl+/` | `Control+/` | local_find | Open local find bar (works in text edit too) |
-| `Ctrl+F` | `Control+f` | local_find | Open local find bar (not in text input) |
+| `Cmd+F` | `super+f` | local_find | Open local find bar (kitty) |
 | `F` | `Shift+f` | search_replace | Open search & replace (not in text input) |
-| `Cmd+F` | `Meta+f` | search_replace | Open search & replace (kitty) |
+| `Cmd+Shift+F` | `super+shift+f` | search_replace | Open search & replace (kitty) |
 | `Ctrl+G` | `Control+g` | filter | Open filter dialog |
 | `Cmd+G` | `Meta+g` | filter | Open filter dialog (kitty) |
 
