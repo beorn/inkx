@@ -137,6 +137,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: cachedFocusManager!,
     focus: cachedFocus ?? (() => {}),
+    hasDetailPane: s.workspace.panes.has("main-detail"),
     countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
     getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
@@ -201,8 +202,8 @@ export function handleKey(
                   ? "Right"
                   : input || "?"
 
-  // Cache focus manager from EventHandlerContext (singleton, set once)
-  if (!cachedFocusManager) {
+  // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
+  if (cachedFocusManager !== ctx.focusManager) {
     cachedFocusManager = ctx.focusManager
     cachedFocus = ctx.focus.bind(ctx)
   }
@@ -596,8 +597,8 @@ function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number
 export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
   const { get } = ctx
 
-  // Cache focus manager from EventHandlerContext (singleton, set once)
-  if (!cachedFocusManager) {
+  // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
+  if (cachedFocusManager !== ctx.focusManager) {
     cachedFocusManager = ctx.focusManager
     cachedFocus = ctx.focus.bind(ctx)
   }

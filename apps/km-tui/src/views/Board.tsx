@@ -311,7 +311,11 @@ function CursorAwareDetailPane(): React.ReactElement | null {
     }
   }, [node?.id, setUI])
   if (!node) return null
-  return <DetailPane node={node} width={width} height={height} detailCursorNodeId={detailCursorNodeId} />
+  return (
+    <Box focusable testID="detail-pane" flexGrow={1} flexDirection="column">
+      <DetailPane node={node} width={width} height={height} detailCursorNodeId={detailCursorNodeId} />
+    </Box>
+  )
 }
 
 /**

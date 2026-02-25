@@ -41,6 +41,57 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     expect(getColIndex(store)).toBe(1)
   })
 
+  test("l at rightmost column focuses detail pane when open", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item("card1", item("sub1")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D") // open detail pane
+    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+
+    board.press("l") // at rightmost column → should focus detail pane
+    expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
+    // Detail cursor should be set to first item
+    expect(store.getState().ui.detailCursorNodeId).toBeTruthy()
+  })
+
+  test("h in detail pane returns focus to board", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item("card1", item("sub1")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D") // open detail pane
+    board.press("l") // focus detail pane (at rightmost column boundary)
+    expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
+
+    board.press("h") // should return to board
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+    expect(store.getState().ui.showDetailPane).toBe(true) // pane stays open
+  })
+
+  test("l then h round-trips between board and detail pane", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item("card1", item("sub1"))), item("col2", item("card2"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D") // open detail pane
+    board.press("l") // col1 → col2
+    expect(getColIndex(store)).toBe(1)
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+
+    board.press("l") // col2 (rightmost) → detail pane
+    expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
+
+    board.press("h") // detail pane → board
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+    // Board cursor should still be on col2
+    expect(getColIndex(store)).toBe(1)
+  })
+
   test("h navigates left while detail pane is open", { timeout: 5000 }, () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("card1")), item("col2", item("card2"))), {
       checkIncremental: false,

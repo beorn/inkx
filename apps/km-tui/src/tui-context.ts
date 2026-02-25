@@ -85,6 +85,8 @@ export interface ActionCtx {
   focusManager: FocusManager
   /** Convenience: focus a node by testID */
   focus: (testID: string) => void
+  /** Whether the detail pane exists as a workspace pane (not just ui.showDetailPane flag) */
+  hasDetailPane: boolean
 
   // === Workspace pane operations (Phase 2: detail pane as workspace pane) ===
   /** Open the detail pane (adds pane to workspace, updates layout + flat UI) */
