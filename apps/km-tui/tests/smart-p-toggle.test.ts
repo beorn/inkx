@@ -99,7 +99,7 @@ describe("Detail pane toggle", () => {
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
-  test("scroll offset resets on each transition", () => {
+  test("detail cursor resets on each transition", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
       checkIncremental: false,
       incremental: false,
@@ -107,22 +107,22 @@ describe("Detail pane toggle", () => {
 
     // Open pane
     board.press("D")
-    expect(store.getState().ui.detailScrollOffset).toBe(0)
+    expect(store.getState().ui.detailCursorNodeId).toBe(null)
 
-    // Simulate scroll
+    // Simulate cursor movement within detail
     store.setState((s: any) => ({
       ...s,
-      ui: { ...s.ui, detailScrollOffset: 6 },
+      ui: { ...s.ui, detailCursorNodeId: "some-child" },
     }))
-    expect(store.getState().ui.detailScrollOffset).toBe(6)
+    expect(store.getState().ui.detailCursorNodeId).toBe("some-child")
 
-    // Close pane with D → offset should reset
+    // Close pane with D → cursor should reset
     board.press("D")
-    expect(store.getState().ui.detailScrollOffset).toBe(0)
+    expect(store.getState().ui.detailCursorNodeId).toBe(null)
 
-    // Reopen → offset should be fresh
+    // Reopen → cursor should be fresh
     board.press("D")
-    expect(store.getState().ui.detailScrollOffset).toBe(0)
+    expect(store.getState().ui.detailCursorNodeId).toBe(null)
   })
 
   test("multiple D cycles work correctly", () => {

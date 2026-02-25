@@ -30,7 +30,7 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
   return {
     viewMode: "columns",
     showDetailPane: false,
-    detailScrollOffset: 0,
+    detailCursorNodeId: null,
     maxContentLines: 3,
     rootBoardId: null,
     showHelp: false,

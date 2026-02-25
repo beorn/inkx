@@ -136,20 +136,6 @@ export const detailPaneCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "DETAIL_PANE_CLOSE" }),
   },
   {
-    id: "detail_pane.scroll_down",
-    name: "Scroll Detail Down",
-    description: "Scroll the detail pane content down",
-    category: "View",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_SCROLL_DOWN" }),
-  },
-  {
-    id: "detail_pane.scroll_up",
-    name: "Scroll Detail Up",
-    description: "Scroll the detail pane content up",
-    category: "View",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_SCROLL_UP" }),
-  },
-  {
     id: "detail_pane.cursor_down",
     name: "Detail Cursor Down",
     description: "Move cursor down within detail pane items",

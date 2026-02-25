@@ -36,12 +36,13 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { isOutline, isListItem, isItem } from "@km/core"
+import { type KNode, isOutline, isListItem, isItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
+import { getDetailItemsForNode } from "../views/detail-pane-items.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -1132,25 +1133,36 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
       ctx.focus("board-area")
       return ok()
-    case "DETAIL_PANE_SCROLL_DOWN":
-      ctx.setUI((prev) => ({ detailScrollOffset: prev.detailScrollOffset + 3 }))
-      return ok()
-    case "DETAIL_PANE_SCROLL_UP":
-      ctx.setUI((prev) => ({ detailScrollOffset: Math.max(0, prev.detailScrollOffset - 3) }))
-      return ok()
     case "DETAIL_PANE_CURSOR_DOWN": {
-      const itemCount = getDetailPaneItemCount(ctx)
-      if (itemCount > 0) {
-        ctx.setUI((prev) => ({
-          detailCursorIndex: Math.min(prev.detailCursorIndex + 1, itemCount - 1),
-        }))
+      const detailNode = getDetailPaneNode(ctx)
+      if (detailNode) {
+        const items = getDetailItemsForNode(ctx.repo, detailNode)
+        if (items.length > 0) {
+          const currentId = ctx.ui.detailCursorNodeId
+          const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
+          const nextIdx = Math.min(currentIdx + 1, items.length - 1)
+          const nextItem = items[nextIdx]
+          if (nextItem) {
+            ctx.setUI({ detailCursorNodeId: nextItem.nodeId })
+          }
+        }
       }
       return ok()
     }
     case "DETAIL_PANE_CURSOR_UP": {
-      ctx.setUI((prev) => ({
-        detailCursorIndex: Math.max(prev.detailCursorIndex - 1, 0),
-      }))
+      const detailNode = getDetailPaneNode(ctx)
+      if (detailNode) {
+        const items = getDetailItemsForNode(ctx.repo, detailNode)
+        if (items.length > 0) {
+          const currentId = ctx.ui.detailCursorNodeId
+          const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
+          const prevIdx = Math.max(currentIdx - 1, 0)
+          const prevItem = items[prevIdx]
+          if (prevItem) {
+            ctx.setUI({ detailCursorNodeId: prevItem.nodeId })
+          }
+        }
+      }
       return ok()
     }
     case "DETAIL_PANE_ENTER": {
@@ -2003,48 +2015,29 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 // =============================================================================
 
 // =============================================================================
-// Detail pane cursor helpers — compute navigable items for j/k navigation
+// Detail pane cursor helpers — resolve detail node and cursor from nodeId-based state
 // =============================================================================
 
 /**
- * Compute the navigable items in the detail pane for the current card.
- * Returns the same structural children list that DetailPane renders.
- * For folders: direct children. For tasks: li items + oi items from extractBody.
+ * Get the detail pane's target node (the card/column the detail pane is showing).
+ * Resolves embed sources so the navigable items come from the correct node.
  */
-function getDetailPaneItems(ctx: ActionCtx): KNode[] {
+function getDetailPaneNode(ctx: ActionCtx): KNode | undefined {
   const card = ctx.card
-  if (!card) return []
-
-  // Resolve embed source
+  if (!card) return undefined
   const embedSrc = card.embed_source
-  const resolvedNode = embedSrc ? (ctx.repo.getNode(embedSrc) ?? card) : card
-
-  const children = ctx.repo.getChildren(resolvedNode.id)
-
-  // For folders, the navigable items are the direct children
-  if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
-    return children
-  }
-
-  // For tasks: split into body and structural, same as DetailPane
-  const { body: rawBody, items: oiItems } = extractBody(children)
-  const liItems: KNode[] = []
-  for (const child of rawBody) {
-    if (isItem(child.type, child.item) && !isOutline(child.type, child.item)) {
-      liItems.push(child)
-    }
-  }
-  return [...liItems, ...oiItems]
+  return embedSrc ? (ctx.repo.getNode(embedSrc) ?? card) : card
 }
 
-/** Get the total count of navigable items in the detail pane. */
-function getDetailPaneItemCount(ctx: ActionCtx): number {
-  return getDetailPaneItems(ctx).length
-}
-
-/** Get the node at the current detail pane cursor position. */
+/**
+ * Get the node at the current detail pane cursor position.
+ * Looks up the node from detailCursorNodeId, handling the __backlink__ prefix.
+ */
 function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
-  const items = getDetailPaneItems(ctx)
-  const idx = ctx.ui.detailCursorIndex
-  return items[idx]
+  const cursorNodeId = ctx.ui.detailCursorNodeId
+  if (!cursorNodeId) return undefined
+
+  // Backlink items use __backlink__ prefix — strip it to get the real node ID
+  const realId = cursorNodeId.startsWith("__backlink__") ? cursorNodeId.slice("__backlink__".length) : cursorNodeId
+  return ctx.repo.getNode(realId) ?? undefined
 }

@@ -182,7 +182,9 @@ export function resolveKeybinding(
   const bucket = keyMap.get(key) ?? []
 
   function toResolved(binding: Keybinding): ResolvedBinding {
-    return binding.targetId ? { commandId: binding.commandId, targetId: binding.targetId } : { commandId: binding.commandId }
+    return binding.targetId
+      ? { commandId: binding.commandId, targetId: binding.targetId }
+      : { commandId: binding.commandId }
   }
 
   // Fast path: no wildcards registered
@@ -258,9 +260,7 @@ export function resolveChord(
 }
 
 /** Get all suffix keys and their command IDs for a given chord prefix */
-export function getChordSuffixes(
-  prefix: string,
-): { key: string; commandId: string; targetId?: string }[] {
+export function getChordSuffixes(prefix: string): { key: string; commandId: string; targetId?: string }[] {
   const result: { key: string; commandId: string; targetId?: string }[] = []
   const seen = new Set<string>()
   for (const [chordKey, bucket] of chordMap) {
@@ -504,6 +504,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Escape unfocuses pane (returns to board) — pane stays open per v2 spec
       // isInDetailPane = focus tree activeId === "detail-pane", NOT showDetailPane
       { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
+      { key: "j", commandId: "detail_pane.cursor_down", when: isInDetailPane },
+      { key: "k", commandId: "detail_pane.cursor_up", when: isInDetailPane },
+      { key: "ArrowDown", commandId: "detail_pane.cursor_down", when: isInDetailPane },
+      { key: "ArrowUp", commandId: "detail_pane.cursor_up", when: isInDetailPane },
+      { key: "Return", commandId: "detail_pane.enter", when: isInDetailPane },
+      { key: "h", commandId: "detail_pane.close", when: isInDetailPane },
     ],
   },
 

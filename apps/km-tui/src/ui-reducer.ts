@@ -54,8 +54,7 @@ export interface UIState {
   // View configuration
   viewMode: ViewMode
   showDetailPane: boolean
-  detailScrollOffset: number
-  detailCursorIndex: number
+  detailCursorNodeId: string | null
   maxContentLines: number
   iconStyle: IconStyle
   borderMode: BorderMode
@@ -255,8 +254,20 @@ export function hasActivePropertyFilters(props: FilterProperties): boolean {
 
 /** View settings dialog row definitions */
 export type ViewDialogRow =
-  | { kind: "filter"; category: keyof FilterProperties; label: string; values: Array<{ value: string; label: string }>; section?: string }
-  | { kind: "radio"; key: "viewMode" | "iconStyle"; label: string; values: Array<{ value: string; label: string }>; section?: string }
+  | {
+      kind: "filter"
+      category: keyof FilterProperties
+      label: string
+      values: Array<{ value: string; label: string }>
+      section?: string
+    }
+  | {
+      kind: "radio"
+      key: "viewMode" | "iconStyle"
+      label: string
+      values: Array<{ value: string; label: string }>
+      section?: string
+    }
 
 export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
   // View settings (radio — single select)
@@ -320,7 +331,9 @@ export const VIEW_DIALOG_ROWS: ViewDialogRow[] = [
 ]
 
 /** @deprecated Use VIEW_DIALOG_ROWS instead */
-export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter((r): r is Extract<ViewDialogRow, { kind: "filter" }> => r.kind === "filter")
+export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter(
+  (r): r is Extract<ViewDialogRow, { kind: "filter" }> => r.kind === "filter",
+)
 
 // =============================================================================
 // Initial State Factory
@@ -335,8 +348,7 @@ export function createInitialUIState(
   return {
     viewMode: initialViewMode,
     showDetailPane: initialViewMode === "list",
-    detailScrollOffset: 0,
-    detailCursorIndex: 0,
+    detailCursorNodeId: null,
     maxContentLines: 3,
     iconStyle: "nerdfont" as IconStyle,
     borderMode: "normal" as BorderMode,

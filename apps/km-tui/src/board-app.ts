@@ -183,7 +183,23 @@ export function handleKey(
   const { get } = ctx
 
   // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
-  ;(globalThis as any).__km_last_key = key.escape ? "Escape" : key.return ? "Enter" : key.backspace ? "Backspace" : key.tab ? "Tab" : key.upArrow ? "Up" : key.downArrow ? "Down" : key.leftArrow ? "Left" : key.rightArrow ? "Right" : input || "?"
+  ;(globalThis as any).__km_last_key = key.escape
+    ? "Escape"
+    : key.return
+      ? "Enter"
+      : key.backspace
+        ? "Backspace"
+        : key.tab
+          ? "Tab"
+          : key.upArrow
+            ? "Up"
+            : key.downArrow
+              ? "Down"
+              : key.leftArrow
+                ? "Left"
+                : key.rightArrow
+                  ? "Right"
+                  : input || "?"
 
   // Cache focus manager from EventHandlerContext (singleton, set once)
   if (!cachedFocusManager) {
@@ -274,7 +290,12 @@ function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
  * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
  * Call from React callbacks (e.g., omnibox onSelect) that have store access.
  */
-export function dispatchCommandById(commandId: string, get: () => BoardAppStore, exitApp: () => void = () => {}, targetId?: string): void {
+export function dispatchCommandById(
+  commandId: string,
+  get: () => BoardAppStore,
+  exitApp: () => void = () => {},
+  targetId?: string,
+): void {
   ensureCommandSystemInitialized()
   const ctx = buildActionCtx(get, exitApp)
 
@@ -630,13 +651,7 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
     const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
 
     if (colIdx < 0) {
-      // Not over a column — if detail pane is open, scroll it
-      if (actionCtx.ui.showDetailPane) {
-        const scrollDelta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
-        actionCtx.setUI((prev) => ({
-          detailScrollOffset: Math.max(0, prev.detailScrollOffset + scrollDelta),
-        }))
-      }
+      // Not over a column — detail pane scrolling is handled by VirtualList internally
       return
     }
 

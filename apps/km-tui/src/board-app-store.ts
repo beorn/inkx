@@ -725,7 +725,7 @@ export function createBoardAppStoreState(
           const detailPaneId = "main-detail"
           // Already open? No-op.
           if (state.workspace.panes.has(detailPaneId)) {
-            return { ui: { ...state.ui, showDetailPane: true, detailScrollOffset: 0, detailCursorIndex: 0 } }
+            return { ui: { ...state.ui, showDetailPane: true, detailCursorNodeId: null } }
           }
 
           // Create a detail pane with an empty board state (detail doesn't navigate).
@@ -752,7 +752,7 @@ export function createBoardAppStoreState(
               panes: newPanes,
               layout: newLayout,
             },
-            ui: { ...state.ui, showDetailPane: true, detailScrollOffset: 0, detailCursorIndex: 0 },
+            ui: { ...state.ui, showDetailPane: true, detailCursorNodeId: null },
           }
         })
       },
@@ -762,7 +762,7 @@ export function createBoardAppStoreState(
           const detailPaneId = "main-detail"
           // Not open? Just ensure flat state is consistent.
           if (!state.workspace.panes.has(detailPaneId)) {
-            return { ui: { ...state.ui, showDetailPane: false, detailScrollOffset: 0, detailCursorIndex: 0 } }
+            return { ui: { ...state.ui, showDetailPane: false, detailCursorNodeId: null } }
           }
 
           const newPanes = new Map(state.workspace.panes)
@@ -779,7 +779,7 @@ export function createBoardAppStoreState(
               panes: newPanes,
               layout: newLayout,
             },
-            ui: { ...state.ui, showDetailPane: false, detailScrollOffset: 0, detailCursorIndex: 0 },
+            ui: { ...state.ui, showDetailPane: false, detailCursorNodeId: null },
           }
         })
       },

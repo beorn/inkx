@@ -24,22 +24,17 @@ import {
 } from "./detail-pane-helpers.ts"
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
+import { computeDetailItems, computeFolderDetailItems, type DetailItem } from "./detail-pane-items.ts"
 
 export interface DetailPaneProps {
   node: KNode
   width: number
   height: number
-  scrollOffset?: number
-  cursorIndex?: number
+  /** Active cursor node ID within the detail pane. Null = no cursor. */
+  detailCursorNodeId?: string | null
 }
 
-export function DetailPane({
-  node,
-  width,
-  height,
-  scrollOffset = 0,
-  cursorIndex = 0,
-}: DetailPaneProps): React.ReactElement {
+export function DetailPane({ node, width, height, detailCursorNodeId = null }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Tree-based focus: useFocusable reads the testID from the nearest parent
@@ -60,9 +55,8 @@ export function DetailPane({
         node={resolvedNode}
         width={width}
         height={height}
-        scrollOffset={scrollOffset}
         focused={detailFocused}
-        cursorIndex={cursorIndex}
+        detailCursorNodeId={detailCursorNodeId}
       />
     )
   }
@@ -71,9 +65,8 @@ export function DetailPane({
       node={resolvedNode}
       width={width}
       height={height}
-      scrollOffset={scrollOffset}
       focused={detailFocused}
-      cursorIndex={cursorIndex}
+      detailCursorNodeId={detailCursorNodeId}
     />
   )
 }
@@ -82,19 +75,29 @@ export function DetailPane({
 // Folder Detail Pane — outline of folder contents
 // =============================================================================
 
+interface InternalDetailPaneProps {
+  node: KNode
+  width: number
+  height: number
+  focused?: boolean
+  detailCursorNodeId: string | null
+}
+
 function FolderDetailPane({
   node,
   width,
   height,
-  scrollOffset = 0,
   focused: detailFocused = true,
-  cursorIndex = 0,
-}: DetailPaneProps & { focused?: boolean }): React.ReactElement {
+  detailCursorNodeId,
+}: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
   // No outer border — WorkspaceView provides pane chrome
   const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
   const title = getNodeDisplayName(repo, node)
   const children = repo.getChildren(node.id)
+
+  // Compute navigable items for cursor tracking
+  const items = computeFolderDetailItems(repo, node)
 
   // Build a flat list of outline entries with depth (scrollable, so allow generous limit)
   const maxEntries = 200
@@ -123,7 +126,7 @@ function FolderDetailPane({
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
+        <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
           {/* Title */}
           <Text bold wrap="wrap">
             <InlineText text={title} />
@@ -142,9 +145,8 @@ function FolderDetailPane({
           {/* Outline — uses NodeLineView for consistent icon + title rendering */}
           <Box flexDirection="column" marginTop={1}>
             {entries.map((entry, i) => {
-              // For cursor: track which top-level child (depth=0) this entry belongs to
-              const topLevelIndex = entries.slice(0, i + 1).filter((e) => e.depth === 0).length - 1
-              const isCursored = detailFocused && entry.depth === 0 && topLevelIndex === cursorIndex
+              // Cursor highlight: match by nodeId for depth-0 (navigable) entries
+              const isCursored = detailFocused && entry.depth === 0 && entry.node.id === detailCursorNodeId
               return (
                 <Box key={`${entry.node.id}-${i}`} backgroundColor={isCursored ? "#333333" : undefined}>
                   <NodeLineView
@@ -181,10 +183,9 @@ function TaskDetailPane({
   node,
   width,
   height,
-  scrollOffset = 0,
   focused: detailFocused = true,
-  cursorIndex = 0,
-}: DetailPaneProps & { focused?: boolean }): React.ReactElement {
+  detailCursorNodeId,
+}: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
 
   // Wiki link resolver: resolves [[target]] to the node's display title
@@ -266,7 +267,7 @@ function TaskDetailPane({
         <Text dimColor>{" " + "─".repeat(contentWidth) + " "}</Text>
 
         {/* Scrollable content area */}
-        <Box flexDirection="column" overflow="scroll" scrollOffset={scrollOffset} flexGrow={1} paddingX={1}>
+        <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
           {/* Title + breadcrumb */}
           {projectPath.length > 0 && (
             <Text dimColor wrap="truncate">
@@ -330,7 +331,7 @@ function TaskDetailPane({
                 repo={repo}
                 items={structuralChildren}
                 innerWidth={contentWidth}
-                cursorIndex={detailFocused ? cursorIndex : -1}
+                cursorNodeId={detailFocused ? detailCursorNodeId : null}
               />
             </Box>
           )}
@@ -345,14 +346,18 @@ function TaskDetailPane({
                 const path = getProjectPath(repo, bl)
                 const blTitle = getNodeDisplayName(repo, bl)
                 const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
+                const backlinkCursorId = `__backlink__${bl.id}`
+                const isCursored = detailFocused && detailCursorNodeId === backlinkCursorId
                 return (
-                  <Text key={bl.id} wrap="truncate">
-                    {"  "}
-                    <Text dimColor>{breadcrumb}</Text>
-                    <Text bold>
-                      <InlineText text={blTitle} context={{ resolveWikiLink }} />
+                  <Box key={bl.id} backgroundColor={isCursored ? "#333333" : undefined}>
+                    <Text wrap="truncate">
+                      {"  "}
+                      <Text dimColor>{breadcrumb}</Text>
+                      <Text bold>
+                        <InlineText text={blTitle} context={{ resolveWikiLink }} />
+                      </Text>
                     </Text>
-                  </Text>
+                  </Box>
                 )
               })}
               {backlinkNodes.length > maxBacklinks && (
@@ -649,12 +654,12 @@ function DetailSubitems({
   repo,
   items,
   innerWidth,
-  cursorIndex = -1,
+  cursorNodeId = null,
 }: {
   repo: Repo
   items: KNode[]
   innerWidth: number
-  cursorIndex?: number
+  cursorNodeId?: string | null
 }): React.ReactElement {
   return (
     <>
@@ -663,7 +668,7 @@ function DetailSubitems({
         const displayItem = resolveEmbed(repo, item)
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
-        const isCursored = idx === cursorIndex
+        const isCursored = item.id === cursorNodeId
         const cursorBg = isCursored ? "#333333" : undefined
         // Collapsed sections render muted with just the title + count
         // Comments and Attachments expand by default in detail pane (collapse only affects board view)

@@ -23,7 +23,13 @@ import {
 } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import { createStore, Provider as JotaiProvider } from "jotai"
-import { hydrateNodeAtoms, syncCursorToAtoms, syncFoldDepthsToAtoms, syncMultiSelectedToAtoms, syncEditToAtoms } from "../node-atoms-hydrate.ts"
+import {
+  hydrateNodeAtoms,
+  syncCursorToAtoms,
+  syncFoldDepthsToAtoms,
+  syncMultiSelectedToAtoms,
+  syncEditToAtoms,
+} from "../node-atoms-hydrate.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -51,12 +57,7 @@ import { useComponentTiming } from "../hooks/use-component-timing.ts"
 const log = createLogger("km:tui:board")
 
 // Extracted modules
-import {
-  TOP_BAR_HEIGHT,
-  BOTTOM_BAR_HEIGHT,
-  COLLAPSED_COL_WIDTH,
-  computeColumnWidths,
-} from "./board-layout.ts"
+import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
@@ -137,7 +138,6 @@ function useColumnReveal(columnCount: number, _rootId: string | null): number {
  */
 /** Long ─ fill for combined pane/top bar (truncated to fit) */
 
-
 /** Shared top bar props */
 interface TopBarProps {
   rootId: string | null
@@ -197,7 +197,8 @@ function PaneBoardTopBar({
       right={
         <>
           <Text dimColor={!isPaneFocused} id="view-mode">
-            {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+            {" "}
+            {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
@@ -270,7 +271,8 @@ function BoardTopBar({
       right={
         <>
           <Text dimColor id="view-mode">
-            {" "}{(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+            {" "}
+            {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text color="gray">CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
@@ -291,8 +293,7 @@ function BoardTopBar({
  */
 function CursorAwareDetailPane(): React.ReactElement | null {
   const cursorPos = useCursorNodePosition()
-  const detailScrollOffset = useAppStore<BoardAppStore, number>((s) => s.ui.detailScrollOffset)
-  const detailCursorIndex = useAppStore<BoardAppStore, number>((s) => s.ui.detailCursorIndex)
+  const detailCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.ui.detailCursorNodeId)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
   const parentRect = useContentRect()
@@ -301,27 +302,16 @@ function CursorAwareDetailPane(): React.ReactElement | null {
   // Show detail for card, column, or board node (whichever cursor level)
   const nodeId = cursorPos.cursorCardNodeId ?? cursorPos.cursorColumnNodeId
   const node = nodeId ? repo.getNode(nodeId) : undefined
-  // Reset scroll offset and cursor when selected node changes
+  // Reset detail cursor when selected node changes
   const prevNodeIdRef = React.useRef(node?.id)
   React.useEffect(() => {
     if (node?.id !== prevNodeIdRef.current) {
       prevNodeIdRef.current = node?.id
-      setUI({ detailScrollOffset: 0, detailCursorIndex: 0 })
+      setUI({ detailCursorNodeId: null })
     }
   }, [node?.id, setUI])
-  // Use 0 during the transitional render where node changed but effect hasn't fired yet
-  const effectiveScrollOffset = node?.id !== prevNodeIdRef.current ? 0 : detailScrollOffset
-  const effectiveCursorIndex = node?.id !== prevNodeIdRef.current ? 0 : detailCursorIndex
   if (!node) return null
-  return (
-    <DetailPane
-      node={node}
-      width={width}
-      height={height}
-      scrollOffset={effectiveScrollOffset}
-      cursorIndex={effectiveCursorIndex}
-    />
-  )
+  return <DetailPane node={node} width={width} height={height} detailCursorNodeId={detailCursorNodeId} />
 }
 
 /**
@@ -535,9 +525,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
     (s) => s.undoHandle,
   )
-  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>(
-    (s) => s.ui.filterProperties.taskStatus,
-  )
+  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>((s) => s.ui.filterProperties.taskStatus)
 
   // Board focus state — subscribe once, pass via context instead of per-card useFocusWithin
   const focusWithinBoard = useFocusWithin("board-area")
@@ -548,9 +536,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const jotaiStore = useMemo(() => createStore(), [])
 
   // Hydrate Jotai atoms on initial load and root change (zoom)
-  const multiSelected = useAppStore<BoardAppStore, Set<import("../types.ts").SelectionKey>>(
-    (s) => s.ui.multiSelected,
-  )
+  const multiSelected = useAppStore<BoardAppStore, Set<import("../types.ts").SelectionKey>>((s) => s.ui.multiSelected)
   useEffect(() => {
     hydrateNodeAtoms(jotaiStore, repo, rootId, foldDepths, multiSelected)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
@@ -582,12 +568,7 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== inlineEditBlock) {
-      syncEditToAtoms(
-        jotaiStore,
-        prev?.nodeId ?? null,
-        inlineEditBlock?.nodeId ?? null,
-        inlineEditBlock,
-      )
+      syncEditToAtoms(jotaiStore, prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
       prevInlineEditRef.current = inlineEditBlock
     }
   }, [jotaiStore, inlineEditBlock])
@@ -1086,4 +1067,3 @@ function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean
 
   return true
 }
-
