@@ -560,24 +560,29 @@ function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number
   if (!column) return null
   const columnNodeId = column.node.id
 
-  // Find which card in the column the click falls on
+  // Find which card in the column the click falls on.
+  // findItemAtY may snap to the closest card (for keyboard stickyY navigation),
+  // so we verify the click actually intersects the card's bounding box.
   const cardIndex = actionCtx.navigator.findItemAtY(targetColIndex, mouseY)
 
   if (cardIndex < 0) {
-    // Click didn't land on a card — it's either the column header or empty space below cards.
-    // Both select the column.
+    // Click didn't land on a card — column header or empty space.
     return { kind: "column", colIndex: targetColIndex, columnNodeId, blockIndex: 0 }
   }
 
   const card = column.cardNodes[cardIndex]
   if (!card) return null
 
-  // Determine sub-block precision within the card.
-  // Card layout: border-top (1 row) + title/HeadRow (1 row) + children (1 row each) + border-bottom (1 row)
-  // For virtual/body cards (no border): title (1 row) + children
+  // Verify the click actually falls within this card's bounding box.
+  // Without this check, clicks on empty space between/below cards would snap to the nearest card.
   const cardRect = actionCtx.navigator.getPosition(targetColIndex, cardIndex)
   if (!cardRect) {
     return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
+  }
+
+  if (mouseY < cardRect.y || mouseY >= cardRect.y + cardRect.height) {
+    // Click is outside the card's vertical bounds — treat as column background
+    return { kind: "column", colIndex: targetColIndex, columnNodeId, blockIndex: 0 }
   }
 
   // Relative Y within the card's bounding box
