@@ -236,3 +236,66 @@ y/d/p  Cmd+c/Cmd+x/Cmd+v ···· copy/cut/paste
 | Filler dots | `#444444` (very dim) |
 | `/` separators (keys and descriptions) | `#444444` (faint) |
 | Dialog titles | Include hotkey hint: `Help [?]`, `Filter [F]` |
+
+## 8. Verb x Location System
+
+### Architecture
+
+The keybinding system uses a composable verb x location pattern to generate chord keybindings from a cross-product of verbs and locations. This replaces manually-defined chord entries with a functional vocabulary.
+
+### Target Resolvers
+
+Functions `(ctx: CommandContext) => string | null` that resolve a target:
+
+| Resolver | Returns | Description |
+|----------|---------|-------------|
+| `inbox` | `@inbox` | Inbox board |
+| `journal` | `@journal` | Journal board |
+| `home` | `@next` | Home board |
+| `archive` | `@archive` | Archive board |
+| `parent` | `"parent"` | Parent of current node |
+| `first` | `"first"` | First sibling |
+| `last` | `"last"` | Last sibling |
+| `fav(n)` | `fav:${n}` | Favorite by number |
+| `pick(p)` | `pick:${p}` | Open picker dialog |
+
+### Verb Constructors
+
+Functions `(target: TargetResolver) => Execute` that create actions:
+
+| Verb | Action Types | Description |
+|------|-------------|-------------|
+| `goTo` | GOTO_BOARD, JUMP_TO_FAVORITE, ZOOM_OUTWARDS | Navigate to target |
+| `moveTo` | MOVE_TO_BOARD, MOVE_TO_FAVORITE, OUTDENT_NODE, SHIFT_TO_TOP/BOTTOM | Move node to target |
+| `addTo` | ADD_LINK_TO_BOARD, SET_LABEL, SET_ASSIGNEE, ADD_LINK | Add link/property |
+| `createIn` | CAPTURE_DIALOG | Create item in target |
+
+### Grid Helper
+
+`verbLocationGrid()` generates chord keybindings from the cross-product of verbs and locations. For example:
+- `g i` -> goTo(inbox) -> GOTO_BOARD { boardId: "@inbox" }
+- `m j` -> moveTo(journal) -> MOVE_TO_BOARD { boardId: "@journal" }
+- `a #` -> addTo(pick("#")) -> SET_LABEL
+
+Nonsensical combinations are skipped (e.g., `a g`, `c j`).
+
+### Keybinding Resolution
+
+1. Ink key event -> `processInkKey()` in ink-adapter
+2. Chord processing (pending prefix detection, timeout)
+3. Keybinding resolution against layers (first match wins)
+4. If binding has `execute`, call it directly
+5. Otherwise, look up command in registry via `commandId`
+
+### Adding a New Verb
+
+1. Add verb constructor in `verb-locations.ts`
+2. Add to `VERBS` registry
+3. Grid automatically generates all chord combinations
+4. Add skip rules in `verbLocationGrid()` for nonsensical combinations
+
+### Adding a New Location
+
+1. Add target resolver in `verb-locations.ts`
+2. Add to `SYSTEM_LOCS` or `PICKER_LOCS`
+3. Grid automatically generates all verb combinations
