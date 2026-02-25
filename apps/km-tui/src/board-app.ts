@@ -18,6 +18,7 @@ import { executeCommand } from "@km/commands"
 import { getModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
+import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
@@ -706,6 +707,11 @@ export function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAp
     const dy = Math.abs(mouse.y - lastClick.y)
     const isDoubleClick =
       now - lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
+
+    // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
+    if (!mouse.ctrl && actionCtx.ui.multiSelected.size > 0) {
+      clearSelection(actionCtx)
+    }
 
     if (target.kind === "column") {
       // Column header or empty space click → select the column (move cursor to column level)
