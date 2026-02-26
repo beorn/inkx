@@ -1,47 +1,44 @@
 /**
  * Vertical Scroll Indicator Component
  *
- * Shows a full-height vertical bar with centered arrow (‹ or ›)
- * indicating horizontal scroll direction.
- *
- * Uses inkx Box backgroundColor to fill the area - no manual height needed.
- * The component uses flexGrow to fill available vertical space.
+ * Shows a full-height 1-char column with dark grey arrows indicating
+ * horizontal scroll direction. Always rendered to prevent layout shift;
+ * arrows only appear when there is overflow (hiddenCount > 0).
  */
 import React from "react"
 import { Box, Text } from "inkx"
 
 export interface VerticalScrollIndicatorProps {
   direction: "left" | "right"
+  /** Number of hidden items in this direction. 0 = placeholder only (no arrows). */
+  hiddenCount?: number
 }
 
+/** Arrow + blank line pattern, repeated to fill any height. Clipped by overflow="hidden". */
+const ARROW_FILL_LEFT = ("◂\n \n").repeat(100)
+const ARROW_FILL_RIGHT = ("▸\n \n").repeat(100)
+
 /**
- * Vertical scroll indicator that fills available height with gray background.
- * Arrow is centered vertically using flexbox justifyContent.
+ * Vertical scroll indicator — 1 char wide, fills available height.
+ * When active (hiddenCount > 0): dark grey arrows with blank lines between.
+ * When inactive (hiddenCount === 0): empty 1-char spacer (prevents layout shift).
  */
-export function VerticalScrollIndicator({ direction }: VerticalScrollIndicatorProps): React.ReactElement {
-  const arrow = direction === "left" ? "◂" : "▸"
+export function VerticalScrollIndicator({ direction, hiddenCount = 1 }: VerticalScrollIndicatorProps): React.ReactElement {
+  const active = hiddenCount > 0
 
   return (
     <Box
       data-scroll-indicator={direction}
-      flexDirection="column"
       width={1}
-      flexGrow={1}
-      backgroundColor="gray"
-      justifyContent="space-evenly"
-      alignItems="center"
+      flexShrink={0}
+      flexGrow={0}
+      overflow="hidden"
     >
-      <Text color="white">{arrow}</Text>
-      <Text color="white">{arrow}</Text>
-      <Text color="white">{arrow}</Text>
+      {active && (
+        <Text dimColor color="$muted">
+          {direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}
+        </Text>
+      )}
     </Box>
   )
-}
-
-/**
- * Vertical separator between columns.
- * Empty 1-character space to visually separate card borders from adjacent columns.
- */
-export function ColumnSeparator(): React.ReactElement {
-  return <Box width={1} alignSelf="stretch" />
 }

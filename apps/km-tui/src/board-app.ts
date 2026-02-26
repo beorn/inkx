@@ -148,7 +148,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 
 // Chord timeout timer
 let chordTimer: ReturnType<typeof setTimeout> | null = null
-const CHORD_TIMEOUT_MS = 300
+const CHORD_TIMEOUT_MS = 500
 
 // After chord timeout fires, hints stay visible (dimmed) for this long before auto-dismissing.
 const CHORD_DIMMED_DISPLAY_MS = 1200

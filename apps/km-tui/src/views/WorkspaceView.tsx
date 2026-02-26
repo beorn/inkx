@@ -122,7 +122,7 @@ function PaneTitleBar({
       isFocused={isFocused}
       paneLabel={label ?? "?"}
       left={
-        <Text dimColor={!isFocused} bold={isFocused} wrap="truncate">
+        <Text bold={isFocused} wrap="truncate">
           {suffix || "Pane"}
         </Text>
       }
@@ -164,7 +164,8 @@ function LayoutNodeView({
     }
 
     const isBoard = pane.viewType === "board"
-    const labelSuffix = pane.viewType === "detail" ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
+    const isDetail = pane.viewType === "detail"
+    const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
     return (
       <Box
@@ -173,8 +174,9 @@ function LayoutNodeView({
         onMouseDown={() => onPaneClick?.(node.paneId)}
       >
         {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
-        {/* Non-board panes: PaneTitleBar provides the top bar */}
-        {!isBoard && (
+        {/* Detail panes with renderDetailPane: DetailPane renders its own PaneBar */}
+        {/* Detail panes without renderDetailPane / other panes: PaneTitleBar provides the top bar */}
+        {!isBoard && !(isDetail && renderDetailPane) && (
           <PaneTitleBar label={label} suffix={labelSuffix} isFocused={isFocused} />
         )}
         <Box flexGrow={1} flexDirection="column">
@@ -182,12 +184,12 @@ function LayoutNodeView({
             <PaneLabelProvider value={label ?? "?"}>
               {renderPane(node.paneId)}
             </PaneLabelProvider>
-          ) : pane.viewType === "detail" ? (
-            renderDetailPane ? (
-              renderDetailPane(node.paneId)
-            ) : (
-              <Text dimColor>Detail pane</Text>
-            )
+          ) : isDetail && renderDetailPane ? (
+            <PaneLabelProvider value={label ?? "?"}>
+              {renderDetailPane(node.paneId)}
+            </PaneLabelProvider>
+          ) : isDetail ? (
+            <Text dimColor>Detail pane</Text>
           ) : (
             <EmptyPaneWelcome />
           )}

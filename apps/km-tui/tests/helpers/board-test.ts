@@ -61,7 +61,7 @@ import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } f
 import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
-import { createFocusManager, FocusManagerContext } from "inkx"
+import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
@@ -83,6 +83,7 @@ import {
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
 import { handleKey, handleMouse } from "../../src/board-app.ts"
+import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "inkx"
 import type { InitialBoardData, ColumnView } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
@@ -435,12 +436,16 @@ export function testEnv(
   })
   const result = render(
     React.createElement(
-      StoreContext.Provider,
-      { value: store as StoreApi<unknown> },
+      ThemeProvider,
+      { theme: defaultKmTheme },
       React.createElement(
-        FocusManagerContext.Provider,
-        { value: focusManager },
-        React.createElement(RepoProvider, { repo, children: boardAppElement }),
+        StoreContext.Provider,
+        { value: store as StoreApi<unknown> },
+        React.createElement(
+          FocusManagerContext.Provider,
+          { value: focusManager },
+          React.createElement(RepoProvider, { repo, children: boardAppElement }),
+        ),
       ),
     ),
     { incremental: options?.incremental ?? true },
@@ -1531,12 +1536,16 @@ export function testEnvWithRepo(
   })
   const result = render(
     React.createElement(
-      StoreContext.Provider,
-      { value: store as StoreApi<unknown> },
+      ThemeProvider,
+      { theme: defaultKmTheme },
       React.createElement(
-        FocusManagerContext.Provider,
-        { value: focusManager },
-        React.createElement(RepoProvider, { repo, children: boardAppElement }),
+        StoreContext.Provider,
+        { value: store as StoreApi<unknown> },
+        React.createElement(
+          FocusManagerContext.Provider,
+          { value: focusManager },
+          React.createElement(RepoProvider, { repo, children: boardAppElement }),
+        ),
       ),
     ),
     { incremental: options?.incremental ?? true },

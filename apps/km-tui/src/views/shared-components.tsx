@@ -8,6 +8,7 @@ import React, { useCallback } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
+import { km } from "../theme.ts"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
@@ -91,7 +92,7 @@ export const MemoizedTreeCard = React.memo(
     // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box outlineStyle="round" outlineColor="cyan">
+        <Box outlineStyle="round" outlineColor={km.cardBorderEditing}>
           {content}
         </Box>
       )
@@ -207,6 +208,7 @@ export const MemoizedColumnHeader = React.memo(
     const repo = useRepo()
     const {
       treeConfig: { iconStyle },
+      boardFocused,
     } = useTreeRenderContext()
 
     // Derive column header presentation props (icon, colors, style)
@@ -214,6 +216,7 @@ export const MemoizedColumnHeader = React.memo(
       iconStyle,
       isSelected,
       isColumnSelected: isColSelected,
+      paneFocused: boardFocused,
     })
 
     return (
@@ -286,7 +289,7 @@ function isChord(segment: string): boolean {
  * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
  * Otherwise renders the segment as-is in yellow.
  */
-function KeySegment({ segment, color = "yellow" }: { segment: string; color?: string }): React.ReactElement {
+function KeySegment({ segment, color = km.dialogShortcut }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
@@ -304,7 +307,7 @@ function KeySegment({ segment, color = "yellow" }: { segment: string; color?: st
       <Text bold color={color}>
         {parts.map((part, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text color="#666666">{"/"}</Text>}
+            {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
             {part}
           </React.Fragment>
         ))}
@@ -327,7 +330,7 @@ function KeySegment({ segment, color = "yellow" }: { segment: string; color?: st
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
  */
-export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: string }): React.ReactElement {
+export function KeyBinding({ keys, color = km.dialogShortcut }: { keys: string; color?: string }): React.ReactElement {
   // Double-space separator: "a #  #" → a·# (space) # (no slash)
   if (keys.includes("  ")) {
     const segments = keys.split("  ")
@@ -351,7 +354,7 @@ export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: s
     <>
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color="#666666">{"/"}</Text>}
+          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
           <KeySegment segment={seg} color={color} />
         </React.Fragment>
       ))}
@@ -366,12 +369,16 @@ export function KeyBinding({ keys, color = "yellow" }: { keys: string; color?: s
 export interface ModalDialogProps {
   /** Border color (default: white). Cyan is reserved for text input focus rings. */
   borderColor?: string
-  /** Dialog title (rendered bold in borderColor) */
+  /** Dialog title (rendered bold in titleColor or borderColor) */
   title?: string
+  /** Title color override (default: borderColor). Separate from border for independent styling. */
+  titleColor?: string
   /** Title alignment (default: center) */
   titleAlign?: "center" | "flex-start" | "flex-end"
   /** Toggle hotkey character (e.g., "?" for help). Renders [X] prefix in title. */
   hotkey?: string
+  /** Content to render on the right side of the title bar (e.g., hotkey indicator, match count) */
+  titleRight?: React.ReactNode
   /** Dialog width */
   width?: number
   /** Dialog height (optional, omit for auto-height) */
@@ -441,16 +448,22 @@ export function formatTitleWithHotkey(title: string, hotkey: string, color?: str
  * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
-  borderColor = "white",
+  borderColor = km.dialogBorder,
   title,
+  titleColor,
   titleAlign = "center",
   hotkey,
+  titleRight,
   width,
   height,
   footer,
   footerAlign = "center",
   children,
 }: ModalDialogProps): React.ReactElement {
+  const effectiveTitleColor = titleColor ?? borderColor
+  // When titleRight is provided, use space-between layout for the title bar
+  const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
+
   return (
     <Box
       flexDirection="column"
@@ -458,20 +471,21 @@ export function ModalDialog({
       height={height}
       borderStyle="double"
       borderColor={borderColor}
-      backgroundColor="black"
+      backgroundColor={km.overlayBg}
       paddingX={2}
       paddingY={1}
     >
       {title && (
         <Box flexShrink={0} flexDirection="column">
-          <Box justifyContent={titleAlign}>
+          <Box justifyContent={effectiveTitleAlign}>
             {hotkey ? (
-              formatTitleWithHotkey(title, hotkey, borderColor)
+              formatTitleWithHotkey(title, hotkey, effectiveTitleColor)
             ) : (
-              <Text color={borderColor} bold>
+              <Text color={effectiveTitleColor} bold>
                 {title}
               </Text>
             )}
+            {titleRight}
           </Box>
           <Text> </Text>
         </Box>
@@ -526,7 +540,7 @@ export function InputBox({
   afterCursor,
   prompt = "",
   placeholder = "",
-  promptColor = "yellow",
+  promptColor = km.selectionBg,
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -554,7 +568,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor="cyan">
+      <Box borderStyle="round" borderColor={km.dialogInputBorder}>
         {content}
       </Box>
     )
@@ -602,21 +616,21 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "cyan" : "black"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? km.dialogSelectedBg : km.overlayBg} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden">
-        <Text color={isSelected ? "black" : undefined} wrap="truncate">
+        <Text color={isSelected ? km.dialogSelectedFg : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? "black" : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? km.dialogSelectedFg : icon.color}>{icon.char} </Text>
           <InlineText text={title} decorations={decorations} />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "black" : undefined}>
+          <Text color={isSelected ? km.dialogSelectedFg : undefined}>
             {parentContext && (
-              <Text dimColor={!isSelected} color={isSelected ? "gray" : undefined}>
+              <Text dimColor={!isSelected} color={isSelected ? "$muted" : undefined}>
                 {` < ${parentContext}`}
               </Text>
             )}
@@ -652,7 +666,7 @@ export interface ConfirmDialogProps {
 export function ConfirmDialog({
   title,
   warnings = [],
-  borderColor = "red",
+  borderColor = "$error", // Red border for destructive actions (overrides default dialogBorder)
   width,
 }: ConfirmDialogProps): React.ReactElement {
   return (
@@ -664,7 +678,7 @@ export function ConfirmDialog({
       footer={<Text dimColor>Enter to confirm · Esc to cancel</Text>}
     >
       {warnings.map((w, i) => (
-        <Text key={i} color="yellow">
+        <Text key={i} color={"$warning"}>
           {w}
         </Text>
       ))}

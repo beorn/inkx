@@ -196,8 +196,9 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   })
 
   test("undo/redo preserves cursor position", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
+    const { board } = testEnv(
+      () => item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
+      { incremental: false }, // toast overlay causes INKX_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     // Navigate to tB

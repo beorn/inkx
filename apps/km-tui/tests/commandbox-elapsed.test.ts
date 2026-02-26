@@ -1,8 +1,8 @@
 /**
- * CommandBox elapsed time display — verifies that the loading spinner
+ * StatusCounters elapsed time display — verifies that the loading spinner
  * and elapsed seconds counter render correctly in the bottom bar.
  *
- * The CommandBox shows:
+ * The StatusCounters shows:
  * - A spinner frame when isLoading is true
  * - Elapsed seconds (e.g. "2s") when loadingStartTime is set and elapsed > 1s
  * - No elapsed text when elapsed <= 1s (just the spinner)
@@ -15,7 +15,24 @@ import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helper
 // Spinner frame 0 (tests skip the interval, so frame stays at index 0)
 const SPINNER_FRAME_0 = "\u280B"
 
-describe("CommandBox elapsed time display", () => {
+/** Set loading state and flush the render pipeline without triggering command handling */
+function setLoadingState(
+  board: ReturnType<typeof testEnv>["board"],
+  store: ReturnType<typeof testEnv>["store"],
+  opts: { isLoading: boolean; loadingStartTime: number | null },
+) {
+  act(() => {
+    store.setState((s) => ({
+      ...s,
+      ui: { ...s.ui, isLoading: opts.isLoading, loadingStartTime: opts.loadingStartTime },
+    }))
+  })
+  // Flush React render pipeline without routing through handleKey
+  // (avoids "Unmapped key" toast that board.press("F20") would trigger)
+  void board._result.press("")
+}
+
+describe("StatusCounters elapsed time display", () => {
   test("loading spinner shows when isLoading is true", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
@@ -24,13 +41,7 @@ describe("CommandBox elapsed time display", () => {
     expect(before).not.toContain(SPINNER_FRAME_0)
 
     // Set loading state
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: { ...s.ui, isLoading: true, loadingStartTime: Date.now() },
-      }))
-    })
-    board.press("F20") // flush render
+    setLoadingState(board, store, { isLoading: true, loadingStartTime: Date.now() })
 
     const after = board.screenshot()
     expect(after).toContain(SPINNER_FRAME_0)
@@ -40,17 +51,7 @@ describe("CommandBox elapsed time display", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Set loading with a start time 2 seconds in the past
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: {
-          ...s.ui,
-          isLoading: true,
-          loadingStartTime: Date.now() - 2000,
-        },
-      }))
-    })
-    board.press("F20") // flush render
+    setLoadingState(board, store, { isLoading: true, loadingStartTime: Date.now() - 2000 })
 
     const text = board.screenshot()
     // Should show "2s" (elapsed > 1 triggers the display)
@@ -63,17 +64,7 @@ describe("CommandBox elapsed time display", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Set loading with a start time just now (0 seconds elapsed)
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: {
-          ...s.ui,
-          isLoading: true,
-          loadingStartTime: Date.now(),
-        },
-      }))
-    })
-    board.press("F20") // flush render
+    setLoadingState(board, store, { isLoading: true, loadingStartTime: Date.now() })
 
     const text = board.screenshot()
     // Spinner should appear
@@ -86,31 +77,11 @@ describe("CommandBox elapsed time display", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Start loading 3 seconds ago
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: {
-          ...s.ui,
-          isLoading: true,
-          loadingStartTime: Date.now() - 3000,
-        },
-      }))
-    })
-    board.press("F20")
+    setLoadingState(board, store, { isLoading: true, loadingStartTime: Date.now() - 3000 })
     expect(board.screenshot()).toContain("3s")
 
     // Stop loading
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: {
-          ...s.ui,
-          isLoading: false,
-          loadingStartTime: null,
-        },
-      }))
-    })
-    board.press("F20")
+    setLoadingState(board, store, { isLoading: false, loadingStartTime: null })
 
     const text = board.screenshot()
     // Spinner and elapsed should both be gone
@@ -122,17 +93,7 @@ describe("CommandBox elapsed time display", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("Task Alpha"))))
 
     // Simulate 15 seconds of loading
-    act(() => {
-      store.setState((s) => ({
-        ...s,
-        ui: {
-          ...s.ui,
-          isLoading: true,
-          loadingStartTime: Date.now() - 15000,
-        },
-      }))
-    })
-    board.press("F20")
+    setLoadingState(board, store, { isLoading: true, loadingStartTime: Date.now() - 15000 })
 
     const text = board.screenshot()
     expect(text).toContain("15s")

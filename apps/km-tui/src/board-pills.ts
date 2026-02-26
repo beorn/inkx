@@ -12,6 +12,7 @@ import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
 import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
+import { km } from "./theme.ts"
 
 export interface BoardPill {
   name: string // Display name (e.g., "next" or "My Board")
@@ -116,7 +117,7 @@ export function getBoardPills(repo: Repo, taskNode: KNode, excludeBoardIds: Set<
     // Get color: custom rules > inherited > GTD default
     const customColor = getInheritedColor(repo, board)
     const gtdColor = GTD_BOARD_COLORS[normalizeBoardName(boardName)]
-    const color = customColor || gtdColor || "white"
+    const color = customColor || gtdColor || "$text"
 
     pills.push({
       name: boardName,
@@ -161,22 +162,26 @@ export function getHeaderStyle(
   _ownColor: string | undefined,
   isSelected: boolean,
   isActiveSelection: boolean,
-): { color: string; backgroundColor: string | undefined; dimColor: boolean } {
+  paneFocused = true,
+): { color: string | undefined; backgroundColor: string | undefined; dimColor: boolean } {
   // When actively selected (column is the selection cursor), use inverse yellow
+  // Dim the header when the pane is unfocused
   if (isActiveSelection) {
     return {
-      color: "black",
-      backgroundColor: "yellow",
-      dimColor: false,
+      color: paneFocused ? km.selectionFg : km.selectionBg,
+      backgroundColor: paneFocused ? km.selectionBg : undefined,
+      dimColor: !paneFocused,
     }
   }
 
   // Default styling:
   // - Yellow when cursor is in this column (isSelected)
-  // - White when cursor is elsewhere
+  // - undefined (terminal default foreground) when cursor is elsewhere
+  //   Explicit "white" renders as grey on some terminals; undefined uses
+  //   the terminal's bright-white default, matching card text.
   // Note: headers are always bold (handled by component)
   return {
-    color: isSelected ? "yellow" : "white",
+    color: isSelected ? km.selectionBg : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

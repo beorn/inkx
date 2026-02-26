@@ -12,6 +12,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { ModalDialog, NodeLine } from "./shared-components.tsx"
 import { fuzzyScore, getParentName } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
+import { km } from "../theme.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
 
 /**
@@ -147,7 +148,7 @@ function ProjectOptions({
             isSelected={isSelected}
           >
             {opt.isRecent && (
-              <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+              <Text color={isSelected ? km.dialogSelectedFg : "$primary"} dimColor={!isSelected}>
                 {" (recent)"}
               </Text>
             )}
@@ -257,9 +258,9 @@ export function ProjectPicker({
   return (
     <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
       {/* Search input */}
-      <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
+      <Box borderStyle="round" borderColor={km.dialogInputBorder} flexShrink={0}>
         <Text>
-          <Text color="yellow">{"/ "}</Text>
+          <Text color={km.selectionBg}>{"/ "}</Text>
           {editCtx.beforeCursor}
           <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
           {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}

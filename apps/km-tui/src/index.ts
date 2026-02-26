@@ -6,6 +6,7 @@
  */
 
 // Re-export types and utilities
+export * from "./theme.ts"
 export * from "./types.ts"
 export * from "./state.ts"
 export * from "./render.ts"

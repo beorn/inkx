@@ -96,7 +96,7 @@ describe("HelpOverlay", () => {
     expect(app.text).toContain("⌘")
   })
 
-  test("bare '/' key for find is rendered in yellow", () => {
+  test("key labels for find are rendered in helpKey color (yellow)", () => {
     const app = renderHelp()
     const lines = app.ansi.split("\n")
     const findLine = lines.find((l: string) => {
@@ -104,7 +104,7 @@ describe("HelpOverlay", () => {
       return s.includes("find") && s.includes("/")
     })
     expect(findLine).toBeDefined()
-    // Yellow ANSI code (38;5;3 or similar)
+    // Yellow ANSI code (38;5;3) — keys use km.helpKey color
     expect(findLine).toMatch(/38;5;3/)
   })
 

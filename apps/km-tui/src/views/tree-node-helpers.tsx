@@ -10,6 +10,7 @@ import { Text } from "inkx"
 import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
+import { km } from "../theme.ts"
 
 // =============================================================================
 // HR Detection
@@ -91,6 +92,7 @@ export function getNodeStyle(
   _dimInactiveChildren: boolean,
   _depth: number,
   isInlineEditing = false,
+  paneFocused = true,
 ): NodeStyleResult {
   const nodeIsTask = isTask(node)
   const ownColor = getOwnColor(node)
@@ -102,6 +104,7 @@ export function getNodeStyle(
   // Background/text colors
   // Node colors only affect the fold marker icon, NOT the background
   // Selection: yellow bg, black text. Inline edit: blue bg, white text.
+  // When pane is unfocused, selection uses dim yellow to indicate inactive cursor.
   let backgroundColor: string | undefined
   let textColor: string | undefined
 
@@ -110,9 +113,15 @@ export function getNodeStyle(
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected || isMultiSelected) {
-    // Design system: yellow background, black foreground for selection
-    backgroundColor = "yellow"
-    textColor = "black"
+    if (paneFocused) {
+      // Focused pane: bright yellow background, black foreground
+      backgroundColor = km.selectionBg
+      textColor = km.selectionFg
+    } else {
+      // Unfocused pane: no background, yellow text dimmed
+      backgroundColor = undefined
+      textColor = km.selectionBg
+    }
   } else {
     // Default: no explicit color — use terminal's default foreground (bright white in dark themes)
     // Explicit "white"/"whiteBright" may render as grey depending on terminal color scheme
@@ -408,7 +417,7 @@ export function truncateContext(context: string | null, maxLen: number): string 
 // =============================================================================
 
 // Priority colors: P1=red, P2=yellow, P3=yellowBright, P4=dim (no color)
-const PRIORITY_TEXT_COLORS = ["red", "yellow", "yellowBright", undefined] as const
+const PRIORITY_TEXT_COLORS = ["$error", "$warning", "yellowBright", undefined] as const
 
 /**
  * React component version of formatDateBadge.
@@ -479,14 +488,14 @@ function DueDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean 
   if (noColor) return <Text>{text}</Text>
   if (diff < 0) {
     return (
-      <Text color="red" bold>
+      <Text color={"$error"} bold>
         {text}
       </Text>
     )
   }
-  if (diff <= 1) return <Text color="green">{text}</Text>
+  if (diff <= 1) return <Text color={"$success"}>{text}</Text>
   return (
-    <Text color="cyan" dimColor>
+    <Text color={"$primary"} dimColor>
       {text}
     </Text>
   )
@@ -497,10 +506,10 @@ function ScheduledDateText({ dateStr, noColor }: { dateStr: string; noColor?: bo
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
   if (noColor) return <Text>{text}</Text>
-  if (diff >= 0 && diff <= 1) return <Text color="green">{text}</Text>
+  if (diff >= 0 && diff <= 1) return <Text color={"$success"}>{text}</Text>
   if (diff > 1) {
     return (
-      <Text color="cyan" dimColor>
+      <Text color={"$primary"} dimColor>
         {text}
       </Text>
     )

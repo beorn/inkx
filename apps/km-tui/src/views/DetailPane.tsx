@@ -101,8 +101,8 @@ function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean
       isFocused={isFocused}
       paneLabel={paneLabel}
       left={
-        <Text dimColor={!isFocused} bold={isFocused} wrap="truncate">
-          {" "}<Text color={isFocused ? "black" : icon.color}>{icon.char}</Text>{" "}
+        <Text bold={isFocused} wrap="truncate">
+          {" "}{icon.char}{" "}
           <InlineText text={title} />
         </Text>
       }
@@ -134,7 +134,9 @@ function FolderDetailPane({
     const kids = parentId === node.id ? children : repo.getChildren(parentId)
     for (const child of kids) {
       if (entries.length >= maxEntries) return
-      entries.push({ node: child, depth })
+      // Resolve embed nodes to their source (like TreeNode does)
+      const displayNode = child.embed_source ? (repo.getNode(child.embed_source) ?? child) : child
+      entries.push({ node: displayNode, depth })
       if (depth < 2) {
         collectChildren(child.id, depth + 1)
       }
@@ -148,7 +150,8 @@ function FolderDetailPane({
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
       <DetailPaneTopBar node={node} isFocused={detailFocused} />
-      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
+      <Box height={1} flexShrink={0} />
+      <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
           {/* Item count */}
@@ -284,7 +287,8 @@ function TaskDetailPane({
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
       <DetailPaneTopBar node={node} isFocused={detailFocused} />
-      <ErrorBoundary fallback={<Text color="red">Error loading details</Text>} resetKey={node.id}>
+      <Box height={1} flexShrink={0} />
+      <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
         <Box flexDirection="column" overflow="scroll" flexGrow={1} paddingX={1}>
           {/* Breadcrumb path */}
@@ -490,16 +494,16 @@ function MetadataTable({
 
   // Priority
   if (node.priority) {
-    const pColors = ["red", "yellow", "yellowBright", "gray"]
+    const pColors = ["$error", "$warning", "yellowBright", "$muted"]
     rows.push({ key: "Priority", value: `P${node.priority}`, valueColor: pColors[node.priority - 1] })
   }
 
   // Due date
   if (dueParts?.date) {
     const urgencyColors: Record<string, string | undefined> = {
-      overdue: "red",
-      urgent: "green",
-      soon: "yellow",
+      overdue: "$error",
+      urgent: "$success",
+      soon: "$warning",
       normal: undefined,
     }
     rows.push({ key: "Due", value: dueDate.text, valueColor: urgencyColors[dueDate.urgency] })
@@ -559,7 +563,7 @@ function MetadataTable({
         const target = repo.getNode(ref)
         return target ? (getNodeDisplayName(repo, target) ?? ref) : ref
       })
-      rows.push({ key: "Depends on", value: resolved.join(", "), valueColor: "yellow" })
+      rows.push({ key: "Depends on", value: resolved.join(", "), valueColor: "$warning" })
     }
     const blocksRefs = parseDepsRefs(data, "blocks")
     if (blocksRefs.length > 0) {
@@ -614,7 +618,7 @@ function MetadataTable({
       {rows.map((row, i) => (
         <Box key={`${row.key}-${i}`} flexDirection="row">
           <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
-          <Text color={row.valueColor ?? "white"}>{row.value}</Text>
+          <Text color={row.valueColor ?? "$text"}>{row.value}</Text>
         </Box>
       ))}
     </>
@@ -922,7 +926,7 @@ function BodyBlock({
           return (
             <Text key={`line-${i}`} wrap="truncate">
               <Text dimColor>{isImage ? "[img] " : ""}</Text>
-              <Text color="cyan" underline>
+              <Text color={"$primary"} underline>
                 {hyperlink(`${name}`, url ?? "")}
               </Text>
               <Text dimColor> {displayUrl}</Text>

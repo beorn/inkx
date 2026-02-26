@@ -4,6 +4,7 @@
 
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
+import { km } from "../theme.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { extractRefs } from "../text/text-pipeline.ts"
 import { parseInlineText, inlineNodesToPlainText } from "../text/inline-parser.ts"
@@ -68,14 +69,14 @@ export function formatDate(dateStr: string | undefined): {
 
 // Status display with color
 const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
-  done: { text: "done", color: "green" },
-  wip: { text: "wip", color: "yellow" },
-  blocked: { text: "blocked", color: "red" },
-  dropped: { text: "dropped", color: "gray" },
+  done: { text: "done", color: "$success" },
+  wip: { text: "wip", color: "$warning" },
+  blocked: { text: "blocked", color: "$error" },
+  dropped: { text: "dropped", color: "$muted" },
 }
 
 export function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "blue" }
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: km.inputFocusRing }
 }
 
 // =============================================================================

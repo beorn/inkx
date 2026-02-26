@@ -960,9 +960,10 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding(">", {}, ctx)).toEqual({ commandId: "unfold_all" })
     // Tab → indent_node (structural indent)
     expect(resolveKeybinding("Tab", {}, ctx)).toEqual({ commandId: "indent_node" })
-    // v2: : → command_palette, , → settings
+    // v2: : → command_palette, , → decrease_content_lines, . → increase_content_lines
     expect(resolveKeybinding(":", {}, ctx)).toEqual({ commandId: "command_palette" })
-    expect(resolveKeybinding(",", {}, ctx)).toEqual({ commandId: "settings" })
+    expect(resolveKeybinding(",", {}, ctx)).toEqual({ commandId: "decrease_content_lines" })
+    expect(resolveKeybinding(".", {}, ctx)).toEqual({ commandId: "increase_content_lines" })
     // Ctrl+/ → filter
     expect(resolveKeybinding("/", { ctrl: true }, ctx)).toEqual({ commandId: "filter" })
   })

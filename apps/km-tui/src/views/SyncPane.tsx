@@ -9,6 +9,7 @@ import React from "react"
 import { Box, Text } from "inkx"
 import type { SyncEvent } from "../ui-reducer.ts"
 import type { WatcherStatus } from "@km/storage"
+import { km } from "../theme.ts"
 
 const PANE_HEIGHT = 6
 
@@ -46,12 +47,12 @@ function eventColor(type: SyncEvent["type"]): string | undefined {
   switch (type) {
     case "sync-complete":
     case "write-complete":
-      return "green"
+      return "$success"
     case "error":
     case "write-error":
-      return "red"
+      return "$error"
     case "sync-start":
-      return "cyan"
+      return "$primary"
     default:
       return undefined
   }
@@ -75,6 +76,7 @@ export function SyncPane({ events, watcherStatus, width }: SyncPaneProps): React
       borderBottom={false}
       borderLeft={false}
       borderRight={false}
+      backgroundColor={km.overlayBg}
       flexShrink={0}
     >
       <Box flexDirection="row" justifyContent="space-between">
@@ -106,7 +108,7 @@ export function SyncPaneSummary({ events }: { events: SyncEvent[] }): React.Reac
   const errorCount = events.filter((e) => e.type === "error" || e.type === "write-error").length
   if (errorCount > 0) {
     return (
-      <Text color="yellow">
+      <Text color={"$warning"}>
         {" "}
         ⚠{errorCount} sync error{errorCount !== 1 ? "s" : ""}
       </Text>

@@ -346,15 +346,15 @@ export function WorkspaceChrome({
         <DialogBox
           termWidth={termWidth}
           contentHeight={contentHeight}
-          maxWidth={80}
-          widthFraction={2 / 3}
+          maxWidth={100}
+          widthFraction={3 / 4}
           topFraction={1 / 6}
           data-dialog="omnibox"
         >
           <Omnibox
             onSelect={dialogHandlers.handleOmniboxSelect}
             onCancel={dialogHandlers.handleOmniboxCancel}
-            width={Math.min(80, Math.floor((termWidth * 2) / 3))}
+            width={Math.min(100, Math.floor((termWidth * 3) / 4))}
             maxHeight={Math.floor((contentHeight * 2) / 3)}
           />
         </DialogBox>

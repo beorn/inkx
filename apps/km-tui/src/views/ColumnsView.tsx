@@ -17,7 +17,7 @@ import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils, useUISelector } from "../ui-context.tsx"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
-import { VerticalScrollIndicator, ColumnSeparator } from "./VerticalScrollIndicator.tsx"
+import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { useIsColumnSelectedByNode, useCursorColumnNodeId } from "../cursor-context.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
@@ -61,6 +61,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   const repo = useRepo()
   const {
     treeConfig: { iconStyle },
+    boardFocused,
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
@@ -81,6 +82,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
     iconStyle,
     isSelected,
     isColumnSelected: isColumnHeaderSelected,
+    paneFocused: boardFocused,
   })
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
@@ -185,13 +187,16 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
     return idx >= 0 ? idx : 0
   }, [cursorColumnNodeId, columns])
 
-  // Column width — uniform width capped at COLUMNS_VIEW_MAX_WIDTH
-  const maxCols = Math.max(1, Math.floor(width / 35))
+  // Column width — uniform width capped at COLUMNS_VIEW_MAX_WIDTH.
+  // HVL internally reserves space for overflow indicators (overflowIndicatorWidth * 2 = 2).
+  // Subtract the same amount here so column widths fit the effective viewport.
+  const indicatorReserved = 2
+  const usableWidth = width - indicatorReserved
+  const maxCols = Math.max(1, Math.floor(usableWidth / 35))
   const effectiveColCount = Math.min(columns.length, maxCols)
-  const separators = Math.max(0, effectiveColCount - 1)
   const expandedWidth = Math.min(
     COLUMNS_VIEW_MAX_WIDTH,
-    Math.max(20, Math.floor((width - separators) / effectiveColCount)),
+    Math.max(20, Math.floor(usableWidth / effectiveColCount)),
   )
   const columnHeight = height - 1
 
@@ -211,14 +216,12 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
           width={width}
           height={columnHeight}
           itemWidth={expandedWidth}
-          gap={1}
           scrollTo={colIndex}
           renderItem={(col, index) => (
             <ColumnTree column={col} colIndex={index} width={expandedWidth} height={columnHeight} />
           )}
-          renderOverflowIndicator={(dir) => <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} />}
+          renderOverflowIndicator={(dir, hiddenCount) => <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />}
           overflowIndicatorWidth={1}
-          renderSeparator={() => <ColumnSeparator />}
           keyExtractor={(col) => col.node.id}
         />
       )}

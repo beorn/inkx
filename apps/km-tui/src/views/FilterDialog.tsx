@@ -10,6 +10,8 @@
  */
 import React from "react"
 import { Box, Text } from "inkx"
+import { km } from "../theme.ts"
+import { ModalDialog } from "./shared-components.tsx"
 import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
 import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
 import type { ViewMode } from "../board-types.ts"
@@ -37,25 +39,12 @@ export function FilterDialog({
   const firstRadioIdx = VIEW_DIALOG_ROWS.findIndex((r) => r.kind === "radio")
 
   return (
-    <Box
-      flexDirection="column"
+    <ModalDialog
+      title="View Settings"
+      titleAlign="flex-start"
       width={width}
-      borderStyle="round"
-      borderColor="cyan"
-      backgroundColor="black"
-      paddingX={2}
-      paddingY={1}
+      footer="j/k row  h/l value  spc select  X clear  esc close"
     >
-      {/* Title bar */}
-      <Box justifyContent="space-between">
-        <Text color="cyan" bold>
-          {"View Settings"}
-        </Text>
-        <Text dimColor>{"esc close"}</Text>
-      </Box>
-
-      <Text>{" "}</Text>
-
       {/* Rows — single-line: label + values */}
       {VIEW_DIALOG_ROWS.map((row, ri) => {
         const isActiveRow = ri === cursorRow
@@ -71,7 +60,7 @@ export function FilterDialog({
             <Text wrap="truncate">
               {/* Row label */}
               <Text
-                color={isActiveRow ? "cyan" : hasActive ? "white" : "gray"}
+                color={isActiveRow ? "$primary" : hasActive ? "$text" : "$muted"}
                 bold={isActiveRow || hasActive}
                 inverse={isActiveRow}
               >
@@ -83,7 +72,7 @@ export function FilterDialog({
                 <React.Fragment key={i}>
                   {i > 0 && <Text>{" "}</Text>}
                   <Text
-                    color={vp.isActive ? "cyan" : vp.isCursor ? "white" : "gray"}
+                    color={vp.isActive ? "$primary" : vp.isCursor ? "$text" : "$muted"}
                     bold={vp.isActive}
                     inverse={vp.isCursor}
                   >
@@ -101,20 +90,14 @@ export function FilterDialog({
         <>
           <Text>{" "}</Text>
           <Text wrap="truncate">
-            <Text color="gray">{"  text: "}</Text>
-            <Text color="cyan" bold>
+            <Text color={"$muted"}>{"  text: "}</Text>
+            <Text color={"$primary"} bold>
               {filterText}
             </Text>
           </Text>
         </>
       )}
-
-      {/* Footer */}
-      <Text>{" "}</Text>
-      <Text dimColor wrap="truncate">
-        {"j/k row  h/l value  spc select  X clear  esc close"}
-      </Text>
-    </Box>
+    </ModalDialog>
   )
 }
 

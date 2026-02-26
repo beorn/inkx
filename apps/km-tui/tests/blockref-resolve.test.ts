@@ -1,8 +1,9 @@
 /**
- * Regression: km-tui.raw-id-tasks
+ * Regression: km-tui.raw-id-tasks, km-tui.bare-ids-still
  *
- * Block references (^numericId) and wikilinks ([[^nodeId]]) should resolve
- * to target node titles when possible, rather than showing raw IDs.
+ * Block references (^numericId), angle-bracket refs (<^numericId>), and
+ * wikilinks ([[^nodeId]]) should resolve to target node titles when possible,
+ * rather than showing raw IDs.
  * Unresolved blockrefs should be hidden; unresolved wikilinks should be dimmed.
  */
 import { describe, test, expect } from "vitest"
@@ -35,7 +36,7 @@ describe("blockref/wikilink resolution", () => {
     const nodes = parseInlineText("See ^1210156063601370")
     const blockref = nodes.find((n) => n.type === "blockref")
     expect(blockref).toBeDefined()
-    if (blockref && blockref.type === "blockref") {
+    if (blockref?.type === "blockref") {
       expect(blockref.id).toBe("1210156063601370")
     }
   })
@@ -44,7 +45,7 @@ describe("blockref/wikilink resolution", () => {
     const nodes = parseInlineText("See [[^1210156063601370]]")
     const wikilink = nodes.find((n) => n.type === "wikilink")
     expect(wikilink).toBeDefined()
-    if (wikilink && wikilink.type === "wikilink") {
+    if (wikilink?.type === "wikilink") {
       expect(wikilink.target).toBe("^1210156063601370")
     }
   })
@@ -110,5 +111,90 @@ describe("blockref/wikilink resolution", () => {
     const text = card.textContent()
     // Unresolved wikilink still shows target text (dimmed, not green/underlined)
     expect(text).toContain("^9999999999999999")
+  })
+
+  // --- km-tui.bare-ids-still regression tests ---
+
+  test("parser: <^numericId> parsed as single blockref (no angle brackets)", () => {
+    const nodes = parseInlineText("See <^1203717363310394>")
+    const blockref = nodes.find((n) => n.type === "blockref")
+    expect(blockref).toBeDefined()
+    if (blockref?.type === "blockref") {
+      expect(blockref.id).toBe("1203717363310394")
+    }
+    // Angle brackets should NOT appear as plain text
+    const plainTexts = nodes
+      .filter((n) => n.type === "plain")
+      .map((n) => (n as { text: string }).text)
+      .join("")
+    expect(plainTexts).not.toContain("<")
+    expect(plainTexts).not.toContain(">")
+  })
+
+  test("parser: bare ^ID at end of line has separating space", () => {
+    const nodes = parseInlineText("See ^1210156063601370")
+    // Should be: plain("See"), plain(" "), blockref
+    const types = nodes.map((n) => n.type)
+    expect(types).toContain("blockref")
+    // When flattened, there should be a space before the blockref position
+    const plainTexts = nodes
+      .filter((n) => n.type === "plain")
+      .map((n) => (n as { text: string }).text)
+      .join("")
+    expect(plainTexts).toBe("See ")
+  })
+
+  test("full board: <^ID> resolves to target title without angle brackets", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("col1", item("See <^1210156063601370>")),
+        )
+        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
+        return nodes
+      },
+      { rows: 20, columns: 80 },
+    )
+
+    const card = board.q("[data-cursor]")
+    const text = card.textContent()
+    expect(text).toContain("Review quarterly budget")
+    expect(text).not.toContain("1210156063601370")
+    expect(text).not.toContain("<")
+    expect(text).not.toContain(">")
+  })
+
+  test("full board: <^ID> hidden when unresolved (no angle brackets)", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("See <^1210156063601370>"))),
+      { rows: 20, columns: 80 },
+    )
+
+    const card = board.q("[data-cursor]")
+    const text = card.textContent()
+    expect(text).not.toContain("1210156063601370")
+    expect(text).not.toContain("<")
+    expect(text).not.toContain(">")
+    expect(text).toContain("See")
+  })
+
+  test("full board: resolved blockref has proper spacing", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("col1", item("See ^1210156063601370")),
+        )
+        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
+        return nodes
+      },
+      { rows: 20, columns: 80 },
+    )
+
+    const card = board.q("[data-cursor]")
+    const text = card.textContent()
+    // Should have a space between "See" and resolved title
+    expect(text).toContain("See Review quarterly budget")
   })
 })

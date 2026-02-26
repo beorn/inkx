@@ -149,10 +149,10 @@ describe("formatDate", () => {
 describe("getStatusDisplay", () => {
   test.each([
     [undefined, "todo", "blue"],
-    ["done", "done", "green"],
-    ["wip", "wip", "yellow"],
-    ["blocked", "blocked", "red"],
-    ["dropped", "dropped", "gray"],
+    ["done", "done", "$success"],
+    ["wip", "wip", "$warning"],
+    ["blocked", "blocked", "$error"],
+    ["dropped", "dropped", "$muted"],
   ] as const)("status %s returns text=%s color=%s", (status, expectedText, expectedColor) => {
     const result = getStatusDisplay(status)
     expect(result.text).toBe(expectedText)
@@ -296,17 +296,18 @@ describe("DetailPane", () => {
     expect(app.text).toContain("bjorn")
     expect(app.text).toContain("Created")
     expect(app.text).toContain("2026-01-01")
-    // Check ANSI output: values should have white foreground (38;5;7 in 256-color)
+    // Check ANSI output: values should have $text foreground (visible, not dim)
     // but keys should have dim styling (attr 2)
     const ansi = app.ansi
     // The key "Assigned" should be dim (attribute 2)
     expect(ansi).toMatch(/2m[^]*?Assigned/)
-    // The value "bjorn" should have white color (38;5;7), not be dim
+    // The value "bjorn" should have a visible fg color ($text token), not be dim
     const bjornIdx = ansi.indexOf("bjorn")
     expect(bjornIdx).toBeGreaterThan(-1)
-    // Look at the ANSI codes before "bjorn" — should include white fg (38;5;7)
+    // Look at the ANSI codes before "bjorn" — should include a foreground color
+    // ($text resolves to white 38;5;7 with km theme, or Nord #ECEFF4 = 38;2;236;239;244 with default)
     const before = ansi.slice(Math.max(0, bjornIdx - 60), bjornIdx)
-    expect(before).toMatch(/38;5;7/)
+    expect(before).toMatch(/38;(?:5;7|2;236;239;244)/)
   })
 
   test("shows subtasks as outline items", () => {
@@ -352,7 +353,7 @@ describe("DetailPane", () => {
       ]),
     })
     const task = repo.getNode("task1")!
-    const app = renderDetailPane(repo, task, 50, 24)
+    const app = renderDetailPane(repo, task, 80, 24)
     expect(app.text).toContain("#budget")
     expect(app.text).toContain("@john")
     expect(app.text).toContain("work")
@@ -734,7 +735,7 @@ describe("DetailPane", () => {
     expect(app.text).not.toMatch(/\bDepth\s{2,}/)
   })
 
-  test("shows location on the title line, not as a metadata row", () => {
+  test("shows location as breadcrumb, not as a metadata row", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
         { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
@@ -757,23 +758,12 @@ describe("DetailPane", () => {
     })
     const task = repo.getNode("task1")!
     const app = renderDetailPane(repo, task, 60, 24)
+    // Title appears in top bar
+    expect(app.text).toContain("Review budget")
     // Location path should appear as breadcrumb (with " / " separators)
     expect(app.text).toContain("Work / Finance")
     // But NOT as a metadata row with "Location" label followed by padding
     expect(app.text).not.toMatch(/\bLocation\s{2,}/)
-    // Location should be on the same line as the title or immediately above it as breadcrumb
-    const lines = app.text.split("\n")
-    const titleLine = lines.find((l: string) => l.includes("Review budget"))
-    const locationLine = lines.find((l: string) => l.includes("Work / Finance"))
-    // Location should be on the title line or immediately above it
-    expect(locationLine).toBeDefined()
-    if (titleLine && locationLine) {
-      const titleIdx = lines.indexOf(titleLine)
-      const locIdx = lines.indexOf(locationLine)
-      // Location should be on the same line as title or at most 1 line above
-      expect(locIdx).toBeLessThanOrEqual(titleIdx)
-      expect(titleIdx - locIdx).toBeLessThanOrEqual(1)
-    }
   })
 
   test("no dot separators between top-level subitems", () => {

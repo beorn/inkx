@@ -20,6 +20,8 @@ export function stripForDisplay(text: string): string {
       .replace(/\s*!\[\[\^\d+\]\]/g, "")
       // Strip embed wikilinks ![[target]] and ![[target|alias]] — replace with alias or target name
       .replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target: string, alias?: string) => alias ?? target)
+      // Strip angle-bracket block references <^numericId> (Asana-style 10+ digit IDs)
+      .replace(/<\^\d{10,}>/g, "")
       // Strip inline ^numeric-id references (Asana-style 10+ digit IDs) that are NOT inside [[...]]
       .replace(/\^\d{10,}/g, (match, offset: number, str: string) => {
         // Check if this ^ is inside a wikilink by looking for preceding [[ without intervening ]]

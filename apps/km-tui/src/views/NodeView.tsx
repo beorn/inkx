@@ -46,13 +46,14 @@ import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "chalkx"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
+import { km } from "../theme.ts"
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface ColumnHeaderStyle {
-  color: string
+  color: string | undefined
   backgroundColor: string | undefined
   dimColor: boolean
 }
@@ -126,7 +127,7 @@ export function ColumnHeader({
   hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? "black" : icon.color
+  const iconColor = isColumnSelected ? km.selectionFg : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
 
   // Build count display
@@ -143,9 +144,9 @@ export function ColumnHeader({
         </Box>
       )}
       {/* Header row — paddingLeft aligns icon with card content (cards have 1-char border) */}
-      <Box height={1} flexShrink={0} width={width} flexDirection="row">
+      <Box height={1} flexShrink={0} width={width} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
         <Box width={1} flexShrink={0} />
-        <Box flexGrow={1} flexShrink={1} flexDirection="row" backgroundColor={headerStyle.backgroundColor}>
+        <Box flexGrow={1} flexShrink={1} flexDirection="row">
           {children ? (
             // Custom content (e.g., inline edit field)
             <Text bold color={headerStyle.color} wrap="truncate">
@@ -158,7 +159,7 @@ export function ColumnHeader({
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
                     {untitled ? (
-                      <Text dimColor color="gray">
+                      <Text dimColor color={"$muted"}>
                         {displayName}
                       </Text>
                     ) : (
@@ -174,7 +175,7 @@ export function ColumnHeader({
                   {hasBody && !isVirtual && <Text dimColor>{" ···"}</Text>}
                   {typeSuffix ? (
                     <Text
-                      color={isColumnSelected ? "gray" : undefined}
+                      color={isColumnSelected ? "$muted" : undefined}
                       dimColor={!isColumnSelected}
                     >{` ${typeSuffix}`}</Text>
                   ) : (
@@ -187,9 +188,9 @@ export function ColumnHeader({
                 <Box flexShrink={0}>
                   <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
                     {wipExceeded ? (
-                      <Text color="red">{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
+                      <Text color={"$error"}>{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                     ) : (
-                      <Text color={isColumnSelected ? headerStyle.color : "gray"}>{` ${countDisplay}`}</Text>
+                      <Text color={isColumnSelected ? headerStyle.color : "$muted"}>{` ${countDisplay}`}</Text>
                     )}
                   </Text>
                 </Box>
@@ -202,7 +203,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "yellow" : undefined} dimColor={!isColumnSelected}>
+          <Text color={isColumnSelected ? km.selectionBg : undefined} dimColor={!isColumnSelected}>
             {"\u2500".repeat(Math.max(0, width))}
           </Text>
         </Box>
@@ -262,9 +263,9 @@ export function NodeLineView({
       return nodeIsTask ? stripTaskMark(rawContent) : rawContent
     })()
 
-  const textColor = isSelected ? "black" : undefined
-  const bgColor = isSelected ? "yellow" : undefined
-  const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? km.selectionFg : undefined
+  const bgColor = isSelected ? km.selectionBg : undefined
+  const iconColor = isSelected ? km.selectionFg : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
@@ -329,9 +330,9 @@ export function NodeCardView({
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-  const textColor = isSelected ? "black" : undefined
-  const bgColor = isSelected ? "yellow" : undefined
-  const iconColor = isSelected ? "black" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? km.selectionFg : undefined
+  const bgColor = isSelected ? km.selectionBg : undefined
+  const iconColor = isSelected ? km.selectionFg : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
@@ -363,13 +364,13 @@ export function NodeCardView({
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
-            {subtaskBadge && <Text color={isSelected ? "black" : "gray"}>{` ${subtaskBadge}`}</Text>}
+            {subtaskBadge && <Text color={isSelected ? km.selectionFg : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
           <Box flexShrink={0}>
-            <Text color={isSelected ? "black" : "red"}>{" blocked"}</Text>
+            <Text color={isSelected ? km.selectionFg : "$error"}>{" blocked"}</Text>
           </Box>
         )}
         {hasDateBadge && (
@@ -427,8 +428,8 @@ export function NodeColumnView({
   isSelected = false,
   width,
 }: NodeColumnViewProps): React.ReactElement {
-  const textColor = isSelected ? "black" : undefined
-  const bgColor = isSelected ? "yellow" : undefined
+  const textColor = isSelected ? km.selectionFg : undefined
+  const bgColor = isSelected ? km.selectionBg : undefined
 
   return (
     <Box flexDirection="column" width={width}>
@@ -440,12 +441,12 @@ export function NodeColumnView({
           </Text>
         </Box>
         <Box flexShrink={0}>
-          <Text color={isSelected ? "black" : "gray"}>{` ${count}`}</Text>
+          <Text color={isSelected ? km.selectionFg : "$muted"}>{` ${count}`}</Text>
         </Box>
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text dimColor={!isSelected} color={isSelected ? "yellow" : undefined}>
+        <Text dimColor={!isSelected} color={isSelected ? km.selectionBg : undefined}>
           {"\u2500".repeat(Math.max(0, width ?? 40))}
         </Text>
       </Box>
@@ -495,14 +496,14 @@ export function NodeTabView({
     displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
   const countStr = ` (${count})`
 
-  const textColor = isSelected ? "black" : isActive ? "yellow" : "white"
+  const textColor = isSelected ? km.selectionFg : isActive ? km.selectionBg : "$text"
 
   return (
-    <Box backgroundColor={isSelected ? "yellow" : undefined}>
+    <Box backgroundColor={isSelected ? km.selectionBg : undefined}>
       <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
-          <Text dimColor color="gray">
+          <Text dimColor color={"$muted"}>
             {truncatedName}
           </Text>
         ) : (
@@ -575,12 +576,12 @@ export function NodeDetailView({
       width={width}
       height={height}
       borderStyle="round"
-      borderColor="yellow"
-      backgroundColor="black"
+      borderColor={km.selectionBg}
+      backgroundColor={km.overlayBg}
     >
       {/* Title header — yellow bg */}
-      <Box flexDirection="column" width={width - 2} backgroundColor="yellow" paddingX={1}>
-        <Text bold color="black" wrap="wrap">
+      <Box flexDirection="column" width={width - 2} backgroundColor={km.selectionBg} paddingX={1}>
+        <Text bold color={km.selectionFg} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
           <InlineText text={displayContent} context={{ noColor: true, hideFields: true }} />
         </Text>
@@ -678,6 +679,7 @@ export function deriveColumnHeaderProps(
     isColumnSelected: boolean
     isVirtual?: boolean
     isInlineEditing?: boolean
+    paneFocused?: boolean
   },
 ): {
   displayName: string
@@ -696,11 +698,11 @@ export function deriveColumnHeaderProps(
 
   const headerStyle = opts.isInlineEditing
     ? {
-        color: "cyan",
+        color: km.cardBorderEditing,
         backgroundColor: undefined as string | undefined,
         dimColor: false,
       }
-    : getHeaderStyle(ownColor, opts.isSelected, opts.isColumnSelected)
+    : getHeaderStyle(ownColor, opts.isSelected, opts.isColumnSelected, opts.paneFocused ?? true)
 
   // Virtual body columns: dim header unless cursor is on column header
   if (isVirtual && !opts.isColumnSelected) headerStyle.dimColor = true

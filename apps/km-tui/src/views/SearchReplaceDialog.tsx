@@ -16,6 +16,7 @@
 
 import React from "react"
 import { Box, Text, useEditContext } from "inkx"
+import { km } from "../theme.ts"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 import { formatTitleWithHotkey } from "./shared-components.tsx"
 
@@ -91,12 +92,12 @@ export function SearchReplaceDialog({
   const { searchQuery, replaceQuery, useRegex, matchIndex, matchCount, focusedField } = state
 
   // Match indicator
-  let matchIndicator = ""
+  let matchRight: React.ReactNode = null
   if (searchQuery.length > 0) {
     if (matchCount === 0) {
-      matchIndicator = "No matches"
+      matchRight = <Text color="$error">No matches</Text>
     } else {
-      matchIndicator = `${matchIndex + 1} of ${matchCount}`
+      matchRight = <Text color="$warning">{`${matchIndex + 1} of ${matchCount}`}</Text>
     }
   }
 
@@ -110,18 +111,17 @@ export function SearchReplaceDialog({
       borderColor="cyan"
       backgroundColor="black"
       paddingX={1}
-      paddingY={1}
       data-dialog="search-replace"
     >
       {/* Title bar */}
       <Box flexDirection="row" justifyContent="space-between">
         {formatTitleWithHotkey("Find & Replace", "F", "cyan")}
-        {matchIndicator && <Text color={matchCount === 0 ? "red" : "yellow"}>{matchIndicator}</Text>}
+        {matchRight}
       </Box>
 
       {/* Search field */}
       <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "search" ? "cyan" : "gray"}>
+        <Text color={focusedField === "search" ? km.dialogBody : "$muted"}>
           {focusedField === "search" ? "> " : "  "}
           Find:{" "}
         </Text>
@@ -130,7 +130,7 @@ export function SearchReplaceDialog({
 
       {/* Replace field */}
       <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "replace" ? "cyan" : "gray"}>
+        <Text color={focusedField === "replace" ? km.dialogBody : "$muted"}>
           {focusedField === "replace" ? "> " : "  "}
           Repl:{" "}
         </Text>
@@ -140,7 +140,7 @@ export function SearchReplaceDialog({
       {/* Bottom bar: toggles + hints */}
       <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
         <Box flexDirection="row" gap={1}>
-          <Text color={useRegex ? "green" : "gray"}>[{useRegex ? "x" : " "}] regex</Text>
+          <Text color={useRegex ? "$success" : "$muted"}>{useRegex ? "\u2713" : "\u25A1"} regex</Text>
         </Box>
         <Box flexDirection="row" gap={1}>
           <Text dimColor>Tab:field</Text>

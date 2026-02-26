@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider } from "inkx"
+import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider, ThemeProvider } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { restoreTerminal, createRawSignalHandler } from "./raw-signals.ts"
@@ -16,6 +16,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
+import { defaultKmTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -273,11 +274,13 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       // (fast), then columns fill in one-by-one on the alt screen. No need to show
       // "Rendering..." — the board frame appears almost immediately.
       const handle = await boardApp.run(
-        <RepoProvider repo={options.repo}>
-          <InputLayerProvider>
-            <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
-          </InputLayerProvider>
-        </RepoProvider>,
+        <ThemeProvider theme={defaultKmTheme}>
+          <RepoProvider repo={options.repo}>
+            <InputLayerProvider>
+              <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
+            </InputLayerProvider>
+          </RepoProvider>
+        </ThemeProvider>,
         isInteractive
           ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
           : { cols, rows, stdout: process.stdout },

@@ -6,6 +6,7 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { Toast as ToastType } from "@km/core"
+import { km } from "../theme.ts"
 import { BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 
 interface ToastStackProps {
@@ -38,10 +39,10 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
   } as const
 
   const colors = {
-    info: "cyan" as const,
-    success: "green" as const,
-    warning: "yellow" as const,
-    error: "red" as const,
+    info: "$primary",
+    success: "$success",
+    warning: "$warning",
+    error: "$error",
   }
 
   const icon = icons[toast.level]
@@ -71,8 +72,8 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       flexDirection="column"
       flexShrink={0}
       borderStyle="round"
-      borderColor="white"
-      backgroundColor="black"
+      borderColor="$border"
+      backgroundColor={km.overlayBg}
       paddingLeft={1}
       paddingRight={1}
       minWidth={40}

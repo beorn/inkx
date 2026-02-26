@@ -13,6 +13,7 @@ import React, { useMemo } from "react"
 import { Box, Text, Fill } from "inkx"
 import { KeyBinding, ModalDialog } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
+import { km } from "../theme.ts"
 
 interface HelpOverlayProps {
   width: number
@@ -43,7 +44,7 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text bold color="cyan">
+      <Text bold color={km.helpSectionHeading}>
         {title.toUpperCase()}
       </Text>
       {hint && (
@@ -71,7 +72,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color="#666666">{"/"}</Text>}
+          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}
@@ -87,13 +88,13 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text>{" "}</Text>}
-          <KeyBinding keys={k} />
+          <KeyBinding keys={k} color={km.helpKey} />
         </React.Fragment>
       ))}
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text color="#444444">{"·"}</Text>
+          <Text color={"$muted"} dimColor>{"·"}</Text>
         </Fill>
       </Box>
       <Text> </Text>
@@ -194,35 +195,36 @@ const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
   if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
-  return <KeyBinding keys={value} />
+  return <KeyBinding keys={value} color={km.helpKey} />
 }
 
 function buildVerbGridLines(): React.ReactElement[] {
   const lines: React.ReactElement[] = []
 
-  // Section header
+  // Section header + blank line
   lines.push(<SectionHeaderLine key="vg-hdr" title="Shortcuts" />)
+  lines.push(<Text key="vg-blank-after-hdr"> </Text>)
 
   // Column headers (verb names)
   lines.push(
     <Box key="vg-col-hdr" flexDirection="row">
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
-        <Text bold color="cyan">
+        <Text bold color={km.helpSectionHeading}>
           {"go to"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color="cyan">
+        <Text bold color={km.helpSectionHeading}>
           {"move"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color="cyan">
+        <Text bold color={km.helpSectionHeading}>
           {"add/link"}
         </Text>
       </Box>
-      <Text bold color="cyan">
+      <Text bold color={km.helpSectionHeading}>
         {"create"}
       </Text>
     </Box>,
@@ -235,21 +237,21 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color="yellow">{"g"}</Text>
+        <Text color={km.helpKey}>{"g"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color="yellow">{"⌃g"}</Text>
+        <Text color={km.helpKey}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color="yellow">{"m"}</Text>
+        <Text color={km.helpKey}>{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color="yellow">{"⌃m"}</Text>
+        <Text color={km.helpKey}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color="yellow">{"a"}</Text>
+        <Text color={km.helpKey}>{"a"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color="yellow">{"⌃l"}</Text>
+        <Text color={km.helpKey}>{"⌃l"}</Text>
       </Box>
-      <Text color="yellow">{"c"}</Text>
+      <Text color={km.helpKey}>{"c"}</Text>
     </Box>,
   )
 
@@ -264,7 +266,7 @@ function buildVerbGridLines(): React.ReactElement[] {
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Box width={VG_LOC_W} flexDirection="row">
-          <Text color="yellow">{row.key}</Text>
+          <Text color={km.helpKey}>{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
         <Box width={VG_COL_W} flexDirection="row">
@@ -299,10 +301,10 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         marginTop={Math.max(0, Math.floor((height - 3) / 2))}
         flexDirection="column"
         borderStyle="single"
-        borderColor="white"
+        borderColor={"$border"}
         data-dialog="help"
       >
-        <Text color="white">Terminal too small</Text>
+        <Text color={"$text"}>Terminal too small</Text>
         <Text dimColor>Press ? or Esc</Text>
       </Box>
     )
@@ -338,7 +340,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color="yellow">{scrollHint}</Text>
+          <Text color={km.dialogShortcut}>{scrollHint}</Text>
         </>
       )}
     </Box>
@@ -346,7 +348,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" footer={footer}>
+      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" titleColor={km.helpSectionHeading} footer={footer}>
         {visibleContent}
       </ModalDialog>
     </Box>

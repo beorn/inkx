@@ -15,6 +15,14 @@ function createTermStyle(): StyleChain {
   return createTerm({ color: "truecolor" })
 }
 
+/** Colors that are too bright/light to be readable on a white background */
+const BRIGHT_COLORS = new Set(["white", "yellow", "cyan", "gray", "grey"])
+
+/** Returns true if the given color would be invisible or low-contrast on white bg */
+function isBrightOnWhite(color: string): boolean {
+  return BRIGHT_COLORS.has(color)
+}
+
 export interface PathSegment {
   id: string | null
   name: string
@@ -117,7 +125,7 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
  */
 export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
-  isBoardSelected: boolean,
+  _isBoardSelected: boolean,
   boardColor?: string,
 ): string {
   const style = createTermStyle()
@@ -131,10 +139,17 @@ export function renderTopBarContent(
   // Build content: " ● " prefix + segments
   // Use style only for bold (board root) and dim (other segments)
   // Base color is inherited from parent Text component
-  const boldStyle = isBoardSelected ? style.black.bold : style.gray.bold
-  const dimStyle = isBoardSelected ? style.black.dim : style.gray.dim
+  // Always use dark text — bar background is always bright (white or yellow)
+  const boldStyle = style.black.bold
+  const dimStyle = style.black.dim
 
-  let content = boardColor ? " " + colorize("●", boardColor) + " " : " "
+  // Board color dot: use the color if it's dark enough, otherwise dim black
+  const dotColor = boardColor && !isBrightOnWhite(boardColor)
+    ? colorize("●", boardColor)
+    : boardColor
+      ? style.black.dim("●")
+      : null
+  let content = dotColor ? " " + dotColor + " " : " "
 
   segments.forEach((seg, idx) => {
     const sepPart = seg.sep ? ` ${seg.sep} ` : ""

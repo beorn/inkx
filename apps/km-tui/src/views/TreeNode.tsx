@@ -63,6 +63,7 @@ import {
 } from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { stripKnownMentions } from "./detail-pane-helpers.ts"
+import { km } from "../theme.ts"
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
@@ -731,7 +732,8 @@ function TreeNodeImpl({
             "data-card-index": cardIndex,
           })}
           flexDirection="row"
-          alignItems="flex-start"
+          alignItems={isOneliner || isCardChild ? undefined : "flex-start"}
+          overflow={isOneliner || isCardChild ? "hidden" : undefined}
           paddingLeft={Math.max(0, depth - 1)}
           backgroundColor={effectiveBg}
           height={isOneliner || isCardChild ? 1 : undefined}
@@ -776,7 +778,7 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0}
-                color={dimUntitled ? "gray" : (tc ?? style.ownColor)}
+                color={dimUntitled ? "$muted" : (tc ?? style.ownColor)}
                 dimColor={sd || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
@@ -813,19 +815,19 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "gray"}>{` ${childCount}`}</Text>
+              <Text color={isHighlighted ? tc : "$muted"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
           {isBlocked && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "red"}>{" blocked"}</Text>
+              <Text color={isHighlighted ? tc : "$error"}>{" blocked"}</Text>
             </Box>
           )}
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
           {subtaskBadge && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "gray"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isHighlighted ? tc : "$muted"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -850,7 +852,7 @@ function TreeNodeImpl({
           const isActiveBlock = editBlockIndex === blockIndex
           return (
             <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color="cyan">
+              <Text dimColor={!isActiveBlock} color={km.cardBorderEditing}>
                 {"  "}
               </Text>
               {isActiveBlock ? (
@@ -902,7 +904,7 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text color="cyan" dimColor>
+                <Text color={km.cardBorderEditing} dimColor>
                   <InlineText text={child.content ?? ""} />
                 </Text>
               )}
@@ -914,7 +916,7 @@ function TreeNodeImpl({
       {childrenVisible && (
         <ErrorBoundary
           fallback={
-            <Text color="red" dim>
+            <Text color={"$error"} dim>
               [error]
             </Text>
           }
@@ -1311,7 +1313,7 @@ const FoldedChildRow = React.memo(
         id={node.id}
         data-view="item"
         flexDirection="row"
-        alignItems="flex-start"
+        overflow="hidden"
         paddingLeft={Math.max(0, depth - 1)}
         backgroundColor={effectiveBg}
         height={1}
@@ -1343,7 +1345,7 @@ const FoldedChildRow = React.memo(
         {/* Right-aligned: child count — mirrors TreeNode's count display */}
         {hasChildren && (
           <Box flexShrink={0}>
-            <Text color="gray">{` ${childCount}`}</Text>
+            <Text color={"$muted"}>{` ${childCount}`}</Text>
           </Box>
         )}
       </Box>

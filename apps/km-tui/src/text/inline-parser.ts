@@ -125,6 +125,11 @@ const KM_PATTERNS = [
   },
   // Embed block references: ![[^numericId]]
   { re: /!\[\[\^(\d+)\]\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }) },
+  // Angle-bracket block references: <^numericId> (10+ digits)
+  {
+    re: /<\^(\d{10,})>/g,
+    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
+  },
   // Wiki links: ![[target]], [[target]], [[target|alias]]
   {
     re: /(!?)\[\[([^\]]+)\]\]/g,
@@ -258,9 +263,18 @@ export function parseInlineText(text: string): InlineNode[] {
     if (i > 0) result.push({ type: "plain", text: "\n" })
     if (child?.type === "paragraph" && "children" in child) {
       result.push(...phrasingToInline(child.children))
-      // Re-emit block ID stripped by kmBlockIdTransform as a blockref node
+      // Re-emit block ID stripped by kmBlockIdTransform as a blockref node.
+      // The transform strips " ^ID" (with preceding space) from the text,
+      // so we re-inject a space before the blockref to preserve word spacing
+      // when the blockref resolves to a display title.
       const blockId = (child.data as Record<string, unknown> | undefined)?.blockId
       if (typeof blockId === "string") {
+        // Add a separating space if the last node doesn't already end with whitespace
+        const lastNode = result[result.length - 1]
+        const needsSpace = lastNode && !(lastNode.type === "plain" && /\s$/.test(lastNode.text))
+        if (needsSpace) {
+          result.push({ type: "plain", text: " " })
+        }
         result.push({ type: "blockref", id: blockId })
       }
     } else {

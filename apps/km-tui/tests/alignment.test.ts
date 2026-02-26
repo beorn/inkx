@@ -320,11 +320,11 @@ describe("alignment: 3 columns WIDE", () => {
     const box3 = board.screen.nodeBox("col3")
     expect(box1).not.toBeNull()
     expect(box3).not.toBeNull()
-    // First column should start near X=0 (allowing for scroll indicators)
-    expect(box1!.x).toBeLessThanOrEqual(1)
-    // Last column should extend to near the terminal width
+    // First column should start near X=0 (allowing for overflow indicators: 1 char each side)
+    expect(box1!.x).toBeLessThanOrEqual(2)
+    // Last column should extend to near the terminal width (minus overflow indicators)
     const rightEdge = box3!.x + box3!.width
-    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.columns - 2)
+    expect(rightEdge).toBeGreaterThanOrEqual(WIDE.columns - 4)
   })
 })
 
@@ -552,7 +552,7 @@ describe("alignment: collapsed columns", () => {
     // Verify col1 is visible
     const col1Box = board.screen.nodeBox("col1")
     expect(col1Box).not.toBeNull()
-    expect(col1Box!.x).toBeLessThanOrEqual(1)
+    expect(col1Box!.x).toBeLessThanOrEqual(2)
 
     // Verify all 4 data-column elements exist (2 collapsed + 2 expanded)
     const allColumns = board.q("[data-column]")

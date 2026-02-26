@@ -6,6 +6,7 @@
  */
 import React from "react"
 import { Box, Text } from "inkx"
+import { km } from "../theme.ts"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { ModalDialog } from "./shared-components.tsx"
@@ -25,21 +26,21 @@ export interface DatePromptDialogProps {
 /** Get live preview text for the current input */
 function getPreview(field: string, input: string): { text: string; color: string } {
   const trimmed = input.trim()
-  if (!trimmed) return { text: "Empty = clear value", color: "gray" }
+  if (!trimmed) return { text: "Empty = clear value", color: "$muted" }
 
   if (field === "recurrence") {
     const rrule = naturalToRRule(trimmed)
-    if (rrule) return { text: rrule, color: "green" }
-    return { text: "Invalid recurrence", color: "red" }
+    if (rrule) return { text: rrule, color: "$success" }
+    return { text: "Invalid recurrence", color: "$error" }
   }
 
   const resolved = resolveRelativeDate(trimmed)
   if (resolved) {
     const timeStr = resolved.time ? ` ${resolved.time}` : ""
-    return { text: `${resolved.date}${timeStr}`, color: "green" }
+    return { text: `${resolved.date}${timeStr}`, color: "$success" }
   }
 
-  return { text: "Cannot parse date", color: "red" }
+  return { text: "Cannot parse date", color: "$error" }
 }
 
 const FIELD_TITLES: Record<string, string> = {
@@ -75,9 +76,9 @@ export function DatePromptDialog({
   return (
     <ModalDialog title={title} width={width} height={height} footer="Enter confirm  Esc cancel">
       {/* Input field */}
-      <Box borderStyle="round" borderColor="cyan" flexShrink={0}>
+      <Box borderStyle="round" borderColor={km.dialogInputBorder} flexShrink={0}>
         <Text>
-          <Text color="white">{"> "}</Text>
+          <Text color={"$text"}>{"> "}</Text>
           {editCtx.beforeCursor}
           <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
           {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}

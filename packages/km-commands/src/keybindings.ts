@@ -428,14 +428,16 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "local-find",
     bindings: [
       // Find bar input active (text input focused): Enter confirms, Escape cancels
-      { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused) },
+      // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
+      { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused, not(isInlineEditing)) },
       { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
       { key: "n", ctrl: true, commandId: "find_next", when: and(localFindActive, textInputFocused) },
       { key: "p", ctrl: true, commandId: "find_prev", when: and(localFindActive, textInputFocused) },
       // Find bar closed but matches remain: n/N navigate, Escape clears
+      // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
       { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
       { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
-      { key: "Escape", commandId: "find_close", when: and(localFindActive, not(textInputFocused)) },
+      { key: "Escape", commandId: "find_close", when: and(localFindActive, not(textInputFocused), not(isInlineEditing)) },
     ],
   },
 
@@ -822,11 +824,10 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // V (uppercase) = view settings (opens filter dialog)
       { key: "V", commandId: "filter" },
       { key: "?", commandId: "show_help" },
-      { key: "+", commandId: "increase_content_lines" },
+      { key: ".", commandId: "increase_content_lines" },
       { key: "=", commandId: "increase_content_lines" },
+      { key: ",", commandId: "decrease_content_lines" },
       { key: "-", commandId: "decrease_content_lines" },
-      { key: "_", commandId: "decrease_content_lines" },
-      { key: ",", commandId: "settings" },
 
       // Filter and command palette
       { key: "/", ctrl: true, commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal

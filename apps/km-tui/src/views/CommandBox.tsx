@@ -392,6 +392,21 @@ export function StatusCounters({
   const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
   const spinnerFrame = useSpinnerFrame(isLoading)
 
+  // Elapsed time counter for long operations
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!ui.loadingStartTime) {
+      setElapsed(0)
+      return
+    }
+    const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
+    tick()
+    // @ts-expect-error - React internal flag set by inkx test renderer
+    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [ui.loadingStartTime])
+
   const logTotal = consoleStats?.total ?? 0
   const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0
   const logFlash = useFlashOnChange(logTotal)
@@ -407,6 +422,12 @@ export function StatusCounters({
       <Text dimColor id="storage-path">
         {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
       </Text>
+      {/* Loading spinner + elapsed time counter */}
+      {isLoading && (
+        <Text dimColor id="loading-indicator">
+          {" "}{spinnerFrame}{elapsed > 1 ? ` ${elapsed}s` : ""}
+        </Text>
+      )}
       {logTotal > 0 && (
         <Text dimColor={!logFlash} id="console-indicator">
           {" "}

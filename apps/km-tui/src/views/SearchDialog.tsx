@@ -15,6 +15,7 @@ import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
+import { km } from "../theme.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -106,7 +107,7 @@ function SearchResults({ results, selectedIndex, scrollOffset, maxVisible, query
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? "blue" : "cyan"} dimColor={!isSelected}>
+              <Text color={isSelected ? km.dialogSelectedFg : "$primary"} dimColor={!isSelected}>
                 {` #${result.tags.join(" #")}`}
               </Text>
             )}
@@ -204,9 +205,9 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     },
   }))
 
-  // Dialog chrome overhead: border(2) + paddingY(2) + title+spacer(2) + input(2) + footer(2) = 10
+  // Dialog chrome overhead: border(2) + paddingY(2) + title+spacer(2) + input(3: focusRing border+text+border) + footer(2) = 11
   // (No separate scope line — scope is shown as InputBox prompt prefix)
-  const DIALOG_CHROME = 10
+  const DIALOG_CHROME = 11
   const maxVisible = Math.max(1, maxHeight - DIALOG_CHROME)
 
   // Calculate scroll offset and content-based height
@@ -233,7 +234,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   // Scope prompt prefix for the InputBox (e.g., "[All] " or "[in Alpha] ")
   const scopePrompt = scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
-  const scopePromptColor = scope === "all" ? "white" : "cyan"
+  const scopePromptColor = scope === "all" ? "$text" : "$primary"
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
@@ -271,7 +272,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       </Box>
 
       {/* Results list — flexGrow fills available height */}
-      <ErrorBoundary fallback={<Text color="red">Search error</Text>}>
+      <ErrorBoundary fallback={<Text color={"$error"}>Search error</Text>}>
         <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
             <Text dimColor>

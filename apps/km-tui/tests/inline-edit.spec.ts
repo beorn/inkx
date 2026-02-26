@@ -864,7 +864,7 @@ describe("edit focus ring", () => {
     expect(foundBlueBg, "title should NOT have blueBright background during edit").toBe(false)
   })
 
-  test("non-active body blocks show cyan text during inline edit mode", () => {
+  test("non-active body blocks show cardBorderEditing color during inline edit mode", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("task1", item.paragraph("body line 1"), item.paragraph("body line 2")))),
     )
@@ -876,10 +876,10 @@ describe("edit focus ring", () => {
     const bodyRow = findContentRow(board, "body line 1")
     expect(bodyRow, "body line 1 should be visible in card content area").toBeGreaterThanOrEqual(0)
 
-    // Non-active body text should have cyan fg (6)
+    // Non-active body text should have blue fg (4) — km.cardBorderEditing = "blue"
     const boCell = findBoCell(board, bodyRow)
     expect(boCell, "should find 'body' text on the row").not.toBeNull()
-    expect(boCell!.fg, "non-active body text should have cyan fg (6)").toBe(6)
+    expect(boCell!.fg, "non-active body text should have blue fg (4)").toBe(4)
   })
 
   test("navigating to body block does not add blue background", () => {

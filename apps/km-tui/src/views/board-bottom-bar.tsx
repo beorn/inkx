@@ -145,10 +145,10 @@ export function BottomBar({
     modeColor = "magenta"
   } else if (ui.visualMode) {
     modeLabel = "VISUAL"
-    modeColor = "cyan"
+    modeColor = "$primary"
   } else if (editMode === "text") {
     modeLabel = "TEXT"
-    modeColor = "yellow"
+    modeColor = "$warning"
     modeBold = true
   } else {
     modeLabel = "NODE"
@@ -203,7 +203,7 @@ export function BottomBar({
       width={termWidth}
       id="bottom-bar"
       data-status={ui.status?.level}
-      backgroundColor={ui.bellState ? "red" : undefined}
+      backgroundColor={ui.bellState ? "$error" : undefined}
     >
       {/* Left side: fills remaining space, truncates overflow */}
       <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">

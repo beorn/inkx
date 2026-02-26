@@ -137,10 +137,10 @@ describe("km-tui.collapsed-shift", () => {
     // Collapse first column
     board.press("v").press("c")
 
-    // The collapsed column should start at x=0
+    // The collapsed column should start at x=1 (left overflow indicator occupies x=0)
     const collapsedBox = board.q("[data-collapsed]").boundingBox()
     expect(collapsedBox).not.toBeNull()
-    expect(collapsedBox!.x, "Collapsed column should start at x=0").toBe(0)
+    expect(collapsedBox!.x, "Collapsed column should start at x=1 (after left overflow indicator)").toBe(1)
   })
 
   test("collapsed column width is exactly COLLAPSED_WIDTH=3", () => {
@@ -434,10 +434,10 @@ describe("collapsed column shift edge cases", () => {
     expect(bBox).not.toBeNull()
     if (!aBox || !bBox) return
 
-    // A should be at x=0
-    expect(aBox.x).toBe(0)
-    // B should be at A.x + A.width + 1 (separator)
-    expect(bBox.x).toBe(aBox.x + aBox.width + 1)
+    // A should be at x=1 (left overflow indicator)
+    expect(aBox.x).toBe(1)
+    // B should be right after A (no separator gap — overflow indicators absorb it)
+    expect(bBox.x).toBe(aBox.x + aBox.width)
   })
 
   test("collapsed column with 3+ columns: middle collapsed maintains position", () => {
@@ -459,12 +459,12 @@ describe("collapsed column shift edge cases", () => {
     expect(rightBox).not.toBeNull()
     if (!leftBox || !midBox || !rightBox) return
 
-    // Left should be at x=0
-    expect(leftBox.x).toBe(0)
-    // Mid (collapsed) should be right after Left + separator
-    expect(midBox.x).toBe(leftBox.x + leftBox.width + 1)
-    // Right should be right after Mid + separator
-    expect(rightBox.x).toBe(midBox.x + midBox.width + 1)
+    // Left should be at x=1 (left overflow indicator)
+    expect(leftBox.x).toBe(1)
+    // Mid (collapsed) should be right after Left (no separator gap)
+    expect(midBox.x).toBe(leftBox.x + leftBox.width)
+    // Right should be right after Mid (no separator gap)
+    expect(rightBox.x).toBe(midBox.x + midBox.width)
   })
 })
 

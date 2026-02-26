@@ -20,6 +20,7 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getParentName } from "./search-utils.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
+import { km } from "../theme.ts"
 
 // =============================================================================
 // Types
@@ -255,12 +256,14 @@ function SectionDivider({ label }: { label: string }): React.ReactElement {
 
 function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
+  const bg = isSelected ? km.dialogSelectedBg : undefined
+  const fg = isSelected ? km.dialogSelectedFg : undefined
 
   return (
     <Box>
       <Text
-        color={isSelected ? "white" : undefined}
-        backgroundColor={isSelected ? "blue" : undefined}
+        color={fg}
+        backgroundColor={bg}
         bold={isSelected}
       >
         <Text dimColor={!isSelected}>{typeIcon}</Text>
@@ -269,7 +272,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
         <Text dimColor>{result.description}</Text>
       </Text>
       {result.shortcutHint && (
-        <Text color={isSelected ? "white" : "yellow"} backgroundColor={isSelected ? "blue" : undefined}>
+        <Text color={isSelected ? km.dialogSelectedFg : km.dialogShortcut} backgroundColor={bg}>
           {"  "}
           {result.shortcutHint}
         </Text>
@@ -417,7 +420,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
           beforeCursor={editCtx.beforeCursor}
           afterCursor={editCtx.afterCursor}
           prompt="> "
-          promptColor="cyan"
+          promptColor={"$primary"}
           placeholder="Search commands and content..."
           focusRing
         />
