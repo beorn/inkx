@@ -37,7 +37,7 @@ describe("CommandBox", () => {
 
     // Overlays/dialogs
     showHelp: false,
-    showProjectPicker: false,
+    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
 
@@ -222,8 +222,16 @@ describe("CommandBox", () => {
     )
     const output = app.text
     const spinnerFrames = [
-      "\u280B", "\u2819", "\u2839", "\u2838", "\u283C",
-      "\u2834", "\u2826", "\u2827", "\u2807", "\u280F",
+      "\u280B",
+      "\u2819",
+      "\u2839",
+      "\u2838",
+      "\u283C",
+      "\u2834",
+      "\u2826",
+      "\u2827",
+      "\u2807",
+      "\u280F",
     ]
     const hasSpinner = spinnerFrames.some((frame) => output.includes(frame))
     expect(hasSpinner).toBe(false)
@@ -252,7 +260,7 @@ describe("StatusCounters", () => {
     maxContentLines: 3,
     rootBoardId: null,
     showHelp: false,
-    showProjectPicker: false,
+    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     multiSelected: new Set(),
@@ -279,27 +287,13 @@ describe("StatusCounters", () => {
   const mockRootPath = "/tmp/test-repo"
 
   it("shows node count with clipboard icon", () => {
-    const app = render(
-      <StatusCounters
-        ui={mockUIState}
-        rootPath={mockRootPath}
-        storageMode="disk"
-        nodeCount={123}
-      />,
-    )
+    const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={123} />)
     const output = app.text
     expect(output).toContain("📋123")
   })
 
   it("shows storage path (DISK + shortened path)", () => {
-    const app = render(
-      <StatusCounters
-        ui={mockUIState}
-        rootPath={mockRootPath}
-        storageMode="disk"
-        nodeCount={42}
-      />,
-    )
+    const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
     const output = app.text
     expect(output).toContain("DISK")
     expect(output).toContain("/tmp/test-repo")
@@ -314,27 +308,13 @@ describe("StatusCounters", () => {
         watchedPaths: 5,
       },
     }
-    const app = render(
-      <StatusCounters
-        ui={uiWithWatcher}
-        rootPath={mockRootPath}
-        storageMode="disk"
-        nodeCount={42}
-      />,
-    )
+    const app = render(<StatusCounters ui={uiWithWatcher} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
     const output = app.text
     expect(output).toContain("📄5")
   })
 
   it("shows memory storage mode indicator", () => {
-    const app = render(
-      <StatusCounters
-        ui={mockUIState}
-        rootPath={mockRootPath}
-        storageMode="memory"
-        nodeCount={42}
-      />,
-    )
+    const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="memory" nodeCount={42} />)
     const output = app.text
     expect(output).toContain("MEM")
   })
@@ -345,36 +325,15 @@ describe("StatusCounters", () => {
 
   describe("flash-on-update", () => {
     it("node count starts dim (no flash on initial render)", () => {
-      const app = render(
-        <StatusCounters
-          ui={mockUIState}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
-      )
+      const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.count()).toBeGreaterThan(0)
       expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
     })
 
     it("node count flashes bright when value changes", () => {
-      const app = render(
-        <StatusCounters
-          ui={mockUIState}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
-      )
-      app.rerender(
-        <StatusCounters
-          ui={mockUIState}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={43}
-        />,
-      )
+      const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
+      app.rerender(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={43} />)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.getAttribute("dimColor")).toBe("false")
     })
@@ -413,12 +372,7 @@ describe("StatusCounters", () => {
         },
       }
       const app = render(
-        <StatusCounters
-          ui={uiWithWatcher}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
+        <StatusCounters ui={uiWithWatcher} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />,
       )
       const uiWithMoreFiles: UIState = {
         ...mockUIState,
@@ -428,36 +382,15 @@ describe("StatusCounters", () => {
           watchedPaths: 8,
         },
       }
-      app.rerender(
-        <StatusCounters
-          ui={uiWithMoreFiles}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
-      )
+      app.rerender(<StatusCounters ui={uiWithMoreFiles} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const watcherEl = app.locator("#watcher-status")
       expect(watcherEl.count()).toBeGreaterThan(0)
       expect(watcherEl.getAttribute("dimColor")).toBe("false")
     })
 
     it("no flash when value stays the same", () => {
-      const app = render(
-        <StatusCounters
-          ui={mockUIState}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
-      )
-      app.rerender(
-        <StatusCounters
-          ui={mockUIState}
-          rootPath={mockRootPath}
-          storageMode="disk"
-          nodeCount={42}
-        />,
-      )
+      const app = render(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
+      app.rerender(<StatusCounters ui={mockUIState} rootPath={mockRootPath} storageMode="disk" nodeCount={42} />)
       const nodeCountEl = app.locator("#node-count")
       expect(nodeCountEl.getAttribute("dimColor")).toBe("true")
     })

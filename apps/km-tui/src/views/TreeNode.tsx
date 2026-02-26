@@ -264,13 +264,17 @@ function TreeNodeImpl({
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
+  // Embed data model (see docs/design/km-ast/model.md):
+  //   embed_source  — target node ID to transclude (e.g., "^1234567890")
+  //   content       — optional alias override; if non-empty, show INSTEAD of target's title
+  //   resolvedNode  — the target KNode (null = broken link)
+  //   displayNode   — resolvedNode when available, else falls back to this node
   const embedSource = node.embed_source
   const isEmbedded = embedSource != null
-
-  // For embedded nodes, resolve the target for display purposes
-  // The embed node's content is just "![[target]]" - we want to show the linked node's data
   const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
   const displayNode = resolvedNode ?? node
+  // Broken embed: embed_source is set but target node doesn't exist (stale/orphan reference)
+  const isBrokenEmbed = isEmbedded && !resolvedNode
 
   // Use provided children or fetch from repo
   // For embeds, get children from the TARGET node (transclusion shows target's children)
@@ -371,15 +375,11 @@ function TreeNodeImpl({
   const sigilName = useMemo(() => {
     const name = displayNode.name
     if (!name || !isSigilName(name)) return null
-    // Normalize for comparison: lowercase, collapse non-alphanum to hyphens
-    const normalize = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9\p{L}]+/gu, "-")
-        .replace(/^-|-$/g, "")
-    const nameNorm = normalize(name.slice(1)) // strip sigil prefix (@/#/+)
-    const contentNorm = normalize(cleanContent)
-    if (nameNorm === contentNorm) return null // redundant — name is a slugified version of the title
+    // Compare via locale-aware collation: treats ø≡o, é≡e, æ≡ae, etc.
+    const collator = new Intl.Collator("en", { sensitivity: "base" })
+    const nameBase = name.slice(1).replace(/[^a-z0-9\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "")
+    const contentBase = cleanContent.replace(/[^a-z0-9\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "")
+    if (collator.compare(nameBase, contentBase) === 0) return null // redundant — name is a slugified version of the title
     if (excludedSigils.includes(name)) return null // redundant — excluded by board/column context
     return name
   }, [displayNode.name, cleanContent, excludedSigils])
@@ -789,7 +789,7 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0}
-                color={dimUntitled ? "$muted" : (tc ?? style.ownColor)}
+                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$muted" : (tc ?? style.ownColor)}
                 dimColor={sd || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
@@ -1057,39 +1057,36 @@ function getDisplayContent(
   resolvedNode: KNode | null,
   isEmbedded: boolean,
 ): string {
-  if (isEmbedded && resolvedNode) {
-    if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
-      return getNodeDisplayName(repo, resolvedNode) + "/"
-    }
-    if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "mdsection") {
-      return getNodeDisplayName(repo, resolvedNode)
-    }
-    return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
-  }
+  // Embed display resolution (see docs/design/km-ast/model.md):
+  //   1. node.content non-empty & not embed syntax → alias override (show instead of target title)
+  //   2. resolvedNode exists → show target's content/display name
+  //   3. Neither → broken link (rendered red via isBrokenEmbed flag in TreeNode)
   if (isEmbedded) {
-    // Unresolved embed — extract target name from ![[target]] syntax
-    // Try to resolve the embed reference to a real node title
-    const raw = node.content?.replace(EMBED_EXTRACT_RE, "$1")
-    if (raw) {
-      const resolved = tryResolveEmbedRef(repo, raw)
-      if (resolved) return resolved
+    // Alias override: non-empty content on the embed node overrides the target's title.
+    // This is the ![[^GID|My overridden title]] semantic — content IS the alias.
+    // Alias survives even if the target link is broken.
+    const alias = node.content ? cleanContentForDisplay(node.content) : ""
+    if (alias && !EMBED_EXTRACT_RE.test(node.content!)) return alias
+    if (resolvedNode) {
+      // Resolved embed — show target's display name/content
+      if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
+        return getNodeDisplayName(repo, resolvedNode) + "/"
+      }
+      if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "mdsection") {
+        return getNodeDisplayName(repo, resolvedNode)
+      }
+      return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
     }
-    // Clean block-ID references (^blockid) so they don't show raw IDs
-    const cleaned = raw ? cleanEmbedRef(raw) : ""
-    if (cleaned) return cleaned
-    // Bare block ref (^id) or no content — show short ID fallback
-    return `(${node.id.slice(0, 8)})`
-  }
-  // Content with embed syntax ![[target]] but embed_source not set (unresolved embed)
-  // Strip the ![[...]] wrapper so it doesn't render as "!Target" in the TUI
-  const trimmed = displayNode.content?.trim()
-  if (trimmed && EMBED_EXTRACT_RE.test(trimmed)) {
-    const raw = trimmed.replace(EMBED_EXTRACT_RE, "$1")
-    // Try to resolve the embed reference to a real node title
-    const resolved = tryResolveEmbedRef(repo, raw)
+    // Broken embed: embed_source is set but target node doesn't exist.
+    // Try to resolve via embed_source (may contain file#^blockId format).
+    const src = node.embed_source ?? ""
+    const resolved = tryResolveEmbedRef(repo, src)
     if (resolved) return resolved
-    // Clean block-ID references; bare block refs fall through to short ID
-    return cleanEmbedRef(raw) || `(${displayNode.id.slice(0, 8)})`
+    // Clean block-ID references (^blockid) so they don't show raw IDs
+    const cleaned = cleanEmbedRef(src)
+    if (cleaned) return cleaned
+    // Bare block ref (^id) or empty — show broken link fallback with short ID
+    return `(broken: ^${src.slice(0, 8) || node.id.slice(0, 8)})`
   }
   if (isOutline(displayNode.type, displayNode.item) && displayNode.fstype === "mdsection") {
     const name = getNodeDisplayName(repo, displayNode)
@@ -1284,6 +1281,7 @@ const FoldedChildRow = React.memo(
     const isEmbedded = embedSource != null
     const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
     const displayNode = resolvedNode ?? node
+    const isBrokenEmbed = isEmbedded && !resolvedNode
     const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
     const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
@@ -1349,7 +1347,7 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <Text
-            color={foldTc ?? style.ownColor}
+            color={isBrokenEmbed ? "$error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"

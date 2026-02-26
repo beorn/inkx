@@ -348,7 +348,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       dialogs: {
         search: s.ui.showSearchDialog,
         newItem: s.ui.showNewItemDialog,
-        projectPicker: s.ui.showProjectPicker,
+        projectPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
       detailPaneOpen: s.ui.showDetailPane,

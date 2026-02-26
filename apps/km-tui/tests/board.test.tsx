@@ -43,8 +43,10 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     navigator: createGridNavigator(),
     setUI: () => {},
     dialogHandlers: {
-      handleProjectSelect: () => {},
-      handleProjectCancel: () => {},
+      handlePickerSelect: () => {},
+      handlePickerCancel: () => {},
+      handleTagSelect: () => {},
+      handleAssigneeSelect: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
       handleSearchSelect: () => {},

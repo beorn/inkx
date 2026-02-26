@@ -20,7 +20,7 @@ export type InputMode =
   | "dialog:rename"
   | "dialog:confirm"
   | "dialog:newItem"
-  | "dialog:projectPicker"
+  | "dialog:picker"
   | "dialog:datePrompt"
   | "dialog:filter"
 

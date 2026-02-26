@@ -474,7 +474,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     rawQuery<T = Record<string, unknown>>(sql: string, _params?: unknown[]): T[] {
       ensureNotClosed()
 
-      // Pattern: SELECT * FROM nodes (used by ProjectPicker)
+      // Pattern: SELECT * FROM nodes (used by Picker loaders)
       if (sql.trim() === "SELECT * FROM nodes") {
         return [...nodes.values()] as T[]
       }

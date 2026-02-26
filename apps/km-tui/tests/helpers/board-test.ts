@@ -2247,8 +2247,10 @@ export function renderBoard(state: InitialBoardData, options: BoardTestOptions =
     navigator: createGridNavigator(),
     setUI: () => {},
     dialogHandlers: {
-      handleProjectSelect: () => {},
-      handleProjectCancel: () => {},
+      handlePickerSelect: () => {},
+      handlePickerCancel: () => {},
+      handleTagSelect: () => {},
+      handleAssigneeSelect: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
       handleSearchSelect: () => {},

@@ -186,15 +186,15 @@ describe("embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Block reference embed like ![[SomeFile#^abc123]]
+        // Block reference embed: embed_source = file#^blockId
         nodes.push({
           id: "block-embed",
           type: "p" as const,
-          content: "![[SomeFile#^abc123]]",
-          embed_source: null,
+          content: null,
+          embed_source: "SomeFile#^abc123",
           parent_id: "col1",
           parent_idx: 1,
-          data: { embeddingTarget: "SomeFile" },
+          data: {},
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
@@ -352,7 +352,10 @@ describe("folded embed display (FoldedChildRow)", () => {
     // (e.g., short alphanumeric block IDs that don't match \d{5,} regex).
     const { board } = testEnv(
       () => {
-        const nodes = item("board", item("col1", item.folder("Parent Card", item("embed-child-1"), item("embed-child-2"))))
+        const nodes = item(
+          "board",
+          item("col1", item.folder("Parent Card", item("embed-child-1"), item("embed-child-2"))),
+        )
 
         // Target nodes with short alphanumeric block_id (not matched by resolveNode's \d{5,} regex)
         nodes.push({
@@ -597,13 +600,12 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as KNode)
 
-        // Unresolved embed: embed_source is null (block_id not found during import)
-        // Content is in the Asana file#^blockId format
+        // Embed ref: embed_source points to target via file#^blockId
         nodes.push({
           id: "asana-embed-a",
           type: "p" as const,
-          content: "![[688309546998762-pers-prod#^1209600947800994]]",
-          embed_source: null,
+          content: null,
+          embed_source: "688309546998762-pers-prod#^1209600947800994",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -650,12 +652,12 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as KNode)
 
-        // Unresolved embed: bare block ref with embed_source=null
+        // Embed ref: embed_source points to target via ^blockId
         nodes.push({
           id: "bare-embed",
           type: "p" as const,
-          content: "![[^1k4a]]",
-          embed_source: null,
+          content: null,
+          embed_source: "^1k4a",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -683,12 +685,12 @@ describe("unresolved Asana embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed with file#^blockId where the target doesn't exist at all
+        // Embed ref: embed_source points to non-existent target
         nodes.push({
           id: "orphan-embed",
           type: "p" as const,
-          content: "![[my-notes#^nonexistent]]",
-          embed_source: null,
+          content: null,
+          embed_source: "my-notes#^nonexistent",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1155,5 +1157,209 @@ describe("tag file section display", () => {
     const text = stripAnsi(board.screenshot())
     expect(text).toContain("Task A")
     expect(text).toContain("Task B")
+  })
+})
+
+// =============================================================================
+// Embed alias override (km-wk17l)
+// =============================================================================
+
+describe("embed alias override (km-wk17l)", () => {
+  test("resolved embed with non-empty content shows alias, not target title", () => {
+    // When node.content is non-empty and is NOT embed syntax, it acts as
+    // an alias override — like ![[^GID|My custom title]] semantics.
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node with actual content
+        nodes.push({
+          id: "target-aliased",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Original target title",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed with alias override — content is plain text, not ![[...]]
+        nodes.push({
+          id: "alias-embed",
+          type: "embed" as const,
+          content: "My custom alias",
+          embed_source: "target-aliased",
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the alias override, NOT the target's title
+    expect(text).toContain("My custom alias")
+    expect(text).not.toContain("Original target title")
+  })
+
+  test("resolved embed with embed syntax content shows target title, not alias", () => {
+    // When node.content IS embed syntax (![[...]]), it is NOT an alias — fall through
+    // to resolvedNode content display.
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        // Target node
+        nodes.push({
+          id: "target-no-alias",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Target content here",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Embed whose content is embed syntax (not an alias)
+        nodes.push({
+          id: "syntax-embed",
+          type: "embed" as const,
+          content: "![[target-no-alias]]",
+          embed_source: "target-no-alias",
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should show the target's content, not the embed syntax
+    expect(text).toContain("Target content here")
+    expect(text).not.toContain("![[")
+  })
+})
+
+// =============================================================================
+// Broken embed rendering (km-wk17l)
+// =============================================================================
+
+describe("broken embed rendering (km-wk17l)", () => {
+  test("broken embed with content shows content in error color", () => {
+    // embed_source set but target doesn't exist — broken link.
+    // Content available: show it, but in error color.
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        nodes.push({
+          id: "broken-embed-with-content",
+          type: "embed" as const,
+          content: "Some alias text",
+          embed_source: "nonexistent-node",
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should display content even though target is broken
+    expect(text).toContain("Some alias text")
+  })
+
+  test("broken embed without content shows cleaned embed_source as fallback", () => {
+    // embed_source set, target missing, no content — broken link.
+    // embed_source looks like a filename → show it directly.
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        nodes.push({
+          id: "broken-no-content",
+          type: "embed" as const,
+          content: null,
+          embed_source: "deadbeef-missing",
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // Should NOT show embed syntax
+    expect(text).not.toContain("![[")
+    // Should show the embed_source as cleaned display text
+    expect(text).toContain("deadbeef-missing")
+  })
+
+  test("broken embed with bare block ref shows broken fallback", () => {
+    // embed_source is a bare ^blockId, target missing — show (broken: ^shortId).
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("regular-task")))
+
+        nodes.push({
+          id: "broken-bare-ref",
+          type: "embed" as const,
+          content: null,
+          embed_source: "^deadbeef12345678",
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    expect(text).not.toContain("![[")
+    // Bare block ref can't be cleaned to something readable → broken fallback
+    expect(text).toContain("broken:")
   })
 })

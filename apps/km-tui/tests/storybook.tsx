@@ -130,8 +130,10 @@ const mockUIState = createInitialUIState("cards", [], {
 })
 const noopDispatch = () => {}
 const noopDialogHandlers = {
-  handleProjectSelect: () => {},
-  handleProjectCancel: () => {},
+  handlePickerSelect: () => {},
+  handlePickerCancel: () => {},
+  handleTagSelect: () => {},
+  handleAssigneeSelect: () => {},
   handleNewItemCreate: () => {},
   handleNewItemCancel: () => {},
   handleSearchSelect: () => {},

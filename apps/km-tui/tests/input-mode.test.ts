@@ -121,7 +121,7 @@ describe("createModeStack", () => {
       "dialog:rename",
       "dialog:confirm",
       "dialog:newItem",
-      "dialog:projectPicker",
+      "dialog:picker",
       "dialog:datePrompt",
       "dialog:filter",
     ]

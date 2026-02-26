@@ -27,7 +27,7 @@ describe("getEditMode", () => {
   })
 
   test("returns 'dialog' when project picker is open", () => {
-    expect(getEditMode({ ...base, showProjectPicker: true })).toBe("dialog")
+    expect(getEditMode({ ...base, activePicker: { type: "project" } })).toBe("dialog")
   })
 
   test("returns 'dialog' when date prompt is active", () => {

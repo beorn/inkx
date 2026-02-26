@@ -177,8 +177,10 @@ export async function createBoardTest(
     navigator: createGridNavigator(),
     dispatch: () => {},
     dialogHandlers: {
-      handleProjectSelect: () => {},
-      handleProjectCancel: () => {},
+      handlePickerSelect: () => {},
+      handlePickerCancel: () => {},
+      handleTagSelect: () => {},
+      handleAssigneeSelect: () => {},
       handleNewItemCreate: () => {},
       handleNewItemCancel: () => {},
       handleSearchSelect: () => {},

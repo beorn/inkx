@@ -18,7 +18,8 @@ import { useCursorNodePosition, CursorStoreProvider } from "../cursor-context.ts
 import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
-import { ProjectPicker } from "./ProjectPicker.tsx"
+import { Picker } from "./ProjectPicker.tsx"
+import { loadProjectOptions, loadTagOptions, loadAssigneeOptions } from "./picker-loaders.ts"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
 import { SearchDialog } from "./SearchDialog.tsx"
@@ -32,6 +33,21 @@ import { dispatchCommandById } from "../board-app.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { CursorStore } from "../cursor-store.ts"
+import type { PickerLoadOptions } from "./ProjectPicker.tsx"
+
+// =============================================================================
+// Picker configuration per type
+// =============================================================================
+
+const pickerConfig: Record<"project" | "tag" | "assignee", {
+  title: string
+  loadOptions: PickerLoadOptions
+  emptyLabel: string
+}> = {
+  project: { title: "Move to project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
+  tag: { title: "Add tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
+  assignee: { title: "Assign to", loadOptions: loadAssigneeOptions, emptyLabel: "No matching assignees" },
+}
 
 // =============================================================================
 // Dialog Layout Helpers (moved from Board.tsx)
@@ -241,21 +257,30 @@ export function WorkspaceChrome({
       {/* ================================================================= */}
 
       <CursorStoreProvider store={cursorStore}>
-        {/* Project picker modal */}
-        {ui.showProjectPicker && (
+        {/* Generic picker modal (project / tag / assignee) */}
+        {ui.activePicker && (
           <DialogBox
             termWidth={termWidth}
             contentHeight={contentHeight}
             maxWidth={80}
             topFraction={1 / 2}
-            data-dialog="project-picker"
+            data-dialog="picker"
           >
-            <ProjectPicker
-              onSelect={dialogHandlers.handleProjectSelect}
-              onCancel={dialogHandlers.handleProjectCancel}
+            <Picker
+              title={pickerConfig[ui.activePicker.type].title}
+              loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
+              onSelect={
+                ui.activePicker.type === "project"
+                  ? dialogHandlers.handlePickerSelect
+                  : ui.activePicker.type === "tag"
+                    ? dialogHandlers.handleTagSelect
+                    : dialogHandlers.handleAssigneeSelect
+              }
+              onCancel={dialogHandlers.handlePickerCancel}
               width={Math.min(80, Math.floor(termWidth / 2))}
               height={Math.floor(contentHeight / 2)}
-              recentProjectIds={ui.recentProjectIds}
+              recentIds={ui.recentProjectIds}
+              emptyLabel={pickerConfig[ui.activePicker.type].emptyLabel}
             />
           </DialogBox>
         )}

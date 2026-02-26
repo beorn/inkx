@@ -124,8 +124,8 @@ export const inDialogConfirm = when("inDialogConfirm", (ctx) => ctx.inputMode ==
 /** True when the new item dialog mode is active. */
 export const inDialogNewItem = when("inDialogNewItem", (ctx) => ctx.inputMode === "dialog:newItem")
 
-/** True when the project picker dialog mode is active. */
-export const inDialogProjectPicker = when("inDialogProjectPicker", (ctx) => ctx.inputMode === "dialog:projectPicker")
+/** True when any picker dialog mode is active (project, tag, assignee). */
+export const inDialogPicker = when("inDialogPicker", (ctx) => ctx.inputMode === "dialog:picker")
 
 /** True when the date prompt dialog mode is active. */
 export const inDialogDatePrompt = when("inDialogDatePrompt", (ctx) => ctx.inputMode === "dialog:datePrompt")

@@ -135,10 +135,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SHOW_PROJECT_PICKER":
       // Allow project picker in empty panes (no card required) or when a card is selected
       if (card || ctx.focusedPaneViewType() === "empty") {
-        pushDialogMode("dialog:projectPicker")
+        pushDialogMode("dialog:picker")
         ctx.closeDetailPane()
         ctx.setUI({
-          showProjectPicker: true,
+          activePicker: { type: "project" },
         })
         clearSelection(ctx)
       }
@@ -194,9 +194,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({})
       return ok()
     case "REPARENT_PICKER":
-      // Stub: reparent picker not yet implemented
-      ctx.toastQueue.info("Reparent picker not yet implemented")
-      ctx.setUI({})
+      ctx.setUI({ activePicker: { type: "project" } })
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
@@ -795,10 +793,19 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CLIPBOARD_PASTE":
       return handleClipboardPaste(ctx)
 
-    // === Property stubs (future features) ===
+    // === Property pickers ===
     case "SET_LABEL":
+      pushDialogMode("dialog:picker")
+      ctx.closeDetailPane()
+      ctx.setUI({ activePicker: { type: "tag" } })
+      clearSelection(ctx)
+      return ok()
     case "SET_ASSIGNEE":
-      return unimplemented("properties")
+      pushDialogMode("dialog:picker")
+      ctx.closeDetailPane()
+      ctx.setUI({ activePicker: { type: "assignee" } })
+      clearSelection(ctx)
+      return ok()
 
     // === Move mode actions ===
     // Commands return minimal actions; TUI augments with context before dispatching
@@ -1119,10 +1126,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.splitFocusedPane("h")
       // Focus moves to the new pane on next cycle; for now, show the project picker
       // which will navigate when the user picks a board
-      pushDialogMode("dialog:projectPicker")
+      pushDialogMode("dialog:picker")
       ctx.closeDetailPane()
       ctx.setUI({
-        showProjectPicker: true,
+        activePicker: { type: "project" },
       })
       clearSelection(ctx)
       return ok()
@@ -1259,7 +1266,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
         else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
         else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
-        else if (ctx.ui.showProjectPicker) ctx.setUI({ showProjectPicker: false })
+        else if (ctx.ui.activePicker) ctx.setUI({ activePicker: null })
       }
       return ok()
     }
@@ -1280,7 +1287,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         if (ctx.ui.datePrompt) ctx.setUI({ datePrompt: null })
         else if (ctx.ui.showSearchDialog) ctx.setUI({ showSearchDialog: false })
         else if (ctx.ui.showNewItemDialog) ctx.setUI({ showNewItemDialog: false })
-        else if (ctx.ui.showProjectPicker) ctx.setUI({ showProjectPicker: false })
+        else if (ctx.ui.activePicker) ctx.setUI({ activePicker: null })
       }
       return ok()
 
@@ -1579,9 +1586,9 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     ctx.setUI({ showFilterDialog: false })
     return ok()
   }
-  if (ui.showProjectPicker) {
+  if (ui.activePicker) {
     popDialogMode()
-    ctx.setUI({ showProjectPicker: false })
+    ctx.setUI({ activePicker: null })
     return ok()
   }
   if (ui.showNewItemDialog) {

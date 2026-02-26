@@ -287,7 +287,19 @@ export function TreeRenderProvider({
       boardFocused,
       searchQuery: effectiveSearchQuery,
     }),
-    [treeConfig, resolveSigilColor, setUI, rootBoardId, matchIds, matchNode, jobRunner, undoHandle, taskStatusFilter, boardFocused, effectiveSearchQuery],
+    [
+      treeConfig,
+      resolveSigilColor,
+      setUI,
+      rootBoardId,
+      matchIds,
+      matchNode,
+      jobRunner,
+      undoHandle,
+      taskStatusFilter,
+      boardFocused,
+      effectiveSearchQuery,
+    ],
   )
   return <TreeRenderContext.Provider value={ctx}>{children}</TreeRenderContext.Provider>
 }

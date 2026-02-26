@@ -37,7 +37,7 @@ export function getEditMode(ui: UIState): EditMode {
   if (
     ui.showSearchDialog ||
     ui.showNewItemDialog ||
-    ui.showProjectPicker ||
+    ui.activePicker ||
     ui.showFilterDialog ||
     ui.datePrompt ||
     ui.deleteConfirm ||
@@ -65,7 +65,7 @@ export interface UIState {
   // Overlays/dialogs
   showHelp: boolean
   helpScrollOffset: number
-  showProjectPicker: boolean
+  activePicker: { type: "project" | "tag" | "assignee" } | null
   showNewItemDialog: boolean
   showSearchDialog: boolean
   searchDialogInitialInput: string // Buffer for keypresses during dialog open transition
@@ -344,20 +344,21 @@ export function createInitialUIState(
   collapsedColumns: number[],
   dimensions: { columns: number; rows: number },
   rootBoardId: string | null = null,
+  iconStyle: IconStyle = "nerdfont",
 ): UIState {
   return {
     viewMode: initialViewMode,
     showDetailPane: initialViewMode === "list",
     detailCursorNodeId: null,
     maxContentLines: 3,
-    iconStyle: "nerdfont" as IconStyle,
+    iconStyle,
     borderMode: "normal" as BorderMode,
 
     rootBoardId,
 
     showHelp: false,
     helpScrollOffset: 0,
-    showProjectPicker: false,
+    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",

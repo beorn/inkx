@@ -14,6 +14,7 @@ import type { UIState } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
+import type { PickerOption } from "./ProjectPicker.tsx"
 
 const log = createLogger("km:tui:dialogs")
 
@@ -50,8 +51,10 @@ interface UseBoardDialogsParams {
 }
 
 interface BoardDialogHandlers {
-  handleProjectSelect: (targetNode: KNode) => void
-  handleProjectCancel: () => void
+  handlePickerSelect: (option: PickerOption) => void
+  handlePickerCancel: () => void
+  handleTagSelect: (option: PickerOption) => void
+  handleAssigneeSelect: (option: PickerOption) => void
   handleNewItemCreate: (newNodeId: string) => void
   handleNewItemCancel: () => void
   handleSearchSelect: (targetNode: KNode) => void
@@ -79,19 +82,20 @@ export function useBoardDialogs({
   rootId,
   undoHandle,
 }: UseBoardDialogsParams): BoardDialogHandlers {
-  // Handle project picker selection
+  // Handle project picker selection (move to project)
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
-  const handleProjectSelect = useCallback(
-    (targetNode: KNode) => {
+  const handlePickerSelect = useCallback(
+    (option: PickerOption) => {
+      const targetNode = option.node
       if (!cursorNodeId) {
-        setUI({ showProjectPicker: false })
+        setUI({ activePicker: null })
         return
       }
 
       // Get the node at the cursor
       const cursorNode = repo.getNode(cursorNodeId)
       if (!cursorNode) {
-        setUI({ showProjectPicker: false })
+        setUI({ activePicker: null })
         return
       }
 
@@ -112,15 +116,64 @@ export function useBoardDialogs({
       // Track as recent project and close picker
       setUI((prev) => ({
         recentProjectIds: [targetNode.id, ...prev.recentProjectIds.filter((id) => id !== targetNode.id)].slice(0, 10),
-        showProjectPicker: false,
+        activePicker: null,
       }))
     },
     [repo, cursorNodeId, setUI, undoHandle],
   )
 
-  const handleProjectCancel = useCallback(() => {
-    setUI({ showProjectPicker: false })
+  const handlePickerCancel = useCallback(() => {
+    setUI({ activePicker: null })
   }, [setUI])
+
+  // Handle tag picker selection — append #tag to current node's content
+  const handleTagSelect = useCallback(
+    (option: PickerOption) => {
+      if (!cursorNodeId) {
+        setUI({ activePicker: null })
+        return
+      }
+
+      const node = repo.getNode(cursorNodeId)
+      if (!node) {
+        setUI({ activePicker: null })
+        return
+      }
+
+      // The option title is "#tagname" — use it directly
+      const tag = option.title
+      const currentContent = node.content ?? ""
+
+      // Only append if not already present
+      if (!currentContent.includes(tag)) {
+        undoHandle.setCursor(cursorNodeId)
+        const newContent = currentContent ? `${currentContent} ${tag}` : tag
+        repo.updateNode(cursorNodeId, { content: newContent })
+      }
+
+      setUI({ activePicker: null })
+    },
+    [repo, cursorNodeId, setUI, undoHandle],
+  )
+
+  // Handle assignee picker selection — set assigned_to on current node
+  const handleAssigneeSelect = useCallback(
+    (option: PickerOption) => {
+      if (!cursorNodeId) {
+        setUI({ activePicker: null })
+        return
+      }
+
+      // The option title is "@name" — strip the @ prefix for assigned_to
+      const assignee = option.title.startsWith("@") ? option.title.slice(1) : option.title
+
+      undoHandle.setCursor(cursorNodeId)
+      repo.updateNode(cursorNodeId, { assigned_to: assignee })
+
+      setUI({ activePicker: null })
+    },
+    [repo, cursorNodeId, setUI, undoHandle],
+  )
 
   // Handler for new item creation
   const handleNewItemCreate = useCallback(
@@ -266,8 +319,10 @@ export function useBoardDialogs({
   }, [setUI])
 
   return {
-    handleProjectSelect,
-    handleProjectCancel,
+    handlePickerSelect,
+    handlePickerCancel,
+    handleTagSelect,
+    handleAssigneeSelect,
     handleNewItemCreate,
     handleNewItemCancel,
     handleSearchSelect,

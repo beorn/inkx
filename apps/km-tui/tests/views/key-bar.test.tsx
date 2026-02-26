@@ -34,7 +34,7 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
     maxContentLines: 3,
     rootBoardId: null,
     showHelp: false,
-    showProjectPicker: false,
+    activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
     searchDialogInitialInput: "",

@@ -58,7 +58,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     inSearchMode: ui.showSearchDialog,
     inInputMode:
       ui.showNewItemDialog ||
-      ui.showProjectPicker ||
+      !!ui.activePicker ||
       ui.showSearchDialog ||
       ui.showFilterDialog ||
       !!ui.datePrompt ||
@@ -72,14 +72,14 @@ function buildCommandContexts(ctx: ActionCtx) {
       !!ui.inlineEditBlock ||
       ui.showSearchDialog ||
       ui.showNewItemDialog ||
-      ui.showProjectPicker ||
+      !!ui.activePicker ||
       !!ui.datePrompt ||
       ui.showOmnibox ||
       !!ui.localSearch?.isInputActive ||
       !!ui.searchReplace,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
-    projectPickerOpen: ui.showProjectPicker,
+    projectPickerOpen: !!ui.activePicker,
     newItemDialogOpen: ui.showNewItemDialog,
     datePromptOpen: !!ui.datePrompt,
     filterDialogOpen: ui.showFilterDialog,

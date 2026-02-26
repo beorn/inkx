@@ -25,6 +25,9 @@ import { getNodeDisplayName } from "./state.ts"
 import type { CursorState } from "./cursor-store.ts"
 import type { SelectionKey } from "./types.ts"
 import { makeSelectionKey } from "./types.ts"
+import { createLogger } from "@beorn/logger"
+
+const log = createLogger("km:tui:hydrate")
 
 // =============================================================================
 // Types
@@ -98,6 +101,13 @@ export function hydrateNodeAtoms(
     for (const card of cards) {
       store.set(nodeParentAtom(card.id), col.id)
 
+      // Log broken embed links (embed_source set but target missing).
+      // Uses debug level: broken embeds are common (stale refs, partial imports)
+      // and would spam users at warn level. Enable with DEBUG=km:tui:hydrate.
+      if (card.embed_source && !repo.getNode(card.embed_source)) {
+        log.debug?.(`Broken embed: node ${card.id} → missing target ${card.embed_source}`)
+      }
+
       // Card fold depth
       const cardFold = foldDepths.get(card.id)
       if (cardFold !== undefined) {
@@ -119,11 +129,7 @@ export function hydrateNodeAtoms(
  * Called lazily from VirtualList renderItem when a card becomes visible.
  * Idempotent — safe to call multiple times for the same card.
  */
-export function hydrateCardAtom(
-  store: JotaiStore,
-  cardId: string,
-  columnId: string,
-): void {
+export function hydrateCardAtom(store: JotaiStore, cardId: string, columnId: string): void {
   store.set(nodeParentAtom(cardId), columnId)
   knownNodeIds.add(cardId)
 }
@@ -132,11 +138,7 @@ export function hydrateCardAtom(
  * Sync cursor state from CursorStore to Jotai atoms.
  * Called when CursorStore state changes.
  */
-export function syncCursorToAtoms(
-  store: JotaiStore,
-  cursorState: CursorState,
-  boardFocused: boolean,
-): void {
+export function syncCursorToAtoms(store: JotaiStore, cursorState: CursorState, boardFocused: boolean): void {
   store.set(cursorNodeIdAtom, cursorState.cursorNodeId)
   store.set(cursorCardNodeIdAtom, cursorState.cursorCardNodeId)
   store.set(cursorColumnNodeIdAtom, cursorState.cursorColumnNodeId)

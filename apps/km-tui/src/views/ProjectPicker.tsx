@@ -1,86 +1,48 @@
 /**
- * Project Picker Component
+ * Generic Picker Component
  *
- * Fuzzy search picker for re-parenting tasks to different projects.
- * Press 'p' on a task to open, search to filter, Enter to move.
+ * Fuzzy search picker for selecting nodes (projects, tags, assignees).
+ * Parameterized via `loadOptions` and `title` props. Supports:
+ *   - Fuzzy search input with debounced scoring
+ *   - Keyboard navigation (up/down/Enter/Esc)
+ *   - Scroll with position indicator
+ *   - Suspense-based async loading
+ *   - Recent item tracking
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import { isOutline, type KNode } from "@km/core"
-import { useRepo, type RepoContextValue } from "../repo-context.tsx"
-import { getNodeDisplayName } from "../state.ts"
+import type { KNode } from "@km/core"
+import type { Repo } from "../repo-context.tsx"
+import { useRepo } from "../repo-context.tsx"
 import { ModalDialog, NodeLine } from "./shared-components.tsx"
-import { fuzzyScore, getParentName } from "./search-utils.ts"
+import { fuzzyScore } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
+import { loadProjectOptions } from "./picker-loaders.ts"
 
-/**
- * Get project path from a node (folder/file ancestors)
- */
-function getProjectPath(
-  node: KNode,
-  getNode: (id: string) => KNode | null,
-  getDisplayName: (node: KNode) => string,
-): string {
-  const parts: string[] = []
-  let current: KNode | null = node
+// =============================================================================
+// Picker option type
+// =============================================================================
 
-  while (current) {
-    if (
-      isOutline(current.type, current.item) &&
-      (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")
-    ) {
-      parts.unshift(getDisplayName(current))
-    }
-    current = current.parent_id ? (getNode(current.parent_id) ?? null) : null
-  }
-
-  return parts.join(" / ")
-}
-
-/**
- * Project option for the picker
- */
-interface ProjectOption {
+export interface PickerOption {
   node: KNode
-  title: string // Display name of the node
-  parentContext: string | null // Parent name for context
-  path: string // Full path for searching
+  title: string
+  parentContext: string | null
+  path: string
   isRecent?: boolean
 }
 
-/**
- * Load all project options from repo
- */
-function loadProjectOptions(repo: RepoContextValue, recentIds: string[]): ProjectOption[] {
-  const allNodes = repo.rawQuery<KNode>("SELECT * FROM nodes")
-  const options: ProjectOption[] = []
-  const recentSet = new Set(recentIds)
-  const getDisplayName = (node: KNode) => getNodeDisplayName(repo, node)
+// =============================================================================
+// Loader type
+// =============================================================================
 
-  for (const node of allNodes) {
-    // Only show outline items (sections, files, folders) as valid targets
-    if (isOutline(node.type, node.item)) {
-      const title = getDisplayName(node)
-      const parentContext = getParentName(node, repo.getNode.bind(repo), getDisplayName)
-      const path = getProjectPath(node, repo.getNode.bind(repo), getDisplayName)
-      options.push({
-        node,
-        title,
-        parentContext,
-        path: path || title,
-        isRecent: recentSet.has(node.id),
-      })
-    }
-  }
+export type PickerLoadOptions = (repo: Repo, recentIds: string[]) => PickerOption[]
 
-  return options
-}
+// =============================================================================
+// Filter and score options by query
+// =============================================================================
 
-/**
- * Filter and score options by query
- */
-function filterOptions(allOptions: ProjectOption[], query: string): (ProjectOption & { score?: number })[] {
+function filterOptions(allOptions: PickerOption[], query: string): (PickerOption & { score?: number })[] {
   if (!query) {
     // Show recent first, then alphabetically by title
     return [...allOptions].sort((a, b) => {
@@ -105,31 +67,33 @@ function filterOptions(allOptions: ProjectOption[], query: string): (ProjectOpti
 }
 
 // =============================================================================
-// ProjectOptions component (suspends while loading)
+// PickerOptions component (suspends while loading)
 // =============================================================================
 
-interface ProjectOptionsProps {
-  loader: SuspenseLoader<ProjectOption[]>
+interface PickerOptionsProps {
+  loader: SuspenseLoader<PickerOption[]>
   query: string
   selectedIndex: number
   scrollOffset: number
   maxVisible: number
+  emptyLabel?: string
 }
 
-function ProjectOptions({
+function PickerOptions({
   loader,
   query,
   selectedIndex,
   scrollOffset,
   maxVisible,
-}: ProjectOptionsProps): React.ReactElement {
+  emptyLabel = "No matching items",
+}: PickerOptionsProps): React.ReactElement {
   const allOptions = loader.read() // Suspends if not ready
   const filteredOptions = React.useMemo(() => filterOptions(allOptions, query), [allOptions, query])
 
   const visibleOptions = filteredOptions.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (filteredOptions.length === 0) {
-    return <Text dimColor> No matching projects</Text>
+    return <Text dimColor> {emptyLabel}</Text>
   }
 
   return (
@@ -159,24 +123,30 @@ function ProjectOptions({
 }
 
 // =============================================================================
-// ProjectPicker component
+// Generic Picker component
 // =============================================================================
 
-export interface ProjectPickerProps {
-  onSelect: (targetNode: KNode) => void
+export interface PickerProps {
+  title: string
+  loadOptions: PickerLoadOptions
+  onSelect: (option: PickerOption) => void
   onCancel: () => void
   width: number
   height: number
-  recentProjectIds?: string[]
+  recentIds?: string[]
+  emptyLabel?: string
 }
 
-export function ProjectPicker({
+export function Picker({
+  title,
+  loadOptions,
   onSelect,
   onCancel,
   width,
   height,
-  recentProjectIds = [],
-}: ProjectPickerProps): React.ReactElement {
+  recentIds = [],
+  emptyLabel,
+}: PickerProps): React.ReactElement {
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
@@ -189,9 +159,9 @@ export function ProjectPicker({
   selectedIndexRef.current = selectedIndex
 
   // Create loader on mount (loads in background via Suspense)
-  const loaderRef = React.useRef<SuspenseLoader<ProjectOption[]> | null>(null)
+  const loaderRef = React.useRef<SuspenseLoader<PickerOption[]> | null>(null)
   if (!loaderRef.current) {
-    loaderRef.current = createSuspenseLoader(() => loadProjectOptions(repo, recentProjectIds))
+    loaderRef.current = createSuspenseLoader(() => loadOptions(repo, recentIds))
   }
 
   const editCtx = useDialogInput({
@@ -205,7 +175,7 @@ export function ProjectPicker({
         const filtered = filterOptions(allOptions, editCtx.target.getContent())
         const selected = filtered[selectedIndexRef.current]
         if (selected) {
-          onSelectRef.current(selected.node)
+          onSelectRef.current(selected)
         }
       }
     },
@@ -243,7 +213,7 @@ export function ProjectPicker({
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>↑↓ nav Enter select Esc cancel</Text>
+      <Text dimColor>{"↑↓ nav  Enter select  Esc cancel"}</Text>
       {filteredCount > maxVisible && (
         <Text dimColor>
           {scrollOffset > 0 ? "↑" : " "}
@@ -255,7 +225,7 @@ export function ProjectPicker({
   )
 
   return (
-    <ModalDialog title="Move to project" width={width} height={height} footer={footerContent}>
+    <ModalDialog title={title} width={width} height={height} footer={footerContent}>
       {/* Search input */}
       <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
@@ -270,16 +240,55 @@ export function ProjectPicker({
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {loaderRef.current && (
           <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
-            <ProjectOptions
+            <PickerOptions
               loader={loaderRef.current}
               query={deferredQuery}
               selectedIndex={selectedIndex}
               scrollOffset={scrollOffset}
               maxVisible={maxVisible}
+              emptyLabel={emptyLabel}
             />
           </React.Suspense>
         )}
       </Box>
     </ModalDialog>
+  )
+}
+
+// =============================================================================
+// ProjectPicker — backwards-compatible wrapper
+// =============================================================================
+
+export interface ProjectPickerProps {
+  onSelect: (targetNode: KNode) => void
+  onCancel: () => void
+  width: number
+  height: number
+  recentProjectIds?: string[]
+}
+
+export function ProjectPicker({
+  onSelect,
+  onCancel,
+  width,
+  height,
+  recentProjectIds = [],
+}: ProjectPickerProps): React.ReactElement {
+  const handleSelect = React.useCallback(
+    (option: PickerOption) => onSelect(option.node),
+    [onSelect],
+  )
+
+  return (
+    <Picker
+      title="Move to project"
+      loadOptions={loadProjectOptions}
+      onSelect={handleSelect}
+      onCancel={onCancel}
+      width={width}
+      height={height}
+      recentIds={recentProjectIds}
+      emptyLabel="No matching projects"
+    />
   )
 }

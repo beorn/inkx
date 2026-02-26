@@ -317,8 +317,17 @@ function itemToNodes(
   if (localRendered && item.sourceId && localRendered.has(item.sourceId)) {
     return
   }
-  // Cross-project dedup: if already rendered in another project, emit embed reference
-  // Use the task's actual title as content and embed_source to link to the original node
+  // Cross-project dedup: if already rendered in another project, emit embed reference.
+  //
+  // Embed data model (see docs/design/km-ast/model.md):
+  //   embed_source  — target node ID to transclude (e.g., "^1234567890")
+  //   content       — optional alias override; if non-empty, displayed INSTEAD of target's title
+  //                   (like ![[^GID|My custom title]]). If empty, TUI resolves title from target.
+  //   name          — optional alias for markdown serialization (![[path|alias]])
+  //
+  // TODO(km-wk17l): content is currently stored redundantly as a copy of the target's title.
+  // Once getDisplayContent respects the alias-override semantics, drop content here and let
+  // the TUI resolve it from embed_source. Also remove embedTitle computation.
   if (rendered && primaryMap && item.sourceId && rendered.has(item.sourceId)) {
     const status = toTaskStatus(item.status)
     const marker = status === "done" ? "[x]" : "[ ]"
@@ -1150,14 +1159,18 @@ function* generateTagFiles(
 
     for (const item of items) {
       if (rendered.has(item.sourceId)) {
-        // Embed-only: smart resolver provides display title dynamically
+        // Embed reference: no content — TUI resolves display title from embed_source target.
+        // See embed data model comment in itemToNodes cross-project dedup section.
+        const status = toTaskStatus(item.status)
         nodes.push(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
             type: "h",
             item: true,
             parent_id: fileId,
-            content: `![[^${item.sourceId}]]`,
+            task_marker: getMarkerForStatus(status),
+            task_status: status,
+            embed_source: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
@@ -1265,14 +1278,18 @@ function* generateUserFiles(
 
     const emitUserItem = (item: ImportItem, parentId: string): void => {
       if (rendered.has(item.sourceId)) {
-        // Embed-only: smart resolver provides display title dynamically
+        // Embed reference: no content — TUI resolves display title from embed_source target.
+        // See embed data model comment in itemToNodes cross-project dedup section.
+        const status = toTaskStatus(item.status)
         nodes.push(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "h",
             item: true,
             parent_id: parentId,
-            content: `![[^${item.sourceId}]]`,
+            task_marker: getMarkerForStatus(status),
+            task_status: status,
+            embed_source: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
           }),
