@@ -6,6 +6,67 @@ import type { FetchCommentsResult } from "./comment-filter.ts"
 import { htmlToMarkdown } from "./html-to-md.ts"
 import type { ImportItem, ImportAttachment } from "../../types.ts"
 
+/** Asana day-of-week number (1=Mon) → iCal BYDAY code */
+const ASANA_DOW_TO_ICAL = ["", "MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const
+
+/**
+ * Convert Asana recurrence object to km RRULE string.
+ *
+ * Returns an RRULE string:
+ * - Fixed schedule: `FREQ=WEEKLY;BYDAY=MO;FROM=DUE`
+ * - After completion: `FREQ=DAILY;INTERVAL=14` (FROM=COMPLETED is default)
+ */
+export function asanaRecurrenceToKm(
+  recurrence: NonNullable<AsanaApiTask["recurrence"]>,
+): string | null {
+  const { type, data } = recurrence
+  const freq = data?.frequency ?? 1
+
+  if (type === "periodically") {
+    // "Repeat after completion" — N days after task is completed
+    // FROM=COMPLETED is km's default, so no FROM parameter needed
+    const parts = ["FREQ=DAILY"]
+    if (freq > 1) parts.push(`INTERVAL=${freq}`)
+    return parts.join(";")
+  }
+
+  // Build RRULE for fixed-schedule types (anchored to due date)
+  const parts: string[] = []
+
+  switch (type) {
+    case "daily":
+      parts.push("FREQ=DAILY")
+      if (freq > 1) parts.push(`INTERVAL=${freq}`)
+      break
+    case "weekly": {
+      parts.push("FREQ=WEEKLY")
+      if (freq > 1) parts.push(`INTERVAL=${freq}`)
+      const days = data?.days_of_week
+        ?.map((d) => ASANA_DOW_TO_ICAL[d])
+        .filter(Boolean)
+      if (days?.length) parts.push(`BYDAY=${days.join(",")}`)
+      break
+    }
+    case "monthly": {
+      parts.push("FREQ=MONTHLY")
+      if (freq > 1) parts.push(`INTERVAL=${freq}`)
+      const day = data?.date ?? data?.days_of_month?.[0]
+      if (day) parts.push(`BYMONTHDAY=${day}`)
+      break
+    }
+    case "yearly":
+      parts.push("FREQ=YEARLY")
+      if (freq > 1) parts.push(`INTERVAL=${freq}`)
+      break
+    default:
+      return null
+  }
+
+  // Asana fixed-schedule types anchor to due date
+  parts.push("FROM=DUE")
+  return parts.join(";")
+}
+
 /** Pattern matching `→ ^numericId` at end of string (Asana recurring task parent ref) */
 const BLOCKREF_SUFFIX_RE = /\s*→\s*\^(\d+)\s*$/
 
@@ -45,6 +106,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   if (task.due_on) item.dueAt = task.due_on
   else if (task.due_at) item.dueAt = task.due_at
   if (task.start_on) item.startAt = task.start_on
+  else if (task.start_at) item.startAt = task.start_at
   if (task.assignee?.name) {
     item.assignee = task.assignee.name.replace(/\s+/g, "-").toLowerCase()
   }
@@ -151,6 +213,32 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   // External integration data
   if (task.external) {
     item.metadata = { ...item.metadata, external: task.external }
+  }
+
+  // Recurrence rule (undocumented Asana field → km RRULE)
+  if (task.recurrence) {
+    const rrule = asanaRecurrenceToKm(task.recurrence)
+    if (rrule) item.rrule = rrule
+    // Store original Asana recurrence object for reference
+    item.metadata = { ...item.metadata, asanaRecurrence: task.recurrence }
+  }
+
+  // User who completed the task (slugified name)
+  if (task.completed_by?.name) {
+    item.metadata = {
+      ...item.metadata,
+      completedBy: task.completed_by.name.replace(/\s+/g, "-").toLowerCase(),
+    }
+  }
+
+  // Asana time tracking total (in minutes)
+  if (task.actual_time_minutes != null) {
+    item.metadata = { ...item.metadata, actualTimeMinutes: task.actual_time_minutes }
+  }
+
+  // Approval status (for approval-subtype tasks)
+  if (task.approval_status) {
+    item.metadata = { ...item.metadata, approvalStatus: task.approval_status }
   }
 
   return item

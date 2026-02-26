@@ -141,7 +141,7 @@ export interface UIState {
 
   // Date/recurrence prompt dialog
   datePrompt: {
-    field: "due_at" | "start_at" | "recurrence"
+    field: "due_at" | "start_at" | "rrule"
     nodeIds: string[]
     currentValue: string
   } | null

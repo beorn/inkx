@@ -86,7 +86,7 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     content_hash: row.content_hash as string | undefined,
     title: row.title as string | undefined,
     rules,
-    recurrence: data.recurrence as string | undefined,
+    rrule: data.rrule as string | undefined,
     recur_prev: data.recur_prev as string | undefined,
     completed_at: data.completed_at as number | undefined,
     reminders: data.reminders as Reminder[] | undefined,

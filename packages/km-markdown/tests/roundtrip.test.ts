@@ -797,7 +797,7 @@ describe("Round-trip: Task Metadata Formats", () => {
       (n) => n.type === "p" && n.item === true && n.task_marker,
     )
     expect(task).toBeDefined()
-    expect(task!.data?.recurrence).toBe("every week")
+    expect(task!.data?.rrule).toBe("every week")
   })
 
   test("should extract inline field format (due:, start:, p:) and strip from content", () => {

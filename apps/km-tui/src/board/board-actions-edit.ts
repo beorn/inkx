@@ -483,8 +483,8 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
     const dueParts = decomposeDatetime(targetNode?.due_at)
-    if (nextStatus === "done" && targetNode?.recurrence && dueParts?.date) {
-      const nextDue = getNextOccurrence(targetNode.recurrence, dueParts.date)
+    if (nextStatus === "done" && targetNode?.rrule && dueParts?.date) {
+      const nextDue = getNextOccurrence(targetNode.rrule, dueParts.date)
       // Mark current task done with completion timestamp
       ctx.repo.updateNode(targetId, {
         task_status: "done",
@@ -505,7 +505,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
             list_marker: targetNode.list_marker,
             due_at: nextDueAt,
             start_at: targetNode.start_at,
-            recurrence: targetNode.recurrence,
+            rrule: targetNode.rrule,
             priority: targetNode.priority,
             assigned_to: targetNode.assigned_to,
             recur_prev: targetId,
@@ -550,7 +550,7 @@ export function handleClearTask(ctx: ActionCtx): void {
       start_at: undefined,
       priority: undefined,
       assigned_to: undefined,
-      recurrence: undefined,
+      rrule: undefined,
       completed_at: undefined,
     })
   }

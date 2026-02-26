@@ -1,6 +1,6 @@
 export const ASANA_BASE = "https://app.asana.com/api/1.0"
 export const TASK_FIELDS =
-  "name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,assignee.name,tags.name,custom_fields,memberships.project.name,memberships.section.name,num_subtasks,permalink_url,resource_subtype,assignee_section.name,parent.gid,parent.name,dependencies,dependents,is_rendered_as_separator,external"
+  "name,notes,html_notes,completed,completed_at,created_at,modified_at,due_on,due_at,start_on,start_at,assignee.name,completed_by.name,tags.name,custom_fields,memberships.project.name,memberships.section.name,num_subtasks,permalink_url,resource_subtype,assignee_section.name,parent.gid,parent.name,dependencies,dependents,is_rendered_as_separator,external,recurrence,actual_time_minutes,approval_status"
 
 /** Asana task shape from API */
 export interface AsanaApiTask {
@@ -10,12 +10,16 @@ export interface AsanaApiTask {
   html_notes?: string
   completed?: boolean
   completed_at?: string
+  completed_by?: { name?: string } | null
   created_at?: string
   modified_at?: string
   due_on?: string
   due_at?: string
   start_on?: string
+  start_at?: string
   assignee?: { name?: string } | null
+  actual_time_minutes?: number | null
+  approval_status?: "pending" | "approved" | "rejected" | "changes_requested" | null
   tags?: Array<{ name?: string }>
   custom_fields?: Array<{
     name: string
@@ -44,6 +48,16 @@ export interface AsanaApiTask {
   is_rendered_as_separator?: boolean
   /** External integration data */
   external?: { gid?: string; data?: string } | null
+  /** Recurrence rule (undocumented field, accessible via opt_fields=recurrence) */
+  recurrence?: {
+    type: "daily" | "weekly" | "monthly" | "yearly" | "periodically"
+    data?: {
+      frequency?: number
+      days_of_week?: number[]
+      date?: number
+      days_of_month?: number[]
+    }
+  } | null
 }
 
 export interface FetchOptions {

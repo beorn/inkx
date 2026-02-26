@@ -2,7 +2,7 @@
  * Implicit task detection tests
  *
  * Nodes with task-related properties (due_at, priority, start_at,
- * assigned_to, recurrence) should be treated as implicit tasks even without
+ * assigned_to, rrule) should be treated as implicit tasks even without
  * an explicit task_status. They should show task icons and metadata badges.
  */
 import { describe, it, expect } from "vitest"
@@ -25,7 +25,7 @@ describe("hasTaskProperties", () => {
     ["priority", { priority: 2 }],
     ["start_at", { start_at: "2026-02-20" }],
     ["assigned_to", { assigned_to: "beorn" }],
-    ["recurrence", { recurrence: "FREQ=WEEKLY" }],
+    ["rrule", { rrule: "FREQ=WEEKLY" }],
   ]
 
   for (const [name, props] of taskProps) {

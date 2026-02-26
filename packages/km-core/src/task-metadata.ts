@@ -73,7 +73,7 @@ export interface ExtractedTaskMetadata {
   startDate?: string
   startTime?: string
   priority?: number
-  recurrence?: string
+  rrule?: string
 }
 
 /**
@@ -110,7 +110,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
     if (n >= 1 && n <= 9) result.priority = n
   }
   if (entries.recur) {
-    result.recurrence = entries.recur
+    result.rrule = entries.recur
   }
 
   // Pass 2: Fall back to legacy key:value format for missing fields
@@ -132,9 +132,9 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
     const match = text.match(PRIORITY_LEGACY_REGEX)
     if (match?.[1]) result.priority = parseInt(match[1], 10)
   }
-  if (!result.recurrence) {
+  if (!result.rrule) {
     const match = text.match(RECURRENCE_LEGACY_REGEX)
-    if (match?.[1]) result.recurrence = match[1]
+    if (match?.[1]) result.rrule = match[1]
   }
 
   // Pass 3: Fall back to emoji format for any still-missing fields
@@ -157,9 +157,9 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
     else if (text.includes("🔼")) result.priority = 2
     else if (text.includes("🔽")) result.priority = 3
   }
-  if (!result.recurrence) {
+  if (!result.rrule) {
     const match = text.match(RECURRENCE_EMOJI_REGEX)
-    if (match?.[1]) result.recurrence = match[1].trim()
+    if (match?.[1]) result.rrule = match[1].trim()
   }
 
   return result
@@ -185,7 +185,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   // Extract current node field values
   const dueParts = decomposeDatetime(node.due_at)
   const startParts = decomposeDatetime(node.start_at)
-  const recurrence = node.recurrence ?? (node.data?.recurrence as string | undefined)
+  const recurrence = node.rrule ?? (node.data?.rrule as string | undefined)
 
   // Extract what's already in the content (any format)
   const existing = extractTaskMetadata(content)
@@ -212,7 +212,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
     dueVal === existingDueVal &&
     startVal === existingStartVal &&
     (node.priority ?? undefined) === existing.priority &&
-    (recurrence ?? undefined) === existing.recurrence
+    (recurrence ?? undefined) === existing.rrule
 
   if (fieldsMatch) {
     // Preserve original format — just handle assigned_to
@@ -264,7 +264,7 @@ export function parseTaskMetadataFromText(text: string): {
   due_at?: string
   start_at?: string
   priority?: number
-  recurrence?: string
+  rrule?: string
 } {
   // Extract metadata from all formats
   const extracted = extractTaskMetadata(text)
@@ -288,7 +288,7 @@ export function parseTaskMetadataFromText(text: string): {
     ...(due_at !== undefined && { due_at }),
     ...(start_at !== undefined && { start_at }),
     ...(extracted.priority !== undefined && { priority: extracted.priority }),
-    ...(extracted.recurrence !== undefined && { recurrence: extracted.recurrence }),
+    ...(extracted.rrule !== undefined && { rrule: extracted.rrule }),
   }
 }
 

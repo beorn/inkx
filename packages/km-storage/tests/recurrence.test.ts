@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { getNextOccurrence, naturalToRRule } from "../src/recurrence.ts"
+import { getNextOccurrence, naturalToRRule, parseRRule } from "../src/recurrence.ts"
 
 describe("recurrence.ts", () => {
   describe("getNextOccurrence", () => {
@@ -59,6 +59,55 @@ describe("recurrence.ts", () => {
     test("returns null for unknown frequency", () => {
       const next = getNextOccurrence("FREQ=UNKNOWN", "2024-01-15")
       expect(next).toBeNull()
+    })
+
+    test("strips FROM=COMPLETED before calculating", () => {
+      const next = getNextOccurrence("FREQ=DAILY;FROM=COMPLETED", "2024-01-15")
+      expect(next).toBe("2024-01-16")
+    })
+
+    test("strips FROM=DUE before calculating", () => {
+      const next = getNextOccurrence("FREQ=WEEKLY;INTERVAL=2;FROM=DUE", "2024-01-15")
+      expect(next).toBe("2024-01-29")
+    })
+
+    test("strips leading-semicolon FROM variant", () => {
+      // FROM at start: "FROM=DUE;FREQ=DAILY" — semicolon stripped cleanly
+      const next = getNextOccurrence("FREQ=MONTHLY;FROM=COMPLETED", "2024-01-15")
+      expect(next).toBe("2024-02-15")
+    })
+  })
+
+  describe("parseRRule", () => {
+    test("returns 'completed' when FROM is absent", () => {
+      expect(parseRRule("FREQ=DAILY")).toEqual({ rule: "FREQ=DAILY", from: "completed" })
+    })
+
+    test("returns 'completed' for FROM=COMPLETED", () => {
+      expect(parseRRule("FREQ=DAILY;FROM=COMPLETED")).toEqual({ rule: "FREQ=DAILY", from: "completed" })
+    })
+
+    test("returns 'due' for FROM=DUE", () => {
+      expect(parseRRule("FREQ=WEEKLY;INTERVAL=2;FROM=DUE")).toEqual({
+        rule: "FREQ=WEEKLY;INTERVAL=2",
+        from: "due",
+      })
+    })
+
+    test("is case-insensitive for FROM value", () => {
+      expect(parseRRule("FREQ=DAILY;FROM=due")).toEqual({ rule: "FREQ=DAILY", from: "due" })
+      expect(parseRRule("FREQ=DAILY;FROM=completed")).toEqual({ rule: "FREQ=DAILY", from: "completed" })
+    })
+
+    test("strips FROM when it appears mid-rule", () => {
+      const { rule, from } = parseRRule("FREQ=WEEKLY;FROM=DUE;BYDAY=MO")
+      expect(from).toBe("due")
+      expect(rule).toBe("FREQ=WEEKLY;BYDAY=MO")
+    })
+
+    test("strips leading semicolon when FROM is at end", () => {
+      const { rule } = parseRRule("FREQ=DAILY;FROM=DUE")
+      expect(rule).toBe("FREQ=DAILY")
     })
   })
 
@@ -121,6 +170,28 @@ describe("recurrence.ts", () => {
     test("handles case insensitivity", () => {
       expect(naturalToRRule("DAILY")).toBe("FREQ=DAILY")
       expect(naturalToRRule("Every Monday")).toBe("FREQ=WEEKLY;BYDAY=MO")
+    })
+
+    test("'on schedule' suffix appends FROM=DUE", () => {
+      expect(naturalToRRule("daily on schedule")).toBe("FREQ=DAILY;FROM=DUE")
+      expect(naturalToRRule("every 2 weeks on schedule")).toBe("FREQ=WEEKLY;INTERVAL=2;FROM=DUE")
+      expect(naturalToRRule("weekly on schedule")).toBe("FREQ=WEEKLY;FROM=DUE")
+    })
+
+    test("'on due' suffix appends FROM=DUE", () => {
+      expect(naturalToRRule("daily on due")).toBe("FREQ=DAILY;FROM=DUE")
+      expect(naturalToRRule("every monday on due")).toBe("FREQ=WEEKLY;BYDAY=MO;FROM=DUE")
+      expect(naturalToRRule("monthly on due")).toBe("FREQ=MONTHLY;FROM=DUE")
+    })
+
+    test("no suffix produces no FROM parameter", () => {
+      expect(naturalToRRule("daily")).toBe("FREQ=DAILY")
+      expect(naturalToRRule("every 2 weeks")).toBe("FREQ=WEEKLY;INTERVAL=2")
+    })
+
+    test("'on schedule' suffix is case-insensitive", () => {
+      expect(naturalToRRule("Daily on Schedule")).toBe("FREQ=DAILY;FROM=DUE")
+      expect(naturalToRRule("Every Monday on Due")).toBe("FREQ=WEEKLY;BYDAY=MO;FROM=DUE")
     })
   })
 })

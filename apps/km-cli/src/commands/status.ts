@@ -59,7 +59,7 @@ function displayStatus(node: KNode, options: { json?: boolean }): void {
  * Returns true if the task was recurring (and output was emitted), false otherwise.
  */
 function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean }): boolean {
-  const recurrence = (node.data?.recurrence as string) || (node.recurrence as string | undefined)
+  const recurrence = (node.data?.rrule as string) || (node.rrule as string | undefined)
   if (!recurrence) return false
 
   // Convert natural language to RRULE if needed

@@ -177,12 +177,12 @@ function testDataStore(name: string, factory: () => DataStore) {
 
       test("routes non-column fields to data blob", () => {
         const id = store.addNode(null, { type: "p", item: true, content: "Test" })
-        store.updateNode(id, { due_at: "2026-03-01T14:30", recurrence: "weekly" } as Record<string, unknown>)
+        store.updateNode(id, { due_at: "2026-03-01T14:30", rrule: "weekly" } as Record<string, unknown>)
 
         const node = store.getNode(id)
         expect(node?.due_at).toBe("2026-03-01T14:30")
-        // recurrence is stored in data blob and extracted by rowToNode
-        expect(node?.recurrence).toBe("weekly")
+        // rrule is stored in data blob and extracted by rowToNode
+        expect(node?.rrule).toBe("weekly")
       })
     })
 

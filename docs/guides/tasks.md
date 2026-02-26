@@ -77,12 +77,15 @@ All references create links to boards. The first `@` becomes the **assigned pers
 
 ## Task Fields
 
-| Field    | Syntax              | Purpose                      |
-| -------- | ------------------- | ---------------------------- |
-| `due:`   | `due:2025-01-15`    | When it's due                |
-| `start:` | `start:2025-01-20`  | Don't show until this date   |
-| `p:`     | `p:1`               | Priority (1-5, 1=highest)    |
-| `recur:` | `recur:FREQ=WEEKLY` | Recurrence rule (iCal RRULE) |
+| Field     | Syntax                  | Purpose                      |
+| --------- | ----------------------- | ---------------------------- |
+| `due::`   | `due:: 2026-01-15`     | When it's due                |
+| `start::` | `start:: 2026-01-20`   | Don't show until this date   |
+| `p::`     | `p:: 1`                | Priority (1-5, 1=highest)    |
+| `recur::` | `recur:: every 2 weeks` | Recurrence rule (RRULE + FROM) |
+
+Legacy `key:value` syntax (single colon, no space) is also accepted for
+backward compatibility.
 
 ### Schema
 
@@ -98,7 +101,7 @@ interface Node {
   due?: string // YYYY-MM-DD
   start?: string // YYYY-MM-DD (defer until)
   p?: number // Priority 1-5
-  recur?: string // iCal RRULE
+  rrule?: string // RRULE string (+ optional FROM=DUE)
   recur_prev?: string // Previous instance ID
 }
 ```
@@ -291,20 +294,35 @@ When a recurring task is completed:
 3. New task links back via `recur_prev`
 
 ```
-Task A (recur: FREQ=WEEKLY)
-├── [x] done 2025-01-06
-├── [x] done 2025-01-13
-└── [ ] due 2025-01-20  ← current
+Task A (recur:: FREQ=WEEKLY)
+├── [x] done 2026-01-06
+├── [x] done 2026-01-13
+└── [ ] due 2026-01-20  ← current
 ```
 
 ### RRULE Format
 
+All recurrence rules are RRULE strings. By default, the next due date is
+calculated from the completion date (`FROM=COMPLETED`). Add `FROM=DUE` for
+calendar-anchored patterns.
+
 ```
-recur:FREQ=DAILY
-recur:FREQ=WEEKLY;BYDAY=MO,WE,FR
-recur:FREQ=MONTHLY;BYMONTHDAY=1
-recur:FREQ=WEEKLY;INTERVAL=2
+recur:: FREQ=DAILY;INTERVAL=14                  # every 14 days (from completion)
+recur:: FREQ=WEEKLY;BYDAY=MO,WE,FR              # Mon/Wed/Fri (from completion)
+recur:: FREQ=MONTHLY;BYMONTHDAY=1;FROM=DUE      # 1st of month (from due date)
+recur:: FREQ=WEEKLY;INTERVAL=2                   # every 2 weeks (from completion)
 ```
+
+Natural language:
+
+```
+recur:: every 2 weeks                  # FREQ=WEEKLY;INTERVAL=2
+recur:: every weekday on schedule      # FREQ=WEEKLY;BYDAY=MO,..,FR;FROM=DUE
+recur:: daily                          # FREQ=DAILY
+```
+
+See [docs/design/recurrence.md](../design/recurrence.md) for the full
+recurrence design and cross-system comparison.
 
 ---
 
@@ -331,7 +349,7 @@ Completed items can be moved to `archive/` (manual or via automation).
 ### Task with Metadata
 
 ```markdown
-- [ ] Review Q1 budget @bjorn #finance +q1 due:2025-01-15 p:1
+- [ ] Review Q1 budget @bjorn #finance +q1 due:: 2026-01-15 p:: 1
 ```
 
 ### Blocked Task
@@ -345,7 +363,7 @@ On `@next/waiting` → status auto-set to `blocked`.
 ### Recurring Task
 
 ```markdown
-- [ ] Weekly review recur:FREQ=WEEKLY;BYDAY=MO
+- [ ] Weekly review recur:: FREQ=WEEKLY;BYDAY=MO
 ```
 
 ---

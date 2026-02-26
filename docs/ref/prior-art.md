@@ -22,14 +22,19 @@ Research on metadata syntax, recurrence models, and design patterns from other s
 
 ## Metadata Syntax Families
 
-| Family              | Syntax                 | Examples         |
-| ------------------- | ---------------------- | ---------------- |
-| **Key-colon-value** | `key:value`            | todo.txt, km     |
-| **Property syntax** | `key:: value`          | Logseq, Dataview |
-| **Function style**  | `@key(value)`          | TaskPaper        |
-| **Emoji prefix**    | `📅 value`             | Obsidian Tasks   |
-| **Brackets**        | `[key:: value]`        | Dataview         |
-| **Curly brace**     | `{#id .class key=val}` | Pandoc, kramdown |
+| Family              | Syntax                 | Examples                  |
+| ------------------- | ---------------------- | ------------------------- |
+| **Key-colon-value** | `key:value`            | todo.txt                  |
+| **Property syntax** | `key:: value`          | Logseq, Dataview, km      |
+| **Function style**  | `@key(value)`          | TaskPaper                 |
+| **Emoji prefix**    | `📅 value`             | Obsidian Tasks            |
+| **Brackets**        | `[key:: value]`        | Dataview                  |
+| **Curly brace**     | `{#id .class key=val}` | Pandoc, kramdown          |
+
+km uses **property syntax** (`key:: value`) for all metadata. Task fields use
+shorthand keys: `due:: 2026-01-15`, `start:: 2026-01-20`, `p:: 1`,
+`recur:: FREQ=WEEKLY`. Column rules use prefixed keys: `km.add:: query`,
+`km.sync:: field:value`.
 
 ---
 
@@ -46,7 +51,7 @@ Task A (recur: FREQ=WEEKLY)  →  mark done  →  Task A' (done)
 
 **Pros**: Full history per instance, natural fit for event log
 **Cons**: Database grows, no single template to edit
-**Used by**: Todoist, Things, OmniFocus, Reminders.app
+**Used by**: Todoist, Things, OmniFocus, Reminders.app, Asana
 
 ### 2. Template + Virtual Instances
 
@@ -72,6 +77,24 @@ Recurring task is a "series" node with child instances.
 **Cons**: Need to generate ahead, cascade delete issues
 **Used by**: Some project management tools
 
+### 5. Completion-Based Recurrence
+
+Not a model per se, but an orthogonal feature: "repeat N days after completion"
+rather than "repeat every Tuesday." No iCal RRULE standard exists for this —
+every system invents its own encoding:
+
+| System          | Encoding                               | Example                         |
+| --------------- | -------------------------------------- | ------------------------------- |
+| **Todoist**     | `every!` prefix (bang = after done)    | `every! 2 weeks`                |
+| **Obsidian**    | `when done` suffix                     | `every week when done`          |
+| **Asana**       | `periodically` type (max 30 days)      | `{"type":"periodically",...}`   |
+| **Things**      | "After Completion" toggle in UI        | —                               |
+| **OmniFocus**   | "Defer Another" / "Due Again" toggles  | —                               |
+| **TickTick**    | "By Completion Date" dropdown          | —                               |
+| **km**          | `FROM=COMPLETED` default on RRULE      | `FREQ=DAILY;INTERVAL=14` (default from completion) |
+
+See [docs/design/recurrence.md](../design/recurrence.md) for the full design.
+
 ---
 
 ## km Design Choices
@@ -79,7 +102,7 @@ Recurring task is a "series" node with child instances.
 | Aspect     | Choice                      | Rationale                             |
 | ---------- | --------------------------- | ------------------------------------- |
 | Recurrence | Clone-on-complete           | Each instance is real, full history   |
-| Metadata   | `key:value` inline          | Compact, grep-friendly, like todo.txt |
+| Metadata   | `key:: value` property syntax | Dataview/Logseq-compatible, grep-friendly |
 | References | `@person` `#tag` `+project` | Sigils = node links                   |
 | Boards     | H2 columns + wikilinks      | Pure markdown, no special format      |
 | Status     | 5 states                    | Minimal — covers all work states      |

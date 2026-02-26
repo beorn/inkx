@@ -227,7 +227,7 @@ export type {
 } from "./watch/index.ts"
 
 // Recurrence utilities (moved from @km/core)
-export { getNextOccurrence, naturalToRRule } from "./recurrence.ts"
+export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
 export { loadConfig, clearConfigCache, getOriginalBeadsConfig } from "./config.ts"

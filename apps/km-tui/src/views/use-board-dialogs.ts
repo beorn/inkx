@@ -227,7 +227,7 @@ export function useBoardDialogs({
       undoHandle.setCursor(cursorNodeId)
       if (useBatch) undoHandle.startBatch(`Set ${field}`)
 
-      if (field === "recurrence") {
+      if (field === "rrule") {
         const rrule = trimmed ? naturalToRRule(trimmed) : null
         if (trimmed && !rrule) {
           // Can't show toast here without toastQueue — just close
@@ -235,7 +235,7 @@ export function useBoardDialogs({
           return { datePrompt: null }
         }
         for (const nodeId of nodeIds) {
-          repo.updateNode(nodeId, { recurrence: rrule })
+          repo.updateNode(nodeId, { rrule: rrule })
         }
       } else {
         // Date field: resolve NL → ISO 8601 due_at/start_at

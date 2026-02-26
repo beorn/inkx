@@ -645,13 +645,13 @@ describe("Nodes to Markdown", () => {
         content: "Daily standup",
         task_status: "todo",
         task_marker: "[ ]",
-        recurrence: "every day",
+        rrule: "every day",
       })
       const md = nodesToMarkdown([node])
       expect(md).toContain('recur:: "every day"')
     })
 
-    test("should serialize recurrence from data.recurrence", () => {
+    test("should serialize recurrence from data.rrule", () => {
       const node = makeTestNode({
         type: "p",
         item: true,
@@ -659,7 +659,7 @@ describe("Nodes to Markdown", () => {
         content: "Weekly review",
         task_status: "todo",
         task_marker: "[ ]",
-        data: { recurrence: "every week" },
+        data: { rrule: "every week" },
       })
       const md = nodesToMarkdown([node])
       expect(md).toContain('recur:: "every week"')
@@ -673,7 +673,7 @@ describe("Nodes to Markdown", () => {
         content: "Weekly review 🔁 every week",
         task_status: "todo",
         task_marker: "[ ]",
-        recurrence: "every week",
+        rrule: "every week",
       })
       const md = nodesToMarkdown([node])
       // Should appear exactly once

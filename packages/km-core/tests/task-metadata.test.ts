@@ -113,28 +113,28 @@ describe("stringifyTaskMetadata", () => {
   })
 
   describe("recurrence", () => {
-    test("appends recur:: from recurrence field", () => {
-      const node = makeNode({ content: "Review", recurrence: "FREQ=WEEKLY" })
+    test("appends recur:: from rrule field", () => {
+      const node = makeNode({ content: "Review", rrule: "FREQ=WEEKLY" })
       expect(stringifyTaskMetadata("Review", node)).toBe("Review recur:: FREQ=WEEKLY")
     })
 
-    test("appends recur:: from data.recurrence", () => {
-      const node = makeNode({ content: "Review", data: { recurrence: "every week" } })
+    test("appends recur:: from data.rrule", () => {
+      const node = makeNode({ content: "Review", data: { rrule: "every week" } })
       expect(stringifyTaskMetadata("Review", node)).toBe('Review recur:: "every week"')
     })
 
     test("preserves old recur:value format when values match", () => {
-      const node = makeNode({ content: "Review recur:FREQ=WEEKLY", recurrence: "FREQ=WEEKLY" })
+      const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=WEEKLY" })
       expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY")
     })
 
     test("preserves emoji 🔁 format when values match", () => {
-      const node = makeNode({ content: "Review 🔁 every week", recurrence: "every week" })
+      const node = makeNode({ content: "Review 🔁 every week", rrule: "every week" })
       expect(stringifyTaskMetadata("Review 🔁 every week", node)).toBe("Review 🔁 every week")
     })
 
-    test("rewrites to key:: value when recurrence changes", () => {
-      const node = makeNode({ content: "Review recur:FREQ=WEEKLY", recurrence: "FREQ=DAILY" })
+    test("rewrites to key:: value when rrule changes", () => {
+      const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=DAILY" })
       expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:: FREQ=DAILY")
     })
   })
@@ -163,7 +163,7 @@ describe("stringifyTaskMetadata", () => {
         due_at: "2025-06-01",
         start_at: "2025-05-15",
         priority: 2,
-        recurrence: "FREQ=MONTHLY",
+        rrule: "FREQ=MONTHLY",
       })
       expect(stringifyTaskMetadata("Big task", node)).toBe(
         "Big task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=MONTHLY",
@@ -177,7 +177,7 @@ describe("stringifyTaskMetadata", () => {
         due_at: "2025-06-01",
         start_at: "2025-05-15",
         priority: 2,
-        recurrence: "FREQ=WEEKLY",
+        rrule: "FREQ=WEEKLY",
       })
       expect(stringifyTaskMetadata("Task 📅 2025-06-01 p:2", node)).toBe(
         "Task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=WEEKLY",
@@ -222,7 +222,7 @@ describe("parseTaskMetadataFromText", () => {
     test("strips recur::", () => {
       const result = parseTaskMetadataFromText("Review recur:: FREQ=WEEKLY")
       expect(result.cleanContent).toBe("Review")
-      expect(result.recurrence).toBe("FREQ=WEEKLY")
+      expect(result.rrule).toBe("FREQ=WEEKLY")
     })
 
     test("strips all new-format metadata", () => {
@@ -233,7 +233,7 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.due_at).toBe("2026-06-01")
       expect(result.start_at).toBe("2026-05-15")
       expect(result.priority).toBe(2)
-      expect(result.recurrence).toBe("FREQ=MONTHLY")
+      expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
 
@@ -271,7 +271,7 @@ describe("parseTaskMetadataFromText", () => {
     test("strips recur:value", () => {
       const result = parseTaskMetadataFromText("Review recur:FREQ=WEEKLY")
       expect(result.cleanContent).toBe("Review")
-      expect(result.recurrence).toBe("FREQ=WEEKLY")
+      expect(result.rrule).toBe("FREQ=WEEKLY")
     })
 
     test("strips all legacy metadata", () => {
@@ -280,7 +280,7 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.due_at).toBe("2026-06-01")
       expect(result.start_at).toBe("2026-05-15")
       expect(result.priority).toBe(2)
-      expect(result.recurrence).toBe("FREQ=MONTHLY")
+      expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
 
@@ -291,7 +291,7 @@ describe("parseTaskMetadataFromText", () => {
         due_at: "2026-01-15",
         start_at: "2026-01-10",
         priority: 1,
-        recurrence: "FREQ=DAILY",
+        rrule: "FREQ=DAILY",
       })
       const stringified = stringifyTaskMetadata("Task", node)
       expect(stringified).toBe("Task due:: 2026-01-15 start:: 2026-01-10 p:: 1 recur:: FREQ=DAILY")
@@ -301,7 +301,7 @@ describe("parseTaskMetadataFromText", () => {
       expect(parsed.due_at).toBe("2026-01-15")
       expect(parsed.start_at).toBe("2026-01-10")
       expect(parsed.priority).toBe(1)
-      expect(parsed.recurrence).toBe("FREQ=DAILY")
+      expect(parsed.rrule).toBe("FREQ=DAILY")
     })
 
     test("handles user-edited date (new format)", () => {
@@ -323,7 +323,7 @@ describe("parseTaskMetadataFromText", () => {
     expect(result.due_at).toBeUndefined()
     expect(result.start_at).toBeUndefined()
     expect(result.priority).toBeUndefined()
-    expect(result.recurrence).toBeUndefined()
+    expect(result.rrule).toBeUndefined()
   })
 
   test("handles empty string", () => {
@@ -361,7 +361,7 @@ describe("extractTaskMetadata", () => {
 
     test("extracts recur::", () => {
       const result = extractTaskMetadata("Review recur:: FREQ=WEEKLY")
-      expect(result.recurrence).toBe("FREQ=WEEKLY")
+      expect(result.rrule).toBe("FREQ=WEEKLY")
     })
   })
 
@@ -395,7 +395,7 @@ describe("extractTaskMetadata", () => {
 
     test("extracts recurrence", () => {
       const result = extractTaskMetadata("Review recur:FREQ=WEEKLY")
-      expect(result.recurrence).toBe("FREQ=WEEKLY")
+      expect(result.rrule).toBe("FREQ=WEEKLY")
     })
 
     test("extracts all metadata", () => {
@@ -403,7 +403,7 @@ describe("extractTaskMetadata", () => {
       expect(result.dueDate).toBe("2026-06-01")
       expect(result.startDate).toBe("2026-05-15")
       expect(result.priority).toBe(2)
-      expect(result.recurrence).toBe("FREQ=MONTHLY")
+      expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
 
@@ -441,7 +441,7 @@ describe("extractTaskMetadata", () => {
 
     test("extracts recurrence from 🔁", () => {
       const result = extractTaskMetadata("Task 🔁 every week")
-      expect(result.recurrence).toBe("every week")
+      expect(result.rrule).toBe("every week")
     })
   })
 
@@ -468,7 +468,7 @@ describe("extractTaskMetadata", () => {
       expect(result.dueDate).toBeUndefined()
       expect(result.startDate).toBeUndefined()
       expect(result.priority).toBeUndefined()
-      expect(result.recurrence).toBeUndefined()
+      expect(result.rrule).toBeUndefined()
     })
   })
 })

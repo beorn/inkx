@@ -414,6 +414,7 @@ function itemToNodes(
     due_at: item.dueAt?.slice(0, 10),
     start_at: item.startAt?.slice(0, 10),
     priority: item.priority,
+    rrule: item.rrule,
     completed_at: item.completedAt ? new Date(item.completedAt).getTime() : undefined,
     created_at: itemCreatedAt,
     updated_at: itemUpdatedAt,
@@ -824,6 +825,9 @@ function projectToNodes(
     }
   }
 
+  // Chain recurring task instances via recur_prev
+  linkRecurringInstances(project, nodes)
+
   // Custom Fields section
   if (project.customFieldSettings?.length) {
     const cfSectionId = `custom-fields-${project.sourceId}`
@@ -879,6 +883,71 @@ function collectTaskIds(items: ImportItem[], out: string[]): void {
   for (const item of items) {
     if (item.sourceId) out.push(item.sourceId)
     if (item.children?.length) collectTaskIds(item.children, out)
+  }
+}
+
+/** Collect all recurring items (those with parentTaskGid) from a project, recursively */
+function collectRecurringItems(items: ImportItem[], out: ImportItem[]): void {
+  for (const item of items) {
+    if (item.metadata?.parentTaskGid) out.push(item)
+    if (item.children?.length) collectRecurringItems(item.children, out)
+  }
+}
+
+/**
+ * Chain recurring task instances via recur_prev.
+ * Instances are grouped by their template GID (parentTaskGid), sorted by dueAt then createdAt,
+ * and each instance's recur_prev is set to the previous instance's sourceId.
+ * The first instance's recur_prev points to the template task sourceId (the parentTaskGid itself).
+ */
+function linkRecurringInstances(project: ImportProject, nodes: KNode[]): void {
+  // Collect all recurring items from this project
+  const recurringItems: ImportItem[] = []
+  if (project.sections?.length) {
+    for (const section of project.sections) {
+      collectRecurringItems(section.items, recurringItems)
+    }
+  }
+  if (project.items?.length) {
+    collectRecurringItems(project.items, recurringItems)
+  }
+
+  if (recurringItems.length === 0) return
+
+  // Build a map from sourceId → KNode for fast lookup
+  const nodeById = new Map<string, KNode>()
+  for (const node of nodes) {
+    if (node.block_id) nodeById.set(node.block_id, node)
+  }
+
+  // Group instances by template GID
+  const byTemplate = new Map<string, ImportItem[]>()
+  for (const item of recurringItems) {
+    const templateGid = item.metadata!.parentTaskGid as string
+    const group = byTemplate.get(templateGid) ?? []
+    group.push(item)
+    byTemplate.set(templateGid, group)
+  }
+
+  // For each template group, sort and set recur_prev
+  for (const [templateGid, instances] of byTemplate) {
+    // Sort by dueAt, falling back to createdAt, then sourceId for stability
+    instances.sort((a, b) => {
+      const aTime = a.dueAt ?? a.createdAt ?? ""
+      const bTime = b.dueAt ?? b.createdAt ?? ""
+      if (aTime < bTime) return -1
+      if (aTime > bTime) return 1
+      return (a.sourceId ?? "").localeCompare(b.sourceId ?? "")
+    })
+
+    let prevId = `^${templateGid}` // first instance points to the template
+    for (const instance of instances) {
+      const node = instance.sourceId ? nodeById.get(instance.sourceId) : undefined
+      if (node) {
+        node.recur_prev = prevId
+        prevId = `^${instance.sourceId}`
+      }
+    }
   }
 }
 

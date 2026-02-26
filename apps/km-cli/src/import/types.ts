@@ -52,6 +52,8 @@ export interface ImportItem {
   permalink?: string
   /** Whether this item is a milestone (vs a regular task) */
   milestone?: boolean
+  /** Recurrence rule: RRULE string with optional FROM=DUE (e.g., "FREQ=WEEKLY;BYDAY=MO;FROM=DUE") */
+  rrule?: string
   comments?: ImportComment[]
   /** System activity log entries (e.g., task moved, completed, field changed) */
   activityLog?: ImportComment[]

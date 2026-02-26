@@ -260,7 +260,7 @@ export function parseTaskMetadata(text: string): {
   dueAt?: string
   startAt?: string
   priority?: number
-  recurrence?: string
+  rrule?: string
 } {
   // Delegate to shared extraction in @km/core (DRY: same regexes for parser and editor)
   const extracted = extractTaskMetadata(text)
@@ -270,7 +270,7 @@ export function parseTaskMetadata(text: string): {
     ...(dueAt && { dueAt }),
     ...(startAt && { startAt }),
     ...(extracted.priority !== undefined && { priority: extracted.priority }),
-    ...(extracted.recurrence && { recurrence: extracted.recurrence }),
+    ...(extracted.rrule && { rrule: extracted.rrule }),
   }
 }
 

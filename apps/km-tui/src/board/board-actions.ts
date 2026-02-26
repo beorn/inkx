@@ -777,7 +777,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SET_START_DATE":
       return handleSetDatePrompt(ctx, "start_at")
     case "SET_RECURRING":
-      return handleSetDatePrompt(ctx, "recurrence")
+      return handleSetDatePrompt(ctx, "rrule")
     case "SET_PRIORITY":
       return handleSetPriority(ctx)
     case "DATE_PROMPT_CONFIRM":
@@ -1735,7 +1735,7 @@ function getSelectedCardNodeIds(ctx: ActionCtx): string[] {
 }
 
 /** Open the date prompt dialog for a given field. */
-function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "recurrence"): ActionResult {
+function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "rrule"): ActionResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary(field, "No card selected")
   const firstNodeId = nodeIds[0]
@@ -1842,7 +1842,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   const useBatch = nodeIds.length > 1
   if (useBatch) ctx.undoHandle.startBatch(`Set ${field}`)
 
-  if (field === "recurrence") {
+  if (field === "rrule") {
     // Recurrence: convert NL → RRULE, or clear
     const rrule = trimmed ? naturalToRRule(trimmed) : null
     if (trimmed && !rrule) {
@@ -1851,7 +1851,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
       return ok()
     }
     for (const nodeId of nodeIds) {
-      ctx.repo.updateNode(nodeId, { recurrence: rrule })
+      ctx.repo.updateNode(nodeId, { rrule: rrule })
     }
     ctx.toastQueue.info(rrule ? `Recurrence: ${trimmed}` : "Recurrence cleared")
   } else {

@@ -370,7 +370,7 @@ export class MemoryStore extends BaseStore {
 
   /**
    * Insert a node into the in-memory database.
-   * Non-column KNode fields (recurrence, etc.) are merged into data blob.
+   * Non-column KNode fields (rrule, etc.) are merged into data blob.
    */
   private insertNode(node: Partial<KNode>): void {
     const now = Date.now()

@@ -188,21 +188,21 @@ export function extractTitleTaskMarker(text: string): {
  * Check if a node has task-related properties set, indicating it should be
  * treated as an implicit task even without an explicit task_status.
  *
- * Properties checked: due_at, priority (1-4), start_at, assigned_to, recurrence.
+ * Properties checked: due_at, priority (1-4), start_at, assigned_to, rrule.
  *
  * @example hasTaskProperties({ due_at: "2026-02-20" } as KNode) // true
  * @example hasTaskProperties({ priority: 2 } as KNode) // true
  * @example hasTaskProperties({} as KNode) // false
  */
 export function hasTaskProperties(
-  node: Pick<KNode, "due_at" | "priority" | "start_at" | "assigned_to" | "recurrence">,
+  node: Pick<KNode, "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
 ): boolean {
   return !!(
     node.due_at ||
     (node.priority && node.priority >= 1 && node.priority <= 4) ||
     node.start_at ||
     node.assigned_to ||
-    node.recurrence
+    node.rrule
   )
 }
 
@@ -211,7 +211,7 @@ export function hasTaskProperties(
  * Single source of truth for task detection — use this instead of inline checks.
  */
 export function isTask(
-  node: Pick<KNode, "task_status" | "due_at" | "priority" | "start_at" | "assigned_to" | "recurrence">,
+  node: Pick<KNode, "task_status" | "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
 ): boolean {
   return node.task_status != null || hasTaskProperties(node)
 }
@@ -376,7 +376,7 @@ export interface KNode {
   due_at?: string // ISO 8601: "2026-02-20" or "2026-02-20T14:00:00-08:00"
   start_at?: string // ISO 8601: same format as due_at
   priority?: number // 1-4 (P1=critical, P4=backlog)
-  recurrence?: string // iCal RRULE format
+  rrule?: string // iCal RRULE format
   recur_prev?: string // Previous recurrence instance ID
   completed_at?: number // Unix ms — when task was marked done (stored in data blob)
   reminders?: Reminder[] // [{minutes_before: 15}] (stored in data blob)
