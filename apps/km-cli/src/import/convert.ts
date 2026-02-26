@@ -469,9 +469,7 @@ function itemToNodes(
     const splitEntries: Array<{ text: string; date: string; author?: string; createdAt: number }> = []
     for (const c of item.comments) {
       const entries = splitConsolidatedComment(c.text, c.createdAt)
-      const authorSlug = c.author
-        ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}`
-        : ""
+      const authorSlug = c.author ? `@${userSlugMap ? resolveUserSlug(c.author, userSlugMap) : slugify(c.author)}` : ""
       for (const entry of entries) {
         const date = entry.date ?? c.createdAt.slice(0, 10)
         const createdAt = entry.date ? new Date(entry.date).getTime() : new Date(c.createdAt).getTime()
@@ -583,11 +581,7 @@ function itemToNodes(
       // - [url](url) where name === href → bare URL
       // - Otherwise → standard markdown link
       const linkMd =
-        att.type === "image"
-            ? `![${att.name}](${href})`
-            : att.name === href
-              ? href
-              : `[${att.name}](${href})`
+        att.type === "image" ? `![${att.name}](${href})` : att.name === href ? href : `[${att.name}](${href})`
       nodes.push(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
@@ -923,7 +917,7 @@ function linkRecurringInstances(project: ImportProject, nodes: KNode[]): void {
   // Group instances by template GID
   const byTemplate = new Map<string, ImportItem[]>()
   for (const item of recurringItems) {
-    const templateGid = item.metadata!.parentTaskGid as string
+    const templateGid = item.metadata?.parentTaskGid as string
     const group = byTemplate.get(templateGid) ?? []
     group.push(item)
     byTemplate.set(templateGid, group)

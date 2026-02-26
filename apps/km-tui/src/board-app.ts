@@ -190,6 +190,7 @@ export function handleKey(
   const { get } = ctx
 
   // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
   ;(globalThis as any).__km_last_key = key.escape
     ? "Escape"
     : key.return
@@ -391,6 +392,7 @@ function routeThroughCommandSystem(
     if (result.commandId) {
       parentSpan.spanData.command = result.commandId
       // Update last key label to include command (for heartbeat diagnostics)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
       ;(globalThis as any).__km_last_key += ` → ${result.commandId}`
     }
   }
@@ -406,7 +408,11 @@ function routeThroughCommandSystem(
       clearTimeout(chordDismissTimer)
       chordDismissTimer = null
     }
-    ctx.setUI({ status: { level: "info", message: `${result.pending}-` }, pendingChord: result.pending, chordTimedOut: false })
+    ctx.setUI({
+      status: { level: "info", message: `${result.pending}-` },
+      pendingChord: result.pending,
+      chordTimedOut: false,
+    })
     chordTimer = setTimeout(() => {
       chordTimer = null
       fireChordTimeout(get, exitApp)

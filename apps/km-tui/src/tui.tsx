@@ -141,6 +141,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
 
         // Last key that was pressed (set by board-app handleKey)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
         const lastKey = (globalThis as any).__km_last_key as string | undefined
         if (lastKey) {
           parts.push(`after key='${lastKey}'`)
@@ -149,9 +150,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         }
 
         // Per-phase pipeline timing from last render
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
         const pipeline = (globalThis as any).__inkx_last_pipeline as
           | { measure: number; layout: number; content: number; output: number; total: number }
           | undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
         const renderCount = ((globalThis as any).__inkx_render_count as number) ?? 0
         const rendersSinceLastCheck = renderCount - lastRenderCount
         lastRenderCount = renderCount
