@@ -1058,7 +1058,6 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 // =============================================================================
 
 /** Check if a node matches all active property filters (AND logic between categories) */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-category filter matching
 // oxlint-disable-next-line complexity/complexity -- multi-category filter matching with early returns
 function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean {
   // Task status filter — only applies to task nodes; non-task nodes (headings, paragraphs) pass through

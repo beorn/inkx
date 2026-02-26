@@ -1832,7 +1832,6 @@ function resolveDate(input: string): { date: string; time: string } | null {
 }
 
 /** Handle confirmation of the date prompt dialog. */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: date parsing with multiple formats
 // oxlint-disable-next-line complexity/complexity -- date parsing with multiple formats
 function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
   const prompt = ctx.ui.datePrompt
