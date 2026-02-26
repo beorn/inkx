@@ -313,6 +313,7 @@ const Card = React.memo(
           <Box
             id={nodeId}
             data-view="item"
+            paddingRight={2}
             {...(isSelected && {
               "data-cursor": true,
               "data-col-index": colIndex,

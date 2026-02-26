@@ -1345,7 +1345,7 @@ const FoldedChildRow = React.memo(
             {prefix.afterMarker}
           </Text>
         </Box>
-        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
             color={isBrokenEmbed ? "$error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}

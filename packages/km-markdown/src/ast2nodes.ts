@@ -298,6 +298,21 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
         version: "",
       }
 
+      // Detect embed syntax in heading content (from import cross-project dedup serialization)
+      const embeddingText = getEmbeddingText(cleanText)
+      if (embeddingText) {
+        const embMatch = embeddingText.match(/^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/)
+        if (embMatch?.[1]) {
+          sectionNode.data = {
+            ...sectionNode.data,
+            embeddingTarget: embMatch[1].trim(),
+          }
+          if (embMatch[2]) {
+            ;(sectionNode.data as Record<string, unknown>).embeddingAlias = embMatch[2].trim()
+          }
+        }
+      }
+
       if (isRootH1 && h1Ids) {
         h1Ids.add(nodeId)
       }

@@ -235,7 +235,8 @@ function serializeNode(
  */
 function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext, treeDepth = 2): string {
   // Depth derived from tree position (parent chain), not stored on the node
-  const depth = treeDepth
+  // Markdown only supports h1-h6; clamp to avoid invalid headings (e.g., ####### becomes a paragraph)
+  const depth = Math.min(treeDepth, 6)
   const prefix = "#".repeat(depth)
   // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
   const title = node.title ?? node.content ?? ""
@@ -243,6 +244,9 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   // Prepend task marker if present (e.g., "## [x] Task title")
   const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
   let headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
+  // Trim trailing whitespace before appending embed/block_id to avoid double spaces
+  // (e.g., when title is empty and markerPrefix ends with space)
+  if (node.embed_source || node.block_id) headingLine = headingLine.trimEnd()
   if (node.embed_source) headingLine += ` ![[${node.embed_source}]]`
   if (node.block_id) headingLine += ` ^${node.block_id}`
   let md = headingLine + "\n\n"
