@@ -40,7 +40,10 @@ function isWellKnownMetadataSection(node: KNode): boolean {
   const titleLC = node.title?.toLowerCase()
   if (titleLC && COLLAPSED_SECTION_NAMES.has(titleLC)) return true
   // Check content with km.* rules stripped (Asana imports have content like "Attachments km.collapse:: true")
-  const contentLC = node.content?.toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
+  const contentLC = node.content
+    ?.toLowerCase()
+    .replace(/\s*km\.\w+::\s*\S*/g, "")
+    .trim()
   if (contentLC && COLLAPSED_SECTION_NAMES.has(contentLC)) return true
   return false
 }
@@ -70,7 +73,10 @@ export function isDetailOnly(node: KNode): boolean {
   // Check content for well-known section names (Asana imports have the name in content, not node.name)
   const rules = getCollapseRules(node)
   if (rules.collapse === true) {
-    const rawName = (node.name || node.title || node.content || "").toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
+    const rawName = (node.name || node.title || node.content || "")
+      .toLowerCase()
+      .replace(/\s*km\.\w+::\s*\S*/g, "")
+      .trim()
     if (COLLAPSED_SECTION_NAMES.has(rawName)) return true
   }
   return false

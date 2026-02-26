@@ -94,6 +94,9 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Manual layout calc | `displayWidth()` in app code for layout - should rely on inkx/flexx         |
 | Inkx string comp   | `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
+| Hardcoded color    | `color="red"` instead of `color="$error"` — bypasses theme system           |
+| Hex color literal  | `"#5599dd"` in TSX — won't work on limited terminals (Terminal.app)         |
+| Hardcoded protocol | `kitty: true` without `detectTerminalCaps()` — breaks on non-Kitty terms   |
 | `ensure*` checks   | `ensureOpen()`, `ensureValid()` - lower levels throw naturally              |
 | Getters/setters    | `get path() { return _path }` - use plain properties instead                |
 | Pure delegators    | `f(x) { return g(x) }` - call `g(x)` directly                               |
@@ -195,6 +198,12 @@ The script detects:
 - Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 - Pattern 36: Inkx string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
+
+**Theme/protocol issues (3 patterns)**:
+
+- Pattern 37: Hardcoded colors in TSX (`color="red"` instead of `color="$error"` — bypasses theme, breaks on non-standard terminals)
+- Pattern 38: Hex color literals in TSX (`"#5599dd"` — won't render on terminals without truecolor support)
+- Pattern 39: Hardcoded protocol flags (`kitty: true` without `detectTerminalCaps()` — breaks on Terminal.app, etc.)
 
 **Deprecated APIs (3 patterns)** - see km-inkx.deprecations bead:
 
@@ -376,6 +385,9 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
 | Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
 | Inkx string comp    | Medium           | High if in shared components; defeats inkx layout model |
+| Hardcoded color     | Medium           | High if in shared components; Low if in test fixtures   |
+| Hex color literal   | High             | Breaks on Terminal.app, tmux without truecolor          |
+| Hardcoded protocol  | High             | Low if behind detectTerminalCaps() check                |
 
 **Deprecated API findings** (see km-inkx.deprecations bead):
 

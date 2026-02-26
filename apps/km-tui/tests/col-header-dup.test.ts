@@ -58,12 +58,12 @@ describe("col-header-dup: column header style transition", () => {
     }
 
     // Navigate through all levels
-    await driver.cmd.down!()  // card
-    await driver.cmd.down!()  // next card
+    await driver.cmd.down!() // card
+    await driver.cmd.down!() // next card
     await driver.cmd.right!() // next column
-    await driver.cmd.up!()    // toward column header
-    await driver.cmd.down!()  // back to card
-    await driver.cmd.left!()  // back to first column
+    await driver.cmd.up!() // toward column header
+    await driver.cmd.down!() // back to card
+    await driver.cmd.left!() // back to first column
 
     // All diagnostics passed — incremental rendering matches fresh render
   })
@@ -85,9 +85,7 @@ describe("col-header-dup: column header style transition", () => {
 
     // Find the column header line (contains column names but not breadcrumb)
     // Breadcrumb line contains ">" path separator
-    const headerLine = lines.find(
-      (line) => line.includes("alpha-col") && !line.includes(">"),
-    )
+    const headerLine = lines.find((line) => line.includes("alpha-col") && !line.includes(">"))
     expect(headerLine, "should find column header line").toBeDefined()
 
     // "alpha-col" should appear exactly once on the header line
@@ -118,7 +116,8 @@ describe("col-header-dup: column header style transition", () => {
     // testEnv enables checkIncremental by default, which compares
     // incremental buffer against fresh render after every press()
     const { board } = testEnv(() =>
-      item.root("board",
+      item.root(
+        "board",
         item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
         item("beta-col", item("task-d"), item("task-e")),
       ),

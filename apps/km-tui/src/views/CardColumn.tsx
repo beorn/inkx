@@ -219,7 +219,7 @@ const Card = React.memo(
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
     const yieldTop = isPrevBodyBlock && isPrevAtCursor
-    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "black" : "$muted"
+    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$raisedbg" : "$muted"
 
     if (isHR && !isEditing) {
       const innerWidth = width - 2 // border or padding L+R both consume 2
@@ -332,8 +332,12 @@ const Card = React.memo(
     // Done/dropped tasks get a darker border to visually de-emphasize them
     // Dual cursor: dim the border when the cursor card is in the inactive pane
     const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
-    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "black" : "blackBright"
-    const borderColor = isEditing ? "$focusring" : isSelected || isMultiSelected || isColSelected ? "$selected" : defaultBorder
+    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$raisedbg" : "$separator"
+    const borderColor = isEditing
+      ? "$focusring"
+      : isSelected || isMultiSelected || isColSelected
+        ? "$selected"
+        : defaultBorder
     const cursorDim = isSelected && !boardFocused
 
     // When overflow, suppress the bottom border and render a custom one with the count
@@ -449,7 +453,7 @@ function bodyBlockLayoutProps(
   return {
     borderStyle: "round" as const,
     borderColor: isMultiSelected || isColumnSelected ? "$selected" : defaultBorderColor,
-    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "black",
+    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$raisedbg",
   }
 }
 
@@ -545,9 +549,7 @@ export const Column = React.memo(function Column({
   const nodeId = column.node.id
 
   // Per-column mount timing — measure render → commit duration
-  useComponentTiming(
-    `Column ${colIndex} "${column.node.title ?? column.node.name}" (${column.cardNodes.length} cards)`,
-  )
+  useComponentTiming(`Column ${colIndex} "${column.node.title ?? column.node.name}" (${column.cardNodes.length} cards)`)
 
   // Subscribe to column selection only (stable on j/k within same column).
   // NODE MODEL V2: Self-select by nodeId instead of positional index.
@@ -699,7 +701,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selected" : "black"
+    const borderColor = isColumnSelected ? "$selected" : "$raisedbg"
     return (
       <Box
         id={column.node.id}

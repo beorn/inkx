@@ -13,7 +13,14 @@ import React from "react"
 import { Box, Text } from "inkx"
 import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding, type CommandDef, type Keybinding } from "@km/commands"
+import {
+  getAllCommands,
+  getAllKeybindings,
+  fuzzyMatch,
+  formatKeybinding,
+  type CommandDef,
+  type Keybinding,
+} from "@km/commands"
 import { isOutline, isEmbed, type KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
@@ -49,7 +56,6 @@ export interface OmniboxResult {
 // =============================================================================
 // Result Sources
 // =============================================================================
-
 
 /** Commands that should be hidden from the palette (internal/text-editing) */
 const HIDDEN_CATEGORIES = new Set(["TextEdit"])
@@ -260,11 +266,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
 
   return (
     <Box>
-      <Text
-        color={fg}
-        backgroundColor={bg}
-        bold={isSelected}
-      >
+      <Text color={fg} backgroundColor={bg} bold={isSelected}>
         <Text dimColor={!isSelected}>{typeIcon}</Text>
         <Text>{result.label}</Text>
         {"  "}
@@ -280,11 +282,25 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
   )
 }
 
-function ResultItem({ result, isSelected, query }: { result: OmniboxResult; isSelected: boolean; query?: string }): React.ReactElement {
+function ResultItem({
+  result,
+  isSelected,
+  query,
+}: {
+  result: OmniboxResult
+  isSelected: boolean
+  query?: string
+}): React.ReactElement {
   if (result.type === "search" && result.node) {
     const decorations = query ? computeSearchDecorationsFromSource(result.label, query, isSelected) : undefined
     return (
-      <NodeLine node={result.node} title={result.label} parentContext={result.description} isSelected={isSelected} decorations={decorations} />
+      <NodeLine
+        node={result.node}
+        title={result.label}
+        parentContext={result.description}
+        isSelected={isSelected}
+        decorations={decorations}
+      />
     )
   }
   return <CommandResultItem result={result} isSelected={isSelected} />
@@ -366,10 +382,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   }, [allResults, deferredQuery])
 
   // Vault-wide search results (FTS5, deferred until 2+ chars)
-  const searchResults = React.useMemo(
-    () => buildSearchResults(repo, deferredQuery),
-    [repo, deferredQuery],
-  )
+  const searchResults = React.useMemo(() => buildSearchResults(repo, deferredQuery), [repo, deferredQuery])
 
   // Merge: command/goto results first, then search results (with divider tracked by index)
   const hasSearchResults = searchResults.length > 0

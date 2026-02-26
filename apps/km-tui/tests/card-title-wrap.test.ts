@@ -73,9 +73,6 @@ describe("card title wrap width", () => {
     // No overflow: title fits on 1 line, children fit in maxContentLines.
     // The overflow indicator should NOT appear.
     const overflowLine = lines.find((l) => /╰.*\+\d.*╯/.test(l))
-    expect(
-      overflowLine,
-      `Should NOT show overflow when title fits on one line.\nScreenshot:\n${text}`,
-    ).toBeUndefined()
+    expect(overflowLine, `Should NOT show overflow when title fits on one line.\nScreenshot:\n${text}`).toBeUndefined()
   })
 })

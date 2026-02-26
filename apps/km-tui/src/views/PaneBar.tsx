@@ -31,7 +31,14 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
   const bg = backgroundColor ?? (isFocused ? "$border" : "$muted")
 
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color={"$selectedfg"} dimColor={!isFocused}>
+    <Box
+      id="top-bar"
+      flexShrink={0}
+      flexDirection="row"
+      backgroundColor={bg}
+      color={"$selectedfg"}
+      dimColor={!isFocused}
+    >
       {/* Left: content (path, title, etc.) */}
       <Box flexGrow={1} overflow="hidden">
         {left}
@@ -41,7 +48,8 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
         {right}
         {paneLabel != null && (
           <Text dimColor={!isFocused} bold={isFocused}>
-            {" "}[{paneLabel}]
+            {" "}
+            [{paneLabel}]
           </Text>
         )}
       </Box>

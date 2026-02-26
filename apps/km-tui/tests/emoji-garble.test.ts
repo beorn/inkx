@@ -12,28 +12,26 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
-beforeEach(() => { process.env.INKX_STRICT = "1" })
-afterEach(() => { delete process.env.INKX_STRICT })
+beforeEach(() => {
+  process.env.INKX_STRICT = "1"
+})
+afterEach(() => {
+  delete process.env.INKX_STRICT
+})
 
 describe("emoji content garble reproduction", () => {
   test("cards with flag emoji + navigation", () => {
     const nodes = item(
       "board",
-      item("🇨🇦 Canada Tasks",
+      item(
+        "🇨🇦 Canada Tasks",
         item("🏠 Fix roof"),
         item("👨🏻‍💻 Code review"),
         item("🔸 Priority item"),
         item("📱 Mobile app"),
       ),
-      item("🇺🇸 US Tasks",
-        item("💼 Business meeting"),
-        item("📊 Q4 Report"),
-        item("🎯 Sprint goal"),
-      ),
-      item("Regular Column",
-        item("Plain task A"),
-        item("Plain task B"),
-      ),
+      item("🇺🇸 US Tasks", item("💼 Business meeting"), item("📊 Q4 Report"), item("🎯 Sprint goal")),
+      item("Regular Column", item("Plain task A"), item("Plain task B")),
     )
     const { board } = testEnv(() => nodes, { cols: 120, rows: 30 })
 
@@ -46,22 +44,16 @@ describe("emoji content garble reproduction", () => {
   test("mixed emoji and ASCII — navigation doesn't garble", () => {
     const nodes = item(
       "board",
-      item("#routine",
+      item(
+        "#routine",
         item("07:30 Morning routine 🏃‍♂️"),
         item("08:00 Breakfast ☕"),
         item("09:00 Work start 💻"),
         item("12:00 Lunch 🍽️"),
         item("17:00 Exercise 🏋️‍♂️"),
       ),
-      item("Harmon from Modo called",
-        item("Follow up on proposal"),
-        item("Send contract 📄"),
-      ),
-      item("Calendar",
-        item("10:00 Standup"),
-        item("14:00 1:1 with @bjørn-st"),
-        item("15:30 Demo prep"),
-      ),
+      item("Harmon from Modo called", item("Follow up on proposal"), item("Send contract 📄")),
+      item("Calendar", item("10:00 Standup"), item("14:00 1:1 with @bjørn-st"), item("15:30 Demo prep")),
     )
     const { board } = testEnv(() => nodes, { cols: 100, rows: 25 })
 
@@ -74,7 +66,8 @@ describe("emoji content garble reproduction", () => {
   test("wide chars with extensive navigation", () => {
     const nodes = item(
       "board",
-      item("Tasks",
+      item(
+        "Tasks",
         item("Buy groceries 🛒"),
         item("Call dentist ☎️"),
         item("Book flights ✈️"),
@@ -82,19 +75,12 @@ describe("emoji content garble reproduction", () => {
         item("Fix bike 🔧"),
         item("Water plants 🌱"),
       ),
-      item("Goals",
-        item("Learn Japanese 🇯🇵"),
-        item("Run marathon 🏃"),
-        item("Read 50 books 📚"),
-      ),
+      item("Goals", item("Learn Japanese 🇯🇵"), item("Run marathon 🏃"), item("Read 50 books 📚")),
     )
     const { board } = testEnv(() => nodes, { cols: 80, rows: 20 })
 
     // Navigate extensively — INKX_STRICT catches any mismatch
-    const sequence = [
-      "j", "j", "j", "l", "j", "j", "h", "k", "k",
-      "l", "l", "j", "j", "j", "k", "h", "j", "j",
-    ]
+    const sequence = ["j", "j", "j", "l", "j", "j", "h", "k", "k", "l", "l", "j", "j", "j", "k", "h", "j", "j"]
     for (const key of sequence) {
       board.press(key)
     }

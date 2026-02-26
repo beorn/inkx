@@ -82,7 +82,13 @@ interface SearchResultsProps {
   query: string
 }
 
-function SearchResults({ results, selectedIndex, scrollOffset, maxVisible, query }: SearchResultsProps): React.ReactElement {
+function SearchResults({
+  results,
+  selectedIndex,
+  scrollOffset,
+  maxVisible,
+  query,
+}: SearchResultsProps): React.ReactElement {
   const visibleResults = results.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (results.length === 0) {

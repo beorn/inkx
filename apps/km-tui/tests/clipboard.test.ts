@@ -121,7 +121,9 @@ describe("Clipboard operations", () => {
 
   test("copy with multi-selection", () => {
     // incremental: false — pre-existing inkx toast rendering mismatch
-    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), { incremental: false })
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
+      incremental: false,
+    })
 
     // Select A and B using Shift+J (extend selection down)
     board.press("shift+ArrowDown") // extends selection to include A and B

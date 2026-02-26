@@ -65,10 +65,7 @@ export interface ChordState {
  * Returns null if no modifiers are present (caller should use bare key).
  * Format: "Ctrl+w", "Ctrl+Shift+x", etc.
  */
-function buildChordPrefix(
-  key: string,
-  modifiers: { ctrl?: boolean; opt?: boolean; shift?: boolean },
-): string | null {
+function buildChordPrefix(key: string, modifiers: { ctrl?: boolean; opt?: boolean; shift?: boolean }): string | null {
   const parts: string[] = []
   if (modifiers.ctrl) parts.push("Ctrl")
   if (modifiers.opt) parts.push("Alt")
@@ -110,7 +107,12 @@ export function createChordState(): ChordState {
         const standalone = resolver.resolveStandalone(prefix)
         if (standalone) {
           return standalone.targetId
-            ? { type: "replay", standaloneId: standalone.commandId, standaloneTargetId: standalone.targetId, replayKey: key }
+            ? {
+                type: "replay",
+                standaloneId: standalone.commandId,
+                standaloneTargetId: standalone.targetId,
+                replayKey: key,
+              }
             : { type: "replay", standaloneId: standalone.commandId, replayKey: key }
         }
 

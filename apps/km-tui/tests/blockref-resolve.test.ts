@@ -53,10 +53,7 @@ describe("blockref/wikilink resolution", () => {
   test("full board: standalone blockref resolves to target title", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("col1", item("See ^1210156063601370")),
-        )
+        const nodes = item("board", item("col1", item("See ^1210156063601370")))
         nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
         return nodes
       },
@@ -70,10 +67,10 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: standalone blockref hidden when unresolved", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("See ^1210156063601370 notes"))),
-      { rows: 20, columns: 60 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("See ^1210156063601370 notes"))), {
+      rows: 20,
+      columns: 60,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -85,10 +82,7 @@ describe("blockref/wikilink resolution", () => {
   test("full board: wikilink [[^nodeId]] resolves to target title", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("col1", item("See [[^1210156063601370]]")),
-        )
+        const nodes = item("board", item("col1", item("See [[^1210156063601370]]")))
         nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
         return nodes
       },
@@ -102,10 +96,10 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: unresolved wikilink shows target dimmed (not hidden)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("See [[^9999999999999999]]"))),
-      { rows: 20, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("See [[^9999999999999999]]"))), {
+      rows: 20,
+      columns: 80,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -147,10 +141,7 @@ describe("blockref/wikilink resolution", () => {
   test("full board: <^ID> resolves to target title without angle brackets", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("col1", item("See <^1210156063601370>")),
-        )
+        const nodes = item("board", item("col1", item("See <^1210156063601370>")))
         nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
         return nodes
       },
@@ -166,10 +157,10 @@ describe("blockref/wikilink resolution", () => {
   })
 
   test("full board: <^ID> hidden when unresolved (no angle brackets)", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("See <^1210156063601370>"))),
-      { rows: 20, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("See <^1210156063601370>"))), {
+      rows: 20,
+      columns: 80,
+    })
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
@@ -182,10 +173,7 @@ describe("blockref/wikilink resolution", () => {
   test("full board: resolved blockref has proper spacing", () => {
     const { board } = testEnv(
       () => {
-        const nodes = item(
-          "board",
-          item("col1", item("See ^1210156063601370")),
-        )
+        const nodes = item("board", item("col1", item("See ^1210156063601370")))
         nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
         return nodes
       },

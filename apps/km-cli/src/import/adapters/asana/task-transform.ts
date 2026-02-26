@@ -16,9 +16,7 @@ const ASANA_DOW_TO_ICAL = ["", "MO", "TU", "WE", "TH", "FR", "SA", "SU"] as cons
  * - Fixed schedule: `FREQ=WEEKLY;BYDAY=MO;FROM=DUE`
  * - After completion: `FREQ=DAILY;INTERVAL=14` (FROM=COMPLETED is default)
  */
-export function asanaRecurrenceToKm(
-  recurrence: NonNullable<AsanaApiTask["recurrence"]>,
-): string | null {
+export function asanaRecurrenceToKm(recurrence: NonNullable<AsanaApiTask["recurrence"]>): string | null {
   const { type, data } = recurrence
   const freq = data?.frequency ?? 1
 
@@ -41,9 +39,7 @@ export function asanaRecurrenceToKm(
     case "weekly": {
       parts.push("FREQ=WEEKLY")
       if (freq > 1) parts.push(`INTERVAL=${freq}`)
-      const days = data?.days_of_week
-        ?.map((d) => ASANA_DOW_TO_ICAL[d])
-        .filter(Boolean)
+      const days = data?.days_of_week?.map((d) => ASANA_DOW_TO_ICAL[d]).filter(Boolean)
       if (days?.length) parts.push(`BYDAY=${days.join(",")}`)
       break
     }

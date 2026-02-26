@@ -107,14 +107,14 @@ export function SearchReplaceDialog({
       flexDirection="column"
       width={width}
       borderStyle="round"
-      borderColor="cyan"
-      backgroundColor="black"
+      borderColor="$selected"
+      backgroundColor="$raisedbg"
       paddingX={1}
       data-dialog="search-replace"
     >
       {/* Title bar */}
       <Box flexDirection="row" justifyContent="space-between">
-        {formatTitleWithHotkey("Find & Replace", "F", "cyan")}
+        {formatTitleWithHotkey("Find & Replace", "F", "$selected")}
         {matchRight}
       </Box>
 

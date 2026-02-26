@@ -139,7 +139,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-
     })
     const task = makeTestNode({
       id: "task-1",
@@ -166,7 +165,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-
     })
     const ul = makeTestNode({
       id: "ul-1",
@@ -191,7 +189,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-
     })
     const para = makeTestNode({
       id: "para-1",
@@ -214,7 +211,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Doc",
-
     })
     const section = makeTestNode({
       id: "sec-1",
@@ -226,7 +222,6 @@ describe("Serializer: block_id output", () => {
       content: "My Section",
       title: "My Section",
       block_id: "def3",
-
     })
 
     const md = nodesToMarkdown([fileNode, section])
@@ -241,7 +236,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-
     })
     const task = makeTestNode({
       id: "task-1",
@@ -268,7 +262,6 @@ describe("Serializer: block_id output", () => {
       fstype: "mdfile",
       fs_path: "test.md",
       content: "Test",
-
     })
     const ol = makeTestNode({
       id: "ol-1",
@@ -299,7 +292,6 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -356,7 +348,6 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -411,7 +402,6 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -460,7 +450,6 @@ describe("On-demand block ID generation", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -670,7 +659,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -718,7 +706,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -738,7 +725,6 @@ describe("Embed references with block_id", () => {
       title: "My Section",
       content: "My Section",
       block_id: "s1a2",
-
     })
     const embedNode = makeTestNode({
       id: "embed-1",
@@ -761,7 +747,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -803,7 +788,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -852,7 +836,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",
@@ -900,7 +883,6 @@ describe("Embed references with block_id", () => {
       fstype: "mdfile",
       fs_path: "board.md",
       content: "Board",
-
     })
     const targetFileNode = makeTestNode({
       id: "target-file",

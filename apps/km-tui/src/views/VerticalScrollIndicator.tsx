@@ -15,25 +15,22 @@ export interface VerticalScrollIndicatorProps {
 }
 
 /** Arrow + blank line pattern, repeated to fill any height. Clipped by overflow="hidden". */
-const ARROW_FILL_LEFT = ("◂\n \n").repeat(100)
-const ARROW_FILL_RIGHT = ("▸\n \n").repeat(100)
+const ARROW_FILL_LEFT = "◂\n \n".repeat(100)
+const ARROW_FILL_RIGHT = "▸\n \n".repeat(100)
 
 /**
  * Vertical scroll indicator — 1 char wide, fills available height.
  * When active (hiddenCount > 0): dark grey arrows with blank lines between.
  * When inactive (hiddenCount === 0): empty 1-char spacer (prevents layout shift).
  */
-export function VerticalScrollIndicator({ direction, hiddenCount = 1 }: VerticalScrollIndicatorProps): React.ReactElement {
+export function VerticalScrollIndicator({
+  direction,
+  hiddenCount = 1,
+}: VerticalScrollIndicatorProps): React.ReactElement {
   const active = hiddenCount > 0
 
   return (
-    <Box
-      data-scroll-indicator={direction}
-      width={1}
-      flexShrink={0}
-      flexGrow={0}
-      overflow="hidden"
-    >
+    <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden">
       {active && (
         <Text dimColor color="$muted">
           {direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}

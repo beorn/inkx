@@ -306,9 +306,9 @@ describe("DetailPane", () => {
     const bjornIdx = ansi.indexOf("bjorn")
     expect(bjornIdx).toBeGreaterThan(-1)
     // Look at the ANSI codes before "bjorn" — should include a foreground color
-    // ($text resolves to white 38;5;7 with km theme, or Nord #ECEFF4 = 38;2;236;239;244 with default)
+    // ($text resolves to whiteBright 38;5;15 with ansi16 km theme, or Nord #ECEFF4 = 38;2;236;239;244 with truecolor)
     const before = ansi.slice(Math.max(0, bjornIdx - 60), bjornIdx)
-    expect(before).toMatch(/38;(?:5;7|2;236;239;244)/)
+    expect(before).toMatch(/38;(?:5;(?:7|15)|2;236;239;244)/)
   })
 
   test("shows subtasks as outline items", () => {
@@ -870,10 +870,10 @@ describe("DetailPane", () => {
 
 describe("Detail pane toggle (D key)", () => {
   test("D opens only detail pane, not an extra empty workspace pane", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // Initially: 1 pane (main), no detail pane
     expect(store.getState().workspace.panes.size).toBe(1)
@@ -913,10 +913,10 @@ describe("Detail pane toggle (D key)", () => {
   })
 
   test("D with split panes does not create extra empty pane", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // Split the pane first
     store.getState().splitFocusedPane("h")
@@ -943,10 +943,10 @@ describe("Detail pane toggle (D key)", () => {
   })
 
   test("D toggles detail pane closed when already open", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // Open detail pane
     board.press("D")

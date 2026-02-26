@@ -298,16 +298,7 @@ describe("vd (toggle_hide_done)", () => {
       version: "v1",
     }
 
-    const allNodes = [
-      board_node,
-      col,
-      cardNode,
-      todoEmbedChild,
-      doneEmbedChild,
-      srcHolder,
-      todoSrc,
-      doneSrc,
-    ]
+    const allNodes = [board_node, col, cardNode, todoEmbedChild, doneEmbedChild, srcHolder, todoSrc, doneSrc]
 
     const { board } = testEnv(() => allNodes, {
       columns: 80,

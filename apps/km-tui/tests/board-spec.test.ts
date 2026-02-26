@@ -244,10 +244,7 @@ describe("J/K block navigation", () => {
 
   test("J then K round-trip preserves position", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling")),
-      ),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
     board.expect("#Parent[data-cursor]").toExist()
@@ -263,14 +260,10 @@ describe("J/K block navigation", () => {
   test("J navigates through deep hierarchy (auto-unfolds each level)", () => {
     // Use flat children (not nested folders) to avoid auto-fold complexity.
     // J drills into children; auto-unfold is tested separately.
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("L1", item("child-a"), item("child-b"))),
-        ),
-      { rows: 30, checkIncremental: false },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.folder("L1", item("child-a"), item("child-b")))), {
+      rows: 30,
+      checkIncremental: false,
+    })
 
     board.expect("#L1[data-cursor]").toExist()
 
@@ -762,8 +755,7 @@ describe("Escape priority layering", () => {
 describe("J/K block navigation edge cases", () => {
   test("J on folded card auto-unfolds then enters first child", () => {
     const { board } = testEnv(
-      () =>
-        item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
+      () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { checkIncremental: false },
     )
 
@@ -779,11 +771,7 @@ describe("J/K block navigation edge cases", () => {
 
   test("K from child navigates to immediate parent", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("Parent", item("child-x"), item("child-y"))),
-        ),
+      () => item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")))),
       { rows: 30, checkIncremental: false },
     )
 
@@ -799,15 +787,7 @@ describe("J/K block navigation edge cases", () => {
   test("multiple J/K in sequence maintains cursor visibility", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item(
-            "col1",
-            item.folder("A", item("a1"), item("a2")),
-            item.folder("B", item("b1")),
-            item("C"),
-          ),
-        ),
+        item("board", item("col1", item.folder("A", item("a1"), item("a2")), item.folder("B", item("b1")), item("C"))),
       { rows: 30, checkIncremental: false },
     )
 

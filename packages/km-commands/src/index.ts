@@ -153,7 +153,7 @@ export {
   inDialogRename,
   inDialogConfirm,
   inDialogNewItem,
-  inDialogProjectPicker,
+  inDialogPicker,
   inDialogDatePrompt,
   inDialogFilter,
 } from "./when.ts"
@@ -165,13 +165,27 @@ export { REPO_LOCS, locationLabel } from "./locations.ts"
 export type { TargetResolver, Execute, VerbDef } from "./verb-locations.ts"
 export {
   // Target resolvers
-  inbox, journal, home, archive, parent, first, last, fav, pick,
+  inbox,
+  journal,
+  home,
+  archive,
+  parent,
+  first,
+  last,
+  fav,
+  pick,
   // Verb constructors
-  goTo, moveTo, addTo, createIn,
+  goTo,
+  moveTo,
+  addTo,
+  createIn,
   // Registries
-  SYSTEM_LOCS, PICKER_LOCS, VERBS,
+  SYSTEM_LOCS,
+  PICKER_LOCS,
+  VERBS,
   // Grid generators
-  verbLocationGrid, ctrlVerbLocationGrid,
+  verbLocationGrid,
+  ctrlVerbLocationGrid,
 } from "./verb-locations.ts"
 
 // Help data (auto-generated from registry)

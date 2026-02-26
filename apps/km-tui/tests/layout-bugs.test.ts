@@ -177,35 +177,35 @@ describe("km-tui.collapsed-shift", () => {
     // transient layout overflow that is unrelated to border rendering correctness
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {
-    const { board } = testEnv(
-      () => item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
-      { columns: 80, rows: 20 },
-    )
+      const { board } = testEnv(
+        () => item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
+        { columns: 80, rows: 20 },
+      )
 
-    // Navigate to middle column and collapse
-    board.press("l").press("v").press("c")
+      // Navigate to middle column and collapse
+      board.press("l").press("v").press("c")
 
-    // Find collapsed column
-    const collapsed = board.q("[data-collapsed]")
-    expect(collapsed.count()).toBe(1)
-    const collapsedBox = collapsed.boundingBox()
-    expect(collapsedBox).not.toBeNull()
-    if (!collapsedBox) return
+      // Find collapsed column
+      const collapsed = board.q("[data-collapsed]")
+      expect(collapsed.count()).toBe(1)
+      const collapsedBox = collapsed.boundingBox()
+      expect(collapsedBox).not.toBeNull()
+      if (!collapsedBox) return
 
-    // Check borders on all rows
-    const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
-    for (let y = collapsedBox.y; y < collapsedBox.y + collapsedBox.height; y++) {
-      const leftCell = board.screen.cell(collapsedBox.x, y)
-      const rightCell = board.screen.cell(collapsedBox.x + collapsedBox.width - 1, y)
-      expect(
-        isBorderChar(leftCell.char),
-        `Row ${y}: left border at x=${collapsedBox.x} should be border char, got '${leftCell.char}'`,
-      ).toBe(true)
-      expect(
-        isBorderChar(rightCell.char),
-        `Row ${y}: right border at x=${collapsedBox.x + collapsedBox.width - 1} should be border char, got '${rightCell.char}'`,
-      ).toBe(true)
-    }
+      // Check borders on all rows
+      const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
+      for (let y = collapsedBox.y; y < collapsedBox.y + collapsedBox.height; y++) {
+        const leftCell = board.screen.cell(collapsedBox.x, y)
+        const rightCell = board.screen.cell(collapsedBox.x + collapsedBox.width - 1, y)
+        expect(
+          isBorderChar(leftCell.char),
+          `Row ${y}: left border at x=${collapsedBox.x} should be border char, got '${leftCell.char}'`,
+        ).toBe(true)
+        expect(
+          isBorderChar(rightCell.char),
+          `Row ${y}: right border at x=${collapsedBox.x + collapsedBox.width - 1} should be border char, got '${rightCell.char}'`,
+        ).toBe(true)
+      }
     } finally {
       errorSpy.mockRestore()
     }

@@ -500,7 +500,7 @@ function MetadataTable({
 
   // Priority
   if (node.priority) {
-    const pColors = ["$error", "$warning", "yellowBright", "$muted"]
+    const pColors = ["$error", "$warning", "$primary", "$muted"]
     rows.push({ key: "Priority", value: `P${node.priority}`, valueColor: pColors[node.priority - 1] })
   }
 

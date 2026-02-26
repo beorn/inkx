@@ -15,19 +15,18 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 // A board with enough items to trigger scrolling (which triggers boundary toasts)
 function scrollingBoard() {
-  return () => item("board",
-    item("col1", ...Array.from({ length: 12 }, (_, i) => item(`1-${String.fromCharCode(97 + i)}`))),
-    item("col2", ...Array.from({ length: 10 }, (_, i) => item(`2-${String.fromCharCode(97 + i)}`))),
-    item("col3", ...Array.from({ length: 8 }, (_, i) => item(`3-${String.fromCharCode(97 + i)}`))),
-  )
+  return () =>
+    item(
+      "board",
+      item("col1", ...Array.from({ length: 12 }, (_, i) => item(`1-${String.fromCharCode(97 + i)}`))),
+      item("col2", ...Array.from({ length: 10 }, (_, i) => item(`2-${String.fromCharCode(97 + i)}`))),
+      item("col3", ...Array.from({ length: 8 }, (_, i) => item(`3-${String.fromCharCode(97 + i)}`))),
+    )
 }
 
 // A small board where boundary hits are frequent
 function smallBoard() {
-  return () => item("board",
-    item("col1", item("1a"), item("1b"), item("1c")),
-    item("col2", item("2a"), item("2b")),
-  )
+  return () => item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b")))
 }
 
 describe("toast mismatch reproduction", () => {
@@ -56,11 +55,11 @@ describe("toast mismatch reproduction", () => {
         if (mismatch) {
           expect.unreachable(
             `Toast-related mismatch after "g":\n` +
-            formatMismatch(mismatch, {
-              incrementalText: bufferToText(incBuf),
-              freshText: bufferToText(freshBuf),
-              key: "g",
-            })
+              formatMismatch(mismatch, {
+                incrementalText: bufferToText(incBuf),
+                freshText: bufferToText(freshBuf),
+                key: "g",
+              }),
           )
         }
       }

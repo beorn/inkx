@@ -437,7 +437,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
       { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
       { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
-      { key: "Escape", commandId: "find_close", when: and(localFindActive, not(textInputFocused), not(isInlineEditing)) },
+      {
+        key: "Escape",
+        commandId: "find_close",
+        when: and(localFindActive, not(textInputFocused), not(isInlineEditing)),
+      },
     ],
   },
 

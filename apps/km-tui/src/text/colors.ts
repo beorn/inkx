@@ -7,12 +7,11 @@
 
 import { createTerm, type StyleChain } from "inkx"
 
-/**
- * Create a term instance with truecolor support.
- * Called per-invocation to avoid module-level mutable state.
- */
+/** Cached term instance for color styling. Uses default color detection. */
+let _termStyle: StyleChain | undefined
+
 function createTermStyle(): StyleChain {
-  return createTerm({ color: "truecolor" })
+  return (_termStyle ??= createTerm())
 }
 
 /**

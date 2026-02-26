@@ -58,7 +58,9 @@ export function getNameIndex(db: Database): Map<string, string | null> {
     }
   }
 
-  log.debug?.(`buildNameIndex: ${map.size} entries from ${rows.length} nodes in ${(performance.now() - t0).toFixed(0)}ms`)
+  log.debug?.(
+    `buildNameIndex: ${map.size} entries from ${rows.length} nodes in ${(performance.now() - t0).toFixed(0)}ms`,
+  )
   nameIndex = map
   nameIndexDb = new WeakRef(db)
   return map
@@ -216,7 +218,11 @@ function createQueryContext(db: Database, q: string, options: ResolveOptions): Q
       const rows = db.query(sql).all(...p) as Record<string, unknown>[]
       if (t) {
         const ms = performance.now() - t
-        if (ms > 5) log.debug?.(`  SQL ${ms.toFixed(0)}ms (${rows.length} rows): ${sql.slice(0, 60)}… [${p.slice(0, 2).join(", ")}]`)
+        if (ms > 5) {
+          log.debug?.(
+            `  SQL ${ms.toFixed(0)}ms (${rows.length} rows): ${sql.slice(0, 60)}… [${p.slice(0, 2).join(", ")}]`,
+          )
+        }
       }
       return rows.map(rowToNode)
     },

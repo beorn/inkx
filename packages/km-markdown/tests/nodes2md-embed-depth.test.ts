@@ -222,7 +222,6 @@ describe("Embed depth: section created among embeds", () => {
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
-
     })
     const parentSection = makeTestNode({
       id: "sec-parent",

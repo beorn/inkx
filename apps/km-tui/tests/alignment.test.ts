@@ -456,10 +456,7 @@ describe("alignment: collapsed columns", () => {
   describe("left-collapsed column with normal column", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
-      const env = testEnv(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-        WIDE,
-      )
+      const env = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
       board = env.board
       // Collapse col1 via keypress (cursor starts on 1a in col1)
       board.press("v").press("c")
@@ -510,10 +507,7 @@ describe("alignment: collapsed columns", () => {
   })
 
   test("collapsed column on the right is also adjacent", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-      WIDE,
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
     // Navigate to col2 and collapse it
     board.press("l").press("v").press("c")
 

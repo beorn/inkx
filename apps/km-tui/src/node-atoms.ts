@@ -102,9 +102,7 @@ export const boardFocusedAtom = atom(true)
  * Per-node cursor check: is this node the current cursor node?
  * Derived from cursorNodeIdAtom — only nodes matching the cursor re-render.
  */
-export const nodeIsCursorAtom = atomFamily((nodeId: string) =>
-  atom((get) => get(cursorNodeIdAtom) === nodeId),
-)
+export const nodeIsCursorAtom = atomFamily((nodeId: string) => atom((get) => get(cursorNodeIdAtom) === nodeId))
 
 /**
  * Per-node column check: is this node's column selected?

@@ -42,10 +42,10 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("l at rightmost column focuses detail pane when open", { timeout: 5000 }, () => {
-    const { board, store, focusManager } = testEnv(
-      () => item("board", item("col1", item("card1", item("sub1")))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1", item("sub1")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open detail pane
     expect(store.getState().ui.showDetailPane).toBe(true)
@@ -58,10 +58,10 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
   })
 
   test("h in detail pane returns focus to board", { timeout: 5000 }, () => {
-    const { board, store, focusManager } = testEnv(
-      () => item("board", item("col1", item("card1", item("sub1")))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1", item("sub1")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open detail pane
     board.press("l") // focus detail pane (at rightmost column boundary)

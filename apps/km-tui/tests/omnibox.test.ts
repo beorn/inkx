@@ -127,15 +127,7 @@ describe("omnibox", () => {
 
   it("search results appear below command results", () => {
     // Use extra-tall terminal so both sections are visible
-    const { board } = testEnv(
-      () => [
-        ...item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-        ),
-      ],
-      { rows: 60 },
-    )
+    const { board } = testEnv(() => [...item("board", item("col1", item("task1"), item("task2")))], { rows: 60 })
     board.press(":")
     // Type "task1" — matches few commands but definitely matches the node
     board.press("t").press("a").press("s").press("k").press("1")

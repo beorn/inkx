@@ -71,41 +71,41 @@ bun km import asana --dry-run
 
 ## Asana → kmast Field Mapping
 
-| Asana API Field | ImportItem Field | KNode (kmast) Field | Notes |
-|-----------------|-----------------|---------------------|-------|
-| `name` | `title` | node title | `→ ^GID` suffix stripped (recurring instance ref) |
-| `completed` | `status` | `task_marker` | `true` → "done", `false` → "todo" |
-| `due_on` / `due_at` | `dueAt` | `due_at` | Date portion only (YYYY-MM-DD) |
-| `start_on` | `startAt` | `start_at` | Date portion only (YYYY-MM-DD) |
-| `assignee.name` | `assignee` | `assigned_to` | Slugified: `@bjorn-stabell` |
-| `tags[].name` | `tags` | inline `#tag` on heading | Multiple tags space-separated |
-| `custom_fields["Priority"]` | `priority` | `priority` | Number 1-4, clamped |
-| `resource_subtype` | `milestone` | stored in `data` | `"milestone"` subtype detected |
-| `permalink_url` | `permalink` | `data.source_url` | Asana web link |
-| `html_notes` / `notes` | `body` | node body (markdown) | HTML converted via `html-to-md.ts` |
-| `memberships[].project` | `projects` | `+project-slug` refs | Cross-project membership |
-| `memberships[].section` | `section` | parent heading | Section → H2 heading in output |
-| `parent.gid` | `parentId` | tree structure | Subtask nesting |
-| `num_subtasks` | — | — | Used to decide whether to fetch subtasks |
-| `completed_at` | `completedAt` | `completed_at` | ISO timestamp |
-| `created_at` | `createdAt` | `created_at` | ISO timestamp |
-| `recurrence` | `rrule` | `rrule` | Asana JSON → RRULE + FROM (see below) |
+| Asana API Field             | ImportItem Field | KNode (kmast) Field      | Notes                                             |
+| --------------------------- | ---------------- | ------------------------ | ------------------------------------------------- |
+| `name`                      | `title`          | node title               | `→ ^GID` suffix stripped (recurring instance ref) |
+| `completed`                 | `status`         | `task_marker`            | `true` → "done", `false` → "todo"                 |
+| `due_on` / `due_at`         | `dueAt`          | `due_at`                 | Date portion only (YYYY-MM-DD)                    |
+| `start_on`                  | `startAt`        | `start_at`               | Date portion only (YYYY-MM-DD)                    |
+| `assignee.name`             | `assignee`       | `assigned_to`            | Slugified: `@bjorn-stabell`                       |
+| `tags[].name`               | `tags`           | inline `#tag` on heading | Multiple tags space-separated                     |
+| `custom_fields["Priority"]` | `priority`       | `priority`               | Number 1-4, clamped                               |
+| `resource_subtype`          | `milestone`      | stored in `data`         | `"milestone"` subtype detected                    |
+| `permalink_url`             | `permalink`      | `data.source_url`        | Asana web link                                    |
+| `html_notes` / `notes`      | `body`           | node body (markdown)     | HTML converted via `html-to-md.ts`                |
+| `memberships[].project`     | `projects`       | `+project-slug` refs     | Cross-project membership                          |
+| `memberships[].section`     | `section`        | parent heading           | Section → H2 heading in output                    |
+| `parent.gid`                | `parentId`       | tree structure           | Subtask nesting                                   |
+| `num_subtasks`              | —                | —                        | Used to decide whether to fetch subtasks          |
+| `completed_at`              | `completedAt`    | `completed_at`           | ISO timestamp                                     |
+| `created_at`                | `createdAt`      | `created_at`             | ISO timestamp                                     |
+| `recurrence`                | `rrule`          | `rrule`                  | Asana JSON → RRULE + FROM (see below)             |
 
 ### Partially Mapped (in metadata)
 
-| Asana Feature | Storage | Notes |
-|---------------|---------|-------|
-| Dependencies / dependents | `metadata.dependencies[]`, `nodeData.dependencies` | Fetched, stored as `{gid, name}` arrays |
-| Custom fields (non-Priority) | `metadata.customFields` | All types: text, number, enum, multi-enum, display_value |
-| `completed_by` | `metadata.completedBy` | Slugified name of who completed the task |
-| `actual_time_minutes` | `metadata.actualTimeMinutes` | Asana time tracking total |
-| `approval_status` | `metadata.approvalStatus` | For approval-subtype tasks: pending/approved/rejected/changes_requested |
+| Asana Feature                | Storage                                            | Notes                                                                   |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------- |
+| Dependencies / dependents    | `metadata.dependencies[]`, `nodeData.dependencies` | Fetched, stored as `{gid, name}` arrays                                 |
+| Custom fields (non-Priority) | `metadata.customFields`                            | All types: text, number, enum, multi-enum, display_value                |
+| `completed_by`               | `metadata.completedBy`                             | Slugified name of who completed the task                                |
+| `actual_time_minutes`        | `metadata.actualTimeMinutes`                       | Asana time tracking total                                               |
+| `approval_status`            | `metadata.approvalStatus`                          | For approval-subtype tasks: pending/approved/rejected/changes_requested |
 
 ### Not Mapped
 
-| Asana Feature | Reason |
-|---------------|--------|
-| Followers | Low value for personal import |
+| Asana Feature     | Reason                           |
+| ----------------- | -------------------------------- |
+| Followers         | Low value for personal import    |
 | `liked` / `likes` | Low priority — task hearts/likes |
 
 ### Undocumented Fields
@@ -138,13 +138,13 @@ Asana's fixed-schedule types anchor to due date (`FROM=DUE`). The
 `periodically` type anchors to completion date (km's default, no `FROM`
 needed).
 
-| Asana Type     | `data` Fields                    | km RRULE                                         |
-| -------------- | -------------------------------- | ------------------------------------------------ |
-| `daily`        | `frequency`                      | `FREQ=DAILY;INTERVAL=N;FROM=DUE`                 |
-| `weekly`       | `days_of_week[]`, `frequency`    | `FREQ=WEEKLY;BYDAY=MO,WE,FR;INTERVAL=N;FROM=DUE` |
-| `monthly`      | `date`, `frequency`              | `FREQ=MONTHLY;BYMONTHDAY=N;INTERVAL=N;FROM=DUE`   |
-| `yearly`       | `frequency`                      | `FREQ=YEARLY;INTERVAL=N;FROM=DUE`                 |
-| `periodically` | `frequency`                      | `FREQ=DAILY;INTERVAL=N`                           |
+| Asana Type     | `data` Fields                 | km RRULE                                         |
+| -------------- | ----------------------------- | ------------------------------------------------ |
+| `daily`        | `frequency`                   | `FREQ=DAILY;INTERVAL=N;FROM=DUE`                 |
+| `weekly`       | `days_of_week[]`, `frequency` | `FREQ=WEEKLY;BYDAY=MO,WE,FR;INTERVAL=N;FROM=DUE` |
+| `monthly`      | `date`, `frequency`           | `FREQ=MONTHLY;BYMONTHDAY=N;INTERVAL=N;FROM=DUE`  |
+| `yearly`       | `frequency`                   | `FREQ=YEARLY;INTERVAL=N;FROM=DUE`                |
+| `periodically` | `frequency`                   | `FREQ=DAILY;INTERVAL=N`                          |
 
 Day-of-week mapping: Asana 1=Mon → `MO`, 2=Tue → `TU`, ..., 7=Sun → `SU`.
 

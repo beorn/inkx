@@ -83,17 +83,7 @@ describe("filter hidden count indicator", () => {
     // With a tall terminal (40 rows) and only 2 visible cards, the "+N hidden"
     // indicator should appear right after the cards, not at row 39.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Tasks",
-            item("Fix bug"),
-            item("Buy milk"),
-            item("Write docs"),
-            item("Fix login"),
-          ),
-        ),
+      () => item("board", item("Tasks", item("Fix bug"), item("Buy milk"), item("Write docs"), item("Fix login"))),
       { columns: 80, rows: 40 },
     )
 

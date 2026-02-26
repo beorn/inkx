@@ -168,11 +168,7 @@ function LayoutNodeView({
     const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
     return (
-      <Box
-        flexGrow={1}
-        flexDirection="column"
-        onMouseDown={() => onPaneClick?.(node.paneId)}
-      >
+      <Box flexGrow={1} flexDirection="column" onMouseDown={() => onPaneClick?.(node.paneId)}>
         {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
         {/* Detail panes with renderDetailPane: DetailPane renders its own PaneBar */}
         {/* Detail panes without renderDetailPane / other panes: PaneTitleBar provides the top bar */}
@@ -181,13 +177,9 @@ function LayoutNodeView({
         )}
         <Box flexGrow={1} flexDirection="column">
           {isBoard ? (
-            <PaneLabelProvider value={label ?? "?"}>
-              {renderPane(node.paneId)}
-            </PaneLabelProvider>
+            <PaneLabelProvider value={label ?? "?"}>{renderPane(node.paneId)}</PaneLabelProvider>
           ) : isDetail && renderDetailPane ? (
-            <PaneLabelProvider value={label ?? "?"}>
-              {renderDetailPane(node.paneId)}
-            </PaneLabelProvider>
+            <PaneLabelProvider value={label ?? "?"}>{renderDetailPane(node.paneId)}</PaneLabelProvider>
           ) : isDetail ? (
             <Text dimColor>Detail pane</Text>
           ) : (

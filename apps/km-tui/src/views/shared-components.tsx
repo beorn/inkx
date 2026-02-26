@@ -337,7 +337,7 @@ export function KeyBinding({ keys, color = "$control" }: { keys: string; color?:
       <>
         {segments.map((seg, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text>{" "}</Text>}
+            {i > 0 && <Text> </Text>}
             <KeySegment segment={seg} color={color} />
           </React.Fragment>
         ))}

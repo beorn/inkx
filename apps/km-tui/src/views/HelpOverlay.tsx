@@ -86,14 +86,16 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
     <Box flexDirection="row">
       {keys.map((k, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text>{" "}</Text>}
+          {i > 0 && <Text> </Text>}
           <KeyBinding keys={k} color={"$control"} />
         </React.Fragment>
       ))}
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text color={"$muted"} dimColor>{"·"}</Text>
+          <Text color={"$muted"} dimColor>
+            {"·"}
+          </Text>
         </Fill>
       </Box>
       <Text> </Text>
@@ -112,7 +114,11 @@ function buildSectionLines(section: HelpSection, keyPrefix: string): React.React
     lines.push(<EntryLine key={`${keyPrefix}-e${i}`} keys={item.keys} desc={item.description} />)
   }
   if (section.category === "Panes") {
-    lines.push(<Text key={`${keyPrefix}-foot`} dimColor>{"⌃v or v both work as prefixes"}</Text>)
+    lines.push(
+      <Text key={`${keyPrefix}-foot`} dimColor>
+        {"⌃v or v both work as prefixes"}
+      </Text>,
+    )
   }
   return lines
 }
@@ -161,9 +167,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
             {cols.map((col, ci) => (
               <React.Fragment key={ci}>
                 {ci > 0 && <Box width={gap} />}
-                <Box width={colWidth}>
-                  {col[i] ?? null}
-                </Box>
+                <Box width={colWidth}>{col[i] ?? null}</Box>
               </React.Fragment>
             ))}
           </Box>,
@@ -346,7 +350,14 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" titleColor={"$primary"} footer={footer}>
+      <ModalDialog
+        width={boxWidth}
+        height={boxHeight}
+        title="Keyboard Shortcuts"
+        hotkey="?"
+        titleColor={"$primary"}
+        footer={footer}
+      >
         {visibleContent}
       </ModalDialog>
     </Box>

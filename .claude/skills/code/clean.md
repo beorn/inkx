@@ -89,6 +89,25 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
+### inkx Usage (TUI components)
+
+| Anti-Pattern | Correct Pattern | Why |
+|---|---|---|
+| `color="red"` | `color="$error"` | Theme portability — colors vary by theme |
+| `backgroundColor="black"` | `backgroundColor="$raisedbg"` | Elevated surfaces use semantic token |
+| `borderColor="gray"` | `borderColor="$separator"` | Borders/dividers use semantic token |
+| `"#5599dd"` (hex literal) | `"$focusring"` or `"$primary"` | Hex colors break on non-truecolor terminals |
+| `kitty: true` (hardcoded) | `kitty: caps.kittyKeyboard` | Use `detectTerminalCaps()` for protocol flags |
+| `width={42}` (magic number) | `flexGrow={1}` or named constant | Rely on flex layout, not fixed widths |
+| `.padEnd(n)` in TSX | `<Box width={n}>` + `<Text>` | Layout is inkx's job, not string padding |
+| `useTerm().red("x")` in JSX | `<Text color="$error">x</Text>` | Use component props, not ANSI string building |
+
+**Token mapping** (ANSI 16 dark theme defaults):
+- `$primary`=yellow, `$error`=redBright, `$warning`=yellow, `$success`=greenBright
+- `$text`=whiteBright, `$text2`=white, `$text3`=gray, `$text4`=gray
+- `$selected`=cyan, `$focusring`=blueBright, `$separator`=gray
+- `$bg`="" (transparent), `$raisedbg`=black
+
 ### Logging Standards
 
 Check for incorrect logging patterns:

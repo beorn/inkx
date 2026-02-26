@@ -154,7 +154,6 @@ describe("inkKeyToModifiers", () => {
     } as InkKeyEvent)
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
-
   })
 })
 

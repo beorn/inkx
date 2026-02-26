@@ -415,8 +415,8 @@ export function truncateContext(context: string | null, maxLen: number): string 
 // React Component Equivalents
 // =============================================================================
 
-// Priority colors: P1=red, P2=yellow, P3=yellowBright, P4=dim (no color)
-const PRIORITY_TEXT_COLORS = ["$error", "$warning", "yellowBright", undefined] as const
+// Priority colors: P1=error, P2=warning, P3=primary (bright), P4=dim (no color)
+const PRIORITY_TEXT_COLORS = ["$error", "$warning", "$primary", undefined] as const
 
 /**
  * React component version of formatDateBadge.

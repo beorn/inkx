@@ -369,7 +369,9 @@ describe("resolveKeybinding", () => {
       const node = createNode("test")
 
       // Mode match + condition match
-      expect(resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: node }))).toEqual({ commandId: "zoom_in" })
+      expect(resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: node }))).toEqual({
+        commandId: "zoom_in",
+      })
 
       // Mode match + condition fail
       expect(resolveKeybinding("Enter", {}, createContext({ mode: "normal", currentNode: null }))).toBeNull()
@@ -874,7 +876,10 @@ describe("chord keybindings", () => {
     const suffixes = getChordSuffixes("a")
     // Build map of key → { commandId, targetId? }
     const suffixMap = Object.fromEntries(
-      suffixes.map((s) => [s.key, s.targetId ? { commandId: s.commandId, targetId: s.targetId } : { commandId: s.commandId }]),
+      suffixes.map((s) => [
+        s.key,
+        s.targetId ? { commandId: s.commandId, targetId: s.targetId } : { commandId: s.commandId },
+      ]),
     )
     expect(suffixMap).toEqual({
       "0": { commandId: "add", targetId: "fav:0" },
@@ -902,20 +907,102 @@ describe("chord keybindings", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
     // g a replaces g e (goto archive), plus digits 0-9 for favorites
-    expect(keys).toEqual(["#", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "@", "G", "O", "[", "a", "g", "h", "i", "j", "o", "p"])
+    expect(keys).toEqual([
+      "#",
+      "+",
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "@",
+      "G",
+      "O",
+      "[",
+      "a",
+      "g",
+      "h",
+      "i",
+      "j",
+      "o",
+      "p",
+    ])
   })
 
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
     // View: - , X c d i m v x | Pane: < = > H J K L N Tab h j k l n o p s w z
-    expect(keys).toEqual([",", "-", "<", "=", ">", "H", "J", "K", "L", "N", "Tab", "X", "c", "d", "h", "i", "j", "k", "l", "m", "n", "o", "p", "s", "v", "w", "x", "z"])
+    expect(keys).toEqual([
+      ",",
+      "-",
+      "<",
+      "=",
+      ">",
+      "H",
+      "J",
+      "K",
+      "L",
+      "N",
+      "Tab",
+      "X",
+      "c",
+      "d",
+      "h",
+      "i",
+      "j",
+      "k",
+      "l",
+      "m",
+      "n",
+      "o",
+      "p",
+      "s",
+      "v",
+      "w",
+      "x",
+      "z",
+    ])
   })
 
   it("getChordSuffixes returns Ctrl+v-prefix hints", () => {
     const suffixes = getChordSuffixes("Ctrl+v")
     const keys = suffixes.map((s) => s.key).sort()
-    expect(keys).toEqual([",", "-", "<", "=", ">", "H", "J", "K", "L", "N", "Tab", "X", "c", "d", "h", "i", "j", "k", "l", "m", "n", "o", "p", "s", "v", "w", "x", "z"])
+    expect(keys).toEqual([
+      ",",
+      "-",
+      "<",
+      "=",
+      ">",
+      "H",
+      "J",
+      "K",
+      "L",
+      "N",
+      "Tab",
+      "X",
+      "c",
+      "d",
+      "h",
+      "i",
+      "j",
+      "k",
+      "l",
+      "m",
+      "n",
+      "o",
+      "p",
+      "s",
+      "v",
+      "w",
+      "x",
+      "z",
+    ])
   })
 
   it("v Shift+Tab resolves to pane_focus_prev", () => {

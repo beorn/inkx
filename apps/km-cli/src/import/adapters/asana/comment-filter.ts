@@ -118,8 +118,18 @@ export function filterSystemComment(text: string, createdAt: string): string {
 
 /** Months for parsing consolidated header dates */
 const MONTHS: Record<string, string> = {
-  Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
-  Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+  Jan: "01",
+  Feb: "02",
+  Mar: "03",
+  Apr: "04",
+  May: "05",
+  Jun: "06",
+  Jul: "07",
+  Aug: "08",
+  Sep: "09",
+  Oct: "10",
+  Nov: "11",
+  Dec: "12",
 }
 
 /** Parse date from consolidated header: "Name on Weekday Month DD, YYYY HH:MM AM/PM:" → YYYY-MM-DD */

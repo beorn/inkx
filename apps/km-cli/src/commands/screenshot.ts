@@ -88,8 +88,10 @@ export const screenshotCommand = new Command("screenshot")
       navigator: createGridNavigator(),
       setUI: () => {},
       dialogHandlers: {
-        handleProjectSelect: () => {},
-        handleProjectCancel: () => {},
+        handlePickerSelect: () => {},
+        handlePickerCancel: () => {},
+        handleTagSelect: () => {},
+        handleAssigneeSelect: () => {},
         handleNewItemCreate: () => {},
         handleNewItemCancel: () => {},
         handleSearchSelect: () => {},

@@ -186,9 +186,7 @@ function PaneBoardTopBar({
       backgroundColor={isBoardSelected ? "$selected" : undefined}
       paneLabel={paneLabel}
       left={
-        <Text
-          wrap="truncate"
-        >
+        <Text wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
         </Text>
       }
@@ -261,11 +259,7 @@ function BoardTopBar({
     <PaneBar
       isFocused={true}
       backgroundColor={isBoardSelected ? "$selected" : undefined}
-      left={
-        <Text wrap="truncate">
-          {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
-        </Text>
-      }
+      left={<Text wrap="truncate">{renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}</Text>}
       right={
         <>
           <Text dimColor id="view-mode">
@@ -319,7 +313,9 @@ function CursorAwareDetailPane(): React.ReactElement {
           <Text dimColor>No node selected</Text>
         </Box>
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
-          <Text dimColor wrap="truncate">h/Esc:close</Text>
+          <Text dimColor wrap="truncate">
+            h/Esc:close
+          </Text>
         </Box>
       </Box>
     )
@@ -444,7 +440,10 @@ export function BoardCore({
                       )
                     }}
                     renderOverflowIndicator={(dir, hiddenCount) => (
-                      <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />
+                      <VerticalScrollIndicator
+                        direction={dir === "before" ? "left" : "right"}
+                        hiddenCount={hiddenCount}
+                      />
                     )}
                     overflowIndicatorWidth={1}
                     keyExtractor={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}

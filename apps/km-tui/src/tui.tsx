@@ -90,16 +90,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   const caps = detectTerminalCaps()
   const isLimitedTerminal = caps.program === "Apple_Terminal"
 
-  // Configure output-phase based on detected capabilities
-  setOutputCaps({
-    underlineStyles: caps.underlineStyles,
-    underlineColor: caps.underlineColor,
-    colorLevel: caps.colorLevel,
-  })
-
-  // Configure emoji width measurement for this terminal
-  setTextEmojiWide(caps.textEmojiWide)
-
   if (isInteractive && isLimitedTerminal) {
     const themeInfo = caps.darkBackground ? "dark" : "light"
     process.stderr.write(
@@ -315,8 +305,8 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           </RepoProvider>
         </ThemeProvider>,
         isInteractive
-          ? { alternateScreen: true, kitty: caps.kittyKeyboard, mouse: caps.mouse, slowFrameThreshold: 33 }
-          : { cols, rows, stdout: process.stdout },
+          ? { alternateScreen: true, kitty: caps.kittyKeyboard, mouse: caps.mouse, slowFrameThreshold: 33, caps }
+          : { cols, rows, stdout: process.stdout, caps },
       )
 
       // Log total startup time (from CLI invocation to first render)

@@ -7,8 +7,8 @@
 
 import type { TextDecoration } from "./inline-ast-types.ts"
 import { parseToPlainText } from "./inline-parser.ts"
-/** Style for the currently focused search match (bright yellow) */
-const CURRENT_MATCH_STYLE = { backgroundColor: "yellowBright", color: "$selectedfg" } as const
+/** Style for the currently focused search match */
+const CURRENT_MATCH_STYLE = { backgroundColor: "$primary", color: "$selectedfg" } as const
 
 /** Style for non-focused search matches (dim yellow) */
 const OTHER_MATCH_STYLE = { backgroundColor: "$selected", color: "$selectedfg" } as const

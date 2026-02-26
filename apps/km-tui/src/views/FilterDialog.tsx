@@ -51,11 +51,18 @@ export function FilterDialog({
         // Blank line separator before radio section
         const showSeparator = ri === firstRadioIdx && firstRadioIdx > 0
 
-        const { hasActive, valueParts } = buildValueParts(row, isActiveRow, cursorVal, filterProperties, viewMode, iconStyle)
+        const { hasActive, valueParts } = buildValueParts(
+          row,
+          isActiveRow,
+          cursorVal,
+          filterProperties,
+          viewMode,
+          iconStyle,
+        )
 
         return (
           <React.Fragment key={row.kind === "filter" ? row.category : row.key}>
-            {showSeparator && <Text>{" "}</Text>}
+            {showSeparator && <Text> </Text>}
             <Text wrap="truncate">
               {/* Row label */}
               <Text
@@ -65,11 +72,11 @@ export function FilterDialog({
               >
                 {` ${row.label} `}
               </Text>
-              <Text>{" "}</Text>
+              <Text> </Text>
               {/* Values inline */}
               {valueParts.map((vp, i) => (
                 <React.Fragment key={i}>
-                  {i > 0 && <Text>{" "}</Text>}
+                  {i > 0 && <Text> </Text>}
                   <Text
                     color={vp.isActive ? "$primary" : vp.isCursor ? "$text" : "$muted"}
                     bold={vp.isActive}
@@ -87,7 +94,7 @@ export function FilterDialog({
       {/* Active filter text indicator */}
       {filterText && (
         <>
-          <Text>{" "}</Text>
+          <Text> </Text>
           <Text wrap="truncate">
             <Text color={"$muted"}>{"  text: "}</Text>
             <Text color={"$primary"} bold>

@@ -163,7 +163,11 @@ function DecoratedText({
 // Node Components
 // =============================================================================
 
-export function InlinePlainText({ node, decorations, offset }: { node: PlainTextNode } & DecorationProps): React.ReactElement {
+export function InlinePlainText({
+  node,
+  decorations,
+  offset,
+}: { node: PlainTextNode } & DecorationProps): React.ReactElement {
   if (!decorations?.length) return <Text>{node.text}</Text>
   return <DecoratedText text={node.text} decorations={decorations} offset={offset ?? 0} />
 }
@@ -176,7 +180,11 @@ export function InlineBold({ node, decorations, offset }: { node: BoldNode } & D
   )
 }
 
-export function InlineItalic({ node, decorations, offset }: { node: ItalicNode } & DecorationProps): React.ReactElement {
+export function InlineItalic({
+  node,
+  decorations,
+  offset,
+}: { node: ItalicNode } & DecorationProps): React.ReactElement {
   return (
     <Text italic>
       <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
@@ -184,7 +192,11 @@ export function InlineItalic({ node, decorations, offset }: { node: ItalicNode }
   )
 }
 
-export function InlineStrikethrough({ node, decorations, offset }: { node: StrikethroughNode } & DecorationProps): React.ReactElement {
+export function InlineStrikethrough({
+  node,
+  decorations,
+  offset,
+}: { node: StrikethroughNode } & DecorationProps): React.ReactElement {
   return (
     <Text dim strikethrough>
       <InlineNodes nodes={node.children} decorations={decorations} offset={offset} />
@@ -224,11 +236,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     )
   }
   // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
-  return (
-    <Text dim>
-      {node.target}
-    </Text>
-  )
+  return <Text dim>{node.target}</Text>
 }
 
 export function InlineMention({ node }: { node: MentionNode }): React.ReactElement | null {
@@ -316,7 +324,11 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
 // =============================================================================
 
 /** Render an array of inline AST nodes, threading decorations with offset tracking */
-export function InlineNodes({ nodes, decorations, offset = 0 }: { nodes: InlineNode[] } & DecorationProps): React.ReactElement {
+export function InlineNodes({
+  nodes,
+  decorations,
+  offset = 0,
+}: { nodes: InlineNode[] } & DecorationProps): React.ReactElement {
   if (!decorations?.length) {
     // Fast path: no decorations, render as before
     return (
@@ -348,7 +360,11 @@ export function InlineNodes({ nodes, decorations, offset = 0 }: { nodes: InlineN
 }
 
 /** Render a single inline AST node */
-export function InlineNodeView({ node, decorations, offset }: { node: InlineNode } & DecorationProps): React.ReactElement | null {
+export function InlineNodeView({
+  node,
+  decorations,
+  offset,
+}: { node: InlineNode } & DecorationProps): React.ReactElement | null {
   switch (node.type) {
     case "plain":
       return <InlinePlainText node={node} decorations={decorations} offset={offset} />
@@ -427,14 +443,14 @@ export function InlineText({
 
 /** Color an inline field value by its type */
 function colorFieldValue(value: string): React.ReactElement {
-  // Dates: green
+  // Dates: success (green)
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-    return <Text color="green">{value}</Text>
+    return <Text color="$success">{value}</Text>
   }
-  // Numbers: yellow
+  // Numbers: primary (yellow)
   if (/^\d+(\.\d+)?$/.test(value)) {
-    return <Text color="yellow">{value}</Text>
+    return <Text color="$primary">{value}</Text>
   }
-  // Default: white
-  return <Text color="white">{value}</Text>
+  // Default: text
+  return <Text color="$text">{value}</Text>
 }

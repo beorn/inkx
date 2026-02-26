@@ -144,11 +144,8 @@ export function renderTopBarContent(
   const dimStyle = style.black.dim
 
   // Board color dot: use the color if it's dark enough, otherwise dim black
-  const dotColor = boardColor && !isBrightOnWhite(boardColor)
-    ? colorize("●", boardColor)
-    : boardColor
-      ? style.black.dim("●")
-      : null
+  const dotColor =
+    boardColor && !isBrightOnWhite(boardColor) ? colorize("●", boardColor) : boardColor ? style.black.dim("●") : null
   let content = dotColor ? " " + dotColor + " " : " "
 
   segments.forEach((seg, idx) => {

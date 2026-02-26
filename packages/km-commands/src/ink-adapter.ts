@@ -15,7 +15,11 @@ import { createChordState, type ChordState } from "./chord-state.ts"
 
 /** Resolve actions from a binding — prefer execute function over registry lookup */
 function resolveActions(
-  resolved: { commandId: string; targetId?: string; execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null },
+  resolved: {
+    commandId: string
+    targetId?: string
+    execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+  },
   ctx: CommandContext,
 ): CommandAction | CommandAction[] | null {
   if (resolved.execute) {

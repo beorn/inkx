@@ -99,7 +99,14 @@ export function naturalToRRule(natural: string): string | null {
 
   const appendFrom = (rule: string) => (hasDueSuffix ? `${rule};FROM=DUE` : rule)
 
-  if (lower.startsWith("freq=")) return appendFrom(natural.toUpperCase().replace(/ ON (SCHEDULE|DUE)$/i, "").trim())
+  if (lower.startsWith("freq=")) {
+    return appendFrom(
+      natural
+        .toUpperCase()
+        .replace(/ ON (SCHEDULE|DUE)$/i, "")
+        .trim(),
+    )
+  }
 
   const alias = PERIOD_ALIASES[lower]
   if (alias) return appendFrom(alias)

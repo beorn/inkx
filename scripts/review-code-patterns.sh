@@ -215,6 +215,29 @@ grep -rn "\.padEnd(" packages apps vendor --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules" || true
 echo ""
 
+echo "=== PATTERN 37: Hardcoded colors in TSX (should use \$theme tokens) ==="
+# Color props should use $token syntax for theme portability
+# Catches: color="red", borderColor="yellow", backgroundColor="black", etc.
+# Excludes: $token refs, "undefined", dimColor (boolean), theme-defs (definition site)
+# Named ANSI colors that should be theme tokens (not hex — those are caught by Pattern 38)
+grep -rn 'color="\(red\|green\|blue\|yellow\|cyan\|magenta\|white\|black\|gray\|redBright\|greenBright\|blueBright\|yellowBright\|cyanBright\|magentaBright\|whiteBright\|blackBright\)"' \
+  apps/km-tui/src --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|\.test\.\|tests/\|storybook" || true
+echo ""
+
+echo "=== PATTERN 38: Hex color literals in TSX (should use \$theme tokens) ==="
+# Hex colors bypass the theme system entirely — won't work on limited terminals
+grep -rn '"#[0-9a-fA-F]\{3,6\}"' apps/km-tui/src --include="*.tsx" --include="*.ts" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|\.test\.\|tests/" || true
+echo ""
+
+echo "=== PATTERN 39: Hardcoded protocol flags (should use detectTerminalCaps) ==="
+# kitty: true, mouse: true without capability detection
+# Only flag in app code — library code may legitimately use these
+grep -rn 'kitty:\s*true' apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v "node_modules\|vendor/\|\.test\.\|tests/\|detectTerminalCaps\|caps\." || true
+echo ""
+
 echo "=== PATTERN 27: High complexity functions ==="
 # Functions exceeding cyclomatic (>20) or cognitive (>15) complexity thresholds
 # Uses oxlint-plugin-complexity for static analysis

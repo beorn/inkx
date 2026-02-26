@@ -296,25 +296,19 @@ describe("verb-locations", () => {
     })
 
     it("does NOT produce c + system locations except c i", () => {
-      const cSystemBindings = grid.filter(
-        (b) => b.chord === "c" && Object.keys(SYSTEM_LOCS).includes(b.key),
-      )
+      const cSystemBindings = grid.filter((b) => b.chord === "c" && Object.keys(SYSTEM_LOCS).includes(b.key))
       // Only c i should exist
       expect(cSystemBindings).toHaveLength(1)
       expect(cSystemBindings[0]!.key).toBe("i")
     })
 
     it("does NOT produce c + favorite bindings", () => {
-      const cFavBindings = grid.filter(
-        (b) => b.chord === "c" && b.key.match(/^[0-9]$/),
-      )
+      const cFavBindings = grid.filter((b) => b.chord === "c" && b.key.match(/^[0-9]$/))
       expect(cFavBindings).toHaveLength(0)
     })
 
     it("does NOT produce c + picker locations except c #", () => {
-      const cPickerBindings = grid.filter(
-        (b) => b.chord === "c" && Object.keys(PICKER_LOCS).includes(b.key),
-      )
+      const cPickerBindings = grid.filter((b) => b.chord === "c" && Object.keys(PICKER_LOCS).includes(b.key))
       expect(cPickerBindings).toHaveLength(1)
       expect(cPickerBindings[0]!.key).toBe("#")
     })

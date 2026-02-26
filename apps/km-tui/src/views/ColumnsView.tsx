@@ -194,10 +194,7 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
   const usableWidth = width - indicatorReserved
   const maxCols = Math.max(1, Math.floor(usableWidth / 35))
   const effectiveColCount = Math.min(columns.length, maxCols)
-  const expandedWidth = Math.min(
-    COLUMNS_VIEW_MAX_WIDTH,
-    Math.max(20, Math.floor(usableWidth / effectiveColCount)),
-  )
+  const expandedWidth = Math.min(COLUMNS_VIEW_MAX_WIDTH, Math.max(20, Math.floor(usableWidth / effectiveColCount)))
   const columnHeight = height - 1
 
   return (
@@ -220,7 +217,9 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
           renderItem={(col, index) => (
             <ColumnTree column={col} colIndex={index} width={expandedWidth} height={columnHeight} />
           )}
-          renderOverflowIndicator={(dir, hiddenCount) => <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />}
+          renderOverflowIndicator={(dir, hiddenCount) => (
+            <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />
+          )}
           overflowIndicatorWidth={1}
           keyExtractor={(col) => col.node.id}
         />

@@ -46,19 +46,33 @@ describe("Incremental ANSI output verification", () => {
     // - Moving between columns (large area changes)
     // - Moving to different levels (column vs card)
     const sequence = [
-      "j", "j", "k",       // vertical within column
-      "l", "l",             // right across columns
-      "k", "k",             // up to column level
-      "j", "j",             // down to cards
-      "h", "h",             // left across columns
-      "k",                  // up
-      "j",                  // down
-      "l",                  // right
-      "j", "j", "j",       // deep down
-      "k", "k", "k", "k",  // up through column/board
-      "j", "j",             // back down
-      "l", "l",             // right to last col
-      "h", "h",             // back left
+      "j",
+      "j",
+      "k", // vertical within column
+      "l",
+      "l", // right across columns
+      "k",
+      "k", // up to column level
+      "j",
+      "j", // down to cards
+      "h",
+      "h", // left across columns
+      "k", // up
+      "j", // down
+      "l", // right
+      "j",
+      "j",
+      "j", // deep down
+      "k",
+      "k",
+      "k",
+      "k", // up through column/board
+      "j",
+      "j", // back down
+      "l",
+      "l", // right to last col
+      "h",
+      "h", // back left
     ]
 
     for (const key of sequence) {
@@ -88,12 +102,25 @@ describe("Incremental ANSI output verification", () => {
 
     // Navigate through all columns and back
     const sequence = [
-      "l", "l", "l", "l",  // right through all columns
-      "j", "j",             // down into cards
-      "h", "h", "h", "h",  // back through all columns
-      "k", "k",             // up
-      "l", "j", "j", "j",  // right and deep down
-      "k", "k", "h",       // up and left
+      "l",
+      "l",
+      "l",
+      "l", // right through all columns
+      "j",
+      "j", // down into cards
+      "h",
+      "h",
+      "h",
+      "h", // back through all columns
+      "k",
+      "k", // up
+      "l",
+      "j",
+      "j",
+      "j", // right and deep down
+      "k",
+      "k",
+      "h", // up and left
     ]
 
     for (const key of sequence) {
@@ -111,12 +138,18 @@ describe("Incremental ANSI output verification", () => {
     const nodes = repo.query("type:folder")
     let rootId: string | null = null
     for (const node of nodes) {
-      if (node.data?.is_repo_root) { rootId = node.id; break }
+      if (node.data?.is_repo_root) {
+        rootId = node.id
+        break
+      }
     }
     if (!rootId) {
       for (const node of nodes) {
         const children = getChildren(repo.db, node.id)
-        if (children.length > 0) { rootId = node.id; break }
+        if (children.length > 0) {
+          rootId = node.id
+          break
+        }
       }
     }
     if (!rootId) throw new Error("No suitable board root found in vault")
@@ -130,20 +163,29 @@ describe("Incremental ANSI output verification", () => {
 
     // The user's garbling trigger: press 'l' then navigate around
     const sequence = [
-      "l",                  // right — user's first garbling trigger
-      "j", "j",             // down
-      "k",                  // up
-      "l",                  // right again
-      "k", "k",             // up to column level
-      "j",                  // down
-      "h",                  // left
-      "j", "j", "j",       // down
-      "k", "k",             // up
-      "l", "l",             // right
-      "h",                  // left
-      "k", "k", "k",       // up to board level
-      "j", "j",             // down to column
-      "j",                  // down to card
+      "l", // right — user's first garbling trigger
+      "j",
+      "j", // down
+      "k", // up
+      "l", // right again
+      "k",
+      "k", // up to column level
+      "j", // down
+      "h", // left
+      "j",
+      "j",
+      "j", // down
+      "k",
+      "k", // up
+      "l",
+      "l", // right
+      "h", // left
+      "k",
+      "k",
+      "k", // up to board level
+      "j",
+      "j", // down to column
+      "j", // down to card
     ]
 
     for (let i = 0; i < sequence.length; i++) {

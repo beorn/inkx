@@ -110,9 +110,9 @@ function useFlash(message: string | undefined): boolean {
 
 const STATUS_COLORS: Record<string, string | undefined> = {
   info: undefined,
-  success: "green",
-  warning: "yellow",
-  error: "red",
+  success: "$success",
+  warning: "$warning",
+  error: "$error",
 }
 
 /** Get display label for a chord suffix entry */
@@ -125,21 +125,20 @@ function getLabel(commandId: string, targetId?: string): string {
 }
 
 /** Flash message — shows status/bell text with a brief white flash */
-function FlashMessage({ message, color }: {
-  message: string
-  color?: string
-}): React.ReactElement {
+function FlashMessage({ message, color }: { message: string; color?: string }): React.ReactElement {
   const isFlash = useFlash(message)
   return (
     <Box
       flexDirection="row"
       borderStyle="round"
-      borderColor={isFlash ? "white" : "gray"}
-      backgroundColor="black"
+      borderColor={isFlash ? "$text2" : "$separator"}
+      backgroundColor="$raisedbg"
       paddingX={1}
       overflow="hidden"
     >
-      <Text color={isFlash ? "white" : color} bold={isFlash} wrap="truncate" id="feedback-message">{message}</Text>
+      <Text color={isFlash ? "$text" : color} bold={isFlash} wrap="truncate" id="feedback-message">
+        {message}
+      </Text>
     </Box>
   )
 }
@@ -159,15 +158,15 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor={dimmed ? "#555" : "gray"}
-      backgroundColor="black"
+      borderColor={dimmed ? "$text4" : "$separator"}
+      backgroundColor="$raisedbg"
       paddingX={1}
       paddingY={1}
       overflow="hidden"
     >
       {entries.map((entry) => (
         <Text key={entry.key} dimColor={dimmed}>
-          <Text color={dimmed ? "gray" : "yellow"} bold={!dimmed}>
+          <Text color={dimmed ? "$text3" : "$primary"} bold={!dimmed}>
             {entry.key}
           </Text>{" "}
           <Text dimColor>{entry.label}</Text>
@@ -179,7 +178,10 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
 
 /** Feedback area — chord hints, bell/status flash, or search match count.
  *  When local search is active, search feedback absorbs bell/status to avoid overlap. */
-function CommandFeedback({ ui, localSearch }: {
+function CommandFeedback({
+  ui,
+  localSearch,
+}: {
   ui: UIState
   localSearch?: LocalSearchState | null
 }): React.ReactElement | null {
@@ -192,11 +194,11 @@ function CommandFeedback({ ui, localSearch }: {
   if (localSearch && localSearch.query.length > 0) {
     // Bell during search (e.g. "can't find") overrides the match count
     if (ui.bellState) {
-      return <FlashMessage message={ui.bellState} color="red" />
+      return <FlashMessage message={ui.bellState} color="$error" />
     }
     const noMatches = localSearch.matchCount === 0
     const text = noMatches ? "No matches" : `${localSearch.matchIndex + 1} of ${localSearch.matchCount}`
-    return <FlashMessage message={text} color={noMatches ? "red" : "yellow"} />
+    return <FlashMessage message={text} color={noMatches ? "$error" : "$primary"} />
   }
 
   // Priority 3: bell/status feedback (only when NOT in local search)
@@ -214,11 +216,11 @@ function CommandFeedback({ ui, localSearch }: {
 // ---------------------------------------------------------------------------
 
 const MODE_COLORS: Record<string, string> = {
-  NORMAL: "green",
-  INSERT: "yellow",
-  VISUAL: "cyan",
+  NORMAL: "$success",
+  INSERT: "$warning",
+  VISUAL: "$selected",
   MOVE: "magenta",
-  FIND: "yellow",
+  FIND: "$primary",
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +278,7 @@ export function CommandBox({
   } else {
     modeLabel = "NORMAL"
   }
-  const modeColor = MODE_COLORS[modeLabel] ?? "green"
+  const modeColor = MODE_COLORS[modeLabel] ?? "$success"
 
   // Pane indicator
   const { activeId: focusedActiveId } = useFocusManager()
@@ -294,16 +296,13 @@ export function CommandBox({
 
   // Feedback and command independently decide visibility
   const hasFeedback = !!(ui.pendingChord || ui.bellState || ui.status || (localSearch && localSearch.query.length > 0))
-  const hasCommand =
-    modeLabel !== "NORMAL" ||
-    isCommandInput ||
-    multiSuffix !== ""
+  const hasCommand = modeLabel !== "NORMAL" || isCommandInput || multiSuffix !== ""
 
   // Nothing to show
   if (!hasFeedback && !hasCommand) return null
 
-  // Border color: light blue when input-focused, white otherwise
-  const borderColor = isCommandInput ? "#5599dd" : "white"
+  // Border color: focus ring when input-focused, text otherwise
+  const borderColor = isCommandInput ? "$focusring" : "$text"
 
   return (
     <Box
@@ -320,7 +319,7 @@ export function CommandBox({
           flexDirection="row"
           borderStyle="round"
           borderColor={borderColor}
-          backgroundColor="black"
+          backgroundColor="$raisedbg"
           overflow="hidden"
         >
           <Text color={modeColor} bold id="mode-label">
@@ -329,19 +328,24 @@ export function CommandBox({
           <Text dimColor> </Text>
           {localSearch ? (
             <Box id="find-bar" flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
-              <Text color={localSearch.isInputActive ? undefined : "yellow"}>/</Text>
+              <Text color={localSearch.isInputActive ? undefined : "$primary"}>/</Text>
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 {localSearch.isInputActive && onQueryChange ? (
                   <FindInput query={localSearch.query} onQueryChange={onQueryChange} />
                 ) : (
-                  <Text color="yellow">{localSearch.query}</Text>
+                  <Text color="$primary">{localSearch.query}</Text>
                 )}
               </Box>
             </Box>
           ) : (
             <Box flexGrow={1} flexShrink={1} flexDirection="row" overflow="hidden">
               {chordSuffix && (
-                <Text color={chordActive ? "yellow" : undefined} dimColor={!chordActive} bold={chordActive} id="chord-prefix">
+                <Text
+                  color={chordActive ? "$primary" : undefined}
+                  dimColor={!chordActive}
+                  bold={chordActive}
+                  id="chord-prefix"
+                >
                   {chordSuffix}
                 </Text>
               )}
@@ -351,7 +355,7 @@ export function CommandBox({
                 </Text>
               )}
               {multiSuffix && (
-                <Text color="cyan" id="multi-count">
+                <Text color="$selected" id="multi-count">
                   {multiSuffix}
                 </Text>
               )}
@@ -425,7 +429,9 @@ export function StatusCounters({
       {/* Loading spinner + elapsed time counter */}
       {isLoading && (
         <Text dimColor id="loading-indicator">
-          {" "}{spinnerFrame}{elapsed > 1 ? ` ${elapsed}s` : ""}
+          {" "}
+          {spinnerFrame}
+          {elapsed > 1 ? ` ${elapsed}s` : ""}
         </Text>
       )}
       {logTotal > 0 && (
@@ -436,7 +442,8 @@ export function StatusCounters({
         </Text>
       )}
       <Text dimColor={!nodeFlash} id="node-count">
-        {" "}📋{nodeCount}
+        {" "}
+        📋{nodeCount}
       </Text>
       {watcherInfo && (
         <Text dimColor={!fileFlash} id="watcher-status">

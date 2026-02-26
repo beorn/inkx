@@ -14,10 +14,10 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("detail pane empty state fallback", () => {
   test("shows 'No node selected' when cursor points to non-existent node", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"), item("task2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open detail pane
     board.press("D")
@@ -46,10 +46,10 @@ describe("detail pane empty state fallback", () => {
   })
 
   test("shows 'No node selected' when both card and column are null", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open detail pane
     board.press("D")
@@ -73,10 +73,10 @@ describe("detail pane empty state fallback", () => {
   })
 
   test("detail pane shows header bar in fallback state", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("task1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open detail pane
     board.press("D")

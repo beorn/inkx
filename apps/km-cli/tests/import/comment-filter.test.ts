@@ -95,8 +95,7 @@ describe("splitConsolidatedComment", () => {
   })
 
   it("returns single comment with extracted date from header", () => {
-    const text =
-      "\u00AD\nBjorn Stabell on Monday Feb 05, 2018 04:06 AM:\nDid annual checkup with Dr Na"
+    const text = "\u00AD\nBjorn Stabell on Monday Feb 05, 2018 04:06 AM:\nDid annual checkup with Dr Na"
     const result = splitConsolidatedComment(text, "2018-05-28T09:15:04.331Z")
 
     expect(result).toHaveLength(1)
@@ -122,8 +121,7 @@ describe("splitConsolidatedComment", () => {
   })
 
   it("post-2020 comments skip system filtering but still parse headers", () => {
-    const text =
-      "\u00AD\nBjorn Stabell on Monday Jan 06, 2020 10:00 AM:\nSome user content"
+    const text = "\u00AD\nBjorn Stabell on Monday Jan 06, 2020 10:00 AM:\nSome user content"
     const result = splitConsolidatedComment(text, "2022-01-01T00:00:00Z")
 
     expect(result).toHaveLength(1)

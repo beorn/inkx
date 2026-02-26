@@ -31,10 +31,16 @@ export const first: TargetResolver = () => "first"
 export const last: TargetResolver = () => "last"
 
 // Favorite target factory
-export const fav = (n: number): TargetResolver => () => `fav:${n}`
+export const fav =
+  (n: number): TargetResolver =>
+  () =>
+    `fav:${n}`
 
 // Picker target factory — return marker strings the TUI interprets
-export const pick = (prefix: string): TargetResolver => () => `pick:${prefix}`
+export const pick =
+  (prefix: string): TargetResolver =>
+  () =>
+    `pick:${prefix}`
 
 // --- Verb Constructors ---
 // Functions that take a target resolver and return a command execute function
@@ -42,45 +48,53 @@ export const pick = (prefix: string): TargetResolver => () => `pick:${prefix}`
 export type Execute = (ctx: CommandContext) => CommandAction | CommandAction[] | null
 
 /** Go to a target (navigates there) */
-export const goTo = (target: TargetResolver): Execute => (ctx) => {
-  const t = target(ctx)
-  if (!t) return null
-  // Delegate to existing goto command logic
-  if (t === "parent") return { type: "ZOOM_OUTWARDS" }
-  if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
-  if (t.startsWith("pick:")) return { type: "SHOW_PROJECT_PICKER" }
-  return { type: "GOTO_BOARD", boardId: t }
-}
+export const goTo =
+  (target: TargetResolver): Execute =>
+  (ctx) => {
+    const t = target(ctx)
+    if (!t) return null
+    // Delegate to existing goto command logic
+    if (t === "parent") return { type: "ZOOM_OUTWARDS" }
+    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("pick:")) return { type: "SHOW_PROJECT_PICKER" }
+    return { type: "GOTO_BOARD", boardId: t }
+  }
 
 /** Move selected node(s) to a target */
-export const moveTo = (target: TargetResolver): Execute => (ctx) => {
-  const t = target(ctx)
-  if (!t) return null
-  if (t === "parent") return { type: "OUTDENT_NODE" }
-  if (t === "first") return { type: "SHIFT_TO_TOP" }
-  if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
-  if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
-  if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" }
-  return { type: "MOVE_TO_BOARD", boardId: t }
-}
+export const moveTo =
+  (target: TargetResolver): Execute =>
+  (ctx) => {
+    const t = target(ctx)
+    if (!t) return null
+    if (t === "parent") return { type: "OUTDENT_NODE" }
+    if (t === "first") return { type: "SHIFT_TO_TOP" }
+    if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
+    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" }
+    return { type: "MOVE_TO_BOARD", boardId: t }
+  }
 
 /** Add a link/property to a target */
-export const addTo = (target: TargetResolver): Execute => (ctx) => {
-  const t = target(ctx)
-  if (!t) return null
-  if (t === "pick:#") return { type: "SET_LABEL" }
-  if (t === "pick:@") return { type: "SET_ASSIGNEE" }
-  if (t === "pick:+") return { type: "REPARENT_PICKER" }
-  if (t === "pick:[") return { type: "ADD_LINK" }
-  if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
-  return { type: "ADD_LINK_TO_BOARD", boardId: t }
-}
+export const addTo =
+  (target: TargetResolver): Execute =>
+  (ctx) => {
+    const t = target(ctx)
+    if (!t) return null
+    if (t === "pick:#") return { type: "SET_LABEL" }
+    if (t === "pick:@") return { type: "SET_ASSIGNEE" }
+    if (t === "pick:+") return { type: "REPARENT_PICKER" }
+    if (t === "pick:[") return { type: "ADD_LINK" }
+    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    return { type: "ADD_LINK_TO_BOARD", boardId: t }
+  }
 
 /** Create in a target (capture) */
-export const createIn = (_target: TargetResolver): Execute => (_ctx) => {
-  // For now, capture dialog is the only create verb
-  return { type: "CAPTURE_DIALOG" }
-}
+export const createIn =
+  (_target: TargetResolver): Execute =>
+  (_ctx) => {
+    // For now, capture dialog is the only create verb
+    return { type: "CAPTURE_DIALOG" }
+  }
 
 // --- Location and Verb Registries ---
 
@@ -181,7 +195,11 @@ export function ctrlVerbLocationGrid(): Keybinding[] {
       ctrlBindings.push({ ...b, chord: "Ctrl+g" })
     }
     if (b.chord === "m") {
-      ctrlBindings.push({ ...b, chord: "Ctrl+m", when: hasKitty as WhenPredicate | ((ctx: KeybindingContext) => boolean) })
+      ctrlBindings.push({
+        ...b,
+        chord: "Ctrl+m",
+        when: hasKitty as WhenPredicate | ((ctx: KeybindingContext) => boolean),
+      })
     }
   }
 
