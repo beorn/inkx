@@ -40,7 +40,7 @@ import {
   parseWikiLinks,
   extractAllRefs,
 } from "./parser.ts"
-import type { WikiLink, PropertyValue, SectionRules } from "./parser.ts"
+import { parseWikiLinks, type WikiLink, type PropertyValue, type SectionRules } from "./parser.ts"
 
 /**
  * Interpret heading rules from propsRaw (already extracted by kmInlinePropTransform).
@@ -299,16 +299,17 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
       }
 
       // Detect embed syntax in heading content (from import cross-project dedup serialization)
-      const embeddingText = getEmbeddingText(cleanText)
-      if (embeddingText) {
-        const embMatch = embeddingText.match(/^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/)
-        if (embMatch?.[1]) {
-          sectionNode.data = {
-            ...sectionNode.data,
-            embeddingTarget: embMatch[1].trim(),
-          }
-          if (embMatch[2]) {
-            ;(sectionNode.data as Record<string, unknown>).embeddingAlias = embMatch[2].trim()
+      // Reuse parseWikiLinks which already handles all wikilink variants including bare block refs
+      if (getEmbeddingText(cleanText)) {
+        const links = parseWikiLinks(cleanText)
+        if (links.length === 1 && links[0].embedded) {
+          const link = links[0]
+          const target = link.blockId ? `^${link.blockId}` : link.target
+          if (target) {
+            sectionNode.data = { ...sectionNode.data, embeddingTarget: target }
+            if (link.alias) {
+              ;(sectionNode.data as Record<string, unknown>).embeddingAlias = link.alias
+            }
           }
         }
       }
@@ -487,9 +488,9 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
  */
 function getEmbeddingText(text: string): string | null {
   const trimmed = text.trim()
-  // Match ![[...]] with optional section/blockId/alias
-  const match = trimmed.match(/^!\[\[([^\]|#^]+)(?:#([^\]|^]+))?(?:#?\^([^\]|]+))?(?:\|([^\]]+))?\]\]$/)
-  return match ? trimmed : null
+  // Check if text is purely an embedding: ![[...]] with nothing outside
+  if (/^!\[\[[^\]]+\]\]$/.test(trimmed)) return trimmed
+  return null
 }
 
 /**
@@ -510,13 +511,14 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
       type = "p"
       content = nodeToText(block)
       // Detect embedding syntax ![[...]] and store target for reconciliation
-      const embeddingText = getEmbeddingText(content)
-      if (embeddingText) {
-        const embMatch = embeddingText.match(/^!\[\[([^\]|#^]+)(?:#[^\]|^]+)?(?:#?\^[^\]|]+)?(?:\|([^\]]+))?\]\]$/)
-        if (embMatch?.[1]) {
-          data.embeddingTarget = embMatch[1].trim()
-          if (embMatch[2]) {
-            data.embeddingAlias = embMatch[2].trim()
+      if (getEmbeddingText(content)) {
+        const links = parseWikiLinks(content)
+        if (links.length === 1 && links[0].embedded) {
+          const link = links[0]
+          const target = link.blockId ? `^${link.blockId}` : link.target
+          if (target) {
+            data.embeddingTarget = target
+            if (link.alias) data.embeddingAlias = link.alias
           }
         }
       }

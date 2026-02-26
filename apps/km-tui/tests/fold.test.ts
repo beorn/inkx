@@ -1086,7 +1086,7 @@ describe("fold count color", () => {
       )
     }
 
-    test("count is $text2, not dim, when children visible (outline depth 2)", () => {
+    test("count is $text3, not dim, when children visible (outline depth 2)", () => {
       const { board } = createBoard()
 
       // At default outline depth 2: Essential Commands at depth 1
@@ -1098,13 +1098,13 @@ describe("fold count color", () => {
       expect(countCell, "count cell found").not.toBeNull()
       expect(countCell!.char).toBe("3")
 
-      // Count should be white (fg=7, $text2), NOT dim, NOT bold
-      expect(countCell!.fg, "fg=7 (white/$text2)").toBe(7)
+      // Count should be gray (fg=8, $text3), NOT dim, NOT bold
+      expect(countCell!.fg, "fg=8 (gray/$text3)").toBe(8)
       expect(countCell!.attrs.dim, "not dim").toBeFalsy()
       expect(countCell!.attrs.bold, "not bold when children visible").toBeFalsy()
     })
 
-    test("count is $text2, not bold, when children hidden (folded)", () => {
+    test("count is $text3, not bold, when children hidden (folded)", () => {
       const { board } = createBoard()
 
       // Fold parent-card with H — this hides Essential Commands' children
@@ -1118,8 +1118,8 @@ describe("fold count color", () => {
       // The count should appear on parent-card showing folded children count
       const countCell = findCountCell(board, pcRow)
       if (countCell) {
-        // Count should be white (fg=7, $text2), NOT dim, NOT bold
-        expect(countCell.fg, "fg=7 (white/$text2)").toBe(7)
+        // Count should be gray (fg=8, $text3), NOT dim, NOT bold
+        expect(countCell.fg, "fg=8 (gray/$text3)").toBe(8)
         expect(countCell.attrs.dim, "not dim").toBeFalsy()
         expect(countCell.attrs.bold, "not bold").toBeFalsy()
       }
@@ -1136,7 +1136,7 @@ describe("fold count color", () => {
 
       // cell2 should not be dimmed
       expect(cell2!.attrs.dim, "not dim when unfolded").toBeFalsy()
-      expect(cell2!.fg, "white/$text2 when unfolded").toBe(7)
+      expect(cell2!.fg, "gray/$text3 when unfolded").toBe(8)
       expect(cell2!.attrs.bold, "not bold when unfolded").toBeFalsy()
     })
   })

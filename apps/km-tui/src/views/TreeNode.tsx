@@ -768,7 +768,7 @@ function TreeNodeImpl({
           </Box>
           {/* Flexible content box */}
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
-          <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined}>
+          <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined} paddingRight={isOneliner || isCardChild ? 2 : 0}>
             {editingTitle ? (
               <Text color={tc} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
                 <InlineEditField
@@ -830,7 +830,7 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$muted"}>{` ${childCount}`}</Text>
+              <Text color={isHighlighted ? tc : "$text3"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
@@ -842,7 +842,7 @@ function TreeNodeImpl({
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
           {subtaskBadge && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$muted"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isHighlighted ? tc : "$text3"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -1362,7 +1362,7 @@ const FoldedChildRow = React.memo(
         {/* Right-aligned: child count — mirrors TreeNode's count display */}
         {hasChildren && (
           <Box flexShrink={0}>
-            <Text color={"$muted"}>{` ${childCount}`}</Text>
+            <Text color={"$text3"}>{` ${childCount}`}</Text>
           </Box>
         )}
       </Box>
