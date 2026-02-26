@@ -6,7 +6,16 @@
  */
 
 import { EventEmitter } from "events"
-import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider, ThemeProvider } from "inkx"
+import {
+  createTerm,
+  patchConsole,
+  IncrementalRenderMismatchError,
+  InputLayerProvider,
+  ThemeProvider,
+  detectTerminalCaps,
+  setOutputCaps,
+  setTextEmojiWide,
+} from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { restoreTerminal } from "./raw-signals.ts"
@@ -16,7 +25,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
-import { defaultKmTheme } from "./theme.ts"
+import { selectThemeForCaps } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -77,7 +86,30 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   const interactive = options?.interactive !== false
   const isInteractive = interactive && term.hasInput()
 
-  log.debug?.(`TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive}`)
+  // Detect terminal capabilities for degraded mode
+  const caps = detectTerminalCaps()
+  const isLimitedTerminal = caps.program === "Apple_Terminal"
+
+  // Configure output-phase based on detected capabilities
+  setOutputCaps({
+    underlineStyles: caps.underlineStyles,
+    underlineColor: caps.underlineColor,
+    colorLevel: caps.colorLevel,
+  })
+
+  // Configure emoji width measurement for this terminal
+  setTextEmojiWide(caps.textEmojiWide)
+
+  if (isInteractive && isLimitedTerminal) {
+    const themeInfo = caps.darkBackground ? "dark" : "light"
+    process.stderr.write(
+      `\x1b[33m⚠ Terminal.app detected (${themeInfo} theme, basic icons). For best experience, use Ghostty, iTerm2, or Kitty.\x1b[0m\n`,
+    )
+  }
+
+  log.debug?.(
+    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive} caps=${caps.program}/${caps.colorLevel} kitty=${caps.kittyKeyboard} dark=${caps.darkBackground} nerdfont=${caps.nerdfont}`,
+  )
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
@@ -245,6 +277,10 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
     }
 
+    // Select theme and icon style based on terminal capabilities
+    const theme = selectThemeForCaps(caps)
+    const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
+
     const storeParams: CreateBoardAppStoreParams = {
       repo: options.repo,
       toastQueue,
@@ -256,6 +292,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         [...(state.collapsedColumns ?? [])],
         { columns: cols, rows },
         state.rootId,
+        defaultIconStyle,
       ),
       dimensions: { columns: cols, rows },
       savedWorkspace,
@@ -270,7 +307,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       // (fast), then columns fill in one-by-one on the alt screen. No need to show
       // "Rendering..." — the board frame appears almost immediately.
       const handle = await boardApp.run(
-        <ThemeProvider theme={defaultKmTheme}>
+        <ThemeProvider theme={theme}>
           <RepoProvider repo={options.repo}>
             <InputLayerProvider>
               <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
@@ -278,7 +315,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           </RepoProvider>
         </ThemeProvider>,
         isInteractive
-          ? { alternateScreen: true, kitty: true, mouse: true, slowFrameThreshold: 33 }
+          ? { alternateScreen: true, kitty: caps.kittyKeyboard, mouse: caps.mouse, slowFrameThreshold: 33 }
           : { cols, rows, stdout: process.stdout },
       )
 

@@ -41,6 +41,7 @@ import { listCommand } from "./commands/list.ts"
 import { moveCommand } from "./commands/move.ts"
 import { newCommand } from "./commands/new.ts"
 import { perfCommand } from "./commands/perf.ts"
+import { termtestCommand } from "./commands/termtest.ts"
 import { screenshotCommand } from "./commands/screenshot.ts"
 import { shCommand } from "./commands/sh.ts"
 import { showCommand } from "./commands/show.ts"
@@ -258,6 +259,7 @@ Verbosity:
   program.addCommand(screenshotCommand) // km screenshot [root] - capture TUI as text
   program.addCommand(worktreeCommand) // km worktree {create,remove,list} - git worktree management
   program.addCommand(perfCommand) // km perf analyze <file> - performance trace analysis
+  program.addCommand(termtestCommand) // km termtest - visual terminal capability test
   program.addCommand(importCommand) // km import asana <file> | --fetch - import from external tools
 
   // Handle unknown commands with helpful error message
