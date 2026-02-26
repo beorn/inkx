@@ -32,6 +32,19 @@ const log = createLogger("km:tui:columns")
  *  Also supports legacy detailOnly data flag and well-known Asana metadata sections. */
 const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
 
+/** Check if any of a node's identifying fields (name, title, content) match a well-known
+ *  metadata section name (case-insensitive). Content is stripped of km.* rules first. */
+function isWellKnownMetadataSection(node: KNode): boolean {
+  const nameLC = node.name?.toLowerCase()
+  if (nameLC && COLLAPSED_SECTION_NAMES.has(nameLC)) return true
+  const titleLC = node.title?.toLowerCase()
+  if (titleLC && COLLAPSED_SECTION_NAMES.has(titleLC)) return true
+  // Check content with km.* rules stripped (Asana imports have content like "Attachments km.collapse:: true")
+  const contentLC = node.content?.toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
+  if (contentLC && COLLAPSED_SECTION_NAMES.has(contentLC)) return true
+  return false
+}
+
 /** Parse collapse rules from a node, preferring pre-parsed rules, then content (which
  *  may contain unparsed km.collapse:: true from imports), then title as fallback. */
 function getCollapseRules(node: KNode): { collapse?: boolean } {
@@ -43,7 +56,7 @@ function getCollapseRules(node: KNode): { collapse?: boolean } {
 
 export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
-  if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
+  if (isWellKnownMetadataSection(node)) return true
   return getCollapseRules(node).collapse === true
 }
 
@@ -53,11 +66,10 @@ export function isCollapsedChild(node: KNode): boolean {
  *  as narrow collapsed columns, not be hidden entirely. */
 export function isDetailOnly(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
-  if (node.name && COLLAPSED_SECTION_NAMES.has(node.name)) return true
+  if (isWellKnownMetadataSection(node)) return true
   // Check content for well-known section names (Asana imports have the name in content, not node.name)
   const rules = getCollapseRules(node)
   if (rules.collapse === true) {
-    // Only hide if it's a well-known metadata section (by name extracted from content/title)
     const rawName = (node.name || node.title || node.content || "").toLowerCase().replace(/\s*km\.\w+::\s*\S*/g, "").trim()
     if (COLLAPSED_SECTION_NAMES.has(rawName)) return true
   }

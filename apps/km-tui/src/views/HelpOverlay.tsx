@@ -203,7 +203,6 @@ function buildVerbGridLines(): React.ReactElement[] {
 
   // Section header + blank line
   lines.push(<SectionHeaderLine key="vg-hdr" title="Shortcuts" />)
-  lines.push(<Text key="vg-blank-after-hdr"> </Text>)
 
   // Column headers (verb names)
   lines.push(

@@ -13,6 +13,7 @@ import {
 } from "../src/views/DetailPane.tsx"
 import { resolveProjectDisplayNames } from "../src/views/detail-pane-helpers.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
+import { testEnv, item } from "./helpers/board-test.ts"
 
 // --- Test Helpers ---
 
@@ -808,6 +809,36 @@ describe("DetailPane", () => {
     expect(app.text).not.toContain("·")
   })
 
+  test("data.tags with empty strings should not render bare '#'", () => {
+    // Edge case: data.tags might contain empty strings from bad import data
+    // The MetadataTable should filter them out rather than showing "#"
+    const repo = createFakeRepo({
+      nodes: createTestNodes([
+        {
+          id: "task1",
+          type: "p",
+          item: true,
+          content: "Task with bad tag data",
+          task_status: "todo",
+          data: {
+            tags: ["", "urgent", ""],
+          },
+        },
+      ]),
+    })
+    const task = repo.getNode("task1")!
+    const app = renderDetailPane(repo, task, 60, 24)
+    // Should show the valid tag
+    expect(app.text).toContain("#urgent")
+    // Should NOT show bare "#" (empty tag names)
+    const tagsLine = app.text.split("\n").find((l: string) => l.includes("Tags"))
+    expect(tagsLine).toBeDefined()
+    // Count the number of "#" followed by non-word chars or end of string
+    // Each valid tag contributes "#tagname", bad tags would contribute just "#"
+    const bareHashCount = (tagsLine!.match(/#(?=[,\s]|$)/g) ?? []).length
+    expect(bareHashCount).toBe(0)
+  })
+
   test("body text preserves paragraph breaks as blank lines", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
@@ -834,5 +865,96 @@ describe("DetailPane", () => {
     expect(firstParaIdx).toBeGreaterThan(-1)
     expect(secondParaIdx).toBeGreaterThan(-1)
     expect(secondParaIdx - firstParaIdx).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe("Detail pane toggle (D key)", () => {
+  test("D opens only detail pane, not an extra empty workspace pane", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    // Initially: 1 pane (main), no detail pane
+    expect(store.getState().workspace.panes.size).toBe(1)
+    expect(store.getState().ui.showDetailPane).toBe(false)
+
+    // Press D to toggle detail pane open
+    board.press("D")
+
+    // Should have exactly 2 panes: main + main-detail
+    const ws = store.getState().workspace
+    expect(ws.panes.size).toBe(2)
+    expect(ws.panes.has("main")).toBe(true)
+    expect(ws.panes.has("main-detail")).toBe(true)
+
+    // The detail pane should be a "detail" type, not "empty"
+    const detailPane = ws.panes.get("main-detail")!
+    expect(detailPane.viewType).toBe("detail")
+
+    // showDetailPane flag should be true
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    // No "empty" panes should exist
+    const emptyPanes = [...ws.panes.values()].filter((p) => p.viewType === "empty")
+    expect(emptyPanes).toHaveLength(0)
+
+    // The rendered output should NOT contain "Empty" or "Pane" title bars
+    // (those come from PaneTitleBar for empty workspace panes)
+    const text = board.screenshot()
+    expect(text).not.toContain("Empty")
+
+    // The layout should be a split with main (left) and main-detail (right)
+    expect(ws.layout.type).toBe("split")
+    if (ws.layout.type === "split") {
+      expect(ws.layout.left).toEqual({ type: "leaf", paneId: "main" })
+      expect(ws.layout.right).toEqual({ type: "leaf", paneId: "main-detail" })
+    }
+  })
+
+  test("D with split panes does not create extra empty pane", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    // Split the pane first
+    store.getState().splitFocusedPane("h")
+    expect(store.getState().workspace.panes.size).toBe(2)
+
+    // Now press D to open detail pane
+    board.press("D")
+
+    const ws = store.getState().workspace
+    // Should have 3 panes: main, main-detail, and the split pane
+    // But the detail pane should be "detail" type, NOT "empty"
+    const paneTypes = [...ws.panes.values()].map((p) => p.viewType)
+    const detailPanes = paneTypes.filter((t) => t === "detail")
+    const emptyPanes = paneTypes.filter((t) => t === "empty")
+
+    // There should be exactly 1 detail pane
+    expect(detailPanes).toHaveLength(1)
+    // Any empty panes should only be from the split (not from D)
+    expect(emptyPanes.length).toBeLessThanOrEqual(1)
+
+    // The rendered output should not show "Empty pane" text
+    const text = board.screenshot()
+    expect(text).not.toContain("Empty pane")
+  })
+
+  test("D toggles detail pane closed when already open", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    // Open detail pane
+    board.press("D")
+    expect(store.getState().workspace.panes.size).toBe(2)
+
+    // Close detail pane
+    board.press("D")
+    expect(store.getState().workspace.panes.size).toBe(1)
+    expect(store.getState().ui.showDetailPane).toBe(false)
   })
 })

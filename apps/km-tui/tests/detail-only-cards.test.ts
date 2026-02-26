@@ -15,7 +15,7 @@ import { describe, expect, test } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
-import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
+import { deriveColumnsFromRepo, isCollapsedChild, isDetailOnly } from "../src/hooks/use-columns.ts"
 
 /** Create an li node with detailOnly data (like imported comments/attachments/activity) */
 function detailOnlyItem(id: string, content: string, ...childArrays: KNode[][]): KNode[] {
@@ -615,6 +615,31 @@ describe("collapsed children hidden inside cards (sub-items)", () => {
     board.expect("#ic1").not.toExist()
   })
 
+  test("well-known metadata sections hidden by title alone (no name, no collapse rule)", () => {
+    // Bug: Attachments/Comments/Activity sections showing as "§ Attachments ···" cards
+    // when node has title="Attachments" but no name field and no km.collapse:: rule.
+    // isCollapsedChild should match well-known names via title (case-insensitive).
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item("task-1"),
+            item.section("Attachments", item("att-1")),
+            item.section("Comments", item("c-1")),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    board.expect("#task-1").toExist()
+    // These should be hidden — well-known metadata sections
+    const screenshot = board.screenshot()
+    expect(screenshot).not.toContain("Attachments")
+    expect(screenshot).not.toContain("Comments")
+  })
+
   test("overflow count excludes collapsed children inside cards", () => {
     // When a card has collapsed children, the overflow count should NOT include them.
     // Only real visible children should be counted for overflow.
@@ -639,5 +664,53 @@ describe("collapsed children hidden inside cards (sub-items)", () => {
     const screenshot = board.screenshot()
     // Activity section has 3 children + itself = 4 hidden nodes that should NOT inflate overflow
     expect(screenshot).not.toContain("Activity")
+  })
+})
+
+describe("case-insensitive well-known section matching", () => {
+  const ts = Date.now()
+  function mkNode(overrides: Partial<KNode>): KNode {
+    return {
+      id: "test", type: "h", item: true,
+      parent_id: null, parent_idx: 0,
+      created_at: ts, updated_at: ts, version: "v1",
+      ...overrides,
+    }
+  }
+
+  test("isCollapsedChild matches name case-insensitively", () => {
+    expect(isCollapsedChild(mkNode({ name: "Attachments" }))).toBe(true)
+    expect(isCollapsedChild(mkNode({ name: "COMMENTS" }))).toBe(true)
+    expect(isCollapsedChild(mkNode({ name: "Activity" }))).toBe(true)
+    // Lowercase still works
+    expect(isCollapsedChild(mkNode({ name: "attachments" }))).toBe(true)
+  })
+
+  test("isCollapsedChild matches title when name is absent", () => {
+    expect(isCollapsedChild(mkNode({ title: "Attachments" }))).toBe(true)
+    expect(isCollapsedChild(mkNode({ title: "Comments" }))).toBe(true)
+    expect(isCollapsedChild(mkNode({ title: "Activity" }))).toBe(true)
+  })
+
+  test("isCollapsedChild matches content as fallback", () => {
+    expect(isCollapsedChild(mkNode({ content: "Attachments" }))).toBe(true)
+    expect(isCollapsedChild(mkNode({ content: "attachments" }))).toBe(true)
+  })
+
+  test("isDetailOnly matches name case-insensitively", () => {
+    expect(isDetailOnly(mkNode({ name: "Attachments" }))).toBe(true)
+    expect(isDetailOnly(mkNode({ name: "COMMENTS" }))).toBe(true)
+    expect(isDetailOnly(mkNode({ name: "activity" }))).toBe(true)
+  })
+
+  test("isDetailOnly matches title when name is absent", () => {
+    expect(isDetailOnly(mkNode({ title: "Attachments" }))).toBe(true)
+    expect(isDetailOnly(mkNode({ title: "Comments" }))).toBe(true)
+  })
+
+  test("non-metadata sections are not collapsed", () => {
+    expect(isCollapsedChild(mkNode({ name: "subtasks" }))).toBe(false)
+    expect(isCollapsedChild(mkNode({ title: "Notes" }))).toBe(false)
+    expect(isDetailOnly(mkNode({ name: "subtasks" }))).toBe(false)
   })
 })

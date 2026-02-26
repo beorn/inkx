@@ -543,9 +543,10 @@ function MetadataTable({
     if (resolved.length > 0) rows.push({ key: "Projects", value: resolved.join(", ") })
   }
 
-  // Tags (preserve # prefix)
-  if (refs.tags.length > 0) {
-    rows.push({ key: "Tags", value: refs.tags.map((t) => `#${t}`).join(", ") })
+  // Tags (preserve # prefix, filter empty names)
+  const validTags = refs.tags.filter(Boolean)
+  if (validTags.length > 0) {
+    rows.push({ key: "Tags", value: validTags.map((t) => `#${t}`).join(", ") })
   }
 
   // Mentions (preserve @ prefix) — exclude assignee to avoid duplication

@@ -455,6 +455,25 @@ function bodyBlockLayoutProps(
 }
 
 // =============================================================================
+// List Height — shrink-to-fit when cards are filtered
+// =============================================================================
+
+/**
+ * Compute VirtualList height. When hiddenCount > 0 (filter active), shrink the
+ * list to fit visible cards so the "+N hidden" indicator appears right after the
+ * last card instead of at the bottom of the screen.
+ */
+function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, itemHeight: number): number {
+  const headerRows = 2 // column header + separator
+  const hiddenRow = hiddenCount > 0 ? 1 : 0
+  const available = columnHeight - headerRows - hiddenRow
+  if (hiddenCount <= 0) return available
+  // Estimate content height for visible cards
+  const contentHeight = cardCount * itemHeight
+  return Math.min(available, contentHeight)
+}
+
+// =============================================================================
 // Skeleton Cards — shown in empty columns during background parse
 // =============================================================================
 
@@ -774,7 +793,7 @@ export const Column = React.memo(function Column({
           isSelected={isSelected}
           items={column.cardNodes}
           width={width - 1}
-          height={height - 2 - (hiddenCount > 0 ? 1 : 0)}
+          height={computeListHeight(height, hiddenCount, column.cardNodes.length, maxContentLines + 2)}
           itemHeight={maxContentLines + 2}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}

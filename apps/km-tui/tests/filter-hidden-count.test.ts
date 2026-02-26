@@ -79,6 +79,40 @@ describe("filter hidden count indicator", () => {
     expect(screen).not.toContain("hidden")
   })
 
+  test("hidden indicator appears right after last card, not at screen bottom", () => {
+    // With a tall terminal (40 rows) and only 2 visible cards, the "+N hidden"
+    // indicator should appear right after the cards, not at row 39.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "Tasks",
+            item("Fix bug"),
+            item("Buy milk"),
+            item("Write docs"),
+            item("Fix login"),
+          ),
+        ),
+      { columns: 80, rows: 40 },
+    )
+
+    // Apply filter that shows 2 of 4 cards
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+    expect(screen).toContain("+2 hidden")
+
+    // Find the line containing "+2 hidden" — it should be near the top (after 2 cards),
+    // not near the bottom of the 40-row terminal
+    const lines = screen.split("\n")
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+2 hidden"))
+    expect(hiddenLineIdx).toBeGreaterThan(0) // Not first line
+    // 2 cards at ~4 rows each + 2 header rows = ~10 rows. Should be well before row 30.
+    expect(hiddenLineIdx).toBeLessThan(20)
+  })
+
   test("shows hidden indicator per column independently", () => {
     const { board, store } = testEnv(
       () =>

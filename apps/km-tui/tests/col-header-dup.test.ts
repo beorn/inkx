@@ -3,17 +3,22 @@
  * Column header rendered twice when cursor moves to column level.
  *
  * The column header Box has backgroundColor that transitions:
- * - Card level: undefined (no bg)
- * - Column level: "yellow" (inverse highlight)
+ * - Card level: undefined (no bg, yellow text)
+ * - Column level: km.selectionBg (yellow bg, black text)
  *
  * Tests that incremental rendering correctly handles the
  * backgroundColor transition and doesn't leave stale cells.
+ *
+ * Root cause: changesToAnsi used CUF (Cursor Forward) to skip unchanged
+ * cells on a row, but didn't reset SGR bg first. Some terminals (Ghostty)
+ * fill skipped cells with the current bg, causing visual artifacts.
+ * Fix: reset SGR before CUF when bg is set (output-phase.ts).
  */
 import { describe, test, expect } from "vitest"
 import { withDiagnostics } from "inkx"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { item } from "./helpers/board-test.ts"
+import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx/testing"
 
 // Enable style-aware output verification for all tests in this file
@@ -106,6 +111,49 @@ describe("col-header-dup: column header style transition", () => {
       if (line.includes(">")) continue // skip breadcrumb
       const count = (line.match(/alpha-col/g) || []).length
       expect(count, `"alpha-col" count on line "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  test("card↔column transitions with incremental check (testEnv)", () => {
+    // testEnv enables checkIncremental by default, which compares
+    // incremental buffer against fresh render after every press()
+    const { board } = testEnv(() =>
+      item.root("board",
+        item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
+        item("beta-col", item("task-d"), item("task-e")),
+      ),
+    )
+
+    // card → column (bg transition: undefined → yellow)
+    board.press("k")
+
+    // column → card (bg transition: yellow → undefined)
+    board.press("j")
+
+    // card → card (no bg transition)
+    board.press("j")
+
+    // card → next column via right
+    board.press("l")
+
+    // column header of beta-col
+    board.press("k")
+
+    // back to card
+    board.press("j")
+
+    // back to alpha-col
+    board.press("h")
+
+    // All incremental checks passed — no buffer mismatches
+    const text = stripAnsi(board.screenshot())
+    const lines = text.split("\n")
+    for (const line of lines) {
+      if (line.includes(">")) continue
+      const alphaCount = (line.match(/alpha-col/g) || []).length
+      expect(alphaCount, `"alpha-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+      const betaCount = (line.match(/beta-col/g) || []).length
+      expect(betaCount, `"beta-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
     }
   })
 })
