@@ -161,7 +161,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
     prev.node.priority !== next.node.priority ||
-    prev.node.recurrence !== next.node.recurrence ||
+    prev.node.rrule !== next.node.rrule ||
     prev.node.assigned_to !== next.node.assigned_to ||
     prev.node.type !== next.node.type
   ) {
@@ -222,8 +222,20 @@ function TreeNodeImpl({
   renderLog.debug?.(`TreeNode ${sid(node.id)} depth=${depth} remainingDepth=${remainingDepth}`)
 
   // Global tree rendering config from context (no per-node subscription)
-  const { treeConfig, sigilColors, resolveSigilColor, setUI, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery, jobRunner, undoHandle, taskStatusFilter, boardFocused } =
-    useTreeRenderContext()
+  const {
+    treeConfig,
+    sigilColors,
+    resolveSigilColor,
+    setUI,
+    rootBoardId,
+    searchMatchNodeIds,
+    currentMatchNodeId,
+    searchQuery,
+    jobRunner,
+    undoHandle,
+    taskStatusFilter,
+    boardFocused,
+  } = useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
   // Per-node state via Jotai atoms — only this node re-renders when its state changes
@@ -286,7 +298,15 @@ function TreeNodeImpl({
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
-    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing, boardFocused)
+    const s = getNodeStyle(
+      displayNode,
+      isSelected,
+      isMultiSelected,
+      dimInactiveChildren,
+      depth,
+      isInlineEditing,
+      boardFocused,
+    )
     if (dim) s.shouldDim = true
     return s
   }, [
@@ -296,7 +316,7 @@ function TreeNodeImpl({
     displayNode.priority,
     displayNode.start_at,
     displayNode.assigned_to,
-    displayNode.recurrence,
+    displayNode.rrule,
     isSelected,
     isMultiSelected,
     dimInactiveChildren,
@@ -613,7 +633,7 @@ function TreeNodeImpl({
   }, [depth, isOneliner, displayNode.id, displayNode.data])
 
   // Date badge check — rendered as React component below
-  const hasDateBadge = !!(displayNode.priority || displayNode.due_at || displayNode.start_at || displayNode.recurrence)
+  const hasDateBadge = !!(displayNode.priority || displayNode.due_at || displayNode.start_at || displayNode.rrule)
 
   // Parent context for embedded tasks - use prop or default implementation
   const resolvedGetParentContext = useCallback(
@@ -740,15 +760,7 @@ function TreeNodeImpl({
           {/* Fixed-width prefix box (fold marker only - new cards style) */}
           <Box width={prefix.length} flexShrink={0}>
             <Text color={tc} dimColor={sd}>
-              <Text
-                color={
-                  isSelected || isMultiSelected
-                    ? tc
-                    : style.isDoneOrDropped
-                      ? undefined
-                      : prefix.markerColor
-                }
-              >
+              <Text color={isSelected || isMultiSelected ? tc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
                 {prefix.markerChar}
               </Text>
               {prefix.afterMarker}
@@ -785,7 +797,11 @@ function TreeNodeImpl({
                 {isVerbatim ? (
                   processedContent
                 ) : (
-                  <InlineText text={processedContent} context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }} decorations={searchDecorations} />
+                  <InlineText
+                    text={processedContent}
+                    context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }}
+                    decorations={searchDecorations}
+                  />
                 )}
                 {sigilName && (
                   <>
@@ -999,7 +1015,11 @@ function cleanContentForDisplay(content: string | undefined): string {
 /** Try to resolve an embed reference (block_id or filename) to a human-readable title.
  * Only returns a result if the resolved node has real content (not itself an embed). */
 function tryResolveEmbedRef(
-  repo: { getNode(id: string): KNode | undefined; resolveByName?(name: string): KNode | null; resolveNode?(query: string): KNode | null },
+  repo: {
+    getNode(id: string): KNode | undefined
+    resolveByName?(name: string): KNode | null
+    resolveNode?(query: string): KNode | null
+  },
   ref: string,
 ): string | null {
   if (!repo.resolveByName && !repo.resolveNode) return null
@@ -1219,8 +1239,15 @@ const FoldedChildRow = React.memo(
   }): React.ReactElement {
     renderLog.debug?.(`FoldedChildRow ${sid(node.id)} depth=${depth}`)
 
-    const { treeConfig, sigilColors, resolveSigilColor, rootBoardId, searchMatchNodeIds, currentMatchNodeId, searchQuery } =
-      useTreeRenderContext()
+    const {
+      treeConfig,
+      sigilColors,
+      resolveSigilColor,
+      rootBoardId,
+      searchMatchNodeIds,
+      currentMatchNodeId,
+      searchQuery,
+    } = useTreeRenderContext()
     const repo = useRepo()
 
     const nodeIsTask = isTask(node)
@@ -1266,37 +1293,34 @@ const FoldedChildRow = React.memo(
       if (!extraExcludedSigils?.length) return rootSigils
       return [...rootSigils, ...extraExcludedSigils]
     }, [repo, rootBoardId, extraExcludedSigils])
-    const inlineContext: InlineRenderContext = useMemo(
-      () => {
-        const wikiLinkCache = new Map<string, string | null>()
-        return {
-          excludeSigils: excludedSigils.length > 0 ? new Set(excludedSigils) : undefined,
-          sigilColors,
-          resolveSigilColor,
-          resolveWikiLink: (target: string): string | null => {
-            if (!target?.trim()) return null
-            const cached = wikiLinkCache.get(target)
-            if (cached !== undefined) return cached
-            const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-            const result = resolved ? getNodeDisplayName(repo, resolved) : null
-            wikiLinkCache.set(target, result)
-            return result
-          },
-          resolveBlockRef: (id: string): string | null => {
-            if (!id?.trim()) return null
-            const cacheKey = `^${id}`
-            const cached = wikiLinkCache.get(cacheKey)
-            if (cached !== undefined) return cached
-            const resolved = repo.getNode(id)
-            const result = resolved ? getNodeDisplayName(repo, resolved) : null
-            wikiLinkCache.set(cacheKey, result)
-            return result
-          },
-          hideFields: true,
-        }
-      },
-      [excludedSigils, sigilColors, resolveSigilColor, repo],
-    )
+    const inlineContext: InlineRenderContext = useMemo(() => {
+      const wikiLinkCache = new Map<string, string | null>()
+      return {
+        excludeSigils: excludedSigils.length > 0 ? new Set(excludedSigils) : undefined,
+        sigilColors,
+        resolveSigilColor,
+        resolveWikiLink: (target: string): string | null => {
+          if (!target?.trim()) return null
+          const cached = wikiLinkCache.get(target)
+          if (cached !== undefined) return cached
+          const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+          const result = resolved ? getNodeDisplayName(repo, resolved) : null
+          wikiLinkCache.set(target, result)
+          return result
+        },
+        resolveBlockRef: (id: string): string | null => {
+          if (!id?.trim()) return null
+          const cacheKey = `^${id}`
+          const cached = wikiLinkCache.get(cacheKey)
+          if (cached !== undefined) return cached
+          const resolved = repo.getNode(id)
+          const result = resolved ? getNodeDisplayName(repo, resolved) : null
+          wikiLinkCache.set(cacheKey, result)
+          return result
+        },
+        hideFields: true,
+      }
+    }, [excludedSigils, sigilColors, resolveSigilColor, repo])
 
     // Search decorations — character-level highlighting of search matches
     const foldSearchDecorations = useMemo(
@@ -1319,11 +1343,7 @@ const FoldedChildRow = React.memo(
       >
         <Box width={prefix.length} flexShrink={0}>
           <Text color={foldTc} dimColor={foldSd}>
-            <Text
-              color={style.isDoneOrDropped ? undefined : prefix.markerColor}
-            >
-              {prefix.markerChar}
-            </Text>
+            <Text color={style.isDoneOrDropped ? undefined : prefix.markerColor}>{prefix.markerChar}</Text>
             {prefix.afterMarker}
           </Text>
         </Box>
@@ -1438,10 +1458,7 @@ function NodeChildren({
     // than the terminal has rows. Prevents rendering thousands of invisible
     // components (e.g. a card with 2,628 children).
     const maxVisible = process.stdout.rows ?? 50
-    const displayChildren =
-      orderedChildren.length > maxVisible
-        ? orderedChildren.slice(0, maxVisible)
-        : orderedChildren
+    const displayChildren = orderedChildren.length > maxVisible ? orderedChildren.slice(0, maxVisible) : orderedChildren
     const truncatedCount = orderedChildren.length - displayChildren.length
     const totalHiddenCount = hiddenCount + truncatedCount
 

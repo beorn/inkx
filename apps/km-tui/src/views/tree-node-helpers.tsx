@@ -294,7 +294,7 @@ export function formatDateBadge(node: KNode): string {
   }
 
   // Recurrence
-  if (node.recurrence) {
+  if (node.rrule) {
     parts.push("↻")
   }
 
@@ -463,7 +463,7 @@ export function DateBadge({ node, noColor }: { node: KNode; noColor?: boolean })
   }
 
   // Recurrence
-  if (node.recurrence) {
+  if (node.rrule) {
     parts.push(<Text key="r">↻</Text>)
   }
 

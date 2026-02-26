@@ -520,8 +520,8 @@ function DateBadgeDemo(): React.ReactElement {
     { label: "P2 due today", badge: formatDateBadge({ priority: 2, due_at: d(0) } as KNode) },
 
     // With recurrence
-    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_at: d(1), recurrence: "weekly" } as KNode) },
-    { label: "Future ↻", badge: formatDateBadge({ due_at: d(14), recurrence: "monthly" } as KNode) },
+    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_at: d(1), rrule: "weekly" } as KNode) },
+    { label: "Future ↻", badge: formatDateBadge({ due_at: d(14), rrule: "monthly" } as KNode) },
 
     // Start date
     { label: "Start only (future)", badge: formatDateBadge({ start_at: d(3) } as KNode) },
@@ -538,7 +538,7 @@ function DateBadgeDemo(): React.ReactElement {
     // Full combo
     {
       label: "P2 start → due ↻",
-      badge: formatDateBadge({ priority: 2, start_at: d(1), due_at: d(7), recurrence: "monthly" } as KNode),
+      badge: formatDateBadge({ priority: 2, start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode),
     },
 
     // Edge cases
@@ -770,7 +770,7 @@ function mockNode(
     due_at?: string
     start_at?: string
     priority?: number
-    recurrence?: string
+    rrule?: string
     fstype?: KNode["fstype"]
   },
 ): KNode {
@@ -802,7 +802,7 @@ function mockNode(
     due_at: options?.due_at,
     start_at: options?.start_at,
     priority: options?.priority,
-    recurrence: options?.recurrence,
+    rrule: options?.rrule,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -861,13 +861,13 @@ function Layer3Views(): React.ReactElement {
   })
   const recurringTask = mockNode("dated-4", "Weekly standup", "todo", "p", {
     due_at: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-    recurrence: "weekly",
+    rrule: "weekly",
   })
   const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "p", {
     priority: 2,
     start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
     due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-    recurrence: "monthly",
+    rrule: "monthly",
   })
 
   return (
@@ -1502,7 +1502,7 @@ function VisualLanguageSection(): React.ReactElement {
         {...commonProps}
         node={mockNode("db-4", "Weekly standup", "todo", "p", {
           due_at: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-          recurrence: "weekly",
+          rrule: "weekly",
         })}
         isSelected={false}
       />
@@ -1515,7 +1515,7 @@ function VisualLanguageSection(): React.ReactElement {
           priority: 2,
           start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
           due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-          recurrence: "monthly",
+          rrule: "monthly",
         })}
         isSelected={false}
       />
@@ -1646,7 +1646,6 @@ function ToastAndStatusSection(): React.ReactElement {
       <CommandBox
         ui={mockUIState}
         rootPath="/tmp/test"
-
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1658,7 +1657,6 @@ function ToastAndStatusSection(): React.ReactElement {
       <CommandBox
         ui={uiStateWithStatus}
         rootPath="/tmp/test"
-
         termWidth={demoTermWidth}
         storageMode="disk"
         nodeCount={42}
@@ -1684,7 +1682,6 @@ function ToastAndStatusSection(): React.ReactElement {
           <CommandBox
             ui={uiStateWithStatus}
             rootPath="/tmp/test"
-    
             termWidth={demoTermWidth}
             storageMode="disk"
             nodeCount={42}

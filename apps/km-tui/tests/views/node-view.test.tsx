@@ -40,7 +40,7 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
     task_marker: overrides.task_marker ?? undefined,
     task_status: overrides.task_status ?? undefined,
     priority: overrides.priority ?? null,
-    recurrence: overrides.recurrence ?? null,
+    rrule: overrides.rrule ?? null,
     assigned_to: overrides.assigned_to ?? null,
     embed_source: overrides.embed_source ?? null,
     data: overrides.data ?? null,
@@ -329,7 +329,7 @@ describe("NodeCardView (card style)", () => {
       content: "Recurring task",
       task_status: "todo",
       task_marker: " ",
-      recurrence: "weekly",
+      rrule: "weekly",
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
     expect(output).toContain("Recurring task")
@@ -626,7 +626,7 @@ describe("NodeDetailView (detail style)", () => {
       task_status: "todo",
       task_marker: " ",
       start_at: "2027-04-01",
-      recurrence: "weekly",
+      rrule: "weekly",
     })
     const output = await renderString(<NodeDetailView node={node} children={[]} width={50} height={25} />, {
       plain: true,

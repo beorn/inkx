@@ -231,7 +231,7 @@ interface KNode {
   due_date?: string // YYYY-MM-DD format
   scheduled_date?: string // YYYY-MM-DD format
   priority?: number // 1-5 (1 = highest)
-  recurrence?: string // iCal RRULE format (e.g., "FREQ=DAILY")
+  rrule?: string // iCal RRULE format (e.g., "FREQ=DAILY;FROM=DUE")
   recur_prev?: string // Previous recurrence instance ID
 
   // Content
@@ -275,7 +275,7 @@ interface KNode {
 | `due_date`       | string         | Due date in YYYY-MM-DD format                 |
 | `scheduled_date` | string         | Scheduled date in YYYY-MM-DD format           |
 | `priority`       | number         | Priority 1-5 (1 = highest)                    |
-| `recurrence`     | string         | iCal RRULE (e.g., `FREQ=WEEKLY;BYDAY=MO`)     |
+| `rrule`          | string         | iCal RRULE (e.g., `FREQ=WEEKLY;BYDAY=MO;FROM=DUE`) |
 | `recur_prev`     | string         | Links to previous recurrence instance         |
 | `content`        | string         | Node text content                             |
 | `content_hash`   | string         | CAS hash for large content                    |

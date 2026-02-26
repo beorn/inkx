@@ -187,7 +187,9 @@ export function ColumnHeader({
                 <Box flexShrink={0}>
                   <Text color={headerStyle.color} dimColor={headerStyle.dimColor}>
                     {wipExceeded ? (
-                      <Text color={"$error"}>{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
+                      <Text
+                        color={"$error"}
+                      >{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                     ) : (
                       <Text color={isColumnSelected ? headerStyle.color : "$muted"}>{` ${countDisplay}`}</Text>
                     )}
@@ -338,7 +340,7 @@ export function NodeCardView({
   const subtaskBadge = formatSubtaskBadge(children)
 
   // Date badge — rendered as React component
-  const hasDateBadge = !isDoneOrDropped && !!(node.priority || node.due_at || node.start_at || node.recurrence)
+  const hasDateBadge = !isDoneOrDropped && !!(node.priority || node.due_at || node.start_at || node.rrule)
 
   // Show all children as subitems (both body and structural)
   const visibleChildren = children.slice(0, maxSubitems)
@@ -567,7 +569,7 @@ export function NodeDetailView({
   if (node.start_at) metadataRows.push({ label: "Start", value: node.start_at })
   if (node.assigned_to) metadataRows.push({ label: "Assigned", value: node.assigned_to })
   if (node.priority) metadataRows.push({ label: "Priority", value: `P${node.priority}` })
-  if (node.recurrence) metadataRows.push({ label: "Recurrence", value: node.recurrence })
+  if (node.rrule) metadataRows.push({ label: "Recurrence", value: node.rrule })
 
   return (
     <Box

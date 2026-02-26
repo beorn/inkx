@@ -92,9 +92,10 @@ function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean
   const title = getNodeDisplayName(repo, node)
 
   // Pick icon: task status icon for tasks, column header icon for outlines
-  const icon = node.task_status != null
-    ? getNodeIcon(node.task_status, undefined, true)
-    : getColumnHeaderIcon(node, "regular", false)
+  const icon =
+    node.task_status != null
+      ? getNodeIcon(node.task_status, undefined, true)
+      : getColumnHeaderIcon(node, "regular", false)
 
   return (
     <PaneBar
@@ -102,8 +103,8 @@ function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean
       paneLabel={paneLabel}
       left={
         <Text bold={isFocused} wrap="truncate">
-          {" "}{icon.char}{" "}
-          <InlineText text={title} />
+          {" "}
+          {icon.char} <InlineText text={title} />
         </Text>
       }
     />
@@ -337,7 +338,12 @@ function TaskDetailPane({
             return (
               <React.Fragment key={`${child.id}-${i}`}>
                 {needsSpace && <Text> </Text>}
-                <BodyBlock content={child.content ?? ""} innerWidth={contentWidth} resolveWikiLink={resolveWikiLink} resolveBlockRef={resolveBlockRef} />
+                <BodyBlock
+                  content={child.content ?? ""}
+                  innerWidth={contentWidth}
+                  resolveWikiLink={resolveWikiLink}
+                  resolveBlockRef={resolveBlockRef}
+                />
               </React.Fragment>
             )
           })}
@@ -432,7 +438,7 @@ const KNOWN_DATA_KEYS = new Set([
   "metadata",
   "name",
   "title",
-  "recurrence",
+  "rrule",
   "fstype",
   "rules",
   "tag",
@@ -516,8 +522,8 @@ function MetadataTable({
   }
 
   // Recurrence
-  if (node.recurrence) {
-    rows.push({ key: "Recurrence", value: node.recurrence })
+  if (node.rrule) {
+    rows.push({ key: "Recurrence", value: node.rrule })
   }
 
   // Date-related metadata (created, completed) — group with other dates

@@ -12,7 +12,7 @@ import { ModalDialog } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 export interface DatePromptDialogProps {
-  field: "due_at" | "start_at" | "recurrence"
+  field: "due_at" | "start_at" | "rrule"
   currentValue: string
   /** Callback when confirmed (dispatches DATE_PROMPT_CONFIRM) */
   onConfirm: () => void
@@ -27,7 +27,7 @@ function getPreview(field: string, input: string): { text: string; color: string
   const trimmed = input.trim()
   if (!trimmed) return { text: "Empty = clear value", color: "$muted" }
 
-  if (field === "recurrence") {
+  if (field === "rrule") {
     const rrule = naturalToRRule(trimmed)
     if (rrule) return { text: rrule, color: "$success" }
     return { text: "Invalid recurrence", color: "$error" }
