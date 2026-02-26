@@ -10,7 +10,6 @@ import { Text } from "inkx"
 import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
-import { km } from "../theme.ts"
 
 // =============================================================================
 // HR Detection
@@ -115,12 +114,12 @@ export function getNodeStyle(
   } else if (isSelected || isMultiSelected) {
     if (paneFocused) {
       // Focused pane: bright yellow background, black foreground
-      backgroundColor = km.selectionBg
-      textColor = km.selectionFg
+      backgroundColor = "$selected"
+      textColor = "$selectedfg"
     } else {
       // Unfocused pane: no background, yellow text dimmed
       backgroundColor = undefined
-      textColor = km.selectionBg
+      textColor = "$selected"
     }
   } else {
     // Default: no explicit color — use terminal's default foreground (bright white in dark themes)

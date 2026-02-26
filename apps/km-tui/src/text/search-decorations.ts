@@ -7,13 +7,11 @@
 
 import type { TextDecoration } from "./inline-ast-types.ts"
 import { parseToPlainText } from "./inline-parser.ts"
-import { km } from "../theme.ts"
-
 /** Style for the currently focused search match (bright yellow) */
-const CURRENT_MATCH_STYLE = { backgroundColor: "yellowBright", color: km.selectionFg } as const
+const CURRENT_MATCH_STYLE = { backgroundColor: "yellowBright", color: "$selectedfg" } as const
 
 /** Style for non-focused search matches (dim yellow) */
-const OTHER_MATCH_STYLE = { backgroundColor: km.selectionBg, color: km.selectionFg } as const
+const OTHER_MATCH_STYLE = { backgroundColor: "$selected", color: "$selectedfg" } as const
 
 /**
  * Compute text decorations for all occurrences of a search query in visible text.

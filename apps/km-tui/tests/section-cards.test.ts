@@ -126,14 +126,14 @@ describe("section card rendering", () => {
     expect(hasHLine, "section card should have a horizontal separator line below it").toBe(true)
   })
 
-  test("section card selection uses yellow background (like other cards)", () => {
+  test("section card selection uses cyan background (like other cards)", () => {
     const { board } = testEnv(() => item("board", item("col", item.section("My Section", item("task-1")))), {
       columns: 80,
       rows: 24,
     })
 
     // First card should be the section, and it should be selected
-    board.expectNodeColor("My Section", { bg: 3 }) // 3 = yellow
+    board.expectNodeColor("My Section", { bg: 6 }) // 6 = cyan ($selected)
   })
 
   test("section cards with children show fold marker and child count", () => {

@@ -2,9 +2,9 @@
  * Column selected style tests (km-tui.col-selected-style)
  *
  * When cursor is at column level (header), the column should have a visible
- * selected style throughout. The column header already gets yellow bg + black
- * text, and the separator is bright yellow. But the column body area
- * (cards region) should also have a visible distinction -- a yellow left border
+ * selected style throughout. The column header already gets cyan bg + black
+ * text, and the separator is cyan. But the column body area
+ * (cards region) should also have a visible distinction -- a cyan left border
  * or similar treatment consistent with the overall "this column is selected" feel.
  */
 
@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("km-tui.col-selected-style: column selected style at column level", () => {
-  it("column header has yellow bg when cursor is at column level", () => {
+  it("column header has cyan bg when cursor is at column level", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
@@ -42,13 +42,13 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
     // When cursor is at column level, header text should have
-    // yellow bg (3) and black fg (0) -- the "inverse yellow" style
+    // cyan bg (6) and black fg (0) -- the "inverse selected" style
     const cell = board.screen.cell(colTextX, headerY)
-    expect(cell.bg, "column header bg should be yellow (3) when at column level").toEqual(3)
+    expect(cell.bg, "column header bg should be cyan (6) when at column level").toEqual(6)
     expect(cell.fg, "column header fg should be black (0) when at column level").toEqual(0)
   })
 
-  it("separator line is bright yellow when cursor is at column level", () => {
+  it("separator line is cyan when cursor is at column level", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
@@ -77,11 +77,11 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(sepX, "separator char should be found").toBeGreaterThanOrEqual(0)
 
     const sepCell = board.screen.cell(sepX, separatorY)
-    expect(sepCell.fg, "separator fg should be yellow (3) when column selected").toEqual(3)
+    expect(sepCell.fg, "separator fg should be cyan (6) when column selected").toEqual(6)
     expect(sepCell.attrs.dim, "separator should NOT be dim when column selected").toBeFalsy()
   })
 
-  it("column card area has visible yellow left border when cursor is at column level", () => {
+  it("column card area has visible cyan left border when cursor is at column level", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
@@ -107,21 +107,21 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
       const y = cardAreaStartY + dy
       if (y >= colBox.y + colBox.height) break
 
-      // The leftmost cell of the column should be yellow (border or indicator)
+      // The leftmost cell of the column should be cyan (border or indicator)
       const leftCell = board.screen.cell(colBox.x, y)
-      // Accept either a border character with yellow color, or a space with yellow bg
-      const isYellowBorder = leftCell.fg === 3 // yellow foreground for border chars
-      const isYellowBg = leftCell.bg === 3 // yellow background
+      // Accept either a border character with cyan color, or a space with cyan bg
+      const isCyanBorder = leftCell.fg === 6 // cyan foreground for border chars
+      const isCyanBg = leftCell.bg === 6 // cyan background
 
       expect(
-        isYellowBorder || isYellowBg,
-        `column left edge at (${colBox.x}, ${y}) should have yellow styling ` +
+        isCyanBorder || isCyanBg,
+        `column left edge at (${colBox.x}, ${y}) should have cyan styling ` +
           `(fg=${leftCell.fg}, bg=${leftCell.bg}, char="${leftCell.char}")`,
       ).toBe(true)
     }
   })
 
-  it("non-selected column does NOT have yellow header styling", () => {
+  it("non-selected column does NOT have cyan header styling", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1")), item("col2", item("task3"))), {
       columns: 100,
       rows: 20,
@@ -137,17 +137,17 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(col2Box).not.toBeNull()
     if (!col2Box) return
 
-    // col2 header should NOT have yellow bg
+    // col2 header should NOT have cyan bg
     const headerY = col2Box.y
     const row = board.screen.row(headerY)
     const col2Idx = row.indexOf("col2")
     expect(col2Idx).toBeGreaterThan(-1)
 
     const cell = board.screen.cell(col2Idx, headerY)
-    expect(cell.bg, "non-selected column header should NOT have yellow bg").not.toEqual(3)
+    expect(cell.bg, "non-selected column header should NOT have cyan bg").not.toEqual(6)
   })
 
-  it("returning to card level removes column-level yellow border", () => {
+  it("returning to card level removes column-level cyan border", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },

@@ -77,6 +77,7 @@ function findBorderCell(
 // ANSI color numbers used by inkx buffer
 const ANSI_BLACK = 0
 const ANSI_YELLOW = 3
+const ANSI_WHITE = 7 // $text2 in dark theme
 const ANSI_BRIGHT_BLACK = 8 // gray / dim
 
 /**
@@ -87,9 +88,9 @@ function expectDimBorder(board: ReturnType<typeof testEnv>["board"], nodeId: str
   const cell = findBorderCell(board, nodeId)
   expect(cell, `node "${nodeId}" should have a border`).not.toBeNull()
   if (cell) {
-    // Unselected body card border should be dim gray (bright black = 8, or black = 0)
+    // Unselected body card border should be dim gray/white (bright black = 8, black = 0, or white = 7)
     expect(
-      cell.fg === ANSI_BLACK || cell.fg === ANSI_BRIGHT_BLACK || cell.fg === null,
+      cell.fg === ANSI_BLACK || cell.fg === ANSI_WHITE || cell.fg === ANSI_BRIGHT_BLACK || cell.fg === null,
       `node "${nodeId}" border should be dim/gray, got fg=${cell.fg}`,
     ).toBe(true)
   }

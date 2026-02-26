@@ -12,7 +12,6 @@ import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
 import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
-import { km } from "./theme.ts"
 
 export interface BoardPill {
   name: string // Display name (e.g., "next" or "My Board")
@@ -168,8 +167,8 @@ export function getHeaderStyle(
   // Dim the header when the pane is unfocused
   if (isActiveSelection) {
     return {
-      color: paneFocused ? km.selectionFg : km.selectionBg,
-      backgroundColor: paneFocused ? km.selectionBg : undefined,
+      color: paneFocused ? "$selectedfg" : "$selected",
+      backgroundColor: paneFocused ? "$selected" : undefined,
       dimColor: !paneFocused,
     }
   }
@@ -181,7 +180,7 @@ export function getHeaderStyle(
   //   the terminal's bright-white default, matching card text.
   // Note: headers are always bold (handled by component)
   return {
-    color: isSelected ? km.selectionBg : undefined,
+    color: isSelected ? "$selected" : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

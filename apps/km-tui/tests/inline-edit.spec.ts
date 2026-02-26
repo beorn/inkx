@@ -876,10 +876,10 @@ describe("edit focus ring", () => {
     const bodyRow = findContentRow(board, "body line 1")
     expect(bodyRow, "body line 1 should be visible in card content area").toBeGreaterThanOrEqual(0)
 
-    // Non-active body text should have blue fg (4) — km.cardBorderEditing = "blue"
+    // Non-active body text should have blueBright fg (12) — $focusring = "blueBright"
     const boCell = findBoCell(board, bodyRow)
     expect(boCell, "should find 'body' text on the row").not.toBeNull()
-    expect(boCell!.fg, "non-active body text should have blue fg (4)").toBe(4)
+    expect(boCell!.fg, "non-active body text should have blueBright fg (12)").toBe(12)
   })
 
   test("navigating to body block does not add blue background", () => {

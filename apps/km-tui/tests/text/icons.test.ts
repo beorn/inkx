@@ -35,7 +35,7 @@ describe("getStatusIcon", () => {
     it(`returns first char with inverted colors for unrecognized '${status}'`, () => {
       const icon = getStatusIcon(status)
       expect(icon.char).toBe(status[0])
-      expect(icon.color).toBe("black")
+      expect(icon.color).toBe("$selectedfg")
       expect(icon.backgroundColor).toBe("$text")
     })
   }

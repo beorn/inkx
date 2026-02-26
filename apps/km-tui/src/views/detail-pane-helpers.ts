@@ -4,7 +4,6 @@
 
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
-import { km } from "../theme.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { extractRefs } from "../text/text-pipeline.ts"
 import { parseInlineText, inlineNodesToPlainText } from "../text/inline-parser.ts"
@@ -76,7 +75,7 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
 }
 
 export function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: km.inputFocusRing }
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "$focusring" }
 }
 
 // =============================================================================

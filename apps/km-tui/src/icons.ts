@@ -6,7 +6,6 @@
  */
 
 import { isOutline, isItem } from "@km/core"
-import { km } from "./theme.ts"
 
 /** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
 export const SIGIL_RE = /^[@#+]/
@@ -100,7 +99,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       // This helps debug what invalid status was received
       return {
         char: String(status).charAt(0),
-        color: km.selectionFg,
+        color: "$selectedfg",
         backgroundColor: "$text",
       }
   }

@@ -63,7 +63,6 @@ import {
 } from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { stripKnownMentions } from "./detail-pane-helpers.ts"
-import { km } from "../theme.ts"
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
 const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
@@ -852,7 +851,7 @@ function TreeNodeImpl({
           const isActiveBlock = editBlockIndex === blockIndex
           return (
             <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color={km.cardBorderEditing}>
+              <Text dimColor={!isActiveBlock} color={"$focusring"}>
                 {"  "}
               </Text>
               {isActiveBlock ? (
@@ -904,7 +903,7 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text color={km.cardBorderEditing} dimColor>
+                <Text color={"$focusring"} dimColor>
                   <InlineText text={child.content ?? ""} />
                 </Text>
               )}

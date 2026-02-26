@@ -6,7 +6,6 @@
 import React from "react"
 import { Box, Text } from "inkx"
 import type { Toast as ToastType } from "@km/core"
-import { km } from "../theme.ts"
 import { BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 
 interface ToastStackProps {
@@ -73,7 +72,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       flexShrink={0}
       borderStyle="round"
       borderColor="$border"
-      backgroundColor={km.overlayBg}
+      backgroundColor={"$raisedbg"}
       paddingLeft={1}
       paddingRight={1}
       minWidth={40}

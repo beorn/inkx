@@ -46,7 +46,6 @@ import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "chalkx"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
-import { km } from "../theme.ts"
 
 // =============================================================================
 // Types
@@ -127,7 +126,7 @@ export function ColumnHeader({
   hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? km.selectionFg : icon.color
+  const iconColor = isColumnSelected ? "$selectedfg" : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
 
   // Build count display
@@ -203,7 +202,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? km.selectionBg : undefined} dimColor={!isColumnSelected}>
+          <Text color={isColumnSelected ? "$selected" : undefined} dimColor={!isColumnSelected}>
             {"\u2500".repeat(Math.max(0, width))}
           </Text>
         </Box>
@@ -263,9 +262,9 @@ export function NodeLineView({
       return nodeIsTask ? stripTaskMark(rawContent) : rawContent
     })()
 
-  const textColor = isSelected ? km.selectionFg : undefined
-  const bgColor = isSelected ? km.selectionBg : undefined
-  const iconColor = isSelected ? km.selectionFg : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$selectedfg" : undefined
+  const bgColor = isSelected ? "$selected" : undefined
+  const iconColor = isSelected ? "$selectedfg" : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
@@ -330,9 +329,9 @@ export function NodeCardView({
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-  const textColor = isSelected ? km.selectionFg : undefined
-  const bgColor = isSelected ? km.selectionBg : undefined
-  const iconColor = isSelected ? km.selectionFg : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$selectedfg" : undefined
+  const bgColor = isSelected ? "$selected" : undefined
+  const iconColor = isSelected ? "$selectedfg" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
@@ -364,13 +363,13 @@ export function NodeCardView({
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
-            {subtaskBadge && <Text color={isSelected ? km.selectionFg : "$muted"}>{` ${subtaskBadge}`}</Text>}
+            {subtaskBadge && <Text color={isSelected ? "$selectedfg" : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
           <Box flexShrink={0}>
-            <Text color={isSelected ? km.selectionFg : "$error"}>{" blocked"}</Text>
+            <Text color={isSelected ? "$selectedfg" : "$error"}>{" blocked"}</Text>
           </Box>
         )}
         {hasDateBadge && (
@@ -428,8 +427,8 @@ export function NodeColumnView({
   isSelected = false,
   width,
 }: NodeColumnViewProps): React.ReactElement {
-  const textColor = isSelected ? km.selectionFg : undefined
-  const bgColor = isSelected ? km.selectionBg : undefined
+  const textColor = isSelected ? "$selectedfg" : undefined
+  const bgColor = isSelected ? "$selected" : undefined
 
   return (
     <Box flexDirection="column" width={width}>
@@ -441,12 +440,12 @@ export function NodeColumnView({
           </Text>
         </Box>
         <Box flexShrink={0}>
-          <Text color={isSelected ? km.selectionFg : "$muted"}>{` ${count}`}</Text>
+          <Text color={isSelected ? "$selectedfg" : "$muted"}>{` ${count}`}</Text>
         </Box>
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text dimColor={!isSelected} color={isSelected ? km.selectionBg : undefined}>
+        <Text dimColor={!isSelected} color={isSelected ? "$selected" : undefined}>
           {"\u2500".repeat(Math.max(0, width ?? 40))}
         </Text>
       </Box>
@@ -496,10 +495,10 @@ export function NodeTabView({
     displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
   const countStr = ` (${count})`
 
-  const textColor = isSelected ? km.selectionFg : isActive ? km.selectionBg : "$text"
+  const textColor = isSelected ? "$selectedfg" : isActive ? "$selected" : "$text"
 
   return (
-    <Box backgroundColor={isSelected ? km.selectionBg : undefined}>
+    <Box backgroundColor={isSelected ? "$selected" : undefined}>
       <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
@@ -576,12 +575,12 @@ export function NodeDetailView({
       width={width}
       height={height}
       borderStyle="round"
-      borderColor={km.selectionBg}
-      backgroundColor={km.overlayBg}
+      borderColor={"$selected"}
+      backgroundColor={"$raisedbg"}
     >
       {/* Title header — yellow bg */}
-      <Box flexDirection="column" width={width - 2} backgroundColor={km.selectionBg} paddingX={1}>
-        <Text bold color={km.selectionFg} wrap="wrap">
+      <Box flexDirection="column" width={width - 2} backgroundColor={"$selected"} paddingX={1}>
+        <Text bold color={"$selectedfg"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
           <InlineText text={displayContent} context={{ noColor: true, hideFields: true }} />
         </Text>
@@ -698,7 +697,7 @@ export function deriveColumnHeaderProps(
 
   const headerStyle = opts.isInlineEditing
     ? {
-        color: km.cardBorderEditing,
+        color: "$focusring",
         backgroundColor: undefined as string | undefined,
         dimColor: false,
       }

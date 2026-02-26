@@ -10,7 +10,6 @@
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import { km } from "../theme.ts"
 import { ModalDialog } from "./shared-components.tsx"
 import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
 import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"

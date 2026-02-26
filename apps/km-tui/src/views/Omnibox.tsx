@@ -20,7 +20,6 @@ import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getParentName } from "./search-utils.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
-import { km } from "../theme.ts"
 
 // =============================================================================
 // Types
@@ -256,8 +255,8 @@ function SectionDivider({ label }: { label: string }): React.ReactElement {
 
 function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
-  const bg = isSelected ? km.dialogSelectedBg : undefined
-  const fg = isSelected ? km.dialogSelectedFg : undefined
+  const bg = isSelected ? "$selected" : undefined
+  const fg = isSelected ? "$selectedfg" : undefined
 
   return (
     <Box>
@@ -272,7 +271,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
         <Text dimColor>{result.description}</Text>
       </Text>
       {result.shortcutHint && (
-        <Text color={isSelected ? km.dialogSelectedFg : km.dialogShortcut} backgroundColor={bg}>
+        <Text color={isSelected ? "$selectedfg" : "$control"} backgroundColor={bg}>
           {"  "}
           {result.shortcutHint}
         </Text>

@@ -6,7 +6,6 @@
  */
 import React from "react"
 import { Box, Text } from "inkx"
-import { km } from "../theme.ts"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { ModalDialog } from "./shared-components.tsx"
@@ -76,7 +75,7 @@ export function DatePromptDialog({
   return (
     <ModalDialog title={title} width={width} height={height} footer="Enter confirm  Esc cancel">
       {/* Input field */}
-      <Box borderStyle="round" borderColor={km.dialogInputBorder} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
           <Text color={"$text"}>{"> "}</Text>
           {editCtx.beforeCursor}

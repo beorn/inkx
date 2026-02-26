@@ -69,7 +69,7 @@ describe("HR borderless rendering", () => {
     }
   })
 
-  test("selected HR is yellow", () => {
+  test("selected HR is cyan", () => {
     const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
     // HR should be selected by default (first card)
     const hrBox = board.screen.nodeBox("my-hr")
@@ -85,8 +85,8 @@ describe("HR borderless rendering", () => {
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
-      // Should be yellow (color 3) when selected
-      expect(cell.fg, "selected HR should be yellow").toBe(3)
+      // Should be cyan (color 6, $selected) when selected
+      expect(cell.fg, "selected HR should be cyan").toBe(6)
       expect(cell.attrs.dim, "selected HR should not be dim").toBeFalsy()
     }
   })

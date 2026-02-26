@@ -64,7 +64,6 @@ import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
 import { PaneBar } from "./PaneBar.tsx"
-import { km } from "../theme.ts"
 import {
   createFileDropHandler,
   createWatcherStatusHandler,
@@ -184,7 +183,7 @@ function PaneBoardTopBar({
   return (
     <PaneBar
       isFocused={isPaneFocused}
-      backgroundColor={isBoardSelected ? km.selectionBg : undefined}
+      backgroundColor={isBoardSelected ? "$selected" : undefined}
       paneLabel={paneLabel}
       left={
         <Text
@@ -261,7 +260,7 @@ function BoardTopBar({
   return (
     <PaneBar
       isFocused={true}
-      backgroundColor={isBoardSelected ? km.selectionBg : undefined}
+      backgroundColor={isBoardSelected ? "$selected" : undefined}
       left={
         <Text wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}

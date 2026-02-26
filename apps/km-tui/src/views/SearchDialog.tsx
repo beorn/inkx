@@ -15,7 +15,6 @@ import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"
-import { km } from "../theme.ts"
 
 // Minimum query length before searching (prevents heavy queries on single chars)
 const MIN_QUERY_LENGTH = 2
@@ -107,7 +106,7 @@ function SearchResults({ results, selectedIndex, scrollOffset, maxVisible, query
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? km.dialogSelectedFg : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selectedfg" : "$primary"} dimColor={!isSelected}>
                 {` #${result.tags.join(" #")}`}
               </Text>
             )}

@@ -9,7 +9,7 @@ import { EventEmitter } from "events"
 import { createTerm, patchConsole, IncrementalRenderMismatchError, InputLayerProvider, ThemeProvider } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
-import { restoreTerminal, createRawSignalHandler } from "./raw-signals.ts"
+import { restoreTerminal } from "./raw-signals.ts"
 import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
@@ -34,7 +34,8 @@ export const tuiEvents = new EventEmitter()
 // Tests run 50+ Board instances, each adding refresh/watcher-status listeners
 tuiEvents.setMaxListeners(200)
 
-// restoreTerminal and createRawSignalHandler are imported from ./raw-signals.ts
+// restoreTerminal is imported from ./raw-signals.ts (emergency crash handler only;
+// Ctrl+C and Ctrl+Z are handled by inkx's terminal lifecycle system)
 
 /**
  * Compute initial cursor node from board data.
@@ -194,28 +195,20 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     process.exit(1)
   }
 
-  const handleSignal = (signal: string) => {
+  // SIGTERM still needs a handler since it comes from the OS, not stdin.
+  // Ctrl+C (SIGINT) and Ctrl+Z (SIGTSTP) are handled by inkx's terminal
+  // lifecycle system — they intercept the raw bytes in the event loop.
+  const handleSigterm = () => {
     restoreTerminal()
-    process.exit(signal === "SIGINT" ? 130 : 143)
+    process.exit(143)
   }
 
   const handleRejection = (reason: unknown) => {
     handleError(reason instanceof Error ? reason : new Error(String(reason)))
   }
-  const handleSigint = () => handleSignal("SIGINT")
-  const handleSigterm = () => handleSignal("SIGTERM")
   process.on("uncaughtException", handleError)
   process.on("unhandledRejection", handleRejection)
-  process.once("SIGINT", handleSigint)
   process.once("SIGTERM", handleSigterm)
-
-  // Handle Ctrl+C and Ctrl+Z in raw mode. These signals don't fire as
-  // SIGINT/SIGTSTP when stdin is in raw mode, so we intercept the bytes
-  // directly. This handler is active from app start through TUI operation.
-  const handleRawSignals = createRawSignalHandler()
-  if (isInteractive) {
-    process.stdin.on("data", handleRawSignals)
-  }
 
   // Use pre-created patchedConsole if provided (counts startup warnings),
   // otherwise create one now. capture: true = store entries for exit dump.
@@ -323,7 +316,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     // over freed state cause Bun to crash during shutdown).
     process.off("uncaughtException", handleError)
     process.off("unhandledRejection", handleRejection)
-    process.off("SIGINT", handleSigint)
     process.off("SIGTERM", handleSigterm)
 
     // toastQueue is cleaned up automatically via `using` (Symbol.dispose)

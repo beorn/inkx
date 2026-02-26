@@ -16,7 +16,6 @@
 
 import React from "react"
 import { Box, Text, useEditContext } from "inkx"
-import { km } from "../theme.ts"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 import { formatTitleWithHotkey } from "./shared-components.tsx"
 
@@ -121,7 +120,7 @@ export function SearchReplaceDialog({
 
       {/* Search field */}
       <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "search" ? km.dialogBody : "$muted"}>
+        <Text color={focusedField === "search" ? "$text" : "$muted"}>
           {focusedField === "search" ? "> " : "  "}
           Find:{" "}
         </Text>
@@ -130,7 +129,7 @@ export function SearchReplaceDialog({
 
       {/* Replace field */}
       <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "replace" ? km.dialogBody : "$muted"}>
+        <Text color={focusedField === "replace" ? "$text" : "$muted"}>
           {focusedField === "replace" ? "> " : "  "}
           Repl:{" "}
         </Text>

@@ -8,7 +8,6 @@ import React, { useCallback } from "react"
 import { Box, Text, useContentRectCallback } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
-import { km } from "../theme.ts"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
@@ -92,7 +91,7 @@ export const MemoizedTreeCard = React.memo(
     // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box outlineStyle="round" outlineColor={km.cardBorderEditing}>
+        <Box outlineStyle="round" outlineColor={"$focusring"}>
           {content}
         </Box>
       )
@@ -289,7 +288,7 @@ function isChord(segment: string): boolean {
  * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
  * Otherwise renders the segment as-is in yellow.
  */
-function KeySegment({ segment, color = km.dialogShortcut }: { segment: string; color?: string }): React.ReactElement {
+function KeySegment({ segment, color = "$control" }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
@@ -330,7 +329,7 @@ function KeySegment({ segment, color = km.dialogShortcut }: { segment: string; c
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
  */
-export function KeyBinding({ keys, color = km.dialogShortcut }: { keys: string; color?: string }): React.ReactElement {
+export function KeyBinding({ keys, color = "$control" }: { keys: string; color?: string }): React.ReactElement {
   // Double-space separator: "a #  #" → a·# (space) # (no slash)
   if (keys.includes("  ")) {
     const segments = keys.split("  ")
@@ -448,7 +447,7 @@ export function formatTitleWithHotkey(title: string, hotkey: string, color?: str
  * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
-  borderColor = km.dialogBorder,
+  borderColor = "$separator",
   title,
   titleColor,
   titleAlign = "center",
@@ -471,7 +470,7 @@ export function ModalDialog({
       height={height}
       borderStyle="double"
       borderColor={borderColor}
-      backgroundColor={km.overlayBg}
+      backgroundColor={"$raisedbg"}
       paddingX={2}
       paddingY={1}
     >
@@ -540,7 +539,7 @@ export function InputBox({
   afterCursor,
   prompt = "",
   placeholder = "",
-  promptColor = km.selectionBg,
+  promptColor = "$selected",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -568,7 +567,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor={km.dialogInputBorder}>
+      <Box borderStyle="round" borderColor={"$focusring"}>
         {content}
       </Box>
     )
@@ -616,19 +615,19 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? km.dialogSelectedBg : km.overlayBg} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$selected" : "$raisedbg"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden">
-        <Text color={isSelected ? km.dialogSelectedFg : undefined} wrap="truncate">
+        <Text color={isSelected ? "$selectedfg" : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? km.dialogSelectedFg : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? "$selectedfg" : icon.color}>{icon.char} </Text>
           <InlineText text={title} decorations={decorations} />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? km.dialogSelectedFg : undefined}>
+          <Text color={isSelected ? "$selectedfg" : undefined}>
             {parentContext && (
               <Text dimColor={!isSelected} color={isSelected ? "$muted" : undefined}>
                 {` < ${parentContext}`}

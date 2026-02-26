@@ -9,7 +9,6 @@ import React from "react"
 import { Box, Text } from "inkx"
 import type { SyncEvent } from "../ui-reducer.ts"
 import type { WatcherStatus } from "@km/storage"
-import { km } from "../theme.ts"
 
 const PANE_HEIGHT = 6
 
@@ -76,7 +75,7 @@ export function SyncPane({ events, watcherStatus, width }: SyncPaneProps): React
       borderBottom={false}
       borderLeft={false}
       borderRight={false}
-      backgroundColor={km.overlayBg}
+      backgroundColor={"$raisedbg"}
       flexShrink={0}
     >
       <Box flexDirection="row" justifyContent="space-between">

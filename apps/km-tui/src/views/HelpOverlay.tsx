@@ -13,7 +13,6 @@ import React, { useMemo } from "react"
 import { Box, Text, Fill } from "inkx"
 import { KeyBinding, ModalDialog } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
-import { km } from "../theme.ts"
 
 interface HelpOverlayProps {
   width: number
@@ -44,7 +43,7 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text bold color={km.helpSectionHeading}>
+      <Text bold color={"$primary"}>
         {title.toUpperCase()}
       </Text>
       {hint && (
@@ -88,7 +87,7 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text>{" "}</Text>}
-          <KeyBinding keys={k} color={km.helpKey} />
+          <KeyBinding keys={k} color={"$control"} />
         </React.Fragment>
       ))}
       <Text> </Text>
@@ -195,7 +194,7 @@ const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
   if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
-  return <KeyBinding keys={value} color={km.helpKey} />
+  return <KeyBinding keys={value} color={"$control"} />
 }
 
 function buildVerbGridLines(): React.ReactElement[] {
@@ -209,21 +208,21 @@ function buildVerbGridLines(): React.ReactElement[] {
     <Box key="vg-col-hdr" flexDirection="row">
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
-        <Text bold color={km.helpSectionHeading}>
+        <Text bold color={"$primary"}>
           {"go to"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={km.helpSectionHeading}>
+        <Text bold color={"$primary"}>
           {"move"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={km.helpSectionHeading}>
+        <Text bold color={"$primary"}>
           {"add/link"}
         </Text>
       </Box>
-      <Text bold color={km.helpSectionHeading}>
+      <Text bold color={"$primary"}>
         {"create"}
       </Text>
     </Box>,
@@ -236,21 +235,21 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={km.helpKey}>{"g"}</Text>
+        <Text color={"$control"}>{"g"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={km.helpKey}>{"⌃g"}</Text>
+        <Text color={"$control"}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={km.helpKey}>{"m"}</Text>
+        <Text color={"$control"}>{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={km.helpKey}>{"⌃m"}</Text>
+        <Text color={"$control"}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={km.helpKey}>{"a"}</Text>
+        <Text color={"$control"}>{"a"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={km.helpKey}>{"⌃l"}</Text>
+        <Text color={"$control"}>{"⌃l"}</Text>
       </Box>
-      <Text color={km.helpKey}>{"c"}</Text>
+      <Text color={"$control"}>{"c"}</Text>
     </Box>,
   )
 
@@ -265,7 +264,7 @@ function buildVerbGridLines(): React.ReactElement[] {
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Box width={VG_LOC_W} flexDirection="row">
-          <Text color={km.helpKey}>{row.key}</Text>
+          <Text color={"$control"}>{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
         <Box width={VG_COL_W} flexDirection="row">
@@ -339,7 +338,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color={km.dialogShortcut}>{scrollHint}</Text>
+          <Text color={"$control"}>{scrollHint}</Text>
         </>
       )}
     </Box>
@@ -347,7 +346,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
 
   return (
     <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} data-dialog="help">
-      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" titleColor={km.helpSectionHeading} footer={footer}>
+      <ModalDialog width={boxWidth} height={boxHeight} title="Keyboard Shortcuts" hotkey="?" titleColor={"$primary"} footer={footer}>
         {visibleContent}
       </ModalDialog>
     </Box>

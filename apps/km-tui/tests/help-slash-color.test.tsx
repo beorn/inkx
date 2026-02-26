@@ -7,20 +7,25 @@
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { renderStatic } from "inkx"
+import { renderStatic, ThemeProvider } from "inkx"
 import { createRenderer } from "inkx/testing"
 import { HelpOverlay } from "../src/views/HelpOverlay.tsx"
+import { defaultKmTheme } from "../src/theme.ts"
 
 /** Render the help overlay using createRenderer for layout feedback (Fill needs content rect) */
 function renderHelp(opts?: { width?: number; height?: number; scrollOffset?: number }) {
   const w = opts?.width ?? 100
   const h = opts?.height ?? 200
   const render = createRenderer({ cols: w, rows: h + 10 })
-  const element = React.createElement(HelpOverlay, {
-    width: w,
-    height: h,
-    scrollOffset: opts?.scrollOffset ?? 0,
-  })
+  const element = React.createElement(
+    ThemeProvider,
+    { theme: defaultKmTheme },
+    React.createElement(HelpOverlay, {
+      width: w,
+      height: h,
+      scrollOffset: opts?.scrollOffset ?? 0,
+    }),
+  )
   return render(element)
 }
 

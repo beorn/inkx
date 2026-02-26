@@ -12,7 +12,6 @@
 
 import React from "react"
 import { Box, Text } from "inkx"
-import { km } from "../theme.ts"
 
 export interface PaneBarProps {
   /** Left side content (path, title, etc.) — will be overflow-hidden */
@@ -32,7 +31,7 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
   const bg = backgroundColor ?? (isFocused ? "$border" : "$muted")
 
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color={km.selectionFg} dimColor={!isFocused}>
+    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color={"$selectedfg"} dimColor={!isFocused}>
       {/* Left: content (path, title, etc.) */}
       <Box flexGrow={1} overflow="hidden">
         {left}

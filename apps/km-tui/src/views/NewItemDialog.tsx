@@ -7,7 +7,6 @@
 import React from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import { Box, Text } from "inkx"
-import { km } from "../theme.ts"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -145,7 +144,7 @@ export function NewItemDialog({
       footer="Enter create  Esc cancel"
     >
       {/* Input field */}
-      <Box borderStyle="round" borderColor={km.dialogInputBorder} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
           <Text color={"$success"}>{isTask ? "[ ] " : "• "}</Text>
           {editCtx.beforeCursor}
