@@ -477,13 +477,13 @@ const MIN_CARD_HEIGHT = 3
  * estimate. The VirtualList's overflow="scroll" handles the rare case where
  * multi-line cards exceed the viewport.
  */
-function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, _itemHeight: number): number {
+function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, itemHeight: number): number {
   const headerRows = 2 // column header + separator
   const hiddenRow = hiddenCount > 0 ? 2 : 0
   const available = columnHeight - headerRows - hiddenRow
   if (hiddenCount <= 0) return available
-  // Tight estimate using minimum card height — VirtualList scrolls if cards are taller
-  const contentHeight = cardCount * MIN_CARD_HEIGHT
+  // Use actual item height for accurate content estimation
+  const contentHeight = cardCount * itemHeight
   return Math.min(available, contentHeight)
 }
 
