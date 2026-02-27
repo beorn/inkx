@@ -463,17 +463,27 @@ function bodyBlockLayoutProps(
 // =============================================================================
 
 /**
+ * Minimum card height in rows: outline top (1) + 1 content line + outline bottom (1).
+ * Used for shrink-to-fit height estimate when filter hides cards.
+ */
+const MIN_CARD_HEIGHT = 3
+
+/**
  * Compute VirtualList height. When hiddenCount > 0 (filter active), shrink the
  * list to fit visible cards so the "+N hidden" indicator appears right after the
  * last card instead of at the bottom of the screen.
+ *
+ * Uses MIN_CARD_HEIGHT (3) instead of the max item height for the shrink-to-fit
+ * estimate. The VirtualList's overflow="scroll" handles the rare case where
+ * multi-line cards exceed the viewport.
  */
-function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, itemHeight: number): number {
+function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, _itemHeight: number): number {
   const headerRows = 2 // column header + separator
   const hiddenRow = hiddenCount > 0 ? 1 : 0
   const available = columnHeight - headerRows - hiddenRow
   if (hiddenCount <= 0) return available
-  // Estimate content height for visible cards
-  const contentHeight = cardCount * itemHeight
+  // Tight estimate using minimum card height — VirtualList scrolls if cards are taller
+  const contentHeight = cardCount * MIN_CARD_HEIGHT
   return Math.min(available, contentHeight)
 }
 

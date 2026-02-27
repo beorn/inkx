@@ -94,13 +94,43 @@ describe("filter hidden count indicator", () => {
     const screen = board.screenshot()
     expect(screen).toContain("+2 hidden")
 
-    // Find the line containing "+2 hidden" — it should be near the top (after 2 cards),
-    // not near the bottom of the 40-row terminal
+    // Find the line containing "+2 hidden" — it should appear right after the 2 visible cards.
+    // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * 3 rows = 10.
+    // So "+2 hidden" should be at line 10 (0-indexed), give or take 1-2 for spacing.
     const lines = screen.split("\n")
     const hiddenLineIdx = lines.findIndex((l) => l.includes("+2 hidden"))
     expect(hiddenLineIdx).toBeGreaterThan(0) // Not first line
-    // 2 cards at ~4 rows each + 2 header rows = ~10 rows. Should be well before row 30.
-    expect(hiddenLineIdx).toBeLessThan(20)
+    expect(hiddenLineIdx).toBeLessThan(13) // Right after the 2 cards, not at screen bottom
+  })
+
+  test("shows +N hidden when vd (toggle hide done) hides done tasks", () => {
+    // Create a board with 2 todo tasks and 1 done task
+    const nodes = item("board", item("Tasks", item("todo1"), item("todo2"), item("doneTask")))
+    const doneNode = nodes.find((n) => n.id === "doneTask")!
+    doneNode.task_status = "done"
+    doneNode.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // No hidden indicator initially
+    let screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+    expect(screen).toContain("doneTask")
+
+    // Press vd to hide done tasks
+    board.press("v").press("d")
+
+    screen = board.screenshot()
+    expect(screen).toContain("todo1")
+    expect(screen).toContain("todo2")
+    expect(screen).not.toContain("doneTask")
+    expect(screen).toContain("+1 hidden")
+
+    // Verify the indicator appears right after the cards, not with a large gap.
+    // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * 3 rows = 10.
+    const lines = screen.split("\n")
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+1 hidden"))
+    expect(hiddenLineIdx).toBeLessThan(13)
   })
 
   test("shows hidden indicator per column independently", () => {
