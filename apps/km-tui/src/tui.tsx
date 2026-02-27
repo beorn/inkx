@@ -13,8 +13,6 @@ import {
   InputLayerProvider,
   ThemeProvider,
   detectTerminalCaps,
-  setOutputCaps,
-  setTextEmojiWide,
 } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
