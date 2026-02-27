@@ -52,11 +52,15 @@ bun vitest run apps/km-tui/tests/
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
 UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md).
 
+**State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea-state-machines.md](docs/design/tea-state-machines.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
+
 ## Vendor Packages (Git Submodules)
 
 Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **git submodules** that are part of km.
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
+
+**inkx is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all inkx features when available, and when a feature is missing, implement it in inkx (not as a km workaround). inkx should be independently excellent; km proves it.
 
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
