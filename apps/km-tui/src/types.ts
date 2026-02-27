@@ -39,6 +39,8 @@ export interface ColumnView {
   isVirtual?: boolean
   /** Total card count before filtering (undefined = no filter active) */
   totalCardCount?: number
+  /** Count of descendant nodes hidden by filters within cards (e.g., done children) */
+  hiddenDescendantCount?: number
 }
 
 /**

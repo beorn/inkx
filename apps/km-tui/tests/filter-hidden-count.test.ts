@@ -133,6 +133,31 @@ describe("filter hidden count indicator", () => {
     expect(hiddenLineIdx).toBeLessThan(13)
   })
 
+  test("shows hidden count for done descendants inside heading cards", () => {
+    // Simulates Asana vault structure: heading cards contain done task children.
+    // Top-level cards (headings) don't have task_status, so card-level filter
+    // doesn't remove them. But done children within are hidden by TreeNode filter.
+    // The hidden count should reflect these descendant-level hidden items.
+    const nodes = item("board", item("Col", item("Section A", item("todoChild"), item("doneChild"))))
+    const doneNode = nodes.find((n) => n.id === "doneChild")!
+    doneNode.task_status = "done"
+    doneNode.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // No hidden indicator initially
+    expect(board.screenshot()).not.toContain("hidden")
+
+    // Press vd to hide done tasks
+    board.press("v").press("d")
+
+    const screen = board.screenshot()
+    // The done child should be hidden, so we should see +1 hidden
+    expect(screen).toContain("+1 hidden")
+    // The todo child should still be visible
+    expect(screen).toContain("todoChild")
+  })
+
   test("shows hidden indicator per column independently", () => {
     const { board, store } = testEnv(
       () =>

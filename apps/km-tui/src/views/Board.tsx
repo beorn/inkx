@@ -712,10 +712,9 @@ export function Board({ patchedConsole }: BoardProps) {
     const hasPropertyFilter = hasActivePropertyFilters(ui.filterProperties)
     if (!hasTextFilter && !hasPropertyFilter) return visibleColumns
     const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
-    return visibleColumns.map((col) => ({
-      ...col,
-      totalCardCount: col.cardNodes.length,
-      cardNodes: col.cardNodes.filter((card) => {
+    return visibleColumns.map((col) => {
+      let hiddenDescendantCount = 0
+      const filteredCards = col.cardNodes.filter((card) => {
         // For embeds, resolve to source node for filtering
         const embedSource = card.embed_source
         const filterNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
@@ -729,8 +728,20 @@ export function Board({ patchedConsole }: BoardProps) {
           if (!matchesPropertyFilters(filterNode, ui.filterProperties)) return false
         }
         return true
-      }),
-    }))
+      })
+      // Count descendants hidden by property filters within surviving cards
+      if (hasPropertyFilter) {
+        for (const card of filteredCards) {
+          hiddenDescendantCount += countHiddenDescendants(repo, card.id, ui.filterProperties)
+        }
+      }
+      return {
+        ...col,
+        totalCardCount: col.cardNodes.length,
+        cardNodes: filteredCards,
+        hiddenDescendantCount: hiddenDescendantCount > 0 ? hiddenDescendantCount : undefined,
+      }
+    })
   }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
 
   // Register find/search-replace handlers for workspace chrome.
@@ -1066,6 +1077,28 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
 /** Check if a node matches all active property filters (AND logic between categories) */
 // oxlint-disable-next-line complexity/complexity -- multi-category filter matching with early returns
+/** Count descendant nodes hidden by property filters within a card's subtree.
+ * Only counts one level deep (direct children) — deeper nesting is rare in practice. */
+function countHiddenDescendants(
+  repo: { getNode(id: string): KNode | undefined; getChildren(parentId: string | null): KNode[] },
+  parentId: string,
+  filters: FilterProperties,
+): number {
+  const children = repo.getChildren(parentId)
+  let count = 0
+  for (const child of children) {
+    const embedSource = child.embed_source
+    const filterNode = embedSource ? (repo.getNode(embedSource) ?? child) : child
+    if (!matchesPropertyFilters(filterNode, filters)) {
+      count++
+    } else {
+      // Recurse into children that survived the filter
+      count += countHiddenDescendants(repo, child.id, filters)
+    }
+  }
+  return count
+}
+
 function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean {
   // Task status filter — only applies to task nodes; non-task nodes (headings, paragraphs) pass through
   if (filters.taskStatus.size > 0) {
