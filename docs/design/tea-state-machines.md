@@ -12,12 +12,12 @@ Operations are data (serializable). Effects are data (serializable). State trans
 This holds at every scale — each machine is a **noun-singleton** (type + namespace of pure functions, inspired by SlateJS's `Editor`, `Node`, `Path` pattern):
 
 ```
-character editing    PlainText.apply(state, op)    → [state, effects]
+character editing    PlainText.apply(state, op)  → [state, effects]
 body editing         SlateJS (per-node body editor, Phase 3)
-document tree        Editor.apply(editor, op)      → [editor, effects]       (Phase 4)
-app coordination     Board.apply(state, op)        → [state, effects]
-                     Dialog.apply(state, op)       → [state, effects]
-                     Search.apply(state, op)       → [state, effects]
+document tree        Tree.apply(tree, op)        → [tree, effects]        (Phase 4)
+app coordination     Board.apply(state, op)      → [state, effects]
+                     Dialog.apply(state, op)     → [state, effects]
+                     Search.apply(state, op)     → [state, effects]
 ```
 
 ### Terminology
@@ -32,7 +32,7 @@ Consistent naming across all layers — no mixing of synonyms:
 | State transition function | **`.apply()`** | ~~`.update()`~~, ~~`.reduce()`~~ |
 | High-level compound operations | **transform** | ~~command~~ (reserved for user intent) |
 | Phase 1 character ops | **PlainTextOp** | ~16 high-level ops (cursor_left, yank, kill_to_end) |
-| Phase 4 structural ops | **EditorOp** | 9 SlateJS-compatible tree ops (insert_node, split_node) |
+| Phase 4 structural ops | **TreeOp** | 9 SlateJS-compatible tree ops (insert_node, split_node) |
 
 **Note**: inkx's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a noun-singleton.
 
@@ -158,28 +158,28 @@ Transforms.splitNodes(editor, { at: point })
 
 km doesn't build its own rich text engine. SlateJS is the engine. km provides:
 - An **inkx rendering adapter** for terminal display (translates Slate's element/leaf tree to inkx components)
-- **ID-based node addressing** at the Editor level (SlateJS uses paths internally within a body, which is fine — bodies are small, path instability doesn't matter within a single node)
+- **ID-based node addressing** at the Tree level (SlateJS uses paths internally within a body, which is fine — bodies are small, path instability doesn't matter within a single node)
 - **Kill ring integration** via the same effect pattern as PlainText
 
-### Editor (document tree, Phase 4)
+### Tree (document tree, Phase 4)
 
-The `Editor` manages the **full document tree** — the km node hierarchy (boards, columns, items, sub-items). It does NOT manage body content within individual nodes (that's SlateJS). Editor handles navigation, tree structure, lazy loading, and CRDT operations.
+The `Tree` manages the **full document tree** — the km node hierarchy (boards, columns, items, sub-items). It does NOT manage body content within individual nodes (that's SlateJS). Tree handles navigation, tree structure, lazy loading, and CRDT operations.
 
 ```ts
-namespace Editor {
+namespace Tree {
   // State transition (the core)
-  function apply(editor: EditorState, op: EditorOp): [EditorState, EditorEffect[]]
+  function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]]
 
   // Queries (pure, static — same surface as SlateJS)
-  function nodes<T>(editor: EditorState, options?: QueryOptions<T>): Generator<NodeEntry<T>>
-  function above<T>(editor: EditorState, options?: QueryOptions<T>): NodeEntry<T> | undefined
-  function string(editor: EditorState, at: Location): string
-  function marks(editor: EditorState): EditorMarks | null
+  function nodes<T>(tree: TreeState, options?: QueryOptions<T>): Generator<NodeEntry<T>>
+  function above<T>(tree: TreeState, options?: QueryOptions<T>): NodeEntry<T> | undefined
+  function string(tree: TreeState, at: Location): string
+  function marks(tree: TreeState): TreeMarks | null
   // ... same query surface as SlateJS
 }
 ```
 
-**Scope**: Editor operates on the document tree (thousands of nodes, lazy-loaded). It knows about node types (item, column, board, heading) but not about the rich text content within node bodies. When a user edits a node's body, Editor delegates to SlateJS. When a user moves/creates/deletes nodes, Editor handles it directly.
+**Scope**: Tree operates on the document tree (thousands of nodes, lazy-loaded). It knows about node types (item, column, board, heading) but not about the rich text content within node bodies. When a user edits a node's body, Tree delegates to SlateJS. When a user moves/creates/deletes nodes, Tree handles it directly.
 
 ### App Machines (km-tui, Phase 2)
 
@@ -225,15 +225,15 @@ km adopts this pattern with ID-based addressing:
 
 | SlateJS Singleton | km Equivalent | Adaptation |
 |---|---|---|
-| `Editor` | `Editor` | Pure: `Editor.apply(editor, op) → [Editor, Effect[]]` instead of `editor.apply(op)` |
+| `Editor` | `Tree` | Pure: `Tree.apply(tree, op) → [TreeState, TreeEffect[]]` instead of `editor.apply(op)` |
 | `Node` | `Node` | ID-based: `Node.parent(root, id)` instead of `Node.parent(root, path)` |
 | `Element` | `Element` | Same — type guard + queries |
 | `Text` | `PlainText` | Character-level `.apply()` for readline editing (Phase 1) |
 | `Path` | `Path` | Retained for local tree navigation, but not for addressing |
 | `Point` | `Point` | `{ nodeId, offset }` instead of `{ path, offset }` |
 | `Range` | `Range` | `{ anchor: Point, focus: Point }` — same shape, ID-based Points |
-| `Operation` | `EditorOp` | Same 9 types, `nodeId` replaces `path` |
-| `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(editor, text) → [Editor, Effect[]]` |
+| `Operation` | `TreeOp` | Same 9 types, `nodeId` replaces `path` |
+| `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]` |
 
 ### `.apply()` — The Universal Verb
 
@@ -245,7 +245,7 @@ editor.apply(op)                                  // mutates editor in place
 
 // km (pure, every layer):
 PlainText.apply(state, op)  → [PlainTextState, Effect[]]   // character editing
-Editor.apply(editor, op)    → [EditorState, Effect[]]       // document tree
+Tree.apply(tree, op)        → [TreeState, Effect[]]         // document tree
 Board.apply(state, op)      → [BoardState, Effect[]]        // app coordination
 ```
 
@@ -298,9 +298,9 @@ Node.get(root, id)         // → Node                      (O(1) Map lookup)
 
 `Node.parent(root, id)` is O(1) because every node stores `parentId`. Child ordering uses the existing children array. `Path` still exists for local tree math (e.g., computing relative positions) but is never used as an address.
 
-### EditorOps — 9 Structural Types, ID-Based
+### TreeOps — 9 Structural Types, ID-Based
 
-The 9 structural operation types at the Editor level (Phase 4). These are distinct from PlainTextOps (Phase 1) — different abstraction levels, different scope.
+The 9 structural operation types at the Tree level (Phase 4). These are distinct from PlainTextOps (Phase 1) — different abstraction levels, different scope.
 
 ```ts
 // Text operations (pass through to SlateJS for body editing)
@@ -318,7 +318,7 @@ type MoveNodeOp   = { type: "move_node"; nodeId: NodeId; newParentId: NodeId; ne
 // Selection operation
 type SetSelectionOp = { type: "set_selection"; properties: Selection | null; newProperties: Selection | null }
 
-type EditorOp = InsertTextOp | RemoveTextOp | InsertNodeOp | RemoveNodeOp |
+type TreeOp = InsertTextOp | RemoveTextOp | InsertNodeOp | RemoveNodeOp |
                 SetNodeOp | SplitNodeOp | MergeNodeOp | MoveNodeOp | SetSelectionOp
 ```
 
@@ -346,8 +346,8 @@ function NodeView({ node }: { node: Element }) {
 }
 
 // Navigation to an unloaded node triggers a load effect
-Editor.apply(editor, { type: "expand_node", nodeId: id })
-// → [editor, [{ type: "load_children", nodeId: id }]]
+Tree.apply(tree, { type: "expand_node", nodeId: id })
+// → [tree, [{ type: "load_children", nodeId: id }]]
 // Runtime handles the effect → fetches from storage → dispatches LoadChildrenOp
 ```
 
@@ -415,12 +415,12 @@ type SelectionOp =
   | { type: "extend_selection"; direction: "up" | "down" | "left" | "right" }
   | { type: "collapse_selection"; edge?: "anchor" | "focus" | "start" | "end" }
 
-// Selection queries on Editor
-Editor.selection(editor)                    // → Selection | null
-Editor.isTextSelection(sel): sel is TextSelection
-Editor.isNodeSelection(sel): sel is NodeSelection
-Editor.isGapSelection(sel): sel is GapSelection
-Editor.selectedNodes(editor)               // → NodeId[]  (works for all types)
+// Selection queries on Tree
+Tree.selection(tree)                      // → Selection | null
+Tree.isTextSelection(sel): sel is TextSelection
+Tree.isNodeSelection(sel): sel is NodeSelection
+Tree.isGapSelection(sel): sel is GapSelection
+Tree.selectedNodes(tree)                  // → NodeId[]  (works for all types)
 ```
 
 **Why not just SlateJS's Range?** Because:
@@ -441,9 +441,9 @@ const withHistory = (editor) => {
 }
 
 // km: composition-based plugins (pure)
-const withHistory: Plugin<Editor, Op> = (inner) => (editor, op) => {
-  const [next, effects] = inner(editor, op)
-  return [{ ...next, history: recordHistory(op, editor.history) }, effects]
+const withHistory: Plugin<Tree, Op> = (inner) => (tree, op) => {
+  const [next, effects] = inner(tree, op)
+  return [{ ...next, history: recordHistory(op, tree.history) }, effects]
 }
 
 // Composition:
@@ -452,7 +452,7 @@ const apply = compose(withHistory, withVim, withCollaboration)(baseApply)
 
 ### Transforms (High-Level API)
 
-Same as SlateJS but pure — each returns `[Editor, Effect[]]`:
+Same as SlateJS but pure — each returns `[TreeState, TreeEffect[]]`:
 
 ```ts
 // SlateJS (mutates):
@@ -460,21 +460,21 @@ Transforms.insertText(editor, "hello")           // void, mutates editor
 Editor.insertText(editor, "hello")                // same via Editor interface
 
 // km (pure):
-Transforms.insertText(editor, "hello")            // → [Editor, Effect[]]
-Transforms.splitNodes(editor, { at: point })      // → [Editor, Effect[]]
-Transforms.wrapNodes(editor, element, { at })     // → [Editor, Effect[]]
-Transforms.moveNodes(editor, { to: target })      // → [Editor, Effect[]]
+Transforms.insertText(tree, "hello")              // → [TreeState, TreeEffect[]]
+Transforms.splitNodes(tree, { at: point })        // → [TreeState, TreeEffect[]]
+Transforms.wrapNodes(tree, element, { at })       // → [TreeState, TreeEffect[]]
+Transforms.moveNodes(tree, { to: target })        // → [TreeState, TreeEffect[]]
 ```
 
-### Editor Query Methods (Pure)
+### Tree Query Methods (Pure)
 
 ```ts
 // Same as SlateJS — queries are already pure, just made static:
-Editor.nodes(editor, { match: Element.isElement, mode: "lowest" })  // → Generator<NodeEntry>
-Editor.above(editor, { match: (n) => n.type === "paragraph" })      // → NodeEntry | undefined
-Editor.string(editor, { at: range })                                 // → string
-Editor.isStart(editor, point, at)                                    // → boolean
-Editor.marks(editor)                                                 // → EditorMarks | null
+Tree.nodes(tree, { match: Element.isElement, mode: "lowest" })    // → Generator<NodeEntry>
+Tree.above(tree, { match: (n) => n.type === "paragraph" })        // → NodeEntry | undefined
+Tree.string(tree, { at: range })                                   // → string
+Tree.isStart(tree, point, at)                                      // → boolean
+Tree.marks(tree)                                                   // → TreeMarks | null
 ```
 
 ### Normalization (Fixpoint Loop)
@@ -483,7 +483,7 @@ Same pattern as SlateJS — run normalizers after each operation batch until no 
 
 ```ts
 // Normalization rules are passed as config, not assigned to a mutable property:
-const editor = Editor.create({
+const tree = Tree.create({
   normalizers: [
     paragraphNormalizer,      // enforce paragraph rules
     listNormalizer,           // enforce list structure
@@ -492,13 +492,13 @@ const editor = Editor.create({
 })
 
 // Each normalizer is a pure function:
-type Normalizer = (editor: EditorState, entry: NodeEntry) => EditorOp[] | null
+type Normalizer = (tree: TreeState, entry: NodeEntry) => TreeOp[] | null
 // Returns ops to fix violations, or null if valid
 
 // Batch transforms without intermediate normalization:
-Editor.withoutNormalizing(editor, (editor) => {
-  Transforms.unwrapNodes(editor, { at: path })
-  Transforms.wrapNodes(editor, { type: "quote", children: [] }, { at: path })
+Tree.withoutNormalizing(tree, (tree) => {
+  Transforms.unwrapNodes(tree, { at: path })
+  Transforms.wrapNodes(tree, { type: "quote", children: [] }, { at: path })
 })
 ```
 
@@ -508,7 +508,7 @@ km has two editing levels with clear scope boundaries:
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Editor.apply()  — document tree            │
+│  Tree.apply()  — document tree            │
 │  Manages: nodes, tree structure, navigation │
 │  Scope: entire km node hierarchy            │
 │  Addressing: ID-based (CRDT-native)         │
@@ -527,15 +527,15 @@ km has two editing levels with clear scope boundaries:
 └─────────────────────────────────────────────┘
 ```
 
-- **Editor.apply()** handles tree operations: insert_node, remove_node, move_node, set_node, set_selection, load_children. Delegates body editing to SlateJS.
+- **Tree.apply()** handles tree operations: insert_node, remove_node, move_node, set_node, set_selection, load_children. Delegates body editing to SlateJS.
 - **SlateJS** handles body content: paragraphs, inline formatting, lists, code blocks. On web: slate + slate-react. On terminal: slate headless + inkx rendering adapter. Path-based addressing within a body is fine — bodies are small and path instability doesn't matter at that scope.
 - **PlainText.apply()** handles simple single-line inputs: search bars, dialog text fields, inline title editing. No rich text, no marks — just cursor + readline shortcuts.
 
 SlateJS-compatibility means:
 - Same operation names (`insert_text`, `split_node`, etc.)
-- Same query patterns (`Editor.nodes()`, `Editor.above()`)
+- Same query patterns (`Tree.nodes()`, `Tree.above()`)
 - SlateJS serves as the body editor engine on both web and terminal
-- But the **document tree** (node navigation, lazy loading, CRDT) is always km's `Editor.apply()`
+- But the **document tree** (node navigation, lazy loading, CRDT) is always km's `Tree.apply()`
 
 ## Components as Thin Views
 
@@ -572,7 +572,7 @@ PlainText.create(value?)         → PlainTextState
 - TextInput/TextArea gain driven mode (`state` + `onOp`)
 - km-tui command system dispatches `PlainTextOp` via command bridge
 - Kill ring managed via effects: `kill_ring_push` effect → app-level state; yank key → command layer resolves to `{ type: "yank", text }` before reaching PlainText.apply
-- **Seed of Phase 3** — same .apply() pattern, minimal scope
+- Establishes the `.apply()` pattern that all subsequent phases follow
 
 ### Phase 2: App machines (km-tui) — extract pure noun-singletons
 
@@ -589,7 +589,7 @@ Replace Zustand's imperative `setUI()` with composed pure machines. Machines com
 Integrate SlateJS as the body editor for individual nodes:
 
 - **Terminal adapter**: Translate SlateJS element/leaf tree to inkx components for rendering
-- **Shared operations**: Same op names as km's EditorOps where applicable (`insert_text`, `split_node`)
+- **Shared operations**: Same op names as km's TreeOps where applicable (`insert_text`, `split_node`)
 - **Kill ring integration**: Same effect pattern as PlainText
 - **Selection bridge**: When editing a body, the global selection is `TextSelection` with the body node's ID; SlateJS manages the internal cursor
 
@@ -603,60 +603,45 @@ Integrate SlateJS as the body editor for individual nodes:
 
 PlainText.apply() continues to serve simple inputs (search bars, dialogs). SlateJS handles rich body editing.
 
-### Phase 4: Editor (km) — document tree model
+### Phase 4: Tree (km) — document tree model
 
-Full document tree with undo, CRDT, plugins. The `Editor` singleton manages the node hierarchy:
+Full document tree with undo, CRDT, plugins. See [Tree (document tree, Phase 4)](#tree-document-tree-phase-4) for the `Tree` namespace API and [TreeOps](#treeops--9-structural-types-id-based) for the operation types.
+
+TreeState adds undo and flush tracking:
 
 ```ts
-interface EditorState {
+interface TreeState {
   nodes: Map<NodeId, DocNode>          // ID-addressed tree
   children: NodeId[]                   // root-level children (ordered)
   selection: Selection | null          // TextSelection | NodeSelection | GapSelection
   history: HistoryState                // undo/redo stack
-  operations: EditorOp[]              // ops since last onChange flush
+  operations: TreeOp[]                // ops since last onChange flush
 }
-
-// Noun-singleton — mirrors SlateJS's Editor interface
-Editor.apply(editor, op) → [EditorState, EditorEffect[]]
-
-// Queries (pure, static — same as SlateJS)
-Editor.nodes(editor, { match, mode })  → Generator<NodeEntry>
-Editor.above(editor, { match })        → NodeEntry | undefined
-Editor.string(editor, at)              → string
-Editor.marks(editor)                   → EditorMarks | null
-Editor.isStart(editor, point, at)      → boolean
 ```
 
-EditorOps — the 9 SlateJS structural types with `nodeId` instead of `path`:
-- `insert_text`, `remove_text` — character ops (pass through to SlateJS for body editing)
-- `insert_node`, `remove_node`, `move_node` — tree structure
-- `split_node`, `merge_node` — block boundary ops
-- `set_node` — change node properties (type, marks, etc.)
-- `set_selection` — update cursor/selection (any of the three types)
-
-Additional km operations:
+Additional km operations beyond the 9 SlateJS types:
 - `indent`, `outdent` — change nesting level (sugar over `move_node`)
 - `load_children` — lazy content materialization (**excluded from undo stack** — not a user edit)
 - `undo`, `redo` — history navigation
 
-Plugin composition: `compose(withHistory, withVim, withCollaboration)(Editor.apply)`
+Plugin composition: `compose(withHistory, withVim, withCollaboration)(Tree.apply)`
 
 **Undo filtering**: The `withHistory` plugin records only user-intent operations. Background ops like `load_children` are tagged `{ meta: { local: true } }` and excluded from the undo stack and CRDT broadcast.
 
 ### Phase progression
 
 ```
-Phase 1 (now)     PlainText.apply()    single plain text, cursor, readline
-Phase 2 (next)    Board/Dialog/Search  app machines as pure noun-singletons
-Phase 3 (future)  SlateJS integration  per-node body editing (rich text)
-Phase 4 (future)  Editor.apply()       document tree, undo, CRDT
+Phase 1 (now)      PlainText.apply()      single plain text, cursor, readline
+Phase 2 (next)     Board/Dialog/Search    app machines as pure noun-singletons
+Phase 3 (future)   SlateJS integration    per-node body editing (rich text)
+Phase 4 (future)   Tree.apply()           document tree, undo, CRDT
 ```
 
 Each phase is independently useful. Phase 1 improves inkx today. Phase 2 improves km-tui testability. Phase 3 enables rich text editing. Phase 4 enables the full document model with collaboration.
 
 ## See Also
 
-- [universal-editor.md](../future/universal-editor.md) — The full vision (docily/textily/runly)
+- [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
 - [focus-routing.md](../../vendor/beorn-inkx/docs/deep-dives/focus-routing.md) — Command-system input routing
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects

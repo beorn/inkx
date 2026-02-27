@@ -3,7 +3,7 @@
 **Status:** Design
 **Bead:** km-all.universal-editor
 **Last Updated:** 2026-02-27
-**See also:** [tea-state-machines.md](../design/tea-state-machines.md) — phased implementation plan (textEditUpdate → textily → docily)
+**See also:** [tea-state-machines.md](../design/tea-state-machines.md) — phased implementation plan (PlainText → SlateJS → Tree)
 
 ## Vision
 
