@@ -12,9 +12,14 @@
  * Row order: Status, Priority, Due (filters first), then View, Icons (radio).
  */
 
-import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { describe, test, expect, afterEach } from "vitest"
+import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
+import { createFakeRepo } from "@km/storage"
+import { addIgnored, computeIgnorePath, readBoardIgnored, isIgnored } from "../src/ignored.ts"
 
 describe("P2: Filter feature", () => {
   test("V toggles filter panel", () => {
@@ -444,5 +449,584 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(screen).toContain("Source task 2")
     expect(screen).not.toContain("Source task 1")
     expect(screen).not.toContain("Normal task")
+  })
+})
+
+// =============================================================================
+// Bug: ignore_node at card level doesn't hide the column (km-tui.hide-broken)
+// =============================================================================
+
+/**
+ * Bug: ignore_node at card level doesn't hide the column
+ *
+ * Bead: km-tui.hide-broken
+ *
+ * Root cause: handleIgnoreNode used `card?.node ?? col?.node`, so when cursor
+ * was at card level it ignored the card node. But Board.tsx only filters at
+ * column level (`isIgnored(ignoredPaths, col.node, repo)`), so the column
+ * stayed visible. The cursor then moved to an adjacent column via SELECT,
+ * creating a visual artifact the user reported as "big area selected."
+ *
+ * Fix: Always ignore at column level (`col?.node`), not card level.
+ *
+ * Note: ignore_node is unbound in v2 keybindings. Integration tests call
+ * addIgnored directly to simulate the command behavior.
+ */
+
+/**
+ * Create production-like nodes with a file parent and mdsection columns.
+ * This matches what km-markdown produces from a real .md file.
+ */
+function createRealisticNodes(repoPath: string): KNode[] {
+  const now = Date.now()
+  const base = {
+    parent_idx: 0,
+    embed_source: null,
+    created_at: now,
+    updated_at: now,
+    version: "v1",
+  } satisfies Partial<KNode>
+
+  const fileNode: KNode = {
+    ...base,
+    id: "file-1",
+    type: "h",
+    item: true,
+    fstype: "mdfile",
+    fs_path: "tasks.md",
+    name: "tasks",
+    content: "Tasks",
+    data: {},
+    parent_id: null,
+  }
+
+  const col1: KNode = {
+    ...base,
+    id: "col1",
+    type: "h",
+    item: true,
+    fstype: "mdsection",
+    name: "todo",
+    content: "Todo",
+    data: {},
+    parent_id: "file-1",
+    parent_idx: 0,
+  }
+
+  const col2: KNode = {
+    ...base,
+    id: "col2",
+    type: "h",
+    item: true,
+    fstype: "mdsection",
+    name: "done",
+    content: "Done",
+    data: {},
+    parent_id: "file-1",
+    parent_idx: 1,
+  }
+
+  const taskA: KNode = {
+    ...base,
+    id: "task-a",
+    type: "p",
+    item: true,
+    list_marker: "-",
+    task_marker: "[ ]",
+    task_status: "todo",
+    content: "Task A",
+    data: {},
+    parent_id: "col1",
+    parent_idx: 0,
+  }
+
+  const taskB: KNode = {
+    ...base,
+    id: "task-b",
+    type: "p",
+    item: true,
+    list_marker: "-",
+    task_marker: "[ ]",
+    task_status: "todo",
+    content: "Task B",
+    data: {},
+    parent_id: "col1",
+    parent_idx: 1,
+  }
+
+  const taskC: KNode = {
+    ...base,
+    id: "task-c",
+    type: "p",
+    item: true,
+    list_marker: "-",
+    task_marker: "[x]",
+    task_status: "done",
+    content: "Task C",
+    data: {},
+    parent_id: "col2",
+    parent_idx: 0,
+  }
+
+  return [fileNode, col1, col2, taskA, taskB, taskC]
+}
+
+describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
+  let tmpDir: string | null = null
+
+  afterEach(() => {
+    if (tmpDir) {
+      rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = null
+    }
+  })
+
+  test("computeIgnorePath produces correct path for mdsection column node", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const col1 = repo.getNode("col1")!
+    expect(col1).toBeTruthy()
+
+    const ignorePath = computeIgnorePath(col1, repo)
+    // mdsection node should produce "parentFile#slug" format
+    expect(ignorePath).toBe("tasks.md#todo")
+  })
+
+  test("computeIgnorePath for card node differs from column node", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const taskA = repo.getNode("task-a")!
+    const col1 = repo.getNode("col1")!
+
+    const cardPath = computeIgnorePath(taskA, repo)
+    const colPath = computeIgnorePath(col1, repo)
+
+    // Card and column should produce different ignore paths
+    expect(cardPath).not.toBe(colPath)
+    // Card is nested: "tasks.md#todo/task-a"
+    expect(cardPath).toBe("tasks.md#todo/task-a")
+    // Column: "tasks.md#todo"
+    expect(colPath).toBe("tasks.md#todo")
+  })
+
+  test("isIgnored matches column node after ignoring column (not card)", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const col1 = repo.getNode("col1")!
+    const colPath = computeIgnorePath(col1, repo)!
+
+    // Simulate writing the column's ignore path
+    const ignoredPaths = new Set([colPath])
+    expect(isIgnored(ignoredPaths, col1, repo)).toBe(true)
+  })
+
+  test("isIgnored does NOT match column node when card was ignored instead", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const taskA = repo.getNode("task-a")!
+    const col1 = repo.getNode("col1")!
+    const cardPath = computeIgnorePath(taskA, repo)!
+
+    // If we wrote the card's path, the column should NOT match
+    const ignoredPaths = new Set([cardPath])
+    expect(isIgnored(ignoredPaths, col1, repo)).toBe(false)
+  })
+
+  test("ignoring column at card level writes column ignore path and hides column", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const { board, store } = testEnvWithRepo(repo, "file-1", {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Verify initial state: both columns visible, cursor on first card
+    const before = board.screenshot()
+    expect(before).toContain("Todo")
+    expect(before).toContain("Done")
+    expect(before).toContain("Task A")
+
+    // ignore_node is unbound in v2 keybindings — invoke addIgnored directly
+    // to simulate what handleIgnoreNode does (always ignores at column level)
+    const col1 = repo.getNode("col1")!
+    const ignorePath = computeIgnorePath(col1, repo)!
+    addIgnored(tmpDir, ignorePath)
+
+    // Verify the .km/ignored file was written with the COLUMN path
+    const ignoredFilePath = join(tmpDir, ".km", "ignored")
+    expect(existsSync(ignoredFilePath)).toBe(true)
+    const ignoredContent = readFileSync(ignoredFilePath, "utf-8")
+    // Should contain column path (tasks.md#todo), NOT card path (tasks.md#todo/task-a)
+    expect(ignoredContent).toContain("tasks.md#todo")
+    expect(ignoredContent).not.toContain("tasks.md#todo/task-a")
+
+    // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
+    // then press a key to flush the React render tree
+    store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+    board.press("l") // navigate right to trigger re-render
+
+    // The "Todo" column header (§ Todo) should be hidden after ignoring.
+    const after = board.screenshot()
+    expect(after).not.toContain("§ Todo")
+    // The "Done" column should still be visible
+    expect(after).toContain("§ Done")
+    expect(after).toContain("Task C")
+  })
+
+  test("ignoring column at header level also hides column", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const { board, store } = testEnvWithRepo(repo, "file-1", {
+      columns: 80,
+      rows: 24,
+    })
+
+    const headerView = board.screenshot()
+    expect(headerView).toContain("Todo")
+
+    // ignore_node is unbound in v2 keybindings — invoke addIgnored directly
+    const col1 = repo.getNode("col1")!
+    const ignorePath = computeIgnorePath(col1, repo)!
+    addIgnored(tmpDir, ignorePath)
+
+    // The .km/ignored file should exist with the column path
+    const ignoredFilePath = join(tmpDir, ".km", "ignored")
+    expect(existsSync(ignoredFilePath)).toBe(true)
+    const ignoredContent = readFileSync(ignoredFilePath, "utf-8")
+    expect(ignoredContent).toContain("tasks.md#todo")
+
+    // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
+    // then press a key to flush the React render tree
+    store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+    board.press("l") // navigate to trigger re-render
+
+    // The "Todo" column header (§ Todo) should be hidden
+    const after = board.screenshot()
+    expect(after).not.toContain("§ Todo")
+    // The "Done" column should still be visible
+    expect(after).toContain("§ Done")
+  })
+})
+
+// =============================================================================
+// Filter hidden count indicator (km-tui.filter-hidden-count)
+// =============================================================================
+
+/**
+ * Filter hidden count indicator tests.
+ *
+ * When items are hidden by filters (text filter, property filters),
+ * a dim "+N hidden" indicator appears as a listFooter inside VirtualList,
+ * right after the last visible card. When cards overflow the viewport,
+ * the footer scrolls with the content and is only visible at the bottom.
+ */
+
+/** Open and close filter dialog to flush Zustand → React render cycle */
+function flushFilter(board: { press: (key: string) => void }) {
+  board.press("V")
+  board.press("Escape")
+}
+
+describe("filter hidden count indicator", () => {
+  test("shows +N hidden when text filter hides cards", () => {
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "Tasks",
+            item("Buy groceries"),
+            item("Fix bug in auth"),
+            item("Fix login page"),
+            item("Write documentation"),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // No hidden indicator initially
+    let screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+
+    // Apply text filter that hides 2 of 4 cards
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    screen = board.screenshot()
+    // 2 of 4 cards match "Fix", so 2 are hidden
+    expect(screen).toContain("+2 hidden")
+  })
+
+  test("hidden indicator disappears when filter is cleared", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Apply filter
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    let screen = board.screenshot()
+    expect(screen).toContain("+2 hidden")
+
+    // Clear filter
+    store.getState().setUI({ filterText: "" })
+    flushFilter(board)
+
+    screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+  })
+
+  test("no hidden indicator when all cards match filter", () => {
+    const { board, store } = testEnv(() => item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Apply filter that matches all cards
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+  })
+
+  test("hidden indicator appears right after last card, not at screen bottom", () => {
+    // With a tall terminal (40 rows) and only 2 visible cards, the "+N hidden"
+    // indicator should appear right after the cards, not at row 39.
+    const { board, store } = testEnv(
+      () => item("board", item("Tasks", item("Fix bug"), item("Buy milk"), item("Write docs"), item("Fix login"))),
+      { columns: 80, rows: 40 },
+    )
+
+    // Apply filter that shows 2 of 4 cards
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+    expect(screen).toContain("+2 hidden")
+
+    // Find the line containing "+2 hidden" — it should appear right after the 2 visible cards.
+    // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * ~5 rows = ~14.
+    // Plus 1 blank line in the hidden indicator = ~15. Allow margin for spacing.
+    const lines = screen.split("\n")
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+2 hidden"))
+    expect(hiddenLineIdx).toBeGreaterThan(0) // Not first line
+    expect(hiddenLineIdx).toBeLessThan(18) // Right after the 2 cards, not at screen bottom
+  })
+
+  test("shows +N hidden when vd (toggle hide done) hides done tasks", () => {
+    // Create a board with 2 todo tasks and 1 done task
+    const nodes = item("board", item("Tasks", item("todo1"), item("todo2"), item("doneTask")))
+    const doneNode = nodes.find((n) => n.id === "doneTask")!
+    doneNode.task_status = "done"
+    doneNode.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // No hidden indicator initially
+    let screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+    expect(screen).toContain("doneTask")
+
+    // Press vd to hide done tasks
+    board.press("v").press("d")
+
+    screen = board.screenshot()
+    expect(screen).toContain("todo1")
+    expect(screen).toContain("todo2")
+    expect(screen).not.toContain("doneTask")
+    expect(screen).toContain("+1 hidden")
+
+    // Verify the indicator appears right after the cards, not with a large gap.
+    // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * ~5 rows = ~14.
+    const lines = screen.split("\n")
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+1 hidden"))
+    expect(hiddenLineIdx).toBeLessThan(18)
+  })
+
+  test("shows hidden count for done descendants inside heading cards", () => {
+    // Simulates Asana vault structure: heading cards contain done task children.
+    // Top-level cards (headings) don't have task_status, so card-level filter
+    // doesn't remove them. But done children within are hidden by TreeNode filter.
+    // The hidden count should reflect these descendant-level hidden items.
+    const nodes = item("board", item("Col", item("Section A", item("todoChild"), item("doneChild"))))
+    const doneNode = nodes.find((n) => n.id === "doneChild")!
+    doneNode.task_status = "done"
+    doneNode.task_marker = "[x]"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // No hidden indicator initially
+    expect(board.screenshot()).not.toContain("hidden")
+
+    // Press vd to hide done tasks
+    board.press("v").press("d")
+
+    const screen = board.screenshot()
+    // The done child should be hidden, so we should see +1 hidden
+    expect(screen).toContain("+1 hidden")
+    // The todo child should still be visible
+    expect(screen).toContain("todoChild")
+  })
+
+  test("shows hidden indicator per column independently", () => {
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Tasks", item("Fix bug"), item("Buy milk"), item("Fix login")),
+          item("Notes", item("Fix design"), item("Meeting notes")),
+        ),
+      { columns: 120, rows: 24 },
+    )
+
+    // Apply filter "Fix" — Tasks: 1 hidden (Buy milk), Notes: 1 hidden (Meeting notes)
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+    // Both columns should show "+1 hidden"
+    const matches = screen.match(/\+1 hidden/g)
+    expect(matches).not.toBeNull()
+    expect(matches!.length).toBe(2)
+  })
+
+  test("hidden indicator positioned near cards, not at screen bottom (tall terminal, few visible)", () => {
+    // 6 cards total, filter leaves only 2 visible. With rows=40, the +4 hidden
+    // indicator should appear right after the 2 visible cards, not at the bottom.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "Tasks",
+            item("Fix auth bug"),
+            item("Buy groceries"),
+            item("Fix login page"),
+            item("Write documentation"),
+            item("Clean kitchen"),
+            item("Read book"),
+          ),
+        ),
+      { columns: 80, rows: 40 },
+    )
+
+    // No hidden indicator initially
+    let screen = board.screenshot()
+    expect(screen).not.toContain("hidden")
+
+    // Apply text filter that shows only the 2 "Fix" cards, hiding 4
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    screen = board.screenshot()
+    expect(screen).toContain("+4 hidden")
+
+    // The indicator should be near the top of the screen (close to the 2 visible cards),
+    // not near the bottom (row 39). With header + separator + 2 cards, expect it
+    // somewhere around rows 8-15, definitely not past row 20.
+    const lines = screen.split("\n")
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+4 hidden"))
+    expect(hiddenLineIdx).toBeGreaterThan(0)
+    expect(hiddenLineIdx).toBeLessThan(20) // Well above the screen bottom (row 39)
+
+    // Also verify it's NOT near the screen bottom
+    expect(hiddenLineIdx).toBeLessThan(lines.length - 10)
+  })
+
+  test("hidden count appears as listFooter inside VirtualList after last card", () => {
+    // The hidden count indicator is rendered as a listFooter inside VirtualList.
+    // With few enough visible cards, both the cards and the footer are visible
+    // without scrolling. With many visible cards that overflow, the footer is
+    // at the end of scrollable content (only visible when scrolled to bottom).
+    //
+    // This test uses 3 visible + 5 hidden cards so everything fits in viewport.
+    const cards = [
+      item("Fix bug 1"),
+      item("Fix bug 2"),
+      item("Fix bug 3"),
+      item("Buy milk"),
+      item("Buy bread"),
+      item("Buy eggs"),
+      item("Read novel"),
+      item("Clean house"),
+    ]
+    const { board, store } = testEnv(() => item("board", item("Tasks", ...cards)), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Apply text filter — 3 "Fix" cards visible, 5 others hidden
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+
+    // Hidden count should show +5 hidden (rendered as listFooter inside VirtualList)
+    expect(screen).toContain("+5 hidden")
+
+    // 3 cards fit easily in 24 rows, so no overflow indicator
+    expect(screen).not.toContain("▼")
+
+    // The hidden indicator should appear right after the 3 cards, not at screen bottom
+    const lines = screen.split("\n")
+    const hiddenIdx = lines.findIndex((l) => l.includes("+5 hidden"))
+    expect(hiddenIdx).toBeGreaterThan(0)
+    expect(hiddenIdx).toBeLessThan(18) // Well above row 23
+  })
+
+  test("overflow indicator appears when many filtered cards exceed viewport", () => {
+    // When many cards match the filter and overflow the viewport, the ▼ overflow
+    // indicator appears. The hidden count footer is at the end of scrollable
+    // content (not visible when scrolled to top).
+    const cards = [
+      item("Fix bug 1"),
+      item("Fix bug 2"),
+      item("Fix bug 3"),
+      item("Fix bug 4"),
+      item("Fix bug 5"),
+      item("Fix bug 6"),
+      item("Fix bug 7"),
+      item("Fix bug 8"),
+      item("Fix bug 9"),
+      item("Fix bug 10"),
+      item("Buy milk"),
+      item("Buy bread"),
+      item("Buy eggs"),
+      item("Read novel"),
+      item("Clean house"),
+    ]
+    const { board, store } = testEnv(() => item("board", item("Tasks", ...cards)), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Apply text filter — 10 "Fix" cards visible, 5 others hidden
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+
+    // VirtualList overflow indicator ▼ should appear since 10 cards
+    // won't fit in 24 rows
+    expect(screen).toContain("▼")
+
+    // The +5 hidden footer is inside the scroll container at the end,
+    // so it's NOT visible when scrolled to top with overflow
+    expect(screen).not.toContain("+5 hidden")
   })
 })

@@ -7,7 +7,7 @@
  * This catches cache invalidation bugs where content disappears.
  */
 import { test, expect, describe } from "vitest"
-import { loadTestBoard, createTestBoard, check } from "@km/tui/test"
+import { createTestBoard, check } from "@km/tui/test"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx/testing"
 import { existsSync } from "fs"
@@ -85,28 +85,6 @@ describe("Cursor movement preserves text content", () => {
 
     board.press("j")
     expectBoardContentStable(initial, board.text, "j to card")
-  })
-
-  // BUG: Content shifts after navigating up/down levels with real vault
-  // See bead km-tui.level-nav-shift
-  test.skip("real vault: level changes preserve text", async () => {
-    const board = await loadTestBoard("/tmp/v2")
-
-    const initial = board.text
-
-    // Navigate up through levels
-    board.press("k")
-    expectBoardContentStable(initial, board.text, "k (first)")
-
-    board.press("k")
-    expectBoardContentStable(initial, board.text, "k (second)")
-
-    // Navigate back down
-    board.press("j")
-    board.press("j")
-    expectBoardContentStable(initial, board.text, "j j (back to start)")
-
-    check.rendering(board)
   })
 })
 

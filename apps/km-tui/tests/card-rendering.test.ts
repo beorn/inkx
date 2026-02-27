@@ -17,7 +17,12 @@
  */
 
 import { describe, test, expect, beforeAll } from "vitest"
+import { withDiagnostics } from "inkx"
+import { createBoardDriver } from "../src/driver.ts"
+import { createFakeRepo } from "@km/storage"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { stripAnsi } from "inkx/testing"
+import { displayWidth, graphemeWidth } from "inkx"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
 
@@ -803,5 +808,312 @@ describe("card overflow: title wrap lines", () => {
     const text = board.screenshot()
     // Should show +3 (2 hidden children + 1 extra title wrap line), not +2
     expect(text).toMatch(/\+3/)
+  })
+})
+
+// ─── Card Body: List Markers (Not Italics) ──────────────────────────────────
+
+/**
+ * Regression: card body with `* item` content should NOT render as italics.
+ *
+ * When a paragraph node contains content with `* text` list markers,
+ * the asterisks should be rendered as-is (list markers), not as markdown
+ * italic formatting.
+ */
+describe("card body list markers (not italics)", () => {
+  test("* at line start is not rendered as italic", () => {
+    // Create a card with a paragraph body that has list-like content
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("task-with-notes", item.paragraph("* first item\n* second item"))),
+          item("col2", item("card2")),
+        ),
+      { columns: 80, rows: 24, checkIncremental: false, incremental: false },
+    )
+
+    const screen = board.screenshot()
+    // The * should be preserved as a list marker, not consumed by italic formatting
+    // (Only first line visible due to card height constraint)
+    expect(screen).toContain("* first item")
+  })
+})
+
+// ─── Column Header Last Char ────────────────────────────────────────────────
+
+/**
+ * Column headers show full name — last character must not be truncated.
+ *
+ * Regression test for km-tui.col-header-trunc and km-tui.col-trunc2:
+ * headers like "FAMILY SCHEDULE" / "FAMILY SPRINT" were rendered as
+ * "FAMILY SCHEDUL" / "FAMILY SPRIN" (missing last char).
+ *
+ * NOTE: The original root cause was a mismatch between terminal rendering
+ * (Ghostty renders PUA nerdfont icons as 2-cell) and string-width (reports 1).
+ * A blanket PUA=2 fix was attempted but reverted because it broke ALL borders
+ * and alignment (most terminals render PUA nerdfont icons as 1-cell).
+ *
+ * The test fixtures here don't contain PUA icons (testEnv doesn't inject them),
+ * so these tests verify that column layout itself doesn't truncate names.
+ * The terminal-specific mismatch is tracked separately in km-tui.col-trunc2.
+ *
+ * Bead: km-tui.col-header-trunc, km-tui.col-trunc2
+ */
+describe("col-header-last-char", () => {
+  test("nerdfont PUA icons measured as 1-wide by string-width", () => {
+    // PUA nerdfont icons (U+E000-U+F8FF) are measured as 1-cell by string-width.
+    // Some terminals (Ghostty, Kitty) render them as 2-cell, but the measurement
+    // library treats them as 1-cell. We match string-width's measurement.
+    const folderIcon = "\uF114"
+    const fileIcon = "\uF0F6"
+    const sectionIcon = "\u00A7" // § - not PUA, always 1
+
+    expect(graphemeWidth(folderIcon), "PUA folder icon is 1-wide per string-width").toBe(1)
+    expect(graphemeWidth(fileIcon), "PUA file icon is 1-wide per string-width").toBe(1)
+    expect(graphemeWidth(sectionIcon), "section sign should be 1-wide").toBe(1)
+  })
+
+  test("displayWidth with PUA icon in header text", () => {
+    const folderIcon = "\uF114"
+    // Header content: icon + space + name (icon is 1-wide per string-width)
+    const headerText = `${folderIcon} FAMILY SCHEDULE`
+
+    // 1 (icon) + 1 (space) + 15 (name) = 17
+    expect(displayWidth(headerText)).toBe(17)
+  })
+
+  test("single column header shows full name", () => {
+    const { board } = testEnv(() => item.root("board", item("FAMILY SCHEDULE", item("task-a"))), {
+      columns: 80,
+      rows: 20,
+    })
+
+    const text = board.screenshot()
+    expect(text).toContain("FAMILY SCHEDULE")
+  })
+
+  test("two-column board shows full column names", () => {
+    const { board } = testEnv(
+      () => item.root("board", item("FAMILY SCHEDULE", item("task-a")), item("PORTFOLIO", item("task-b"))),
+      { columns: 80, rows: 20 },
+    )
+
+    const text = board.screenshot()
+    expect(text).toContain("FAMILY SCHEDULE")
+    expect(text).toContain("PORTFOLIO")
+  })
+
+  test("column header last char not eaten by off-by-one", () => {
+    const names = ["SPRINT", "BACKLOG", "SCHEDULE", "PORTFOLIO", "PRODUCTIVITY"]
+    for (const name of names) {
+      const { board } = testEnv(() => item.root("board", item(name, item("task"))), { columns: 80, rows: 15 })
+      const text = board.screenshot()
+      expect(text, `Column "${name}" should be fully visible`).toContain(name)
+    }
+  })
+
+  test("PUA nerdfont icons measured as 1-wide (km-tui.col-trunc2)", () => {
+    // Nerdfont icons in the Private Use Area (U+E000-U+F8FF) are measured as
+    // 1-cell by string-width. Some terminals render them as 2-cell, creating
+    // a mismatch. We match string-width's measurement for consistent layout.
+    const folderIcon = "\uF114" //  folder-o (nerdfont)
+    const fileIcon = "\uF0F6" //  file-text-o (nerdfont)
+
+    expect(graphemeWidth(folderIcon), "PUA folder icon is 1-wide per string-width").toBe(1)
+    expect(graphemeWidth(fileIcon), "PUA file icon is 1-wide per string-width").toBe(1)
+  })
+
+  test("displayWidth with PUA nerdfont icon (km-tui.col-trunc2)", () => {
+    const folderIcon = "\uF114"
+    // Header content: icon + space + name (icon is 1-wide per string-width)
+    const headerText = `${folderIcon} FAMILY SPRINT`
+
+    // 1 (icon) + 1 (space) + 13 (name) = 15
+    expect(displayWidth(headerText)).toBe(15)
+  })
+
+  test("column header with PUA icon shows full name — no last-char truncation (km-tui.col-trunc2)", () => {
+    // Regression: "FAMILY SPRINT" column showed "FAMILY SPRIN" in Ghostty because
+    // the PUA folder icon took 2 cells but was measured as 1. The layout engine
+    // allocated 1 extra cell to the name, causing the last char to be clipped
+    // at the column boundary.
+    const { board } = testEnv(
+      () => item.root("board", item("FAMILY SPRINT", item("task-a")), item("col2", item("task-b"))),
+      { columns: 80, rows: 20 },
+    )
+
+    const text = board.screenshot()
+    expect(text, "FAMILY SPRINT should not be truncated").toContain("FAMILY SPRINT")
+  })
+
+  test("emoji in column name does not truncate last char (km-tui.col-trunc2)", () => {
+    // The calendar emoji is 2 cells wide + PUA folder icon is 2 cells.
+    // Total icon area: 2 (PUA icon) + 1 (space) + display name.
+    // The name "FAMILY SPRINT" = 2 (emoji) + 1 (space) + 13 (name) = 16.
+    // Total header: 2 + 1 + 16 = 19 cells. Must fit in column width.
+    const { board } = testEnv(
+      () => item.root("board", item("\u{1F4C5} FAMILY SPRINT", item("task-a")), item("col2", item("task-b"))),
+      { columns: 80, rows: 20 },
+    )
+
+    const text = board.screenshot()
+    expect(text, "FAMILY SPRINT should not be truncated").toContain("FAMILY SPRINT")
+  })
+})
+
+// ─── Col Header Dup: Column Header Style Transition ─────────────────────────
+
+/**
+ * Regression test: km-tui.col-header-dup
+ * Column header rendered twice when cursor moves to column level.
+ *
+ * The column header Box has backgroundColor that transitions:
+ * - Card level: undefined (no bg, yellow text)
+ * - Column level: km.selectionBg (yellow bg, black text)
+ *
+ * Tests that incremental rendering correctly handles the
+ * backgroundColor transition and doesn't leave stale cells.
+ *
+ * Root cause: changesToAnsi used CUF (Cursor Forward) to skip unchanged
+ * cells on a row, but didn't reset SGR bg first. Some terminals (Ghostty)
+ * fill skipped cells with the current bg, causing visual artifacts.
+ * Fix: reset SGR before CUF when bg is set (output-phase.ts).
+ */
+
+// Enable style-aware output verification for col-header-dup tests
+const _prevStrictOutput = process.env.INKX_STRICT_OUTPUT
+process.env.INKX_STRICT_OUTPUT = "1"
+
+describe("col-header-dup: column header style transition", () => {
+  test("incremental render matches fresh during card/column navigation", async () => {
+    const nodes = item.root(
+      "board",
+      item("beowa", item("task-a"), item("task-b"), item("task-c")),
+      item("bjorn", item("task-d"), item("task-e")),
+      item("early-orbit", item("task-f")),
+    )
+    const repo = createFakeRepo({ nodes })
+
+    const baseDriver = createBoardDriver(repo, "board", {
+      columns: 80,
+      rows: 24,
+    })
+
+    const driver = withDiagnostics(baseDriver, {
+      checkIncremental: true,
+      checkReplay: true,
+    })
+
+    // Start at first card
+    expect(driver.getState().cursor.level).toBe("card")
+
+    // Navigate up — may go to column or board depending on position
+    await driver.cmd.up!()
+
+    // If at column level, great — we've triggered bg transition
+    // If at board level, go down to column
+    const level1 = driver.getState().cursor.level
+    if (level1 === "board") {
+      await driver.cmd.down!()
+    }
+
+    // Navigate through all levels
+    await driver.cmd.down!() // card
+    await driver.cmd.down!() // next card
+    await driver.cmd.right!() // next column
+    await driver.cmd.up!() // toward column header
+    await driver.cmd.down!() // back to card
+    await driver.cmd.left!() // back to first column
+
+    // All diagnostics passed — incremental rendering matches fresh render
+  })
+
+  test("column header row has no duplicate content", async () => {
+    const nodes = item.root(
+      "board",
+      item("alpha-col", item("task-a"), item("task-b")),
+      item("beta-col", item("task-d")),
+    )
+    const repo = createFakeRepo({ nodes })
+    const driver = createBoardDriver(repo, "board", {
+      columns: 80,
+      rows: 24,
+    })
+
+    const text = stripAnsi(driver.text)
+    const lines = text.split("\n")
+
+    // Find the column header line (contains column names but not breadcrumb)
+    // Breadcrumb line contains ">" path separator
+    const headerLine = lines.find((line) => line.includes("alpha-col") && !line.includes(">"))
+    expect(headerLine, "should find column header line").toBeDefined()
+
+    // "alpha-col" should appear exactly once on the header line
+    const matches = (headerLine!.match(/alpha-col/g) || []).length
+    expect(matches, `"alpha-col" on header line: ${headerLine}`).toBe(1)
+
+    // Navigate to column level (k until column)
+    await driver.press("k")
+    let level = driver.getState().cursor.level
+    if (level !== "column") {
+      await driver.press("k")
+      level = driver.getState().cursor.level
+    }
+
+    const textAfter = stripAnsi(driver.text)
+    const linesAfter = textAfter.split("\n")
+
+    // After navigation, "alpha-col" should still appear exactly once per
+    // non-breadcrumb line
+    for (const line of linesAfter) {
+      if (line.includes(">")) continue // skip breadcrumb
+      const count = (line.match(/alpha-col/g) || []).length
+      expect(count, `"alpha-col" count on line "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  test("card↔column transitions with incremental check (testEnv)", () => {
+    // testEnv enables checkIncremental by default, which compares
+    // incremental buffer against fresh render after every press()
+    const { board } = testEnv(() =>
+      item.root(
+        "board",
+        item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
+        item("beta-col", item("task-d"), item("task-e")),
+      ),
+    )
+
+    // card → column (bg transition: undefined → yellow)
+    board.press("k")
+
+    // column → card (bg transition: yellow → undefined)
+    board.press("j")
+
+    // card → card (no bg transition)
+    board.press("j")
+
+    // card → next column via right
+    board.press("l")
+
+    // column header of beta-col
+    board.press("k")
+
+    // back to card
+    board.press("j")
+
+    // back to alpha-col
+    board.press("h")
+
+    // All incremental checks passed — no buffer mismatches
+    const text = stripAnsi(board.screenshot())
+    const lines = text.split("\n")
+    for (const line of lines) {
+      if (line.includes(">")) continue
+      const alphaCount = (line.match(/alpha-col/g) || []).length
+      expect(alphaCount, `"alpha-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+      const betaCount = (line.match(/beta-col/g) || []).length
+      expect(betaCount, `"beta-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+    }
   })
 })

@@ -11,6 +11,7 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
+import { stripForDisplay, getNodeDisplayName } from "@km/tree"
 
 // =============================================================================
 // Embed create depth
@@ -1361,5 +1362,451 @@ describe("broken embed rendering (km-wk17l)", () => {
     expect(text).not.toContain("![[")
     // Bare block ref can't be cleaned to something readable → broken fallback
     expect(text).toContain("broken:")
+  })
+})
+
+// =============================================================================
+// Embed syntax leak (km-tui.embed-syntax-leak)
+// =============================================================================
+
+/**
+ * Cards with mixed text + embed wikilinks (e.g., "Organize into boxes ![[file.jpg]]")
+ * should NOT show raw `![[` characters in the display.
+ *
+ * The fix is in stripForDisplay() which now converts ![[target]] to just the
+ * target name (or alias) instead of leaving the raw syntax.
+ */
+describe("embed syntax leak", () => {
+  // ── Unit tests: stripForDisplay ─────────────────────────────────────────
+
+  test("stripForDisplay converts ![[target]] to target name", () => {
+    expect(stripForDisplay("Organize into boxes ![[file.jpg]]")).toBe("Organize into boxes file.jpg")
+  })
+
+  test("stripForDisplay converts ![[target|alias]] to alias", () => {
+    expect(stripForDisplay("Check ![[file.jpg|My Photo]]")).toBe("Check My Photo")
+  })
+
+  test("stripForDisplay handles standalone embed", () => {
+    expect(stripForDisplay("![[file.jpg]]")).toBe("file.jpg")
+  })
+
+  test("stripForDisplay handles multiple embeds", () => {
+    expect(stripForDisplay("See ![[a.png]] and ![[b.pdf]]")).toBe("See a.png and b.pdf")
+  })
+
+  test("stripForDisplay preserves regular wikilinks [[target]]", () => {
+    expect(stripForDisplay("See [[my note]] for details")).toBe("See [[my note]] for details")
+  })
+
+  // ── getNodeDisplayName should not leak ![[  ────────────────────────────
+
+  test("getNodeDisplayName does not leak ![[", () => {
+    const node: KNode = {
+      id: "test-node",
+      type: "p",
+      item: true,
+      content: "Organize into boxes ![[file.jpg]]",
+      embed_source: null,
+      parent_id: null,
+      parent_idx: 0,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const name = getNodeDisplayName(node)
+    expect(name).not.toContain("![[")
+    expect(name).toContain("file.jpg")
+    expect(name).toContain("Organize into boxes")
+  })
+
+  // ── Embed wikilink with alias ────────────────────────────────────────
+
+  test("getNodeDisplayName uses alias for ![[target|alias]]", () => {
+    const node: KNode = {
+      id: "alias-node",
+      type: "p",
+      item: true,
+      content: "Attach ![[photo.jpg|My Photo]] here",
+      embed_source: null,
+      parent_id: null,
+      parent_idx: 0,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const name = getNodeDisplayName(node)
+    expect(name).not.toContain("![[")
+    expect(name).toContain("My Photo")
+    expect(name).toContain("Attach")
+  })
+
+  // ── TUI rendering tests ────────────────────────────────────────────────
+
+  test("mixed text + embed wikilink does not show raw ![[ in card", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("other-task")))
+
+        // A regular task (not an embed) whose content contains inline embed wikilink syntax
+        nodes.push({
+          id: "mixed-content",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          task_marker: "[ ]",
+          task_status: "todo" as const,
+          content: "Organize into boxes ![[file.jpg]]",
+          embed_source: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    // The text "Organize into boxes" should appear
+    expect(text).toContain("Organize into boxes")
+    // The raw embed syntax should NOT appear
+    expect(text).not.toContain("![[")
+    // The target name should appear cleanly
+    expect(text).toContain("file.jpg")
+  })
+
+  test("top bar does not leak ![[ when navigating to mixed-content card", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("other-task")))
+
+        nodes.push({
+          id: "mixed-content",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          task_marker: "[ ]",
+          task_status: "todo" as const,
+          content: "Organize into boxes ![[file.jpg]]",
+          embed_source: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    // Navigate to the mixed-content card
+    board.press("j")
+
+    const text = stripAnsi(board.screenshot())
+    // Top bar should show clean path without ![[
+    expect(text).not.toContain("![[")
+    expect(text).toContain("Organize into boxes")
+  })
+
+  test("multiple inline embeds in mixed content do not leak syntax", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("col1", item("placeholder")))
+
+        nodes.push({
+          id: "multi-embed",
+          type: "p" as const,
+          item: true,
+          list_marker: "-",
+          task_marker: "[ ]",
+          task_status: "todo" as const,
+          content: "See ![[photo.png]] and ![[doc.pdf]]",
+          embed_source: null,
+          parent_id: "col1",
+          parent_idx: 1,
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+    expect(text).not.toContain("![[")
+    expect(text).toContain("photo.png")
+    expect(text).toContain("doc.pdf")
+  })
+})
+
+// =============================================================================
+// Strip parent sigil from embedded node titles
+// =============================================================================
+
+/**
+ * When viewing embedded nodes (transclusions with embed_source), the sigil badge
+ * after the title should be suppressed if it matches the board or column context.
+ * E.g., a task with name "@next" displayed on the @next board should not show
+ * the redundant "@next" sigil badge.
+ *
+ * Similarly, parent context (the "< source" line) should be suppressed if it
+ * matches an excluded sigil.
+ */
+describe("strip embed sigil", () => {
+  /**
+   * Build a board with a @next column containing embedded tasks.
+   * The target tasks have name: "@next" (simulating nodes from @next.md).
+   */
+  function boardWithEmbeddedSigils() {
+    return testEnv(
+      () => {
+        const nodes = item(
+          "board",
+          item("@next", item("embed-a"), item("embed-b")),
+          item("other", item("regular-task")),
+        )
+
+        for (const n of nodes) {
+          // Make @next column a proper section
+          if (n.id === "@next") {
+            n.type = "h"
+            n.item = true
+            n.fstype = "mdsection"
+            n.data = { name: "@next" }
+            n.name = "@next"
+          }
+
+          // Make embed-a link to a target with name "@next"
+          if (n.id === "embed-a") {
+            n.type = "p"
+            n.embed_source = "target-a"
+            n.content = "![[target-a]]"
+            n.task_status = undefined
+            n.task_marker = undefined
+            n.data = {}
+          }
+
+          // Make embed-b link to a target with a different sigil
+          if (n.id === "embed-b") {
+            n.type = "p"
+            n.embed_source = "target-b"
+            n.content = "![[target-b]]"
+            n.task_status = undefined
+            n.task_marker = undefined
+            n.data = {}
+          }
+
+          // Make other column a section
+          if (n.id === "other") {
+            n.type = "h"
+            n.item = true
+            n.fstype = "mdsection"
+            n.data = { name: "Other" }
+          }
+        }
+
+        // Target A: task with name "@next" (sigil should be stripped in @next column)
+        nodes.push({
+          id: "target-a",
+          type: "p",
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 0,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Buy groceries",
+          name: "@next",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Target B: task with name "@waiting" (different sigil, should NOT be stripped in @next column)
+        nodes.push({
+          id: "target-b",
+          type: "p",
+          item: true,
+          list_marker: "-",
+          parent_id: "some-file",
+          parent_idx: 1,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Wait for reply",
+          name: "@waiting",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+  }
+
+  test("sigil badge is suppressed when it matches the column's excluded sigil", () => {
+    const { board } = boardWithEmbeddedSigils()
+    const text = stripAnsi(board.screenshot())
+
+    // "@next" sigil badge should NOT appear after "Buy groceries" in the @next column
+    // The task title "Buy groceries" should appear without a redundant "@next" suffix
+    expect(text).toContain("Buy groceries")
+    expect(text).not.toMatch(/Buy groceries\s+@next/)
+  })
+
+  test("sigil badge is shown when it does NOT match the column's excluded sigil", () => {
+    const { board } = boardWithEmbeddedSigils()
+    const text = stripAnsi(board.screenshot())
+
+    // "@waiting" sigil badge SHOULD still appear after "Wait for reply"
+    // because the column excludes @next, not @waiting
+    expect(text).toContain("Wait for reply")
+    expect(text).toMatch(/Wait for reply\s+@waiting/)
+  })
+
+  test("inline @next sigil in card content is stripped inside @next column", () => {
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("@next", item("task-a"), item("task-b")))
+
+        for (const n of nodes) {
+          if (n.id === "@next") {
+            n.type = "h"
+            n.item = true
+            n.fstype = "mdsection"
+            n.data = { name: "@next" }
+            n.name = "@next"
+          }
+          // Tasks with @next inline in content
+          if (n.id === "task-a") {
+            n.content = "Buy groceries @next"
+            n.name = "@next"
+          }
+          if (n.id === "task-b") {
+            n.content = "Call dentist @next @urgent"
+            n.name = "@next"
+          }
+        }
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+
+    // Find card lines (contain marker) — skip top bar which shows full path
+    const cardLines = text.split("\n").filter((l) => l.includes("\u25A1"))
+
+    // Card with "Buy groceries" should NOT show @next
+    const groceriesLine = cardLines.find((l) => l.includes("Buy groceries"))
+    expect(groceriesLine).toBeDefined()
+    expect(groceriesLine).not.toContain("@next")
+
+    // Card with "Call dentist" should NOT show @next, but SHOULD show @urgent
+    const dentistLine = cardLines.find((l) => l.includes("Call dentist"))
+    expect(dentistLine).toBeDefined()
+    expect(dentistLine).not.toContain("@next")
+    expect(dentistLine).toContain("@urgent")
+  })
+
+  test("parent context is suppressed when it matches an excluded sigil", () => {
+    // Build a board where embedded tasks come from a file named "@next"
+    // The parent context would normally show "@next" but should be suppressed
+    const { board } = testEnv(
+      () => {
+        const nodes = item("board", item("@next", item("embed-c")))
+
+        for (const n of nodes) {
+          if (n.id === "@next") {
+            n.type = "h"
+            n.item = true
+            n.fstype = "mdsection"
+            n.data = { name: "@next" }
+            n.name = "@next"
+          }
+
+          if (n.id === "embed-c") {
+            n.type = "p"
+            n.embed_source = "target-c"
+            n.content = "![[target-c]]"
+            n.task_status = undefined
+            n.task_marker = undefined
+            n.data = {}
+          }
+        }
+
+        // Create file node "@next" that is the parent of the target task
+        nodes.push({
+          id: "next-file",
+          type: "h",
+          item: true,
+          fstype: "mdfile",
+          parent_id: null,
+          parent_idx: 0,
+          embed_source: null,
+          content: "",
+          name: "@next",
+          fs_path: "/vault/@next.md",
+          data: { name: "@next" },
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        // Target task that lives inside @next.md — parent context would be "@next"
+        nodes.push({
+          id: "target-c",
+          type: "p",
+          item: true,
+          list_marker: "-",
+          parent_id: "next-file",
+          parent_idx: 0,
+          embed_source: null,
+          task_status: "todo",
+          task_marker: "[ ]",
+          content: "Call dentist",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as KNode)
+
+        return nodes
+      },
+      { columns: 80, rows: 24 },
+    )
+
+    const text = stripAnsi(board.screenshot())
+
+    // Task content should be visible
+    expect(text).toContain("Call dentist")
+    // But "@next" as parent context should be suppressed (it's the column we're in)
+    // In cards view, parent context appears as italic text above the title
+    // In any case, "@next" should not appear as a context label near "Call dentist"
+    const lines = text.split("\n")
+    const taskLine = lines.findIndex((l) => l.includes("Call dentist"))
+    if (taskLine > 0) {
+      // The line above should NOT contain "@next" as parent context
+      expect(lines[taskLine - 1]).not.toContain("@next")
+    }
   })
 })
