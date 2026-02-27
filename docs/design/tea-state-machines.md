@@ -471,20 +471,36 @@ Editor.withoutNormalizing(editor, () => {
 })
 ```
 
-### SlateJS as Pluggable Engine
+### SlateJS as Per-Node Body Editor
 
-The web rendering layer can literally use `slate` + `slate-react` via an adapter:
+SlateJS requires all content in memory (`editor.children` is the full document). km's document tree has thousands of nodes with lazy loading — SlateJS can't manage that. But it's a perfect fit as the **body editor for individual nodes**: when you open a card and edit its rich text content, that single node's body is a SlateJS-sized document.
 
 ```ts
-// Terminal: km's own pure Editor
-const [editor, effects] = Editor.apply(editor, op)
+// km architecture: two-level editing
+//
+// Level 1: Editor.apply() — km's own pure state machine
+//   Manages the full node tree (lazy, ID-based, CRDT-ready)
+//   Handles: navigation, node selection, tree operations
+//
+// Level 2: Text.apply() — per-node body editing
+//   Manages rich text within a single node
+//   On web: can delegate to SlateJS + slate-react for DOM rendering
+//   On terminal: uses km's own Text.apply() + inkx components
 
-// Web: delegate to SlateJS (which handles DOM ↔ model translation)
-const slateAdapter = createSlateAdapter(slateEditor)
-slateAdapter.apply(op)  // translates nodeId → path, calls slateEditor.apply()
+// Web adapter: SlateJS handles one node's body
+const bodyEditor = createSlateAdapter(slateEditor)
+bodyEditor.apply(textOp)  // translates to SlateJS operations
+
+// Terminal: same operations, different renderer
+const [state, effects] = Text.apply(state, textOp)
+// → rendered by inkx TextArea/EditContextDisplay
 ```
 
-This works because km's operations are a superset of SlateJS's — the only translation needed is `nodeId → path` (a Map lookup).
+SlateJS-compatibility means:
+- Same operation names (`insert_text`, `split_node`, etc.)
+- Same query patterns (`Editor.nodes()`, `Editor.above()`)
+- SlateJS can be swapped in as the body editor engine on web
+- But the **document tree** (node navigation, lazy loading, CRDT) is always km's `Editor.apply()`
 
 ## Components as Thin Views
 
