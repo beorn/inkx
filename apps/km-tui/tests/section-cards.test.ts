@@ -12,6 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 
 /** Check if a character is a round box-drawing border character. */
 function isRoundBorderChar(c: string): boolean {
@@ -133,7 +134,7 @@ describe("section card rendering", () => {
     })
 
     // First card should be the section, and it should be selected
-    board.expectNodeColor("My Section", { bg: 3 }) // 3 = yellow ($selected)
+    board.expectNodeColor("My Section", { bg: TC.$selected })
   })
 
   test("section cards with children show fold marker and child count", () => {

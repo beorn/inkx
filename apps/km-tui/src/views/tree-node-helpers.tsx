@@ -422,13 +422,13 @@ const PRIORITY_TEXT_COLORS = ["$error", "$warning", "$primary", undefined] as co
  * React component version of formatDateBadge.
  * Uses <Text color="..."> props instead of raw ANSI escape codes.
  */
-export function DateBadge({ node, noColor }: { node: KNode; noColor?: boolean }): React.ReactElement | null {
+export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: boolean }): React.ReactElement | null {
   const parts: React.ReactElement[] = []
 
   // Priority badge
   if (node.priority && node.priority >= 1 && node.priority <= 4) {
-    const color = noColor ? undefined : PRIORITY_TEXT_COLORS[node.priority - 1]
-    const dim = node.priority === 4 && !noColor
+    const color = stripColor ? undefined : PRIORITY_TEXT_COLORS[node.priority - 1]
+    const dim = node.priority === 4 && !stripColor
     parts.push(
       <Text key="p" color={color} dimColor={dim}>
         P{node.priority}
@@ -446,20 +446,20 @@ export function DateBadge({ node, noColor }: { node: KNode; noColor?: boolean })
   if (visibleStart && dueDate) {
     parts.push(
       <React.Fragment key="sd">
-        <ScheduledDateText dateStr={visibleStart} noColor={noColor} />
+        <ScheduledDateText dateStr={visibleStart} stripColor={stripColor} />
         <Text> → </Text>
-        <DueDateText dateStr={dueDate} noColor={noColor} />
+        <DueDateText dateStr={dueDate} stripColor={stripColor} />
       </React.Fragment>,
     )
   } else if (visibleStart) {
     parts.push(
       <React.Fragment key="s">
-        <ScheduledDateText dateStr={visibleStart} noColor={noColor} />
+        <ScheduledDateText dateStr={visibleStart} stripColor={stripColor} />
         <Text> →</Text>
       </React.Fragment>,
     )
   } else if (dueDate) {
-    parts.push(<DueDateText key="d" dateStr={dueDate} noColor={noColor} />)
+    parts.push(<DueDateText key="d" dateStr={dueDate} stripColor={stripColor} />)
   }
 
   // Recurrence
@@ -481,10 +481,10 @@ export function DateBadge({ node, noColor }: { node: KNode; noColor?: boolean })
 }
 
 /** Due date with urgency coloring: overdue=red bold, today/tomorrow=green, future=dim cyan */
-function DueDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean }): React.ReactElement {
+function DueDateText({ dateStr, stripColor }: { dateStr: string; stripColor?: boolean }): React.ReactElement {
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
-  if (noColor) return <Text>{text}</Text>
+  if (stripColor) return <Text>{text}</Text>
   if (diff < 0) {
     return (
       <Text color={"$error"} bold>
@@ -501,10 +501,10 @@ function DueDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean 
 }
 
 /** Scheduled date with coloring: today/tomorrow=green, future=dim cyan, past=no color */
-function ScheduledDateText({ dateStr, noColor }: { dateStr: string; noColor?: boolean }): React.ReactElement {
+function ScheduledDateText({ dateStr, stripColor }: { dateStr: string; stripColor?: boolean }): React.ReactElement {
   const diff = daysFromToday(dateStr)
   const text = formatRelativeDate(dateStr)
-  if (noColor) return <Text>{text}</Text>
+  if (stripColor) return <Text>{text}</Text>
   if (diff >= 0 && diff <= 1) return <Text color={"$success"}>{text}</Text>
   if (diff > 1) {
     return (
@@ -523,18 +523,18 @@ function ScheduledDateText({ dateStr, noColor }: { dateStr: string; noColor?: bo
 export function BoardPillsView({
   pills,
   compact,
-  noColor,
+  stripColor,
 }: {
   pills: BoardPill[]
   compact: boolean
-  noColor?: boolean
+  stripColor?: boolean
 }): React.ReactElement | null {
   if (pills.length === 0) return null
   if (compact) {
     return (
       <>
         {pills.map((p, i) => (
-          <Text key={i} color={noColor ? undefined : p.color}>
+          <Text key={i} color={stripColor ? undefined : p.color}>
             ●
           </Text>
         ))}
@@ -546,7 +546,7 @@ export function BoardPillsView({
       {pills.map((p, i) => (
         <React.Fragment key={i}>
           {i > 0 ? " " : ""}
-          <Text color={noColor ? undefined : p.color}>@{p.name}</Text>
+          <Text color={stripColor ? undefined : p.color}>@{p.name}</Text>
         </React.Fragment>
       ))}
     </>
@@ -562,13 +562,13 @@ export function InfoSuffix({
   isCompact,
   excludeBoardIds,
   getBoardPills,
-  noColor,
+  stripColor,
 }: {
   node: KNode
   isCompact: boolean
   excludeBoardIds: Set<string>
   getBoardPills: GetBoardPillsFn
-  noColor?: boolean
+  stripColor?: boolean
 }): React.ReactElement | null {
   const boardPills = isTask(node) ? getBoardPills(node, excludeBoardIds) : []
 
@@ -582,7 +582,7 @@ export function InfoSuffix({
         {"  "}
         {hasAssignee && node.assigned_to && <Text>@{shortName(node.assigned_to)}</Text>}
         {hasAssignee && hasPills && " "}
-        {hasPills && <BoardPillsView pills={boardPills} compact={false} noColor={noColor} />}
+        {hasPills && <BoardPillsView pills={boardPills} compact={false} stripColor={stripColor} />}
       </Text>
     )
   }
@@ -591,7 +591,7 @@ export function InfoSuffix({
   return (
     <Text>
       {" "}
-      <BoardPillsView pills={boardPills} compact noColor={noColor} />
+      <BoardPillsView pills={boardPills} compact stripColor={stripColor} />
     </Text>
   )
 }

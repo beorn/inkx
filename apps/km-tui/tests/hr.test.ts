@@ -10,6 +10,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
 import { stripAnsi } from "inkx"
 
@@ -85,8 +86,8 @@ describe("HR borderless rendering", () => {
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
-      // Should be yellow (color 3, $selected) when selected
-      expect(cell.fg, "selected HR should be yellow").toBe(3)
+      // Should be $selected when selected
+      expect(cell.fg, "selected HR should be $selected").toBe(TC.$selected)
       expect(cell.attrs.dim, "selected HR should not be dim").toBeFalsy()
     }
   })
@@ -214,8 +215,8 @@ describe("HR display", () => {
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
-      // Not selected: should NOT have yellow ($selected) foreground
-      expect(cell.fg, "non-selected HR should not be yellow").not.toBe(3)
+      // Not selected: should NOT have $selected foreground
+      expect(cell.fg, "non-selected HR should not be $selected").not.toBe(TC.$selected)
     }
   })
 

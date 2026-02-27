@@ -58,8 +58,13 @@ export interface InlineRenderContext {
   resolveWikiLink?: (target: string) => string | null
   /** Resolve block ref IDs to display titles */
   resolveBlockRef?: (id: string) => string | null
-  /** Strip all foreground colors (for selected/highlighted items) */
-  noColor?: boolean
+  /**
+   * Color override for selected/highlighted items.
+   * - `undefined`: use each component's own token color (default)
+   * - `null`: strip all foreground colors
+   * - `string`: use this color for all tokens
+   */
+  colorOverride?: string | null
   /** Hide inline fields from display */
   hideFields?: boolean
 }
@@ -70,6 +75,17 @@ export const InlineRenderProvider = InlineRenderCtx.Provider
 
 function useInlineRenderContext(): InlineRenderContext {
   return React.useContext(InlineRenderCtx)
+}
+
+/**
+ * Resolve a token color against the context's colorOverride.
+ * - colorOverride undefined → return token (use component's own color)
+ * - colorOverride null → return undefined (strip color)
+ * - colorOverride string → return that string (override color)
+ */
+function resolveColor(ctx: InlineRenderContext, token: string): string | undefined {
+  if (ctx.colorOverride === undefined) return token
+  return ctx.colorOverride ?? undefined
 }
 
 // =============================================================================
@@ -208,18 +224,18 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
   const ctx = useInlineRenderContext()
   if (decorations?.length) {
     return (
-      <Text color={ctx.noColor ? undefined : "$control"}>
+      <Text color={resolveColor(ctx, "$control")}>
         <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
       </Text>
     )
   }
-  return <Text color={ctx.noColor ? undefined : "$control"}>{node.code}</Text>
+  return <Text color={resolveColor(ctx, "$control")}>{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   return (
-    <Link href={node.url} color={ctx.noColor ? undefined : "$link"}>
+    <Link href={node.url} color={resolveColor(ctx, "$link")}>
       {node.text}
     </Link>
   )
@@ -230,7 +246,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   if (resolved) {
     return (
-      <Text color={ctx.noColor ? undefined : "$link"} underline>
+      <Text color={resolveColor(ctx, "$link")} underline>
         {resolved}
       </Text>
     )
@@ -283,10 +299,11 @@ export function InlineProject({ node }: { node: ProjectNode }): React.ReactEleme
 export function InlineField({ node }: { node: InlineFieldNode }): React.ReactElement | null {
   const ctx = useInlineRenderContext()
   if (ctx.hideFields) return null
-  const styledValue = ctx.noColor ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
+  const hasColorOverride = ctx.colorOverride !== undefined
+  const styledValue = hasColorOverride ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={ctx.noColor ? undefined : "$control"}>
+      <Text dim color={resolveColor(ctx, "$control")}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>
@@ -299,8 +316,8 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
   return (
-    <Link href={node.url} color={ctx.noColor ? undefined : "$link"}>
-      <Text dim={!ctx.noColor}>{display}</Text>
+    <Link href={node.url} color={resolveColor(ctx, "$link")}>
+      <Text dim={ctx.colorOverride === undefined}>{display}</Text>
     </Link>
   )
 }
@@ -310,7 +327,7 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
   const resolved = ctx.resolveBlockRef?.(node.id)
   if (resolved) {
     return (
-      <Text color={ctx.noColor ? undefined : "$link"} underline>
+      <Text color={resolveColor(ctx, "$link")} underline>
         {resolved}
       </Text>
     )
@@ -402,7 +419,7 @@ export function InlineNodeView({
 /** Render a sigil with its resolved color, or plain if unresolved */
 function SigilText({ sigil }: { sigil: string }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  if (ctx.noColor) return <Text>{sigil}</Text>
+  if (ctx.colorOverride !== undefined) return <Text>{sigil}</Text>
   const color = ctx.sigilColors?.get(sigil) ?? ctx.resolveSigilColor?.(sigil)
 
   if (color) {

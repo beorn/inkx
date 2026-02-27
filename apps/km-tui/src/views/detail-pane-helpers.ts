@@ -190,7 +190,7 @@ function stripKnownFromNodes(nodes: InlineNode[]): string {
     const node = nodes[i]!
     switch (node.type) {
       case "mention": {
-        const isKnown = PERSON_SHORT_NAMES[node.name] !== undefined
+        const isKnown = PERSON_SHORT_NAMES[node.name.toLowerCase()] !== undefined
         if (isKnown) {
           // Skip trailing surname in next plain text node (e.g., " Stabell" after "@Bjørn")
           const next = nodes[i + 1]

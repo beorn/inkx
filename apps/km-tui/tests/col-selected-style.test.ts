@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 
 describe("km-tui.col-selected-style: column selected style at column level", () => {
   it("column header has yellow bg when cursor is at column level", () => {
@@ -42,10 +43,10 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
     // When cursor is at column level, header text should have
-    // yellow bg (3) and black fg (0) -- the "inverse selected" style
+    // $selected bg and $selectedfg fg -- the "inverse selected" style
     const cell = board.screen.cell(colTextX, headerY)
-    expect(cell.bg, "column header bg should be yellow (3) when at column level").toEqual(3)
-    expect(cell.fg, "column header fg should be black (0) when at column level").toEqual(0)
+    expect(cell.bg, "column header bg should be $selected when at column level").toEqual(TC.$selected)
+    expect(cell.fg, "column header fg should be $selectedfg when at column level").toEqual(TC.$selectedfg)
   })
 
   it("separator line is yellow when cursor is at column level", () => {
@@ -77,7 +78,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(sepX, "separator char should be found").toBeGreaterThanOrEqual(0)
 
     const sepCell = board.screen.cell(sepX, separatorY)
-    expect(sepCell.fg, "separator fg should be yellow (3) when column selected").toEqual(3)
+    expect(sepCell.fg, "separator fg should be $selected when column selected").toEqual(TC.$selected)
     expect(sepCell.attrs.dim, "separator should NOT be dim when column selected").toBeFalsy()
   })
 
@@ -109,9 +110,9 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
 
       // The leftmost cell of the column should be yellow (border or indicator)
       const leftCell = board.screen.cell(colBox.x, y)
-      // Accept either a border character with yellow color, or a space with yellow bg
-      const isYellowBorder = leftCell.fg === 3 // yellow foreground for border chars
-      const isYellowBg = leftCell.bg === 3 // yellow background
+      // Accept either a border character with $selected color, or a space with $selected bg
+      const isYellowBorder = leftCell.fg === TC.$selected // $selected foreground for border chars
+      const isYellowBg = leftCell.bg === TC.$selected // $selected background
 
       expect(
         isYellowBorder || isYellowBg,
@@ -137,14 +138,14 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(col2Box).not.toBeNull()
     if (!col2Box) return
 
-    // col2 header should NOT have yellow bg
+    // col2 header should NOT have $selected bg
     const headerY = col2Box.y
     const row = board.screen.row(headerY)
     const col2Idx = row.indexOf("col2")
     expect(col2Idx).toBeGreaterThan(-1)
 
     const cell = board.screen.cell(col2Idx, headerY)
-    expect(cell.bg, "non-selected column header should NOT have yellow bg").not.toEqual(3)
+    expect(cell.bg, "non-selected column header should NOT have $selected bg").not.toEqual(TC.$selected)
   })
 
   it("returning to card level removes column-level yellow border", () => {
@@ -179,7 +180,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     expect(sepX).toBeGreaterThanOrEqual(0)
 
     const sepCell = board.screen.cell(sepX, separatorY)
-    // When back at card level, separator should use muted color ($text3 = gray = 8), not selection color
-    expect(sepCell.fg, "separator should use muted color when back at card level").toBe(8)
+    // When back at card level, separator should use muted color ($text3), not selection color
+    expect(sepCell.fg, "separator should use $text3 when back at card level").toBe(TC.$text3)
   })
 })

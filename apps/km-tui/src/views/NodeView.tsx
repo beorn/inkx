@@ -364,7 +364,7 @@ export function NodeCardView({
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
-            <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
+            <InlineText text={displayContent} context={{ colorOverride: shouldStripColor ? null : undefined, hideFields: true }} />
             {subtaskBadge && <Text color={isSelected ? "$selectedfg" : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
@@ -378,7 +378,7 @@ export function NodeCardView({
           <Box flexShrink={0}>
             <Text color={textColor} wrap="truncate">
               {" "}
-              <DateBadge node={node} noColor={shouldStripColor} />
+              <DateBadge node={node} stripColor={shouldStripColor} />
             </Text>
           </Box>
         )}
@@ -584,7 +584,7 @@ export function NodeDetailView({
       <Box flexDirection="column" width={width - 2} backgroundColor={"$selected"} paddingX={1}>
         <Text bold color={"$selectedfg"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
-          <InlineText text={displayContent} context={{ noColor: true, hideFields: true }} />
+          <InlineText text={displayContent} context={{ colorOverride: null, hideFields: true }} />
         </Text>
       </Box>
 

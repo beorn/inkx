@@ -847,7 +847,7 @@ function TreeNodeImpl({
                 ) : (
                   <InlineText
                     text={processedContent}
-                    context={{ ...inlineContext, noColor: searchHighlight || shouldStripColor }}
+                    context={{ ...inlineContext, colorOverride: (searchHighlight || shouldStripColor) ? null : undefined }}
                     decorations={searchDecorations}
                   />
                 )}
@@ -859,7 +859,7 @@ function TreeNodeImpl({
                 )}
                 {!childrenHidden && (
                   <Text dimColor={sd}>
-                    <InfoSuffix {...infoSuffixProps} noColor={searchHighlight || shouldStripColor} />
+                    <InfoSuffix {...infoSuffixProps} stripColor={searchHighlight || shouldStripColor} />
                   </Text>
                 )}
                 {showInlineChildCount && <Text dimColor> {childCount}</Text>}
@@ -900,7 +900,7 @@ function TreeNodeImpl({
             <Box flexShrink={0}>
               <Text color={tc} wrap="truncate">
                 {" "}
-                <DateBadge node={displayNode} noColor={shouldStripColor} />
+                <DateBadge node={displayNode} stripColor={shouldStripColor} />
               </Text>
             </Box>
           )}

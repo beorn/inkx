@@ -12,6 +12,7 @@
 
 import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
 import { stripAnsi } from "inkx"
 import type { KNode } from "@km/core"
@@ -43,10 +44,10 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aprIdx = row.indexOf("Apr")
     expect(aprIdx, "date badge 'Apr' should be visible in the row").toBeGreaterThan(-1)
 
-    // The date badge text should be black (0) on yellow (3) when selected
+    // The date badge text should be $selectedfg on $selected when selected
     const cell = board.screen.cell(aprIdx, nodeBox.y)
-    expect(cell.fg, `date badge fg at (${aprIdx},${nodeBox.y}) should be black`).toEqual(0)
-    expect(cell.bg, `date badge bg at (${aprIdx},${nodeBox.y}) should be yellow`).toEqual(3)
+    expect(cell.fg, `date badge fg at (${aprIdx},${nodeBox.y}) should be $selectedfg`).toEqual(TC.$selectedfg)
+    expect(cell.bg, `date badge bg at (${aprIdx},${nodeBox.y}) should be $selected`).toEqual(TC.$selected)
   })
 
   it("selected node info suffix has black text on yellow background", () => {
@@ -70,10 +71,10 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aliceIdx = row.indexOf("@A")
     expect(aliceIdx, "info suffix '@A' should be visible").toBeGreaterThan(-1)
 
-    // The info suffix text should be black (0) on yellow (3) when selected
+    // The info suffix text should be $selectedfg on $selected when selected
     const cell = board.screen.cell(aliceIdx, nodeBox.y)
-    expect(cell.fg, `info suffix fg at (${aliceIdx},${nodeBox.y}) should be black`).toEqual(0)
-    expect(cell.bg, `info suffix bg at (${aliceIdx},${nodeBox.y}) should be yellow`).toEqual(3)
+    expect(cell.fg, `info suffix fg at (${aliceIdx},${nodeBox.y}) should be $selectedfg`).toEqual(TC.$selectedfg)
+    expect(cell.bg, `info suffix bg at (${aliceIdx},${nodeBox.y}) should be $selected`).toEqual(TC.$selected)
   })
 
   it("non-selected node date badge is NOT black-on-yellow", () => {
@@ -96,7 +97,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aprIdx = row.indexOf("Apr")
     if (aprIdx > -1) {
       const cell = board.screen.cell(aprIdx, nodeBox.y)
-      expect(cell.bg, "non-selected date badge should not have yellow bg").not.toEqual(3)
+      expect(cell.bg, "non-selected date badge should not have $selected bg").not.toEqual(TC.$selected)
     }
   })
 })
@@ -371,7 +372,7 @@ function expectCellRangeColor(
 }
 
 describe("km-tui.selected-color: all selected card content is black-on-yellow", () => {
-  it("date badge on selected card is black (fg=0) on yellow (bg=3)", () => {
+  it("date badge on selected card is $selectedfg on $selected", () => {
     const nodes = item("board", item("col1", item.task("taskWithDate")))
     const taskNode = nodes.find((n) => n.content === "taskWithDate")!
     taskNode.due_at = "2026-04-15"
@@ -390,20 +391,20 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     const aprIdx = row.indexOf("Apr")
     expect(aprIdx, "date badge 'Apr' should be visible").toBeGreaterThan(-1)
 
-    // Every character in date badge should be black-on-yellow
-    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 3 }, "selected date badge")
+    // Every character in date badge should be $selectedfg on $selected
+    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: TC.$selectedfg, bg: TC.$selected }, "selected date badge")
   })
 
   // Child count is hidden in cards (hideChildCount) — overflow indicator shows count instead.
   // Color tests for child count only apply in outline/list mode.
 
-  it("title text on selected card is black (fg=0) on yellow (bg=3)", () => {
+  it("title text on selected card is $selectedfg on $selected", () => {
     const nodes = item("board", item("col1", item.task("mySelectedTask")))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     board.expect('[id="mySelectedTask"][data-cursor]').toExist()
-    board.expectNodeColor("mySelectedTask", { fg: 0, bg: 3 })
+    board.expectNodeColor("mySelectedTask", { fg: TC.$selectedfg, bg: TC.$selected })
   })
 
   it("date range on selected card is black-on-yellow (not green/red)", () => {
@@ -432,10 +433,10 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
     const todayIdx = row.indexOf("Today")
     expect(todayIdx, "'Today' should be visible in date range").toBeGreaterThan(-1)
 
-    // All date range text should be black-on-yellow when selected
+    // All date range text should be $selectedfg on $selected when selected
     const cell = board.screen.cell(todayIdx, nodeBox.y)
-    expect(cell.fg, "date range 'Today' fg should be black when selected").toEqual(0)
-    expect(cell.bg, "date range 'Today' bg should be yellow when selected").toEqual(3)
+    expect(cell.fg, "date range 'Today' fg should be $selectedfg when selected").toEqual(TC.$selectedfg)
+    expect(cell.bg, "date range 'Today' bg should be $selected when selected").toEqual(TC.$selected)
   })
 })
 
@@ -443,7 +444,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
 // only apply in outline/list mode where count is visible.
 
 describe("km-tui.date-range-color: date uses green/red when not selected", () => {
-  it("overdue date on non-selected card shows redBright (fg=9)", () => {
+  it("overdue date on non-selected card shows $error fg", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("overdueTask")))
     const overdueTask = nodes.find((n) => n.content === "overdueTask")!
     overdueTask.due_at = "2025-01-01" // Past date — overdue
@@ -462,10 +463,10 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     expect(janIdx, "overdue date 'Jan' should be visible").toBeGreaterThan(-1)
 
     const cell = board.screen.cell(janIdx, nodeBox.y)
-    expect(cell.fg, "overdue date fg should be redBright (9)").toEqual(9)
+    expect(cell.fg, "overdue date fg should be $error").toEqual(TC.$error)
   })
 
-  it("today's due date on non-selected card shows greenBright (fg=10)", () => {
+  it("today's due date on non-selected card shows $success fg", () => {
     const today = new Date()
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
 
@@ -486,7 +487,7 @@ describe("km-tui.date-range-color: date uses green/red when not selected", () =>
     expect(todayIdx, "'Today' should be visible").toBeGreaterThan(-1)
 
     const cell = board.screen.cell(todayIdx, nodeBox.y)
-    expect(cell.fg, "today due date fg should be greenBright (10)").toEqual(10)
+    expect(cell.fg, "today due date fg should be $success").toEqual(TC.$success)
   })
 
   it("future date on non-selected card does not show green or red", () => {

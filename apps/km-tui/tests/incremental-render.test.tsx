@@ -11,6 +11,7 @@ import React, { useState } from "react"
 import { Box, Text, useInput, type Key } from "inkx"
 import { createRenderer } from "inkx/testing"
 import { item, testEnv } from "./helpers/board-test"
+import { TC } from "./helpers/theme"
 
 describe("incremental rendering", () => {
   test("cursor movement clears old highlight background", () => {
@@ -27,9 +28,9 @@ describe("incremental rendering", () => {
     expect(box1).not.toBeNull()
 
     // Check initial cell bg at cursor position
-    // The data-cursor Box has backgroundColor="$selected" (yellow = index 3)
+    // The data-cursor Box has backgroundColor="$selected"
     const cell1 = app.term.cell(box1!.x, box1!.y)
-    expect(cell1.bg).toBe(3) // yellow = index 3 ($selected)
+    expect(cell1.bg).toBe(TC.$selected)
 
     // Move cursor down to "1b"
     board.press("j")
@@ -40,13 +41,13 @@ describe("incremental rendering", () => {
     const box2 = cursor2.boundingBox()
     expect(box2).not.toBeNull()
 
-    // New cursor should have yellow bg
+    // New cursor should have $selected bg
     const cell2 = app.term.cell(box2!.x, box2!.y)
-    expect(cell2.bg).toBe(3) // yellow = index 3 ($selected)
+    expect(cell2.bg).toBe(TC.$selected)
 
-    // OLD cursor position should NOT have yellow bg (stale pixel check)
+    // OLD cursor position should NOT have $selected bg (stale pixel check)
     const oldCell = app.term.cell(box1!.x, box1!.y)
-    expect(oldCell.bg).not.toBe(3) // should NOT be cyan anymore
+    expect(oldCell.bg).not.toBe(TC.$selected)
   })
 
   test("multiple cursor movements don't accumulate stale pixels", () => {
@@ -69,14 +70,14 @@ describe("incremental rendering", () => {
       positions.push({ x: box.x, y: box.y })
     }
 
-    // Current cursor (on "d") should have yellow bg
+    // Current cursor (on "d") should have $selected bg
     const currentCell = app.term.cell(positions[3]!.x, positions[3]!.y)
-    expect(currentCell.bg).toBe(3)
+    expect(currentCell.bg).toBe(TC.$selected)
 
-    // ALL previous positions should NOT have yellow bg
+    // ALL previous positions should NOT have $selected bg
     for (let i = 0; i < 3; i++) {
       const cell = app.term.cell(positions[i]!.x, positions[i]!.y)
-      expect(cell.bg).not.toBe(3)
+      expect(cell.bg).not.toBe(TC.$selected)
     }
   })
 
@@ -89,15 +90,15 @@ describe("incremental rendering", () => {
 
     // Cursor on col1/1a
     const box1 = app.locator("[data-cursor]").boundingBox()!
-    expect(app.term.cell(box1.x, box1.y).bg).toBe(3)
+    expect(app.term.cell(box1.x, box1.y).bg).toBe(TC.$selected)
 
     // Move right to col2
     board.press("l")
     const box2 = app.locator("[data-cursor]").boundingBox()!
 
     // col2 cursor highlighted, col1 old position cleared
-    expect(app.term.cell(box2.x, box2.y).bg).toBe(3)
-    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(3)
+    expect(app.term.cell(box2.x, box2.y).bg).toBe(TC.$selected)
+    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(TC.$selected)
   })
 
   test("scrolling within column clears stale highlights", () => {
@@ -124,18 +125,18 @@ describe("incremental rendering", () => {
       // Cursor element should exist and have moved
       expect(afterBox).not.toBeNull()
 
-      // Scan the ENTIRE visible area for stale yellow bg
-      // Only cells within the current cursor's bounds should have yellow bg.
+      // Scan the ENTIRE visible area for stale $selected bg
+      // Only cells within the current cursor's bounds should have $selected bg.
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 80; x++) {
           const cell = app.term.cell(x, y)
-          if (cell.bg === 3) {
-            // This cell has yellow bg - it should be within the cursor bounds
+          if (cell.bg === TC.$selected) {
+            // This cell has $selected bg - it should be within the cursor bounds
             const inCursorArea =
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursorArea) {
               expect.fail(
-                `Stale yellow bg at (${x},${y}) after moving cursor from "${cursorText}" to "${afterCursorText}"` +
+                `Stale $selected bg at (${x},${y}) after moving cursor from "${cursorText}" to "${afterCursorText}"` +
                   `, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
               )
             }
@@ -159,16 +160,16 @@ describe("incremental rendering", () => {
 
       const afterBox = app.locator("[data-cursor]").boundingBox()!
 
-      // Full scan: no yellow bg outside current cursor bounds
+      // Full scan: no $selected bg outside current cursor bounds
       for (let y = 0; y < 12; y++) {
         for (let x = 0; x < 80; x++) {
           const cell = app.term.cell(x, y)
-          if (cell.bg === 3) {
+          if (cell.bg === TC.$selected) {
             const inCursor =
               y >= afterBox.y && y < afterBox.y + afterBox.height && x >= afterBox.x && x < afterBox.x + afterBox.width
             if (!inCursor) {
               expect.fail(
-                `Stale yellow bg at (${x},${y}) step=${i}, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
+                `Stale $selected bg at (${x},${y}) step=${i}, cursor at (${afterBox.x},${afterBox.y} ${afterBox.width}x${afterBox.height}), char="${cell.char}"`,
               )
             }
           }
@@ -192,16 +193,16 @@ describe("incremental rendering", () => {
 
     // 1b is now selected (data-cursor on 1b)
     expect(app.locator("[data-cursor]").textContent()).toContain("1b")
-    // Old position (1a) should NOT have yellow bg
-    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(3)
+    // Old position (1a) should NOT have $selected bg
+    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(TC.$selected)
 
     // Move back up
     board.press("k")
 
     // 1a is now selected again (data-cursor on 1a)
     expect(app.locator("[data-cursor]").textContent()).toContain("1a")
-    // Old position (1b) should NOT have yellow bg
-    expect(app.term.cell(box2.x, box2.y).bg).not.toBe(3)
+    // Old position (1b) should NOT have $selected bg
+    expect(app.term.cell(box2.x, box2.y).bg).not.toBe(TC.$selected)
   })
 })
 
@@ -236,30 +237,30 @@ describe("incremental rendering: Text node backgroundColor", () => {
     const doingBox = app.getByText("Doing").boundingBox()!
     const doneBox = app.getByText("Done").boundingBox()!
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(3)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(TC.$selected)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
 
     // Move selection to "Doing"
     app.press("l")
 
-    // "Todo" yellow should be cleared, "Doing" should be yellow
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(3)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).toBe(3)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(3)
+    // "Todo" $selected should be cleared, "Doing" should be $selected
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).toBe(TC.$selected)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(TC.$selected)
 
     // Move selection to "Done"
     app.press("l")
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(3)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).toBe(3)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).toBe(TC.$selected)
 
     // Move back to "Todo"
     app.press("h")
     app.press("h")
 
-    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(3)
-    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(3)
-    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(3)
+    expect(app.term.cell(todoBox.x, todoBox.y).bg).toBe(TC.$selected)
+    expect(app.term.cell(doingBox.x, doingBox.y).bg).not.toBe(TC.$selected)
+    expect(app.term.cell(doneBox.x, doneBox.y).bg).not.toBe(TC.$selected)
   })
 })
