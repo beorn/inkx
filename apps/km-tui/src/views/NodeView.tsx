@@ -153,7 +153,7 @@ export function ColumnHeader({
             </Text>
           ) : (
             <>
-              <Box flexGrow={1} flexShrink={1} overflow="hidden">
+              <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
                 <Text bold={!isVirtual} color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
@@ -204,7 +204,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$selected" : undefined} dimColor={!isColumnSelected}>
+          <Text color={isColumnSelected ? "$selected" : "$text3"}>
             {"\u2500".repeat(Math.max(0, width))}
           </Text>
         </Box>
@@ -270,7 +270,7 @@ export function NodeLineView({
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
-    <Box width={width} height={1} backgroundColor={bgColor}>
+    <Box width={width} height={1} backgroundColor={bgColor} paddingRight={2}>
       <Text color={textColor} dimColor={shouldDim} strikethrough={false} wrap="truncate">
         {indentStr}
         <Text color={iconColor}>{icon.char}</Text> <InlineText text={titleText} context={{ hideFields: true }} />
@@ -361,7 +361,7 @@ export function NodeCardView({
       )}
       {/* Title line */}
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
-        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
             <InlineText text={displayContent} context={{ noColor: shouldStripColor, hideFields: true }} />
@@ -435,7 +435,7 @@ export function NodeColumnView({
   return (
     <Box flexDirection="column" width={width}>
       <Box height={1} backgroundColor={bgColor} flexDirection="row">
-        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} wrap="truncate">
             {"§ "}
             {displayName}

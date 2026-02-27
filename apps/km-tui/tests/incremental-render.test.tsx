@@ -27,9 +27,9 @@ describe("incremental rendering", () => {
     expect(box1).not.toBeNull()
 
     // Check initial cell bg at cursor position
-    // The data-cursor Box has backgroundColor="$selected" (cyan = index 6)
+    // The data-cursor Box has backgroundColor="$selected" (yellow = index 3)
     const cell1 = app.term.cell(box1!.x, box1!.y)
-    expect(cell1.bg).toBe(6) // cyan = index 6 ($selected)
+    expect(cell1.bg).toBe(3) // yellow = index 3 ($selected)
 
     // Move cursor down to "1b"
     board.press("j")
@@ -40,13 +40,13 @@ describe("incremental rendering", () => {
     const box2 = cursor2.boundingBox()
     expect(box2).not.toBeNull()
 
-    // New cursor should have cyan bg
+    // New cursor should have yellow bg
     const cell2 = app.term.cell(box2!.x, box2!.y)
-    expect(cell2.bg).toBe(6) // cyan = index 6 ($selected)
+    expect(cell2.bg).toBe(3) // yellow = index 3 ($selected)
 
-    // OLD cursor position should NOT have cyan bg (stale pixel check)
+    // OLD cursor position should NOT have yellow bg (stale pixel check)
     const oldCell = app.term.cell(box1!.x, box1!.y)
-    expect(oldCell.bg).not.toBe(6) // should NOT be cyan anymore
+    expect(oldCell.bg).not.toBe(3) // should NOT be cyan anymore
   })
 
   test("multiple cursor movements don't accumulate stale pixels", () => {
@@ -69,14 +69,14 @@ describe("incremental rendering", () => {
       positions.push({ x: box.x, y: box.y })
     }
 
-    // Current cursor (on "d") should have cyan bg
+    // Current cursor (on "d") should have yellow bg
     const currentCell = app.term.cell(positions[3]!.x, positions[3]!.y)
-    expect(currentCell.bg).toBe(6)
+    expect(currentCell.bg).toBe(3)
 
-    // ALL previous positions should NOT have cyan bg
+    // ALL previous positions should NOT have yellow bg
     for (let i = 0; i < 3; i++) {
       const cell = app.term.cell(positions[i]!.x, positions[i]!.y)
-      expect(cell.bg).not.toBe(6)
+      expect(cell.bg).not.toBe(3)
     }
   })
 
@@ -89,15 +89,15 @@ describe("incremental rendering", () => {
 
     // Cursor on col1/1a
     const box1 = app.locator("[data-cursor]").boundingBox()!
-    expect(app.term.cell(box1.x, box1.y).bg).toBe(6)
+    expect(app.term.cell(box1.x, box1.y).bg).toBe(3)
 
     // Move right to col2
     board.press("l")
     const box2 = app.locator("[data-cursor]").boundingBox()!
 
     // col2 cursor highlighted, col1 old position cleared
-    expect(app.term.cell(box2.x, box2.y).bg).toBe(6)
-    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(6)
+    expect(app.term.cell(box2.x, box2.y).bg).toBe(3)
+    expect(app.term.cell(box1.x, box1.y).bg).not.toBe(3)
   })
 
   test("scrolling within column clears stale highlights", () => {

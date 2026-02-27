@@ -168,8 +168,12 @@ export function resolveProjectDisplayNames(repo: Repo, slugs: string[]): string[
 export const PERSON_SHORT_NAMES: Record<string, string> = {
   "bjørn-stabell": "BS",
   "bjorn-stabell": "BS",
+  "bjørn": "BS",
+  "bjorn": "BS",
   "michael-welch": "MW",
+  "michael": "MW",
   "shi-delei": "SD",
+  "shi": "SD",
 }
 
 /** Strip known person @mentions entirely, strip #tags and +projects.
@@ -181,30 +185,53 @@ export function stripKnownMentions(text: string): string {
 }
 
 function stripKnownFromNodes(nodes: InlineNode[]): string {
-  return nodes
-    .map((node) => {
-      switch (node.type) {
-        case "mention":
-          return PERSON_SHORT_NAMES[node.name] !== undefined ? "" : `@${node.name}`
-        case "tag":
-        case "project":
-        case "field":
-          return ""
-        case "blockref":
-          // Preserve blockrefs — they may resolve to titles in InlineText
-          return ` ^${node.id}`
-        case "wikilink":
-          // Preserve wikilinks — they may resolve to titles in InlineText
-          return node.alias ? `[[${node.target}|${node.alias}]]` : `[[${node.target}]]`
-        case "bold":
-        case "italic":
-        case "strikethrough":
-          return stripKnownFromNodes(node.children)
-        default:
-          return inlineNodesToPlainText([node])
+  let result = ""
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]!
+    switch (node.type) {
+      case "mention": {
+        const isKnown = PERSON_SHORT_NAMES[node.name] !== undefined
+        if (isKnown) {
+          // Skip trailing surname in next plain text node (e.g., " Stabell" after "@Bjørn")
+          const next = nodes[i + 1]
+          if (next?.type === "plain") {
+            const stripped = next.text.replace(/^ [A-Z\p{Lu}][\p{L}'-]*/u, "")
+            if (stripped !== next.text) {
+              // We consumed part of the next node
+              if (stripped.length > 0) {
+                result += stripped
+              }
+              i++ // skip the next node since we processed it
+            }
+          }
+        } else {
+          result += `@${node.name}`
+        }
+        break
       }
-    })
-    .join("")
+      case "tag":
+      case "project":
+      case "field":
+        break
+      case "blockref":
+        // Preserve blockrefs — they may resolve to titles in InlineText
+        result += ` ^${node.id}`
+        break
+      case "wikilink":
+        // Preserve wikilinks — they may resolve to titles in InlineText
+        result += node.alias ? `[[${node.target}|${node.alias}]]` : `[[${node.target}]]`
+        break
+      case "bold":
+      case "italic":
+      case "strikethrough":
+        result += stripKnownFromNodes(node.children)
+        break
+      default:
+        result += inlineNodesToPlainText([node])
+        break
+    }
+  }
+  return result
 }
 
 /** Capitalize the first character of a string */

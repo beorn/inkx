@@ -447,7 +447,7 @@ export function formatTitleWithHotkey(title: string, hotkey: string, color?: str
  * - Footer: centered, dimColor, with spacer above
  */
 export function ModalDialog({
-  borderColor = "$separator",
+  borderColor = "$text3",
   title,
   titleColor,
   titleAlign = "center",
@@ -459,7 +459,7 @@ export function ModalDialog({
   footerAlign = "center",
   children,
 }: ModalDialogProps): React.ReactElement {
-  const effectiveTitleColor = titleColor ?? borderColor
+  const effectiveTitleColor = titleColor ?? "$primary"
   // When titleRight is provided, use space-between layout for the title bar
   const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
 
@@ -617,7 +617,7 @@ export function NodeLine({
   return (
     <Box width="100%" height={1} backgroundColor={isSelected ? "$selected" : "$raisedbg"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
-      <Box flexGrow={1} flexShrink={1} overflow="hidden">
+      <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
         <Text color={isSelected ? "$selectedfg" : undefined} wrap="truncate">
           {prefix}
           <Text color={isSelected ? "$selectedfg" : icon.color}>{icon.char} </Text>

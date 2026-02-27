@@ -28,7 +28,7 @@ interface SearchReplaceDialogProps {
 
 /**
  * Text input for search or replace field.
- * Uses useEditContext to register as the active edit target.
+ * Active: shows cursor via useEditContext. Inactive: plain dimmed text.
  */
 function DialogInput({
   value,
@@ -40,9 +40,8 @@ function DialogInput({
   isActive: boolean
 }): React.ReactElement {
   if (!isActive) {
-    // Inactive field: dim border, dim text
     return (
-      <Box borderStyle="round" borderColor="$separator" dimColor flexGrow={1} overflow="hidden">
+      <Box flexGrow={1} overflow="hidden">
         <Text dimColor>{value || " "}</Text>
       </Box>
     )
@@ -72,7 +71,7 @@ function ActiveInput({ value, onChange }: { value: string; onChange: (value: str
   const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
 
   return (
-    <Box borderStyle="round" borderColor="$focusring" flexGrow={1} overflow="hidden">
+    <Box flexGrow={1} overflow="hidden">
       <Text>
         {beforeCursor}
         <Text inverse>{cursorChar}</Text>

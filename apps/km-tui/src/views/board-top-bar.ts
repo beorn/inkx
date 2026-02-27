@@ -140,12 +140,12 @@ export function renderTopBarContent(
   // Use style only for bold (board root) and dim (other segments)
   // Base color is inherited from parent Text component
   // Always use dark text — bar background is always bright (white or yellow)
-  const boldStyle = style.black.bold
-  const dimStyle = style.black.dim
+  const boldStyle = style.bold
+  const dimStyle = style.dim
 
   // Board color dot: use the color if it's dark enough, otherwise dim black
   const dotColor =
-    boardColor && !isBrightOnWhite(boardColor) ? colorize("●", boardColor) : boardColor ? style.black.dim("●") : null
+    boardColor && !isBrightOnWhite(boardColor) ? colorize("●", boardColor) : boardColor ? style.dim("●") : null
   let content = dotColor ? " " + dotColor + " " : " "
 
   segments.forEach((seg, idx) => {

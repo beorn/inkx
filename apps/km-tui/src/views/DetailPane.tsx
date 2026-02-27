@@ -7,7 +7,7 @@
 /* oxlint-disable complexity/complexity -- React component — node detail display with many conditionals */
 
 import React from "react"
-import { Box, Text, ErrorBoundary, useFocusable } from "inkx"
+import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime, isOutline, isItem } from "@km/core"
 import { extractBody } from "@km/tree"
@@ -34,19 +34,19 @@ export interface DetailPaneProps {
   height: number
   /** Active cursor node ID within the detail pane. Null = no cursor. */
   detailCursorNodeId?: string | null
+  /** Whether this pane is focused (from workspace pane system). Default: true. */
+  isFocused?: boolean
 }
 
-export function DetailPane({ node, width, height, detailCursorNodeId = null }: DetailPaneProps): React.ReactElement {
+export function DetailPane({
+  node,
+  width,
+  height,
+  detailCursorNodeId = null,
+  isFocused = true,
+}: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
-
-  // Tree-based focus: useFocusable reads the testID from the nearest parent
-  // Box's NodeContext. The wrapping Box has testID="detail-pane" and focusable,
-  // so `hookFocused` reflects the true focus state.
-  const { focused: hookFocused, focus, blur } = useFocusable()
-
-  const detailFocused = hookFocused
-  void focus // available for programmatic focus
-  void blur // available for programmatic blur
+  const detailFocused = isFocused
 
   // Resolve embedded links to show the target node's details
   const embedSrc = node.embed_source

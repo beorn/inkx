@@ -69,7 +69,7 @@ describe("HR borderless rendering", () => {
     }
   })
 
-  test("selected HR is cyan", () => {
+  test("selected HR is yellow", () => {
     const { board } = testEnv(() => item("board", item("col", item.hr("my-hr"))))
     // HR should be selected by default (first card)
     const hrBox = board.screen.nodeBox("my-hr")
@@ -85,8 +85,8 @@ describe("HR borderless rendering", () => {
       }
       expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
       const cell = board.screen.cell(dashX, hrBox.y)
-      // Should be cyan (color 6, $selected) when selected
-      expect(cell.fg, "selected HR should be cyan").toBe(6)
+      // Should be yellow (color 3, $selected) when selected
+      expect(cell.fg, "selected HR should be yellow").toBe(3)
       expect(cell.attrs.dim, "selected HR should not be dim").toBeFalsy()
     }
   })
@@ -194,19 +194,29 @@ describe("HR display", () => {
     expect(text).toContain("---")
   })
 
-  test("HR line is dimmed when cursor is NOT on it", () => {
+  test("HR line is muted when cursor is NOT on it", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task-above"), item.hr("hr-node"), item("task-below"))),
       { columns: 60, rows: 20 },
     )
 
-    // Cursor starts on task-above, so HR should be dimmed
-    const ansi = board._result.ansi
-    const lines = ansi.split("\n")
-    const hrLine = lines.find((l) => l.includes("─".repeat(5)))
-    expect(hrLine).toBeDefined()
-    // Dim ANSI code: \x1b[2m or \x1b[0;2m
-    expect(hrLine).toMatch(/\x1b\[[\d;]*2m/)
+    // Cursor starts on task-above, HR should not be highlighted
+    // HR content "---" is rendered with default text color (not selected)
+    const hrBox = board.screen.nodeBox("hr-node")
+    expect(hrBox, "HR node should be visible").not.toBeNull()
+    if (hrBox) {
+      let dashX = -1
+      for (let x = hrBox.x; x < hrBox.x + hrBox.width; x++) {
+        if (board.screen.cell(x, hrBox.y).char === "-") {
+          dashX = x
+          break
+        }
+      }
+      expect(dashX, "HR should contain dash characters").toBeGreaterThanOrEqual(0)
+      const cell = board.screen.cell(dashX, hrBox.y)
+      // Not selected: should NOT have yellow ($selected) foreground
+      expect(cell.fg, "non-selected HR should not be yellow").not.toBe(3)
+    }
   })
 
   test("HR card gets selection styling when cursor IS on it", () => {

@@ -1,9 +1,9 @@
 /**
  * Cursor color tests for TreeNode
  *
- * Bug 1 (km-tui.cursor-colors): When a node is selected (cyan bg),
+ * Bug 1 (km-tui.cursor-colors): When a node is selected (yellow bg),
  * infoSuffix and dateBadge Text elements don't set color={style.textColor},
- * so they render as white-on-cyan instead of black-on-cyan.
+ * so they render as white-on-yellow instead of black-on-yellow.
  *
  * Bug 2 (km-tui.date-not-dim): formatRelativeDate() doesn't colorize
  * scheduled dates, so in a range like "Today -> Tomorrow", the scheduled
@@ -22,7 +22,7 @@ function cursor(nodeId: string): string {
 }
 
 describe("cursor colors (km-tui.cursor-colors)", () => {
-  it("selected node date badge has black text on cyan background", () => {
+  it("selected node date badge has black text on yellow background", () => {
     // Create a task with a due date far enough in the future to show as a short date
     const nodes = item("board", item("col1", item.task("dateTask")))
     const taskNode = nodes.find((n) => n.content === "dateTask")!
@@ -43,13 +43,13 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aprIdx = row.indexOf("Apr")
     expect(aprIdx, "date badge 'Apr' should be visible in the row").toBeGreaterThan(-1)
 
-    // The date badge text should be black (0) on cyan (6) when selected
+    // The date badge text should be black (0) on yellow (3) when selected
     const cell = board.screen.cell(aprIdx, nodeBox.y)
     expect(cell.fg, `date badge fg at (${aprIdx},${nodeBox.y}) should be black`).toEqual(0)
-    expect(cell.bg, `date badge bg at (${aprIdx},${nodeBox.y}) should be cyan`).toEqual(6)
+    expect(cell.bg, `date badge bg at (${aprIdx},${nodeBox.y}) should be yellow`).toEqual(3)
   })
 
-  it("selected node info suffix has black text on cyan background", () => {
+  it("selected node info suffix has black text on yellow background", () => {
     // Create a task with an assigned_to value to generate an info suffix
     // Use columns view because info suffix only shows in oneliner (non-compact) mode
     const nodes = item("board", item("col1", item.task("assignedTask")))
@@ -70,13 +70,13 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aliceIdx = row.indexOf("@A")
     expect(aliceIdx, "info suffix '@A' should be visible").toBeGreaterThan(-1)
 
-    // The info suffix text should be black (0) on cyan (6) when selected
+    // The info suffix text should be black (0) on yellow (3) when selected
     const cell = board.screen.cell(aliceIdx, nodeBox.y)
     expect(cell.fg, `info suffix fg at (${aliceIdx},${nodeBox.y}) should be black`).toEqual(0)
-    expect(cell.bg, `info suffix bg at (${aliceIdx},${nodeBox.y}) should be cyan`).toEqual(6)
+    expect(cell.bg, `info suffix bg at (${aliceIdx},${nodeBox.y}) should be yellow`).toEqual(3)
   })
 
-  it("non-selected node date badge is NOT black-on-cyan", () => {
+  it("non-selected node date badge is NOT black-on-yellow", () => {
     // Create two tasks, second one with a date
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("secondTask")))
     const secondTask = nodes.find((n) => n.content === "secondTask")!
@@ -87,7 +87,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // First task is selected, second is not
     board.expect(cursor("firstTask")).toExist()
 
-    // Second task's date badge should NOT have cyan background
+    // Second task's date badge should NOT have yellow background
     const nodeBox = board.screen.nodeBox("secondTask")
     expect(nodeBox).not.toBeNull()
     if (!nodeBox) return
@@ -96,7 +96,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     const aprIdx = row.indexOf("Apr")
     if (aprIdx > -1) {
       const cell = board.screen.cell(aprIdx, nodeBox.y)
-      expect(cell.bg, "non-selected date badge should not have cyan bg").not.toEqual(6)
+      expect(cell.bg, "non-selected date badge should not have yellow bg").not.toEqual(3)
     }
   })
 })
@@ -185,22 +185,22 @@ describe("date badge colors (km-tui.date-not-dim)", () => {
 })
 
 // =============================================================================
-// Cursor color override tests (selected cursor renders all text as black-on-cyan)
+// Cursor color override tests (selected cursor renders all text as black-on-yellow)
 // =============================================================================
 
 /**
  * Find the card content line for a selected card and extract the content
  * between border characters, trimming trailing border ANSI codes.
  *
- * Selected cards use cyan background (48;5;6 in 256-color mode).
+ * Selected cards use yellow background (48;5;3 in 256-color mode).
  */
 function findSelectedCardContent(ansi: string, text: string): string | undefined {
   const lines = ansi.split("\n")
   for (const line of lines) {
     const plain = stripAnsi(line)
     if (!plain.includes(text)) continue
-    // Selected card has cyan background (48;5;6)
-    if (!line.includes("48;5;6")) continue
+    // Selected card has yellow background (48;5;3)
+    if (!line.includes("48;5;3")) continue
 
     // Extract content between border chars │...│
     const firstBorder = line.indexOf("\u2502")
@@ -277,7 +277,7 @@ describe("cursor color override", () => {
     const content = findSelectedCardContent(ansi, "Fix the config bug")
     expect(content).toBeDefined()
 
-    // Selected content should have only black foreground (no cyan from backtick code)
+    // Selected content should have only black foreground (no colored text from backtick code)
     expect(hasNonBlackForeground(content!)).toBe(false)
   })
 
@@ -307,10 +307,10 @@ describe("cursor color override", () => {
     const ansi = board._result.ansi
     const lines = ansi.split("\n")
 
-    // Find the unselected card (no cyan background 48;5;6)
+    // Find the unselected card (no yellow background 48;5;3)
     const codeLine = lines.find((line) => {
       const plain = stripAnsi(line)
-      return plain.includes("Has code text") && !line.includes("48;5;6")
+      return plain.includes("Has code text") && !line.includes("48;5;3")
     })
     expect(codeLine).toBeDefined()
 
@@ -337,7 +337,7 @@ describe("cursor color override", () => {
 // =============================================================================
 // Selected card color tests (km-tui.selected-color, km-tui.fold-count-color, km-tui.date-range-color)
 //
-// All content on a selected card should be black-on-cyan (fg=0, bg=6).
+// All content on a selected card should be black-on-yellow (fg=0, bg=3).
 // This includes: title, date badges, fold counts, info suffixes.
 //
 // Date ranges on non-selected cards should use green for future/today, red for overdue.
@@ -370,8 +370,8 @@ function expectCellRangeColor(
   }
 }
 
-describe("km-tui.selected-color: all selected card content is black-on-cyan", () => {
-  it("date badge on selected card is black (fg=0) on cyan (bg=6)", () => {
+describe("km-tui.selected-color: all selected card content is black-on-yellow", () => {
+  it("date badge on selected card is black (fg=0) on yellow (bg=3)", () => {
     const nodes = item("board", item("col1", item.task("taskWithDate")))
     const taskNode = nodes.find((n) => n.content === "taskWithDate")!
     taskNode.due_at = "2026-04-15"
@@ -390,23 +390,23 @@ describe("km-tui.selected-color: all selected card content is black-on-cyan", ()
     const aprIdx = row.indexOf("Apr")
     expect(aprIdx, "date badge 'Apr' should be visible").toBeGreaterThan(-1)
 
-    // Every character in date badge should be black-on-cyan
-    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 6 }, "selected date badge")
+    // Every character in date badge should be black-on-yellow
+    expectCellRangeColor(board, nodeBox.y, aprIdx, 6, { fg: 0, bg: 3 }, "selected date badge")
   })
 
   // Child count is hidden in cards (hideChildCount) — overflow indicator shows count instead.
   // Color tests for child count only apply in outline/list mode.
 
-  it("title text on selected card is black (fg=0) on cyan (bg=6)", () => {
+  it("title text on selected card is black (fg=0) on yellow (bg=3)", () => {
     const nodes = item("board", item("col1", item.task("mySelectedTask")))
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     board.expect('[id="mySelectedTask"][data-cursor]').toExist()
-    board.expectNodeColor("mySelectedTask", { fg: 0, bg: 6 })
+    board.expectNodeColor("mySelectedTask", { fg: 0, bg: 3 })
   })
 
-  it("date range on selected card is black-on-cyan (not green/red)", () => {
+  it("date range on selected card is black-on-yellow (not green/red)", () => {
     // Task with both scheduled and due date
     const today = new Date()
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
@@ -432,10 +432,10 @@ describe("km-tui.selected-color: all selected card content is black-on-cyan", ()
     const todayIdx = row.indexOf("Today")
     expect(todayIdx, "'Today' should be visible in date range").toBeGreaterThan(-1)
 
-    // All date range text should be black-on-cyan when selected
+    // All date range text should be black-on-yellow when selected
     const cell = board.screen.cell(todayIdx, nodeBox.y)
     expect(cell.fg, "date range 'Today' fg should be black when selected").toEqual(0)
-    expect(cell.bg, "date range 'Today' bg should be cyan when selected").toEqual(6)
+    expect(cell.bg, "date range 'Today' bg should be yellow when selected").toEqual(3)
   })
 })
 
@@ -615,9 +615,9 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     expect(titleCell.attrs.dim, "dropped task title should be dimmed").toBe(true)
   })
 
-  it("done task with inline code has colors stripped (not cyan)", () => {
+  it("done task with inline code has colors stripped (not colored)", () => {
     // Regression: done tasks should strip ANSI colors from title content,
-    // including inline code (backtick) which normally renders as cyan.
+    // including inline code (backtick) which normally renders as colored.
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("Fix the `config` bug")))
     const doneTask = nodes.find((n) => n.content === "Fix the `config` bug")!
     doneTask.task_status = "done"

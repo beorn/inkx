@@ -208,12 +208,12 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
   const ctx = useInlineRenderContext()
   if (decorations?.length) {
     return (
-      <Text color={ctx.noColor ? undefined : "cyan"}>
+      <Text color={ctx.noColor ? undefined : "$control"}>
         <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
       </Text>
     )
   }
-  return <Text color={ctx.noColor ? undefined : "cyan"}>{node.code}</Text>
+  return <Text color={ctx.noColor ? undefined : "$control"}>{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
@@ -286,7 +286,7 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
   const styledValue = ctx.noColor ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={ctx.noColor ? undefined : "cyan"}>
+      <Text dim color={ctx.noColor ? undefined : "$control"}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>

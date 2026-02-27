@@ -186,19 +186,19 @@ function PaneBoardTopBar({
       backgroundColor={isBoardSelected ? "$selected" : undefined}
       paneLabel={paneLabel}
       left={
-        <Text wrap="truncate">
+        <Text color={isBoardSelected ? "$selectedfg" : undefined} wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
         </Text>
       }
       right={
         <>
-          <Text id="view-mode">
+          <Text color={isBoardSelected ? "$selectedfg" : undefined} id="view-mode">
             {" "}
             {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
-            <Text bold={isPaneFocused} dimColor={!isPaneFocused} id="filter-indicator">
+            <Text color={isBoardSelected ? "$selectedfg" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>
@@ -259,16 +259,20 @@ function BoardTopBar({
     <PaneBar
       isFocused={true}
       backgroundColor={isBoardSelected ? "$selected" : undefined}
-      left={<Text wrap="truncate">{renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}</Text>}
+      left={
+        <Text color={isBoardSelected ? "$selectedfg" : undefined} wrap="truncate">
+          {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
+        </Text>
+      }
       right={
         <>
-          <Text dimColor id="view-mode">
+          <Text color={isBoardSelected ? "$selectedfg" : undefined} dimColor={!isBoardSelected} id="view-mode">
             {" "}
             {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
-            <Text bold id="filter-indicator">
+            <Text color={isBoardSelected ? "$selectedfg" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>
@@ -289,6 +293,9 @@ function CursorAwareDetailPane(): React.ReactElement {
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const repo = useRepo()
   const paneLabel = usePaneLabel()
+  const paneId = usePaneId()
+  const focusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
+  const isPaneFocused = paneId === focusedPaneId
   const parentRect = useContentRect()
   const width = parentRect.width > 0 ? parentRect.width : 40
   const height = parentRect.height > 0 ? parentRect.height : 20
@@ -322,7 +329,7 @@ function CursorAwareDetailPane(): React.ReactElement {
   }
   return (
     <Box focusable testID="detail-pane" flexGrow={1} flexDirection="column">
-      <DetailPane node={node} width={width} height={height} detailCursorNodeId={detailCursorNodeId} />
+      <DetailPane node={node} width={width} height={height} detailCursorNodeId={detailCursorNodeId} isFocused={isPaneFocused} />
     </Box>
   )
 }

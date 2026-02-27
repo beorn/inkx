@@ -36,7 +36,6 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
       flexShrink={0}
       flexDirection="row"
       backgroundColor={bg}
-      color={"$selectedfg"}
       dimColor={!isFocused}
     >
       {/* Left: content (path, title, etc.) */}

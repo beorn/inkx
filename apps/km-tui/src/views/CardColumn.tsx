@@ -379,7 +379,7 @@ const Card = React.memo(
               <Text color={borderColor} dimColor={cursorDim}>
                 ╰{"─".repeat(leftPad)}
               </Text>
-              <Text dimColor> +{hiddenCount} </Text>
+              <Text color="$text3"> +{hiddenCount} </Text>
               <Text color={borderColor} dimColor={cursorDim}>
                 {"─".repeat(rightPad)}╯
               </Text>
@@ -815,7 +815,7 @@ export const Column = React.memo(function Column({
       )}
       {hiddenCount > 0 && (
         <Box height={1} justifyContent="center">
-          <Text dimColor>+{hiddenCount} hidden</Text>
+          <Text color="$text3">+{hiddenCount} hidden</Text>
         </Box>
       )}
     </Box>
