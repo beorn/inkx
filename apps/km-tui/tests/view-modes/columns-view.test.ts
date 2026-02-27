@@ -213,8 +213,7 @@ describe("Columns View", () => {
   })
 
   describe("Cursor Position Memory", () => {
-    // TODO: These tests require layout position tracking which may not work in test environment
-    test.skip("preserves Y position when moving between columns", () => {
+    test("preserves Y position when moving between columns", () => {
       const { board } = columnsBoard(
         () =>
           item(
@@ -234,7 +233,7 @@ describe("Columns View", () => {
       expect(Math.abs(card2Box!.y - card1bBox!.y)).toBeLessThanOrEqual(15)
     })
 
-    test.skip("preserves X position when moving up/down", () => {
+    test("preserves X position when moving up/down", () => {
       const { board } = columnsBoard(
         () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { columns: 120 },
@@ -253,23 +252,6 @@ describe("Columns View", () => {
   })
 
   describe("View Mode Switching", () => {
-    // TODO: View mode switching requires command system integration
-    test.skip("cursor position preserved when switching from cards view", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-      board.press("j")
-      board.expect("#task2[data-cursor]").toExist()
-      board.press("v").press("m")
-      board.expect("#task2[data-cursor]").toExist()
-    })
-
-    test.skip("cursor position preserved when switching to cards view", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
-      board.press("j")
-      board.expect("#task2[data-cursor]").toExist()
-      board.press("v").press("m")
-      board.expect("#task2[data-cursor]").toExist()
-    })
-
     test("view mode indicator shows COLUMNS VIEW", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("task"))))
       expect(board.screenshot()).toContain("COLUMNS")
@@ -277,8 +259,7 @@ describe("Columns View", () => {
   })
 
   describe("Virtualization", () => {
-    // TODO: Virtualization tests need investigation - cursor behavior with large lists
-    test.skip("handles large number of cards efficiently", () => {
+    test("handles large number of cards efficiently", () => {
       const cards = Array.from({ length: 100 }, (_, i) => item(`card${i}`))
       const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
@@ -289,7 +270,7 @@ describe("Columns View", () => {
       board.expect("#card0[data-cursor]").toExist()
     })
 
-    test.skip("scrolling works smoothly with many cards", () => {
+    test("scrolling works smoothly with many cards", () => {
       const cards = Array.from({ length: 50 }, (_, i) => item(`card${i}`))
       const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
@@ -351,15 +332,14 @@ describe("Columns View", () => {
       board.expect("#subcard").toExist()
     })
 
-    // TODO: Zoom behavior in columns view may differ from cards view
-    test.skip("zoom into column shows column as board", () => {
+    test("zoom into column shows column as board", () => {
       const { board } = columnsBoard(
         () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
         { columns: 120 },
       )
       board.press("k")
       board.expect("#col1[data-cursor]").toExist()
-      board.press("\r")
+      board.press("z")
 
       board.expect("#task1").toExist()
       board.expect("#task2").toExist()

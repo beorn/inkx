@@ -8,10 +8,10 @@
  *
  * Uses BoardCore (pure rendering) for static tests, or Board (stateful)
  * for keyboard navigation tests:
- * - ✅ Static visual testing with BoardCore
- * - ✅ Keyboard navigation with Board (useReducer + useInput)
+ * - Static visual testing with BoardCore
+ * - Keyboard navigation with Board (useReducer + useInput)
  *
- * ## Tree Builder API (NEW - decker-inspired)
+ * ## Tree Builder API (decker-inspired)
  *
  * Quick fixture creation with nested function calls:
  *
@@ -28,28 +28,6 @@
  *   item("board", item("col1", item("task1"), item("task2")))
  * );
  * board.press("j").expectVisible("task2");
- *
- * // Use standardBoard() for common tests
- * const { repo, root } = standardBoard();
- * const state = buildBoardState(repo, root);
- * ```
- *
- * ## Classic API (existing)
- *
- * @example
- * ```typescript
- * const b = renderBoard(SIMPLE_BOARD);
- *
- * // Content assertions
- * b.expectVisible('Task 1');
- * b.expect('Task 1').toBeVisible();
- *
- * // Keyboard navigation (works with Board)
- * b.press('j');
- * b.expectVisible('Task 2');
- *
- * // Screenshot for debugging
- * console.log(b.screenshot());
  * ```
  */
 /* oxlint-disable complexity/complexity -- Test helper — fixture builder complexity is acceptable */
@@ -85,7 +63,7 @@ import {
 import { handleKey, handleMouse } from "../../src/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "inkx"
-import type { InitialBoardData, ColumnView } from "../../src/types.ts"
+import type { InitialBoardData } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
@@ -362,27 +340,31 @@ function buildTestEventHandlerCtx(store: StoreApi<BoardAppStore>, fm: ReturnType
   }
 }
 
-export function testEnv(
-  treeBuilder: () => KNode[],
-  options?: {
-    columns?: number
-    rows?: number
-    viewMode?: "cards" | "columns" | "list" | "tabs"
-    /** Enable incremental rendering (buffer clone + subtree skip). Default: true */
-    incremental?: boolean
-    /** Compare incremental vs fresh render after every press(). Default: true */
-    checkIncremental?: boolean
-  },
-) {
-  const nodes = treeBuilder()
-  const repo = createFakeRepo({ nodes })
-  const rootNode = nodes[0]
-  if (!rootNode) {
-    throw new Error("Tree builder must return at least one node")
-  }
+// =============================================================================
+// Shared Test Render Environment (internal)
+// =============================================================================
 
+/** Options shared by testEnv and testEnvWithRepo */
+interface TestEnvOptions {
+  columns?: number
+  rows?: number
+  viewMode?: "cards" | "columns" | "list" | "tabs"
+  /** Enable incremental rendering (buffer clone + subtree skip). Default: true */
+  incremental?: boolean
+  /** Compare incremental vs fresh render after every press(). Default: true */
+  checkIncremental?: boolean
+}
+
+/**
+ * Internal helper that creates the shared test rendering infrastructure.
+ * Both testEnv() and testEnvWithRepo() delegate to this.
+ *
+ * Handles: command system init, store setup, renderer creation, pressKey/sendMouse,
+ * and the full fluent board API with all assertion methods.
+ */
+function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOptions) {
   // Build initial board state from repo
-  const initialState = buildBoardState(repo, rootNode.id)
+  const initialState = buildBoardState(repo, rootId)
 
   // Ensure command system is initialized before rendering
   ensureCommandSystemInitialized()
@@ -503,6 +485,29 @@ export function testEnv(
     // Flush React effects via a no-op press
     void originalPress("") // triggers doRender without actual key processing
   }
+
+  // Build the full fluent board API with all assertion methods
+  const board = createFluentBoardApi({ result, columns, rows, pressKey, sendMouseEvent })
+
+  return { board, registry, toastQueue, store, focusManager, result }
+}
+
+// =============================================================================
+// Fluent Board API Builder (internal)
+// =============================================================================
+
+/**
+ * Builds the complete fluent board API object from a rendered test environment.
+ * All assertion methods, screen inspection, mouse events, etc. are included.
+ */
+function createFluentBoardApi(ctx: {
+  result: ReturnType<ReturnType<typeof createRenderer>>
+  columns: number
+  rows: number
+  pressKey: (key: string) => void
+  sendMouseEvent: (mouse: ParsedMouse) => void
+}) {
+  const { result, columns, rows, pressKey, sendMouseEvent } = ctx
 
   // Create fluent API using App's auto-refreshing locators
   const board = {
@@ -1448,7 +1453,23 @@ export function testEnv(
       return board
     },
   }
-  return { board, repo, registry, toastQueue, store, focusManager }
+
+  return board
+}
+
+export function testEnv(
+  treeBuilder: () => KNode[],
+  options?: TestEnvOptions,
+) {
+  const nodes = treeBuilder()
+  const repo = createFakeRepo({ nodes })
+  const rootNode = nodes[0]
+  if (!rootNode) {
+    throw new Error("Tree builder must return at least one node")
+  }
+
+  const env = createTestRenderEnv(repo, rootNode.id, options)
+  return { board: env.board, repo, registry: env.registry, toastQueue: env.toastQueue, store: env.store, focusManager: env.focusManager }
 }
 
 /**
@@ -1471,187 +1492,18 @@ export function testEnv(
 export function testEnvWithRepo(
   repo: Repo,
   rootId: string,
-  options?: {
-    columns?: number
-    rows?: number
-    viewMode?: "cards" | "columns" | "list" | "tabs"
-    /** Enable incremental rendering diagnostics. Default: true */
-    incremental?: boolean
-    /** Compare incremental vs fresh render after every press(). Default: true */
-    checkIncremental?: boolean
-  },
+  options?: TestEnvOptions,
 ) {
-  // Build initial board state from repo
-  const initialState = buildBoardState(repo, rootId)
+  const env = createTestRenderEnv(repo, rootId, options)
 
-  // Ensure command system is initialized before rendering
-  ensureCommandSystemInitialized()
-  getChordState().cancel() // Reset any stale chord state from previous tests
-  resetModeStack()
-
-  // Set up store (same pattern as driver/testEnv)
-  const columns = options?.columns ?? 80
-  const rows = options?.rows ?? 24
-  const viewMode = options?.viewMode ?? "cards"
-  const registry = createGridNavigator()
-  const toastQueue = createToastQueue()
-
-  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
-
-  const storeParams: CreateBoardAppStoreParams = {
-    repo,
-    toastQueue,
-    navigator: registry,
-    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-      initialState.collapsedNodeIds,
-    ),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialState.collapsedColumns ?? [])],
-      { columns, rows },
-      initialState.rootId,
-    ),
-
-    dimensions: { columns, rows },
-  }
-
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
-
-  // Create focus manager for focus tree (matches create-app.tsx production setup)
-  const focusManager = createFocusManager()
-
-  // Render BoardApp with StoreContext.Provider for L3 mode.
-  // BoardApp handles workspace pane layout (including detail pane rendering)
-  // and reads dimensions from the store via useApp() selectors.
-  // singlePassLayout matches production's create-app.tsx rendering pipeline.
-  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
-  const boardAppElement = React.createElement(BoardApp, {
-    initialViewMode: viewMode,
-    toastQueue,
-    navigator: registry,
-  })
-  const result = render(
-    React.createElement(
-      ThemeProvider,
-      { theme: defaultKmTheme },
-      React.createElement(
-        StoreContext.Provider,
-        { value: store as StoreApi<unknown> },
-        React.createElement(
-          FocusManagerContext.Provider,
-          { value: focusManager },
-          React.createElement(RepoProvider, { repo, children: boardAppElement }),
-        ),
-      ),
-    ),
-    { incremental: options?.incremental ?? true },
-  )
-
-  // Override press to route through handleKey (same path as driver/production)
-  const originalPress = result.press.bind(result)
-  const doCheckIncremental = options?.checkIncremental !== false
-  const eventCtx = buildTestEventHandlerCtx(store, focusManager, result)
-  const pressKey = (key: string) => {
-    const ansi = keyToAnsi(key)
-    const [input, parsedKey] = parseKey(ansi)
-    act(() => {
-      handleKey({ input, key: parsedKey }, eventCtx, () => {})
-      // Trigger a no-op Zustand store update to ensure any pending
-      // useSyncExternalStore updates (from repo mutations done outside
-      // of press) get flushed during this act() cycle. Without this,
-      // external store changes aren't reflected until the next
-      // state-changing keypress.
-      store.setState((s) => s)
-    })
-    // Flush remaining React effects via originalPress.
-    // IMPORTANT: Do NOT wrap in act() — sendInput + doRender have their own
-    // act() calls internally. Wrapping in an outer act() makes doRender's
-    // inner act() a nested no-op, preventing React from flushing between
-    // pipeline iterations. This breaks the deferred resolve pattern (Phase 2.7
-    // cursor Y-correction) which needs React to commit between iterations.
-    void originalPress(key)
-
-    // Incremental rendering check: compare incremental buffer against fresh render.
-    // Catches ghost pixels, stale regions, and unmount rendering bugs.
-    if (doCheckIncremental) {
-      const incBuf = result.lastBuffer()
-      if (incBuf) {
-        const freshBuf = result.freshRender()
-        const mismatch = compareBuffers(incBuf, freshBuf)
-        if (mismatch) {
-          const msg = formatMismatch(mismatch, {
-            key,
-            incrementalText: bufferToText(incBuf),
-            freshText: bufferToText(freshBuf),
-          })
-          throw new Error(`Incremental rendering mismatch after press("${key}"):\n${msg}`)
-        }
-      }
-    }
-  }
-
-  // Create fluent API with disposable pattern
-  const board = {
-    /** Whether bell was triggered (boundary hit) */
-    get bell(): boolean {
-      return result.locator("[data-bell]").count() > 0
-    },
-    press: (key: string) => {
-      pressKey(key)
-      return board
-    },
-    q: (selector: string) => {
-      return result.locator(selector)
-    },
-    expect: (selector: string) => ({
-      toExist: () => {
-        const loc = result.locator(selector)
-        expect(loc.count()).toBeGreaterThan(0)
-      },
-      not: {
-        toExist: () => {
-          const loc = result.locator(selector)
-          expect(loc.count()).toBe(0)
-        },
-      },
-      toHaveCount: (n: number) => {
-        const loc = result.locator(selector)
-        expect(loc.count()).toBe(n)
-      },
-    }),
-    screenshot: () => {
-      return result.text
-    },
-    /** Get current status message if visible, or null if no status */
-    getStatus: (): { level: string; message: string } | null => {
-      const bottomBar = result.locator("#bottom-bar")
-      if (bottomBar.count() === 0) {
-        return null
-      }
-      const level = bottomBar.getAttribute("data-status")
-      if (!level) {
-        return null
-      }
-      const statusEl = result.locator("#status-message")
-      if (statusEl.count() === 0) {
-        return null
-      }
-      const text = statusEl.textContent()
-      const spaceIndex = text.indexOf(" ")
-      const message = spaceIndex >= 0 ? text.slice(spaceIndex + 1).trim() : text
-      return level && message ? { level, message } : null
-    },
-    _result: result,
-    // Disposable pattern for automatic cleanup
+  // Wrap board with disposable pattern for automatic cleanup
+  const board = Object.assign(env.board, {
     [Symbol.dispose]: () => {
-      result.unmount()
+      env.result.unmount()
     },
-  }
-  return { board, registry, toastQueue, store, focusManager }
+  })
+
+  return { board, registry: env.registry, toastQueue: env.toastQueue, store: env.store, focusManager: env.focusManager }
 }
 
 // =============================================================================
@@ -1685,543 +1537,13 @@ expect.extend({
 })
 
 // =============================================================================
-// Types
-// =============================================================================
-
-interface BoardTestOptions {
-  columns?: number
-  rows?: number
-}
-
-interface CursorPosition {
-  col?: number
-  card?: number
-}
-
-/**
- * Content assertion builder - returned by expect(text)
- */
-interface ContentAssertion {
-  /** Assert the text is visible in the rendered output */
-  toBeVisible(): BoardTest
-  /** Assert the text is in a specific column */
-  inColumn(title: string): BoardTest
-  /** Assert this element is positioned left of another */
-  toBeLeftOf(testId: string): BoardTest
-  /** Assert this element is positioned right of another */
-  toBeRightOf(testId: string): BoardTest
-  /** Assert this element is positioned above another */
-  toBeAbove(testId: string): BoardTest
-  /** Assert this element is positioned below another */
-  toBeBelow(testId: string): BoardTest
-}
-
-/**
- * Main board test interface - fluent API for testing board navigation
- */
-interface BoardTest {
-  // === Actions ===
-
-  /** Send a key press to the board. Throws if no effect AND no bell (broken chain). */
-  press(key: string): this
-
-  // === Bell State ===
-
-  /** Whether bell was triggered on last action (boundary hit) */
-  readonly bell: boolean
-
-  /** Send multiple key presses */
-  pressSequence(...keys: string[]): this
-
-  /** Type text input */
-  type(text: string): this
-
-  /** Navigate cursor to a specific position (via multiple key presses) */
-  moveTo(pos: CursorPosition): this
-
-  // === Cursor Assertions ===
-
-  /** Assert cursor is at a specific column/card position */
-  expectCursor(pos: CursorPosition): this
-
-  /** Assert a specific text is selected (has cursor) */
-  expectSelected(text: string): this
-
-  // === Content Assertions ===
-
-  /** Start a content assertion chain */
-  expect(text: string): ContentAssertion
-
-  /** Assert number of columns */
-  expectColumnCount(n: number): this
-
-  /** Assert text is visible in the output */
-  expectVisible(text: string): this
-
-  /** Assert text is NOT visible in the output */
-  expectNotVisible(text: string): this
-
-  // === Position Assertions ===
-
-  /** Assert element A is positioned left of element B (by testID) */
-  expectLeftOf(a: string, b: string): this
-
-  /** Assert element A is positioned right of element B (by testID) */
-  expectRightOf(a: string, b: string): this
-
-  /** Assert element A is positioned above element B (by testID) */
-  expectAbove(a: string, b: string): this
-
-  /** Assert element A is positioned below element B (by testID) */
-  expectBelow(a: string, b: string): this
-
-  // === Debug ===
-
-  /** Get the current frame as plain text (for debugging) */
-  screenshot(): string
-
-  /** Get the current frame with ANSI codes */
-  screenshotAnsi(): string
-
-  /** Get the inkx locator for advanced queries (auto-refreshing) */
-  locator(): AutoLocator
-
-  /** Get the underlying render result for advanced use */
-  renderResult(): App
-
-  // === Status Bar Locators ===
-
-  /** Get the view mode text (e.g., "CARDS VIEW", "COLUMNS VIEW") */
-  getViewMode(): string
-
-  /** Get the storage mode text (e.g., "MEM", "DISK") */
-  getStorageMode(): string
-
-  /** Get the repo path text */
-  getRepoPath(): string
-
-  /** Get the node count from the bottom bar */
-  getNodeCount(): string
-
-  /** Get the watcher status text if visible */
-  getWatcherStatus(): string | null
-
-  /** Get the column position text if visible (e.g., "col 1/3") */
-  getColumnPosition(): string | null
-}
-
-// =============================================================================
-// Implementation
-// =============================================================================
-
-class BoardTestImpl implements BoardTest {
-  private result: App
-
-  constructor(result: App) {
-    this.result = result
-  }
-
-  // --- Bell State ---
-
-  /** Whether bell was triggered (boundary hit) - checks for data-bell attribute */
-  get bell(): boolean {
-    return this.result.locator("[data-bell]").count() > 0
-  }
-
-  // --- Status Message (in CommandBox) ---
-
-  /** Get current status message if visible, or null if no status */
-  getStatus(): { level: string; message: string } | null {
-    const bottomBar = this.result.locator("#bottom-bar")
-    if (bottomBar.count() === 0) {
-      return null
-    }
-    const level = bottomBar.getAttribute("data-status")
-    if (!level) {
-      return null
-    }
-    // Status feedback is rendered in CommandFeedback's FlashMessage (#feedback-message)
-    // which floats above the bottom bar. Fall back to legacy #status-message in bottom bar.
-    const feedbackEl = this.result.locator("#feedback-message")
-    if (feedbackEl.count() > 0) {
-      const message = feedbackEl.textContent().trim()
-      return level && message ? { level, message } : null
-    }
-    const statusEl = this.result.locator("#status-message")
-    if (statusEl.count() === 0) {
-      return null
-    }
-    const text = statusEl.textContent()
-    // Text format: "icon message" - extract message after first space
-    const spaceIndex = text.indexOf(" ")
-    const message = spaceIndex >= 0 ? text.slice(spaceIndex + 1).trim() : text
-    return level && message ? { level, message } : null
-  }
-
-  /** Check if status message is showing */
-  get hasStatus(): boolean {
-    const bottomBar = this.result.locator("#bottom-bar")
-    return bottomBar.count() > 0 && !!bottomBar.getAttribute("data-status")
-  }
-
-  // --- Actions ---
-
-  press(key: string): this {
-    // Fire-and-forget - app.press() is async but we don't need to await
-    // because React state updates happen synchronously in the test renderer
-    void this.result.press(key)
-    // AutoLocator auto-refreshes on each access - no manual refresh needed
-    return this
-  }
-
-  pressSequence(...keys: string[]): this {
-    for (const key of keys) {
-      this.press(key)
-    }
-    return this
-  }
-
-  type(text: string): this {
-    for (const char of text) {
-      void this.result.press(char)
-    }
-    // AutoLocator auto-refreshes on each access - no manual refresh needed
-    return this
-  }
-
-  moveTo(pos: CursorPosition): this {
-    // Simple movement - press h/l for columns, j/k for cards
-    // This is a convenience method; tests can also use press() directly
-    // NOTE: This assumes starting from origin - for complex navigation, use press()
-    if (pos.col !== undefined) {
-      for (let i = 0; i < pos.col; i++) {
-        this.press("l")
-      }
-    }
-    if (pos.card !== undefined) {
-      for (let i = 0; i < pos.card; i++) {
-        this.press("j")
-      }
-    }
-    return this
-  }
-
-  // --- Cursor Assertions ---
-
-  expectCursor(pos: CursorPosition): this {
-    // Find the cursor element by testID
-    const cursor = this.result.getByTestId("cursor")
-    const cursorBox = cursor.boundingBox()
-
-    expect(cursorBox).not.toBeNull()
-
-    if (pos.col !== undefined) {
-      // Find the target column and compare X positions
-      const column = this.result.getByTestId(`column-${pos.col}`)
-      const colBox = column.boundingBox()
-      expect(colBox).not.toBeNull()
-
-      // Cursor should be within the column's X range
-      if (cursorBox && colBox) {
-        expect(cursorBox.x).toBeGreaterThanOrEqual(colBox.x)
-        expect(cursorBox.x).toBeLessThan(colBox.x + colBox.width)
-      }
-    }
-
-    if (pos.card !== undefined) {
-      // Find the card at the expected index within the current column
-      // This requires the card to have a testID like "card-{colIndex}-{cardIndex}"
-      const card = this.result.getByTestId(`card-${pos.col ?? 0}-${pos.card}`)
-      const cardBox = card.boundingBox()
-
-      if (cardBox && cursorBox) {
-        // Cursor Y should overlap with card Y
-        expect(cursorBox.y).toBeGreaterThanOrEqual(cardBox.y)
-        expect(cursorBox.y).toBeLessThan(cardBox.y + cardBox.height)
-      }
-    }
-
-    return this
-  }
-
-  expectSelected(text: string): this {
-    // Find text and check if it has selection styling
-    const element = this.result.getByText(text)
-    expect(element.count()).toBeGreaterThan(0)
-
-    // Check if parent has selection attribute
-    const selected = this.result.locator('[data-selected="true"]')
-    const selectedTexts = selected.resolveAll().map((node) => {
-      // Get text content recursively
-      const getTextContent = (n: typeof node): string => {
-        if (n.textContent !== undefined) return n.textContent
-        return n.children.map(getTextContent).join("")
-      }
-      return getTextContent(node)
-    })
-
-    expect(selectedTexts.some((t) => t.includes(text))).toBe(true)
-    return this
-  }
-
-  // --- Content Assertions ---
-
-  expect(text: string): ContentAssertion {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias -- needed to reference BoardTest in returned object
-    const self = this
-    const element = this.result.getByText(text)
-
-    return {
-      toBeVisible(): BoardTest {
-        expect(element.count()).toBeGreaterThan(0)
-        expect(element.isVisible()).toBe(true)
-        return self
-      },
-
-      inColumn(title: string): BoardTest {
-        // Find the column by its title text
-        const column = self.result.getByText(title)
-        expect(column.count()).toBeGreaterThan(0)
-
-        const colBox = column.boundingBox()
-        const textBox = element.boundingBox()
-
-        expect(colBox).not.toBeNull()
-        expect(textBox).not.toBeNull()
-
-        if (colBox && textBox) {
-          // Text should be within the column's X range
-          expect(textBox.x).toBeGreaterThanOrEqual(colBox.x)
-        }
-
-        return self
-      },
-
-      toBeLeftOf(testId: string): BoardTest {
-        const other = self.result.getByTestId(testId)
-        const textBox = element.boundingBox()
-        const otherBox = other.boundingBox()
-
-        expect(textBox).not.toBeNull()
-        expect(otherBox).not.toBeNull()
-
-        if (textBox && otherBox) {
-          expect(textBox.x + textBox.width).toBeLessThanOrEqual(otherBox.x)
-        }
-
-        return self
-      },
-
-      toBeRightOf(testId: string): BoardTest {
-        const other = self.result.getByTestId(testId)
-        const textBox = element.boundingBox()
-        const otherBox = other.boundingBox()
-
-        expect(textBox).not.toBeNull()
-        expect(otherBox).not.toBeNull()
-
-        if (textBox && otherBox) {
-          expect(textBox.x).toBeGreaterThanOrEqual(otherBox.x + otherBox.width)
-        }
-
-        return self
-      },
-
-      toBeAbove(testId: string): BoardTest {
-        const other = self.result.getByTestId(testId)
-        const textBox = element.boundingBox()
-        const otherBox = other.boundingBox()
-
-        expect(textBox).not.toBeNull()
-        expect(otherBox).not.toBeNull()
-
-        if (textBox && otherBox) {
-          expect(textBox.y + textBox.height).toBeLessThanOrEqual(otherBox.y)
-        }
-
-        return self
-      },
-
-      toBeBelow(testId: string): BoardTest {
-        const other = self.result.getByTestId(testId)
-        const textBox = element.boundingBox()
-        const otherBox = other.boundingBox()
-
-        expect(textBox).not.toBeNull()
-        expect(otherBox).not.toBeNull()
-
-        if (textBox && otherBox) {
-          expect(textBox.y).toBeGreaterThanOrEqual(otherBox.y + otherBox.height)
-        }
-
-        return self
-      },
-    }
-  }
-
-  expectColumnCount(n: number): this {
-    // Count columns by testID pattern
-    let count = 0
-    for (let i = 0; i < 20; i++) {
-      // reasonable max
-      const col = this.result.getByTestId(`column-${i}`)
-      if (col.count() > 0) {
-        count++
-      } else {
-        break
-      }
-    }
-    expect(count).toBe(n)
-    return this
-  }
-
-  expectVisible(text: string): this {
-    const frame = this.result.text
-    expect(frame).toContain(text)
-    return this
-  }
-
-  expectNotVisible(text: string): this {
-    const frame = this.result.text
-    expect(frame).not.toContain(text)
-    return this
-  }
-
-  // --- Position Assertions ---
-
-  expectLeftOf(a: string, b: string): this {
-    const aEl = this.result.getByTestId(a)
-    const bEl = this.result.getByTestId(b)
-
-    const aBox = aEl.boundingBox()
-    const bBox = bEl.boundingBox()
-
-    expect(aBox).not.toBeNull()
-    expect(bBox).not.toBeNull()
-
-    if (aBox && bBox) {
-      expect(aBox.x + aBox.width).toBeLessThanOrEqual(bBox.x)
-    }
-
-    return this
-  }
-
-  expectRightOf(a: string, b: string): this {
-    const aEl = this.result.getByTestId(a)
-    const bEl = this.result.getByTestId(b)
-
-    const aBox = aEl.boundingBox()
-    const bBox = bEl.boundingBox()
-
-    expect(aBox).not.toBeNull()
-    expect(bBox).not.toBeNull()
-
-    if (aBox && bBox) {
-      expect(aBox.x).toBeGreaterThanOrEqual(bBox.x + bBox.width)
-    }
-
-    return this
-  }
-
-  expectAbove(a: string, b: string): this {
-    const aEl = this.result.getByTestId(a)
-    const bEl = this.result.getByTestId(b)
-
-    const aBox = aEl.boundingBox()
-    const bBox = bEl.boundingBox()
-
-    expect(aBox).not.toBeNull()
-    expect(bBox).not.toBeNull()
-
-    if (aBox && bBox) {
-      expect(aBox.y + aBox.height).toBeLessThanOrEqual(bBox.y)
-    }
-
-    return this
-  }
-
-  expectBelow(a: string, b: string): this {
-    const aEl = this.result.getByTestId(a)
-    const bEl = this.result.getByTestId(b)
-
-    const aBox = aEl.boundingBox()
-    const bBox = bEl.boundingBox()
-
-    expect(aBox).not.toBeNull()
-    expect(bBox).not.toBeNull()
-
-    if (aBox && bBox) {
-      expect(aBox.y).toBeGreaterThanOrEqual(bBox.y + bBox.height)
-    }
-
-    return this
-  }
-
-  // --- Debug ---
-
-  screenshot(): string {
-    return this.result.text
-  }
-
-  /** Get ANSI-colored output for visual debugging, vs screenshot() which returns plain text via app.text */
-  screenshotAnsi(): string {
-    return this.result.ansi
-  }
-
-  locator(): AutoLocator {
-    return this.result.locator("*")
-  }
-
-  renderResult(): App {
-    return this.result
-  }
-
-  // --- Status Bar Locators ---
-
-  private getTextContent(selector: string): string {
-    const el = this.result.locator(selector)
-    const nodes = el.resolveAll()
-    if (nodes.length === 0) return ""
-    const node = nodes[0]
-    if (!node) return ""
-    return node.textContent ?? ""
-  }
-
-  getViewMode(): string {
-    return this.getTextContent("#view-mode")
-  }
-
-  getStorageMode(): string {
-    return this.getTextContent("#storage-path")
-  }
-
-  getRepoPath(): string {
-    return this.getTextContent("#repo-path")
-  }
-
-  getNodeCount(): string {
-    return this.getTextContent("#node-count")
-  }
-
-  getWatcherStatus(): string | null {
-    const el = this.result.locator("#watcher-status")
-    return el.count() > 0 ? this.getTextContent("#watcher-status") : null
-  }
-
-  getColumnPosition(): string | null {
-    const el = this.result.locator("#column-position")
-    return el.count() > 0 ? this.getTextContent("#column-position") : null
-  }
-}
-
-// =============================================================================
 // Factory Functions
 // =============================================================================
 
 /**
  * Render a board with the given state and return a test helper
  */
-export function renderBoard(state: InitialBoardData, options: BoardTestOptions = {}): BoardTest {
+export function renderBoard(state: InitialBoardData, options: { columns?: number; rows?: number } = {}) {
   const { columns = 80, rows = 24 } = options
 
   // Create a fake repo for static rendering tests
@@ -2305,7 +1627,19 @@ export function renderBoard(state: InitialBoardData, options: BoardTestOptions =
     ),
   )
 
-  return new BoardTestImpl(result)
+  return {
+    press(key: string) {
+      void result.press(key)
+      return this
+    },
+    expectVisible(text: string) {
+      expect(result.text).toContain(text)
+      return this
+    },
+    screenshot(): string {
+      return result.text
+    },
+  }
 }
 
 /**
@@ -2439,52 +1773,3 @@ export function board(config: { columns: ReturnType<typeof column>[] }): Initial
 export const SIMPLE_BOARD = board({
   columns: [column("To Do", ["Task 1", "Task 2"]), column("Done", ["Task 3"])],
 })
-
-/**
- * Board with nested sections
- */
-const NESTED_BOARD = board({
-  columns: [
-    column("Project", [
-      { title: "Phase 1", children: ["Design", "Build"] },
-      { title: "Phase 2", children: ["Test", "Deploy"] },
-    ]),
-  ],
-})
-
-/**
- * Board with many items for scroll testing
- */
-const LONG_BOARD = board({
-  columns: [
-    column(
-      "Tasks",
-      Array.from({ length: 20 }, (_, i) => `Task ${i + 1}`),
-    ),
-  ],
-})
-
-// =============================================================================
-// Re-exports for convenience
-// =============================================================================
-
-export type { BoardTest, BoardTestOptions }
-
-// =============================================================================
-// Layout Helpers
-// =============================================================================
-
-/** Test helper: compute card head midpoint Y */
-export function getCardMidY(layout: {
-  headY?: number
-  headHeight?: number
-  y: number
-  cardHeight?: number
-  height?: number
-}): number {
-  if (layout.headY !== undefined && layout.headHeight !== undefined) {
-    return layout.headY + layout.headHeight / 2
-  }
-  const h = layout.cardHeight ?? layout.height ?? 0
-  return layout.y + h / 2
-}
