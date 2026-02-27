@@ -2,7 +2,9 @@
  * Filter hidden count indicator tests.
  *
  * When items are hidden by filters (text filter, property filters),
- * a dim "+N hidden" indicator appears at the bottom of each column.
+ * a dim "+N hidden" indicator appears as a listFooter inside VirtualList,
+ * right after the last visible card. When cards overflow the viewport,
+ * the footer scrolls with the content and is only visible at the bottom.
  */
 
 import { describe, test, expect } from "vitest"
@@ -223,10 +225,51 @@ describe("filter hidden count indicator", () => {
     expect(hiddenLineIdx).toBeLessThan(lines.length - 10)
   })
 
-  test("VirtualList overflow indicator and hidden count both appear with many cards", () => {
-    // 15 cards total, filter hides 5, leaving 10 visible. With rows=24,
-    // 10 cards won't all fit, so VirtualList should show ▼ overflow indicator.
-    // The +5 hidden indicator should also appear.
+  test("hidden count appears as listFooter inside VirtualList after last card", () => {
+    // The hidden count indicator is rendered as a listFooter inside VirtualList.
+    // With few enough visible cards, both the cards and the footer are visible
+    // without scrolling. With many visible cards that overflow, the footer is
+    // at the end of scrollable content (only visible when scrolled to bottom).
+    //
+    // This test uses 3 visible + 5 hidden cards so everything fits in viewport.
+    const cards = [
+      item("Fix bug 1"),
+      item("Fix bug 2"),
+      item("Fix bug 3"),
+      item("Buy milk"),
+      item("Buy bread"),
+      item("Buy eggs"),
+      item("Read novel"),
+      item("Clean house"),
+    ]
+    const { board, store } = testEnv(() => item("board", item("Tasks", ...cards)), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Apply text filter — 3 "Fix" cards visible, 5 others hidden
+    store.getState().setUI({ filterText: "Fix" })
+    flushFilter(board)
+
+    const screen = board.screenshot()
+
+    // Hidden count should show +5 hidden (rendered as listFooter inside VirtualList)
+    expect(screen).toContain("+5 hidden")
+
+    // 3 cards fit easily in 24 rows, so no overflow indicator
+    expect(screen).not.toContain("▼")
+
+    // The hidden indicator should appear right after the 3 cards, not at screen bottom
+    const lines = screen.split("\n")
+    const hiddenIdx = lines.findIndex((l) => l.includes("+5 hidden"))
+    expect(hiddenIdx).toBeGreaterThan(0)
+    expect(hiddenIdx).toBeLessThan(18) // Well above row 23
+  })
+
+  test("overflow indicator appears when many filtered cards exceed viewport", () => {
+    // When many cards match the filter and overflow the viewport, the ▼ overflow
+    // indicator appears. The hidden count footer is at the end of scrollable
+    // content (not visible when scrolled to top).
     const cards = [
       item("Fix bug 1"),
       item("Fix bug 2"),
@@ -255,24 +298,12 @@ describe("filter hidden count indicator", () => {
 
     const screen = board.screenshot()
 
-    // Hidden count should show +5 hidden
-    expect(screen).toContain("+5 hidden")
-
     // VirtualList overflow indicator ▼ should appear since 10 cards
     // won't fit in 24 rows
     expect(screen).toContain("▼")
 
-    // Both indicators should be near the bottom of the visible area
-    const lines = screen.split("\n")
-    const overflowIdx = lines.findIndex((l) => l.includes("▼"))
-    const hiddenIdx = lines.findIndex((l) => l.includes("+5 hidden"))
-
-    // Both should be in the lower portion of the screen (past the halfway point)
-    expect(overflowIdx).toBeGreaterThan(10)
-    expect(hiddenIdx).toBeGreaterThan(10)
-
-    // Both should be near the bottom (within last ~5 lines of the screen)
-    expect(overflowIdx).toBeGreaterThan(lines.length - 6)
-    expect(hiddenIdx).toBeGreaterThan(lines.length - 6)
+    // The +5 hidden footer is inside the scroll container at the end,
+    // so it's NOT visible when scrolled to top with overflow
+    expect(screen).not.toContain("+5 hidden")
   })
 })

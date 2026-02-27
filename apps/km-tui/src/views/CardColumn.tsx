@@ -459,35 +459,6 @@ function bodyBlockLayoutProps(
 }
 
 // =============================================================================
-// List Height — shrink-to-fit when cards are filtered
-// =============================================================================
-
-/**
- * Minimum card height in rows: outline top (1) + 1 content line + outline bottom (1).
- * Used for shrink-to-fit height estimate when filter hides cards.
- */
-const MIN_CARD_HEIGHT = 3
-
-/**
- * Compute VirtualList height. When hiddenCount > 0 (filter active), shrink the
- * list to fit visible cards so the "+N hidden" indicator appears right after the
- * last card instead of at the bottom of the screen.
- *
- * Uses MIN_CARD_HEIGHT (3) instead of the max item height for the shrink-to-fit
- * estimate. The VirtualList's overflow="scroll" handles the rare case where
- * multi-line cards exceed the viewport.
- */
-function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, itemHeight: number): number {
-  const headerRows = 2 // column header + separator
-  const hiddenRow = hiddenCount > 0 ? 2 : 0
-  const available = columnHeight - headerRows - hiddenRow
-  if (hiddenCount <= 0) return available
-  // Use actual item height for accurate content estimation
-  const contentHeight = cardCount * itemHeight
-  return Math.min(available, contentHeight)
-}
-
-// =============================================================================
 // Skeleton Cards — shown in empty columns during background parse
 // =============================================================================
 
@@ -806,7 +777,7 @@ export const Column = React.memo(function Column({
           isSelected={isSelected}
           items={column.cardNodes}
           width={width - 1}
-          height={computeListHeight(height, hiddenCount, column.cardNodes.length, maxContentLines + 2)}
+          height={height - 2}
           itemHeight={maxContentLines + 2}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
@@ -814,21 +785,21 @@ export const Column = React.memo(function Column({
           renderItem={renderItem}
           overflowIndicator
           scrollAnchor={columnScrollAnchor}
+          listFooter={hiddenCount > 0 ? (
+            <Box flexDirection="column" height={2}>
+              <Box height={1} />
+              <Box justifyContent="center">
+                <Text color="$text4">+{hiddenCount} hidden</Text>
+              </Box>
+            </Box>
+          ) : undefined}
         />
       ) : isLoading ? (
-        <SkeletonCards width={width - 1} height={height - 2 - (hiddenCount > 0 ? 2 : 0)} colIndex={colIndex} />
+        <SkeletonCards width={width - 1} height={height - 2} colIndex={colIndex} />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1} paddingLeft={3}>
             <Text dimColor>(empty)</Text>
-          </Box>
-        </Box>
-      )}
-      {hiddenCount > 0 && (
-        <Box flexDirection="column" height={2}>
-          <Box height={1} />
-          <Box justifyContent="center">
-            <Text color="$text4">+{hiddenCount} hidden</Text>
           </Box>
         </Box>
       )}
