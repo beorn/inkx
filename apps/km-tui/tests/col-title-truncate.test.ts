@@ -185,9 +185,8 @@ describe("col-title-truncate", () => {
     expect(text).toContain("Landing the")
   })
 
-  test("sigil suffix shown when there is enough space", () => {
-    // Short display name "Next" (4 chars) + " @next" (6 chars) = 10 chars.
-    // With 80-col terminal, single column gets ~79 chars. Plenty of room.
+  test("sigil suffix hidden when slug matches display name", () => {
+    // "Next" slugifies to "next", same as "@next" → slug is redundant, not shown.
     const nodes = createSigilBoard({
       displayName: "Next",
       sigilName: "@next",
@@ -198,9 +197,26 @@ describe("col-title-truncate", () => {
     const { board } = testEnvWithRepo(repo, "root", { columns: 80, rows: 15 })
 
     const text = board.screenshot()
-    // The sigil suffix SHOULD appear since there's enough room
-    expect(text).toContain("@next")
+    // The sigil suffix should NOT appear since it's slug-equivalent to the title
+    expect(text).not.toContain("@next")
     expect(text).toContain("Next")
+    expectLinesWithinWidth(text, 80)
+  })
+
+  test("sigil suffix shown when slug differs from display name", () => {
+    // "Next Actions" slugifies to "next-actions", differs from "@next" → slug IS shown.
+    const nodes = createSigilBoard({
+      displayName: "Next Actions",
+      sigilName: "@next",
+      secondCol: false,
+    })
+
+    const repo = createFakeRepo({ nodes })
+    const { board } = testEnvWithRepo(repo, "root", { columns: 80, rows: 15 })
+
+    const text = board.screenshot()
+    expect(text).toContain("@next")
+    expect(text).toContain("Next Actions")
     expectLinesWithinWidth(text, 80)
   })
 

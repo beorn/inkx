@@ -47,6 +47,19 @@ import { styledUnderline } from "chalkx"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 
+/** Check if two names are slug-equivalent (title→slug dedup).
+ * Strips sigil prefixes (@#+ ), lowercases, and normalizes separators.
+ * E.g., "@Bjørn Stabell" and "@bjørn-stabell" → both slugify to "bjørn-stabell". */
+function slugsMatch(a: string, b: string): boolean {
+  const slugify = (s: string) =>
+    s
+      .replace(/^[@#\+]/, "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+  return slugify(a) === slugify(b)
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -164,7 +177,7 @@ export function ColumnHeader({
                     ) : (
                       displayName
                     )}
-                    {!isVirtual && isSigilName(node.name) && node.name !== displayName && (
+                    {!isVirtual && isSigilName(node.name) && !slugsMatch(node.name, displayName) && (
                       <>
                         {" "}
                         <Text dimColor>{node.name}</Text>
