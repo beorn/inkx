@@ -40,7 +40,7 @@ import {
   parseWikiLinks,
   extractAllRefs,
 } from "./parser.ts"
-import { parseWikiLinks, type WikiLink, type PropertyValue, type SectionRules } from "./parser.ts"
+import type { WikiLink, PropertyValue, SectionRules } from "./parser.ts"
 
 /**
  * Interpret heading rules from propsRaw (already extracted by kmInlinePropTransform).
