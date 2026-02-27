@@ -479,7 +479,7 @@ const MIN_CARD_HEIGHT = 3
  */
 function computeListHeight(columnHeight: number, hiddenCount: number, cardCount: number, _itemHeight: number): number {
   const headerRows = 2 // column header + separator
-  const hiddenRow = hiddenCount > 0 ? 1 : 0
+  const hiddenRow = hiddenCount > 0 ? 2 : 0
   const available = columnHeight - headerRows - hiddenRow
   if (hiddenCount <= 0) return available
   // Tight estimate using minimum card height — VirtualList scrolls if cards are taller
@@ -816,7 +816,7 @@ export const Column = React.memo(function Column({
           scrollAnchor={columnScrollAnchor}
         />
       ) : isLoading ? (
-        <SkeletonCards width={width - 1} height={height - 2 - (hiddenCount > 0 ? 1 : 0)} colIndex={colIndex} />
+        <SkeletonCards width={width - 1} height={height - 2 - (hiddenCount > 0 ? 2 : 0)} colIndex={colIndex} />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1} paddingLeft={3}>
@@ -825,8 +825,11 @@ export const Column = React.memo(function Column({
         </Box>
       )}
       {hiddenCount > 0 && (
-        <Box height={1} justifyContent="center">
-          <Text color="$text3">+{hiddenCount} hidden</Text>
+        <Box flexDirection="column" height={2}>
+          <Box height={1} />
+          <Box justifyContent="center">
+            <Text color="$text4">+{hiddenCount} hidden</Text>
+          </Box>
         </Box>
       )}
     </Box>
