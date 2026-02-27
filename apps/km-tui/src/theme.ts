@@ -7,7 +7,7 @@
  * All components use $token strings (e.g., "$selected", "$focusring")
  * which inkx ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, ansi16LightTheme, generateTheme } from "inkx"
+import { ansi16DarkTheme, ansi16LightTheme, defaultDarkTheme, defaultLightTheme, generateTheme } from "inkx"
 import type { Theme, AnsiPrimary, TerminalCaps } from "inkx"
 
 /** Default theme for km (ANSI 16 dark, primary=yellow) */
@@ -24,6 +24,15 @@ export function kmTheme(primary: PrimaryColor, dark = true): Theme {
 
 /** Select the appropriate theme based on terminal capabilities. */
 export function selectThemeForCaps(caps: TerminalCaps): Theme {
+  if (caps.colorLevel === "truecolor") {
+    const base = caps.darkBackground ? defaultDarkTheme : defaultLightTheme
+    return {
+      ...base,
+      selected: base.primary, // selected = primary (gold in dark, blue in light)
+      link: "#81A1C1", // Nord blue for links
+    }
+  }
+  // ANSI 16 fallback
   return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
 }
 

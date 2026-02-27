@@ -71,7 +71,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$separator"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}

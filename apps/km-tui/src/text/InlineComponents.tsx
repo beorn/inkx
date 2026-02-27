@@ -219,7 +219,7 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   return (
-    <Link href={node.url} color={ctx.noColor ? undefined : "cyan"}>
+    <Link href={node.url} color={ctx.noColor ? undefined : "$link"}>
       {node.text}
     </Link>
   )
@@ -230,7 +230,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   if (resolved) {
     return (
-      <Text color={ctx.noColor ? undefined : "green"} underline>
+      <Text color={ctx.noColor ? undefined : "$link"} underline>
         {resolved}
       </Text>
     )
@@ -299,7 +299,7 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
   return (
-    <Link href={node.url} color={ctx.noColor ? undefined : "cyan"}>
+    <Link href={node.url} color={ctx.noColor ? undefined : "$link"}>
       <Text dim={!ctx.noColor}>{display}</Text>
     </Link>
   )
@@ -310,7 +310,7 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
   const resolved = ctx.resolveBlockRef?.(node.id)
   if (resolved) {
     return (
-      <Text color={ctx.noColor ? undefined : "green"} underline>
+      <Text color={ctx.noColor ? undefined : "$link"} underline>
         {resolved}
       </Text>
     )

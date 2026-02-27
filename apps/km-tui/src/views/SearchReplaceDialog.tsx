@@ -17,7 +17,7 @@
 import React from "react"
 import { Box, Text, useEditContext } from "inkx"
 import type { SearchReplaceState } from "../ui-reducer.ts"
-import { formatTitleWithHotkey } from "./shared-components.tsx"
+import { ModalDialog } from "./shared-components.tsx"
 
 interface SearchReplaceDialogProps {
   state: SearchReplaceState
@@ -40,9 +40,9 @@ function DialogInput({
   isActive: boolean
 }): React.ReactElement {
   if (!isActive) {
-    // Inactive field: just show text, no edit context
+    // Inactive field: dim border, dim text
     return (
-      <Box flexGrow={1} overflow="hidden">
+      <Box borderStyle="round" borderColor="$separator" dimColor flexGrow={1} overflow="hidden">
         <Text dimColor>{value || " "}</Text>
       </Box>
     )
@@ -72,7 +72,7 @@ function ActiveInput({ value, onChange }: { value: string; onChange: (value: str
   const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
 
   return (
-    <Box flexGrow={1} overflow="hidden">
+    <Box borderStyle="round" borderColor="$focusring" flexGrow={1} overflow="hidden">
       <Text>
         {beforeCursor}
         <Text inverse>{cursorChar}</Text>
@@ -100,46 +100,28 @@ export function SearchReplaceDialog({
     }
   }
 
-  const innerWidth = Math.max(20, width - 4) // Account for border padding
-
   return (
-    <Box
-      flexDirection="column"
-      width={width}
-      borderStyle="round"
-      borderColor="$selected"
-      backgroundColor="$raisedbg"
-      paddingX={1}
-      data-dialog="search-replace"
-    >
-      {/* Title bar */}
-      <Box flexDirection="row" justifyContent="space-between">
-        {formatTitleWithHotkey("Find & Replace", "F", "$selected")}
-        {matchRight}
-      </Box>
-
+    <ModalDialog title="Find & Replace" hotkey="F" titleRight={matchRight} width={width}>
       {/* Search field */}
-      <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "search" ? "$text" : "$muted"}>
-          {focusedField === "search" ? "> " : "  "}
-          Find:{" "}
-        </Text>
+      <Box flexDirection="row">
+        <Text color={focusedField === "search" ? "$text" : "$text3"}>Find: </Text>
         <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
 
+      <Text>{" "}</Text>
+
       {/* Replace field */}
-      <Box flexDirection="row" width={innerWidth}>
-        <Text color={focusedField === "replace" ? "$text" : "$muted"}>
-          {focusedField === "replace" ? "> " : "  "}
-          Repl:{" "}
-        </Text>
+      <Box flexDirection="row">
+        <Text color={focusedField === "replace" ? "$text" : "$text3"}>Repl: </Text>
         <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
 
+      <Text>{" "}</Text>
+
       {/* Bottom bar: toggles + hints */}
-      <Box flexDirection="row" justifyContent="space-between" width={innerWidth}>
+      <Box flexDirection="row" justifyContent="space-between">
         <Box flexDirection="row" gap={1}>
-          <Text color={useRegex ? "$success" : "$muted"}>{useRegex ? "\u2713" : "\u25A1"} regex</Text>
+          <Text color={useRegex ? "$success" : "$text3"}>{useRegex ? "\u2713" : "\u25A1"} regex</Text>
         </Box>
         <Box flexDirection="row" gap={1}>
           <Text dimColor>Tab:field</Text>
@@ -148,6 +130,6 @@ export function SearchReplaceDialog({
           <Text dimColor>^X:regex</Text>
         </Box>
       </Box>
-    </Box>
+    </ModalDialog>
   )
 }

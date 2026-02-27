@@ -23,7 +23,7 @@ import {
   parseTaskMetadataFromText,
   getStatusForMarker,
 } from "@km/core"
-import { useRepo } from "../repo-context.tsx"
+import { useRepo, type Repo } from "../repo-context.tsx"
 import {
   getNodeDisplayName,
   isNodeUntitled,
@@ -89,6 +89,117 @@ function cleanEmbedRef(ref: string): string {
   }
   return ref
 }
+
+// ============================================================================
+// Shared helpers — used by both TreeNodeImpl and FoldedChildRow
+// ============================================================================
+
+/** Resolve embed source to target node and display node. */
+function resolveEmbed(
+  repo: Repo,
+  node: KNode,
+): { isEmbedded: boolean; resolvedNode: KNode | null; displayNode: KNode; isBrokenEmbed: boolean } {
+  const embedSource = node.embed_source
+  const isEmbedded = embedSource != null
+  const resolvedNode = isEmbedded && embedSource ? (repo.getNode(embedSource) ?? null) : null
+  const displayNode = resolvedNode ?? node
+  const isBrokenEmbed = isEmbedded && !resolvedNode
+  return { isEmbedded, resolvedNode, displayNode, isBrokenEmbed }
+}
+
+/** Compute the bullet icon based on icon style, task status, and fold state. */
+function computeBulletIcon(
+  displayNode: KNode,
+  nodeIsTask: boolean,
+  taskStatusIcon: StatusIcon | null,
+  hasChildren: boolean,
+  isFolded: boolean,
+  ownColor: string | undefined,
+  iconStyle: string,
+): StatusIcon {
+  if (nodeIsTask && taskStatusIcon) return taskStatusIcon
+  if (iconStyle === "workflowy") {
+    const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
+    return ownColor ? { ...bullet, color: ownColor } : bullet
+  }
+  if (iconStyle === "nerdfont") {
+    const bullet = getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, ownColor)
+    return ownColor ? { ...bullet, color: ownColor } : bullet
+  }
+  // "regular" style — existing fold markers
+  return getFoldMarker(hasChildren, isFolded, ownColor)
+}
+
+/** Hook: build InlineRenderContext with wikilink/blockref resolution and sigil exclusion. */
+function useTreeInlineContext(
+  repo: Repo,
+  rootBoardId: string | null | undefined,
+  extraExcludedSigils: string[] | undefined,
+  sigilColors: Map<string, string> | undefined,
+  resolveSigilColor: ((sigil: string) => string | undefined) | undefined,
+  excludedSigilsOverride?: string[],
+): InlineRenderContext {
+  // Excluded sigils: use override if provided, otherwise derive from rootBoardId
+  const excludedSigils = useMemo(() => {
+    if (excludedSigilsOverride && excludedSigilsOverride.length > 0) return excludedSigilsOverride
+    const rootSigils = deriveExcludedSigils(repo, rootBoardId ?? null)
+    if (!extraExcludedSigils?.length) return rootSigils
+    return [...rootSigils, ...extraExcludedSigils]
+  }, [excludedSigilsOverride, repo, rootBoardId, extraExcludedSigils])
+
+  return useMemo(() => {
+    const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
+    const wikiLinkCache = new Map<string, string | null>()
+    const resolveWikiLink = (target: string): string | null => {
+      if (!target?.trim()) return null
+      const cached = wikiLinkCache.get(target)
+      if (cached !== undefined) return cached
+      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+      let result: string | null = null
+      if (resolved) {
+        result = getNodeDisplayName(repo, resolved)
+      } else if (target.startsWith("^")) {
+        const byId = repo.getNode(target.slice(1))
+        if (byId) result = getNodeDisplayName(repo, byId)
+      }
+      wikiLinkCache.set(target, result)
+      return result
+    }
+    const resolveBlockRef = (id: string): string | null => {
+      if (!id?.trim()) return null
+      const cacheKey = `^${id}`
+      const cached = wikiLinkCache.get(cacheKey)
+      if (cached !== undefined) return cached
+      const resolved = repo.getNode(id)
+      const result = resolved ? getNodeDisplayName(repo, resolved) : null
+      wikiLinkCache.set(cacheKey, result)
+      return result
+    }
+    return {
+      excludeSigils: excludeSet,
+      sigilColors,
+      resolveSigilColor,
+      resolveWikiLink,
+      resolveBlockRef,
+      hideFields: true,
+    }
+  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
+}
+
+/** Hook: compute search decorations for a content string. */
+function useSearchDecorations(
+  content: string,
+  searchHighlight: boolean,
+  searchQuery: string | null | undefined,
+  isCurrentMatch: boolean,
+): TextDecoration[] | undefined {
+  return useMemo(
+    () => (searchHighlight && searchQuery ? computeSearchDecorationsFromSource(content, searchQuery, isCurrentMatch) : undefined),
+    [searchHighlight, content, searchQuery, isCurrentMatch],
+  )
+}
+
+// ============================================================================
 
 interface TreeNodeProps {
   node: KNode
@@ -264,17 +375,7 @@ function TreeNodeImpl({
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
-  // Embed data model (see docs/design/km-ast/model.md):
-  //   embed_source  — target node ID to transclude (e.g., "^1234567890")
-  //   content       — optional alias override; if non-empty, show INSTEAD of target's title
-  //   resolvedNode  — the target KNode (null = broken link)
-  //   displayNode   — resolvedNode when available, else falls back to this node
-  const embedSource = node.embed_source
-  const isEmbedded = embedSource != null
-  const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
-  const displayNode = resolvedNode ?? node
-  // Broken embed: embed_source is set but target node doesn't exist (stale/orphan reference)
-  const isBrokenEmbed = isEmbedded && !resolvedNode
+  const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)
 
   // Use provided children or fetch from repo
   // For embeds, get children from the TARGET node (transclusion shows target's children)
@@ -343,20 +444,10 @@ function TreeNodeImpl({
   const dimUntitled = untitled && !isSelected && !isMultiSelected
 
   // Compute the bullet icon based on icon style
-  const bulletIcon = useMemo((): StatusIcon => {
-    if (nodeIsTask && style.taskStatusIcon) return style.taskStatusIcon
-    if (iconStyle === "workflowy") {
-      const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
-      return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
-    }
-    if (iconStyle === "nerdfont") {
-      const bullet = getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, style.ownColor)
-      return style.ownColor ? { ...bullet, color: style.ownColor } : bullet
-    }
-    // "regular" style — existing fold markers
-    const bullet = getFoldMarker(hasChildren, isFolded, style.ownColor)
-    return bullet
-  }, [nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon])
+  const bulletIcon = useMemo(
+    () => computeBulletIcon(displayNode, nodeIsTask, style.taskStatusIcon, hasChildren, isFolded, style.ownColor, iconStyle),
+    [nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon],
+  )
 
   // Memoize prefix - only recalc when bullet icon changes
   const prefix = useMemo(() => buildPrefix(bulletIcon), [bulletIcon])
@@ -549,54 +640,11 @@ function TreeNodeImpl({
     return compactContent ? displayContent.replace(/\n\s*\n/g, "\n") : displayContent
   }, [displayContent, compactContent])
 
-  // Memoize inline render context - only recalc when sigil config changes
-  const inlineContext: InlineRenderContext = useMemo(() => {
-    const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
-    // Resolve [[target]] wikilinks to display titles — cached to avoid repeated DB lookups
-    const wikiLinkCache = new Map<string, string | null>()
-    const resolveWikiLink = (target: string): string | null => {
-      if (!target?.trim()) return null
-      const cached = wikiLinkCache.get(target)
-      if (cached !== undefined) return cached
-      // Use in-memory name index (O(1)) instead of resolveNode (6+ SQL queries)
-      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-      let result: string | null = null
-      if (resolved) {
-        result = getNodeDisplayName(repo, resolved)
-      } else if (target.startsWith("^")) {
-        const byId = repo.getNode(target.slice(1))
-        if (byId) result = getNodeDisplayName(repo, byId)
-      }
-      wikiLinkCache.set(target, result)
-      return result
-    }
-    const resolveBlockRef = (id: string): string | null => {
-      if (!id?.trim()) return null
-      const cached = wikiLinkCache.get(`^${id}`)
-      if (cached !== undefined) return cached
-      const resolved = repo.getNode(id)
-      const result = resolved ? getNodeDisplayName(repo, resolved) : null
-      wikiLinkCache.set(`^${id}`, result)
-      return result
-    }
-    return {
-      excludeSigils: excludeSet,
-      sigilColors,
-      resolveSigilColor,
-      resolveWikiLink,
-      resolveBlockRef,
-      hideFields: true,
-    }
-  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
+  // Shared inline render context (wikilink/blockref resolution, sigil exclusion)
+  const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor, excludedSigils)
 
   // Search decorations — character-level highlighting of search matches
-  const searchDecorations = useMemo(
-    () =>
-      searchHighlight && searchQuery
-        ? computeSearchDecorationsFromSource(processedContent, searchQuery, isCurrentMatch)
-        : undefined,
-    [searchHighlight, processedContent, searchQuery, isCurrentMatch],
-  )
+  const searchDecorations = useSearchDecorations(processedContent, searchHighlight, searchQuery, isCurrentMatch)
 
   // Info suffix props — rendered as React component below
   const infoSuffixProps = useMemo(
@@ -1260,74 +1308,19 @@ const FoldedChildRow = React.memo(
     const foldTc = style.textColor
     const foldSd = style.shouldDim
 
-    // Bullet icon — always folded
+    // Bullet icon — always folded (isFolded=true for computeBulletIcon)
     const { iconStyle } = treeConfig
-    let bulletIcon
-    if (nodeIsTask && style.taskStatusIcon) {
-      bulletIcon = style.taskStatusIcon
-    } else if (iconStyle === "workflowy") {
-      bulletIcon = getCircleBullet(hasChildren, hasChildren)
-      if (style.ownColor) bulletIcon = { ...bulletIcon, color: style.ownColor }
-    } else if (iconStyle === "nerdfont") {
-      bulletIcon = getTypeBullet(node, hasChildren) ?? getFoldMarker(hasChildren, true, style.ownColor)
-      if (style.ownColor) bulletIcon = { ...bulletIcon, color: style.ownColor }
-    } else {
-      bulletIcon = getFoldMarker(hasChildren, true, style.ownColor)
-    }
+    const bulletIcon = computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle)
     const prefix = buildPrefix(bulletIcon)
 
-    // Content — resolve embeds like TreeNode does (line 250-256)
-    const embedSource = node.embed_source
-    const isEmbedded = embedSource != null
-    const resolvedNode = isEmbedded && embedSource ? repo.getNode(embedSource) : null
-    const displayNode = resolvedNode ?? node
-    const isBrokenEmbed = isEmbedded && !resolvedNode
+    // Content — resolve embeds
+    const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)
     const rawContent = getDisplayContent(repo, node, displayNode, resolvedNode, isEmbedded)
     const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-    // Inline render context — minimal, no memoization needed (component is memo'd)
-    const excludedSigils = useMemo(() => {
-      const rootSigils = deriveExcludedSigils(repo, rootBoardId)
-      if (!extraExcludedSigils?.length) return rootSigils
-      return [...rootSigils, ...extraExcludedSigils]
-    }, [repo, rootBoardId, extraExcludedSigils])
-    const inlineContext: InlineRenderContext = useMemo(() => {
-      const wikiLinkCache = new Map<string, string | null>()
-      return {
-        excludeSigils: excludedSigils.length > 0 ? new Set(excludedSigils) : undefined,
-        sigilColors,
-        resolveSigilColor,
-        resolveWikiLink: (target: string): string | null => {
-          if (!target?.trim()) return null
-          const cached = wikiLinkCache.get(target)
-          if (cached !== undefined) return cached
-          const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-          const result = resolved ? getNodeDisplayName(repo, resolved) : null
-          wikiLinkCache.set(target, result)
-          return result
-        },
-        resolveBlockRef: (id: string): string | null => {
-          if (!id?.trim()) return null
-          const cacheKey = `^${id}`
-          const cached = wikiLinkCache.get(cacheKey)
-          if (cached !== undefined) return cached
-          const resolved = repo.getNode(id)
-          const result = resolved ? getNodeDisplayName(repo, resolved) : null
-          wikiLinkCache.set(cacheKey, result)
-          return result
-        },
-        hideFields: true,
-      }
-    }, [excludedSigils, sigilColors, resolveSigilColor, repo])
-
-    // Search decorations — character-level highlighting of search matches
-    const foldSearchDecorations = useMemo(
-      () =>
-        searchHighlight && searchQuery
-          ? computeSearchDecorationsFromSource(displayContent, searchQuery, isCurrentMatch)
-          : undefined,
-      [searchHighlight, displayContent, searchQuery, isCurrentMatch],
-    )
+    // Shared inline context and search decorations
+    const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor)
+    const foldSearchDecorations = useSearchDecorations(displayContent, searchHighlight, searchQuery, isCurrentMatch)
 
     return (
       <Box
