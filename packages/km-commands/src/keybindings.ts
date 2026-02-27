@@ -799,6 +799,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "o", commandId: "set_assignee" },
       { chord: "t", key: "d", commandId: "set_due_date" },
       { chord: "t", key: "!", commandId: "set_priority" },
+      { chord: "t", key: "0", commandId: "set_priority_0" },
+      { chord: "t", key: "1", commandId: "set_priority_1" },
+      { chord: "t", key: "2", commandId: "set_priority_2" },
+      { chord: "t", key: "3", commandId: "set_priority_3" },
+      { chord: "t", key: "4", commandId: "set_priority_4" },
       { chord: "t", key: "s", commandId: "set_start_date" },
       { chord: "t", key: "r", commandId: "set_recurring" },
       // toggle_hide_done moved to v d (view prefix)

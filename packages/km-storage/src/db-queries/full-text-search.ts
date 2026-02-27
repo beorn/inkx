@@ -104,7 +104,7 @@ export function search(db: Database, query: string, limit = 50): KNode[] {
     return rows.map(rowToNode)
   } catch (err) {
     // FTS5 can reject queries that slip past our escaping — return empty rather than crash
-    log.debug?.(`search: FTS5 error for "${ftsQuery}": ${err}`)
+    log.debug?.(`search: FTS5 error for "${ftsQuery}": ${String(err)}`)
     return []
   }
 }
@@ -171,7 +171,7 @@ export function searchWithSnippet(
       snippet: row.snippet ?? "",
     }))
   } catch (err) {
-    log.debug?.(`searchWithSnippet: FTS5 error for "${ftsQuery}": ${err}`)
+    log.debug?.(`searchWithSnippet: FTS5 error for "${ftsQuery}": ${String(err)}`)
     return []
   }
 }

@@ -230,7 +230,7 @@ interface KNode {
   assigned_to?: string // User/agent assigned to task
   due_date?: string // YYYY-MM-DD format
   scheduled_date?: string // YYYY-MM-DD format
-  priority?: number // 1-5 (1 = highest)
+  priority?: number // 0-4 (P0=urgent, P4=backlog)
   rrule?: string // iCal RRULE format (e.g., "FREQ=DAILY;FROM=DUE")
   recur_prev?: string // Previous recurrence instance ID
 
@@ -274,7 +274,7 @@ interface KNode {
 | `assigned_to`    | string         | Assignee (user or agent ID)                   |
 | `due_date`       | string         | Due date in YYYY-MM-DD format                 |
 | `scheduled_date` | string         | Scheduled date in YYYY-MM-DD format           |
-| `priority`       | number         | Priority 1-5 (1 = highest)                    |
+| `priority`       | number         | Priority 0-4 (P0=urgent, P4=backlog)          |
 | `rrule`          | string         | iCal RRULE (e.g., `FREQ=WEEKLY;BYDAY=MO;FROM=DUE`) |
 | `recur_prev`     | string         | Links to previous recurrence instance         |
 | `content`        | string         | Node text content                             |
@@ -418,7 +418,7 @@ CREATE TABLE nodes (
   assigned_to TEXT,              -- Assignee
   due_date TEXT,                 -- YYYY-MM-DD
   scheduled_date TEXT,           -- YYYY-MM-DD
-  priority INTEGER,              -- 1-5
+  priority INTEGER,              -- 0-4 (P0=urgent, P4=backlog)
 
   -- Content
   content TEXT,                  -- Inline text

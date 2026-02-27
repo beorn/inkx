@@ -81,7 +81,7 @@ All references create links to boards. The first `@` becomes the **assigned pers
 | --------- | ----------------------- | ---------------------------- |
 | `due::`   | `due:: 2026-01-15`     | When it's due                |
 | `start::` | `start:: 2026-01-20`   | Don't show until this date   |
-| `p::`     | `p:: 1`                | Priority (1-5, 1=highest)    |
+| `p::`     | `p:: 2`                | Priority (0-4, P0=urgent)    |
 | `recur::` | `recur:: every 2 weeks` | Recurrence rule (RRULE + FROM) |
 
 Legacy `key:value` syntax (single colon, no space) is also accepted for
@@ -100,7 +100,7 @@ interface Node {
   refs?: string[] // All @, #, + references (with sigils)
   due?: string // YYYY-MM-DD
   start?: string // YYYY-MM-DD (defer until)
-  p?: number // Priority 1-5
+  p?: number // Priority 0-4 (P0=urgent, P4=backlog)
   rrule?: string // RRULE string (+ optional FROM=DUE)
   recur_prev?: string // Previous instance ID
 }
@@ -440,5 +440,6 @@ km init gtd --dry-run      # Preview what would be created
 
 ## See Also
 
-- [ref/query.md](ref/query.md) — Query language
-- [storage.md](storage.md) — Node schema details
+- [ref/task-fields.md](../ref/task-fields.md) — Task fields, cross-system mapping
+- [ref/query.md](../ref/query.md) — Query language
+- [storage.md](../storage.md) — Node schema details

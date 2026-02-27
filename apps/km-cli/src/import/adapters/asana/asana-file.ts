@@ -86,7 +86,7 @@ function convertTask(task: AsanaTask): ImportItem {
   // Priority from custom fields
   const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value != null)
   if (priorityField?.number_value) {
-    item.priority = Math.max(1, Math.min(4, priorityField.number_value))
+    item.priority = Math.max(0, Math.min(4, priorityField.number_value))
   }
 
   // Subtasks

@@ -77,7 +77,8 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["t o"], command: "set_assignee", description: "set owner" },
       { keys: ["t d/s"], command: "set_due_date", description: "set due / start date" },
       { keys: ["t l"], command: "set_label", description: "set label" },
-      { keys: ["t !"], command: "set_priority", description: "set priority" },
+      { keys: ["t !"], command: "set_priority", description: "cycle priority" },
+      { keys: ["t 0-4"], command: "set_priority_N", description: "set P0-P4" },
     ],
   },
   {

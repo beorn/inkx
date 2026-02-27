@@ -312,7 +312,7 @@ field mapping is nearly 1:1:
 | `due_at` | `DUE` | Date or datetime |
 | `start_at` | `DTSTART` | |
 | `completed_at` | `COMPLETED` | Timestamp |
-| `priority` (1-5) | `PRIORITY` (1-9) | Needs range mapping |
+| `priority` (0-4) | `PRIORITY` (1-9) | Needs range mapping (see [task-fields.md](../ref/task-fields.md#cross-system-priority-mapping)) |
 | `rrule` | `RRULE` | `FROM` param stripped on export, restored on import |
 | `recur_prev` | `RELATED-TO;RELTYPE=SIBLING` | Instance chain (see below) |
 | body | `DESCRIPTION` | Plain text |

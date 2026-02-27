@@ -777,7 +777,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SET_RECURRING":
       return handleSetDatePrompt(ctx, "rrule")
     case "SET_PRIORITY":
-      return handleSetPriority(ctx)
+      return handleSetPriority(ctx, action.level)
     case "DATE_PROMPT_CONFIRM":
       return handleDatePromptConfirm(ctx)
     case "DATE_PROMPT_CANCEL":
@@ -1758,26 +1758,30 @@ function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "rru
   return ok()
 }
 
-/** Cycle priority: none → P1 → P2 → P3 → P4 → none */
-function handleSetPriority(ctx: ActionCtx): ActionResult {
+/** Set priority directly (level 0-4) or cycle (level undefined): none → P0 → P1 → P2 → P3 → P4 → none */
+function handleSetPriority(ctx: ActionCtx, level?: number): ActionResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary("priority", "No card selected")
   const firstNodeId = nodeIds[0]
   if (!firstNodeId) return boundary("priority", "No card selected")
 
-  const firstNode = ctx.repo.getNode(firstNodeId)
-  const current = firstNode?.priority ?? 0
-  const next = current >= 4 ? 0 : (current || 0) + 1
+  let next: number | null
+  if (level != null) {
+    next = level
+  } else {
+    const firstNode = ctx.repo.getNode(firstNodeId)
+    const current = firstNode?.priority
+    next = current == null ? 0 : current >= 4 ? null : current + 1
+  }
 
-  // Auto-recorded by undoable repo — batch multiple updates into one undo entry
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
-    ctx.repo.updateNode(nodeId, { priority: next || null })
+    ctx.repo.updateNode(nodeId, { priority: next })
   }
   if (nodeIds.length > 1) ctx.undoHandle.endBatch()
 
-  const label = next ? `P${next}` : "None"
+  const label = next != null ? `P${next}` : "None"
   ctx.toastQueue.info(`Priority: ${label}`)
   ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
   return ok()

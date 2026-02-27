@@ -133,8 +133,8 @@ const setRecurring = {
 
 const setPriority = {
   id: "set_priority",
-  name: "Set Priority",
-  description: "Set task priority",
+  name: "Cycle Priority",
+  description: "Cycle task priority (none → P0 → P1 → … → P4 → none)",
   category: "Task",
   shortLabel: "priority",
   execute: (ctx) => {
@@ -142,6 +142,26 @@ const setPriority = {
     return { type: "SET_PRIORITY", nodeId: ctx.currentNodeId }
   },
 } satisfies CommandDef
+
+function createSetPriorityCommand(level: number): CommandDef {
+  return {
+    id: `set_priority_${level}`,
+    name: `Set P${level}`,
+    description: `Set task priority to P${level}`,
+    category: "Task",
+    shortLabel: `P${level}`,
+    execute: (ctx) => {
+      if (!ctx.currentNodeId) return null
+      return { type: "SET_PRIORITY", nodeId: ctx.currentNodeId, level }
+    },
+  }
+}
+
+const setPriority0 = createSetPriorityCommand(0)
+const setPriority1 = createSetPriorityCommand(1)
+const setPriority2 = createSetPriorityCommand(2)
+const setPriority3 = createSetPriorityCommand(3)
+const setPriority4 = createSetPriorityCommand(4)
 
 const setLabel = {
   id: "set_label",
@@ -186,6 +206,11 @@ export const taskCommands: CommandDef[] = [
   setStartDate,
   setRecurring,
   setPriority,
+  setPriority0,
+  setPriority1,
+  setPriority2,
+  setPriority3,
+  setPriority4,
   setLabel,
   setAssignee,
 ]

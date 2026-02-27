@@ -472,6 +472,7 @@ interface SetRecurringAction {
 interface SetPriorityAction {
   type: "SET_PRIORITY"
   nodeId: string
+  level?: number // 0-4 for direct set, undefined for cycle
 }
 
 // Date prompt dialog actions

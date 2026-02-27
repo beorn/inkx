@@ -71,6 +71,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [ref/commands.md](ref/commands.md)   | Command system, keybindings          |
 | [ref/query.md](ref/query.md)         | Query language                       |
 | [ref/markdown.md](ref/markdown.md)   | Markdown parsing                     |
+| [ref/task-fields.md](ref/task-fields.md) | Task fields, cross-system mapping |
 | [ref/pipelines.md](ref/pipelines.md) | Async generator pipelines (complete) |
 | [ref/prior-art.md](ref/prior-art.md) | Research notes                       |
 
