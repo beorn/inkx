@@ -63,8 +63,9 @@ process.env.INKX_STRICT = "1"
 // INKX_STRICT_OUTPUT: Per-frame ANSI output verification (virtual terminal replay).
 // Replays incremental ANSI through a virtual terminal and compares with fresh render.
 // Catches output-phase bugs that INKX_STRICT misses (cursor drift from wide chars,
-// true-color diffs, etc.). DISABLED: pre-existing output-phase SGR state transition
-// bugs cause false positives (tracked as km-inkx.strict-style-verify).
+// true-color diffs, etc.). NOTE: isStrictOutput() in output-phase.ts falls back to
+// INKX_STRICT when INKX_STRICT_OUTPUT is unset, so output verification is ALREADY
+// ENABLED implicitly via INKX_STRICT=1 above (tracked as km-inkx.strict-style-verify).
 // process.env.INKX_STRICT_OUTPUT = "1"
 
 // Catch IncrementalRenderMismatchError as warnings instead of test-killing errors.
