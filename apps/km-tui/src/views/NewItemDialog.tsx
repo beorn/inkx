@@ -6,7 +6,7 @@
  */
 import React from "react"
 import { useApp as useAppStore } from "inkx/runtime"
-import { Box, Text } from "inkx"
+import { Box, Text, CursorLine } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -147,9 +147,7 @@ export function NewItemDialog({
       <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
           <Text color={"$success"}>{isTask ? "[ ] " : "• "}</Text>
-          {editCtx.beforeCursor}
-          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
-          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
+          <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>
     </ModalDialog>

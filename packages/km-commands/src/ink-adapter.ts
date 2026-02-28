@@ -277,6 +277,8 @@ export function buildKeybindingContext(options: {
   searchReplaceOpen?: boolean
   /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
+  /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
+  inputType?: "field" | "textarea"
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -306,6 +308,7 @@ export function buildKeybindingContext(options: {
     localFindActive: options.localFindActive ?? false,
     searchReplaceOpen: options.searchReplaceOpen ?? false,
     hasKitty: options.hasKitty ?? false,
+    inputType: options.inputType,
   }
 }
 

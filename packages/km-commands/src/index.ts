@@ -145,6 +145,9 @@ export {
   omniboxOpen,
   searchReplaceOpen,
   hasKitty,
+  // Input type predicates
+  inputTypeField,
+  inputTypeTextarea,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,

@@ -100,6 +100,12 @@ export const searchReplaceOpen = when("searchReplaceOpen", (ctx) => !!ctx.search
 /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
 export const hasKitty = when("hasKitty", (ctx) => !!ctx.hasKitty)
 
+/** True when the active input is a single-line field (Tab = focus next) */
+export const inputTypeField = when("inputTypeField", (ctx) => ctx.inputType === "field")
+
+/** True when the active input is a multi-line textarea (Tab = indent) */
+export const inputTypeTextarea = when("inputTypeTextarea", (ctx) => ctx.inputType === "textarea")
+
 // === Mode stack predicates ===
 // These check the inputMode field populated from the ModeStack.
 

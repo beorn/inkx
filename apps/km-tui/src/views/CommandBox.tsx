@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, useFocusManager, useEditContext, useInterval } from "inkx"
+import { Box, Text, CursorLine, useFocusManager, useEditContext, useInterval } from "inkx"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
@@ -487,16 +487,7 @@ function FindInput({
     onChange: debouncedChange,
   })
 
-  const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
-  const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
-
-  return (
-    <Text>
-      {beforeCursor}
-      <Text inverse>{cursorChar}</Text>
-      {restAfterCursor}
-    </Text>
-  )
+  return <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} />
 }
 
 function renderWatcherStatus(status: WatcherStatus): string {

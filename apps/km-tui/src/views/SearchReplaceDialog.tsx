@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, useEditContext } from "inkx"
+import { Box, Text, CursorLine, useEditContext } from "inkx"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 import { ModalDialog } from "./shared-components.tsx"
 
@@ -67,16 +67,9 @@ function ActiveInput({ value, onChange }: { value: string; onChange: (value: str
     },
   })
 
-  const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
-  const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
-
   return (
     <Box flexGrow={1} overflow="hidden">
-      <Text>
-        {beforeCursor}
-        <Text inverse>{cursorChar}</Text>
-        {restAfterCursor}
-      </Text>
+      <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} />
     </Box>
   )
 }
@@ -107,7 +100,7 @@ export function SearchReplaceDialog({
         <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
 
-      <Text>{" "}</Text>
+      <Text> </Text>
 
       {/* Replace field */}
       <Box flexDirection="row">
@@ -115,7 +108,7 @@ export function SearchReplaceDialog({
         <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
 
-      <Text>{" "}</Text>
+      <Text> </Text>
 
       {/* Bottom bar: toggles + hints */}
       <Box flexDirection="row" justifyContent="space-between">

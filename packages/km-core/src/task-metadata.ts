@@ -107,7 +107,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
   }
   if (entries.p) {
     const n = parseInt(entries.p, 10)
-    if (n >= 0 && n <= 9) result.priority = n
+    if (n >= 1 && n <= 9) result.priority = n
   }
   if (entries.recur) {
     result.rrule = entries.recur
@@ -233,7 +233,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   if (startParts?.date) {
     entries.start = startParts.time ? `${startParts.date}T${startParts.time}` : startParts.date
   }
-  if (node.priority != null) {
+  if (node.priority) {
     entries.p = String(node.priority)
   }
   if (recurrence) {

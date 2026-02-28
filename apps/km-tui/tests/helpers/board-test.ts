@@ -1457,10 +1457,7 @@ function createFluentBoardApi(ctx: {
   return board
 }
 
-export function testEnv(
-  treeBuilder: () => KNode[],
-  options?: TestEnvOptions,
-) {
+export function testEnv(treeBuilder: () => KNode[], options?: TestEnvOptions) {
   const nodes = treeBuilder()
   const repo = createFakeRepo({ nodes })
   const rootNode = nodes[0]
@@ -1469,7 +1466,14 @@ export function testEnv(
   }
 
   const env = createTestRenderEnv(repo, rootNode.id, options)
-  return { board: env.board, repo, registry: env.registry, toastQueue: env.toastQueue, store: env.store, focusManager: env.focusManager }
+  return {
+    board: env.board,
+    repo,
+    registry: env.registry,
+    toastQueue: env.toastQueue,
+    store: env.store,
+    focusManager: env.focusManager,
+  }
 }
 
 /**
@@ -1489,11 +1493,7 @@ export function testEnv(
  * // Auto-cleanup via `using` — no .unmount() needed
  * ```
  */
-export function testEnvWithRepo(
-  repo: Repo,
-  rootId: string,
-  options?: TestEnvOptions,
-) {
+export function testEnvWithRepo(repo: Repo, rootId: string, options?: TestEnvOptions) {
   const env = createTestRenderEnv(repo, rootId, options)
 
   // Wrap board with disposable pattern for automatic cleanup

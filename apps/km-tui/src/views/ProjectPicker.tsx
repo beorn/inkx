@@ -10,7 +10,7 @@
  *   - Recent item tracking
  */
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, CursorLine } from "inkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -230,9 +230,7 @@ export function Picker({
       <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
           <Text color={"$selected"}>{"/ "}</Text>
-          {editCtx.beforeCursor}
-          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
-          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
+          <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>
 
@@ -274,10 +272,7 @@ export function ProjectPicker({
   height,
   recentProjectIds = [],
 }: ProjectPickerProps): React.ReactElement {
-  const handleSelect = React.useCallback(
-    (option: PickerOption) => onSelect(option.node),
-    [onSelect],
-  )
+  const handleSelect = React.useCallback((option: PickerOption) => onSelect(option.node), [onSelect])
 
   return (
     <Picker

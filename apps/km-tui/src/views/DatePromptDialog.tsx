@@ -5,7 +5,7 @@
  * Uses useDialogInput for text input + dialogTargetRef wiring.
  */
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text, CursorLine } from "inkx"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { ModalDialog } from "./shared-components.tsx"
@@ -78,9 +78,7 @@ export function DatePromptDialog({
       <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
         <Text>
           <Text color={"$text"}>{"> "}</Text>
-          {editCtx.beforeCursor}
-          <Text inverse>{editCtx.afterCursor.length > 0 ? editCtx.afterCursor[0] : " "}</Text>
-          {editCtx.afterCursor.length > 1 ? editCtx.afterCursor.slice(1) : ""}
+          <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>
 

@@ -39,11 +39,14 @@ import type { PickerLoadOptions } from "./ProjectPicker.tsx"
 // Picker configuration per type
 // =============================================================================
 
-const pickerConfig: Record<"project" | "tag" | "assignee", {
-  title: string
-  loadOptions: PickerLoadOptions
-  emptyLabel: string
-}> = {
+const pickerConfig: Record<
+  "project" | "tag" | "assignee",
+  {
+    title: string
+    loadOptions: PickerLoadOptions
+    emptyLabel: string
+  }
+> = {
   project: { title: "Move to project", loadOptions: loadProjectOptions, emptyLabel: "No matching projects" },
   tag: { title: "Add tag", loadOptions: loadTagOptions, emptyLabel: "No matching tags" },
   assignee: { title: "Assign to", loadOptions: loadAssigneeOptions, emptyLabel: "No matching assignees" },

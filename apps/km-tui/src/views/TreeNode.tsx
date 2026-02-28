@@ -194,7 +194,10 @@ function useSearchDecorations(
   isCurrentMatch: boolean,
 ): TextDecoration[] | undefined {
   return useMemo(
-    () => (searchHighlight && searchQuery ? computeSearchDecorationsFromSource(content, searchQuery, isCurrentMatch) : undefined),
+    () =>
+      searchHighlight && searchQuery
+        ? computeSearchDecorationsFromSource(content, searchQuery, isCurrentMatch)
+        : undefined,
     [searchHighlight, content, searchQuery, isCurrentMatch],
   )
 }
@@ -445,7 +448,16 @@ function TreeNodeImpl({
 
   // Compute the bullet icon based on icon style
   const bulletIcon = useMemo(
-    () => computeBulletIcon(displayNode, nodeIsTask, style.taskStatusIcon, hasChildren, isFolded, style.ownColor, iconStyle),
+    () =>
+      computeBulletIcon(
+        displayNode,
+        nodeIsTask,
+        style.taskStatusIcon,
+        hasChildren,
+        isFolded,
+        style.ownColor,
+        iconStyle,
+      ),
     [nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon],
   )
 
@@ -468,7 +480,10 @@ function TreeNodeImpl({
     if (!name || !isSigilName(name)) return null
     // Compare via locale-aware collation: treats ø≡o, é≡e, æ≡ae, etc.
     const collator = new Intl.Collator("en", { sensitivity: "base" })
-    const nameBase = name.slice(1).replace(/[^a-z0-9\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "")
+    const nameBase = name
+      .slice(1)
+      .replace(/[^a-z0-9\p{L}\p{N}]+/gu, "-")
+      .replace(/^-|-$/g, "")
     const contentBase = cleanContent.replace(/[^a-z0-9\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "")
     if (collator.compare(nameBase, contentBase) === 0) return null // redundant — name is a slugified version of the title
     if (excludedSigils.includes(name)) return null // redundant — excluded by board/column context
@@ -641,7 +656,14 @@ function TreeNodeImpl({
   }, [displayContent, compactContent])
 
   // Shared inline render context (wikilink/blockref resolution, sigil exclusion)
-  const inlineContext = useTreeInlineContext(repo, rootBoardId, extraExcludedSigils, sigilColors, resolveSigilColor, excludedSigils)
+  const inlineContext = useTreeInlineContext(
+    repo,
+    rootBoardId,
+    extraExcludedSigils,
+    sigilColors,
+    resolveSigilColor,
+    excludedSigils,
+  )
 
   // Search decorations — character-level highlighting of search matches
   const searchDecorations = useSearchDecorations(processedContent, searchHighlight, searchQuery, isCurrentMatch)
@@ -816,7 +838,12 @@ function TreeNodeImpl({
           </Box>
           {/* Flexible content box */}
           {/* overflow="hidden" for oneliner and card children to enable truncation */}
-          <Box flexGrow={1} flexShrink={1} overflow={isOneliner || isCardChild ? "hidden" : undefined} paddingRight={isOneliner || isCardChild ? 2 : 0}>
+          <Box
+            flexGrow={1}
+            flexShrink={1}
+            overflow={isOneliner || isCardChild ? "hidden" : undefined}
+            paddingRight={isOneliner || isCardChild ? 2 : 0}
+          >
             {editingTitle ? (
               <Text color={tc} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
                 <InlineEditField
@@ -847,7 +874,10 @@ function TreeNodeImpl({
                 ) : (
                   <InlineText
                     text={processedContent}
-                    context={{ ...inlineContext, colorOverride: (searchHighlight || shouldStripColor) ? null : undefined }}
+                    context={{
+                      ...inlineContext,
+                      colorOverride: searchHighlight || shouldStripColor ? null : undefined,
+                    }}
                     decorations={searchDecorations}
                   />
                 )}
@@ -1114,7 +1144,7 @@ function getDisplayContent(
     // This is the ![[^GID|My overridden title]] semantic — content IS the alias.
     // Alias survives even if the target link is broken.
     const alias = node.content ? cleanContentForDisplay(node.content) : ""
-    if (alias && !EMBED_EXTRACT_RE.test(node.content!)) return alias
+    if (alias && node.content && !EMBED_EXTRACT_RE.test(node.content)) return alias
     if (resolvedNode) {
       // Resolved embed — show target's display name/content
       if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
@@ -1310,7 +1340,15 @@ const FoldedChildRow = React.memo(
 
     // Bullet icon — always folded (isFolded=true for computeBulletIcon)
     const { iconStyle } = treeConfig
-    const bulletIcon = computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle)
+    const bulletIcon = computeBulletIcon(
+      node,
+      nodeIsTask,
+      style.taskStatusIcon,
+      hasChildren,
+      true,
+      style.ownColor,
+      iconStyle,
+    )
     const prefix = buildPrefix(bulletIcon)
 
     // Content — resolve embeds

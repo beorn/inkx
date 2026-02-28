@@ -53,6 +53,15 @@ function buildCommandContexts(ctx: ActionCtx) {
       } as TNode)
     : null
 
+  const isDialogInput =
+    ui.showNewItemDialog ||
+    !!ui.activePicker ||
+    ui.showSearchDialog ||
+    !!ui.datePrompt ||
+    ui.showOmnibox ||
+    !!ui.localSearch?.isInputActive ||
+    !!ui.searchReplace
+
   const kbCtx = buildKeybindingContext({
     inMoveMode: ctx.moveMode,
     inSearchMode: ui.showSearchDialog,
@@ -68,15 +77,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     isInDetailPane: ctx.focusManager.getSnapshot().activeId === "detail-pane",
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
-    textInputFocused:
-      !!ui.inlineEditBlock ||
-      ui.showSearchDialog ||
-      ui.showNewItemDialog ||
-      !!ui.activePicker ||
-      !!ui.datePrompt ||
-      ui.showOmnibox ||
-      !!ui.localSearch?.isInputActive ||
-      !!ui.searchReplace,
+    textInputFocused: !!ui.inlineEditBlock || isDialogInput,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     projectPickerOpen: !!ui.activePicker,
@@ -93,6 +94,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     omniboxOpen: ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
     hasKitty: kittySupported,
+    inputType: ui.inlineEditBlock ? "textarea" : isDialogInput ? "field" : undefined,
   })
 
   const { colIndex, cardIndex, columns } = ctx

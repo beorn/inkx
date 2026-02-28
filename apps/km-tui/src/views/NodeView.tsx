@@ -217,9 +217,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$selected" : "$text3"}>
-            {"\u2500".repeat(Math.max(0, width))}
-          </Text>
+          <Text color={isColumnSelected ? "$selected" : "$text3"}>{"\u2500".repeat(Math.max(0, width))}</Text>
         </Box>
       )}
     </Box>
@@ -377,7 +375,10 @@ export function NodeCardView({
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text bold color={textColor} dimColor={shouldDim} wrap="truncate">
             <Text color={iconColor}>{icon.char}</Text>{" "}
-            <InlineText text={displayContent} context={{ colorOverride: shouldStripColor ? null : undefined, hideFields: true }} />
+            <InlineText
+              text={displayContent}
+              context={{ colorOverride: shouldStripColor ? null : undefined, hideFields: true }}
+            />
             {subtaskBadge && <Text color={isSelected ? "$selectedfg" : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>

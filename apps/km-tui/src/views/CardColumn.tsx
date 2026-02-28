@@ -785,14 +785,14 @@ export const Column = React.memo(function Column({
           renderItem={renderItem}
           overflowIndicator
           scrollAnchor={columnScrollAnchor}
-          listFooter={hiddenCount > 0 ? (
-            <Box flexDirection="column" height={2}>
-              <Box height={1} />
-              <Box justifyContent="center">
+          listFooter={
+            hiddenCount > 0 ? (
+              <Box flexDirection="column" height={2} alignItems="center">
+                <Box height={1} />
                 <Text color="$text4">+{hiddenCount} hidden</Text>
               </Box>
-            </Box>
-          ) : undefined}
+            ) : undefined
+          }
         />
       ) : isLoading ? (
         <SkeletonCards width={width - 1} height={height - 2} colIndex={colIndex} />

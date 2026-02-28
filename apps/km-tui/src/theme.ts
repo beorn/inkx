@@ -28,10 +28,10 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
     const base = caps.darkBackground ? defaultDarkTheme : defaultLightTheme
     return {
       ...base,
-      // Neutral grays — no blue/Nord tint
+      // Slightly blue-tinted grays — matches common dark terminal backgrounds
       bg: "", // Use terminal's own background
-      raisedbg: "#3A3A3A", // Subtle raise above Espresso bg (#323232)
-      separator: "#505050", // Neutral mid-gray
+      raisedbg: "#3B3F47", // Blue-tinted raise (matches blue-grey terminal bgs)
+      separator: "#4C5060", // Blue-tinted mid-gray
       text: "#D4D4D4", // Neutral white
       text2: "#A0A0A0", // Neutral light gray
       text3: "#707070", // Neutral mid-gray (counts, chrome)
@@ -41,7 +41,7 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
       selected: "#EBCB8B", // Selected = primary
       selectedfg: "#1A1A1A", // Dark on gold
       control: "#B8A06E", // Muted gold
-      link: "#8CCFFF", // Bright clean blue
+      link: "#A8DBFF", // Bright clean blue
       focusring: "#4A9EFF", // Bright blue
       // Status — warm tones
       error: "#E06C75", // Warm red

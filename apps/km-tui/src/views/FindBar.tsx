@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import { Box, Text, useEditContext } from "inkx"
+import { Box, Text, CursorLine, useEditContext } from "inkx"
 import type { LocalSearchState } from "../ui-reducer.ts"
 
 interface FindBarProps {
@@ -44,16 +44,7 @@ function FindBarInput({
     },
   })
 
-  const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
-  const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
-
-  return (
-    <Text>
-      {beforeCursor}
-      <Text inverse>{cursorChar}</Text>
-      {restAfterCursor}
-    </Text>
-  )
+  return <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} />
 }
 
 export function FindBar({ localSearch, width, onQueryChange }: FindBarProps): React.ReactElement {

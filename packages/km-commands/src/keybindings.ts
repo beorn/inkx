@@ -69,6 +69,8 @@ export interface KeybindingContext {
   searchReplaceOpen?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
+  /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
+  inputType?: "field" | "textarea"
 }
 
 // Internal binding with registration order for priority interleaving

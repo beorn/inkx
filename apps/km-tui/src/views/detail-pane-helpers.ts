@@ -168,12 +168,12 @@ export function resolveProjectDisplayNames(repo: Repo, slugs: string[]): string[
 export const PERSON_SHORT_NAMES: Record<string, string> = {
   "bjørn-stabell": "BS",
   "bjorn-stabell": "BS",
-  "bjørn": "BS",
-  "bjorn": "BS",
+  bjørn: "BS",
+  bjorn: "BS",
   "michael-welch": "MW",
-  "michael": "MW",
+  michael: "MW",
   "shi-delei": "SD",
-  "shi": "SD",
+  shi: "SD",
 }
 
 /** Strip known person @mentions entirely, strip #tags and +projects.
@@ -187,7 +187,8 @@ export function stripKnownMentions(text: string): string {
 function stripKnownFromNodes(nodes: InlineNode[]): string {
   let result = ""
   for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!
+    const node = nodes[i]
+    if (!node) continue
     switch (node.type) {
       case "mention": {
         const isKnown = PERSON_SHORT_NAMES[node.name.toLowerCase()] !== undefined

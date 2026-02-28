@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, useContentRectCallback } from "inkx"
+import { Box, Text, CursorLine, ModalDialog, formatTitleWithHotkey, useContentRectCallback } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
@@ -362,147 +362,13 @@ export function KeyBinding({ keys, color = "$control" }: { keys: string; color?:
 }
 
 // =============================================================================
-// Modal Dialog Component
+// Modal Dialog Component — re-exported from inkx
 // =============================================================================
 
-export interface ModalDialogProps {
-  /** Border color (default: white). Cyan is reserved for text input focus rings. */
-  borderColor?: string
-  /** Dialog title (rendered bold in titleColor or borderColor) */
-  title?: string
-  /** Title color override (default: borderColor). Separate from border for independent styling. */
-  titleColor?: string
-  /** Title alignment (default: center) */
-  titleAlign?: "center" | "flex-start" | "flex-end"
-  /** Toggle hotkey character (e.g., "?" for help). Renders [X] prefix in title. */
-  hotkey?: string
-  /** Content to render on the right side of the title bar (e.g., hotkey indicator, match count) */
-  titleRight?: React.ReactNode
-  /** Dialog width */
-  width?: number
-  /** Dialog height (optional, omit for auto-height) */
-  height?: number
-  /** Footer hint text (rendered dimColor at bottom) */
-  footer?: React.ReactNode
-  /** Footer alignment (default: center) */
-  footerAlign?: "center" | "flex-start" | "flex-end"
-  /** Dialog children */
-  children: React.ReactNode
-}
-
-/**
- * Format a dialog title with a hotkey prefix.
- *
- * If the hotkey letter appears in the title (case-insensitive), highlights it inline:
- *   hotkey="D", title="Details" → [D]etails
- * If the hotkey is not found in the title, prepends it:
- *   hotkey="?", title="Help" → [?] Help
- *
- * Brackets are dim, the hotkey letter is bold/bright.
- */
-export function formatTitleWithHotkey(title: string, hotkey: string, color?: string): React.ReactElement {
-  const idx = title.toLowerCase().indexOf(hotkey.toLowerCase())
-  if (idx >= 0 && hotkey.length === 1 && hotkey.toLowerCase() !== hotkey.toUpperCase()) {
-    // Letter found in title — highlight it inline: prefix + [X] + rest
-    const before = title.slice(0, idx)
-    const matched = title[idx]
-    const after = title.slice(idx + 1)
-    return (
-      <Text color={color} bold>
-        {before}
-        <Text dimColor bold={false}>
-          [
-        </Text>
-        <Text bold>{matched}</Text>
-        <Text dimColor bold={false}>
-          ]
-        </Text>
-        {after}
-      </Text>
-    )
-  }
-  // Hotkey not in title (or symbol) — prepend [X] Title
-  return (
-    <Text color={color} bold>
-      <Text dimColor bold={false}>
-        [
-      </Text>
-      <Text bold>{hotkey}</Text>
-      <Text dimColor bold={false}>
-        ]
-      </Text>{" "}
-      {title}
-    </Text>
-  )
-}
-
-/**
- * Reusable modal dialog with consistent styling.
- *
- * Features:
- * - Solid black background (covers board content)
- * - Double border in white (configurable). Cyan reserved for focus rings.
- * - Horizontal padding (2), vertical padding (1)
- * - Title: bold, colored, with spacer below
- * - Footer: centered, dimColor, with spacer above
- */
-export function ModalDialog({
-  borderColor = "$text3",
-  title,
-  titleColor,
-  titleAlign = "center",
-  hotkey,
-  titleRight,
-  width,
-  height,
-  footer,
-  footerAlign = "center",
-  children,
-}: ModalDialogProps): React.ReactElement {
-  const effectiveTitleColor = titleColor ?? "$primary"
-  // When titleRight is provided, use space-between layout for the title bar
-  const effectiveTitleAlign = titleRight ? "space-between" : titleAlign
-
-  return (
-    <Box
-      flexDirection="column"
-      width={width}
-      height={height}
-      borderStyle="double"
-      borderColor={borderColor}
-      backgroundColor={"$raisedbg"}
-      paddingX={2}
-      paddingY={1}
-    >
-      {title && (
-        <Box flexShrink={0} flexDirection="column">
-          <Box justifyContent={effectiveTitleAlign}>
-            {hotkey ? (
-              formatTitleWithHotkey(title, hotkey, effectiveTitleColor)
-            ) : (
-              <Text color={effectiveTitleColor} bold>
-                {title}
-              </Text>
-            )}
-            {titleRight}
-          </Box>
-          <Text> </Text>
-        </Box>
-      )}
-      {/* Content area - flexGrow pushes footer to bottom, overflow hidden prevents title displacement */}
-      <Box flexDirection="column" flexGrow={1} overflow="hidden">
-        {children}
-      </Box>
-      {/* Footer with spacer line above */}
-      {footer && (
-        <>
-          <Text> </Text>
-          <Box justifyContent={footerAlign}>{typeof footer === "string" ? <Text dimColor>{footer}</Text> : footer}</Box>
-        </>
-      )}
-    </Box>
-  )
-}
+// ModalDialog and formatTitleWithHotkey moved to inkx (imported at top).
+// Re-export here for backward compatibility with existing consumers.
+export { ModalDialog, formatTitleWithHotkey }
+export type { ModalDialogProps } from "inkx"
 
 // =============================================================================
 // Input Box Component
@@ -553,11 +419,7 @@ export function InputBox({
         {showPlaceholder ? (
           <Text dimColor>{placeholder}</Text>
         ) : (
-          <>
-            <Text>{beforeCursor}</Text>
-            {showCursor && <Text inverse>{afterCursor[0] || " "}</Text>}
-            <Text>{afterCursor.slice(1)}</Text>
-          </>
+          <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
         )}
         {showPlaceholder && showCursor && <Text inverse> </Text>}
       </Text>

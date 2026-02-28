@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Text, useContentRect, useEditContext } from "inkx"
+import { CursorLine, useContentRect, useEditContext } from "inkx"
 
 interface InlineEditFieldProps {
   initialValue: string
@@ -56,15 +56,5 @@ export function InlineEditField({
     stickyX,
   })
 
-  // Cursor character: show inverse block at cursor position
-  const cursorChar = afterCursor.length > 0 ? afterCursor[0] : " "
-  const restAfterCursor = afterCursor.length > 1 ? afterCursor.slice(1) : ""
-
-  return (
-    <Text>
-      {beforeCursor}
-      <Text inverse>{cursorChar}</Text>
-      {restAfterCursor}
-    </Text>
-  )
+  return <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} />
 }
