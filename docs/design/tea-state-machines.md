@@ -131,7 +131,16 @@ interface PlainTextState {
 type PlainTextEffect =
   | { type: "kill_ring_push"; text: string }  // runtime updates global kill ring
   | { type: "none" }
+
+// Future: extensible effect types for async operations
+type TreeEffect =
+  | PlainTextEffect
+  | { type: "dispatch"; target?: string; op: TreeOp }
+  | { type: "load"; nodeId: NodeId }                     // trigger async content load
+  | { type: "persist"; ops: TreeOp[] }                    // flush to storage/CRDT
 ```
+
+**Effect extensibility**: Effects are an open discriminated union. New effect types can be added without changing `.apply()` — only the effect handler registry needs updating. This keeps machines pure while supporting future needs (search indexing, AI completions, network sync). An unrecognized effect type is a no-op, not an error.
 
 **Kill ring architecture**: The kill ring is a global resource managed at the app level (BoardState or a dedicated store). PlainText.apply never reads the kill ring — it only emits `kill_ring_push` effects when text is killed. For yank operations, the command layer resolves the kill ring content and produces `{ type: "yank", text: killRing[0] }` ops before they reach PlainText.apply. This keeps the universal `(state, op) → [state, effects]` signature with no exceptions.
 
@@ -450,6 +459,29 @@ const withHistory: Plugin<Tree, Op> = (inner) => (tree, op) => {
 const apply = compose(withHistory, withVim, withCollaboration)(baseApply)
 ```
 
+### Pluggable State Fields
+
+Plugins that wrap `.apply()` can intercept and transform, but some plugins need **persistent state** (e.g., history stacks, collaboration metadata, vim mode registers). Rather than requiring all state fields upfront, TreeState carries an extension point:
+
+```ts
+interface TreeState {
+  // ... core fields ...
+  extensions: Record<string, unknown>   // plugin-owned state slices
+}
+
+// Plugins read/write their own slice:
+const withHistory: Plugin<TreeState, TreeOp> = (inner) => (tree, op) => {
+  const history = (tree.extensions.history as HistoryState) ?? emptyHistory
+  const [next, effects] = inner(tree, op)
+  return [
+    { ...next, extensions: { ...next.extensions, history: pushHistory(history, op) } },
+    effects,
+  ]
+}
+```
+
+This is lighter than CodeMirror 6's full facet/StateField system but solves the same problem: plugins can carry state without modifying core types. Type safety comes from the plugin's own typed accessor functions.
+
 ### Transforms (High-Level API)
 
 Same as SlateJS but pure — each returns `[TreeState, TreeEffect[]]`:
@@ -494,13 +526,32 @@ const tree = Tree.create({
 // Each normalizer is a pure function:
 type Normalizer = (tree: TreeState, entry: NodeEntry) => TreeOp[] | null
 // Returns ops to fix violations, or null if valid
-
-// Batch transforms without intermediate normalization:
-Tree.withoutNormalizing(tree, (tree) => {
-  Transforms.unwrapNodes(tree, { at: path })
-  Transforms.wrapNodes(tree, { type: "quote", children: [] }, { at: path })
-})
 ```
+
+### Transactions (Batched Operations)
+
+Multiple operations that should be treated as a single atomic unit — normalized once, recorded as one undo step, broadcast as one CRDT change:
+
+```ts
+// Declarative batch — runs all ops, normalizes once at end:
+Tree.batch(tree, [
+  { type: "remove_node", nodeId: id1, node: removedNode },
+  { type: "insert_node", parentId: id2, index: 0, node: newNode },
+])
+// → [TreeState, TreeEffect[]]  — one undo entry, one normalization pass
+
+// For transforms that produce multiple ops:
+Tree.batch(tree, [
+  ...Transforms.unwrapNodes(tree, { at: path }),
+  ...Transforms.wrapNodes(tree, { type: "quote", children: [] }, { at: path }),
+])
+```
+
+Why `batch()` over a callback pattern (SlateJS's `withoutNormalizing`):
+- **Serializable** — the operation list is data, can be sent over the network or logged
+- **Composable** — batches can be nested or concatenated
+- **CRDT-friendly** — maps directly to an Automerge `change()` call
+- **No closure footguns** — no mutable `tree` reference inside a callback
 
 ### Two-Level Editing Architecture
 
@@ -536,6 +587,78 @@ SlateJS-compatibility means:
 - Same query patterns (`Tree.nodes()`, `Tree.above()`)
 - SlateJS serves as the body editor engine on both web and terminal
 - But the **document tree** (node navigation, lazy loading, CRDT) is always km's `Tree.apply()`
+
+### CRDT-First Storage (Automerge)
+
+The persistent layer uses **Automerge** (or Yjs) as the source of truth. `Tree.apply()` is a thin, typed veneer over CRDT document mutations — not a separate data model that syncs to storage.
+
+**Document topology — two Automerge document types:**
+
+```
+┌─────────────────────────────────────────────┐
+│  Hierarchy Doc (one per workspace)          │
+│  Automerge Map of nodes + ordering          │
+│  Tree.apply() translates TreeOps            │
+│  → Automerge.change() calls                 │
+├─────────────────────────────────────────────┤
+│  Item Body Docs (one per item)              │
+│  Automerge.Text for rich body content       │
+│  SlateJS reads/writes via automerge-slate   │
+│  or equivalent bridge                       │
+└─────────────────────────────────────────────┘
+```
+
+**Why separate docs:**
+- **Granular sync**: Load only the bodies the user is viewing — hierarchy is always loaded, bodies are lazy
+- **Independent history**: Undo within a body doesn't undo tree structure changes
+- **Conflict isolation**: Two users editing different items don't interfere
+- **Memory**: Large workspaces with thousands of items don't load all body content
+
+**How Tree.apply() maps to Automerge:**
+
+```ts
+// Tree.apply() becomes a typed API over Automerge.change():
+function apply(tree: TreeState, op: TreeOp): [TreeState, TreeEffect[]] {
+  // Each TreeOp maps to Automerge mutations:
+  switch (op.type) {
+    case "insert_node":
+      // → doc.nodes[op.node.id] = op.node
+      // → doc.children[op.parentId].insertAt(op.index, op.node.id)
+    case "move_node":
+      // → remove from old parent's children list
+      // → insert into new parent's children list
+    case "set_node":
+      // → Object.assign(doc.nodes[op.nodeId], op.newProperties)
+    // ... etc
+  }
+}
+```
+
+**What CRDT provides "for free":**
+- **Collaboration** — Automerge sync protocol replaces `withCollaboration` plugin
+- **Undo/redo** — Automerge change grouping + rollback replaces `withHistory` plugin (or the plugin becomes a thin wrapper over Automerge's undo)
+- **Conflict resolution** — concurrent edits merge automatically (no OT transforms needed)
+- **Offline-first** — changes accumulate locally, sync when connected
+- **History** — full change history with timestamps and attribution
+
+**What CRDT does NOT provide:**
+- **Operation semantics** — Tree.apply() still defines what "indent a node" means (move to previous sibling's children)
+- **Normalization** — tree invariants are still enforced by normalizers after each batch
+- **Selection** — selection is local-only, not synced via CRDT
+- **Effects** — side effects (load, persist, UI updates) are still managed by the effect system
+- **Lazy loading** — which nodes are materialized is a per-client concern
+
+**Undo grouping policy** (critical for UX): Character-level edits (typing text) should merge into a single undo step. Without grouping, every keystroke is a separate undo entry. Policy:
+- Same operation type + same target node + within 500ms → merge into current group
+- Different operation type or different node → start new group
+- Explicit boundaries: Enter, Tab, paste, any structural op → always start new group
+- This maps to Automerge's `change()` boundaries — each `change()` call is one undo step
+
+**Impact on SlateJS integration (Phase 3):**
+If body content lives in Automerge docs, SlateJS may serve as the **rendering and editing UI** while Automerge is the **data model**. Libraries like `slate-yjs` (for Yjs) or an Automerge equivalent bridge SlateJS's editor to CRDT documents. This means:
+- SlateJS operations → Automerge text mutations (via bridge)
+- Remote Automerge changes → SlateJS state updates (via bridge)
+- No separate "Slate state vs km state" synchronization problem
 
 ## Components as Thin Views
 
@@ -624,9 +747,9 @@ Additional km operations beyond the 9 SlateJS types:
 - `load_children` — lazy content materialization (**excluded from undo stack** — not a user edit)
 - `undo`, `redo` — history navigation
 
-Plugin composition: `compose(withHistory, withVim, withCollaboration)(Tree.apply)`
+Plugin composition: `compose(withHistory, withVim)(Tree.apply)` — collaboration is handled by the Automerge layer, not a plugin.
 
-**Undo filtering**: The `withHistory` plugin records only user-intent operations. Background ops like `load_children` are tagged `{ meta: { local: true } }` and excluded from the undo stack and CRDT broadcast.
+**Undo**: With CRDT-first storage, undo/redo delegates to Automerge's change history. The `withHistory` plugin becomes a thin wrapper that groups changes (see [undo grouping policy](#crdt-first-storage-automerge)) and calls Automerge's rollback. Background ops like `load_children` are tagged `{ meta: { local: true } }` and excluded from both the undo stack and CRDT broadcast.
 
 ### Phase progression
 
@@ -645,3 +768,15 @@ Each phase is independently useful. Phase 1 improves inkx today. Phase 2 improve
 - [focus-routing.md](../../vendor/beorn-inkx/docs/deep-dives/focus-routing.md) — Command-system input routing
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects
+
+## References
+
+Architecture comparisons and design influences:
+
+- **CodeMirror 6** — Immutable EditorState + transactions, modular extension/facet system. Validates the pure-state approach. ([System Guide](https://codemirror.net/docs/guide/))
+- **ProseMirror** — Invertible steps, plugin state, proven OT-based collaboration. Inspiration for transaction batching and the triple selection model. ([Guide](https://prosemirror.net/docs/guide/))
+- **Lexical** — Facebook's React editor: immutable state via `editor.update()` closures, command-based plugin system. Shows React-native TEA is viable. ([Architecture comparison](https://jkrsp.com/blog/lexical-vs-slate-vs-prosemirror-architecture/))
+- **SlateJS** — Noun-singleton API pattern (`Editor`, `Node`, `Transforms`), 9 operation types, `withX` plugins. Direct inspiration for km's API shape. Mutable core is the key difference. ([Docs](https://docs.slatejs.org/))
+- **Zed** — Layered Buffer → MultiBuffer → DisplayMap architecture, CRDT-based text buffer. Shows that layered pure transforms scale to production editors. ([Architecture](https://deepwiki.com/zed-industries/zed/2-core-architecture))
+- **Automerge** — CRDT library for conflict-free collaborative data. Planned as km's persistent layer for both tree hierarchy and item body content. ([Docs](https://automerge.org/docs/))
+- **Elm Architecture** — The original `(msg, model) → (model, cmd)` pattern. Foundational influence on the `.apply()` signature and effect system.
