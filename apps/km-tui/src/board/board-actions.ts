@@ -42,7 +42,7 @@ import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
-import { getDetailItemsForNode } from "../views/detail-pane-items.ts"
+import { getDetailItemsForNode, DETAIL_TOPBAR_ID } from "../views/detail-pane-items.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -299,10 +299,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         ctx.openDetailPane()
       }
       ctx.focus("detail-pane")
+      // Default to topbar cursor if no cursor set
+      if (!ctx.ui.detailCursorNodeId) {
+        ctx.setUI({ detailCursorNodeId: DETAIL_TOPBAR_ID })
+      }
       return ok()
     case "TOGGLE_DETAIL_PANE":
-      // Simple toggle: open/close via workspace pane operations.
-      // Detail pane follows cursor selection. Pane focus (interactive mode) is future work.
       ctx.toggleDetailPane()
       ctx.focus("board-area")
       return ok()

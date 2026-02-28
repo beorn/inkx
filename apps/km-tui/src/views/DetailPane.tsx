@@ -26,7 +26,7 @@ import {
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
 import { PaneBar } from "./PaneBar.tsx"
-import { computeFolderDetailItems } from "./detail-pane-items.ts"
+import { computeFolderDetailItems, DETAIL_TOPBAR_ID, DETAIL_META_PREFIX } from "./detail-pane-items.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -85,8 +85,18 @@ interface InternalDetailPaneProps {
   detailCursorNodeId: string | null
 }
 
-/** Top bar for detail panes — icon + title, styled like ColumnHeader via PaneBar */
-function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean }): React.ReactElement {
+/** Top bar for detail panes — icon + title, styled like ColumnHeader via PaneBar.
+ * When focused and cursor is on the topbar, uses gold background like selected column headers. */
+function DetailPaneTopBar({
+  node,
+  isFocused,
+  isCursored,
+}: {
+  node: KNode
+  isFocused: boolean
+  /** Whether the detail cursor is on the topbar (the item itself). */
+  isCursored: boolean
+}): React.ReactElement {
   const repo = useRepo()
   const paneLabel = usePaneLabel()
   const title = getNodeDisplayName(repo, node)
@@ -97,14 +107,21 @@ function DetailPaneTopBar({ node, isFocused }: { node: KNode; isFocused: boolean
       ? getNodeIcon(node.task_status, undefined, true)
       : getColumnHeaderIcon(node, "regular", false)
 
+  // Gold background when focused + cursored (like selected column headers)
+  const isSelected = isFocused && isCursored
+  const bg = isSelected ? "$selected" : undefined
+  const iconColor = isSelected ? "$selectedfg" : icon.color
+  const textColor = isSelected ? "$selectedfg" : undefined
+
   return (
     <PaneBar
       isFocused={isFocused}
+      backgroundColor={bg}
       paneLabel={paneLabel}
       left={
-        <Text bold={isFocused} wrap="truncate">
+        <Text bold={isFocused} color={textColor} wrap="truncate">
           {" "}
-          {icon.char} <InlineText text={title} />
+          <Text color={iconColor}>{icon.char}</Text> <InlineText text={title} />
         </Text>
       }
     />
@@ -148,9 +165,11 @@ function FolderDetailPane({
   const totalChildren = children.length
   const hasMore = entries.length >= maxEntries
 
+  const topbarCursored = detailCursorNodeId === DETAIL_TOPBAR_ID || detailCursorNodeId == null
+
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={topbarCursored} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
@@ -285,9 +304,11 @@ function TaskDetailPane({
 
   const maxBacklinks = 5
 
+  const topbarCursored = detailCursorNodeId === DETAIL_TOPBAR_ID || detailCursorNodeId == null
+
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={topbarCursored} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
@@ -308,6 +329,7 @@ function TaskDetailPane({
             dueParts={dueParts}
             startParts={startParts}
             refs={refs}
+            cursorMetaKey={detailFocused && detailCursorNodeId?.startsWith(DETAIL_META_PREFIX) ? detailCursorNodeId.slice(DETAIL_META_PREFIX.length) : null}
           />
 
           {/* Content area */}
@@ -479,6 +501,8 @@ interface MetadataTableProps {
   dueParts: { date?: string; time?: string } | undefined
   startParts: { date?: string; time?: string } | undefined
   refs: { mentions: string[]; tags: string[]; projects: string[] }
+  /** The metadata key currently cursored (e.g., "Status"), or null if no meta row is cursored. */
+  cursorMetaKey?: string | null
 }
 
 function MetadataTable({
@@ -489,6 +513,7 @@ function MetadataTable({
   dueParts,
   startParts,
   refs,
+  cursorMetaKey = null,
 }: MetadataTableProps): React.ReactElement | null {
   const repo = useRepo()
   const rows: MetadataRow[] = []
@@ -622,12 +647,15 @@ function MetadataTable({
 
   return (
     <>
-      {rows.map((row, i) => (
-        <Box key={`${row.key}-${i}`} flexDirection="row">
-          <Text dimColor>{row.key.padEnd(maxKeyLen)} </Text>
-          <Text color={row.valueColor ?? "$text"}>{row.value}</Text>
-        </Box>
-      ))}
+      {rows.map((row, i) => {
+        const isCursored = cursorMetaKey === row.key
+        return (
+          <Box key={`${row.key}-${i}`} flexDirection="row" inverse={isCursored || undefined}>
+            <Text dimColor={!isCursored}>{row.key.padEnd(maxKeyLen)} </Text>
+            <Text color={isCursored ? undefined : (row.valueColor ?? "$text")}>{row.value}</Text>
+          </Box>
+        )
+      })}
     </>
   )
 }
