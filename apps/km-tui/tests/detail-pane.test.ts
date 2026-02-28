@@ -14,6 +14,7 @@ import {
   getProjectPath,
 } from "../src/views/DetailPane.tsx"
 import { resolveProjectDisplayNames } from "../src/views/detail-pane-helpers.ts"
+import { DETAIL_TOPBAR_ID, DETAIL_META_PREFIX } from "../src/views/detail-pane-items.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
@@ -2018,5 +2019,89 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
 
     board.press("h") // col2 → col1
     expect(getColIndex(store)).toBe(0)
+  })
+})
+
+// --- Detail pane focus + topbar cursor ---
+
+describe("detail pane focus + topbar cursor", () => {
+  test("l at boundary sets cursor to __topbar__", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item.task("card1"), item("card2"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D") // open detail pane
+    expect(store.getState().ui.showDetailPane).toBe(true)
+
+    board.press("l") // at rightmost column → focus detail pane
+    expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
+    expect(store.getState().ui.detailCursorNodeId).toBe(DETAIL_TOPBAR_ID)
+  })
+
+  test("j from topbar moves to first metadata row for task", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item.task("task1"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+    board.press("l") // focus detail
+    expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
+    expect(store.getState().ui.detailCursorNodeId).toBe(DETAIL_TOPBAR_ID)
+
+    // j from topbar → first meta row (Status)
+    board.press("j")
+    expect(store.getState().ui.detailCursorNodeId).toBe(`${DETAIL_META_PREFIX}Status`)
+  })
+
+  test("j navigates from topbar through items for folder detail", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item("card1", item("sub1"), item("sub2")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+    board.press("l") // focus detail
+    expect(store.getState().ui.detailCursorNodeId).toBe(DETAIL_TOPBAR_ID)
+
+    // j → first child (sub1)
+    board.press("j")
+    expect(store.getState().ui.detailCursorNodeId).toBe("sub1")
+
+    // j → second child (sub2)
+    board.press("j")
+    expect(store.getState().ui.detailCursorNodeId).toBe("sub2")
+  })
+
+  test("k from first item returns to topbar", { timeout: 5000 }, () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item.task("task1"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+    board.press("l") // focus detail
+
+    board.press("j") // to Status
+    expect(store.getState().ui.detailCursorNodeId).toBe(`${DETAIL_META_PREFIX}Status`)
+
+    board.press("k") // back to topbar
+    expect(store.getState().ui.detailCursorNodeId).toBe(DETAIL_TOPBAR_ID)
+  })
+
+  test("h from detail pane returns to board, keeps pane open", { timeout: 5000 }, () => {
+    const { board, store, focusManager } = testEnv(
+      () => item("board", item("col1", item.task("task1"))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    board.press("D")
+    board.press("l") // focus detail
+    board.press("j") // move to Status
+
+    board.press("h") // back to board
+    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+    expect(store.getState().ui.showDetailPane).toBe(true)
   })
 })
