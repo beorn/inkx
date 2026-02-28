@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, CursorLine, useEditContext } from "inkx"
+import { Box, Text, CursorLine, Toggle, useEditContext } from "inkx"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 import { ModalDialog } from "./shared-components.tsx"
 
@@ -93,9 +93,9 @@ export function SearchReplaceDialog({
   }
 
   return (
-    <ModalDialog title="Find & Replace" hotkey="F" titleRight={matchRight} width={width}>
+    <ModalDialog title="Find & Replace" hotkey="F" titleRight={matchRight} width={width} focusScope={true}>
       {/* Search field */}
-      <Box flexDirection="row">
+      <Box flexDirection="row" testID="search-field">
         <Text color={focusedField === "search" ? "$text" : "$text3"}>Find: </Text>
         <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
@@ -103,7 +103,7 @@ export function SearchReplaceDialog({
       <Text> </Text>
 
       {/* Replace field */}
-      <Box flexDirection="row">
+      <Box flexDirection="row" testID="replace-field">
         <Text color={focusedField === "replace" ? "$text" : "$text3"}>Repl: </Text>
         <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
@@ -113,7 +113,7 @@ export function SearchReplaceDialog({
       {/* Bottom bar: toggles + hints */}
       <Box flexDirection="row" justifyContent="space-between">
         <Box flexDirection="row" gap={1}>
-          <Text color={useRegex ? "$success" : "$text3"}>{useRegex ? "\u2713" : "\u25A1"} regex</Text>
+          <Toggle value={useRegex} onChange={() => {}} label="regex" isActive={false} testID="regex-toggle" />
         </Box>
         <Box flexDirection="row" gap={1}>
           <Text dimColor>Tab:field</Text>
