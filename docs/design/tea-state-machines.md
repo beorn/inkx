@@ -449,8 +449,8 @@ const withHistory = (editor) => {
   return editor
 }
 
-// km: composition-based plugins (pure)
-const withHistory: Plugin<Tree, Op> = (inner) => (tree, op) => {
+// km: composition-based plugins (pure, state type grows via intersection)
+const withHistory = (inner) => (tree, op) => {
   const [next, effects] = inner(tree, op)
   return [{ ...next, history: recordHistory(op, tree.history) }, effects]
 }
@@ -459,28 +459,51 @@ const withHistory: Plugin<Tree, Op> = (inner) => (tree, op) => {
 const apply = compose(withHistory, withVim, withCollaboration)(baseApply)
 ```
 
-### Pluggable State Fields
+### Plugin State via Type Extension
 
-Plugins that wrap `.apply()` can intercept and transform, but some plugins need **persistent state** (e.g., history stacks, collaboration metadata, vim mode registers). Rather than requiring all state fields upfront, TreeState carries an extension point:
+Following SlateJS's pattern: plugins extend the **state type itself**, not a generic bag. Each plugin adds named fields; TypeScript intersection types track which plugins are active:
 
 ```ts
-interface TreeState {
-  // ... core fields ...
-  extensions: Record<string, unknown>   // plugin-owned state slices
+// SlateJS (mutable): plugins extend the Editor interface
+interface HistoryEditor extends Editor {
+  history: { undos: Operation[][]; redos: Operation[][] }
 }
+const withHistory = (editor: Editor): HistoryEditor => { ... }
 
-// Plugins read/write their own slice:
-const withHistory: Plugin<TreeState, TreeOp> = (inner) => (tree, op) => {
-  const history = (tree.extensions.history as HistoryState) ?? emptyHistory
-  const [next, effects] = inner(tree, op)
-  return [
-    { ...next, extensions: { ...next.extensions, history: pushHistory(history, op) } },
-    effects,
-  ]
-}
+// km (pure): plugins extend the state type via intersection
+interface HistoryFields { history: { undos: TreeOp[][]; redos: TreeOp[][] } }
+
+const withHistory: Plugin<TreeState, TreeState & HistoryFields, TreeOp> =
+  (inner) => (tree, op) => {
+    const [next, effects] = inner(tree, op)
+    return [{ ...next, history: pushHistory(tree.history, op) }, effects]
+  }
+
+// Composition produces the full app state type:
+const apply = compose(withHistory, withVim)(Tree.apply)
+// Type: (state: TreeState & HistoryFields & VimFields, op: TreeOp)
+//       → [TreeState & HistoryFields & VimFields, TreeEffect[]]
 ```
 
-This is lighter than CodeMirror 6's full facet/StateField system but solves the same problem: plugins can carry state without modifying core types. Type safety comes from the plugin's own typed accessor functions.
+No generic `extensions` bag, no type casts. The app's state type is the **composition of its plugins** — exactly what SlateJS does, but pure.
+
+**App = Core + Plugins**: Different apps compose different plugin sets. The state type reflects exactly what's available:
+
+```ts
+// km-tui: full app with history, vim, search
+const kmApply = compose(withHistory, withVim, withSearch)(Tree.apply)
+// State: TreeState & HistoryFields & VimFields & SearchFields
+
+// A simpler app: just history
+const simpleApply = compose(withHistory)(Tree.apply)
+// State: TreeState & HistoryFields
+
+// Tests: bare core, no plugins
+Tree.apply(bareState, op)
+// State: TreeState
+```
+
+This is the pure equivalent of SlateJS's `withHistory(withReact(createEditor()))` — but instead of monkey-patching a mutable object, each plugin contributes state fields and wraps the apply function. The compiler enforces that you can only access `state.history` if `withHistory` is in the composition chain.
 
 ### Transforms (High-Level API)
 
