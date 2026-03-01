@@ -5,6 +5,9 @@
  * - col-scroll-indicator.test.tsx (vertical ▲/▼ and horizontal ◂/▸ indicators)
  * - col-selected-style.test.ts (yellow header/separator/border at column level)
  * - col-title-truncate.test.ts (title truncation, sigil suffix handling)
+ * - card-counts.test.ts (card/column count display, WIP limits, subtask badges)
+ * - section-cards.test.ts (section card rendering, bold text, separators)
+ * - scroll-height-equalization.test.tsx (body block spacing in columns view)
  */
 
 import { describe, test, it, expect } from "vitest"
@@ -489,5 +492,402 @@ describe("col-title-truncate", () => {
 
     const text = board.screenshot()
     expectLinesWithinWidth(text, 60)
+  })
+})
+
+// =============================================================================
+// Card/column count display (km-tui.card-count-wip)
+//
+// Column headers only show a count when a WIP limit is configured.
+// When shown, the count is formatted as "count/wip" (e.g., "3/5").
+// Without a WIP limit, no count is shown — the +N overflow indicator
+// is sufficient.
+//
+// Card titles (in cards view) never show an inline child count —
+// the +N overflow indicator replaces that behavior.
+// =============================================================================
+
+/**
+ * Find the column header row by looking for a row that contains the column name
+ * but is NOT the breadcrumb row (which contains ">").
+ * The separator line (───) appears right after the column header.
+ */
+function findColumnHeaderRow(screenText: string, columnName: string): number {
+  const rows = screenText.split("\n")
+  // Find the separator row (all dashes), then the header is the row before it
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i].includes("─") && rows[i - 1].includes(columnName) && !rows[i - 1].includes(">")) {
+      return i - 1
+    }
+  }
+  return -1
+}
+
+describe("column header count", () => {
+  test("column header hides count when no WIP limit", () => {
+    const { board } = testEnv(() => item("board", item("nocap", item("task-a"), item("task-b"), item("task-c"))), {
+      columns: 60,
+      rows: 24,
+    })
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "nocap")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should NOT contain any digits (no card count)
+    // because there is no WIP limit configured
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("nocap")
+    expect(rowText).not.toMatch(/\d/)
+  })
+
+  test("column header shows count/wip when WIP limit configured", () => {
+    const { board } = testEnv(
+      () => item("board", item("capped km.limit:: 5", item("task-a"), item("task-b"), item("task-c"))),
+      { columns: 60, rows: 24 },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "capped")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should show "3/5" (3 cards, WIP limit 5)
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("capped")
+    expect(rowText).toContain("3/5")
+  })
+
+  test("column header shows warning when WIP limit exceeded", () => {
+    const { board } = testEnv(
+      () => item("board", item("overflow km.limit:: 2", item("task-a"), item("task-b"), item("task-c"))),
+      { columns: 60, rows: 24 },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "overflow")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // The row should show "3/2" (3 cards, WIP limit 2) with warning
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("overflow")
+    expect(rowText).toContain("3/2")
+  })
+})
+
+// =============================================================================
+// Card title subtask progress badge
+// =============================================================================
+
+describe("card title subtask progress badge", () => {
+  test("card title shows subtask progress badge (done/total)", () => {
+    const { board } = testEnv(
+      () => item("board", item("col", item("parent", item("child-a"), item("child-b"), item("child-c")))),
+      { columns: 60, rows: 24 },
+    )
+
+    // The card title "parent" should show a subtask badge "0/3" (all todo, none done)
+    const box = board.screen.nodeBox("parent")
+    expect(box, "parent card should exist").not.toBeNull()
+    if (!box) return
+
+    // Scan the title line for the badge text "0/3"
+    const row = board.screen.text.split("\n")[box.y] ?? ""
+    expect(row).toContain("0/3")
+  })
+
+  test("card title shows subtask progress for many children", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item("big-parent", item("ca"), item("cb"), item("cc"), item("cd"), item("ce"), item("cf"), item("cg")),
+          ),
+        ),
+      { columns: 60, rows: 30 },
+    )
+
+    const box = board.screen.nodeBox("big-parent")
+    expect(box, "big-parent should exist").not.toBeNull()
+    if (!box) return
+
+    // Should show "0/7" (7 children, all todo)
+    const row = board.screen.text.split("\n")[box.y] ?? ""
+    expect(row).toContain("0/7")
+  })
+})
+
+// =============================================================================
+// Columns view: count behavior matches cards view
+// =============================================================================
+
+describe("columns view column header count", () => {
+  test("columns view hides count when no WIP limit", () => {
+    const { board } = testEnv(() => item("board", item("nocol", item("parent", item("child-a"), item("child-b")))), {
+      columns: 60,
+      rows: 24,
+      viewMode: "columns",
+    })
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "nocol")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // No count should appear on the header row
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("nocol")
+    expect(rowText).not.toMatch(/\d/)
+  })
+
+  test("columns view shows count/wip when WIP limit configured", () => {
+    const { board } = testEnv(
+      () => item("board", item("limited km.limit:: 5", item("parent", item("child-a"), item("child-b")))),
+      { columns: 60, rows: 24, viewMode: "columns" },
+    )
+
+    const headerRow = findColumnHeaderRow(board.screen.text, "limited")
+    expect(headerRow, "column header row should exist").toBeGreaterThanOrEqual(0)
+
+    // Should show "1/5" (1 card, WIP limit 5)
+    const rowText = board.screen.text.split("\n")[headerRow]
+    expect(rowText).toContain("limited")
+    expect(rowText).toContain("1/5")
+  })
+})
+
+// =============================================================================
+// Section card rendering
+//
+// Section headers (mdsection nodes) that appear as cards within a column
+// should render with a visually distinct style from regular task cards.
+// They serve as section dividers/groupers, not as actionable items.
+//
+// Visual distinction (all cards have round borders):
+// - Section cards: bold text, underline separator
+// - Regular cards: normal text, round border (structural) or dim round border (body)
+// =============================================================================
+
+/** Check if a character is a round box-drawing border character. */
+function isRoundBorderChar(c: string): boolean {
+  return "╭╮╯╰│─".includes(c)
+}
+
+/** Check if a character is a horizontal line (used for section separators). */
+function isHorizontalLine(c: string): boolean {
+  return "─━▔".includes(c)
+}
+
+describe("section card rendering", () => {
+  test("section cards render with round borders like all other cards", () => {
+    // A column with a mix of section headers and regular tasks.
+    // Sections come from Asana-style section headers in markdown (## Section Name).
+    // All cards have borders regardless of fstype — section cards are visually
+    // distinct via bold text and separator lines, not by removing borders.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item.section("Finance & Taxes", item("Pay rent"), item("File taxes")),
+            item.section("Waiting", item("Response from bank")),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // Section cards SHOULD have round borders like all other structural cards
+    for (const sectionId of ["Finance & Taxes", "Waiting"]) {
+      const box = board.screen.nodeBox(sectionId)
+      expect(box, `section "${sectionId}" should exist`).not.toBeNull()
+      if (!box) continue
+
+      // Check left side: SHOULD have round border chars at box.x - 1
+      const leftX = box.x - 1
+      if (leftX >= 0) {
+        const leftCell = board.screen.cell(leftX, box.y)
+        expect(
+          isRoundBorderChar(leftCell.char),
+          `section "${sectionId}" should have round left border at (${leftX},${box.y}), got '${leftCell.char}'`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  test("section cards display text as bold", () => {
+    const { board } = testEnv(() => item("board", item("col", item.section("Finance & Taxes", item("Pay rent")))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // The section text (not the § icon prefix) should be bold.
+    // The § icon is at the first non-space position; the actual text starts after "§ ".
+    const box = board.screen.nodeBox("Finance & Taxes")
+    expect(box, "section node should exist").not.toBeNull()
+    if (!box) return
+
+    // Find the 'F' character in "Finance & Taxes" (skip the § prefix)
+    let foundBold = false
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (cell.char === "F") {
+        expect((cell.attrs as Record<string, unknown>).bold, `text char 'F' at (${x},${box.y}) should be bold`).toBe(
+          true,
+        )
+        foundBold = true
+        break
+      }
+    }
+    expect(foundBold, "should find bold 'F' character in section title").toBe(true)
+  })
+
+  test("section cards are visually distinct from adjacent task cards", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col",
+            item.section("Section Header", item("task-a"), item("task-b")),
+            item.section("Another Section", item("task-c")),
+          ),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // Section header cards have round borders like all cards, but are
+    // visually distinct via bold text and horizontal separators
+    const sectionBox = board.screen.nodeBox("Section Header")
+    expect(sectionBox).not.toBeNull()
+    if (!sectionBox) return
+
+    // Look for a horizontal separator line below the section card.
+    // The separator appears after the section title and its children,
+    // so scan a few rows below the section box.
+    let hasHLine = false
+    for (let y = sectionBox.y + 1; y < sectionBox.y + 10 && y < 24; y++) {
+      let lineChars = 0
+      for (let x = 0; x < 80; x++) {
+        const cell = board.screen.cell(x, y)
+        if (isHorizontalLine(cell.char)) lineChars++
+      }
+      // A separator line should have many horizontal line chars (at least half the width)
+      if (lineChars >= 20) {
+        hasHLine = true
+        break
+      }
+    }
+    expect(hasHLine, "section card should have a horizontal separator line below it").toBe(true)
+  })
+
+  test("section card selection uses yellow background (like other cards)", () => {
+    const { board } = testEnv(() => item("board", item("col", item.section("My Section", item("task-1")))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // First card should be the section, and it should be selected
+    board.expectNodeColor("My Section", { bg: TC.$selected })
+  })
+
+  test("section cards with children show fold marker and child count", () => {
+    const { board } = testEnv(
+      () => item("board", item("col", item.section("Has Children", item("child-a"), item("child-b"), item("child-c")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Section card should show children underneath
+    board.expect("#child-a").toExist()
+    board.expect("#child-b").toExist()
+    board.expect("#child-c").toExist()
+  })
+})
+
+// =============================================================================
+// Body block spacing in columns view
+//
+// Body blocks and structural items are rendered compactly (no blank lines)
+// in columns view, matching tabs/lists view behavior.
+// =============================================================================
+
+describe("body block spacing in columns view", () => {
+  test("body blocks are compact like structural items", () => {
+    // Body items (type "p") come before structural items (type "oi")
+    // extractBody classifies children: non-oi before first oi = body, oi = structural
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item.paragraph("body-para-one"),
+        item.paragraph("body-para-two"),
+        item.section("section-alpha", item("task-a1")),
+        item.section("section-beta", item("task-b1")),
+      ),
+    )
+
+    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+
+    const bodyOneBox = board.screen.nodeBox("body-para-one")
+    const bodyTwoBox = board.screen.nodeBox("body-para-two")
+    const sectionAlphaBox = board.screen.nodeBox("section-alpha")
+    const sectionBetaBox = board.screen.nodeBox("section-beta")
+
+    expect(bodyOneBox).not.toBeNull()
+    expect(bodyTwoBox).not.toBeNull()
+    expect(sectionAlphaBox).not.toBeNull()
+    expect(sectionBetaBox).not.toBeNull()
+
+    // Both body blocks and structural items: 1 row spacing (compact)
+    const bodySpacing = bodyTwoBox!.y - bodyOneBox!.y
+    expect(bodySpacing).toBe(1)
+
+    const structuralSpacing = sectionBetaBox!.y - sectionAlphaBox!.y
+    expect(structuralSpacing).toBe(1)
+  })
+
+  test("all-body column (no structural items) also renders compactly", () => {
+    // When ALL children are body (no oi), all are compact
+    const nodes = item(
+      "board",
+      item("col1", item.paragraph("para-one"), item.paragraph("para-two"), item.paragraph("para-three")),
+    )
+
+    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+
+    const paraOneBox = board.screen.nodeBox("para-one")
+    const paraTwoBox = board.screen.nodeBox("para-two")
+    const paraThreeBox = board.screen.nodeBox("para-three")
+
+    expect(paraOneBox).not.toBeNull()
+    expect(paraTwoBox).not.toBeNull()
+    expect(paraThreeBox).not.toBeNull()
+
+    // All body blocks: 1 row spacing (compact)
+    expect(paraTwoBox!.y - paraOneBox!.y).toBe(1)
+    expect(paraThreeBox!.y - paraTwoBox!.y).toBe(1)
+  })
+
+  test("all-structural column (no body) renders compactly", () => {
+    // When ALL children are oi, none get marginBottom
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item.section("sec-one", item("task-1")),
+        item.section("sec-two", item("task-2")),
+        item.section("sec-three", item("task-3")),
+      ),
+    )
+
+    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+
+    const secOneBox = board.screen.nodeBox("sec-one")
+    const secTwoBox = board.screen.nodeBox("sec-two")
+    const secThreeBox = board.screen.nodeBox("sec-three")
+
+    expect(secOneBox).not.toBeNull()
+    expect(secTwoBox).not.toBeNull()
+    expect(secThreeBox).not.toBeNull()
+
+    // Structural items: 1 row spacing (compact)
+    expect(secTwoBox!.y - secOneBox!.y).toBe(1)
+    expect(secThreeBox!.y - secTwoBox!.y).toBe(1)
   })
 })

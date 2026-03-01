@@ -45,8 +45,35 @@ For rendering bugs, use **buffer assertions** (not just state assertions):
 | Undo/redo | `undo-system.test.ts` | Undo cursor restore, duplicate, redo |
 | Crash regressions | `crash-regressions.test.ts` | Any crash-type bug (OOB, null ref, etc.) |
 | Board structure | `board.test.ts` | Board state, app mount |
-| Status bar | `status-bar.test.ts` | Bottom bar content |
+| Status bar | `views/board-bottom-bar.test.tsx` | Bottom bar content, view indicators, bell messages, elapsed time |
 | Indent/outdent | `indent-outdent.slow.test.ts` | Tab/Shift+Tab indentation |
 | Alignment | `alignment.test.ts` | Column alignment, body alignment |
+| Breadcrumbs | `breadcrumb.test.ts` | ANSI replay, ghost prefix, zoom breadcrumbs, text bleed |
+| Card layout | `card-layout.test.tsx` | Card borders, text overflow, body indicator (···), width sweep, title wrapping, truncation, display bugs (raw IDs, trailing #, query DSL), inline ^refs |
+| Column rendering | `column-rendering.test.ts` | Scroll indicators, selected style, title truncation, WIP counts, section card rendering, body block spacing |
+| Overflow indicators | `overflow.test.tsx` | Overflow ▲/▼, child counts, indicator positioning |
+| Visual rendering | `visual.test.ts` | Visual toolbelt, screen assertions, node colors, card position |
+| Edit mode | `input-mode.test.ts` | Input mode derivation, edit mode logic |
+| Emoji rendering | `driver.test.tsx` | Emoji navigation, mixed emoji/ASCII, driver-level tests |
+| Hide parent sigil | `embed.test.ts` | Redundant parent sigil hiding on embedded links |
 
 **If your bug doesn't fit any domain above**, check if it relates to an existing file's theme. If truly novel, create a new thematic file that can accumulate related tests over time.
+
+## Test Layer Taxonomy
+
+Tests have different import costs depending on what they use. Prefer lower layers — a test for pure cursor logic belongs in Layer 0, not Layer 2.
+
+| Layer | Type | Import Cost | What it tests | Example files |
+|---|---|---|---|---|
+| 0 | Pure Logic | ~20-50ms | Algorithms, data structures, pure functions | `layout/constrain.test.ts`, `text/inline-parser.test.ts` |
+| 0+ | Module imports | ~500-700ms | Functions with framework imports (zustand, etc.) but no inkx | `input-mode.test.ts` |
+| 1 | Component Unit | ~200ms | React components with `createRenderer` | `views/node-view.test.tsx` |
+| 2 | Integration (testEnv) | ~1.8s | Full board via `testEnv`/`createTestBoard` | `hr.test.ts`, `alignment.test.ts`, `breadcrumb.test.ts` |
+| 3 | Acceptance (multi-step) | ~1.8s | Multi-step user journeys, `.slow.` files | `fold.slow.test.ts`, `detail-pane.slow.test.ts` |
+| 4 | TTY/Snapshot | ~1.8s | Real terminal emulator, screenshots | `pty-integration.slow.spec.ts` |
+
+**Guidelines:**
+- Layer 2+ files share the same ~1.8s import cost (React + inkx + layout engine WASM init)
+- Consolidating Layer 2+ files saves ~1.8s per eliminated file (spread across vitest workers)
+- Don't merge a Layer 0 test into a Layer 2 file — it makes the light test pay 1.8s overhead
+- Larger consolidated test files are expected and desirable for Layer 2+ (see `/code clean` exceptions)
