@@ -290,7 +290,7 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 
 ### Dialog Navigation (when a dialog is open)
 
-These keys only work when a dialog (search, project picker, new item) is open.
+These keys only work when a dialog (search, item picker, new item) is open.
 
 | Key | TTY press | Command | Description |
 |-----|-----------|---------|-------------|

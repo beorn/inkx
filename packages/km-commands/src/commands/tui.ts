@@ -50,11 +50,11 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "SHOW_NEW_ITEM_DIALOG" }),
   },
 
-  // Project picker
+  // Item picker (project mode — move card to a project)
   {
     id: "project_picker",
-    name: "Project Picker",
-    description: "Open project picker",
+    name: "Item Picker",
+    description: "Open item picker (project/tag/assignee)",
     category: "Navigation",
     shortLabel: "project",
     execute: (): CommandAction => ({ type: "SHOW_ITEM_PICKER" }),

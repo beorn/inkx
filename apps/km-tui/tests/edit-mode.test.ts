@@ -26,7 +26,7 @@ describe("getEditMode", () => {
     expect(getEditMode({ ...base, showNewItemDialog: true })).toBe("dialog")
   })
 
-  test("returns 'dialog' when project picker is open", () => {
+  test("returns 'dialog' when item picker is open", () => {
     expect(getEditMode({ ...base, activePicker: { type: "project" } })).toBe("dialog")
   })
 

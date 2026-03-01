@@ -133,7 +133,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       clearSelection(ctx)
       return ok()
     case "SHOW_ITEM_PICKER":
-      // Allow project picker in empty panes (no card required) or when a card is selected
+      // Allow item picker in empty panes (no card required) or when a card is selected
       if (card || ctx.focusedPaneViewType() === "empty") {
         pushDialogMode("dialog:picker")
         ctx.closeDetailPane()
@@ -295,13 +295,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.focus("board-area")
       return ok()
     case "FOCUS_DETAIL":
-      if (!ctx.ui.showDetailPane) {
+      if (!ctx.hasDetailPane) {
         ctx.openDetailPane()
       }
       ctx.focus("detail-pane")
       // Default to topbar cursor if no cursor set
-      if (!ctx.ui.detailCursorNodeId) {
-        ctx.setUI({ detailCursorNodeId: DETAIL_TOPBAR_ID })
+      if (!ctx.getDetailCursorId()) {
+        ctx.setDetailCursor(DETAIL_TOPBAR_ID)
       }
       return ok()
     case "TOGGLE_DETAIL_PANE":
@@ -1125,9 +1125,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "PANE_SPLIT_AND_PICK": {
-      // Split vertical (side by side) then show project picker in the new (empty) pane
+      // Split vertical (side by side) then show item picker in the new (empty) pane
       ctx.splitFocusedPane("h")
-      // Focus moves to the new pane on next cycle; for now, show the project picker
+      // Focus moves to the new pane on next cycle; for now, show the item picker
       // which will navigate when the user picks a board
       pushDialogMode("dialog:picker")
       ctx.closeDetailPane()
@@ -1148,12 +1148,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       if (detailNode) {
         const items = getDetailItemsForNode(ctx.repo, detailNode)
         if (items.length > 0) {
-          const currentId = ctx.ui.detailCursorNodeId
+          const currentId = ctx.getDetailCursorId()
           const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
           const nextIdx = Math.min(currentIdx + 1, items.length - 1)
           const nextItem = items[nextIdx]
           if (nextItem) {
-            ctx.setUI({ detailCursorNodeId: nextItem.nodeId })
+            ctx.setDetailCursor(nextItem.nodeId)
           }
         }
       }
@@ -1164,12 +1164,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       if (detailNode) {
         const items = getDetailItemsForNode(ctx.repo, detailNode)
         if (items.length > 0) {
-          const currentId = ctx.ui.detailCursorNodeId
+          const currentId = ctx.getDetailCursorId()
           const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
           const prevIdx = Math.max(currentIdx - 1, 0)
           const prevItem = items[prevIdx]
           if (prevItem) {
-            ctx.setUI({ detailCursorNodeId: prevItem.nodeId })
+            ctx.setDetailCursor(prevItem.nodeId)
           }
         }
       }
@@ -1549,13 +1549,13 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   }
 
   // --- Layer 2: Pane focused -> focus board (pane stays open) ---
-  if (ui.showDetailPane && ctx.focusManager.getSnapshot().activeId === "detail-pane") {
+  if (ctx.hasDetailPane && ctx.focusManager.getSnapshot().activeId === "detail-pane") {
     ctx.focus("board-area")
     return ok()
   }
 
   // --- Layer 2b: Pane open but unfocused -> close pane ---
-  if (ui.showDetailPane) {
+  if (ctx.hasDetailPane) {
     ctx.closeDetailPane()
     ctx.focus("board-area")
     return ok()
@@ -2040,10 +2040,10 @@ function getDetailPaneNode(ctx: ActionCtx): KNode | undefined {
 
 /**
  * Get the node at the current detail pane cursor position.
- * Looks up the node from detailCursorNodeId, handling the __backlink__ prefix.
+ * Looks up the node from detail pane cursorId, handling the __backlink__ prefix.
  */
 function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
-  const cursorNodeId = ctx.ui.detailCursorNodeId
+  const cursorNodeId = ctx.getDetailCursorId()
   if (!cursorNodeId) return undefined
 
   // Backlink items use __backlink__ prefix — strip it to get the real node ID

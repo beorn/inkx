@@ -648,7 +648,7 @@ Press `?` in the TUI to show the interactive help overlay.
 | `n`            | Open new item dialog                           |
 | `Tab`          | Indent (make child of item above)              |
 | `Shift+Tab`    | Outdent (make sibling of parent)               |
-| `p`            | Open project picker (move to project)          |
+| `p`            | Open item picker (move to project)              |
 | `e`            | Edit item in external editor                   |
 | `1-5` (detail) | Set priority (when detail pane open)           |
 

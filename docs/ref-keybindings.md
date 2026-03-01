@@ -494,7 +494,7 @@ Selection: `S-hjkl`, `S-arrows`, `A` (select all)
 Fold: `Tab` (toggle), `z`/`Z` (all), `<`/`>` (depth), `c` (collapse column)
 View: `v` (cycle), `+`/`-` (content lines), `e` (zoom), `u` (zoom out), `i` (zoom in)
 Task: `Space` (cycle status)
-System: `q` (quit), `?` (help), `/` (search), `n` (new), `p` (project picker)
+System: `q` (quit), `?` (help), `/` (search), `n` (new), `p` (item picker)
 Numbers: `1-9` (favorites), `!-( ` (columns)
 History: `C-z`/`C-S-z`/`C-y` (undo/redo)
 Console: `` ` `` (toggle), `C-t` (dev toast)
@@ -503,7 +503,7 @@ Console: `` ` `` (toggle), `C-t` (dev toast)
 
 | Key | Action | Rationale |
 |-----|--------|-----------|
-| `P` | Follow embedded link (go to project) | Mnemonic, complements `p` (project picker) |
+| `P` | Follow embedded link (go to project) | Mnemonic, complements `p` (item picker) |
 | `x` | Toggle select current node | Standard in Linear/GitHub/Superhuman. Frees `Space` for task-only use. |
 
 ### Consider (future)

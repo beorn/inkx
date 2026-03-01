@@ -20,7 +20,7 @@ Board.tsx (main container)
 │
 ├── Overlays (conditionally rendered)
 │   ├── DetailPane (right panel)
-│   ├── ProjectPicker (modal)
+│   ├── ItemPicker (modal, project/tag/assignee)
 │   ├── HelpOverlay (modal)
 │   └── NewItemDialog (modal)
 │

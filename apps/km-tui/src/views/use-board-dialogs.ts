@@ -2,7 +2,7 @@
  * Board Dialog Handlers Hook
  *
  * Encapsulates dialog-related event handlers for the Board component.
- * Handles project picker and new item dialog interactions.
+ * Handles item picker (project/tag/assignee) and new item dialog interactions.
  */
 import { useCallback } from "react"
 import { type KNode, resolveRelativeDate } from "@km/core"
@@ -82,7 +82,7 @@ export function useBoardDialogs({
   rootId,
   undoHandle,
 }: UseBoardDialogsParams): BoardDialogHandlers {
-  // Handle project picker selection (move to project)
+  // Handle item picker selection (move to project)
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
   const handlePickerSelect = useCallback(
     (option: PickerOption) => {

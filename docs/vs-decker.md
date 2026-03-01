@@ -24,7 +24,7 @@ Board (fullscreen)
 │   ├── ColumnsView
 │   └── TabsView
 ├── DetailPane (optional 40% split)
-├── Modals (ProjectPicker, NewItemDialog, Help)
+├── Modals (ItemPicker, NewItemDialog, Help)
 └── CommandBox (mode pill, status indicators)
 ```
 

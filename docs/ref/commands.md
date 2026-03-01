@@ -44,7 +44,7 @@ packages/km-commands/src/
     task.ts         -- Cycle status, toggle done, set specific status
     view.ts         -- View mode, help, fold, outline depth, content lines
     history.ts      -- Undo/redo
-    tui.ts          -- Quit, new item, project picker, search, favorites, columns, close/quit
+    tui.ts          -- Quit, new item, item picker, search, favorites, columns, close/quit
 ```
 
 ---
@@ -301,7 +301,7 @@ The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for 
 | ---------------- | -------------- | --------------------------------- |
 | `quit`           | Quit           | `q`                               |
 | `new_item`       | New Item       | `n`                               |
-| `project_picker` | Project Picker | `p`                               |
+| `project_picker` | Item Picker    | `p`                               |
 | `search`         | Search         | `/`                               |
 | `goto` (targetId: 1-9) | Favorite 1-9 | `1`-`9`                     |
 | `column_1`-`9`  | Column 1-9     | `!@#$%^&*(` (Shift+1-9)          |

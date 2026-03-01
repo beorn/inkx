@@ -52,7 +52,7 @@ export const itemPickerOpen = when("itemPickerOpen", (ctx) => ctx.itemPickerOpen
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
-/** Any text-input dialog is open (search, project picker, new item, date prompt, omnibox, search/replace) */
+/** Any text-input dialog is open (search, item picker, new item, date prompt, omnibox, search/replace) */
 export const anyDialogOpen = when(
   "anyDialogOpen",
   (ctx) =>

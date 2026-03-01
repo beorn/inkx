@@ -6,7 +6,7 @@
 
 Task: migrate Board.tsx from `useInput` to `useInputLayer` so InlineEditField's text capture works without key conflicts.
 
-A previous session (commit `2776b88f`) had already migrated dialogs (SearchDialog, NewItemDialog, ProjectPicker) to `useInputLayer`. Board was left on `useInput` with a manual guard (`if (ui.inlineEditNodeId) return false`) to suppress key conflicts during inline editing.
+A previous session (commit `2776b88f`) had already migrated dialogs (SearchDialog, NewItemDialog, ItemPicker) to `useInputLayer`. Board was left on `useInput` with a manual guard (`if (ui.inlineEditNodeId) return false`) to suppress key conflicts during inline editing.
 
 The planning session saw dialogs using `useInputLayer` and pattern-matched: "DetailPane should get one too for h/j/k/Esc." It designed the plan mechanically — swap `useInput` for `useInputLayer`, give each component its own layer — without exploring the command system.
 

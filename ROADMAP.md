@@ -10,7 +10,7 @@ What works today:
 
 - Markdown parsing with inline refs, fields, and section trees
 - Query system with search, filtering, and date shortcuts
-- Kanban board TUI with column display, detail pane, and project picker
+- Kanban board TUI with column display, detail pane, and item picker (project/tag/assignee)
 - Bidirectional sync: edits in TUI write back to markdown files
 - SQLite storage with event history (disk mode) or ephemeral in-memory (memory mode)
 - CLI for quick capture, task management, and GTD bootstrap
