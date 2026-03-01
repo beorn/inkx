@@ -20,6 +20,11 @@ const alwaysExclude = [
 // The "forks" pool with isolate:false shares modules too, but fork process overhead
 // cancels the benefit. Don't change pool without benchmarking.
 //
+// Bun compatibility issues blocking isolate:false (check if fixed):
+//   threads + isolate:false crashes: https://github.com/oven-sh/bun/issues/27002
+//   vmThreads segfaults on bun:     https://github.com/oven-sh/bun/issues/16415
+//   Worker thread termination:      https://github.com/vitest-dev/vitest/issues/8133
+//
 // When --project is passed, define named projects so vitest can filter.
 // Without --project, the root config runs alone (= fast tests only).
 const hasProjectFlag = process.argv.some((a) => a.startsWith("--project"))

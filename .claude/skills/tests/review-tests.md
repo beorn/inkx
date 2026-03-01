@@ -468,7 +468,7 @@ Output structured findings:
 
 | Metric                  | Value | Target   | Status |
 | ----------------------- | ----- | -------- | ------ |
-| test:fast time          | Xs    | <5s      | ✅/❌  |
+| test:fast time          | Xs    | <20s     | ✅/❌  |
 | Unmarked slow tests     | N     | 0        | ✅/❌  |
 | Fixture setup calls     | N     | <varies> | ⚠️/✅  |
 
@@ -571,7 +571,7 @@ Propose concrete improvements based on root causes:
 
 **Tooling enhancements:**
 
-- Add pre-commit hook to check test:fast timing (<5s)
+- Add pre-commit hook to check test:fast timing (<20s)
 - Enforce DI compliance checks in CI (no getDb/setDb in tests)
 - Add automated detection for tests in wrong layer
 - Create lint rule for console.log in test files (should use debug())
@@ -603,7 +603,7 @@ Compare before/after:
 
 | Metric                        | Before | After | Target |
 | ----------------------------- | ------ | ----- | ------ |
-| test:fast time                | Xs     | Ys    | <5s    |
+| test:fast time                | Xs     | Ys    | <20s   |
 | Total test files              | X      | Y     | -      |
 | DI compliance violations      | X      | Y     | 0      |
 | Unmarked slow tests           | X      | Y     | 0      |
