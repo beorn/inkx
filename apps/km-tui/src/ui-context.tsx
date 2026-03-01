@@ -58,14 +58,28 @@ export function useTreeConfig() {
 }
 
 /**
- * Get the current board's root ID (for excluding from board pills)
+ * Walk up the tree from nodeId to find the nearest file-level ancestor.
+ * File nodes have fs_path set. Returns nodeId itself if it's already a file node,
+ * or the first ancestor with fs_path. Used to derive rootBoardId from a pane's rootId.
  */
-export function useRootBoardId(): string | null {
-  return useUISelector((s) => s.rootBoardId)
+export function findBoardRootId(
+  repo: { getNode(id: string): { fs_path?: string; parent_id?: string | null } | undefined },
+  nodeId: string | null,
+): string | null {
+  if (!nodeId) return null
+  let id: string | null = nodeId
+  while (id) {
+    const node = repo.getNode(id)
+    if (!node) return nodeId
+    if (node.fs_path) return id
+    id = node.parent_id ?? null
+  }
+  return nodeId
 }
 
 /**
- * Derive excluded sigils from rootBoardId. Pure computation, no subscription.
+ * Derive excluded sigils from a board root node. Pure computation, no subscription.
+ * Checks fs_path for sigil prefix (@, #, +).
  */
 export function deriveExcludedSigils(
   repo: { getNode(id: string): { fs_path?: string } | undefined },
@@ -107,11 +121,9 @@ export function deriveColumnExcludedSigils(columnName: string, nodeId?: string, 
  *
  * @returns Array of sigils to exclude (e.g., ["@issue"])
  */
-export function useExcludedSigils(rootBoardIdParam?: string | null): string[] {
-  const rootBoardId = useRootBoardId()
-  const effectiveId = rootBoardIdParam !== undefined ? rootBoardIdParam : rootBoardId
+export function useExcludedSigils(rootBoardId: string | null): string[] {
   const repo = useRepo()
-  return useMemo(() => deriveExcludedSigils(repo, effectiveId), [effectiveId, repo])
+  return useMemo(() => deriveExcludedSigils(repo, rootBoardId), [rootBoardId, repo])
 }
 
 /**

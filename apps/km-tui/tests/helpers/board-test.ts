@@ -397,7 +397,6 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
       { columns, rows },
-      initialState.rootId,
     ),
 
     dimensions: { columns, rows },
@@ -1609,7 +1608,6 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     {
       treeConfig,
       setUI: () => {},
-      rootBoardId: null,
       jobRunner: noopJobRunner as any,
       undoHandle: noopUndoHandle as any,
       taskStatusFilter: new Set<string>(),
@@ -1690,7 +1688,6 @@ export function renderBoardWithStore(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
       { columns, rows },
-      initialState.rootId,
     ),
 
     dimensions: { columns, rows },

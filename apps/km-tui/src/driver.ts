@@ -201,7 +201,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       viewMode,
       [...(initialData.collapsedColumns ?? [])],
       { columns, rows },
-      initialData.rootId,
     ),
     dimensions: { columns, rows },
   }

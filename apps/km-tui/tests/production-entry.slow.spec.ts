@@ -61,7 +61,6 @@ function buildStoreParams(
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
       { columns: cols, rows },
-      rootId,
     ),
     dimensions: { columns: cols, rows },
   }
@@ -606,7 +605,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
 describe("production smoke: store dimensions", () => {
   test("createInitialUIState: stores dimensions", () => {
-    const ui = createInitialUIState("cards", [], { columns: 80, rows: 24 }, "root")
+    const ui = createInitialUIState("cards", [], { columns: 80, rows: 24 })
     expect(ui.dimensions).toEqual({ columns: 80, rows: 24 })
   })
 

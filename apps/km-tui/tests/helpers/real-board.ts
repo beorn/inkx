@@ -145,7 +145,6 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       viewMode,
       [...(initialState.collapsedColumns ?? [])],
       { columns, rows },
-      initialState.rootId,
     ),
     dimensions: { columns, rows },
   }

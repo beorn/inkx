@@ -31,9 +31,6 @@ describe("CommandBox", () => {
     viewMode: "columns",
     maxContentLines: 3,
 
-    // Board context
-    rootBoardId: null,
-
     // Overlays/dialogs
     showHelp: false,
     activePicker: null,
@@ -256,7 +253,6 @@ describe("StatusCounters", () => {
   const mockUIState: UIState = {
     viewMode: "columns",
     maxContentLines: 3,
-    rootBoardId: null,
     showHelp: false,
     activePicker: null,
     showNewItemDialog: false,

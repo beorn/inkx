@@ -30,7 +30,6 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
   return {
     viewMode: "columns",
     maxContentLines: 3,
-    rootBoardId: null,
     showHelp: false,
     activePicker: null,
     showNewItemDialog: false,

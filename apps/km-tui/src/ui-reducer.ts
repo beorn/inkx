@@ -57,9 +57,6 @@ export interface UIState {
   iconStyle: IconStyle
   borderMode: BorderMode
 
-  // Board context
-  rootBoardId: string | null
-
   // Overlays/dialogs
   showHelp: boolean
   helpScrollOffset: number
@@ -341,7 +338,6 @@ export function createInitialUIState(
   initialViewMode: ViewMode,
   collapsedColumns: number[],
   dimensions: { columns: number; rows: number },
-  rootBoardId: string | null = null,
   iconStyle: IconStyle = "nerdfont",
 ): UIState {
   return {
@@ -349,8 +345,6 @@ export function createInitialUIState(
     maxContentLines: 3,
     iconStyle,
     borderMode: "normal" as BorderMode,
-
-    rootBoardId,
 
     showHelp: false,
     helpScrollOffset: 0,

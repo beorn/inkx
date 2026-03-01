@@ -99,7 +99,6 @@ async function profile() {
       "cards",
       [...(state.collapsedColumns ?? [])],
       { columns: 200, rows: 70 },
-      rootId,
     ),
     dimensions: { columns: 200, rows: 70 },
     savedWorkspace: null,

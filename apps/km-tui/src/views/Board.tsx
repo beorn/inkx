@@ -59,7 +59,7 @@ const log = createLogger("km:tui:board")
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
-import { TreeRenderProvider, deriveTreeConfig, useUISelector, type TreeConfig } from "../ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig, useUISelector, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
@@ -948,7 +948,7 @@ export function Board({ patchedConsole }: BoardProps) {
         <TreeRenderProvider
           treeConfig={treeConfig}
           setUI={setUI}
-          rootBoardId={ui.rootBoardId}
+          rootBoardId={findBoardRootId(repo, rootId)}
           searchMatchNodeIds={searchMatchNodeIds}
           currentMatchNodeId={currentMatchNodeId}
           searchQuery={ui.localSearch?.query ?? null}

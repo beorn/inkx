@@ -279,7 +279,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         viewMode,
         [...(state.collapsedColumns ?? [])],
         { columns: cols, rows },
-        state.rootId,
         defaultIconStyle,
       ),
       dimensions: { columns: cols, rows },

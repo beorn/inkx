@@ -100,7 +100,6 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     {
       treeConfig,
       setUI: () => {},
-      rootBoardId: null,
       jobRunner: noopJobRunner as any,
       undoHandle: noopUndoHandle as any,
       taskStatusFilter: new Set<string>(),
