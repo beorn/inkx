@@ -6,12 +6,13 @@
  * StatusCounters is always visible showing storage, counters, watcher info.
  */
 
-import { describe, it, expect } from "vitest"
+import { describe, it, test, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "inkx/testing"
+import { testEnv, item } from "../helpers/board-test.ts"
 import { createFocusManager, FocusManagerContext } from "inkx"
 import { CommandBox, StatusCounters } from "../../src/views/CommandBox.tsx"
-import type { UIState } from "../../src/ui-reducer.ts"
+import type { UIState, PaneUI } from "../../src/ui-reducer.ts"
 
 const baseRender = createRenderer()
 
@@ -26,61 +27,92 @@ function render(element: React.ReactElement) {
 }
 
 describe("CommandBox", () => {
-  const mockUIState: UIState = {
-    // View configuration
+  const mockUIState: PaneUI = {
+    // View configuration (per-pane)
     viewMode: "columns",
     maxContentLines: 3,
 
-    // Overlays/dialogs
+    // Overlays/dialogs (global)
     showHelp: false,
+    helpScrollOffset: 0,
     activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
+    searchDialogInitialInput: "",
+    searchScope: "all",
+    searchScopeNodeIds: [],
+    showConsole: false,
+    showSyncPane: false,
 
-    // Selection state
+    // Selection state (per-pane)
     multiSelected: new Set(),
     selectionAnchor: null,
     selectAllLevel: 0,
+    visualMode: false,
+    visualAnchor: null,
 
-    // Column state
+    // Column state (per-pane)
     collapsedColumns: new Set(),
+    columnScrollAnchor: null,
 
-    // Node fold state
-    foldDepths: new Map(),
+    // Inline edit (per-pane)
+    inlineEditBlock: null,
+    localSearch: null,
+    searchReplace: null,
 
-    // Mouse state
+    // Filter state (per-pane)
+    showFilterDialog: false,
+    filterText: "",
+    filterProperties: { taskStatus: new Set(), priority: new Set(), dueDate: new Set(), assignedTo: new Set(), nodeType: new Set() },
+    filterCursorRow: 0,
+    filterCursorVal: 0,
+    showIgnored: false,
+    ignoreVersion: 0,
+
+    // Mouse state (per-pane)
     mouseSelection: null,
     isMouseDragging: false,
 
-    // File drop state
+    // File drop state (global)
     droppedFiles: [],
     showDropNotification: false,
 
-    // Navigation history
+    // Navigation history (global)
     navHistory: [],
     navHistoryIndex: 0,
 
-    // Recent projects
+    // Recent projects (global)
     recentProjectIds: [],
 
-    // Terminal state
+    // Terminal state (global)
     dimensions: { columns: 80, rows: 24 },
 
-    // Loading state
+    // Loading state (global)
     isLoading: false,
     loadingStartTime: null,
+    backgroundParsing: false,
 
-    // Watcher status
+    // Watcher status (global)
     watcherStatus: null,
+    syncEvents: [],
 
-    // Bell state
+    // Bell state (global)
     bellState: null,
 
-    // Console
-    showConsole: false,
+    // Console (global)
 
-    // Status message
+    // Status message (global)
     status: null,
+
+    // Other global fields
+    datePrompt: null,
+    deleteConfirm: null,
+    clipboard: null,
+    pendingChord: null,
+    chordTimedOut: false,
+    showOmnibox: false,
+    iconStyle: "nerdfont",
+    borderMode: "normal",
   }
 
   const mockRootPath = "/tmp/test-repo"
@@ -131,7 +163,7 @@ describe("CommandBox", () => {
   })
 
   it("stacks feedback above command when both are visible", () => {
-    const uiWithStatus: UIState = {
+    const uiWithStatus: PaneUI = {
       ...mockUIState,
       status: { level: "info", message: "Test message" },
     }
@@ -151,7 +183,7 @@ describe("CommandBox", () => {
   })
 
   it("shows INSERT mode when inline editing", () => {
-    const uiWithEdit: UIState = {
+    const uiWithEdit: PaneUI = {
       ...mockUIState,
       inlineEditBlock: { nodeId: "n1", blockIndex: 0 },
     }
@@ -170,7 +202,7 @@ describe("CommandBox", () => {
   })
 
   it("shows VISUAL mode in visual selection", () => {
-    const uiWithVisual: UIState = {
+    const uiWithVisual: PaneUI = {
       ...mockUIState,
       visualMode: true,
       visualAnchor: "n1",
@@ -251,19 +283,18 @@ describe("CommandBox", () => {
 
 describe("StatusCounters", () => {
   const mockUIState: UIState = {
-    viewMode: "columns",
-    maxContentLines: 3,
+    iconStyle: "nerdfont",
+    borderMode: "normal",
     showHelp: false,
+    helpScrollOffset: 0,
     activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    collapsedColumns: new Set(),
-    foldDepths: new Map(),
-    mouseSelection: null,
-    isMouseDragging: false,
+    searchDialogInitialInput: "",
+    searchScope: "all",
+    searchScopeNodeIds: [],
+    showConsole: false,
+    showSyncPane: false,
     droppedFiles: [],
     showDropNotification: false,
     navHistory: [],
@@ -272,10 +303,17 @@ describe("StatusCounters", () => {
     dimensions: { columns: 80, rows: 24 },
     isLoading: false,
     loadingStartTime: null,
+    backgroundParsing: false,
     watcherStatus: null,
+    syncEvents: [],
+    datePrompt: null,
+    deleteConfirm: null,
+    clipboard: null,
     bellState: null,
-    showConsole: false,
     status: null,
+    pendingChord: null,
+    chordTimedOut: false,
+    showOmnibox: false,
   }
 
   const mockRootPath = "/tmp/test-repo"
@@ -417,5 +455,31 @@ describe("StatusCounters", () => {
       const consoleEl = app.locator("#console-indicator")
       expect(consoleEl.count()).toBe(0)
     })
+  })
+})
+
+// =============================================================================
+// Bottom bar VIEW indicator (absorbed from status-bar.test.ts)
+// =============================================================================
+
+describe("Bottom bar VIEW indicator", () => {
+  test("shows CARDS VIEW on startup", () => {
+    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+      rows: 24,
+      columns: 80,
+    })
+    const text = env.board.screenshot()
+    expect(text).toContain("CARDS VIEW")
+  })
+
+  test("shows other VIEW after pressing v", () => {
+    const env = testEnv(() => item.root("board", item("Inbox", item("Task 1"))), {
+      rows: 24,
+      columns: 80,
+    })
+    env.board.press("v").press("m") // Switch view mode (v m chord)
+    const text = env.board.screenshot()
+    // Could be LIST, COLUMNS, or TABS
+    expect(text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)
   })
 })

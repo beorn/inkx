@@ -6,6 +6,7 @@
 
 import { describe, test, expect } from "vitest"
 import { renderBoard, board, column, SIMPLE_BOARD } from "./board-test.ts"
+import { createTestBoard, check, item } from "@km/tui/test"
 
 describe("board-test helper", () => {
   test("renderBoard creates a board test instance", () => {
@@ -48,5 +49,52 @@ describe("board-test helper", () => {
     b.press("l")
     // Should still render without crashing
     expect(b.screenshot()).toBeDefined()
+  })
+})
+
+// =============================================================================
+// @km/tui/test API (absorbed from test-api.spec.ts)
+// =============================================================================
+
+describe("@km/tui/test API", () => {
+  test("createTestBoard with string DSL", () => {
+    const board = createTestBoard(["Inbox > Task 1", "Projects > Alpha"])
+
+    expect(board.text).toContain("Inbox")
+    board.press("j")
+    expect(board.text).toContain("Inbox")
+  })
+
+  test("createTestBoard with options", () => {
+    const board = createTestBoard(["Col > Task"], { viewMode: "list" })
+
+    expect(board.viewMode).toBe("list")
+  })
+
+  test("check.all runs all checks", () => {
+    const board = createTestBoard(["Col > Task"])
+
+    check.all(board)
+  })
+
+  test("individual checks work", () => {
+    const board = createTestBoard(["Col > Task"])
+
+    check.rendering(board)
+    check.cursor(board)
+  })
+
+  test("item() helper available", () => {
+    const nodes = item("board", item("Col", item("Task")))
+    const board = createTestBoard(nodes)
+
+    expect(board.text).toContain("Task")
+  })
+
+  test("fluent chaining", () => {
+    const board = createTestBoard(["Col > A", "Col > B", "Col > C"])
+
+    board.press("j").press("j")
+    expect(board.cursor.card).toBe(2)
   })
 })

@@ -1,15 +1,61 @@
 /**
- * Overflow count and child count tests.
+ * Overflow indicator tests — spurious indicators, counts, positioning, component.
  *
- * Tests:
- * 1. Cards with many children show overflow "+N" indicator
- * 2. Subitems with children show child count on their title row
- * 3. After zooming into a section, cards still show overflow indicators
+ * Consolidated from:
+ * - overflow-top-spurious.test.tsx (spurious ▲ at top)
+ * - overflow-count.test.ts (child count + overflow +N)
+ * - overflow-indicator-position.test.ts (▼ adjacency to last card)
+ * - views/OverflowIndicator.test.tsx (component unit tests)
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, it, expect } from "vitest"
+import React from "react"
+import { createRenderer } from "inkx/testing"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { OverflowIndicator } from "../src/views/OverflowIndicator.tsx"
 import type { KNode } from "@km/core"
+
+// =============================================================================
+// Spurious ▲ at top of column
+// =============================================================================
+
+describe("overflow-top-spurious", () => {
+  test("no spurious ▲ at top (cards view)", () => {
+    const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
+    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
+
+    const text = board.screenshot()
+    expect(text).not.toContain("\u25b2")
+    expect(text).toContain("\u25bc")
+  })
+
+  test("no spurious ▲ at top (columns view)", () => {
+    const children = Array.from({ length: 40 }, (_, i) => item(`card-${i}`))
+    const { board } = testEnv(() => item("board", item("col1", ...children)), {
+      rows: 24,
+      columns: 80,
+      viewMode: "columns",
+    })
+
+    const text = board.screenshot()
+    expect(text).not.toContain("\u25b2")
+    expect(text).toContain("\u25bc")
+  })
+
+  test("▼ disappears after scrolling back to top", () => {
+    const children = Array.from({ length: 30 }, (_, i) => item(`card-${i}`))
+    const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
+
+    // Scroll down — ▼ should be visible (items below viewport)
+    for (let i = 0; i < 10; i++) board.press("j")
+    expect(board.screenshot()).toContain("\u25bc")
+
+    // Scroll back to top — ▼ should still be visible (still items below)
+    for (let i = 0; i < 10; i++) board.press("k")
+    // At top, no ▲ should show
+    expect(board.screenshot()).not.toContain("\u25b2")
+  })
+})
 
 // =============================================================================
 // Child count on subitems
@@ -201,5 +247,114 @@ describe("overflow indicator on cards", () => {
     expect(screenshot).toContain("a2")
     expect(screenshot).toContain("a3")
     expect(screenshot).toContain("+2")
+  })
+})
+
+// =============================================================================
+// Overflow indicator positioning
+// =============================================================================
+
+describe("overflow indicator position in board columns", () => {
+  test("▼ indicator is adjacent to last card, dump for debugging", () => {
+    const cards = Array.from({ length: 20 }, (_, i) => item(`card-${i}`))
+    const { board } = testEnv(() => item("board", item("col1", ...cards)), {
+      rows: 20,
+      columns: 50,
+    })
+
+    const text = board.screenshot()
+    const lines = text.split("\n")
+
+    // Dump all lines with row numbers for analysis
+    const dump: string[] = []
+    let indicatorRow = -1
+    let lastCardBorderRow = -1
+    let lastCardContentRow = -1
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] || ""
+      const flags: string[] = []
+      if (line.includes("▼")) {
+        indicatorRow = i
+        flags.push("<<< ▼ INDICATOR")
+      }
+      if (line.includes("▲")) flags.push("<<< ▲ INDICATOR")
+      if (/card-\d+/.test(line)) {
+        lastCardContentRow = i
+        flags.push("<<< CARD CONTENT")
+      }
+      if (line.includes("╰")) {
+        lastCardBorderRow = i
+        flags.push("<<< CARD BORDER BOTTOM")
+      }
+      if (line.includes("╭")) flags.push("<<< CARD BORDER TOP")
+      if (line.includes("─".repeat(10))) flags.push("<<< SEPARATOR")
+      dump.push(`${String(i).padStart(2)}: ${line}  ${flags.join(" ")}`)
+    }
+
+    // The last visible card may be partially clipped (no bottom border row),
+    // so measure gap from last card content row, not border row.
+    const gap = indicatorRow - lastCardContentRow
+
+    // Fail with full dump
+    expect({ indicatorRow, lastCardBorderRow, lastCardContentRow, gap, dump: "\n" + dump.join("\n") }).toEqual(
+      expect.objectContaining({ gap: 1 }),
+    )
+  })
+})
+
+// =============================================================================
+// OverflowIndicator component unit tests
+// =============================================================================
+
+describe("OverflowIndicator", () => {
+  const render = createRenderer()
+
+  it("returns null when count is 0", () => {
+    const app = render(<OverflowIndicator direction="down" count={0} />)
+    // Component returns null, so the frame should be empty (just whitespace)
+    expect(app.text.trim()).toBe("")
+  })
+
+  it("returns null when count is negative", () => {
+    const app = render(<OverflowIndicator direction="down" count={-5} />)
+    // Component returns null, so the frame should be empty (just whitespace)
+    expect(app.text.trim()).toBe("")
+  })
+
+  it("shows down arrow with count for direction down", () => {
+    const app = render(<OverflowIndicator direction="down" count={5} />)
+    expect(app.text).toContain("▼")
+    expect(app.text).toContain("5 more")
+  })
+
+  it("shows up arrow with count for direction up", () => {
+    const app = render(<OverflowIndicator direction="up" count={3} />)
+    expect(app.text).toContain("▲")
+    expect(app.text).toContain("3 more")
+  })
+
+  it("renders with width prop", () => {
+    const app = render(<OverflowIndicator direction="down" count={5} width={30} />)
+    // Verify the text is present
+    // Note: centering behavior (padding spaces) may be stripped by text extraction
+    expect(app.text).toContain("▼ 5 more")
+  })
+
+  it("does not center when width is too narrow", () => {
+    const app = render(<OverflowIndicator direction="down" count={5} width={5} />)
+    // Width is less than text, so no padding should be applied
+    expect(app.text).toContain("▼ 5 more")
+  })
+
+  it("handles large counts", () => {
+    const app = render(<OverflowIndicator direction="down" count={999} />)
+    expect(app.text).toContain("▼")
+    expect(app.text).toContain("999 more")
+  })
+
+  it("works without width prop", () => {
+    const app = render(<OverflowIndicator direction="up" count={10} />)
+    expect(app.text).toContain("▲ 10 more")
   })
 })

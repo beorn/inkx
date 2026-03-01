@@ -20,8 +20,10 @@ Review tests for pruning, overlap, and architecture alignment.
 - [Phase 1.5: DI Compliance Check](#phase-15-di-compliance-check)
 - [Phase 1.6: Test Setup Complexity Check](#phase-16-test-setup-complexity-check)
 - [Phase 1.7: Expensive Fixture Setup Check](#phase-17-expensive-fixture-setup-check)
-- [Phase 2: Layer Analysis](#phase-2-layer-analysis)
+- [Phase 2: Import Cost Profiling (Deep Dive)](#phase-2-import-cost-profiling-deep-dive)
+- [Phase 2.5: Layer Analysis](#phase-25-layer-analysis)
 - [Phase 3: Overlap Detection](#phase-3-overlap-detection)
+- [Phase 3.5: File Proliferation Check](#phase-35-file-proliferation-check)
 - [Phase 4: Smell Detection](#phase-4-smell-detection)
 - [Phase 5: Report](#phase-5-report)
 
@@ -186,7 +188,82 @@ done
 2. Combine into longer journey tests that exercise multiple behaviors with one fixture
 3. Preserve test isolation: only combine when navigation can be reset between assertions
 
-## Phase 2: Layer Analysis
+## Phase 2: Import Cost Profiling (Deep Dive)
+
+Profile representative tests from each layer to understand the actual import cost structure. This reveals where file consolidation saves the most time.
+
+### Methodology
+
+Pick 3-4 representative tests spanning the cost spectrum:
+
+```bash
+# Layer 0: Pure logic (no inkx/React)
+time bun vitest run apps/km-tui/tests/layout/constrain.test.ts 2>&1 | grep "Transform\|Duration"
+
+# Layer 1: Component unit (React, some inkx)
+time bun vitest run apps/km-tui/tests/views/node-view.test.tsx 2>&1 | grep "Transform\|Duration"
+
+# Layer 2: Integration (testEnv/inkx full pipeline)
+time bun vitest run apps/km-tui/tests/hr.test.ts 2>&1 | grep "Transform\|Duration"
+```
+
+### Import Cost Reference
+
+| Layer | Type | Typical Import Cost | Example |
+|---|---|---|---|
+| 0 | Pure Logic | ~20-50ms | `layout/constrain.test.ts`, `text/inline-parser.test.ts` |
+| 0+ | Some imports | ~500-700ms | `input-mode.test.ts` (zustand, but no inkx) |
+| 1 | Component Unit | ~200ms | `views/node-view.test.tsx` |
+| 2 | Integration (testEnv) | ~1.8s | `hr.test.ts`, `alignment.test.ts` |
+| 3 | Acceptance (multi-step) | ~1.8s | `fold.slow.test.ts` |
+| 4 | TTY/Snapshot | ~1.8s | `pty-integration.slow.spec.ts` |
+
+**Key insight**: Layer 2+ files all share the same ~1.8s import cost because they import `testEnv` which imports `inkx/testing`, which initializes the layout engine (top-level await WASM init). Consolidating Layer 2+ files saves ~1.8s per eliminated file.
+
+### Vitest Worker Analysis
+
+```bash
+# Check worker count and parallelization
+bun vitest run --reporter=verbose 2>&1 | head -5  # Shows worker count
+
+# Estimated wall-clock savings = (files_saved × per_file_cost) / num_workers
+# Example: 15 files × 1.8s / 9 workers ≈ 3s saved
+```
+
+### Import Chain Tracing
+
+If a specific import seems expensive, trace its transitive dependencies:
+
+```bash
+# Find what a test entry point imports transitively
+grep -h "^import\|^export.*from" vendor/beorn-inkx/src/testing/index.tsx | head -20
+
+# Check if it pulls in the main barrel (bad) vs direct imports (good)
+grep "from ['\"]\.\.\/index" vendor/beorn-inkx/src/testing/index.tsx
+```
+
+**Known finding (2026-03)**: `inkx/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
+
+### Vitest Pre-bundling (optional)
+
+Check if vitest `deps.optimizer` can reduce per-file overhead:
+
+```typescript
+// vitest.config.ts — experimental
+server: {
+  deps: {
+    optimizer: {
+      web: { include: ["react", "zustand", "jotai"] }
+    }
+  }
+}
+```
+
+### Guideline
+
+Prefer lower test layers. A test for pure cursor logic belongs in Layer 0, not Layer 2. When writing new tests, ask: does this test NEED testEnv/inkx, or can it test the logic directly?
+
+## Phase 2.5: Layer Analysis
 
 Use Task agents in parallel to analyze each layer:
 
@@ -269,6 +346,43 @@ done
 4. Verify with `bun vitest run` after each merge
 
 **Target:** km-tui/tests/ should have ~50-65 thematic files, not 90+ per-bug files.
+
+### Deep Dive: File Consolidation Strategy
+
+When file count is high (>70 fast test files), do a systematic consolidation pass:
+
+**Step 1: Domain Merges** (biggest wins — 3-4 small files → 1 domain file)
+
+Look for clusters of files sharing a prefix or domain:
+```bash
+# Find clusters of related test files
+for prefix in breadcrumb overflow col visual fold zoom scroll cursor card embed body hr edit undo sticky layout; do
+  files=$(ls apps/km-tui/tests/*${prefix}*.test.* apps/km-tui/tests/*${prefix}*.spec.* 2>/dev/null)
+  count=$(echo "$files" | grep -c . 2>/dev/null)
+  [ "$count" -gt 1 ] && echo "  $count files for '$prefix'"
+done
+```
+
+Create a single `<domain>.test.ts` that imports all dependencies once, with describe blocks per original file. Saves ~1.8s per eliminated file (Layer 2+).
+
+**Step 2: Tiny File Absorptions** (1-4 test files absorbed into existing homes)
+
+Files with <5 tests that clearly belong in an existing file:
+- Same component being tested
+- Same domain/feature area
+- Extending an existing test file's coverage
+
+**When NOT to merge:**
+- Merging a light (Layer 0) test into a heavy (Layer 2) file — makes the light test slower
+- Merging a fast test into a `.slow.` file — removes it from fast suite
+- Merging tests with incompatible setup requirements
+
+**Step 3: Overlap Reduction** (delete redundant tests found during merges)
+
+During consolidation, note tests that overlap with existing tests in the target file. Remove the redundant copy.
+
+**Estimated savings**: `(files_eliminated × 1.8s) / vitest_workers ≈ wall_clock_savings`
+Example: 15 files × 1.8s / 9 workers ≈ 3s wall-clock improvement.
 
 ## Phase 4: Smell Detection
 
