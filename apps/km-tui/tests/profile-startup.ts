@@ -11,7 +11,7 @@ import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createToastQueue } from "@km/core"
-import type { CreateBoardAppStoreParams } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import React from "react"
 import { createTerm } from "inkx"
 import { RepoProvider } from "../src/repo-context.tsx"
@@ -184,6 +184,31 @@ async function profile() {
   const store = handle.store
   const getState = () => store.getState()
 
+  /** Update the active board pane's cursorNodeId via store.setState */
+  function setPaneCursor(cursorNodeId: string) {
+    const s = store.getState()
+    const pane = getActiveBoardPane(s)!
+    store.setState((prev) => ({
+      workspace: {
+        ...prev.workspace,
+        panes: new Map(prev.workspace.panes).set(pane.id, { ...pane, cursorNodeId }),
+      },
+    }))
+    getState().cursorStore.setState({ cursorNodeId })
+  }
+
+  /** Update the active board pane's foldDepths via store.setState */
+  function setPaneFoldDepths(foldDepths: Map<string, number>) {
+    const s = store.getState()
+    const pane = getActiveBoardPane(s)!
+    store.setState((prev) => ({
+      workspace: {
+        ...prev.workspace,
+        panes: new Map(prev.workspace.panes).set(pane.id, { ...pane, foldDepths }),
+      },
+    }))
+  }
+
   // j/k navigation (cursor move within column)
   const colNodes = getState().repo.getChildren(rootId)
   const firstCol = colNodes[0]
@@ -195,8 +220,7 @@ async function profile() {
     if (!targetCard) break
     navTimes.push(
       await measureNav(`j (down #${i + 1})`, () => {
-        store.setState({ cursorNodeId: targetCard.id })
-        getState().cursorStore.setState({ cursorNodeId: targetCard.id })
+        setPaneCursor(targetCard.id)
       }),
     )
   }
@@ -208,8 +232,7 @@ async function profile() {
     if (secondColCards.length > 0) {
       navTimes.push(
         await measureNav("l (right column)", () => {
-          store.setState({ cursorNodeId: secondColCards[0]!.id })
-          getState().cursorStore.setState({ cursorNodeId: secondColCards[0]!.id })
+          setPaneCursor(secondColCards[0]!.id)
         }),
       )
     }
@@ -219,8 +242,7 @@ async function profile() {
   if (firstColCards.length > 0) {
     navTimes.push(
       await measureNav("h (left column)", () => {
-        store.setState({ cursorNodeId: firstColCards[0]!.id })
-        getState().cursorStore.setState({ cursorNodeId: firstColCards[0]!.id })
+        setPaneCursor(firstColCards[0]!.id)
       }),
     )
   }
@@ -233,23 +255,23 @@ async function profile() {
   const unfoldTarget = bigCol.cardNodes[0]
   if (unfoldTarget) {
     out(`\n--- Fold/unfold timing (${(unfoldTarget.title || unfoldTarget.name || "card").slice(0, 30)}) ---`)
-    const currentFolds = new Map(getState().foldDepths)
+    const currentFolds = new Map(getActiveBoardPane(getState())!.foldDepths)
     // Unfold depth 1 → 2
     currentFolds.set(unfoldTarget.id, 2)
     await measureNav("Unfold (depth 1→2)", () => {
-      store.setState({ foldDepths: currentFolds })
+      setPaneFoldDepths(currentFolds)
     })
     // Unfold depth 2 → 3
     const deeperFolds = new Map(currentFolds)
     deeperFolds.set(unfoldTarget.id, 3)
     await measureNav("Unfold (depth 2→3)", () => {
-      store.setState({ foldDepths: deeperFolds })
+      setPaneFoldDepths(deeperFolds)
     })
     // Fold back to depth 1
-    const foldBack = new Map(getState().foldDepths)
+    const foldBack = new Map(getActiveBoardPane(getState())!.foldDepths)
     foldBack.delete(unfoldTarget.id)
     await measureNav("Fold (depth 3→1)", () => {
-      store.setState({ foldDepths: foldBack })
+      setPaneFoldDepths(foldBack)
     })
   }
 

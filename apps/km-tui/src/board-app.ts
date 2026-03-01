@@ -11,7 +11,7 @@ import type { Key, ParsedMouse, FocusManager } from "inkx"
 import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
-import { createBoardAppStoreState, type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
@@ -59,6 +59,10 @@ let layoutCache: {
  */
 function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   const s = get()
+  const board = getActiveBoardPane(s)
+  const rootId = board?.rootId ?? null
+  const cursorNodeId = board?.cursorNodeId ?? null
+  const foldDepths = board?.foldDepths ?? new Map<string, number>()
   const repoVersion = s.repo.getSnapshot()
 
   // Reuse cached layout if state inputs haven't changed
@@ -67,36 +71,36 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
   if (
     layoutCache &&
-    layoutCache.rootId === s.rootId &&
-    layoutCache.foldDepths === s.foldDepths &&
+    layoutCache.rootId === rootId &&
+    layoutCache.foldDepths === foldDepths &&
     layoutCache.repoVersion === repoVersion
   ) {
     columns = layoutCache.columns
     nodeIndex = layoutCache.nodeIndex
   } else {
     // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
-    const topChildren = s.repo.getChildren(s.rootId)
-    s.repo.preloadSubtree(s.rootId, topChildren.length > 20 ? 2 : 4)
-    columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
+    const topChildren = s.repo.getChildren(rootId)
+    s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
+    columns = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
     nodeIndex = buildNodeIndex(columns)
-    layoutCache = { rootId: s.rootId, foldDepths: s.foldDepths, repoVersion, columns, nodeIndex }
+    layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
   }
-  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
+  const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
   const column = columns[cursor.colIndex]
   const card = column?.cardNodes[cursor.cardIndex]
   const selectedNode = card ?? column?.node ?? null
 
   return {
     repo: s.repo,
-    rootId: s.rootId,
-    rootPath: s.rootPath,
-    cursorNodeId: s.cursorNodeId,
-    selectedNodes: s.selectedNodes,
-    foldDepths: s.foldDepths,
-    collapsedNodes: s.collapsedNodes,
-    moveMode: s.moveMode,
-    moveSourceNodes: s.moveSourceNodes,
-    moveSourceCursorNodeId: s.moveSourceCursorNodeId,
+    rootId,
+    rootPath: board?.rootPath ?? null,
+    cursorNodeId,
+    selectedNodes: board?.selectedNodes ?? new Set(),
+    foldDepths,
+    collapsedNodes: board?.collapsedNodes ?? new Set(),
+    moveMode: board?.moveMode ?? false,
+    moveSourceNodes: board?.moveSourceNodes ?? [],
+    moveSourceCursorNodeId: board?.moveSourceCursorNodeId ?? null,
     ui: s.ui,
     columns,
     colIndex: cursor.colIndex,
@@ -144,7 +148,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
     getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
-      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, s.rootId),
+      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, rootId),
   }
 }
 

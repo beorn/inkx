@@ -18,7 +18,7 @@ import { createStore, type StoreApi } from "zustand"
 import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { StoreContext } from "inkx/runtime"
-import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
+import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import { createBoardState, createPaneState } from "../src/board-types.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
@@ -127,7 +127,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Navigate cursor on main pane
     store.getState().dispatchBoard({ type: "SELECT", nodeId: "proj-a" })
-    expect(store.getState().cursorNodeId).toBe("proj-a")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("proj-a")
 
     // Switch focus to new pane
     store.getState().cyclePaneFocus("next")
@@ -139,7 +139,7 @@ describe("windowing — focus switch saves/restores state", () => {
     const savedMainPane = store.getState().workspace.panes.get("main")!
     expect(savedMainPane.cursorNodeId).toBe("proj-a")
 
-    // Empty pane doesn't have a cursor — flat cursorNodeId should be null
+    // Empty pane doesn't have a cursor
     const newPane = store.getState().workspace.panes.get(newPaneId)!
     expect(newPane.viewType).toBe("empty")
   })
@@ -158,7 +158,7 @@ describe("windowing — focus switch saves/restores state", () => {
     store.getState().cyclePaneFocus("next")
 
     expect(store.getState().workspace.focusedPaneId).toBe("main")
-    expect(store.getState().cursorNodeId).toBe("task-2")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-2")
   })
 
   test("folded nodes are per-pane independent", () => {
@@ -166,7 +166,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Fold a node in main pane
     store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "task-1" })
-    expect(store.getState().foldDepths.has("task-1")).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.foldDepths.has("task-1")).toBe(true)
 
     // Split and switch to new pane
     store.getState().splitFocusedPane("h")
@@ -179,7 +179,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Switch back — main pane should still have the fold
     store.getState().cyclePaneFocus("next")
-    expect(store.getState().foldDepths.has("task-1")).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.foldDepths.has("task-1")).toBe(true)
   })
 })
 
@@ -203,7 +203,7 @@ describe("windowing — close pane", () => {
     expect(store.getState().workspace.focusedPaneId).toBe("main")
   })
 
-  test("closing pane restores remaining pane's state to flat fields", () => {
+  test("closing pane leaves remaining pane's state accessible", () => {
     const { store } = createTestStore()
 
     // Set cursor to proj-a
@@ -218,8 +218,8 @@ describe("windowing — close pane", () => {
     // Close the new pane — should go back to main with proj-a cursor
     store.getState().closeFocusedPane()
 
-    expect(store.getState().cursorNodeId).toBe("proj-a")
-    expect(store.getState().rootId).toBe("board")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("proj-a")
+    expect(getActiveBoardPane(store.getState())!.rootId).toBe("board")
   })
 
   test("cannot close the last pane", () => {

@@ -17,15 +17,19 @@ import { act } from "react"
 import type { KNode } from "@km/core"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
 import type { StoreApi } from "zustand"
-import type { BoardAppStore } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 
 /** Derive layout from store state on demand. */
 function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
+  const board = getActiveBoardPane(s)
+  const rootId = board?.rootId ?? null
+  const foldDepths = board?.foldDepths ?? new Map<string, number>()
+  const cursorNodeId = board?.cursorNodeId ?? null
+  const columns = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex)
   const selectionLevel: "board" | "column" | "card" =
     cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {

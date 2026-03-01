@@ -21,7 +21,7 @@ import {
   type CommandAction,
 } from "@km/commands"
 import React from "react"
-import type { BoardAppStore } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
 
 describe("withCommands", () => {
@@ -619,8 +619,9 @@ describe("createBoardDriver", () => {
 
     // Store should have captured state from Board (BoardAppStore shape)
     const storeState = driver.store.getState()
-    expect(storeState.rootId).toBe("board")
-    expect(storeState.cursorNodeId).toBe("1a")
+    const pane = getActiveBoardPane(storeState)!
+    expect(pane.rootId).toBe("board")
+    expect(pane.cursorNodeId).toBe("1a")
     expect(storeState.ui.viewMode).toBe("cards")
   })
 
@@ -631,14 +632,14 @@ describe("createBoardDriver", () => {
 
     // Initial state
     let storeState = driver.store.getState()
-    expect(storeState.cursorNodeId).toBe("1a")
+    expect(getActiveBoardPane(storeState)!.cursorNodeId).toBe("1a")
 
     // Navigate down
     await driver.press("j")
 
     // Store should reflect the new cursor position
     storeState = driver.store.getState()
-    expect(storeState.cursorNodeId).toBe("1b")
+    expect(getActiveBoardPane(storeState)!.cursorNodeId).toBe("1b")
   })
 
   test("store provides cursor position", () => {

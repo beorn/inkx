@@ -12,7 +12,7 @@ import { createLogger } from "@beorn/logger"
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import type { BoardAppStore } from "../board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
@@ -67,9 +67,11 @@ export const MemoizedTreeCard = React.memo(
 
     // Fold depth: per-card override or root's depth budget
     const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
-      const cardOverride = s.foldDepths.get(card.id)
+      const board = getActiveBoardPane(s)
+      if (!board) return 1
+      const cardOverride = board.foldDepths.get(card.id)
       if (cardOverride !== undefined) return cardOverride
-      return s.foldDepths.get(s.rootId ?? "") ?? 1
+      return board.foldDepths.get(board.rootId ?? "") ?? 1
     })
 
     const content = (

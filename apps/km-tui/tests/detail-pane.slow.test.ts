@@ -19,7 +19,7 @@ import { RepoProvider } from "../src/repo-context.tsx"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
-import type { BoardAppStore } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import { resolve } from "path"
 
@@ -1687,7 +1687,7 @@ describe("detail pane cursor", () => {
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("some-child-id")
 
     board.press("j") // move to next card — should reset detail cursor
-    expect(store.getState().cursorNodeId).toBe("card2")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
   })
 
@@ -1742,7 +1742,7 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // Navigate to the link node (it's the first card in col1)
-    expect(store.getState().cursorNodeId).toBe("link-to-target")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("link-to-target")
 
     // Open detail pane with Space
     board.press("D")
@@ -1834,7 +1834,7 @@ describe("detail pane on link-type nodes", () => {
 
     // Navigate to next card (regular card)
     board.press("j")
-    expect(store.getState().cursorNodeId).toBe("regular-card")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("regular-card")
 
     // Detail pane still open, should close with Space
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -1859,7 +1859,7 @@ describe("detail pane on link-type nodes", () => {
 
     // Navigate to different column
     board.press("l")
-    expect(store.getState().cursorNodeId).toBe("card2")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
 
     // Escape closes pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -1994,10 +1994,10 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     board.press("j") // move down
-    expect(store.getState().cursorNodeId).toBe("card2")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
 
     board.press("k") // move up
-    expect(store.getState().cursorNodeId).toBe("card1")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card1")
   })
 
   test("multiple l/h with detail pane open", { timeout: 5000 }, () => {

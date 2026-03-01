@@ -13,6 +13,7 @@ import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { buildBoardState } from "../src/state.ts"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Layout", () => {
   test("columns are horizontal", () => {
@@ -401,7 +402,7 @@ describe("zoom: j at column header should not exit zoom", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "next")
 
-    expect(driver.store.getState().rootId).toBe("next")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("next")
 
     // Navigate to column header of second column
     driver.press("k") // inbox column header
@@ -410,7 +411,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 
     // Press j — zoom should NOT change
     driver.press("j")
-    expect(driver.store.getState().rootId).toBe("next")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("next")
   })
 
   it("j at column header of empty column preserves zoom", () => {
@@ -424,7 +425,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 
     // Press j — should hit boundary, NOT exit zoom
     driver.press("j")
-    expect(driver.store.getState().rootId).toBe("project")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("project")
   })
 
   it("j at column header with body-only content preserves zoom", () => {
@@ -444,7 +445,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 
     // Press j — should NOT exit zoom
     driver.press("j")
-    expect(driver.store.getState().rootId).toBe("project")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("project")
   })
 
   it("j at last card preserves zoom", () => {
@@ -457,7 +458,7 @@ describe("zoom: j at column header should not exit zoom", () => {
     driver.press("j") // boundary
 
     // zoom should NOT change
-    expect(driver.store.getState().rootId).toBe("board")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("board")
   })
 
   it("repeated j presses never exit zoom", () => {
@@ -468,7 +469,7 @@ describe("zoom: j at column header should not exit zoom", () => {
     // Press j many times — should never exit zoom
     for (let i = 0; i < 10; i++) {
       driver.press("j")
-      expect(driver.store.getState().rootId).toBe("root")
+      expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("root")
     }
   })
 })
@@ -486,9 +487,9 @@ describe("zoom on body-only nodes", () => {
 
     // zoom_inwards: first z goes board → col1, second z goes col1 → bodyOnlyNode
     driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z") // root=bodyOnlyNode
-    expect(driver.store.getState().rootId).toBe("bodyOnlyNode")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("bodyOnlyNode")
   })
 
   it("should zoom via zoom_inwards into a body-only node", () => {
@@ -506,9 +507,9 @@ describe("zoom on body-only nodes", () => {
 
     // zoom_inwards: first z goes board → bodyCol, second z goes bodyCol → bodyNode
     driver.press("z") // root=bodyCol
-    expect(driver.store.getState().rootId).toBe("bodyCol")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("bodyCol")
     driver.press("z") // root=bodyNode
-    expect(driver.store.getState().rootId).toBe("bodyNode")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("bodyNode")
   })
 
   it("should zoom into a node that has structural children", () => {
@@ -518,9 +519,9 @@ describe("zoom on body-only nodes", () => {
 
     // zoom_inwards: first z goes board → col1, second z goes col1 → card-with-children
     driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z") // root=card-with-children
-    expect(driver.store.getState().rootId).toBe("card-with-children")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("card-with-children")
   })
 
   it("should zoom into a node with mixed body and structural children", () => {
@@ -530,9 +531,9 @@ describe("zoom on body-only nodes", () => {
 
     // zoom_inwards: first z goes board → col1, second z goes col1 → mixed
     driver.press("z") // root=col1
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z") // root=mixed
-    expect(driver.store.getState().rootId).toBe("mixed")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("mixed")
   })
 })
 

@@ -544,12 +544,11 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneId = usePaneId()
 
   // Read state from pane-specific state in workspace.
-  // The focused pane's BoardPaneState is kept in sync with flat fields (see syncFlatToPane).
-  // Non-focused panes read from their saved BoardPaneState snapshot.
+  // Each BoardPaneState owns its navigation state (rootId, foldDepths, etc).
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
   const rootId = useAppStore<BoardAppStore, string | null>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.rootId ?? s.rootId
+    return p?.rootId ?? null
   })
   // CursorStore provides cursor state without triggering Board re-render on SELECT
   const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => {
@@ -558,11 +557,11 @@ export function Board({ patchedConsole }: BoardProps) {
   })
   const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.foldDepths ?? s.foldDepths
+    return p?.foldDepths ?? new Map()
   })
   const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.collapsedNodes ?? s.collapsedNodes
+    return p?.collapsedNodes ?? new Set()
   })
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)

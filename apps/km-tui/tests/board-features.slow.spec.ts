@@ -9,7 +9,7 @@ import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
-import type { BoardAppStore } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
 
 /**
@@ -456,9 +456,9 @@ describe("Search and Filter", () => {
 
     // Zoom should navigate to Notes (grandparent) making Doc1 a column
     // and Section A a card with the cursor on it
-    const state = store.getState()
-    expect(state.rootId).toBe("Notes")
-    expect(state.cursorNodeId).toBe("Section A")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("Notes")
+    expect(pane.cursorNodeId).toBe("Section A")
 
     // Section A should be visible and have cursor
     const output = board.screenshot()
@@ -483,9 +483,9 @@ describe("Search and Filter", () => {
 
     // After navigation: root should be "col" (grandparent of leaf-target)
     // making card-parent a column and leaf-target a card
-    const state = store.getState()
-    expect(state.rootId).toBe("col")
-    expect(state.cursorNodeId).toBe("leaf-target")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("col")
+    expect(pane.cursorNodeId).toBe("leaf-target")
 
     // Cursor should be on the target node itself
     board.expect("#leaf-target[data-cursor]").toExist()
@@ -500,9 +500,9 @@ describe("Search and Filter", () => {
     board.press("Enter")
 
     // Should NOT zoom — just select the card in place
-    const state = store.getState()
-    expect(state.rootId).toBe("board")
-    expect(state.cursorNodeId).toBe("another-card")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("board")
+    expect(pane.cursorNodeId).toBe("another-card")
     board.expect("#another-card[data-cursor]").toExist()
   })
 
@@ -518,9 +518,9 @@ describe("Search and Filter", () => {
 
     // ancestors = [deep-target, C, B, A, root]
     // grandparent = B → zoom to B, making C a column and deep-target a card
-    const state = store.getState()
-    expect(state.rootId).toBe("B")
-    expect(state.cursorNodeId).toBe("deep-target")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("B")
+    expect(pane.cursorNodeId).toBe("deep-target")
     board.expect("#deep-target[data-cursor]").toExist()
   })
 
@@ -538,9 +538,9 @@ describe("Search and Filter", () => {
 
     // ancestors = [very-deep-target, D, C, B, A, root]
     // grandparent (index 2) = C → zoom to C, D becomes column, very-deep-target becomes card
-    const state = store.getState()
-    expect(state.rootId).toBe("C")
-    expect(state.cursorNodeId).toBe("very-deep-target")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("C")
+    expect(pane.cursorNodeId).toBe("very-deep-target")
     board.expect("#very-deep-target[data-cursor]").toExist()
   })
 
@@ -575,9 +575,9 @@ describe("Search and Filter", () => {
 
     // Zoom should navigate to MyDoc (grandparent of target paragraph)
     // making Intro a column and China... a card
-    const state = store.getState()
-    expect(state.rootId).toBe("MyDoc")
-    expect(state.cursorNodeId).toBe("China domicile information")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.rootId).toBe("MyDoc")
+    expect(pane.cursorNodeId).toBe("China domicile information")
 
     // The section header "Intro" should be visible (it's a column)
     expect(output).toContain("Intro")

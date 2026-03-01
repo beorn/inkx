@@ -8,6 +8,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Local Find", () => {
   // ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ describe("Local Find", () => {
       { columns: 120 },
     )
     // Cursor starts on "apple" (first card, first column)
-    expect(store.getState().cursorNodeId).toBe("apple")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("apple")
 
     board.press("/")
     // Type "ban" — should match only "banana"
@@ -120,7 +121,7 @@ describe("Local Find", () => {
     expect(ls!.matchCount).toBe(1)
     expect(ls!.matchNodeIds).toContain("banana")
     // Cursor should move to banana
-    expect(store.getState().cursorNodeId).toBe("banana")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("banana")
   })
 
   // ---------------------------------------------------------------------------
@@ -157,7 +158,7 @@ describe("Local Find", () => {
     // Press n for next
     board.press("n")
     expect(store.getState().ui.localSearch?.matchIndex).toBe(1)
-    expect(store.getState().cursorNodeId).toBe("box")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
   })
 
   test("N navigates to previous match after Enter", () => {
@@ -171,7 +172,7 @@ describe("Local Find", () => {
     // Press N for previous — wraps around to last match
     board.press("N")
     expect(store.getState().ui.localSearch?.matchIndex).toBe(1)
-    expect(store.getState().cursorNodeId).toBe("box")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
   })
 
   test("n wraps around from last to first match", () => {
@@ -189,7 +190,7 @@ describe("Local Find", () => {
     // n should wrap to first
     board.press("n") // index 0 (fox)
     expect(store.getState().ui.localSearch?.matchIndex).toBe(0)
-    expect(store.getState().cursorNodeId).toBe("fox")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("fox")
   })
 
   test("Escape after Enter closes find bar entirely", () => {

@@ -27,6 +27,7 @@ import { createGridNavigator } from "@km/board"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 function cursor(nodeId: string): string {
   return `[id="${nodeId}"][data-cursor]`
@@ -404,12 +405,12 @@ describe("zoom into node with body content: cursor placement", () => {
 
     // Zoom inwards: board → col1 → target-card (one level per press)
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("target-card")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("target-card")
 
     // Cursor should be on first body card (intro-text), not stuck on board level
-    const cursorId = driver.store.getState().cursorNodeId
+    const cursorId = getActiveBoardPane(driver.store.getState())!.cursorNodeId
     // intro-text is a body paragraph — it becomes a card in the virtual body column
     expect(cursorId).toBe("intro-text")
   })
@@ -429,16 +430,16 @@ describe("zoom into node with body content: cursor placement", () => {
 
     // Zoom inwards: board → col1 → section-with-hr (one level per press)
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("section-with-hr")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("section-with-hr")
 
     // Cursor should NOT be stuck on board level — should be on a navigable card
-    const state = driver.store.getState()
+    const pane = getActiveBoardPane(driver.store.getState())!
     // HR has no content so it's filtered from virtual body column.
     // after-hr-text should be in the body column, or cursor should be on subsection.
-    expect(state.cursorNodeId).not.toBe("section-with-hr")
-    expect(state.cursorNodeId).not.toBeNull()
+    expect(pane.cursorNodeId).not.toBe("section-with-hr")
+    expect(pane.cursorNodeId).not.toBeNull()
   })
 
   it("j/k works after zoom into node with body content", () => {
@@ -489,9 +490,9 @@ describe("zoom into node with body content: cursor placement", () => {
 
     // Zoom inwards: board → col1 → section (one level per press)
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("section")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("section")
 
     // Navigate to board level first
     driver.press("k")
@@ -500,7 +501,7 @@ describe("zoom into node with body content: cursor placement", () => {
 
     // Now from board level, j should go to a column header or card, not get stuck
     driver.press("j")
-    const afterJ = driver.store.getState()
+    const afterJ = getActiveBoardPane(driver.store.getState())!
     // Should NOT be on the root (board level) — should have moved somewhere
     expect(afterJ.cursorNodeId).not.toBe("section")
   })
@@ -535,9 +536,9 @@ describe("BUG: empty body node blocks j/k navigation", () => {
 
     // Zoom inwards: board → col1 → root-section (one level per press)
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("root-section")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("root-section")
 
     // Navigate to board level
     driver.press("k")
@@ -545,7 +546,7 @@ describe("BUG: empty body node blocks j/k navigation", () => {
 
     // j from board level should go to a column, not get stuck
     driver.press("j")
-    const afterJ = driver.store.getState()
+    const afterJ = getActiveBoardPane(driver.store.getState())!
     // Should be on sec1 (first structural column), not stuck at board level
     expect(afterJ.cursorNodeId).not.toBe("root-section")
     expect(afterJ.cursorNodeId).not.toBe("hr-empty")
@@ -569,15 +570,15 @@ describe("BUG: empty body node blocks j/k navigation", () => {
 
     // Zoom inwards: board → col1 → target (one level per press)
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("col1")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("col1")
     driver.press("z")
-    expect(driver.store.getState().rootId).toBe("target")
+    expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("target")
 
     // Cursor should NOT be on the HR (it's filtered from columns)
     // It should be on the first structural column's first card
-    const state = driver.store.getState()
-    expect(state.cursorNodeId).not.toBe("hr-first")
-    expect(state.cursorNodeId).not.toBe("target") // not stuck at board level
+    const paneState = getActiveBoardPane(driver.store.getState())!
+    expect(paneState.cursorNodeId).not.toBe("hr-first")
+    expect(paneState.cursorNodeId).not.toBe("target") // not stuck at board level
   })
 })
 

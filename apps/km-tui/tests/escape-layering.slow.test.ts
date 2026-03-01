@@ -13,6 +13,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Escape Layering", () => {
   // ---------------------------------------------------------------------------
@@ -38,11 +39,11 @@ describe("Escape Layering", () => {
 
     // Enter move mode with 'mm'
     board.press("m").press("m")
-    expect(store.getState().moveMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.moveMode).toBe(true)
 
     // Escape cancels move mode
     board.press("Escape")
-    expect(store.getState().moveMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.moveMode).toBe(false)
   })
 
   // ---------------------------------------------------------------------------

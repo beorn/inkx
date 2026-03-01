@@ -16,6 +16,7 @@ import { activeEditTargetRef } from "inkx"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", () => {
@@ -259,9 +260,10 @@ describe("P1: Navigation keys must not corrupt card text", () => {
 
     // Verify cursor is on the selected node (derive layout on demand)
     const s = store.getState()
-    const cols = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
+    const pane = getActiveBoardPane(s)!
+    const cols = deriveColumnsFromRepo(s.repo, pane.rootId, pane.foldDepths)
     const ni = buildNodeIndex(cols)
-    const cursor = deriveCursorIndices(cols, s.cursorNodeId, ni)
+    const cursor = deriveCursorIndices(cols, pane.cursorNodeId, ni)
     const col = cols[cursor.colIndex]
     const card = col?.cardNodes[cursor.cardIndex]
     const selectedNode = card ?? col?.node ?? null

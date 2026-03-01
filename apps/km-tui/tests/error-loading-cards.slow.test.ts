@@ -12,6 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("km-tui.error-loading-cards: no error after search nav + detail pane close", () => {
   test("search navigate → open detail pane → close → navigate does not crash", () => {
@@ -39,7 +40,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("Enter")
 
     // After search: should have zoomed, cursor on wireframes
-    expect(store.getState().cursorNodeId).toBe("wireframes")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("wireframes")
 
     // Open detail pane
     board.press("D")
@@ -83,7 +84,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "action-2") board.press(c)
     board.press("Enter")
 
-    expect(store.getState().cursorNodeId).toBe("action-2")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("action-2")
 
     // Open detail pane
     board.press("D")
@@ -115,7 +116,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
       { columns: 120, rows: 40 },
     )
 
-    const originalRoot = store.getState().rootId
+    const originalRoot = getActiveBoardPane(store.getState())!.rootId
 
     // Search navigate to a deep node
     board.press("cmd+f")
@@ -123,8 +124,8 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("Enter")
 
     // Root should have changed (zoomed)
-    expect(store.getState().rootId).not.toBe(originalRoot)
-    expect(store.getState().cursorNodeId).toBe("task-beta")
+    expect(getActiveBoardPane(store.getState())!.rootId).not.toBe(originalRoot)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-beta")
 
     // Z to zoom back
     board.press("Z")
@@ -173,7 +174,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "milestone-2a") board.press(c)
     board.press("Enter")
 
-    expect(store.getState().cursorNodeId).toBe("milestone-2a")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("milestone-2a")
 
     // Open detail pane
     board.press("D")
@@ -220,7 +221,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("cmd+f")
     for (const c of "card-1b") board.press(c)
     board.press("Enter")
-    expect(store.getState().cursorNodeId).toBe("card-1b")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-1b")
     board.press("D") // open detail
     board.press("D") // close detail
     board.press("j")
@@ -236,7 +237,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     board.press("cmd+f")
     for (const c of "card-3a") board.press(c)
     board.press("Enter")
-    expect(store.getState().cursorNodeId).toBe("card-3a")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-3a")
     board.press("D") // open detail
     board.press("Escape") // close detail with Escape (unfocuses detail pane)
     board.press("j")

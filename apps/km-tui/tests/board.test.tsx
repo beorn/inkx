@@ -4,122 +4,11 @@
  */
 
 import { describe, test, expect } from "vitest"
-import React from "react"
 import { createFakeRepo } from "@km/storage"
-import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createEmptyState, initBoardState, buildBoardState, getNodeDisplayName } from "../src/state.ts"
 import { renderCard } from "../src/render.ts"
-import { renderStatic } from "inkx"
-import { StoreContext } from "inkx/runtime"
-import { createStore, type StoreApi } from "zustand"
-import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
-import type { InitialBoardData } from "../src/types.ts"
-
-import { BoardCore } from "../src/views/Board.tsx"
-import { createInitialUIState } from "../src/ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
-import { RepoProvider } from "../src/repo-context.tsx"
-import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
 import { testEnv, item } from "./helpers/board-test.ts"
-
-function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?: number; height?: number } = {}) {
-  const { width = 80, height = 24 } = options
-  const boardCoreElement = React.createElement(BoardCore, {
-    rootId: state.rootId,
-    rootPath: state.rootPath,
-    columns: state.columns,
-    layout: {
-      columns: state.columns,
-      colIndex: 0,
-      cardIndex: 0,
-      subPath: [],
-      isAtCardLevel: true,
-      isInOutlineMode: false,
-    },
-    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
-    derivedSelectionLevel: "card" as const,
-    dimensions: { columns: width, rows: height },
-    navigator: createGridNavigator(),
-    setUI: () => {},
-    dialogHandlers: {
-      handlePickerSelect: () => {},
-      handlePickerCancel: () => {},
-      handleTagSelect: () => {},
-      handleAssigneeSelect: () => {},
-      handleNewItemCreate: () => {},
-      handleNewItemCancel: () => {},
-      handleSearchSelect: () => {},
-      handleSearchCancel: () => {},
-    },
-    collapsedNodes: new Set<string>(),
-    moveMode: false,
-    hasDetailPane: false,
-  })
-  // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
-  const initialUI = createInitialUIState("cards", [], {
-    columns: width,
-    rows: height,
-  })
-  const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
-  const noopUndoHandle = {
-    startBatch: () => {},
-    endBatch: () => {},
-    setCursor: () => {},
-    setCursorAfter: () => {},
-    undo: () => ({ success: false }),
-    redo: () => ({ success: false }),
-    canUndo: () => false,
-    canRedo: () => false,
-  }
-  const store = createStore(() => ({
-    foldDepths: new Map<string, number>(),
-    workspace: { panes: new Map(), focusedPaneId: "main" },
-    ui: initialUI,
-    rootId: state.rootId,
-    cursorNodeId: null,
-    rootPath: null,
-    moveMode: false,
-    navigator: null,
-    setUI: () => {},
-    dispatchBoard: () => {},
-    openDetailPane: () => {},
-    jobRunner: noopJobRunner,
-    undoHandle: noopUndoHandle,
-    toastQueue: { items: [], push: () => {}, dismiss: () => {} },
-    collapsedNodes: new Set<string>(),
-    cursorStore: { getState: () => ({ cursorNodeId: null, cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }), setState: () => {}, subscribe: () => () => {}, getSnapshot: () => 0 },
-    _findQueryHandler: null,
-    _searchReplaceSearchHandler: null,
-    _searchReplaceReplaceHandler: null,
-  }))
-  const treeConfig = deriveTreeConfig(initialUI)
-  const jotaiStore = createJotaiStore()
-  const wrappedElement = React.createElement(
-    TreeRenderProvider,
-    {
-      treeConfig,
-      setUI: () => {},
-      jobRunner: noopJobRunner as any,
-      undoHandle: noopUndoHandle as any,
-      taskStatusFilter: new Set<string>(),
-      boardFocused: true,
-    },
-    boardCoreElement,
-  )
-  return React.createElement(
-    StoreContext.Provider,
-    { value: store as StoreApi<unknown> },
-    React.createElement(
-      JotaiProvider,
-      { store: jotaiStore },
-      React.createElement(RepoProvider, {
-        repo,
-        children: wrappedElement,
-      }),
-    ),
-  )
-}
 
 describe("State", () => {
   test("buildBoardState creates columns from children", () => {
@@ -210,24 +99,22 @@ describe("State", () => {
 })
 
 describe("Render", () => {
-  test("BoardCore renders columns", async () => {
-    // Build nodes using tree builder for cleaner fixture
-    const nodes = item("board", item("Todo", item.task("Task 1")), item("Done"))
-    const repo = createFakeRepo({ nodes })
-    const state = buildBoardState(repo, "board")
-    const element = renderBoardCore(state, repo, { width: 80, height: 24 })
-    const output = await renderStatic(element, { width: 80 })
-    expect(output).toContain("Todo")
-    expect(output).toContain("Done")
-    expect(output).toContain("Task 1")
+  test("Board renders columns and cards", () => {
+    const { board } = testEnv(() =>
+      item("board", item("Todo", item.task("Task 1")), item("Done")),
+    )
+    const text = board.screenshot()
+    expect(text).toContain("Todo")
+    expect(text).toContain("Done")
+    expect(text).toContain("Task 1")
   })
 
-  test("BoardCore handles empty board", async () => {
-    const repo = createFakeRepo()
-    const state = createEmptyState()
-    const element = renderBoardCore(state, repo, { width: 80, height: 24 })
-    const output = await renderStatic(element, { width: 80 })
-    expect(output).toContain("Empty board")
+  test("Board handles empty board", () => {
+    const { board } = testEnv(() =>
+      item("board"),
+    )
+    const text = board.screenshot()
+    expect(text).toContain("Empty board")
   })
 
   test("renderCard includes content", () => {

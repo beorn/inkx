@@ -9,6 +9,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 // =============================================================================
 // Column Header Click
@@ -40,7 +41,7 @@ describe("mouse click targeting", () => {
     board.click(col2Box!.x + 2, col2Box!.y)
 
     // After clicking column background, cursor should be on the board root (no card selected)
-    expect(store.getState().cursorNodeId).toBe(store.getState().rootId)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe(getActiveBoardPane(store.getState())!.rootId)
   })
 
   test("clicking a card selects that card", () => {
@@ -128,7 +129,7 @@ describe("mouse click targeting", () => {
 
     // Navigate to second card
     board.press("j")
-    expect(store.getState().cursorNodeId).not.toBe(store.getState().rootId)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).not.toBe(getActiveBoardPane(store.getState())!.rootId)
 
     // Find the first column's header area
     const col1 = board.q("[data-col-index='0'][data-column]")
@@ -140,6 +141,6 @@ describe("mouse click targeting", () => {
     board.click(col1Box!.x + 2, col1Box!.y)
 
     // Cursor should be on board root (no card selected)
-    expect(store.getState().cursorNodeId).toBe(store.getState().rootId)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe(getActiveBoardPane(store.getState())!.rootId)
   })
 })

@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
-import type { BoardAppStore } from "../board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import type { UIState } from "../ui-reducer.ts"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
@@ -158,10 +158,22 @@ export function WorkspaceChrome({
   const repo = useRepo()
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
-  const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
-  const moveMode = useAppStore<BoardAppStore, boolean>((s) => s.moveMode)
-  const rootId = useAppStore<BoardAppStore, string | null>((s) => s.rootId)
-  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.cursorNodeId)
+  const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
+    const p = getActiveBoardPane(s)
+    return p?.rootPath ?? null
+  })
+  const moveMode = useAppStore<BoardAppStore, boolean>((s) => {
+    const p = getActiveBoardPane(s)
+    return p?.moveMode ?? false
+  })
+  const rootId = useAppStore<BoardAppStore, string | null>((s) => {
+    const p = getActiveBoardPane(s)
+    return p?.rootId ?? null
+  })
+  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
+    const p = getActiveBoardPane(s)
+    return p?.cursorNodeId ?? null
+  })
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -422,7 +434,10 @@ export interface WorkspaceBottomBarProps {
 
 export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
-  const rootPath = useAppStore<BoardAppStore, string | null>((s) => s.rootPath)
+  const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
+    const p = getActiveBoardPane(s)
+    return p?.rootPath ?? null
+  })
   const repo = useRepo()
 
   return (
