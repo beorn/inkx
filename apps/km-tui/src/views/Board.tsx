@@ -51,6 +51,7 @@ import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-co
 import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
+import type { BoardPaneState } from "../board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
@@ -104,6 +105,8 @@ export interface BoardCoreProps {
   dimensions: { columns: number; rows: number }
   /** Collapsed nodes (node IDs) */
   collapsedNodes: Set<string>
+  /** Whether detail pane is open (for error boundary reset key) */
+  hasDetailPane: boolean
 }
 
 // =============================================================================
@@ -284,13 +287,30 @@ function BoardTopBar({
 }
 
 /**
- * CursorAwareDetailPane - only subscribes to cursor position when visible.
- * Prevents BoardCore from subscribing just for detail pane cursor tracking.
+ * CursorAwareDetailPane - reads root node and cursor from DetailPaneState.
+ *
+ * Architecture:
+ * - Root node (rootNodeId) is stored in DetailPaneState and updated by the
+ *   SELECT handler when the board cursor's card changes (slaved tracking).
+ * - Detail cursor (cursorId) is stored in DetailPaneState and managed by
+ *   DETAIL_PANE_CURSOR_DOWN/UP actions.
+ * - Both are reset by SELECT when the board cursor moves to a different card.
  */
 function CursorAwareDetailPane(): React.ReactElement {
-  const cursorPos = useCursorNodePosition()
-  const detailCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.ui.detailCursorNodeId)
-  const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
+  const { rootNodeId, detailCursorNodeId } = useAppStore<BoardAppStore, { rootNodeId: string | null; detailCursorNodeId: string | null }>((s) => {
+    const pane = s.workspace.panes.get("main-detail")
+    if (pane?.viewType === "detail") {
+      // When slaved, derive rootNodeId from cursor store so we track
+      // cursor changes even if they bypass the SELECT handler.
+      let effectiveRoot = pane.rootNodeId
+      if (pane.slavedTo) {
+        const cs = s.cursorStore.getState()
+        effectiveRoot = cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? null
+      }
+      return { rootNodeId: effectiveRoot, detailCursorNodeId: pane.cursorId }
+    }
+    return { rootNodeId: null, detailCursorNodeId: null }
+  })
   const repo = useRepo()
   const paneLabel = usePaneLabel()
   const paneId = usePaneId()
@@ -299,19 +319,9 @@ function CursorAwareDetailPane(): React.ReactElement {
   const parentRect = useContentRect()
   const width = parentRect.width > 0 ? parentRect.width : 40
   const height = parentRect.height > 0 ? parentRect.height : 20
-  // Show detail for card, column, or board node (whichever cursor level)
-  const nodeId = cursorPos.cursorCardNodeId ?? cursorPos.cursorColumnNodeId
-  const node = nodeId ? repo.getNode(nodeId) : undefined
-  // Reset detail cursor when selected node changes
-  const prevNodeIdRef = React.useRef(node?.id)
-  React.useEffect(() => {
-    if (node?.id !== prevNodeIdRef.current) {
-      prevNodeIdRef.current = node?.id
-      setUI({ detailCursorNodeId: null })
-    }
-  }, [node?.id, setUI])
+
+  const node = rootNodeId ? repo.getNode(rootNodeId) : undefined
   if (!node) {
-    // Fallback: never render a blank detail pane (km-tui.detailpane-empty)
     return (
       <Box focusable testID="detail-pane" flexGrow={1} flexDirection="column" width={width} height={height}>
         <PaneBar isFocused={false} paneLabel={paneLabel} left={<Text dimColor> Detail</Text>} />
@@ -355,6 +365,7 @@ export function BoardCore({
   derivedSelectionLevel,
   dimensions,
   collapsedNodes,
+  hasDetailPane,
 }: BoardCoreProps): React.ReactElement {
   useComponentTiming(`BoardCore (${columns.length} columns)`)
 
@@ -377,7 +388,7 @@ export function BoardCore({
   // (e.g., during zoom transitions or detail pane open/close).
   // Includes rootId (zoom), viewMode, detailPane, colIndex (h/l nav),
   // and column count (structural changes) to maximize recovery opportunities.
-  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${ui.showDetailPane}-${colIndex}-${columns.length}`
+  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${hasDetailPane}-${colIndex}-${columns.length}`
 
   // Silent error handler — ErrorBoundary resetKey auto-recovers on next state change (km-tui.error-loading-cards)
   const handleRenderError = useCallback((_error: Error, _errorInfo: React.ErrorInfo) => {
@@ -533,20 +544,26 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneId = usePaneId()
 
   // Read state from pane-specific state in workspace.
-  // The focused pane's PaneState is kept in sync with flat fields (see syncFlatToPane).
-  // Non-focused panes read from their saved PaneState snapshot.
+  // The focused pane's BoardPaneState is kept in sync with flat fields (see syncFlatToPane).
+  // Non-focused panes read from their saved BoardPaneState snapshot.
   const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
-  const rootId = useAppStore<BoardAppStore, string | null>((s) => s.workspace.panes.get(paneId)?.rootId ?? s.rootId)
+  const rootId = useAppStore<BoardAppStore, string | null>((s) => {
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    return p?.rootId ?? s.rootId
+  })
   // CursorStore provides cursor state without triggering Board re-render on SELECT
-  const cursorStore = useAppStore<BoardAppStore, CursorStore>(
-    (s) => s.workspace.panes.get(paneId)?.cursorStore ?? s.cursorStore,
-  )
-  const foldDepths = useAppStore<BoardAppStore, Map<string, number>>(
-    (s) => s.workspace.panes.get(paneId)?.foldDepths ?? s.foldDepths,
-  )
-  const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>(
-    (s) => s.workspace.panes.get(paneId)?.collapsedNodes ?? s.collapsedNodes,
-  )
+  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => {
+    const p = s.workspace.panes.get(paneId)
+    return p?.cursorStore ?? s.cursorStore
+  })
+  const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    return p?.foldDepths ?? s.foldDepths
+  })
+  const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => {
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    return p?.collapsedNodes ?? s.collapsedNodes
+  })
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -560,6 +577,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // to stay in sync with pane switching commands.
   const boardFocusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
   const boardFocused = paneId === boardFocusedPaneId
+  const hasDetailPane = useAppStore<BoardAppStore, boolean>((s) => s.workspace.panes.has("main-detail"))
 
   // Jotai store — per-pane scope, stable across re-renders
   const jotaiStore = useMemo(() => createStore(), [])
@@ -948,6 +966,7 @@ export function Board({ patchedConsole }: BoardProps) {
             derivedSelectionLevel={derivedSelectionLevel}
             dimensions={ui.dimensions}
             collapsedNodes={collapsedNodes}
+            hasDetailPane={hasDetailPane}
           />
         </TreeRenderProvider>
       </CursorStoreProvider>

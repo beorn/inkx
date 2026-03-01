@@ -73,12 +73,12 @@ describe("Escape Layering", () => {
 
     // Open detail pane with D (focus stays on board)
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Escape closes pane
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Second Escape: nothing left → bell
@@ -185,11 +185,11 @@ describe("Escape Layering", () => {
     // Open detail pane (focus stays on board)
     board.press("D")
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Escape closes pane first (higher priority than clearing selection)
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     // Selection is still there
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
   })
@@ -227,7 +227,7 @@ describe("Escape Layering", () => {
 
     // Escape 1: close pane (selection still active)
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
 
     // Escape 2: clear selection

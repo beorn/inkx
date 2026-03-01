@@ -85,13 +85,19 @@ export interface ActionCtx {
   focusManager: FocusManager
   /** Convenience: focus a node by testID */
   focus: (testID: string) => void
-  /** Whether the detail pane exists as a workspace pane (not just ui.showDetailPane flag) */
+  /** Whether the detail pane exists as a workspace pane */
   hasDetailPane: boolean
 
-  // === Workspace pane operations (Phase 2: detail pane as workspace pane) ===
-  /** Open the detail pane (adds pane to workspace, updates layout + flat UI) */
+  // === Detail pane cursor ===
+  /** Get the detail pane cursor ID (from DetailPaneState) */
+  getDetailCursorId: () => string | null
+  /** Set the detail pane cursor ID */
+  setDetailCursor: (id: string | null) => void
+
+  // === Workspace pane operations ===
+  /** Open the detail pane (adds pane to workspace, updates layout) */
   openDetailPane: () => void
-  /** Close the detail pane (removes pane from workspace, restores layout + flat UI) */
+  /** Close the detail pane (removes pane from workspace, restores layout) */
   closeDetailPane: () => void
   /** Toggle the detail pane open/closed */
   toggleDetailPane: () => void

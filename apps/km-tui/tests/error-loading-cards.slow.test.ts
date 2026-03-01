@@ -43,11 +43,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate — this should NOT throw or show error
     board.press("j") // move down
@@ -87,11 +87,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close with Escape
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate — should not crash
     board.press("j")
@@ -177,11 +177,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate extensively — stress the ErrorBoundary recovery
     board.press("j")

@@ -60,7 +60,7 @@ import {
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
-import { handleKey, handleMouse } from "../../src/board-app.ts"
+import { handleKey, handleMouse, resetBoardAppState } from "../../src/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "inkx"
 import type { InitialBoardData } from "../../src/types.ts"
@@ -366,10 +366,12 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   // Build initial board state from repo
   const initialState = buildBoardState(repo, rootId)
 
-  // Ensure command system is initialized before rendering
+  // Reset all module-level state for isolate:false compatibility.
+  // Without this, timers/caches/state from previous test files leak through.
   ensureCommandSystemInitialized()
-  getChordState().cancel() // Reset any stale chord state from previous tests
+  getChordState().cancel()
   resetModeStack()
+  resetBoardAppState()
 
   // Set up store (same pattern as driver)
   const columns = options?.columns ?? 80
@@ -1667,8 +1669,9 @@ export function renderBoardWithStore(
   const initialState = buildBoardState(repo, rootId)
 
   ensureCommandSystemInitialized()
-  getChordState().cancel() // Reset any stale chord state from previous tests
+  getChordState().cancel()
   resetModeStack()
+  resetBoardAppState()
 
   const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
 

@@ -701,7 +701,7 @@ describe("Escape priority layering", () => {
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Enter visual mode via v+space chord
     board.press("v").press("v").press(" ")
@@ -710,11 +710,11 @@ describe("Escape priority layering", () => {
     // First Escape: exits visual mode (detail pane stays)
     board.press("Escape")
     expect(store.getState().ui.visualMode).toBe(false)
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Second Escape: closes detail pane
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
   test("Escape exits inline edit before clearing selection", () => {

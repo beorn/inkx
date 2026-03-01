@@ -62,6 +62,14 @@ export default defineConfig({
 	cacheDir: "node_modules/.vitest",
 	plugins: [mdtest()],
 	test: {
+		// Performance: forks pool with isolate:false shares modules between test files
+		// in the same worker process, eliminating ~1.8s import overhead per file after
+		// the first. Requires all module-level state to be reset in testEnv() — see
+		// resetBoardAppState() in board-app.ts. Without this, tests leak timer/cache
+		// state between files. The "threads" pool doesn't work with bun (stdout.pipe
+		// errors). See bead km-msmhm for proper elimination of module-level state.
+		pool: "forks",
+		poolOptions: { forks: { isolate: false } },
 		reporter: "dot",
 		includeTaskLocation: true,
 		outputFile: {

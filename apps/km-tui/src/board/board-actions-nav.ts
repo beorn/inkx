@@ -154,14 +154,13 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   }
 
   // At the right boundary, navigate into the detail pane if it exists as a workspace pane.
-  // Uses hasDetailPane (workspace check) not ui.showDetailPane (which is true in list view without a pane).
   if (dir === "right" && ctx.hasDetailPane) {
     const alreadyInDetail = ctx.focusManager.getSnapshot().activeId === "detail-pane"
     if (!alreadyInDetail) {
       ctx.focus("detail-pane")
       // Set initial detail cursor to topbar (the item itself) if not already set
-      if (!ctx.ui.detailCursorNodeId) {
-        ctx.setUI({ detailCursorNodeId: DETAIL_TOPBAR_ID })
+      if (!ctx.getDetailCursorId()) {
+        ctx.setDetailCursor(DETAIL_TOPBAR_ID)
       }
       return ok()
     }

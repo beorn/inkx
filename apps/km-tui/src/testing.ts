@@ -188,6 +188,7 @@ export async function createBoardTest(
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
+    hasDetailPane: false,
   })
 
   const firstCardNodeId = state.columns[0]?.cardNodes[0]?.id ?? null

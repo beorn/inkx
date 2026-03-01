@@ -29,8 +29,6 @@ function renderWithFocus(ui: UIState, termWidth: number, focusedId?: string) {
 function makeUI(overrides: Partial<UIState> = {}): UIState {
   return {
     viewMode: "columns",
-    showDetailPane: false,
-    detailCursorNodeId: null,
     maxContentLines: 3,
     rootBoardId: null,
     showHelp: false,
@@ -107,7 +105,7 @@ describe("KeyBar", () => {
   })
 
   it("shows PANE mode when detail pane is focused", () => {
-    const app = renderWithFocus(makeUI({ showDetailPane: true }), 80, "detail-pane")
+    const app = renderWithFocus(makeUI(), 80, "detail-pane")
     const text = app.text
     expect(text).toContain("PANE")
     expect(text).toContain("Enter")
@@ -133,7 +131,6 @@ describe("KeyBar", () => {
     const app = render(
       <KeyBar
         ui={makeUI({
-          showDetailPane: true,
           inlineEditBlock: { nodeId: "n1", blockIndex: 0 },
         })}
         termWidth={80}
@@ -145,7 +142,7 @@ describe("KeyBar", () => {
 
   it("VISUAL mode takes priority over PANE", () => {
     const app = render(
-      <KeyBar ui={makeUI({ showDetailPane: true, visualMode: true, visualAnchor: "n1" })} termWidth={80} />,
+      <KeyBar ui={makeUI({ visualMode: true, visualAnchor: "n1" })} termWidth={80} />,
     )
     expect(app.text).toContain("VISUAL")
     expect(app.text).not.toContain("PANE")

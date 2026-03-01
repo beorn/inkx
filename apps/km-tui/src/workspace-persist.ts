@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
 import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board-types.ts"
+import { isBoardPane } from "./board-types.ts"
 import type { Repo } from "./repo-context.tsx"
 
 // =============================================================================
@@ -73,16 +74,21 @@ function serializeLayout(node: LayoutNode): PersistedLayoutNode {
  */
 function serializePane(pane: PaneState, repo: Repo): PersistedPane {
   let rootNodePath: string | null = null
-  if (pane.rootId) {
-    const node = repo.getNode(pane.rootId)
-    rootNodePath = node?.fs_path ?? null
+  let viewMode: ViewMode = "cards"
+
+  if (isBoardPane(pane)) {
+    if (pane.rootId) {
+      const node = repo.getNode(pane.rootId)
+      rootNodePath = node?.fs_path ?? null
+    }
+    viewMode = pane.viewMode
   }
 
   return {
     id: pane.id,
     viewType: pane.viewType,
     rootNodePath,
-    viewMode: pane.viewMode,
+    viewMode,
   }
 }
 

@@ -84,7 +84,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
   const { ui, dispatchBoard } = ctx
 
   // Close overlays first
-  if (ui.showDetailPane) {
+  if (ctx.hasDetailPane) {
     ctx.closeDetailPane()
     return ok()
   }

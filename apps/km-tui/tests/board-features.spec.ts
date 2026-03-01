@@ -713,15 +713,15 @@ describe("Detail Pane Navigation", () => {
 
     // Open detail pane with Space
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Navigate down with j — detail pane should stay open
     board.press("j")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Navigate up with k — detail pane should stay open
     board.press("k")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
   })
 
   test("detail pane updates to show new card when navigating with j/k", () => {
@@ -729,14 +729,14 @@ describe("Detail Pane Navigation", () => {
 
     // Open detail pane with Space on card1
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Detail pane should contain card1 content
     const screen1 = board.screenshot()
     expect(screen1).toContain("card1")
 
     // Navigate down to card2 — detail pane should update
     board.press("j")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     const screen2 = board.screenshot()
     expect(screen2).toContain("card2")
   })
@@ -746,11 +746,11 @@ describe("Detail Pane Navigation", () => {
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Space again should close it
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
   test("Escape closes detail pane", () => {
@@ -758,12 +758,12 @@ describe("Detail Pane Navigation", () => {
 
     // Open detail pane (focus stays on board)
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // Escape closes pane
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
@@ -780,15 +780,15 @@ describe("Detail Pane Navigation", () => {
 
       // Open detail pane on card1
       board.press("D")
-      expect(store.getState().ui.showDetailPane).toBe(true)
+      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
       // h/l should navigate columns — detail pane stays open
       board.press("l")
-      expect(store.getState().ui.showDetailPane).toBe(true)
+      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
       board.expect("#card2[data-cursor]").toExist()
 
       board.press("h")
-      expect(store.getState().ui.showDetailPane).toBe(true)
+      expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
       board.expect("#card1[data-cursor]").toExist()
     } finally {
       errorSpy.mockRestore()

@@ -183,21 +183,25 @@ export function createBoardState(
   }
 }
 
-// ===== Workspace / Pane Types (Phase 1–2: Windowing) =====
+// ===== Workspace / Pane Types =====
 
 /** Discriminator for what a pane displays. */
 export type PaneViewType = "board" | "detail" | "empty"
 
-/**
- * Per-pane state — everything that becomes independent when a second pane is added.
- * In Phase 1 (single pane), a single PaneState mirrors the flat BoardAppState fields.
- * In Phase 2, the detail pane is a separate PaneState with viewType "detail".
- */
-export interface PaneState {
+/** Base fields shared by all pane types */
+interface PaneStateBase {
   id: string
-  viewType: PaneViewType
+  cursorStore: CursorStore
+}
 
-  // Board navigation (mirrors flat BoardAppState fields)
+/**
+ * Board pane — full board navigation state.
+ * Contains everything that becomes independent when a second board pane is added.
+ */
+export interface BoardPaneState extends PaneStateBase {
+  viewType: "board"
+
+  // Board navigation
   rootId: string | null
   rootPath: string | null
   cursorNodeId: string | null
@@ -212,11 +216,41 @@ export interface PaneState {
   curswantX: number | null
   curswantY: number | null
 
-  // Per-pane view config (subset of UIState)
+  // Per-pane view config
   viewMode: ViewMode
+}
 
-  // Per-pane cursor store
-  cursorStore: CursorStore
+/**
+ * Detail pane — shows details of a specific node, slaved to a board pane's cursor.
+ */
+export interface DetailPaneState extends PaneStateBase {
+  viewType: "detail"
+  /** Which node this detail pane displays */
+  rootNodeId: string | null
+  /** Cursor within the detail pane (navigable items) */
+  cursorId: string | null
+  /** Pane ID this detail is slaved to (follows that pane's cursor) */
+  slavedTo: string | null
+}
+
+/**
+ * Empty pane — placeholder before content is assigned.
+ */
+export interface EmptyPaneState extends PaneStateBase {
+  viewType: "empty"
+}
+
+/** Discriminated union of all pane types */
+export type PaneState = BoardPaneState | DetailPaneState | EmptyPaneState
+
+/** Type guard for board panes */
+export function isBoardPane(pane: PaneState): pane is BoardPaneState {
+  return pane.viewType === "board"
+}
+
+/** Type guard for detail panes */
+export function isDetailPane(pane: PaneState): pane is DetailPaneState {
+  return pane.viewType === "detail"
 }
 
 /**
@@ -243,21 +277,20 @@ export interface WorkspaceState {
 }
 
 /**
- * Create a PaneState from the flat board navigation fields.
+ * Create a BoardPaneState from the flat board navigation fields.
  * Used during store initialization to populate the workspace's initial pane.
  */
 export function createPaneState(
   id: string,
   board: BoardState,
   opts: {
-    viewType?: PaneViewType
     viewMode: ViewMode
     cursorStore: CursorStore
   },
-): PaneState {
+): BoardPaneState {
   return {
     id,
-    viewType: opts.viewType ?? "board",
+    viewType: "board",
     rootId: board.rootId,
     rootPath: board.rootPath,
     cursorNodeId: board.cursorNodeId,
@@ -273,5 +306,41 @@ export function createPaneState(
     curswantY: board.curswantY,
     viewMode: opts.viewMode,
     cursorStore: opts.cursorStore,
+  }
+}
+
+/**
+ * Create a DetailPaneState for displaying node details.
+ */
+export function createDetailPaneState(
+  id: string,
+  opts: {
+    rootNodeId: string | null
+    cursorId?: string | null
+    slavedTo?: string | null
+    cursorStore: CursorStore
+  },
+): DetailPaneState {
+  return {
+    id,
+    viewType: "detail",
+    rootNodeId: opts.rootNodeId,
+    cursorId: opts.cursorId ?? null,
+    slavedTo: opts.slavedTo ?? null,
+    cursorStore: opts.cursorStore,
+  }
+}
+
+/**
+ * Create an EmptyPaneState placeholder.
+ */
+export function createEmptyPaneState(
+  id: string,
+  cursorStore: CursorStore,
+): EmptyPaneState {
+  return {
+    id,
+    viewType: "empty",
+    cursorStore,
   }
 }

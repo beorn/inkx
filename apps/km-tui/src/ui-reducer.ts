@@ -53,8 +53,6 @@ export function getEditMode(ui: UIState): EditMode {
 export interface UIState {
   // View configuration
   viewMode: ViewMode
-  showDetailPane: boolean
-  detailCursorNodeId: string | null
   maxContentLines: number
   iconStyle: IconStyle
   borderMode: BorderMode
@@ -348,8 +346,6 @@ export function createInitialUIState(
 ): UIState {
   return {
     viewMode: initialViewMode,
-    showDetailPane: initialViewMode === "list",
-    detailCursorNodeId: null,
     maxContentLines: 3,
     iconStyle,
     borderMode: "normal" as BorderMode,

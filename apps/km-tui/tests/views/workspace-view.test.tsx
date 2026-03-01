@@ -11,7 +11,7 @@ import { createRenderer } from "inkx/testing"
 import { Text } from "inkx"
 import { WorkspaceView } from "../../src/views/WorkspaceView.tsx"
 import type { LayoutNode, PaneState, PaneViewType } from "../../src/board-types.ts"
-import { createBoardState, createPaneState } from "../../src/board-types.ts"
+import { createBoardState, createPaneState, createDetailPaneState, createEmptyPaneState } from "../../src/board-types.ts"
 import { usePaneLabel } from "../../src/pane-context.tsx"
 
 const render = createRenderer()
@@ -37,11 +37,14 @@ function stubCursorStore() {
 
 /** Create a PaneState with sensible defaults */
 function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState {
-  return createPaneState(id, createBoardState(), {
-    viewType,
-    viewMode: "columns",
-    cursorStore: stubCursorStore(),
-  })
+  const cs = stubCursorStore()
+  if (viewType === "detail") {
+    return createDetailPaneState(id, { rootNodeId: null, cursorId: null, slavedTo: null, cursorStore: cs })
+  }
+  if (viewType === "empty") {
+    return createEmptyPaneState(id, cs)
+  }
+  return createPaneState(id, createBoardState(), { viewMode: "columns", cursorStore: cs })
 }
 
 /** Board content that reads pane label from context (like real Board does via BoardTopBar) */

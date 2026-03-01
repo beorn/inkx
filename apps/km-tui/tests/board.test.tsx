@@ -54,21 +54,13 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     },
     collapsedNodes: new Set<string>(),
     moveMode: false,
+    hasDetailPane: false,
   })
   // Wrap in StoreContext + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialUIState("cards", [], {
     columns: width,
     rows: height,
   })
-  const store = createStore(() => ({
-    foldDepths: new Map<string, number>(),
-    workspace: { panes: new Map() },
-    ui: initialUI,
-    navigator: null,
-    setUI: () => {},
-  }))
-  const treeConfig = deriveTreeConfig(initialUI)
-  const jotaiStore = createJotaiStore()
   const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
   const noopUndoHandle = {
     startBatch: () => {},
@@ -80,6 +72,29 @@ function renderBoardCore(state: InitialBoardData, repo: Repo, options: { width?:
     canUndo: () => false,
     canRedo: () => false,
   }
+  const store = createStore(() => ({
+    foldDepths: new Map<string, number>(),
+    workspace: { panes: new Map(), focusedPaneId: "main" },
+    ui: initialUI,
+    rootId: state.rootId,
+    cursorNodeId: null,
+    rootPath: null,
+    moveMode: false,
+    navigator: null,
+    setUI: () => {},
+    dispatchBoard: () => {},
+    openDetailPane: () => {},
+    jobRunner: noopJobRunner,
+    undoHandle: noopUndoHandle,
+    toastQueue: { items: [], push: () => {}, dismiss: () => {} },
+    collapsedNodes: new Set<string>(),
+    cursorStore: { getState: () => ({ cursorNodeId: null, cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }), setState: () => {}, subscribe: () => () => {}, getSnapshot: () => 0 },
+    _findQueryHandler: null,
+    _searchReplaceSearchHandler: null,
+    _searchReplaceReplaceHandler: null,
+  }))
+  const treeConfig = deriveTreeConfig(initialUI)
+  const jotaiStore = createJotaiStore()
   const wrappedElement = React.createElement(
     TreeRenderProvider,
     {

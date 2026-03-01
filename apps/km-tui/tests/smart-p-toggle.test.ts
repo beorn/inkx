@@ -16,17 +16,17 @@ describe("Detail pane toggle", () => {
     })
 
     // Initial: pane closed, board focused
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // D opens pane, focus stays on board
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
     // D again closes pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
@@ -38,12 +38,12 @@ describe("Detail pane toggle", () => {
 
     // Open pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // j moves cursor down on the board
     board.press("j")
     expect(store.getState().cursorNodeId).toBe("card2")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Buffer must show cursor on card2 (not card1)
     board.expect("#card2[data-cursor]").toExist()
     board.expect("#card1[data-cursor]").not.toExist()
@@ -51,7 +51,7 @@ describe("Detail pane toggle", () => {
     // k moves cursor back up
     board.press("k")
     expect(store.getState().cursorNodeId).toBe("card1")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Buffer must show cursor on card1 (not card2)
     board.expect("#card1[data-cursor]").toExist()
     board.expect("#card2[data-cursor]").not.toExist()
@@ -64,7 +64,7 @@ describe("Detail pane toggle", () => {
 
     // Open pane
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expect("#card1[data-cursor]").toExist()
 
     // j moves cursor down — incremental render must reflect change
@@ -92,10 +92,10 @@ describe("Detail pane toggle", () => {
     })
 
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     board.press("Escape")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
@@ -107,22 +107,19 @@ describe("Detail pane toggle", () => {
 
     // Open pane
     board.press("D")
-    expect(store.getState().ui.detailCursorNodeId).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
 
     // Simulate cursor movement within detail
-    store.setState((s: any) => ({
-      ...s,
-      ui: { ...s.ui, detailCursorNodeId: "some-child" },
-    }))
-    expect(store.getState().ui.detailCursorNodeId).toBe("some-child")
+    store.getState().setDetailCursor("some-child")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("some-child")
 
     // Close pane with D → cursor should reset
     board.press("D")
-    expect(store.getState().ui.detailCursorNodeId).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
 
     // Reopen → cursor should be fresh
     board.press("D")
-    expect(store.getState().ui.detailCursorNodeId).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
   })
 
   test("multiple D cycles work correctly", () => {
@@ -133,15 +130,15 @@ describe("Detail pane toggle", () => {
 
     // Rapid toggle: open → close
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Again
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(true)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("D")
-    expect(store.getState().ui.showDetailPane).toBe(false)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 })

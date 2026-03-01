@@ -114,6 +114,8 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     dispatchBoard: (action) => s.dispatchBoard(action),
     setUI: (partial) => s.setUI(partial),
     setFoldDepths: (depths) => s.setFoldDepths(depths),
+    getDetailCursorId: () => s.getDetailCursorId(),
+    setDetailCursor: (id) => s.setDetailCursor(id),
     openDetailPane: () => s.openDetailPane(),
     closeDetailPane: () => s.closeDetailPane(),
     toggleDetailPane: () => s.toggleDetailPane(),
@@ -910,4 +912,32 @@ function getVisibleDescendantIds(
   }
   walk(cardNode, 0, cardDepth)
   return result
+}
+
+// =============================================================================
+// Test State Reset (for isolate: false)
+// =============================================================================
+
+/**
+ * Reset all module-level mutable state so tests don't leak into each other.
+ * Called by createTestRenderEnv() in board-test.ts when vitest runs with
+ * isolate: false (modules shared across test files in the same worker).
+ */
+export function resetBoardAppState(): void {
+  lastKeyTime = 0
+  cachedFocusManager = null
+  cachedFocus = null
+  layoutCache = null
+  if (chordTimer !== null) {
+    clearTimeout(chordTimer)
+    chordTimer = null
+  }
+  pendingChordShownAt = 0
+  if (chordDismissTimer !== null) {
+    clearTimeout(chordDismissTimer)
+    chordDismissTimer = null
+  }
+  chordTimeoutFiredAt = 0
+  lastClick = { time: 0, x: 0, y: 0 }
+  dragState = null
 }

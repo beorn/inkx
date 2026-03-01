@@ -351,7 +351,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         itemPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
-      detailPaneOpen: s.ui.showDetailPane,
+      detailPaneOpen: s.workspace.panes.has("main-detail"),
       moveMode: s.moveMode,
       columns: cols,
       colIndex: cursor.colIndex,
