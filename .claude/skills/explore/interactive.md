@@ -181,7 +181,7 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 | `gG` | `g` then `Shift+g` | cursor_last | Move to last item |
 | `go` | `g` then `o` | open_in_system | Open in system (Finder/default app) |
 | `gO` | `g` then `Shift+o` | open_in_terminal | Open terminal at closest folder |
-| `gp` | `g` then `p` | project_picker | Open project picker |
+| `gp` | `g` then `p` | project_picker | Open item picker |
 | `gn` | `g` then `n` | new_item | Open new item dialog |
 | `gc` | `g` then `c` | toggle_collapse | Toggle column collapse |
 | `gC` | `g` then `Shift+c` | toggle_show_ignored | Reveal/hide ignored nodes (dimmed) |
@@ -321,7 +321,7 @@ These keys only work when a dialog (search, project picker, new item) is open.
 | Key | TTY press | Command | Description |
 |-----|-----------|---------|-------------|
 | `Escape` | `Escape` | search_replace.close | Close search & replace |
-| `Tab` | `Tab` | search_replace.tab_field | Switch between search/replace fields |
+| `Tab` | `Tab` | focus_next | Switch between search/replace fields |
 | `Enter` | `Enter` | search_replace.next | Find next match |
 | `Shift+Enter` | `Shift+Enter` | search_replace.prev | Find previous match |
 | `Ctrl+R` | `Control+r` | search_replace.replace | Replace current match |

@@ -39,7 +39,7 @@ function getProjectPath(
 }
 
 // =============================================================================
-// Project loader (existing behavior, extracted from ProjectPicker)
+// Project loader (existing behavior, extracted from ItemPicker)
 // =============================================================================
 
 export function loadProjectOptions(repo: Repo, recentIds: string[]): PickerOption[] {
