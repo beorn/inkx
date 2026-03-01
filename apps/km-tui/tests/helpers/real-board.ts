@@ -141,11 +141,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       initialCursorNodeId,
       initialState.collapsedNodeIds,
     ),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialState.collapsedColumns ?? [])],
-      { columns, rows },
-    ),
+    initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
   }

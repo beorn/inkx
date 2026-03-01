@@ -24,7 +24,7 @@ import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
-import { type LayoutNode } from "./board-types.ts"
+import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
 
 const perfLog = createLogger("km:perf")
@@ -262,30 +262,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
 
   // Merge per-pane UI fields into effective UI state for action handlers
   const effectiveUI: PaneUI = board
-    ? {
-        ...s.ui,
-        viewMode: board.viewMode,
-        maxContentLines: board.maxContentLines,
-        multiSelected: board.multiSelected,
-        selectionAnchor: board.selectionAnchor,
-        selectAllLevel: board.selectAllLevel,
-        visualMode: board.visualMode,
-        visualAnchor: board.visualAnchor,
-        collapsedColumns: board.collapsedColumns,
-        columnScrollAnchor: board.columnScrollAnchor,
-        inlineEditBlock: board.inlineEditBlock,
-        localSearch: board.localSearch,
-        searchReplace: board.searchReplace,
-        showFilterDialog: board.showFilterDialog,
-        filterText: board.filterText,
-        filterProperties: board.filterProperties,
-        filterCursorRow: board.filterCursorRow,
-        filterCursorVal: board.filterCursorVal,
-        showIgnored: board.showIgnored,
-        ignoreVersion: board.ignoreVersion,
-        mouseSelection: board.mouseSelection,
-        isMouseDragging: board.isMouseDragging,
-      }
+    ? mergePaneUI(s.ui, board)
     : (s.ui as PaneUI)
 
   return {
@@ -342,7 +319,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: locals.cachedFocusManager!,
     focus: locals.cachedFocus ?? (() => {}),
-    hasDetailPane: s.workspace.panes.has("main-detail"),
+    hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
     countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
     getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>

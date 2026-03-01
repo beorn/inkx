@@ -12,7 +12,7 @@ import type { TPath } from "@km/tree"
 import type { CursorStore } from "./cursor-store.ts"
 import type { SelectionKey } from "./types.ts"
 import type { SelectionRange } from "./handlers/mouse-handler.ts"
-import { createEmptyFilterProperties, type FilterProperties, type LocalSearchState, type SearchReplaceState } from "./ui-reducer.ts"
+import { createEmptyFilterProperties, type FilterProperties, type LocalSearchState, type SearchReplaceState, type UIState, type PaneUI } from "./ui-reducer.ts"
 
 // Re-export common types for convenience
 export type { TNode } from "@km/core"
@@ -231,6 +231,24 @@ export const PANE_UI_FIELD_NAMES: ReadonlySet<string> = new Set([
   "mouseSelection", "isMouseDragging",
 ])
 
+/** Merge global UIState with per-pane fields from a BoardPaneState into a single PaneUI. */
+export function mergePaneUI(ui: UIState, pane: BoardPaneState): PaneUI {
+  return {
+    ...ui,
+    viewMode: pane.viewMode, maxContentLines: pane.maxContentLines,
+    multiSelected: pane.multiSelected, selectionAnchor: pane.selectionAnchor,
+    selectAllLevel: pane.selectAllLevel, visualMode: pane.visualMode,
+    visualAnchor: pane.visualAnchor, collapsedColumns: pane.collapsedColumns,
+    columnScrollAnchor: pane.columnScrollAnchor, inlineEditBlock: pane.inlineEditBlock,
+    localSearch: pane.localSearch, searchReplace: pane.searchReplace,
+    showFilterDialog: pane.showFilterDialog, filterText: pane.filterText,
+    filterProperties: pane.filterProperties, filterCursorRow: pane.filterCursorRow,
+    filterCursorVal: pane.filterCursorVal, showIgnored: pane.showIgnored,
+    ignoreVersion: pane.ignoreVersion, mouseSelection: pane.mouseSelection,
+    isMouseDragging: pane.isMouseDragging,
+  } as PaneUI
+}
+
 /** Base fields shared by all pane types */
 interface PaneStateBase {
   id: string
@@ -298,7 +316,8 @@ export interface BoardPaneState extends PaneStateBase {
 }
 
 /**
- * Detail pane — shows details of a specific node, slaved to a board pane's cursor.
+ * Detail pane — shows details of a specific node, linked to its owner board pane's cursor.
+ * Ownership is derived from pane ID convention: a detail pane's owner is ownerPaneId(pane.id).
  */
 export interface DetailPaneState extends PaneStateBase {
   viewType: "detail"
@@ -306,8 +325,6 @@ export interface DetailPaneState extends PaneStateBase {
   rootNodeId: string | null
   /** Cursor within the detail pane (navigable items) */
   cursorId: string | null
-  /** Pane ID this detail is slaved to (follows that pane's cursor) */
-  slavedTo: string | null
 }
 
 /**
@@ -328,6 +345,34 @@ export function isBoardPane(pane: PaneState): pane is BoardPaneState {
 /** Type guard for detail panes */
 export function isDetailPane(pane: PaneState): pane is DetailPaneState {
   return pane.viewType === "detail"
+}
+
+// ===== Pane ID Convention Helpers =====
+
+/** Detail pane ID for a given board pane. Convention: `${boardPaneId}-detail` */
+export function detailPaneIdFor(boardPaneId: string): string {
+  return `${boardPaneId}-detail`
+}
+
+/** Board pane ID that owns a detail pane. Inverse of detailPaneIdFor. */
+export function ownerPaneId(paneId: string): string {
+  return paneId.replace(/-detail$/, "")
+}
+
+/** Whether a pane ID refers to a detail pane. */
+export function isDetailPaneId(paneId: string): boolean {
+  return paneId.endsWith("-detail")
+}
+
+/** Get the detail pane for a board pane, or null if none exists. */
+export function getDetailPaneFor(workspace: WorkspaceState, boardPaneId: string): DetailPaneState | null {
+  const pane = workspace.panes.get(detailPaneIdFor(boardPaneId))
+  return pane && isDetailPane(pane) ? pane : null
+}
+
+/** Whether a board pane has an open detail pane. */
+export function hasDetailPaneFor(workspace: WorkspaceState, boardPaneId: string): boolean {
+  return workspace.panes.has(detailPaneIdFor(boardPaneId))
 }
 
 /**
@@ -415,7 +460,6 @@ export function createDetailPaneState(
   opts: {
     rootNodeId: string | null
     cursorId?: string | null
-    slavedTo?: string | null
     cursorStore: CursorStore
   },
 ): DetailPaneState {
@@ -424,7 +468,6 @@ export function createDetailPaneState(
     viewType: "detail",
     rootNodeId: opts.rootNodeId,
     cursorId: opts.cursorId ?? null,
-    slavedTo: opts.slavedTo ?? null,
     cursorStore: opts.cursorStore,
   }
 }

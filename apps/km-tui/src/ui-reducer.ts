@@ -297,8 +297,6 @@ export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter(
 // =============================================================================
 
 export function createInitialUIState(
-  _initialViewMode: ViewMode,
-  _collapsedColumns: number[],
   dimensions: { columns: number; rows: number },
   iconStyle: IconStyle = "nerdfont",
 ): UIState {
@@ -361,7 +359,7 @@ export function createInitialPaneUI(
   iconStyle: IconStyle = "nerdfont",
 ): PaneUI {
   return {
-    ...createInitialUIState(initialViewMode, collapsedColumns, dimensions, iconStyle),
+    ...createInitialUIState(dimensions, iconStyle),
     viewMode: initialViewMode,
     maxContentLines: 3,
     multiSelected: new Set(),

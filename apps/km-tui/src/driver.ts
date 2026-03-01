@@ -58,7 +58,7 @@ import {
 } from "@km/commands"
 import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
-import { createBoardState } from "./board-types.ts"
+import { createBoardState, hasDetailPaneFor } from "./board-types.ts"
 
 import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
@@ -197,11 +197,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       initialCursorNodeId,
       initialData.collapsedNodeIds,
     ),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialData.collapsedColumns ?? [])],
-      { columns, rows },
-    ),
+    initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
   }
@@ -359,7 +355,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         itemPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
-      detailPaneOpen: s.workspace.panes.has("main-detail"),
+      detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
       moveMode: board?.moveMode ?? false,
       columns: cols,
       colIndex: cursor.colIndex,

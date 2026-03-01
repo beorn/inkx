@@ -49,7 +49,7 @@ function createTestStore() {
     navigator: createGridNavigator(),
     cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
-    initialUIState: createInitialUIState("cards", [], { columns: 120, rows: 30 }),
+    initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
     initialViewMode: "cards",
     dimensions: { columns: 120, rows: 30 },
   }

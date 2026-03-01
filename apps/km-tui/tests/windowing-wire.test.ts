@@ -19,7 +19,8 @@ import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
-import { createBoardState, createPaneState } from "../src/board-types.ts"
+import { createBoardState, createPaneState, isBoardPane } from "../src/board-types.ts"
+import type { PersistedWorkspace } from "../src/workspace-persist.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
@@ -56,7 +57,7 @@ function createTestStore() {
     navigator: createGridNavigator(),
     cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
-    initialUIState: createInitialUIState("cards", [], { columns: 120, rows: 30 }),
+    initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
     initialViewMode: "cards",
     dimensions: { columns: 120, rows: 30 },
   }
@@ -304,7 +305,7 @@ describe("windowing — visual rendering", () => {
       navigator: createGridNavigator(),
       cursorStore,
       initialBoardState: createBoardState("board", null, "task-1"),
-      initialUIState: createInitialUIState("cards", [], { columns: cols, rows }),
+      initialUIState: createInitialUIState({ columns: cols, rows }),
       initialViewMode: "cards",
       dimensions: { columns: cols, rows },
     }
@@ -359,5 +360,123 @@ describe("windowing — visual rendering", () => {
       // Board should be narrower than full terminal (accounting for pane borders)
       expect(boardBox.width).toBeLessThan(cols)
     }
+  })
+})
+
+// =============================================================================
+// Workspace restoration — saved workspace with detail-focused pane
+// =============================================================================
+
+/**
+ * Helper: create a store with a savedWorkspace that mimics a board+detail layout
+ * where the detail pane was focused when saved (the Asana workspace bug).
+ */
+function createStoreWithSavedWorkspace(opts?: { focusedPaneId?: string }) {
+  const nodes = item.root(
+    "board",
+    item("Inbox", item("task-1"), item("task-2")),
+    item("Projects", item("proj-a"), item("proj-b")),
+  )
+  const repo = createFakeRepo({ nodes })
+  const toastQueue = createToastQueue()
+  const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
+
+  const savedWorkspace: PersistedWorkspace = {
+    version: 1,
+    name: "default",
+    savedAt: "2026-03-01T00:00:00.000Z",
+    layout: {
+      type: "split",
+      direction: "h",
+      ratio: 0.65,
+      left: { type: "leaf", paneId: "main" },
+      right: { type: "leaf", paneId: "main-detail" },
+    },
+    panes: [
+      { id: "main", viewType: "board", rootNodePath: "board", viewMode: "cards" },
+      { id: "main-detail", viewType: "detail", rootNodePath: null, viewMode: "cards" },
+    ],
+    focusedPaneId: opts?.focusedPaneId ?? "main-detail",
+  }
+
+  const params: CreateBoardAppStoreParams = {
+    repo,
+    toastQueue,
+    navigator: createGridNavigator(),
+    cursorStore,
+    initialBoardState: createBoardState("board", null, "task-1"),
+    initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
+    initialViewMode: "cards",
+    dimensions: { columns: 120, rows: 30 },
+    savedWorkspace,
+  }
+  const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+  return { store, repo }
+}
+
+describe("windowing — workspace restoration with detail-focused save", () => {
+  test("restoring workspace with detail-focused save focuses the board pane", () => {
+    const { store } = createStoreWithSavedWorkspace({ focusedPaneId: "main-detail" })
+
+    // Focus should be redirected from detail to the board pane
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+  })
+
+  test("restoring workspace with board-focused save keeps board focus", () => {
+    const { store } = createStoreWithSavedWorkspace({ focusedPaneId: "main" })
+
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+  })
+
+  test("restored board pane has a valid cursor from fallback state", () => {
+    const { store } = createStoreWithSavedWorkspace()
+
+    const boardPane = store.getState().workspace.panes.get("main")!
+    expect(isBoardPane(boardPane)).toBe(true)
+    // The cursor should come from the fallback (task-1), not be null
+    expect(boardPane.cursorNodeId).toBe("task-1")
+  })
+
+  test("cursor store is assigned to the board pane, not the detail pane", () => {
+    const { store } = createStoreWithSavedWorkspace()
+
+    const boardPane = store.getState().workspace.panes.get("main")!
+    const detailPane = store.getState().workspace.panes.get("main-detail")!
+
+    // The board pane's cursor store should have the initial cursor
+    const boardCursor = boardPane.cursorStore.getState()
+    expect(boardCursor.cursorNodeId).toBe("task-1")
+
+    // The detail pane's cursor store should be empty
+    const detailCursor = detailPane.cursorStore.getState()
+    expect(detailCursor.cursorNodeId).toBeNull()
+  })
+
+  test("previousFocusedPaneId is set when focus was redirected from detail", () => {
+    const { store } = createStoreWithSavedWorkspace({ focusedPaneId: "main-detail" })
+
+    // Since focus was redirected from detail to board, previousFocusedPaneId should be set
+    expect(store.getState().workspace.previousFocusedPaneId).toBe("main-detail")
+  })
+
+  test("restored workspace has correct pane count and layout", () => {
+    const { store } = createStoreWithSavedWorkspace()
+
+    expect(store.getState().workspace.panes.size).toBe(2)
+    expect(store.getState().workspace.layout.type).toBe("split")
+  })
+
+  test("navigation works after restoring detail-focused workspace", () => {
+    const { store } = createStoreWithSavedWorkspace()
+
+    // Verify cursor starts at task-1
+    const activePaneBefore = getActiveBoardPane(store.getState())!
+    expect(activePaneBefore.cursorNodeId).toBe("task-1")
+
+    // Move cursor down — SELECT simulates what j/k navigation does
+    store.getState().dispatchBoard({ type: "SELECT", nodeId: "task-2" })
+
+    const activePaneAfter = getActiveBoardPane(store.getState())!
+    expect(activePaneAfter.cursorNodeId).toBe("task-2")
   })
 })

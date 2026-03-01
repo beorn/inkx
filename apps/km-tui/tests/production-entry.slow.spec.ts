@@ -57,11 +57,7 @@ function buildStoreParams(
     navigator: createGridNavigator(),
     cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: createBoardState(rootId, null, initialCursorNodeId, initialState.collapsedNodeIds),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialState.collapsedColumns ?? [])],
-      { columns: cols, rows },
-    ),
+    initialUIState: createInitialUIState({ columns: cols, rows }),
     initialViewMode: viewMode,
     dimensions: { columns: cols, rows },
   }
@@ -604,7 +600,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
 describe("production smoke: store dimensions", () => {
   test("createInitialUIState: stores dimensions", () => {
-    const ui = createInitialUIState("cards", [], { columns: 80, rows: 24 })
+    const ui = createInitialUIState({ columns: 80, rows: 24 })
     expect(ui.dimensions).toEqual({ columns: 80, rows: 24 })
   })
 

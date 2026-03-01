@@ -393,11 +393,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       initialCursorNodeId,
       initialState.collapsedNodeIds,
     ),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialState.collapsedColumns ?? [])],
-      { columns, rows },
-    ),
+    initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
   }
@@ -1696,11 +1692,7 @@ export function renderBoardWithStore(
       initialCursorNodeId,
       initialState.collapsedNodeIds,
     ),
-    initialUIState: createInitialUIState(
-      viewMode,
-      [...(initialState.collapsedColumns ?? [])],
-      { columns, rows },
-    ),
+    initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
   }

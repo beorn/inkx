@@ -276,8 +276,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       cursorStore: createCursorStoreFromRepo(options.repo, state.rootId, initialCursorNodeId),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState(
-        viewMode,
-        [...(state.collapsedColumns ?? [])],
         { columns: cols, rows },
         defaultIconStyle,
       ),

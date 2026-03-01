@@ -95,11 +95,7 @@ async function profile() {
     navigator: createGridNavigator(),
     cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: boardState,
-    initialUIState: createInitialUIState(
-      "cards",
-      [...(state.collapsedColumns ?? [])],
-      { columns: 200, rows: 70 },
-    ),
+    initialUIState: createInitialUIState({ columns: 200, rows: 70 }),
     initialViewMode: "cards",
     dimensions: { columns: 200, rows: 70 },
     savedWorkspace: null,

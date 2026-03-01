@@ -12,7 +12,7 @@ import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { getActiveBoardPane } from "./board-app-store.ts"
-import type { PerPaneUIFields } from "./board-types.ts"
+import { mergePaneUI, type PerPaneUIFields } from "./board-types.ts"
 
 /** Default per-pane UI field values (used when no board pane is focused) */
 const DEFAULT_PANE_UI: PerPaneUIFields = {
@@ -82,20 +82,7 @@ export function usePaneUI(): PaneUI {
   return useAppShallow<BoardAppStore, PaneUI>((s) => {
     const pane = getActiveBoardPane(s)
     if (!pane) return { ...s.ui, ...DEFAULT_PANE_UI } as PaneUI
-    return {
-      ...s.ui,
-      viewMode: pane.viewMode, maxContentLines: pane.maxContentLines,
-      multiSelected: pane.multiSelected, selectionAnchor: pane.selectionAnchor,
-      selectAllLevel: pane.selectAllLevel, visualMode: pane.visualMode,
-      visualAnchor: pane.visualAnchor, collapsedColumns: pane.collapsedColumns,
-      columnScrollAnchor: pane.columnScrollAnchor, inlineEditBlock: pane.inlineEditBlock,
-      localSearch: pane.localSearch, searchReplace: pane.searchReplace,
-      showFilterDialog: pane.showFilterDialog, filterText: pane.filterText,
-      filterProperties: pane.filterProperties, filterCursorRow: pane.filterCursorRow,
-      filterCursorVal: pane.filterCursorVal, showIgnored: pane.showIgnored,
-      ignoreVersion: pane.ignoreVersion, mouseSelection: pane.mouseSelection,
-      isMouseDragging: pane.isMouseDragging,
-    } as PaneUI
+    return mergePaneUI(s.ui, pane)
   })
 }
 
