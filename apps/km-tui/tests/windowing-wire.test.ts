@@ -57,6 +57,7 @@ function createTestStore() {
     cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
     initialUIState: createInitialUIState("cards", [], { columns: 120, rows: 30 }),
+    initialViewMode: "cards",
     dimensions: { columns: 120, rows: 30 },
   }
   const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
@@ -304,6 +305,7 @@ describe("windowing — visual rendering", () => {
       cursorStore,
       initialBoardState: createBoardState("board", null, "task-1"),
       initialUIState: createInitialUIState("cards", [], { columns: cols, rows }),
+      initialViewMode: "cards",
       dimensions: { columns: cols, rows },
     }
     const store = createStore<BoardAppStore>(createBoardAppStoreState(params))

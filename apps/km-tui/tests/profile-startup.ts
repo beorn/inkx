@@ -100,6 +100,7 @@ async function profile() {
       [...(state.collapsedColumns ?? [])],
       { columns: 200, rows: 70 },
     ),
+    initialViewMode: "cards",
     dimensions: { columns: 200, rows: 70 },
     savedWorkspace: null,
   }

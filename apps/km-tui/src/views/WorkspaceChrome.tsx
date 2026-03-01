@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
-import type { UIState } from "../ui-reducer.ts"
+import { usePaneUI } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
 import { useCursorNodePosition, CursorStoreProvider } from "../cursor-context.tsx"
@@ -156,7 +156,7 @@ export function WorkspaceChrome({
   cursorStore,
 }: WorkspaceChromeProps): React.ReactElement {
   const repo = useRepo()
-  const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
+  const ui = usePaneUI()
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
     const p = getActiveBoardPane(s)
@@ -433,7 +433,7 @@ export interface WorkspaceBottomBarProps {
 }
 
 export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
-  const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
+  const ui = usePaneUI()
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
     const p = getActiveBoardPane(s)
     return p?.rootPath ?? null

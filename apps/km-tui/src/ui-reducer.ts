@@ -15,9 +15,9 @@ export interface SyncEvent {
  * State updates are done via setUI() on the Zustand store.
  */
 
-import type { ViewMode, SelectionKey } from "./types.ts"
-import type { SelectionRange } from "./handlers/mouse-handler.ts"
+import type { ViewMode } from "./types.ts"
 import type { WatcherStatus } from "@km/storage"
+import type { PerPaneUIFields } from "./board-types.ts"
 
 // =============================================================================
 // UI State Type
@@ -32,7 +32,7 @@ export type EditMode = "node" | "text" | "dialog"
  * - "dialog": a dialog is open (search, new item, date prompt, etc.)
  * - "node": default navigation mode
  */
-export function getEditMode(ui: UIState): EditMode {
+export function getEditMode(ui: PaneUI): EditMode {
   if (ui.inlineEditBlock) return "text"
   if (
     ui.showSearchDialog ||
@@ -51,13 +51,11 @@ export function getEditMode(ui: UIState): EditMode {
 }
 
 export interface UIState {
-  // View configuration
-  viewMode: ViewMode
-  maxContentLines: number
+  // View configuration (global — shared across panes)
   iconStyle: IconStyle
   borderMode: BorderMode
 
-  // Overlays/dialogs
+  // Overlays/dialogs (global — single modal at a time)
   showHelp: boolean
   helpScrollOffset: number
   activePicker: { type: "project" | "tag" | "assignee" } | null
@@ -71,77 +69,47 @@ export interface UIState {
   showConsole: boolean
   showSyncPane: boolean
 
-  // Selection state (selectionLevel is now derived from cursor depth in Board.tsx)
-  multiSelected: Set<SelectionKey>
-  selectionAnchor: { nodeId: string } | null
-  selectAllLevel: number
-
-  // Visual mode (vim-style: v enters, hjkl extends selection, Escape exits)
-  visualMode: boolean
-  visualAnchor: string | null // nodeId where visual selection started
-
-  // Column state
-  collapsedColumns: Set<number>
-  /** Scroll anchor for column viewport scrolling (mouse wheel).
-   *  null = follow cursor (default). When set, scrolls the targeted column. */
-  columnScrollAnchor: { colIdx: number; anchor: number } | null
-
-  // Ignore mode — when true, show ignored nodes (dimmed) for un-ignoring
-  showIgnored: boolean
-  /** Bumped when ignore list changes, to invalidate readBoardIgnored memoization */
-  ignoreVersion: number
-
-  // Mouse state
-  mouseSelection: SelectionRange | null
-  isMouseDragging: boolean
-
-  // File drop state
+  // File drop state (global)
   droppedFiles: string[]
   showDropNotification: boolean
 
-  // Navigation history
+  // Navigation history (global — to be unified with pane navHistory in future)
   navHistory: Array<{
     rootId: string | null
     colIndex: number
     cardIndex: number
     cursorNodeId: string | null
-    multiSelected: Set<SelectionKey>
+    multiSelected: Set<import("./types.ts").SelectionKey>
     foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number
 
-  // Recent projects for picker
+  // Recent projects for picker (global)
   recentProjectIds: string[]
 
-  // Terminal state
+  // Terminal state (global)
   dimensions: { columns: number; rows: number }
 
-  // Loading state (for large repos)
+  // Loading state (global — repo-level)
   isLoading: boolean
   loadingStartTime: number | null
   /** True while background deferred-file parsing is in progress (discoverOnly mode). */
   backgroundParsing: boolean
 
-  // Watcher status (for bottom bar display)
+  // Watcher status (global)
   watcherStatus: WatcherStatus | null
 
-  // Sync activity log (for sync pane display)
+  // Sync activity log (global)
   syncEvents: SyncEvent[]
 
-  // Inline edit state - which block is being edited (null = not editing)
-  // blockIndex 0 = title, 1+ = body children (1-indexed into extractBody result)
-  // initialCursorPos: where to place cursor when entering edit mode via block navigation
-  // stickyX: preferred cursor column preserved across block boundaries (visual column index)
-  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
-
-  // Date/recurrence prompt dialog
+  // Date/recurrence prompt dialog (global modal)
   datePrompt: {
     field: "due_at" | "start_at" | "rrule"
     nodeIds: string[]
     currentValue: string
   } | null
 
-  // Delete confirmation dialog - shows impact before destructive delete
+  // Delete confirmation dialog (global modal)
   deleteConfirm: {
     nodeIds: string[] // Node IDs to delete (single or batch)
     title: string
@@ -150,42 +118,36 @@ export interface UIState {
     hasMetadata?: boolean
   } | null
 
-  // Clipboard state (in-memory, not system clipboard)
+  // Clipboard state (global)
   clipboard: {
     nodeIds: string[] // Source node IDs (for resolving content at paste time)
     mode: "copy" | "cut"
   } | null
 
-  // Bell state - set when action hits boundary, cleared on next keypress
+  // Bell state (global feedback)
   bellState: string | null
 
-  // Status message - user feedback for actions (selection count, mode changes)
+  // Status message (global feedback)
   status: {
     level: "info" | "success" | "warning" | "error"
     message: string
   } | null
 
-  // Pending chord prefix (for which-key popup)
+  // Pending chord prefix (global input state)
   pendingChord: string | null
   /** True after the chord timeout fires (standalone executed) — hints go dim */
   chordTimedOut: boolean
 
-  // Filter state — persistent property-based + text filter across views
-  showFilterDialog: boolean
-  filterText: string
-  filterProperties: FilterProperties
-  filterCursorRow: number
-  filterCursorVal: number
-
-  // Local find (inline search bar within the board)
-  localSearch: LocalSearchState | null
-
-  // Omnibox / command palette state
+  // Omnibox / command palette state (global)
   showOmnibox: boolean
-
-  // Search & replace dialog state
-  searchReplace: SearchReplaceState | null
 }
+
+/**
+ * Pane UI = global UIState + per-pane fields merged.
+ * Action handlers receive this via ctx.ui so they can read both global and per-pane fields.
+ * React selectors should read per-pane fields from the pane directly, not from UIState.
+ */
+export type PaneUI = UIState & PerPaneUIFields
 
 /** State for the search & replace dialog */
 export interface SearchReplaceState {
@@ -335,14 +297,12 @@ export const FILTER_ROWS = VIEW_DIALOG_ROWS.filter(
 // =============================================================================
 
 export function createInitialUIState(
-  initialViewMode: ViewMode,
-  collapsedColumns: number[],
+  _initialViewMode: ViewMode,
+  _collapsedColumns: number[],
   dimensions: { columns: number; rows: number },
   iconStyle: IconStyle = "nerdfont",
 ): UIState {
   return {
-    viewMode: initialViewMode,
-    maxContentLines: 3,
     iconStyle,
     borderMode: "normal" as BorderMode,
 
@@ -356,22 +316,6 @@ export function createInitialUIState(
     searchScopeNodeIds: [],
     showConsole: false,
     showSyncPane: false,
-
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-
-    visualMode: false,
-    visualAnchor: null,
-
-    collapsedColumns: new Set(collapsedColumns),
-    columnScrollAnchor: null,
-
-    showIgnored: false,
-    ignoreVersion: 0,
-
-    mouseSelection: null,
-    isMouseDragging: false,
 
     droppedFiles: [],
     showDropNotification: false,
@@ -390,8 +334,6 @@ export function createInitialUIState(
     watcherStatus: null,
     syncEvents: [],
 
-    inlineEditBlock: null,
-
     datePrompt: null,
 
     clipboard: null,
@@ -403,16 +345,43 @@ export function createInitialUIState(
     pendingChord: null,
     chordTimedOut: false,
 
+    showOmnibox: false,
+  }
+}
+
+/**
+ * Create a PaneUI (UIState + per-pane defaults) for tests and components that need the full merged view.
+ * In production, usePaneUI() merges global UIState with the focused pane's per-pane fields.
+ * This factory provides a standalone PaneUI with sensible defaults for all per-pane fields.
+ */
+export function createInitialPaneUI(
+  initialViewMode: ViewMode = "cards",
+  collapsedColumns: number[] = [],
+  dimensions: { columns: number; rows: number } = { columns: 80, rows: 24 },
+  iconStyle: IconStyle = "nerdfont",
+): PaneUI {
+  return {
+    ...createInitialUIState(initialViewMode, collapsedColumns, dimensions, iconStyle),
+    viewMode: initialViewMode,
+    maxContentLines: 3,
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+    visualMode: false,
+    visualAnchor: null,
+    collapsedColumns: new Set(collapsedColumns),
+    columnScrollAnchor: null,
+    inlineEditBlock: null,
+    localSearch: null,
+    searchReplace: null,
     showFilterDialog: false,
     filterText: "",
     filterProperties: createEmptyFilterProperties(),
     filterCursorRow: 0,
     filterCursorVal: 0,
-
-    localSearch: null,
-
-    showOmnibox: false,
-
-    searchReplace: null,
+    showIgnored: false,
+    ignoreVersion: 0,
+    mouseSelection: null,
+    isMouseDragging: false,
   }
 }

@@ -42,13 +42,13 @@ import { parseKey } from "inkx/runtime"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
-import { createBoardState } from "../../src/board-types.ts"
+import { createBoardState, createPaneState } from "../../src/board-types.ts"
 import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
-import { createInitialUIState } from "../../src/ui-reducer.ts"
+import { createInitialUIState, createInitialPaneUI } from "../../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
@@ -398,7 +398,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       [...(initialState.collapsedColumns ?? [])],
       { columns, rows },
     ),
-
+    initialViewMode: viewMode,
     dimensions: { columns, rows },
   }
 
@@ -1564,7 +1564,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
       isAtCardLevel: true,
       isInOutlineMode: false,
     },
-    ui: createInitialUIState("cards", [], { columns, rows }),
+    ui: createInitialPaneUI("cards", [], { columns, rows }),
     derivedSelectionLevel: "card",
     dimensions: { columns, rows },
     navigator: createGridNavigator(),
@@ -1583,14 +1583,26 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     moveMode: false,
   })
   // Wrap in StoreContext + JotaiProvider + TreeRenderProvider so TreeNode's hooks work
-  const initialUI = createInitialUIState("cards", [], { columns, rows })
+  const initialUI = createInitialPaneUI("cards", [], { columns, rows })
+  const mockPane = createPaneState("main", createBoardState(state.rootId, state.rootPath), {
+    viewMode: "cards",
+    cursorStore: createCursorStoreFromRepo(repo, state.rootId, state.columns[0]?.cardNodes[0]?.id ?? null),
+  })
   const store = createStore(() => ({
     foldDepths: new Map<string, number>(),
     ui: initialUI,
     navigator: null,
     setUI: () => {},
+    workspace: {
+      panes: new Map([["main", mockPane]]),
+      focusedPaneId: "main",
+      previousFocusedPaneId: null,
+      layout: { type: "leaf" as const, paneId: "main" },
+      preZoomLayout: null,
+      preZoomPanes: null,
+    },
   }))
-  const treeConfig = deriveTreeConfig(initialUI)
+  const treeConfig = deriveTreeConfig(initialUI.viewMode, initialUI.maxContentLines, initialUI)
   const jotaiStore = createJotaiStore()
   const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
   const noopUndoHandle = {
@@ -1689,7 +1701,7 @@ export function renderBoardWithStore(
       [...(initialState.collapsedColumns ?? [])],
       { columns, rows },
     ),
-
+    initialViewMode: viewMode,
     dimensions: { columns, rows },
   }
 

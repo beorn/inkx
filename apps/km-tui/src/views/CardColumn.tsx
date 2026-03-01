@@ -18,7 +18,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { ColumnView } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
-import type { BoardAppStore } from "../board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { parseToPlainText, InlineText } from "../text/index.ts"
@@ -160,10 +160,14 @@ const Card = React.memo(
     const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
 
     // Check if this card is in inline edit mode (for border color)
-    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
+    const isEditing = useAppStore<BoardAppStore, boolean>(
+      (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
+    )
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
-    const isMultiSelected = useUISelector((state) => state.multiSelected.has(makeSelectionKey(nodeId)))
+    const isMultiSelected = useAppStore<BoardAppStore, boolean>(
+      (s) => getActiveBoardPane(s)?.multiSelected.has(makeSelectionKey(nodeId)) ?? false,
+    )
 
     // Dual cursor: dim the cursor when board is not focused.
     // Read from TreeRenderContext (set once per board in BoardMain, not per-card).
@@ -541,12 +545,15 @@ export const Column = React.memo(function Column({
   const selectionLevel = columnSelected.selectionLevel
 
   // Check if this column header is being inline-edited
-  const isInlineEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === nodeId)
+  const isInlineEditing = useAppStore<BoardAppStore, boolean>(
+    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
+  )
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
-  const columnScrollAnchor = useUISelector((state) =>
-    state.columnScrollAnchor?.colIdx === colIndex ? state.columnScrollAnchor.anchor : null,
-  )
+  const columnScrollAnchor = useAppStore<BoardAppStore, number | null>((s) => {
+    const pane = getActiveBoardPane(s)
+    return pane?.columnScrollAnchor?.colIdx === colIndex ? pane.columnScrollAnchor.anchor : null
+  })
 
   // Check if the board is in a loading state (discoverOnly + background parse).
   // Used to show skeleton cards in empty columns instead of "(empty)".

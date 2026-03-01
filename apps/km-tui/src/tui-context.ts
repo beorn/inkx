@@ -13,7 +13,7 @@ import type { FocusManager } from "inkx"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
 import type { ColumnView } from "./types.ts"
-import type { UIState, EditMode } from "./ui-reducer.ts"
+import type { PaneUI, EditMode } from "./ui-reducer.ts"
 import { getEditMode } from "./ui-reducer.ts"
 import type { GridNavigator } from "@km/board"
 import type { ViewNavigation } from "./view-navigation.ts"
@@ -41,8 +41,8 @@ export interface ActionCtx {
   moveSourceNodes: string[]
   moveSourceCursorNodeId: string | null
 
-  // === State (from store) ===
-  ui: UIState
+  // === State (merged global + per-pane) ===
+  ui: PaneUI
   navigator: GridNavigator
   viewNavigation: ViewNavigation
   toastQueue: ToastQueue
@@ -65,8 +65,8 @@ export interface ActionCtx {
   // === Dispatchers ===
   /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */
   dispatchBoard: (action: BoardAction) => void
-  /** Set UI fields directly (partial update, shallow merge) */
-  setUI: (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+  /** Set UI fields directly (partial update, shallow merge). Routes per-pane fields to pane state. */
+  setUI: (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) => void
   /** Set foldDepths (single source of truth at store root) */
   setFoldDepths: (depths: Map<string, number>) => void
 

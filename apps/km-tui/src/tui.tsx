@@ -281,6 +281,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         { columns: cols, rows },
         defaultIconStyle,
       ),
+      initialViewMode: viewMode,
       dimensions: { columns: cols, rows },
       savedWorkspace,
     }

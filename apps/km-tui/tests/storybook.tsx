@@ -80,7 +80,7 @@ import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
 import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
-import { createInitialUIState, type UIState } from "../src/ui-reducer.ts"
+import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
 import type { Toast } from "@km/core"
@@ -124,10 +124,7 @@ function getBoardPillsFromStore(): [] {
 }
 
 // Create a mock UI state for storybook rendering
-const mockUIState = createInitialUIState("cards", [], {
-  columns: 120,
-  rows: 40,
-})
+const mockUIState = createInitialPaneUI("cards", [], { columns: 120, rows: 40 })
 const noopDispatch = () => {}
 const noopDialogHandlers = {
   handlePickerSelect: () => {},
@@ -175,7 +172,7 @@ const noopUndoHandle = {
 }
 
 function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
-  const treeConfig = deriveTreeConfig(mockUIState)
+  const treeConfig = deriveTreeConfig(mockUIState.viewMode, mockUIState.maxContentLines, mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore}>
       <JotaiProvider store={storybookJotaiStore}>
@@ -1215,7 +1212,7 @@ function makeBoardCoreProps(
   dims: { columns: number; rows: number },
   selectionLevel: "board" | "column" | "card" = "card",
 ) {
-  const ui = createInitialUIState(viewMode, [], dims)
+  const ui = createInitialPaneUI(viewMode, [], dims)
 
   return {
     state,
@@ -1596,7 +1593,7 @@ function ToastAndStatusSection(): React.ReactElement {
   const demoTermHeight = 30
 
   // Create mock UI state with status message
-  const uiStateWithStatus: UIState = {
+  const uiStateWithStatus: PaneUI = {
     ...mockUIState,
     status: { level: "info", message: "Move mode active" },
   }

@@ -202,6 +202,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       [...(initialData.collapsedColumns ?? [])],
       { columns, rows },
     ),
+    initialViewMode: viewMode,
     dimensions: { columns, rows },
   }
 
@@ -258,7 +259,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       currentNode: selectedNode as CommandContext["currentNode"],
       currentNodeId: selectedNode?.id ?? null,
       selectedNodes: Array.from(board?.selectedNodes ?? []),
-      viewMode: s.ui.viewMode,
+      viewMode: board?.viewMode ?? "columns",
       siblingIndex: cursor.cardIndex,
       siblingCount: column?.cardNodes.length ?? 0,
       columnIndex: cursor.colIndex,
@@ -351,7 +352,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         level,
       },
       selectedNodeId: selectedNode?.id ?? null,
-      viewMode: s.ui.viewMode,
+      viewMode: board?.viewMode ?? "columns",
       dialogs: {
         search: s.ui.showSearchDialog,
         newItem: s.ui.showNewItemDialog,

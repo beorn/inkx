@@ -37,7 +37,7 @@ import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
-import { createInitialUIState } from "./ui-reducer.ts"
+import { createInitialPaneUI } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "./repo-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
@@ -171,7 +171,7 @@ export async function createBoardTest(
     colIndex: 0,
     cardIndex: 0,
     isAtCardLevel: true,
-    ui: createInitialUIState("cards", [], { columns: width, rows: height }),
+    ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card",
     dimensions: { columns: width, rows: height },
     navigator: createGridNavigator(),

@@ -150,8 +150,8 @@ export const invariants = {
    */
   stateConsistency(state: FuzzState, action: string): void {
     if (state.ui) {
-      // View mode should match
-      expect(state.viewMode, `viewMode mismatch after ${action}`).toBe(state.ui.viewMode)
+      // viewMode lives on the pane (not UIState) — validated by validViewMode
+      expect(state.viewMode, `viewMode should be defined after ${action}`).toBeDefined()
     }
   },
 

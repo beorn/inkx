@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeEach } from "vitest"
 import { createModeStack, type InputMode } from "../src/input-mode.ts"
-import { getEditMode, createInitialUIState, createEmptyFilterProperties, type PaneUI } from "../src/ui-reducer.ts"
+import { getEditMode, createInitialPaneUI } from "../src/ui-reducer.ts"
 
 describe("createModeStack", () => {
   let stack: ReturnType<typeof createModeStack>
@@ -151,30 +151,7 @@ describe("createModeStack", () => {
 // =============================================================================
 
 describe("getEditMode", () => {
-  const base: PaneUI = {
-    ...createInitialUIState("cards", [], { columns: 80, rows: 24 }),
-    viewMode: "cards",
-    maxContentLines: 3,
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    visualMode: false,
-    visualAnchor: null,
-    collapsedColumns: new Set(),
-    columnScrollAnchor: null,
-    inlineEditBlock: null,
-    localSearch: null,
-    searchReplace: null,
-    showFilterDialog: false,
-    filterText: "",
-    filterProperties: createEmptyFilterProperties(),
-    filterCursorRow: 0,
-    filterCursorVal: 0,
-    showIgnored: false,
-    ignoreVersion: 0,
-    mouseSelection: null,
-    isMouseDragging: false,
-  }
+  const base = createInitialPaneUI("cards", [], { columns: 80, rows: 24 })
 
   test("returns 'node' for default state", () => {
     expect(getEditMode(base)).toBe("node")

@@ -17,6 +17,7 @@
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Search & Replace", () => {
   /** Helper to create a standard board with searchable content */
@@ -34,11 +35,11 @@ describe("Search & Replace", () => {
 
   test("S opens the search/replace dialog", () => {
     const { board, store } = searchBoard()
-    expect(store.getState().ui.searchReplace).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
 
     board.press("F")
 
-    const sr = store.getState().ui.searchReplace
+    const sr = getActiveBoardPane(store.getState())!.searchReplace
     expect(sr).not.toBeNull()
     expect(sr!.searchQuery).toBe("")
     expect(sr!.replaceQuery).toBe("")
@@ -50,10 +51,10 @@ describe("Search & Replace", () => {
     const { board, store } = searchBoard()
 
     board.press("F")
-    expect(store.getState().ui.searchReplace).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.searchReplace).not.toBeNull()
 
     board.press("Escape")
-    expect(store.getState().ui.searchReplace).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
   })
 
   test("typing updates the search query and shows matches", () => {
@@ -63,7 +64,7 @@ describe("Search & Replace", () => {
     // Type "Buy" into the search field
     board.press("B").press("u").press("y")
 
-    const sr = store.getState().ui.searchReplace
+    const sr = getActiveBoardPane(store.getState())!.searchReplace
     expect(sr).not.toBeNull()
     expect(sr!.searchQuery).toBe("Buy")
     expect(sr!.matchCount).toBe(3) // "Buy milk", "Buy eggs", "Buy bread"
@@ -74,13 +75,13 @@ describe("Search & Replace", () => {
     const { board, store } = searchBoard()
 
     board.press("F")
-    expect(store.getState().ui.searchReplace!.focusedField).toBe("search")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
 
     board.press("Tab")
-    expect(store.getState().ui.searchReplace!.focusedField).toBe("replace")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("replace")
 
     board.press("Tab")
-    expect(store.getState().ui.searchReplace!.focusedField).toBe("search")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
   })
 
   test("Enter navigates to next match", () => {
@@ -89,21 +90,21 @@ describe("Search & Replace", () => {
     board.press("F")
     board.press("B").press("u").press("y")
 
-    const sr1 = store.getState().ui.searchReplace!
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchIndex).toBe(0)
     expect(sr1.matchCount).toBe(3)
 
     board.press("Enter")
-    const sr2 = store.getState().ui.searchReplace!
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr2.matchIndex).toBe(1)
 
     board.press("Enter")
-    const sr3 = store.getState().ui.searchReplace!
+    const sr3 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr3.matchIndex).toBe(2)
 
     // Wraps around
     board.press("Enter")
-    const sr4 = store.getState().ui.searchReplace!
+    const sr4 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr4.matchIndex).toBe(0)
   })
 
@@ -113,7 +114,7 @@ describe("Search & Replace", () => {
     board.press("F")
     board.press("z").press("z").press("z")
 
-    const sr = store.getState().ui.searchReplace!
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr.matchCount).toBe(0)
     expect(sr.matchNodeIds).toHaveLength(0)
   })
@@ -125,7 +126,7 @@ describe("Search & Replace", () => {
     // Search for "Buy"
     board.press("B").press("u").press("y")
 
-    const sr1 = store.getState().ui.searchReplace!
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchCount).toBe(3)
 
     // Switch to replace field and type replacement
@@ -145,7 +146,7 @@ describe("Search & Replace", () => {
     expect(text).not.toMatch(/^Buy/)
 
     // Match count should decrease
-    const sr2 = store.getState().ui.searchReplace!
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr2.matchCount).toBe(2) // "Buy eggs" and "Buy bread" remain
   })
 
@@ -155,7 +156,7 @@ describe("Search & Replace", () => {
     board.press("F")
     board.press("B").press("u").press("y")
 
-    const sr1 = store.getState().ui.searchReplace!
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchCount).toBe(3)
     const matchIds = [...sr1.matchNodeIds]
 
@@ -177,7 +178,7 @@ describe("Search & Replace", () => {
     }
 
     // Match count should be 0
-    const sr2 = store.getState().ui.searchReplace!
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr2.matchCount).toBe(0)
   })
 
@@ -185,13 +186,13 @@ describe("Search & Replace", () => {
     const { board, store } = searchBoard()
 
     board.press("F")
-    expect(store.getState().ui.searchReplace!.useRegex).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
 
     board.press("ctrl+x")
-    expect(store.getState().ui.searchReplace!.useRegex).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
 
     board.press("ctrl+x")
-    expect(store.getState().ui.searchReplace!.useRegex).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
   })
 
   test("regex search matches correctly", () => {
@@ -201,13 +202,13 @@ describe("Search & Replace", () => {
 
     // Enable regex
     board.press("ctrl+x")
-    expect(store.getState().ui.searchReplace!.useRegex).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
 
     // Search for "Buy.*k" (matches "Buy milk" — k in milk)
     board.press("B").press("u").press("y")
     board.press(".").press("*").press("k")
 
-    const sr = store.getState().ui.searchReplace!
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
     // "Buy milk" matches Buy.*k (the k in milk)
     expect(sr.matchCount).toBeGreaterThanOrEqual(1)
   })
@@ -234,7 +235,7 @@ describe("Search & Replace", () => {
     // Type an invalid regex
     board.press("[")
 
-    const sr = store.getState().ui.searchReplace!
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr.matchCount).toBe(0)
     // Should not crash
   })

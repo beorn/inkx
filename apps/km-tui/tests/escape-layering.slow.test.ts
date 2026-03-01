@@ -26,11 +26,11 @@ describe("Escape Layering", () => {
 
     // Enter visual mode with 'v v' chord + space to select
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Escape exits visual mode
     board.press("Escape")
-    expect(store.getState().ui.visualMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
   })
 
   test("Escape cancels move mode", () => {
@@ -56,12 +56,12 @@ describe("Escape Layering", () => {
 
     // Enter inline edit mode with 'i'
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task1")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
 
     // Escape exits edit mode — cursor stays on same node
     board.press("Escape")
-    expect(store.getState().ui.inlineEditBlock).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
     board.expect("#task1[data-cursor]").toExist()
   })
 
@@ -108,11 +108,11 @@ describe("Escape Layering", () => {
 
     // Open local find with /
     board.press("/")
-    expect(store.getState().ui.localSearch).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
 
     // Escape closes find bar
     board.press("Escape")
-    expect(store.getState().ui.localSearch).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
   test("Escape closes new item dialog", () => {
@@ -138,11 +138,11 @@ describe("Escape Layering", () => {
     // Select multiple items with Shift+ArrowDown
     board.press("shift+ArrowDown")
     board.press("shift+ArrowDown")
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // Escape clears selection
     board.press("Escape")
-    expect(store.getState().ui.multiSelected.size).toBe(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBe(0)
   })
 
   // ---------------------------------------------------------------------------
@@ -168,12 +168,12 @@ describe("Escape Layering", () => {
 
     // Enter visual mode (which also creates a selection)
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // First Escape: exits visual mode (but selection may also be cleared since visual_mode_exit clears it)
     board.press("Escape")
-    expect(store.getState().ui.visualMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
   })
 
   test("Escape closes detail pane before clearing selection", () => {
@@ -181,7 +181,7 @@ describe("Escape Layering", () => {
 
     // Select items
     board.press("shift+ArrowDown")
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // Open detail pane (focus stays on board)
     board.press("D")
@@ -192,7 +192,7 @@ describe("Escape Layering", () => {
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
     // Selection is still there
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
   })
 
   // ---------------------------------------------------------------------------
@@ -220,7 +220,7 @@ describe("Escape Layering", () => {
 
     // Create selection
     board.press("shift+ArrowDown")
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // Open detail pane (focus stays on board)
     board.press("D")
@@ -229,11 +229,11 @@ describe("Escape Layering", () => {
     // Escape 1: close pane (selection still active)
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // Escape 2: clear selection
     board.press("Escape")
-    expect(store.getState().ui.multiSelected.size).toBe(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBe(0)
 
     // Escape 3: nothing left → bell
     board.press("Escape")

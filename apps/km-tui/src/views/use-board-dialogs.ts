@@ -10,7 +10,7 @@ import { naturalToRRule } from "@km/storage"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
-import type { UIState } from "../ui-reducer.ts"
+import type { PaneUI } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
@@ -34,7 +34,7 @@ export function findZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarget:
 // Types
 // =============================================================================
 
-type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
+type SetUI = (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) => void
 
 interface UseBoardDialogsParams {
   repo: Repo
@@ -288,7 +288,7 @@ export function useBoardDialogs({
           return { datePrompt: null }
         }
         for (const nodeId of nodeIds) {
-          repo.updateNode(nodeId, { rrule: rrule })
+          repo.updateNode(nodeId, { rrule: rrule ?? undefined })
         }
       } else {
         // Date field: resolve NL → ISO 8601 due_at/start_at

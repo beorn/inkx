@@ -19,7 +19,7 @@ export { BoardCore, BoardApp, makeSelectionKey } from "./views/index.ts"
 export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"
 
 // Export UI reducer utilities
-export { createInitialUIState } from "./ui-reducer.ts"
+export { createInitialUIState, createInitialPaneUI } from "./ui-reducer.ts"
 
 // Export grid navigator for card position tracking
 export { createGridNavigator } from "@km/board"

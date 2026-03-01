@@ -7,7 +7,7 @@
 
 import React from "react"
 import { Box, Text, useFocusManager } from "inkx"
-import { type UIState, getEditMode } from "../ui-reducer.ts"
+import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 
 /** A single key hint: key label + action description */
 interface KeyHint {
@@ -64,7 +64,7 @@ const MULTI_HINTS: KeyHint[] = [
   { key: "Esc", action: "clear" },
 ]
 
-function getKeyBarMode(ui: UIState, isDetailPaneFocused: boolean): KeyBarMode {
+function getKeyBarMode(ui: PaneUI, isDetailPaneFocused: boolean): KeyBarMode {
   const editMode = getEditMode(ui)
   if (editMode === "text") return "TEXT"
   if (ui.visualMode) return "VISUAL"
@@ -87,7 +87,7 @@ function getHints(mode: KeyBarMode, hasMultiSelection: boolean): KeyHint[] {
 }
 
 interface KeyBarProps {
-  ui: UIState
+  ui: PaneUI
   termWidth: number
 }
 

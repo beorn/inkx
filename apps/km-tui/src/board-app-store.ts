@@ -20,9 +20,10 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, BoardPaneState, DetailPaneState, LayoutNode, NavHistoryEntry, PaneState, WorkspaceState } from "./board-types.ts"
+import type { BoardAction, BoardState, BoardPaneState, DetailPaneState, LayoutNode, NavHistoryEntry, PaneState, PerPaneUIFields, WorkspaceState } from "./board-types.ts"
 import { createBoardState, createPaneState, createDetailPaneState, createEmptyPaneState, isBoardPane, isDetailPane } from "./board-types.ts"
-import type { UIState } from "./ui-reducer.ts"
+import type { UIState, PaneUI } from "./ui-reducer.ts"
+import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
 import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
@@ -127,8 +128,10 @@ export interface BoardAppActions {
   // Board action dispatcher (inlined from boardReducer)
   dispatchBoard(action: BoardAction): void
 
-  // Direct UI state update (shallow merge into ui)
-  setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)): void
+  // UI state update — accepts both global and per-pane fields.
+  // Automatically routes per-pane fields (viewMode, multiSelected, etc.) to the focused BoardPaneState,
+  // and global fields (showHelp, bellState, etc.) to the UIState.
+  setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)): void
 
   // Fold operations (single source of truth at store root)
   setFoldDepths(depths: Map<string, number>): void
@@ -245,6 +248,8 @@ export interface CreateBoardAppStoreParams {
   cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
+  /** Initial view mode for the default pane (per-pane field, not stored in UIState) */
+  initialViewMode?: import("./types.ts").ViewMode
   dimensions: { columns: number; rows: number }
   /** Saved workspace to restore (layout + panes). If provided, overrides the default single-pane workspace. */
   savedWorkspace?: PersistedWorkspace | null
@@ -346,7 +351,7 @@ function deserializeLayout(node: PersistedLayoutNode): LayoutNode {
 function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoardAppStoreParams): WorkspaceState {
   const defaultPaneId = "main"
   const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
-    viewMode: params.initialUIState.viewMode,
+    viewMode: params.initialViewMode ?? "columns",
     cursorStore: params.cursorStore,
   })
 
@@ -647,10 +652,60 @@ export function createBoardAppStoreState(
 
       // --- Direct setters ---
 
-      setUI(partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) {
+      setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) {
         set((state) => {
-          const updates = typeof partial === "function" ? partial(state.ui) : partial
-          return { ui: { ...state.ui, ...updates } }
+          // Resolve function variant
+          let resolved: Partial<PaneUI>
+          if (typeof partial === "function") {
+            const board = getActiveBoardPane(state)
+            const effective: PaneUI = board
+              ? Object.assign({}, state.ui, {
+                  viewMode: board.viewMode, maxContentLines: board.maxContentLines,
+                  multiSelected: board.multiSelected, selectionAnchor: board.selectionAnchor,
+                  selectAllLevel: board.selectAllLevel, visualMode: board.visualMode,
+                  visualAnchor: board.visualAnchor, collapsedColumns: board.collapsedColumns,
+                  columnScrollAnchor: board.columnScrollAnchor, inlineEditBlock: board.inlineEditBlock,
+                  localSearch: board.localSearch, searchReplace: board.searchReplace,
+                  showFilterDialog: board.showFilterDialog, filterText: board.filterText,
+                  filterProperties: board.filterProperties, filterCursorRow: board.filterCursorRow,
+                  filterCursorVal: board.filterCursorVal, showIgnored: board.showIgnored,
+                  ignoreVersion: board.ignoreVersion, mouseSelection: board.mouseSelection,
+                  isMouseDragging: board.isMouseDragging,
+                }) as PaneUI
+              : (state.ui as unknown as PaneUI) // Safe: function variant only used with active board pane
+            resolved = partial(effective)
+          } else {
+            resolved = partial
+          }
+
+          // Route fields: per-pane → focused BoardPaneState, global → UIState
+          const globalUpdates: Record<string, unknown> = {}
+          const paneUpdates: Record<string, unknown> = {}
+          let hasGlobal = false
+          let hasPane = false
+          for (const [k, v] of Object.entries(resolved)) {
+            if (PANE_UI_FIELD_NAMES.has(k)) {
+              paneUpdates[k] = v
+              hasPane = true
+            } else {
+              globalUpdates[k] = v
+              hasGlobal = true
+            }
+          }
+
+          const result: Partial<BoardAppStore> = {}
+          if (hasGlobal) {
+            result.ui = { ...state.ui, ...globalUpdates } as UIState
+          }
+          if (hasPane) {
+            const focusedPaneId = state.workspace.focusedPaneId
+            const pane = state.workspace.panes.get(focusedPaneId)
+            if (pane && isBoardPane(pane)) {
+              const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, paneUpdates)
+              result.workspace = { ...state.workspace, panes: newPanes }
+            }
+          }
+          return result
         })
       },
 
@@ -1050,7 +1105,7 @@ export function createBoardAppStoreState(
             boardState.collapsedNodes = activeBoard.collapsedNodes
           }
           const updatedPane = createPaneState(focusedPane.id, boardState, {
-            viewMode: state.ui.viewMode,
+            viewMode: activeBoard?.viewMode ?? "columns",
             cursorStore: focusedPane.cursorStore,
           })
           const newPanes = new Map(workspace.panes)

@@ -11,6 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 // =============================================================================
 // Helpers
@@ -39,9 +40,9 @@ describe("Visual mode", () => {
 
     // Enter visual mode with v + space (chord)
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     // Current card should be selected
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
   })
 
   test("j extends visual selection downward", () => {
@@ -49,12 +50,12 @@ describe("Visual mode", () => {
 
     // Enter visual mode
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Move down to extend selection
     board.press("j")
     // Should have task1 and task2 selected (visual mode extends range)
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThanOrEqual(2)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThanOrEqual(2)
   })
 
   test("k contracts visual selection upward", () => {
@@ -66,11 +67,11 @@ describe("Visual mode", () => {
     // Extend down twice
     board.press("j")
     board.press("j")
-    const selectedAfterDown = store.getState().ui.multiSelected.size
+    const selectedAfterDown = getActiveBoardPane(store.getState())!.multiSelected.size
 
     // Contract up
     board.press("k")
-    const selectedAfterUp = store.getState().ui.multiSelected.size
+    const selectedAfterUp = getActiveBoardPane(store.getState())!.multiSelected.size
     expect(selectedAfterUp).toBeLessThan(selectedAfterDown)
   })
 
@@ -80,12 +81,12 @@ describe("Visual mode", () => {
     // Enter visual mode and extend selection
     board.press("v").press("v").press(" ")
     board.press("j")
-    expect(store.getState().ui.visualMode).toBe(true)
-    expect(store.getState().ui.multiSelected.size).toBeGreaterThan(0)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // Escape exits visual mode
     board.press("Escape")
-    expect(store.getState().ui.visualMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
   })
 
   test("d (cut) in visual mode stages selected cards to clipboard", () => {
@@ -97,7 +98,7 @@ describe("Visual mode", () => {
     // Enter visual mode and extend selection to include task1 + task2
     board.press("v").press("v").press(" ")
     board.press("j")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Cut selected cards (stages to clipboard, doesn't remove yet)
     board.press("d")
@@ -119,7 +120,7 @@ describe("Visual mode", () => {
 
     // Enter visual mode and select task1
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Copy stages to clipboard
     board.press("y")
@@ -149,9 +150,9 @@ describe("Visual mode", () => {
 
     // Enter and exit visual mode
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     board.press("Escape")
-    expect(store.getState().ui.visualMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
 
     // Cursor should still be on task2
     board.expect("#task2[data-cursor]").toExist()
@@ -541,8 +542,8 @@ describe("Inline edit lifecycle", () => {
 
     // Enter inline edit
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task1")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
   })
 
   test("Enter enters inline edit mode on current card", () => {
@@ -552,8 +553,8 @@ describe("Inline edit lifecycle", () => {
 
     // Enter inline edit via Enter key
     board.press("Enter")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task1")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
   })
 
   test("Escape exits inline edit mode, cursor stays on same node", () => {
@@ -563,10 +564,10 @@ describe("Inline edit lifecycle", () => {
 
     // Enter and exit inline edit
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
 
     board.press("Escape")
-    expect(store.getState().ui.inlineEditBlock).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
 
     // Cursor stays on task1
     board.expect("#task1[data-cursor]").toExist()
@@ -577,21 +578,21 @@ describe("Inline edit lifecycle", () => {
 
     // Edit task1
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task1")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
     board.press("Escape")
 
     // Move to task2 and edit
     board.press("j")
     board.expect("#task2[data-cursor]").toExist()
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task2")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task2")
     board.press("Escape")
 
     // Move to task3 and edit
     board.press("j")
     board.expect("#task3[data-cursor]").toExist()
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock?.nodeId).toBe("task3")
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task3")
     board.press("Escape")
   })
 
@@ -602,7 +603,7 @@ describe("Inline edit lifecycle", () => {
 
     // Enter inline edit
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
 
     // Keys like j/k/l/h should be captured by the text input, not navigate the board
     // After Escape, cursor should still be on task1
@@ -705,11 +706,11 @@ describe("Escape priority layering", () => {
 
     // Enter visual mode via v+space chord
     board.press("v").press("v").press(" ")
-    expect(store.getState().ui.visualMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // First Escape: exits visual mode (detail pane stays)
     board.press("Escape")
-    expect(store.getState().ui.visualMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Second Escape: closes detail pane
@@ -722,11 +723,11 @@ describe("Escape priority layering", () => {
 
     // Enter inline edit
     board.press("i")
-    expect(store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
 
     // Escape exits inline edit
     board.press("Escape")
-    expect(store.getState().ui.inlineEditBlock).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
 
     // Cursor should still be on the node
     board.expect("#task1[data-cursor]").toExist()
@@ -878,9 +879,9 @@ describe("Inline edit + undo interaction", () => {
     // Rapidly enter and exit inline edit multiple times
     for (let i = 0; i < 5; i++) {
       board.press("i")
-      expect(store.getState().ui.inlineEditBlock).not.toBeNull()
+      expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
       board.press("Escape")
-      expect(store.getState().ui.inlineEditBlock).toBeNull()
+      expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
     }
 
     // Board should still be in a valid state

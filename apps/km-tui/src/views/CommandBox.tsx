@@ -15,7 +15,7 @@ import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { getEditMode } from "../ui-reducer.ts"
-import type { UIState, LocalSearchState } from "../ui-reducer.ts"
+import type { PaneUI, UIState, LocalSearchState } from "../ui-reducer.ts"
 
 // Spinner frames (braille unicode dots animation)
 const SPINNER_FRAMES = [
@@ -182,7 +182,7 @@ function CommandFeedback({
   ui,
   localSearch,
 }: {
-  ui: UIState
+  ui: PaneUI
   localSearch?: LocalSearchState | null
 }): React.ReactElement | null {
   // Priority 1: chord hints (yellow = active, grey = timed out)
@@ -228,7 +228,7 @@ const MODE_COLORS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export interface CommandBoxProps {
-  ui: UIState
+  ui: PaneUI
   termWidth: number
   /** Storage mode: 'memory' (ephemeral) or 'disk' (persistent) */
   storageMode: "memory" | "disk"

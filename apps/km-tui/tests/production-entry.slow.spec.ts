@@ -62,6 +62,7 @@ function buildStoreParams(
       [...(initialState.collapsedColumns ?? [])],
       { columns: cols, rows },
     ),
+    initialViewMode: viewMode,
     dimensions: { columns: cols, rows },
   }
 
@@ -448,7 +449,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 
     // Enter inline edit mode
     await handle.press("Enter")
-    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
 
     // Type new text
     for (const c of "-updated") await handle.press(c)
@@ -457,7 +458,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     await handle.press("Enter")
 
     // Outliner: inline edit is now on NEW sibling (not exited)
-    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
 
     // Repo must be updated
     expect(repo.getNode("task1")?.content).toBe("task1-updated")
@@ -468,7 +469,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 
     // Exit new sibling edit mode, then navigate
     await handle.press("Escape")
-    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
+    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).toBeNull()
     await handle.press("j")
     expect(handle.text).toContain("task2")
 
@@ -944,11 +945,11 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     // Navigate to card and start inline edit
     await handle.press("j")
     await handle.press("Enter")
-    expect(handle.store.getState().ui.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
 
     // Press Escape to exit inline edit first
     await handle.press("Escape")
-    expect(handle.store.getState().ui.inlineEditBlock).toBeNull()
+    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).toBeNull()
 
     // Now open date dialog
     await handle.press("t")

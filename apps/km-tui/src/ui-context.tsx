@@ -8,8 +8,36 @@
 
 import React, { createContext, useContext, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "inkx/runtime"
-import type { UIState, IconStyle, BorderMode } from "./ui-reducer.ts"
+import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
+import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"
+import { getActiveBoardPane } from "./board-app-store.ts"
+import type { PerPaneUIFields } from "./board-types.ts"
+
+/** Default per-pane UI field values (used when no board pane is focused) */
+const DEFAULT_PANE_UI: PerPaneUIFields = {
+  viewMode: "columns",
+  maxContentLines: 3,
+  multiSelected: new Set(),
+  selectionAnchor: null,
+  selectAllLevel: 0,
+  visualMode: false,
+  visualAnchor: null,
+  collapsedColumns: new Set(),
+  columnScrollAnchor: null,
+  inlineEditBlock: null,
+  localSearch: null,
+  searchReplace: null,
+  showFilterDialog: false,
+  filterText: "",
+  filterProperties: createEmptyFilterProperties(),
+  filterCursorRow: 0,
+  filterCursorVal: 0,
+  showIgnored: false,
+  ignoreVersion: 0,
+  mouseSelection: null,
+  isMouseDragging: false,
+}
 import { useRepo, type Repo } from "./repo-context.tsx"
 import { getOwnColor } from "./board-pills.ts"
 import type { JobRunner } from "@km/core"
@@ -33,13 +61,42 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
 
 /**
  * Get setUI function for direct partial UI state updates.
+ * Routes per-pane fields to the focused BoardPaneState automatically.
  *
  * @example
  * const setUI = useSetUI();
  * setUI({ showHelp: false });
+ * setUI({ inlineEditBlock: null }); // Routes to pane
  */
 export function useSetUI(): BoardAppStore["setUI"] {
   return useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
+}
+
+/**
+ * Get the effective UI state — global UIState merged with per-pane fields from the focused BoardPaneState.
+ * Uses shallow comparison so components only re-render when a field actually changes.
+ *
+ * Use this when a component needs both global UI fields (showHelp, etc.) and per-pane fields (viewMode, etc.).
+ */
+export function usePaneUI(): PaneUI {
+  return useAppShallow<BoardAppStore, PaneUI>((s) => {
+    const pane = getActiveBoardPane(s)
+    if (!pane) return { ...s.ui, ...DEFAULT_PANE_UI } as PaneUI
+    return {
+      ...s.ui,
+      viewMode: pane.viewMode, maxContentLines: pane.maxContentLines,
+      multiSelected: pane.multiSelected, selectionAnchor: pane.selectionAnchor,
+      selectAllLevel: pane.selectAllLevel, visualMode: pane.visualMode,
+      visualAnchor: pane.visualAnchor, collapsedColumns: pane.collapsedColumns,
+      columnScrollAnchor: pane.columnScrollAnchor, inlineEditBlock: pane.inlineEditBlock,
+      localSearch: pane.localSearch, searchReplace: pane.searchReplace,
+      showFilterDialog: pane.showFilterDialog, filterText: pane.filterText,
+      filterProperties: pane.filterProperties, filterCursorRow: pane.filterCursorRow,
+      filterCursorVal: pane.filterCursorVal, showIgnored: pane.showIgnored,
+      ignoreVersion: pane.ignoreVersion, mouseSelection: pane.mouseSelection,
+      isMouseDragging: pane.isMouseDragging,
+    } as PaneUI
+  })
 }
 
 // =============================================================================
@@ -54,7 +111,10 @@ export function useSetUI(): BoardAppStore["setUI"] {
  * - Other views (list, columns, tabs): oneliner variant (inline context, truncate)
  */
 export function useTreeConfig() {
-  return useAppShallow<BoardAppStore, TreeConfig>((s) => deriveTreeConfig(s.ui))
+  return useAppShallow<BoardAppStore, TreeConfig>((s) => {
+    const pane = getActiveBoardPane(s)
+    return deriveTreeConfig(pane?.viewMode ?? "columns", pane?.maxContentLines ?? 3, s.ui)
+  })
 }
 
 /**
@@ -213,11 +273,16 @@ export function useTreeRenderContext(): TreeRenderCtx {
 
 /**
  * Derive TreeConfig from UI state. Pure computation.
+ * Per-pane fields (viewMode, maxContentLines) must be passed explicitly.
  */
-export function deriveTreeConfig(ui: UIState, cardInnerWidth = 30): TreeConfig {
-  const viewMode = ui.viewMode
+export function deriveTreeConfig(
+  viewMode: import("./types.ts").ViewMode,
+  maxContentLines: number,
+  ui: { iconStyle: IconStyle; borderMode: BorderMode },
+  cardInnerWidth = 30,
+): TreeConfig {
   return {
-    maxContentLines: viewMode === "cards" ? ui.maxContentLines : 1,
+    maxContentLines: viewMode === "cards" ? maxContentLines : 1,
     variant: viewMode === "cards" ? "multiline" : "oneliner",
     iconStyle: ui.iconStyle,
     borderMode: ui.borderMode,

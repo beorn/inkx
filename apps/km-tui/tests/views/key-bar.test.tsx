@@ -9,12 +9,12 @@ import React from "react"
 import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext } from "inkx"
 import { KeyBar } from "../../src/views/key-bar.tsx"
-import type { UIState } from "../../src/ui-reducer.ts"
+import type { PaneUI } from "../../src/ui-reducer.ts"
 
 const render = createRenderer()
 
 /** Render KeyBar with a FocusManager that has the given testID focused */
-function renderWithFocus(ui: UIState, termWidth: number, focusedId?: string) {
+function renderWithFocus(ui: PaneUI, termWidth: number, focusedId?: string) {
   const fm = createFocusManager()
   if (focusedId) {
     // Create a synthetic node to set active focus
@@ -25,12 +25,37 @@ function renderWithFocus(ui: UIState, termWidth: number, focusedId?: string) {
   )
 }
 
-// Minimal UIState for testing — only fields the KeyBar reads
-function makeUI(overrides: Partial<UIState> = {}): UIState {
+// Minimal PaneUI for testing — only fields the KeyBar reads
+function makeUI(overrides: Partial<PaneUI> = {}): PaneUI {
   return {
+    // Per-pane fields
     viewMode: "columns",
     maxContentLines: 3,
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+    visualMode: false,
+    visualAnchor: null,
+    collapsedColumns: new Set(),
+    columnScrollAnchor: null,
+    inlineEditBlock: null,
+    localSearch: null,
+    searchReplace: null,
+    showFilterDialog: false,
+    filterText: "",
+    filterProperties: { taskStatus: new Set(), priority: new Set(), dueDate: new Set(), assignedTo: new Set(), nodeType: new Set() },
+    filterCursorRow: 0,
+    filterCursorVal: 0,
+    showIgnored: false,
+    ignoreVersion: 0,
+    mouseSelection: null,
+    isMouseDragging: false,
+
+    // Global fields
+    iconStyle: "nerdfont",
+    borderMode: "normal",
     showHelp: false,
+    helpScrollOffset: 0,
     activePicker: null,
     showNewItemDialog: false,
     showSearchDialog: false,
@@ -39,17 +64,6 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
     searchScopeNodeIds: [],
     showConsole: false,
     showSyncPane: false,
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    visualMode: false,
-    visualAnchor: null,
-    collapsedColumns: new Set(),
-    columnScrollAnchor: null,
-    showIgnored: false,
-    ignoreVersion: 0,
-    mouseSelection: null,
-    isMouseDragging: false,
     droppedFiles: [],
     showDropNotification: false,
     navHistory: [],
@@ -61,14 +75,16 @@ function makeUI(overrides: Partial<UIState> = {}): UIState {
     backgroundParsing: false,
     watcherStatus: null,
     syncEvents: [],
-    inlineEditBlock: null,
     datePrompt: null,
     deleteConfirm: null,
+    clipboard: null,
     bellState: null,
     status: null,
-    filterDialogOpen: false,
+    pendingChord: null,
+    chordTimedOut: false,
+    showOmnibox: false,
     ...overrides,
-  } as UIState
+  } as PaneUI
 }
 
 describe("KeyBar", () => {

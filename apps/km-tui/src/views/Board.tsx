@@ -42,7 +42,7 @@ import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
-import type { UIState, FilterProperties } from "../ui-reducer.ts"
+import type { PaneUI, FilterProperties } from "../ui-reducer.ts"
 import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "@beorn/logger"
@@ -59,7 +59,7 @@ const log = createLogger("km:tui:board")
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
-import { TreeRenderProvider, deriveTreeConfig, useUISelector, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig, usePaneUI, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
@@ -98,7 +98,7 @@ export interface BoardCoreProps {
   /** Current card index (derived from cursorNodeId) */
   cardIndex: number
   /** UI state (dialogs, view mode, etc.) */
-  ui: UIState
+  ui: PaneUI
   /** Derived selection level from cursor depth */
   derivedSelectionLevel: "board" | "column" | "card"
   /** Terminal dimensions */
@@ -545,7 +545,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Read state from pane-specific state in workspace.
   // Each BoardPaneState owns its navigation state (rootId, foldDepths, etc).
-  const ui = useAppStore<BoardAppStore, UIState>((s) => s.ui)
+  const ui = usePaneUI()
   const rootId = useAppStore<BoardAppStore, string | null>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.rootId ?? null
@@ -570,7 +570,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
     (s) => s.undoHandle,
   )
-  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>((s) => s.ui.filterProperties.taskStatus)
+  const taskStatusFilter = ui.filterProperties.taskStatus
 
   // Board focus state — derived from workspace's focusedPaneId (not inkx focus tree)
   // to stay in sync with pane switching commands.
@@ -582,7 +582,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const jotaiStore = useMemo(() => createStore(), [])
 
   // Hydrate Jotai atoms on initial load and root change (zoom)
-  const multiSelected = useAppStore<BoardAppStore, Set<import("../types.ts").SelectionKey>>((s) => s.ui.multiSelected)
+  const multiSelected = ui.multiSelected
   useEffect(() => {
     hydrateNodeAtoms(jotaiStore, repo, rootId, foldDepths, multiSelected)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
@@ -609,7 +609,7 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [jotaiStore, multiSelected])
 
   // Incrementally sync inline edit state to Jotai atoms
-  const inlineEditBlock = useUISelector((s) => s.inlineEditBlock)
+  const inlineEditBlock = ui.inlineEditBlock
   const prevInlineEditRef = useRef(inlineEditBlock)
   useEffect(() => {
     const prev = prevInlineEditRef.current
@@ -930,7 +930,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
-    () => deriveTreeConfig(ui, cardInnerWidth),
+    () => deriveTreeConfig(ui.viewMode, ui.maxContentLines, ui, cardInnerWidth),
     [ui.viewMode, ui.maxContentLines, ui.iconStyle, ui.borderMode, cardInnerWidth],
   )
 

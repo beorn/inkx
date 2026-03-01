@@ -18,25 +18,25 @@ describe("Local Find", () => {
   test("/ opens the find bar", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
     board.press("/")
-    expect(store.getState().ui.localSearch).not.toBeNull()
-    expect(store.getState().ui.localSearch?.isInputActive).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
     board.expect("#find-bar").toExist()
   })
 
   test("Cmd+f opens the find bar", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
     board.press("cmd+f")
-    expect(store.getState().ui.localSearch).not.toBeNull()
-    expect(store.getState().ui.localSearch?.isInputActive).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
     board.expect("#find-bar").toExist()
   })
 
   test("Escape closes the find bar", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
     board.press("/")
-    expect(store.getState().ui.localSearch).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
     board.press("Escape")
-    expect(store.getState().ui.localSearch).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
   test("find bar disappears from screen after Escape", () => {
@@ -57,7 +57,7 @@ describe("Local Find", () => {
     // Type "ox" — should match "fox" and "box"
     board.press("o")
     board.press("x")
-    const ls = store.getState().ui.localSearch
+    const ls = getActiveBoardPane(store.getState())!.localSearch
     expect(ls).not.toBeNull()
     expect(ls!.query).toBe("ox")
     expect(ls!.matchCount).toBe(2)
@@ -92,7 +92,7 @@ describe("Local Find", () => {
     board.press("a")
     board.press("l")
     board.press("p")
-    const ls = store.getState().ui.localSearch
+    const ls = getActiveBoardPane(store.getState())!.localSearch
     expect(ls).not.toBeNull()
     expect(ls!.matchCount).toBe(1)
     expect(ls!.matchNodeIds).toContain("Alpha")
@@ -116,7 +116,7 @@ describe("Local Find", () => {
     board.press("a")
     board.press("n")
 
-    const ls = store.getState().ui.localSearch
+    const ls = getActiveBoardPane(store.getState())!.localSearch
     expect(ls).not.toBeNull()
     expect(ls!.matchCount).toBe(1)
     expect(ls!.matchNodeIds).toContain("banana")
@@ -134,10 +134,10 @@ describe("Local Find", () => {
     // "ox" matches fox and box
     board.press("o")
     board.press("x")
-    expect(store.getState().ui.localSearch?.isInputActive).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
 
     board.press("Enter")
-    const ls = store.getState().ui.localSearch
+    const ls = getActiveBoardPane(store.getState())!.localSearch
     expect(ls).not.toBeNull()
     expect(ls!.isInputActive).toBe(false)
     // Matches should still be stored
@@ -153,11 +153,11 @@ describe("Local Find", () => {
     board.press("Enter")
 
     // Should be on first match (fox) — matchIndex 0
-    expect(store.getState().ui.localSearch?.matchIndex).toBe(0)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(0)
 
     // Press n for next
     board.press("n")
-    expect(store.getState().ui.localSearch?.matchIndex).toBe(1)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
   })
 
@@ -171,7 +171,7 @@ describe("Local Find", () => {
 
     // Press N for previous — wraps around to last match
     board.press("N")
-    expect(store.getState().ui.localSearch?.matchIndex).toBe(1)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
   })
 
@@ -185,11 +185,11 @@ describe("Local Find", () => {
 
     // Navigate to last match
     board.press("n") // index 1 (box)
-    expect(store.getState().ui.localSearch?.matchIndex).toBe(1)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
 
     // n should wrap to first
     board.press("n") // index 0 (fox)
-    expect(store.getState().ui.localSearch?.matchIndex).toBe(0)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(0)
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("fox")
   })
 
@@ -199,10 +199,10 @@ describe("Local Find", () => {
     board.press("o")
     board.press("x")
     board.press("Enter")
-    expect(store.getState().ui.localSearch).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
 
     board.press("Escape")
-    expect(store.getState().ui.localSearch).toBeNull()
+    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
   })
 
   // ---------------------------------------------------------------------------
@@ -230,13 +230,13 @@ describe("Local Find", () => {
     board.press("f")
     board.press("o")
     board.press("x")
-    expect(store.getState().ui.localSearch?.matchCount).toBe(1)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchCount).toBe(1)
 
     // Backspace 3 times to clear
     board.press("Backspace")
     board.press("Backspace")
     board.press("Backspace")
-    expect(store.getState().ui.localSearch?.matchCount).toBe(0)
-    expect(store.getState().ui.localSearch?.query).toBe("")
+    expect(getActiveBoardPane(store.getState())!.localSearch?.matchCount).toBe(0)
+    expect(getActiveBoardPane(store.getState())!.localSearch?.query).toBe("")
   })
 })

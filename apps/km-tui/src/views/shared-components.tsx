@@ -22,7 +22,6 @@ import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../ui-context.tsx"
 import { useIsCursorAtNode } from "../cursor-context.tsx"
-import { useUISelector } from "../ui-context.tsx"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -63,7 +62,9 @@ export const MemoizedTreeCard = React.memo(
     // Self-subscribe to CursorStore for selection state (by nodeId)
     const cursorIsSelected = useIsCursorAtNode(card.id)
     const isSelected = isSelectedProp ?? cursorIsSelected
-    const isEditing = useUISelector((state) => state.inlineEditBlock?.nodeId === card.id)
+    const isEditing = useAppStore<BoardAppStore, boolean>(
+      (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === card.id,
+    )
 
     // Fold depth: per-card override or root's depth budget
     const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {

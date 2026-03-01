@@ -17,7 +17,8 @@ import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useCursorNodePosition } from "../cursor-context.tsx"
-import { useUISelector } from "../ui-context.tsx"
+import { useApp as useAppStore } from "inkx/runtime"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -43,7 +44,9 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   }, [cursorColumnNodeId, columnsProp])
 
   // Track editing state for dynamic item height (border adds 2 rows)
-  const editingNodeId = useUISelector((s) => s.inlineEditBlock?.nodeId ?? null)
+  const editingNodeId = useAppStore<BoardAppStore, string | null>(
+    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId ?? null,
+  )
 
   // Get current column
   const currentColumn = columnsProp[colIndex]

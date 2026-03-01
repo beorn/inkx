@@ -24,7 +24,8 @@ import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
-import type { LayoutNode } from "./board-types.ts"
+import { type LayoutNode } from "./board-types.ts"
+import type { PaneUI } from "./ui-reducer.ts"
 
 const perfLog = createLogger("km:perf")
 
@@ -90,6 +91,34 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
   const card = column?.cardNodes[cursor.cardIndex]
   const selectedNode = card ?? column?.node ?? null
 
+  // Merge per-pane UI fields into effective UI state for action handlers
+  const effectiveUI: PaneUI = board
+    ? {
+        ...s.ui,
+        viewMode: board.viewMode,
+        maxContentLines: board.maxContentLines,
+        multiSelected: board.multiSelected,
+        selectionAnchor: board.selectionAnchor,
+        selectAllLevel: board.selectAllLevel,
+        visualMode: board.visualMode,
+        visualAnchor: board.visualAnchor,
+        collapsedColumns: board.collapsedColumns,
+        columnScrollAnchor: board.columnScrollAnchor,
+        inlineEditBlock: board.inlineEditBlock,
+        localSearch: board.localSearch,
+        searchReplace: board.searchReplace,
+        showFilterDialog: board.showFilterDialog,
+        filterText: board.filterText,
+        filterProperties: board.filterProperties,
+        filterCursorRow: board.filterCursorRow,
+        filterCursorVal: board.filterCursorVal,
+        showIgnored: board.showIgnored,
+        ignoreVersion: board.ignoreVersion,
+        mouseSelection: board.mouseSelection,
+        isMouseDragging: board.isMouseDragging,
+      }
+    : (s.ui as PaneUI)
+
   return {
     repo: s.repo,
     rootId,
@@ -101,7 +130,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     moveMode: board?.moveMode ?? false,
     moveSourceNodes: board?.moveSourceNodes ?? [],
     moveSourceCursorNodeId: board?.moveSourceCursorNodeId ?? null,
-    ui: s.ui,
+    ui: effectiveUI,
     columns,
     colIndex: cursor.colIndex,
     cardIndex: cursor.cardIndex,

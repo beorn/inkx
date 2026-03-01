@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react"
 import { Box, Text, useFocusManager } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
-import { type UIState, getEditMode } from "../ui-reducer.ts"
+import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import type { ColumnView } from "../types.ts"
 import { useCursorNodePosition } from "../cursor-context.tsx"
 
@@ -74,7 +74,7 @@ function useSpinnerFrame(enabled: boolean): string {
 }
 
 interface BottomBarProps {
-  ui: UIState
+  ui: PaneUI
   rootPath: string | null
   columns: ColumnView[]
   termWidth: number

@@ -10,6 +10,9 @@
 import type { TNode } from "@km/core"
 import type { TPath } from "@km/tree"
 import type { CursorStore } from "./cursor-store.ts"
+import type { SelectionKey } from "./types.ts"
+import type { SelectionRange } from "./handlers/mouse-handler.ts"
+import { createEmptyFilterProperties, type FilterProperties, type LocalSearchState, type SearchReplaceState } from "./ui-reducer.ts"
 
 // Re-export common types for convenience
 export type { TNode } from "@km/core"
@@ -188,6 +191,46 @@ export function createBoardState(
 /** Discriminator for what a pane displays. */
 export type PaneViewType = "board" | "detail" | "empty"
 
+/**
+ * Fields that live per-pane (on BoardPaneState) but are accessed via ctx.ui in action handlers.
+ * Used to route setUI() writes to the correct store location.
+ */
+export interface PerPaneUIFields {
+  viewMode: ViewMode
+  maxContentLines: number
+  multiSelected: Set<SelectionKey>
+  selectionAnchor: { nodeId: string } | null
+  selectAllLevel: number
+  visualMode: boolean
+  visualAnchor: string | null
+  collapsedColumns: Set<number>
+  columnScrollAnchor: { colIdx: number; anchor: number } | null
+  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
+  localSearch: LocalSearchState | null
+  searchReplace: SearchReplaceState | null
+  showFilterDialog: boolean
+  filterText: string
+  filterProperties: FilterProperties
+  filterCursorRow: number
+  filterCursorVal: number
+  showIgnored: boolean
+  ignoreVersion: number
+  mouseSelection: SelectionRange | null
+  isMouseDragging: boolean
+}
+
+/** Field names in PerPaneUIFields — used for runtime routing in setUI() */
+export const PANE_UI_FIELD_NAMES: ReadonlySet<string> = new Set([
+  "viewMode", "maxContentLines",
+  "multiSelected", "selectionAnchor", "selectAllLevel", "visualMode", "visualAnchor",
+  "collapsedColumns", "columnScrollAnchor",
+  "inlineEditBlock",
+  "localSearch", "searchReplace",
+  "showFilterDialog", "filterText", "filterProperties", "filterCursorRow", "filterCursorVal",
+  "showIgnored", "ignoreVersion",
+  "mouseSelection", "isMouseDragging",
+])
+
 /** Base fields shared by all pane types */
 interface PaneStateBase {
   id: string
@@ -218,6 +261,40 @@ export interface BoardPaneState extends PaneStateBase {
 
   // Per-pane view config
   viewMode: ViewMode
+  maxContentLines: number
+
+  // Per-pane selection
+  multiSelected: Set<SelectionKey>
+  selectionAnchor: { nodeId: string } | null
+  selectAllLevel: number
+  visualMode: boolean
+  visualAnchor: string | null
+
+  // Per-pane column state
+  collapsedColumns: Set<number>
+  columnScrollAnchor: { colIdx: number; anchor: number } | null
+
+  // Per-pane edit state
+  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
+
+  // Per-pane search
+  localSearch: LocalSearchState | null
+  searchReplace: SearchReplaceState | null
+
+  // Per-pane filter
+  showFilterDialog: boolean
+  filterText: string
+  filterProperties: FilterProperties
+  filterCursorRow: number
+  filterCursorVal: number
+
+  // Per-pane ignore mode
+  showIgnored: boolean
+  ignoreVersion: number
+
+  // Per-pane mouse state
+  mouseSelection: SelectionRange | null
+  isMouseDragging: boolean
 }
 
 /**
@@ -306,6 +383,27 @@ export function createPaneState(
     curswantY: board.curswantY,
     viewMode: opts.viewMode,
     cursorStore: opts.cursorStore,
+    // Per-pane UI fields (defaults)
+    maxContentLines: 3,
+    multiSelected: new Set(),
+    selectionAnchor: null,
+    selectAllLevel: 0,
+    visualMode: false,
+    visualAnchor: null,
+    collapsedColumns: new Set(),
+    columnScrollAnchor: null,
+    inlineEditBlock: null,
+    localSearch: null,
+    searchReplace: null,
+    showFilterDialog: false,
+    filterText: "",
+    filterProperties: createEmptyFilterProperties(),
+    filterCursorRow: 0,
+    filterCursorVal: 0,
+    showIgnored: false,
+    ignoreVersion: 0,
+    mouseSelection: null,
+    isMouseDragging: false,
   }
 }
 
