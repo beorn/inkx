@@ -15,6 +15,7 @@ import {
   inVisualMode,
   localFindActive,
   searchReplaceOpen,
+  inputTypeField,
   hasKitty,
   not,
   and,
@@ -49,7 +50,7 @@ export interface KeybindingContext {
   currentNode: TNode | null
   textInputFocused: boolean
   searchDialogOpen: boolean
-  projectPickerOpen: boolean
+  itemPickerOpen: boolean
   newItemDialogOpen: boolean
   datePromptOpen: boolean
   filterDialogOpen: boolean
@@ -411,7 +412,6 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "search-replace",
     bindings: [
       { key: "Escape", commandId: "search_replace.close", when: searchReplaceOpen },
-      { key: "Tab", commandId: "search_replace.tab_field", when: searchReplaceOpen },
       { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
       { key: "Enter", shift: true, commandId: "search_replace.prev", when: searchReplaceOpen },
       { key: "r", ctrl: true, commandId: "search_replace.replace", when: searchReplaceOpen },
@@ -444,6 +444,17 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
         commandId: "find_close",
         when: and(localFindActive, not(textInputFocused), not(isInlineEditing)),
       },
+    ],
+  },
+
+  // --- Layer 3d: Tab routing by input type ---
+  // When a text input is focused in field mode (dialogs), Tab cycles focus.
+  // When no inputType is active, Tab falls through to Layer 9 indent_node.
+  {
+    name: "input-type-tab",
+    bindings: [
+      { key: "Tab", commandId: "focus_next", when: inputTypeField },
+      { key: "Tab", shift: true, commandId: "focus_prev", when: inputTypeField },
     ],
   },
 

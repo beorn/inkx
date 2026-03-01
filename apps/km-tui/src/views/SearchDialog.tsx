@@ -5,13 +5,13 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, ErrorBoundary } from "inkx"
+import { Box, Text, ErrorBoundary, ModalDialog } from "inkx"
 import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { ModalDialog, InputBox, NodeLine } from "./shared-components.tsx"
+import { InputBox, NodeLine } from "./shared-components.tsx"
 import { getParentName, extractTags } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { computeSearchDecorationsFromSource } from "../text/index.ts"

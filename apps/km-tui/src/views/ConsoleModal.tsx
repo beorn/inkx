@@ -5,8 +5,7 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { Box, ErrorBoundary, Text, stripAnsi, useConsole, type PatchedConsole } from "inkx"
-import { ModalDialog } from "./shared-components.tsx"
+import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "inkx"
 
 const MAX_LINES = 100
 

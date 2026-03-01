@@ -14,7 +14,7 @@ import type { UIState } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "inkx"
 import { createLogger } from "@beorn/logger"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
-import type { PickerOption } from "./ProjectPicker.tsx"
+import type { PickerOption } from "./ItemPicker.tsx"
 
 const log = createLogger("km:tui:dialogs")
 

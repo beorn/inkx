@@ -65,7 +65,7 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     currentNode: null,
     textInputFocused: false,
     searchDialogOpen: false,
-    projectPickerOpen: false,
+    itemPickerOpen: false,
     newItemDialogOpen: false,
     datePromptOpen: false,
     filterDialogOpen: false,

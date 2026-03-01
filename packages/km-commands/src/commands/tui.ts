@@ -57,7 +57,7 @@ export const tuiCommands: CommandDef[] = [
     description: "Open project picker",
     category: "Navigation",
     shortLabel: "project",
-    execute: (): CommandAction => ({ type: "SHOW_PROJECT_PICKER" }),
+    execute: (): CommandAction => ({ type: "SHOW_ITEM_PICKER" }),
   },
 
   // Search dialog
@@ -298,10 +298,17 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "SEARCH_REPLACE_TOGGLE_REGEX" }),
   },
   {
-    id: "search_replace.tab_field",
-    name: "Switch Field",
-    description: "Switch between search and replace fields",
-    category: "Edit",
-    execute: (): CommandAction => ({ type: "SEARCH_REPLACE_TAB_FIELD" }),
+    id: "focus_next",
+    name: "Focus Next",
+    description: "Move focus to next control",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FOCUS_NEXT" }),
+  },
+  {
+    id: "focus_prev",
+    name: "Focus Previous",
+    description: "Move focus to previous control",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FOCUS_PREV" }),
   },
 ]

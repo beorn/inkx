@@ -243,8 +243,8 @@ interface ShowNewItemDialogAction {
   type: "SHOW_NEW_ITEM_DIALOG"
 }
 
-interface ShowProjectPickerAction {
-  type: "SHOW_PROJECT_PICKER"
+interface ShowItemPickerAction {
+  type: "SHOW_ITEM_PICKER"
 }
 
 interface ShowSearchDialogAction {
@@ -760,8 +760,12 @@ interface SearchReplaceToggleRegexAction {
   type: "SEARCH_REPLACE_TOGGLE_REGEX"
 }
 
-interface SearchReplaceTabFieldAction {
-  type: "SEARCH_REPLACE_TAB_FIELD"
+interface FocusNextAction {
+  type: "FOCUS_NEXT"
+}
+
+interface FocusPrevAction {
+  type: "FOCUS_PREV"
 }
 
 type SearchReplaceAction =
@@ -772,12 +776,11 @@ type SearchReplaceAction =
   | SearchReplaceDoReplaceAction
   | SearchReplaceDoReplaceAllAction
   | SearchReplaceToggleRegexAction
-  | SearchReplaceTabFieldAction
 
 export type TUIAction =
   | QuitAction
   | ShowNewItemDialogAction
-  | ShowProjectPickerAction
+  | ShowItemPickerAction
   | ShowSearchDialogAction
   | JumpToFavoriteAction
   | JumpToColumnAction
@@ -871,6 +874,8 @@ export type TUIAction =
   | ShowTaskDialogAction
   | LocalFindAction
   | SearchReplaceAction
+  | FocusNextAction
+  | FocusPrevAction
 
 export type UIAction =
   | ZoomOutwardsAction

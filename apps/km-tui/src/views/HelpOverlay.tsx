@@ -10,8 +10,8 @@
  * a text app with string arithmetic.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Fill } from "inkx"
-import { KeyBinding, ModalDialog } from "./shared-components.tsx"
+import { Box, Text, Fill, ModalDialog } from "inkx"
+import { KeyBinding } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
 interface HelpOverlayProps {

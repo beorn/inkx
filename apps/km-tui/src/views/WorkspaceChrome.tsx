@@ -18,7 +18,7 @@ import { useCursorNodePosition, CursorStoreProvider } from "../cursor-context.ts
 import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
-import { Picker } from "./ProjectPicker.tsx"
+import { ItemPicker } from "./ItemPicker.tsx"
 import { loadProjectOptions, loadTagOptions, loadAssigneeOptions } from "./picker-loaders.ts"
 import { HelpOverlay } from "./HelpOverlay.tsx"
 import { DatePromptDialog } from "./DatePromptDialog.tsx"
@@ -33,7 +33,7 @@ import { dispatchCommandById } from "../board-app.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
 import type { CursorStore } from "../cursor-store.ts"
-import type { PickerLoadOptions } from "./ProjectPicker.tsx"
+import type { PickerLoadOptions } from "./ItemPicker.tsx"
 
 // =============================================================================
 // Picker configuration per type
@@ -269,7 +269,7 @@ export function WorkspaceChrome({
             topFraction={1 / 2}
             data-dialog="picker"
           >
-            <Picker
+            <ItemPicker
               title={pickerConfig[ui.activePicker.type].title}
               loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
               onSelect={

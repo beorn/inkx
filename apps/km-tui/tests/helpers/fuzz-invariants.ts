@@ -100,7 +100,7 @@ export const invariants = {
    * Cursor should exist and be valid when not in a dialog
    */
   validCursor(state: FuzzState, action: string): void {
-    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.projectPicker
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
 
     if (!inDialog) {
       expect(state.cursor, `Cursor missing after ${action}`).toBeDefined()
@@ -138,7 +138,7 @@ export const invariants = {
    * Note: help can overlay other dialogs, so we exclude it
    */
   mutuallyExclusiveDialogs(state: FuzzState, action: string): void {
-    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.projectPicker].filter(
+    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.itemPicker].filter(
       Boolean,
     ).length
 
@@ -171,7 +171,7 @@ export const invariants = {
       state.dialogs.search !== before.dialogs.search ||
       state.dialogs.help !== before.dialogs.help ||
       state.dialogs.newItem !== before.dialogs.newItem ||
-      state.dialogs.projectPicker !== before.dialogs.projectPicker
+      state.dialogs.itemPicker !== before.dialogs.itemPicker
 
     // Skip if view mode changed
     const viewModeChanged = state.viewMode !== before.viewMode

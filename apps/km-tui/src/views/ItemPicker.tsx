@@ -1,5 +1,5 @@
 /**
- * Generic Picker Component
+ * Item Picker Component
  *
  * Fuzzy search picker for selecting nodes (projects, tags, assignees).
  * Parameterized via `loadOptions` and `title` props. Supports:
@@ -10,15 +10,14 @@
  *   - Recent item tracking
  */
 import React from "react"
-import { Box, Text, CursorLine } from "inkx"
+import { Box, Text, CursorLine, ModalDialog } from "inkx"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"
-import { ModalDialog, NodeLine } from "./shared-components.tsx"
+import { NodeLine } from "./shared-components.tsx"
 import { fuzzyScore } from "./search-utils.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { createSuspenseLoader, type SuspenseLoader } from "../hooks/use-suspense-loader.ts"
-import { loadProjectOptions } from "./picker-loaders.ts"
 
 // =============================================================================
 // Picker option type
@@ -123,10 +122,10 @@ function PickerOptions({
 }
 
 // =============================================================================
-// Generic Picker component
+// ItemPicker component
 // =============================================================================
 
-export interface PickerProps {
+export interface ItemPickerProps {
   title: string
   loadOptions: PickerLoadOptions
   onSelect: (option: PickerOption) => void
@@ -137,7 +136,7 @@ export interface PickerProps {
   emptyLabel?: string
 }
 
-export function Picker({
+export function ItemPicker({
   title,
   loadOptions,
   onSelect,
@@ -146,7 +145,7 @@ export function Picker({
   height,
   recentIds = [],
   emptyLabel,
-}: PickerProps): React.ReactElement {
+}: ItemPickerProps): React.ReactElement {
   const repo = useRepo()
   const [selectedIndex, setSelectedIndex] = React.useState(0)
 
@@ -250,40 +249,5 @@ export function Picker({
         )}
       </Box>
     </ModalDialog>
-  )
-}
-
-// =============================================================================
-// ProjectPicker — backwards-compatible wrapper
-// =============================================================================
-
-export interface ProjectPickerProps {
-  onSelect: (targetNode: KNode) => void
-  onCancel: () => void
-  width: number
-  height: number
-  recentProjectIds?: string[]
-}
-
-export function ProjectPicker({
-  onSelect,
-  onCancel,
-  width,
-  height,
-  recentProjectIds = [],
-}: ProjectPickerProps): React.ReactElement {
-  const handleSelect = React.useCallback((option: PickerOption) => onSelect(option.node), [onSelect])
-
-  return (
-    <Picker
-      title="Move to project"
-      loadOptions={loadProjectOptions}
-      onSelect={handleSelect}
-      onCancel={onCancel}
-      width={width}
-      height={height}
-      recentIds={recentProjectIds}
-      emptyLabel="No matching projects"
-    />
   )
 }

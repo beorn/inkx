@@ -45,7 +45,7 @@ function defaultKbCtx(): KeybindingContext {
     currentNode: null,
     textInputFocused: false,
     searchDialogOpen: false,
-    projectPickerOpen: false,
+    itemPickerOpen: false,
     newItemDialogOpen: false,
     datePromptOpen: false,
     filterDialogOpen: false,
@@ -132,10 +132,10 @@ describe("verb-locations", () => {
         expect(goTo(parent)(emptyCtx)).toEqual({ type: "ZOOM_OUTWARDS" })
       })
 
-      it("returns SHOW_PROJECT_PICKER for pick:*", () => {
-        expect(goTo(pick("+"))(emptyCtx)).toEqual({ type: "SHOW_PROJECT_PICKER" })
-        expect(goTo(pick("#"))(emptyCtx)).toEqual({ type: "SHOW_PROJECT_PICKER" })
-        expect(goTo(pick("@"))(emptyCtx)).toEqual({ type: "SHOW_PROJECT_PICKER" })
+      it("returns SHOW_ITEM_PICKER for pick:*", () => {
+        expect(goTo(pick("+"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+        expect(goTo(pick("#"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+        expect(goTo(pick("@"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
       })
 
       it("returns null when target resolver returns null", () => {

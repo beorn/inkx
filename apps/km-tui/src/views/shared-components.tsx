@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, CursorLine, ModalDialog, formatTitleWithHotkey, useContentRectCallback } from "inkx"
+import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "inkx"
 import { useApp as useAppStore } from "inkx/runtime"
 import { createLogger } from "@beorn/logger"
 
@@ -362,15 +362,6 @@ export function KeyBinding({ keys, color = "$control" }: { keys: string; color?:
 }
 
 // =============================================================================
-// Modal Dialog Component — re-exported from inkx
-// =============================================================================
-
-// ModalDialog and formatTitleWithHotkey moved to inkx (imported at top).
-// Re-export here for backward compatibility with existing consumers.
-export { ModalDialog, formatTitleWithHotkey }
-export type { ModalDialogProps } from "inkx"
-
-// =============================================================================
 // Input Box Component
 // =============================================================================
 
@@ -463,7 +454,7 @@ export interface NodeLineProps {
  * Uses two-box layout so that parentContext is always visible (flexShrink=0)
  * and the title truncates when space is limited (flexGrow=1, overflow=hidden).
  *
- * Used in SearchDialog, ProjectPicker, Omnibox, and any list that shows nodes as one-liners.
+ * Used in SearchDialog, ItemPicker, Omnibox, and any list that shows nodes as one-liners.
  */
 export function NodeLine({
   node,

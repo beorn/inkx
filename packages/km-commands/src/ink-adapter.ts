@@ -257,7 +257,7 @@ export function buildKeybindingContext(options: {
   currentNode?: TNode | null
   textInputFocused?: boolean
   searchDialogOpen?: boolean
-  projectPickerOpen?: boolean
+  itemPickerOpen?: boolean
   newItemDialogOpen?: boolean
   datePromptOpen?: boolean
   filterDialogOpen?: boolean
@@ -294,7 +294,7 @@ export function buildKeybindingContext(options: {
     currentNode: options.currentNode ?? null,
     textInputFocused: options.textInputFocused ?? false,
     searchDialogOpen: options.searchDialogOpen ?? false,
-    projectPickerOpen: options.projectPickerOpen ?? false,
+    itemPickerOpen: options.itemPickerOpen ?? false,
     newItemDialogOpen: options.newItemDialogOpen ?? false,
     datePromptOpen: options.datePromptOpen ?? false,
     filterDialogOpen: options.filterDialogOpen ?? false,

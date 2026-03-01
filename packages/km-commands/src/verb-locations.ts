@@ -56,7 +56,7 @@ export const goTo =
     // Delegate to existing goto command logic
     if (t === "parent") return { type: "ZOOM_OUTWARDS" }
     if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
-    if (t.startsWith("pick:")) return { type: "SHOW_PROJECT_PICKER" }
+    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" }
     return { type: "GOTO_BOARD", boardId: t }
   }
 

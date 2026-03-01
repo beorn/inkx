@@ -10,7 +10,7 @@
  * Supporting views:
  * - DetailPane: Side panel showing item details
  * - HelpOverlay: Keyboard shortcuts overlay
- * - ProjectPicker: Move-to-project picker
+ * - ItemPicker: Generic picker for selecting nodes
  * - TreeNode: Shared tree node component
  */
 

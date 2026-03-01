@@ -15,9 +15,8 @@
  */
 
 import React from "react"
-import { Box, Text, CursorLine, Toggle, useEditContext } from "inkx"
+import { Box, Text, CursorLine, Toggle, ModalDialog, useEditContext } from "inkx"
 import type { SearchReplaceState } from "../ui-reducer.ts"
-import { ModalDialog } from "./shared-components.tsx"
 
 interface SearchReplaceDialogProps {
   state: SearchReplaceState

@@ -2,7 +2,7 @@
  * Shared Search Utilities
  *
  * Fuzzy matching, scoring, and text extraction used by
- * SearchDialog and ProjectPicker.
+ * SearchDialog and ItemPicker.
  */
 import type { KNode } from "@km/core"
 import { extractRefs } from "../text/text-pipeline.ts"

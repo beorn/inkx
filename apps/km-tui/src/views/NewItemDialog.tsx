@@ -6,13 +6,12 @@
  */
 import React from "react"
 import { useApp as useAppStore } from "inkx/runtime"
-import { Box, Text, CursorLine } from "inkx"
+import { Box, Text, CursorLine, ModalDialog } from "inkx"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
-import { ModalDialog } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 export interface NewItemDialogProps {

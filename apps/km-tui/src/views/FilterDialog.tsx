@@ -9,8 +9,7 @@
  * goes through the command system (keybindings layer "filter-dialog").
  */
 import React from "react"
-import { Box, Text } from "inkx"
-import { ModalDialog } from "./shared-components.tsx"
+import { Box, Text, ModalDialog } from "inkx"
 import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
 import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
 import type { ViewMode } from "../board-types.ts"

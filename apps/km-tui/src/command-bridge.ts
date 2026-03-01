@@ -80,7 +80,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     textInputFocused: !!ui.inlineEditBlock || isDialogInput,
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
-    projectPickerOpen: !!ui.activePicker,
+    itemPickerOpen: !!ui.activePicker,
     newItemDialogOpen: ui.showNewItemDialog,
     datePromptOpen: !!ui.datePrompt,
     filterDialogOpen: ui.showFilterDialog,

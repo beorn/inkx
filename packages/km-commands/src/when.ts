@@ -48,7 +48,7 @@ export const isInlineEditing = when("isInlineEditing", (ctx) => ctx.isInlineEdit
 
 export const searchDialogOpen = when("searchDialogOpen", (ctx) => ctx.searchDialogOpen)
 
-export const projectPickerOpen = when("projectPickerOpen", (ctx) => ctx.projectPickerOpen)
+export const itemPickerOpen = when("itemPickerOpen", (ctx) => ctx.itemPickerOpen)
 
 export const newItemDialogOpen = when("newItemDialogOpen", (ctx) => ctx.newItemDialogOpen)
 
@@ -57,7 +57,7 @@ export const anyDialogOpen = when(
   "anyDialogOpen",
   (ctx) =>
     ctx.searchDialogOpen ||
-    ctx.projectPickerOpen ||
+    ctx.itemPickerOpen ||
     ctx.newItemDialogOpen ||
     ctx.datePromptOpen ||
     !!ctx.omniboxOpen ||
@@ -75,7 +75,7 @@ export const anyOverlayOpen = when(
   "anyOverlayOpen",
   (ctx) =>
     ctx.searchDialogOpen ||
-    ctx.projectPickerOpen ||
+    ctx.itemPickerOpen ||
     ctx.newItemDialogOpen ||
     ctx.datePromptOpen ||
     ctx.filterDialogOpen ||

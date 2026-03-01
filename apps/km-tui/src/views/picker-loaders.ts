@@ -8,7 +8,7 @@ import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getParentName, extractTags } from "./search-utils.ts"
-import type { PickerOption } from "./ProjectPicker.tsx"
+import type { PickerOption } from "./ItemPicker.tsx"
 
 // =============================================================================
 // Helpers

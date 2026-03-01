@@ -100,7 +100,7 @@ export const rendering: Invariant = (app) => {
 
 /** Cursor exists and is valid (unless in dialog) */
 export const cursor: Invariant = (app) => {
-  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.projectPicker
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.itemPicker
   if (inDialog) return
 
   expect(app.cursor, "Cursor missing").toBeDefined()

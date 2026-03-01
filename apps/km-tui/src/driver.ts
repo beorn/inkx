@@ -82,7 +82,7 @@ import { createCursorStoreFromRepo } from "./cursor-store.ts"
 export interface DialogState {
   search: boolean
   newItem: boolean
-  projectPicker: boolean
+  itemPicker: boolean
   help: boolean
 }
 
@@ -348,7 +348,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       dialogs: {
         search: s.ui.showSearchDialog,
         newItem: s.ui.showNewItemDialog,
-        projectPicker: !!s.ui.activePicker,
+        itemPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
       detailPaneOpen: s.ui.showDetailPane,

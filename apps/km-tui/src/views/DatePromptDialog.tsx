@@ -5,10 +5,9 @@
  * Uses useDialogInput for text input + dialogTargetRef wiring.
  */
 import React from "react"
-import { Box, Text, CursorLine } from "inkx"
+import { Box, Text, CursorLine, ModalDialog } from "inkx"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
-import { ModalDialog } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 
 export interface DatePromptDialogProps {

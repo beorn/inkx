@@ -132,7 +132,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       })
       clearSelection(ctx)
       return ok()
-    case "SHOW_PROJECT_PICKER":
+    case "SHOW_ITEM_PICKER":
       // Allow project picker in empty panes (no card required) or when a card is selected
       if (card || ctx.focusedPaneViewType() === "empty") {
         pushDialogMode("dialog:picker")
@@ -760,7 +760,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleSearchReplaceDoReplaceAll(ctx)
     case "SEARCH_REPLACE_TOGGLE_REGEX":
       return handleSearchReplaceToggleRegex(ctx)
-    case "SEARCH_REPLACE_TAB_FIELD":
+    case "FOCUS_NEXT":
+    case "FOCUS_PREV":
       return handleSearchReplaceTabField(ctx)
 
     // === UI stubs (future features) ===
