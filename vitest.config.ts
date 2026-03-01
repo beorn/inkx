@@ -14,6 +14,12 @@ const alwaysExclude = [
 	"apps/km-tui/tests/pty-integration.slow.spec.ts",
 ]
 
+// Performance note: each test file pays ~1.8s import overhead (React + inkx + zustand
+// module initialization). TUI files >5s are .slow. to keep test:fast under 20s.
+// The "threads" pool (default) shares Vite transform cache across workers.
+// The "forks" pool with isolate:false shares modules too, but fork process overhead
+// cancels the benefit. Don't change pool without benchmarking.
+//
 // When --project is passed, define named projects so vitest can filter.
 // Without --project, the root config runs alone (= fast tests only).
 const hasProjectFlag = process.argv.some((a) => a.startsWith("--project"))
@@ -62,14 +68,6 @@ export default defineConfig({
 	cacheDir: "node_modules/.vitest",
 	plugins: [mdtest()],
 	test: {
-		// Performance: forks pool with isolate:false shares modules between test files
-		// in the same worker process, eliminating ~1.8s import overhead per file after
-		// the first. Requires all module-level state to be reset in testEnv() — see
-		// resetBoardAppState() in board-app.ts. Without this, tests leak timer/cache
-		// state between files. The "threads" pool doesn't work with bun (stdout.pipe
-		// errors). See bead km-msmhm for proper elimination of module-level state.
-		pool: "forks",
-		poolOptions: { forks: { isolate: false } },
 		reporter: "dot",
 		includeTaskLocation: true,
 		outputFile: {

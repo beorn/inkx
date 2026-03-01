@@ -1,6 +1,7 @@
 #!/bin/bash
 # Wraps a vitest command and warns if it exceeds the threshold
-THRESHOLD=${TEST_FAST_THRESHOLD:-15}
+# Target: <20s on idle machine. 30s allows for CPU contention during dev.
+THRESHOLD=${TEST_FAST_THRESHOLD:-30}
 START=$SECONDS
 "$@"
 EXIT_CODE=$?

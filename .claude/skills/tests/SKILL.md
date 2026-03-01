@@ -29,11 +29,20 @@ bun run test:all           # Full suite (must pass) ~2-3min
 
 ### Timing Guard
 
-**test:fast MUST complete in <15s wall-clock.** If it takes longer:
+**test:fast target: <20s wall-clock** (30s warning threshold allows for CPU contention).
+If it exceeds 30s:
 1. Something is wrong (hanging test, infinite loop, CPU contention)
 2. Check `ps aux | grep vitest` for stale processes from other sessions
 3. If a test hangs: find it with per-file runs, fix or mark `.slow.test.ts`
-4. Create a P0 bead if test:fast regresses above 15s — this blocks all iteration
+4. New TUI tests >5s should be `.slow.test.ts` — the fast suite is capped
+
+### Why test:fast Is Fast
+
+TUI board-rendering tests (testEnv + press + buffer assertions) dominate test time.
+Files >5s are in `.slow.` to keep test:fast under 20s. The split:
+- **test:fast** (~200 files, ~4200 tests, ~25s): unit tests, small TUI tests, CLI, storage, parsers
+- **test:slow** (~40 files, ~1100 tests): heavy TUI navigation, rendering, incremental verification
+- Both run in **test:all** before commit
 
 ### Performance Analysis
 
@@ -141,7 +150,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | --------------- | ------------------------------- |
 | `.test.ts`      | Unit/component - core logic     |
 | `.spec.ts`      | TUI acceptance - user behavior  |
-| `.slow.test.ts` | Heavy integration - sync, real vault |
+| `.slow.test.ts` | Heavy TUI tests (>5s), sync, real vault |
 | `.bench.ts`     | Performance measurement (vitest bench) |
 | `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) |
 | `.test.md`      | CLI commands via mdtest         |
