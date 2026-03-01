@@ -453,8 +453,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "input-type-tab",
     bindings: [
-      { key: "Tab", commandId: "focus_next", when: inputTypeField },
-      { key: "Tab", shift: true, commandId: "focus_prev", when: inputTypeField },
+      { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(searchDialogOpen)) },
+      { key: "Tab", shift: true, commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
     ],
   },
 
