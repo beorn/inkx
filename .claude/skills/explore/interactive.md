@@ -181,12 +181,6 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 | `gG` | `g` then `Shift+g` | cursor_last | Move to last item |
 | `go` | `g` then `o` | open_in_system | Open in system (Finder/default app) |
 | `gO` | `g` then `Shift+o` | open_in_terminal | Open terminal at closest folder |
-| `gp` | `g` then `p` | item_picker | Open item picker |
-| `gn` | `g` then `n` | new_item | Open new item dialog |
-| `gc` | `g` then `c` | toggle_collapse | Toggle column collapse |
-| `gC` | `g` then `Shift+c` | toggle_show_ignored | Reveal/hide ignored nodes (dimmed) |
-| `gv` | `g` then `v` | cycle_view_mode | Cycle view modes |
-| `gi` | `g` then `i` | goto (targetId: "i") | Go to inbox |
 | `gj` | `g` then `j` | goto (targetId: "j") | Go to journal |
 | `gh` | `g` then `h` | goto (targetId: "h") | Go to home |
 | `ga` | `g` then `a` | goto (targetId: "a") | Go to archive |
