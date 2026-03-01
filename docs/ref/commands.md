@@ -301,7 +301,7 @@ The `defaultKeybindings[]` array in `keybindings.ts` is the source of truth for 
 | ---------------- | -------------- | --------------------------------- |
 | `quit`           | Quit           | `q`                               |
 | `new_item`       | New Item       | `n`                               |
-| `project_picker` | Item Picker    | `p`                               |
+| `item_picker` | Item Picker    | `p`                               |
 | `search`         | Search         | `/`                               |
 | `goto` (targetId: 1-9) | Favorite 1-9 | `1`-`9`                     |
 | `column_1`-`9`  | Column 1-9     | `!@#$%^&*(` (Shift+1-9)          |

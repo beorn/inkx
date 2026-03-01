@@ -52,7 +52,7 @@ export const tuiCommands: CommandDef[] = [
 
   // Item picker (project mode — move card to a project)
   {
-    id: "project_picker",
+    id: "item_picker",
     name: "Item Picker",
     description: "Open item picker (project/tag/assignee)",
     category: "Navigation",

@@ -23,7 +23,7 @@ function createCallbacks(
       ["z:a", { commandId: "toggle_fold" }],
       ["z:M", { commandId: "fold_all" }],
       ["g:g", { commandId: "cursor_first" }],
-      ["g:p", { commandId: "project_picker" }],
+      ["g:p", { commandId: "item_picker" }],
     ])
   const standalones =
     opts.standalones ??
