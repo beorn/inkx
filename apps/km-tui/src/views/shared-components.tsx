@@ -485,7 +485,7 @@ export function NodeLine({
         <Box flexGrow={0} flexShrink={0}>
           <Text color={isSelected ? "$selectedfg" : undefined}>
             {parentContext && (
-              <Text dimColor={!isSelected} color={isSelected ? "$muted" : undefined}>
+              <Text dimColor={!isSelected} color={isSelected ? "$selectedfg" : undefined}>
                 {` < ${parentContext}`}
               </Text>
             )}
