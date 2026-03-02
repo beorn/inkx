@@ -49,7 +49,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "@beorn/logger"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { CursorStoreProvider, useCursorNodePosition } from "../cursor-context.tsx"
+import { CursorStoreProvider, useCursorNodePosition, useCursorStore } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { hasDetailPaneFor, type BoardPaneState } from "../board-types.ts"
@@ -287,28 +287,43 @@ function BoardTopBar({
   )
 }
 
+/** Stable no-op subscribe for useSyncExternalStore fallback */
+function noopSubscribe() {
+  return () => {}
+}
+
 /**
  * CursorAwareDetailPane - reads root node and cursor from the detail view pane.
  *
  * Architecture:
- * - Root node (rootNodeId) is derived from the owner board pane's cursor store,
- *   tracking cursor changes via pane ID convention (detailPaneIdFor/ownerPaneId).
+ * - Root node (rootNodeId) is derived from the cursor store via direct subscription,
+ *   so it updates immediately when the board cursor moves (not on next app store change).
  * - Detail cursor (cursorNodeId) is stored in the detail view pane and managed by
  *   CURSOR_MOVE actions (routed to detail handler via viewMode check).
  * - Both are reset by SELECT when the board cursor moves to a different card.
  */
 function CursorAwareDetailPane(): React.ReactElement {
   const paneId = usePaneId()
-  const { rootNodeId, detailCursorNodeId } = useAppStore<BoardAppStore, { rootNodeId: string | null; detailCursorNodeId: string | null }>((s) => {
+
+  // Subscribe to cursor store directly so rootNodeId updates immediately on cursor move
+  const cursorStore = useCursorStore()
+  const rootNodeIdRef = useRef<string | null>(null)
+  const rootNodeId = useSyncExternalStore(cursorStore?.subscribe ?? noopSubscribe, () => {
+    if (!cursorStore) return null
+    const cs = cursorStore.getState()
+    const id = cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? null
+    if (id === rootNodeIdRef.current) return rootNodeIdRef.current
+    rootNodeIdRef.current = id
+    return id
+  })
+
+  // Detail cursor comes from the pane's own state in the app store
+  const detailCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
     const pane = s.workspace.panes.get(paneId)
     if (pane?.viewType === "board" && pane.viewMode === "detail") {
-      // Detail panes always derive rootNodeId from cursor store so they track
-      // cursor changes even if they bypass the SELECT handler.
-      const cs = s.cursorStore.getState()
-      const effectiveRoot = cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? null
-      return { rootNodeId: effectiveRoot, detailCursorNodeId: pane.cursorNodeId }
+      return pane.cursorNodeId
     }
-    return { rootNodeId: null, detailCursorNodeId: null }
+    return null
   })
   const repo = useRepo()
   const paneLabel = usePaneLabel()
