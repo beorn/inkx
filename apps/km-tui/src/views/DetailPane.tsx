@@ -186,7 +186,12 @@ function FolderDetailPane({
               // Cursor highlight: match by nodeId for depth-0 (navigable) entries
               const isCursored = entry.depth === 0 && entry.node.id === detailCursorNodeId
               return (
-                <Box key={`${entry.node.id}-${i}`} color={isCursored ? "$selected" : undefined} dimColor={isCursored && !detailFocused || undefined}>
+                <Box
+                  key={`${entry.node.id}-${i}`}
+                  backgroundColor={isCursored && detailFocused ? "$selected" : undefined}
+                  color={isCursored ? (detailFocused ? "$selectedfg" : "$selected") : undefined}
+                  dimColor={isCursored && !detailFocused || undefined}
+                >
                   <NodeLineView
                     node={entry.node}
                     displayName={getNodeDisplayName(repo, entry.node)}
@@ -398,7 +403,12 @@ function TaskDetailPane({
                 const backlinkCursorId = `__backlink__${bl.id}`
                 const isCursored = detailCursorNodeId === backlinkCursorId
                 return (
-                  <Box key={bl.id} color={isCursored ? "$selected" : undefined} dimColor={isCursored && !detailFocused || undefined}>
+                  <Box
+                    key={bl.id}
+                    backgroundColor={isCursored && detailFocused ? "$selected" : undefined}
+                    color={isCursored ? (detailFocused ? "$selectedfg" : "$selected") : undefined}
+                    dimColor={isCursored && !detailFocused || undefined}
+                  >
                     <Text wrap="truncate">
                       {"  "}
                       <Text dimColor={!isCursored}>{breadcrumb}</Text>
@@ -655,7 +665,13 @@ function MetadataTable({
       {rows.map((row, i) => {
         const isCursored = cursorMetaKey === row.key
         return (
-          <Box key={`${row.key}-${i}`} flexDirection="row" color={isCursored ? "$selected" : undefined} dimColor={isCursored && !isFocused || undefined}>
+          <Box
+            key={`${row.key}-${i}`}
+            flexDirection="row"
+            backgroundColor={isCursored && isFocused ? "$selected" : undefined}
+            color={isCursored ? (isFocused ? "$selectedfg" : "$selected") : undefined}
+            dimColor={isCursored && !isFocused || undefined}
+          >
             <Text dimColor={!(isCursored && isFocused)}>{row.key.padEnd(maxKeyLen)} </Text>
             <Text color={isCursored ? undefined : (row.valueColor ?? "$text")}>{row.value}</Text>
           </Box>
@@ -730,7 +746,8 @@ function DetailSubitems({
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const isCursored = item.id === cursorNodeId
-        const cursorColor = isCursored ? ("$selected" as const) : undefined
+        const cursorBg = isCursored && isFocused ? ("$selected" as const) : undefined
+        const cursorFg = isCursored ? (isFocused ? ("$selectedfg" as const) : ("$selected" as const)) : undefined
         const cursorDim = isCursored && !isFocused || undefined
         // Collapsed sections render muted with just the title + count
         // Comments and Attachments expand by default in detail pane (collapse only affects board view)
@@ -744,7 +761,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -766,7 +783,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -807,7 +824,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
+            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}
