@@ -115,6 +115,7 @@ Catalog opportunities in these categories:
 - `$text`=whiteBright, `$text2`=white, `$text3`=gray, `$text4`=gray
 - `$selected`=cyan, `$focusring`=blueBright, `$separator`=gray
 - `$bg`="" (transparent), `$raisedbg`=black
+- `$chromebg`=whiteBright, `$chromefg`=black (inverted for title/status bars)
 
 **Mandatory pairing**: `$selected` as backgroundColor MUST pair with `$selectedfg` as foreground. Gold-on-white is unreadable; gold needs dark text.
 

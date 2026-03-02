@@ -116,9 +116,8 @@ export function getNodeStyle(
     backgroundColor = "$selected"
     textColor = "$selectedfg"
   } else {
-    // Default: no explicit color — use terminal's default foreground (bright white in dark themes)
-    // Explicit "white"/"whiteBright" may render as grey depending on terminal color scheme
-    textColor = undefined
+    // Default: use $text token so unfocused pane theme dimming applies to all card text
+    textColor = "$text"
   }
   // No colored background for nodes with ownColor - color only applies to fold marker
 

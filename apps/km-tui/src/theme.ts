@@ -36,6 +36,9 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
       text2: "#A0A0A0", // Neutral light gray
       text3: "#707070", // Neutral mid-gray (counts, chrome)
       text4: "#505050", // Neutral dark gray (ghost text)
+      // Chrome (title bars, status bars) — inverted from normal
+      chromebg: "#D4D4D4", // Light grey (text as background)
+      chromefg: "#1A1A1A", // Dark text on chrome
       // Warm accents
       primary: "#EBCB8B", // Gold
       selected: "#EBCB8B", // Selected = primary
@@ -86,6 +89,8 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     text3: dimColor(theme.text3),
     text4: dimColor(theme.text4),
     separator: dimColor(theme.separator),
+    chromebg: dimColor(theme.chromebg),
+    chromefg: dimColor(theme.chromefg),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),

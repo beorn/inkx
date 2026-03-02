@@ -87,7 +87,7 @@ interface InternalDetailPaneProps {
 }
 
 /** Top bar for detail panes — icon + title via PaneBar.
- * $selected bg when cursor is on the topbar, $border bg otherwise. */
+ * $selected bg when cursor is on the topbar, $chromebg (PaneBar default) otherwise. */
 function DetailPaneTopBar({
   node,
   isFocused,
@@ -109,7 +109,7 @@ function DetailPaneTopBar({
       ? getNodeIcon(node.task_status, undefined, true)
       : getColumnHeaderIcon(node, iconStyle, false)
 
-  // $selected bg when cursor is on topbar, $border (white-ish) otherwise
+  // $selected bg when cursor is on topbar, $chromebg (PaneBar default) otherwise
   const bg = isCursored ? "$selected" : undefined
   const fg = isCursored ? "$selectedfg" : undefined
 
