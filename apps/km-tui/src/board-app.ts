@@ -24,7 +24,7 @@ import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
-import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
+import { type LayoutNode, mergePaneUI, hasDetailPaneFor, ownerPaneId } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
 
 const perfLog = createLogger("km:perf")
@@ -330,7 +330,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
         locals.cachedActivateScope(paneId)
       }
     },
-    hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
+    hasDetailPane: hasDetailPaneFor(s.workspace, ownerPaneId(s.workspace.focusedPaneId)),
     countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
     getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>

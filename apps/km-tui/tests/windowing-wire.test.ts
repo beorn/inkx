@@ -580,8 +580,9 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
   })
 
   test("j moves detail cursor when detail pane is focused", () => {
+    // Use a task with children so detail pane has navigable items
     const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      () => item.root("board", item("col1", item("task-1", item("sub-a"), item("sub-b")), item("task-2"))),
       { columns: 120, rows: 24 },
     )
 
@@ -591,12 +592,17 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     // Detail pane should be focused
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
-    // j in detail pane should move detail cursor, not board cursor
-    const boardCursorBefore = getActiveBoardPane(store.getState())
-    board.press("j") // Move detail cursor down
+    // Detail cursor should start at topbar (__topbar__)
+    const detailPane = store.getState().workspace.panes.get("main-detail")!
+    expect(detailPane.cursorId).toBe("__topbar__")
+
+    // j in detail pane should move detail cursor down (from topbar to first child)
+    board.press("j")
+    const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
+    expect(detailPaneAfter.cursorId).not.toBe("__topbar__")
+    expect(detailPaneAfter.cursorId).toBe("sub-a")
 
     // Board cursor should NOT have changed (it's in the other pane)
-    // The board pane's cursor should remain on task-1
     const mainPane = store.getState().workspace.panes.get("main")!
     expect(mainPane.cursorNodeId).toBe("task-1")
   })

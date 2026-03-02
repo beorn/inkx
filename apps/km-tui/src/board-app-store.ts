@@ -26,6 +26,7 @@ import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
+import { DETAIL_TOPBAR_ID } from "./views/detail-pane-items.ts"
 import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -423,7 +424,7 @@ export function createBoardAppStoreState(
           // Reset detail cursor when board cursor moves to a different card.
           // rootNodeId is derived from cursorStore in the component selector,
           // so we only need to reset cursorId here.
-          const detailPane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
+          const detailPane = getDetailPaneFor(s.workspace, ownerPaneId(s.workspace.focusedPaneId))
           if (detailPane && detailPane.cursorId !== null) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             const prevCardId = s.cursorStore.getState().cursorCardNodeId
@@ -681,13 +682,15 @@ export function createBoardAppStoreState(
 
       getDetailCursorId(): string | null {
         const s = _get()
-        const pane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
+        const boardPaneId = ownerPaneId(s.workspace.focusedPaneId)
+        const pane = getDetailPaneFor(s.workspace, boardPaneId)
         return pane ? pane.cursorId : null
       },
 
       setDetailCursor(id: string | null) {
         set((state) => {
-          const pane = getDetailPaneFor(state.workspace, state.workspace.focusedPaneId)
+          const boardPaneId = ownerPaneId(state.workspace.focusedPaneId)
+          const pane = getDetailPaneFor(state.workspace, boardPaneId)
           if (!pane) return state
           const newPanes = new Map(state.workspace.panes)
           newPanes.set(pane.id, { ...pane, cursorId: id })
@@ -700,7 +703,7 @@ export function createBoardAppStoreState(
       openDetailPane() {
         set((state) => {
           const focusedPaneId = state.workspace.focusedPaneId
-          const detailId = detailPaneIdFor(focusedPaneId)
+          const detailId = detailPaneIdFor(ownerPaneId(focusedPaneId))
           // Already open? No-op.
           if (state.workspace.panes.has(detailId)) return state
 
@@ -710,7 +713,7 @@ export function createBoardAppStoreState(
 
           const detailPane = createDetailPaneState(detailId, {
             rootNodeId,
-            cursorId: null,
+            cursorId: DETAIL_TOPBAR_ID,
             cursorStore: state.cursorStore,
           })
 
@@ -766,7 +769,7 @@ export function createBoardAppStoreState(
       toggleDetailPane() {
         const state = _get()
         const focusedPaneId = state.workspace.focusedPaneId
-        if (hasDetailPaneFor(state.workspace, focusedPaneId)) {
+        if (hasDetailPaneFor(state.workspace, ownerPaneId(focusedPaneId))) {
           state.closeDetailPane()
         } else {
           state.openDetailPane()

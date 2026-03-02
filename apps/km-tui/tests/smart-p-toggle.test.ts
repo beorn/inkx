@@ -106,21 +106,21 @@ describe("Detail pane toggle", () => {
       incremental: false,
     })
 
-    // Open pane
+    // Open pane — cursor defaults to topbar
     board.press("D")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("__topbar__")
 
     // Simulate cursor movement within detail
     store.getState().setDetailCursor("some-child")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("some-child")
 
-    // Close pane with D → cursor should reset
+    // Close pane with D → pane removed
     board.press("D")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
-    // Reopen → cursor should be fresh
+    // Reopen → cursor should be fresh (topbar)
     board.press("D")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("__topbar__")
   })
 
   test("multiple D cycles work correctly", () => {
