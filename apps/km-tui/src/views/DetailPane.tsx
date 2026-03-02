@@ -119,9 +119,9 @@ function DetailPaneTopBar({
       backgroundColor={bg}
       paneLabel={paneLabel}
       left={
-        <Text bold={isFocused} color={fg} wrap="truncate">
+        <Text bold color={fg} wrap="truncate">
           {" "}
-          <Text color={isCursored ? fg : icon.color}>{icon.char}</Text> <InlineText text={title} />
+          <Text color={isCursored ? fg : "$chromefg"}>{icon.char}</Text> <InlineText text={title} />
         </Text>
       }
       right={
