@@ -89,8 +89,10 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     text3: dimColor(theme.text3),
     text4: dimColor(theme.text4),
     separator: dimColor(theme.separator),
-    chromebg: dimColor(theme.chromebg),
-    chromefg: dimColor(theme.chromefg),
+    // Chrome stays visibly inverted even when unfocused — gentle dim only.
+    // Full 0.6x dim makes chromebg (#D4D4D4→#7F7F7F) blend into dark terminal bg.
+    chromebg: dimColor(theme.chromebg, 0.85),
+    chromefg: dimColor(theme.chromefg, 0.85),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
