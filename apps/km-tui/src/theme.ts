@@ -22,16 +22,30 @@ export function kmTheme(primary: PrimaryColor, dark = true): Theme {
   return generateTheme(primary as AnsiPrimary, dark)
 }
 
-/** Select the appropriate theme based on terminal capabilities. */
-export function selectThemeForCaps(caps: TerminalCaps): Theme {
+/** Adjust brightness of a hex color by a fixed amount per channel.
+ * Positive delta = lighter, negative = darker. Clamped to [0, 255]. */
+function adjustBrightness(hex: string, delta: number): string {
+  const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + delta))
+  const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + delta))
+  const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + delta))
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
+}
+
+/** Select the appropriate theme based on terminal capabilities.
+ * When detectedBg is provided (from OSC 11 query), derive raisedbg and separator
+ * from the actual terminal background for a neutral, matching tint. */
+export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | null): Theme {
   if (caps.colorLevel === "truecolor") {
-    const base = caps.darkBackground ? defaultDarkTheme : defaultLightTheme
+    const dark = caps.darkBackground
+    const base = dark ? defaultDarkTheme : defaultLightTheme
+    // Derive surface colors from actual bg when detected, else use fallbacks
+    const raisedbg = detectedBg ? adjustBrightness(detectedBg, dark ? 12 : -12) : "#3B3F47"
+    const separator = detectedBg ? adjustBrightness(detectedBg, dark ? 20 : -20) : "#4C5060"
     return {
       ...base,
-      // Slightly blue-tinted grays — matches common dark terminal backgrounds
       bg: "", // Use terminal's own background
-      raisedbg: "#3B3F47", // Blue-tinted raise (matches blue-grey terminal bgs)
-      separator: "#4C5060", // Blue-tinted mid-gray
+      raisedbg,
+      separator,
       text: "#D4D4D4", // Neutral white
       text2: "#A0A0A0", // Neutral light gray
       text3: "#707070", // Neutral mid-gray (counts, chrome)
