@@ -16,7 +16,7 @@
  * - Right border: box.x + box.width
  */
 
-import { describe, test, expect, beforeAll } from "vitest"
+import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
 import { withDiagnostics } from "inkx"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
@@ -1115,6 +1115,92 @@ describe("col-header-dup: column header style transition", () => {
       expect(alphaCount, `"alpha-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
       const betaCount = (line.match(/beta-col/g) || []).length
       expect(betaCount, `"beta-col" dup on "${line.trimEnd()}"`).toBeLessThanOrEqual(1)
+    }
+  })
+})
+
+// =============================================================================
+// Emoji rendering garble regression (from emoji-garble.slow.test.ts)
+//
+// Root cause: replayAnsiWithStyles in output-phase.ts had a ZWJ combining bug.
+// Characters after ZWJ (U+200D) — like male sign (U+2642) in runner emoji — were
+// not consumed as part of the grapheme cluster, splitting the emoji across multiple
+// columns and causing progressive cursor drift in the virtual terminal replay.
+//
+// These tests verify that INKX_STRICT catches no mismatches when rendering emoji.
+// =============================================================================
+
+describe("emoji content garble reproduction", () => {
+  beforeEach(() => {
+    process.env.INKX_STRICT = "1"
+  })
+  afterEach(() => {
+    delete process.env.INKX_STRICT
+  })
+
+  test("cards with flag emoji + navigation", () => {
+    const nodes = item(
+      "board",
+      item(
+        "\u{1F1E8}\u{1F1E6} Canada Tasks",
+        item("\u{1F3E0} Fix roof"),
+        item("\u{1F468}\u{1F3FB}\u200D\u{1F4BB} Code review"),
+        item("\u{1F538} Priority item"),
+        item("\u{1F4F1} Mobile app"),
+      ),
+      item("\u{1F1FA}\u{1F1F8} US Tasks", item("\u{1F4BC} Business meeting"), item("\u{1F4CA} Q4 Report"), item("\u{1F3AF} Sprint goal")),
+      item("Regular Column", item("Plain task A"), item("Plain task B")),
+    )
+    const { board } = testEnv(() => nodes, { cols: 120, rows: 30 })
+
+    // Navigate through emoji columns
+    for (const key of ["l", "l", "j", "j", "h", "j", "k", "l", "h", "h"]) {
+      board.press(key)
+    }
+  })
+
+  test("mixed emoji and ASCII — navigation doesn't garble", () => {
+    const nodes = item(
+      "board",
+      item(
+        "#routine",
+        item("07:30 Morning routine \u{1F3C3}\u200D\u2642\uFE0F"),
+        item("08:00 Breakfast \u2615"),
+        item("09:00 Work start \u{1F4BB}"),
+        item("12:00 Lunch \u{1F37D}\uFE0F"),
+        item("17:00 Exercise \u{1F3CB}\uFE0F\u200D\u2642\uFE0F"),
+      ),
+      item("Harmon from Modo called", item("Follow up on proposal"), item("Send contract \u{1F4C4}")),
+      item("Calendar", item("10:00 Standup"), item("14:00 1:1 with @bj\u00F8rn-st"), item("15:30 Demo prep")),
+    )
+    const { board } = testEnv(() => nodes, { cols: 100, rows: 25 })
+
+    // Navigate — INKX_STRICT checks buffer + output on each press
+    for (const key of ["l", "l", "j", "j", "j", "h", "h", "k", "k", "l", "j"]) {
+      board.press(key)
+    }
+  })
+
+  test("wide chars with extensive navigation", () => {
+    const nodes = item(
+      "board",
+      item(
+        "Tasks",
+        item("Buy groceries \u{1F6D2}"),
+        item("Call dentist \u260E\uFE0F"),
+        item("Book flights \u2708\uFE0F"),
+        item("Return package \u{1F4E6}"),
+        item("Fix bike \u{1F527}"),
+        item("Water plants \u{1F331}"),
+      ),
+      item("Goals", item("Learn Japanese \u{1F1EF}\u{1F1F5}"), item("Run marathon \u{1F3C3}"), item("Read 50 books \u{1F4DA}")),
+    )
+    const { board } = testEnv(() => nodes, { cols: 80, rows: 20 })
+
+    // Navigate extensively — INKX_STRICT catches any mismatch
+    const sequence = ["j", "j", "j", "l", "j", "j", "h", "k", "k", "l", "l", "j", "j", "j", "k", "h", "j", "j"]
+    for (const key of sequence) {
+      board.press(key)
     }
   })
 })

@@ -585,4 +585,20 @@ describe("Move Mode", () => {
     expect(board.screenshot()).not.toMatch(/\bMOVE\b/)
     board.expect("#only[data-cursor]").toExist()
   })
+
+  test("no MOVE indicator in normal navigation mode", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
+    )
+
+    // Navigate normally - no MOVE indicator
+    board.press("j")
+    expect(board.screenshot()).not.toContain("MOVE")
+
+    board.press("l")
+    expect(board.screenshot()).not.toContain("MOVE")
+
+    board.press("k")
+    expect(board.screenshot()).not.toContain("MOVE")
+  })
 })
