@@ -6,10 +6,16 @@ description: Test layering philosophy — what each layer tests vs trusts, value
 
 Every test should answer: **"Does this test what THIS layer adds?"**
 
+## Priority: Acceptance Tests First
+
+**The most valuable tests are closest to the user.** Journey tests (`.spec.ts`) that press keys and verify what the user sees + what got saved are the highest priority. They catch the most bugs per line of test code because they exercise the full stack.
+
+**Write and optimize acceptance tests before anything else.** Lower-layer tests exist to isolate failures and guard contracts — but if you only have time for one test, make it a journey test.
+
 ## The Layers
 
 ```
-Layer 5: km-tui (.spec.ts)     → User journeys: keys in, screen + persistence out
+Layer 5: km-tui (.spec.ts)     → User journeys: keys in, screen + persistence out  ← TOP PRIORITY
 Layer 4: km-board (.test.ts)   → Action sequences: actions in, state transitions out
 Layer 3: km-storage (.test.ts) → Pipeline integrity: files in, nodes out, files back
 Layer 2: km-markdown (.test.ts)→ Parse fidelity: markdown in, AST/nodes out
