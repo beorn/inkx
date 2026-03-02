@@ -59,7 +59,7 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
 /** Dim a single color value — same hue, reduced brightness.
  * Truecolor (#RRGGBB): multiply RGB by factor.
  * ANSI 16: map bright variants to normal (redBright→red). */
-function dimColor(color: string, factor = 0.6): string {
+function dimColor(color: string, factor = 0.92): string {
   if (!color) return color
   if (color.startsWith("#") && color.length === 7) {
     const r = Math.round(parseInt(color.slice(1, 3), 16) * factor)
@@ -89,10 +89,8 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     text3: dimColor(theme.text3),
     text4: dimColor(theme.text4),
     separator: dimColor(theme.separator),
-    // Chrome stays visibly inverted even when unfocused — gentle dim only.
-    // Full 0.6x dim makes chromebg (#D4D4D4→#7F7F7F) blend into dark terminal bg.
-    chromebg: dimColor(theme.chromebg, 0.85),
-    chromefg: dimColor(theme.chromefg, 0.85),
+    chromebg: dimColor(theme.chromebg),
+    chromefg: dimColor(theme.chromefg),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
