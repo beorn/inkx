@@ -596,11 +596,18 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     const detailPane = store.getState().workspace.panes.get("main-detail")!
     expect(detailPane.cursorId).toBe("__topbar__")
 
+    // Capture screen before j
+    const beforeJ = board.screen.ansi
+
     // j in detail pane should move detail cursor down (from topbar to first child)
     board.press("j")
     const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
     expect(detailPaneAfter.cursorId).not.toBe("__topbar__")
     expect(detailPaneAfter.cursorId).toBe("sub-a")
+
+    // Screen MUST change (cursor moved = different visual state)
+    const afterJ = board.screen.ansi
+    expect(afterJ).not.toBe(beforeJ)
 
     // Board cursor should NOT have changed (it's in the other pane)
     const mainPane = store.getState().workspace.panes.get("main")!

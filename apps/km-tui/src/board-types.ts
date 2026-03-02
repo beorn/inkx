@@ -364,15 +364,43 @@ export function isDetailPaneId(paneId: string): boolean {
   return paneId.endsWith("-detail")
 }
 
-/** Get the detail pane for a board pane, or null if none exists. */
-export function getDetailPaneFor(workspace: WorkspaceState, boardPaneId: string): DetailPaneState | null {
-  const pane = workspace.panes.get(detailPaneIdFor(boardPaneId))
-  return pane && isDetailPane(pane) ? pane : null
+/** Resolved board + detail pane pair from any pane ID. */
+export interface PanePair {
+  board: BoardPaneState | null
+  detail: DetailPaneState | null
 }
 
-/** Whether a board pane has an open detail pane. */
-export function hasDetailPaneFor(workspace: WorkspaceState, boardPaneId: string): boolean {
-  return workspace.panes.has(detailPaneIdFor(boardPaneId))
+/**
+ * Resolve both panes from any pane ID (board or detail).
+ * Given "main" → returns { board: main, detail: main-detail | null }
+ * Given "main-detail" → returns { board: main, detail: main-detail }
+ */
+export function resolvePanes(workspace: WorkspaceState, paneId: string): PanePair {
+  const pane = workspace.panes.get(paneId)
+  if (pane && isDetailPane(pane)) {
+    const boardId = ownerPaneId(paneId)
+    const boardPane = workspace.panes.get(boardId)
+    return {
+      board: boardPane && isBoardPane(boardPane) ? boardPane : null,
+      detail: pane,
+    }
+  }
+  const detailId = detailPaneIdFor(paneId)
+  const detailPane = workspace.panes.get(detailId)
+  return {
+    board: pane && isBoardPane(pane) ? pane : null,
+    detail: detailPane && isDetailPane(detailPane) ? detailPane : null,
+  }
+}
+
+/** Get the detail pane associated with any pane ID (board or detail). */
+export function getDetailPaneFor(workspace: WorkspaceState, paneId: string): DetailPaneState | null {
+  return resolvePanes(workspace, paneId).detail
+}
+
+/** Whether a pane ID (board or detail) has an associated detail pane. */
+export function hasDetailPaneFor(workspace: WorkspaceState, paneId: string): boolean {
+  return resolvePanes(workspace, paneId).detail !== null
 }
 
 /**

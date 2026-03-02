@@ -58,7 +58,7 @@ import {
 } from "@km/commands"
 import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
-import { createBoardState, hasDetailPaneFor, ownerPaneId } from "./board-types.ts"
+import { createBoardState, hasDetailPaneFor } from "./board-types.ts"
 
 import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
@@ -358,7 +358,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         itemPicker: !!s.ui.activePicker,
         help: s.ui.showHelp,
       },
-      detailPaneOpen: hasDetailPaneFor(s.workspace, ownerPaneId(s.workspace.focusedPaneId)),
+      detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
       moveMode: board?.moveMode ?? false,
       columns: cols,
       colIndex: cursor.colIndex,
