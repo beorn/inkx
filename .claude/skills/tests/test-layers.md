@@ -15,24 +15,61 @@ Every test should answer: **"Does this test what THIS layer adds?"**
 ## The Layers
 
 ```
-Layer 5: km-tui (.spec.ts)     → User journeys: keys in, screen + persistence out  ← TOP PRIORITY
-Layer 4: km-board (.test.ts)   → Action sequences: actions in, state transitions out
-Layer 3: km-storage (.test.ts) → Pipeline integrity: files in, nodes out, files back
-Layer 2: km-markdown (.test.ts)→ Parse fidelity: markdown in, AST/nodes out
-Layer 1: km-core (.test.ts)    → Contracts: inputs in, invariants hold
-Layer 0: vendor/inkx (.test.ts)→ Rendering correctness: components in, buffer out
+── km app ──────────────────────────────────────────────────────────────
+Layer 5: km-tui (.spec.ts)       → User journeys: keys in, screen + persistence out  ← TOP PRIORITY
+Layer 4: km-board (.test.ts)     → Action sequences: actions in, state transitions out
+Layer 3: km-storage (.test.ts)   → Pipeline integrity: files in, nodes out, files back
+Layer 2: km-markdown (.test.ts)  → Parse fidelity: markdown in, AST/nodes out
+Layer 1: km-core (.test.ts)      → Contracts: inputs in, invariants hold
+
+── vendor (TUI stack) ──────────────────────────────────────────────────
+Layer 0a: inkx-ui (.test.ts)     → Component behavior: props in, visual + interaction out
+Layer 0b: inkx (.test.ts)        → Rendering pipeline: React tree in, terminal buffer out
+Layer 0c: flexx (.test.ts)       → Layout computation: flex config in, box coordinates out
+Layer 0d: chalkx (.test.ts)      → Terminal primitives: color/style in, ANSI sequences out
+
+── vendor (infrastructure) ─────────────────────────────────────────────
+Layer 0e: logger (.test.ts)      → Log routing: calls in, formatted output out
+Layer 0f: vitestx (.test.ts)     → Test tooling: generators in, fuzz/chaos sequences out
+Layer 0g: mdtest (.test.ts)      → Test runner: markdown in, shell execution + assertion out
+Layer 0h: tools (.test.ts)       → Dev CLI: commands in, file/API effects out
+Layer 0i: accountly (.test.ts)   → Credentials: provider config in, auth tokens out
+Layer 0j: tap (.test.ts)         → TAP orchestration: streams in, merged output out
+Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reordered events out
 ```
 
 ## What Each Layer Tests vs Trusts
+
+### km app layers
 
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
 | **km-tui** | Key → visual outcome + data saved. Multi-step journeys. | Board reducer works. Storage persists. Rendering is correct. |
 | **km-board** | Action sequences → state transitions. Fold/zoom/cursor composition. | Nodes exist. Markdown parses. |
 | **km-storage** | File ↔ DB round-trip integrity. Concurrent edits. Sync safety. | Markdown parser is correct. |
-| **km-markdown** | Parse edge cases. Format fidelity. Spec compliance. | Nothing below — this is the leaf. |
+| **km-markdown** | Parse edge cases. Format fidelity. Spec compliance. | Nothing below — this is the leaf parser. |
 | **km-core** | Behavioral contracts (Result short-circuits, ToastQueue batches). | Types are correct (enforced by TS). |
-| **vendor/inkx** | Incremental render = fresh render. Layout correctness. | Nothing — it's the platform. |
+
+### Vendor TUI stack
+
+| Layer | Tests (what it ADDS) | Trusts (from below) |
+|-------|---------------------|---------------------|
+| **inkx-ui** | Component lifecycle (spinner frames, progress updates, multi-progress orchestration). | inkx renders components correctly. |
+| **inkx** | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding. Incremental render = fresh render. | flexx computes layout. chalkx produces correct ANSI. |
+| **flexx** | Flex layout: positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout (fuzz oracle). | Nothing — leaf computation engine. |
+| **chalkx** | Color/style output, terminal capability detection, ANSI sequence generation. | Nothing — leaf terminal abstraction. |
+
+### Vendor infrastructure
+
+| Layer | Tests (what it ADDS) | Trusts (from below) |
+|-------|---------------------|---------------------|
+| **logger** | Namespace filtering, log level propagation, span timing, structured output. | Nothing — standalone. |
+| **vitestx** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst), dotz reporter. | vitest API is correct. |
+| **mdtest** | Markdown code block extraction, shell session execution, output assertion. | Nothing — standalone test runner. |
+| **tools** | Refactor CLI (AST transforms), recall (session search), LLM bridge. | Filesystem, external APIs. |
+| **accountly** | Multi-provider credential management, keychain abstraction, token refresh. | Nothing — mocks all system APIs. |
+| **tap** | TAP stream merging, format conversion. | Nothing — standalone. |
+| **watcher-chaos** | Event stream corruption (drop, reorder, duplicate, burst) for chaos testing. | Nothing — standalone. |
 
 ## Value Check (before writing any test)
 
@@ -214,29 +251,58 @@ test.each(["info", "success", "warning", "error"] as const)(
 
 Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, and patterns. These are auto-loaded by Claude Code when working in that directory.
 
+### km app packages
+
 | Package | Tests | Layer | Key Helpers | CLAUDE.md |
 |---------|-------|-------|-------------|-----------|
-| **km-core** | 11 | Contracts | None (pure functions) | [tests/CLAUDE.md](../../../packages/km-core/tests/CLAUDE.md) |
-| **km-markdown** | 15 | Parse fidelity | `parse()`, `roundtrip()`, `makeTestNode()` | [tests/CLAUDE.md](../../../packages/km-markdown/tests/CLAUDE.md) |
-| **km-storage** | 44 | Pipeline integrity | `createTestDatabase()`, `createTestSyncManager()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
-| **km-board** | 2 | Action sequences | None (inline state) | [tests/CLAUDE.md](../../../packages/km-board/tests/CLAUDE.md) |
-| **km-tui** | 112 | User journeys | `item()`, `testEnv()`, `board.app()`, invariants | [tests/CLAUDE.md](../../../apps/km-tui/tests/CLAUDE.md) |
+| **km-tui** | 112 | User journeys (L5) | `item()`, `testEnv()`, `board.app()`, invariants | [tests/CLAUDE.md](../../../apps/km-tui/tests/CLAUDE.md) |
+| **km-board** | 2 | Action sequences (L4) | None (inline state) | [tests/CLAUDE.md](../../../packages/km-board/tests/CLAUDE.md) |
+| **km-storage** | 44 | Pipeline integrity (L3) | `createTestDatabase()`, `createTestSyncManager()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
+| **km-markdown** | 15 | Parse fidelity (L2) | `parse()`, `roundtrip()`, `makeTestNode()` | [tests/CLAUDE.md](../../../packages/km-markdown/tests/CLAUDE.md) |
+| **km-core** | 11 | Contracts (L1) | None (pure functions) | [tests/CLAUDE.md](../../../packages/km-core/tests/CLAUDE.md) |
 | **km-cli** | 7 | Command output | mdtest plugin, `km-repl.ts` | [tests/CLAUDE.md](../../../apps/km-cli/tests/CLAUDE.md) |
-| **inkx** | 198 | Rendering | `createRenderer()`, `expectFrame()` | [CLAUDE.md](../../../vendor/beorn-inkx/CLAUDE.md) |
+
+### Vendor TUI stack
+
+| Package | Tests | Layer | What it tests | Trusts | Key patterns |
+|---------|-------|-------|---------------|--------|-------------|
+| **inkx-ui** | 11 | Components (L0a) | Spinner frames, progress updates, multi-progress orchestration | inkx rendering | Component unit tests, dual API (CLI + React) |
+| **inkx** | 199 | Rendering (L0b) | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding | flexx layout, chalkx ANSI | `createRenderer()`, `expectFrame()`, buffer assertions |
+| **flexx** | 9+7 bench | Layout (L0c) | Flex positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout | Nothing (leaf) | Differential fuzz oracle, yoga compat, benchmarks |
+| **chalkx** | 5 | Terminal (L0d) | Color/style output, capability detection, ANSI sequences | Nothing (leaf) | Env var mocking, detection tests |
+
+### Vendor infrastructure
+
+| Package | Tests | Layer | What it tests | Key patterns |
+|---------|-------|-------|---------------|-------------|
+| **logger** | 2 | Logging (L0e) | Namespace filtering, level propagation, span timing | Mock console |
+| **vitestx** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers, dotz reporter | Self-testing (tests its own tools) |
+| **mdtest** | 9 | Test runner (L0g) | Markdown code block extraction, shell execution, output assertion | Shell session capture |
+| **tools** | 10 | Dev CLI (L0h) | Refactor (AST transforms), recall (session search), LLM bridge | Temp filesystem, mock fetch |
+| **accountly** | 11 | Credentials (L0i) | Multi-provider management, keychain abstraction, token refresh | Mock keychain, mock fetch |
+| **tap** | 1 | TAP (L0j) | Stream merging, format conversion | Minimal (tiny package) |
+| **watcher-chaos** | 1 | Chaos (L0k) | Event stream corruption (drop, reorder, duplicate, burst) | Standalone event transformers |
 
 ## Layering Observations
 
-### km-board is thin (2 test files)
+### km app
 
-Most board behavior is tested through km-tui's `testEnv()`. This works but means board state logic can't be tested without rendering overhead. As action composition grows (fold + zoom + cursor), more pure reducer tests should migrate here.
+- **km-board is thin** (2 test files). Most board behavior is tested through km-tui's `testEnv()`. This works but means board state logic can't be tested without rendering overhead. As action composition grows (fold + zoom + cursor), more pure reducer tests should migrate here. See `km-all.board-test-migration` (blocked on TEA machines).
+- **km-storage cross-tests parsing**. Some storage tests re-verify markdown edge cases. These belong in km-markdown — storage tests should trust the parser and focus on file ↔ DB integrity.
+- **km-tui tests sometimes skip screen assertions**. TUI tests that only check state/DB without verifying what the user sees may belong in km-board or km-storage. The value of km-tui tests is exercising the full pipeline: keys → screen → persistence.
 
-### km-storage cross-tests parsing
+### Vendor TUI stack
 
-Some storage tests re-verify markdown edge cases. These should live in km-markdown — storage tests should trust the parser and focus on file ↔ DB integrity.
+- **inkx → flexx dependency is the critical boundary**. inkx trusts flexx for layout. A flexx caching bug could produce wrong positions in inkx's buffer. The flexx differential fuzz oracle (random tree → layout → dirty → relayout → compare) is the primary guard. No cross-package regression suite exists yet.
+- **inkx → chalkx dependency is stable**. chalkx's ANSI output is a thin, stable API. Unit tests are sufficient here.
+- **inkx-ui → inkx is consumer-level**. inkx-ui tests should verify component behavior (spinner animation, progress updates) without re-testing inkx rendering internals. Currently all `.test.ts`, no consumer-level specs.
+- **inkx has 199 test files but few consumer-facing tests**. Most tests are internal (buffer encoding, diff algorithm, scheduler). The consumer perspective ("render this component tree, press keys, verify buffer") is well-tested indirectly through km-tui's `testEnv()`, but inkx itself could benefit from more API-level tests that don't depend on km.
 
-### km-tui tests sometimes skip screen assertions
+### Vendor infrastructure
 
-TUI tests that only check state/DB without verifying what the user sees may belong in km-board or km-storage. The value of km-tui tests is exercising the full pipeline: keys → screen → persistence.
+- **These are standalone packages** — they don't form a dependency chain (logger doesn't depend on vitestx, etc.). Each is tested in isolation, which is correct.
+- **vitestx is self-testing** — it uses its own fuzz/chaos tools to test itself. This is the right pattern for test infrastructure.
+- **4 packages lack test CLAUDE.md** (mdtest, tools, tap, watcher-chaos). Low priority since they're small and stable, but worth adding if they grow.
 
 ## Relationship to Import Cost Layers
 
