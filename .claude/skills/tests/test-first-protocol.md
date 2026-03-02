@@ -71,7 +71,7 @@ Tests have different import costs depending on what they use. Prefer lower layer
 | 0 | Pure Logic | ~20-50ms | Algorithms, data structures, pure functions | `layout/constrain.test.ts`, `text/inline-parser.test.ts` |
 | 0+ | Module imports | ~500-700ms | Functions with framework imports (zustand, etc.) but no inkx | `input-mode.test.ts` |
 | 1 | Component Unit | ~200ms | React components with `createRenderer` | `views/node-view.test.tsx` |
-| 2 | Integration (testEnv) | ~1.8s | Full board via `testEnv`/`createTestBoard` | `hr.test.ts`, `alignment.test.ts`, `breadcrumb.test.ts` |
+| 2 | Integration (testEnv) | ~1.8s | Full board via `testEnv`/`createTestBoard` | `hr.test.ts`, `alignment.test.ts`, `breadcrumb.slow.test.ts` |
 | 3 | Acceptance (multi-step) | ~1.8s | Multi-step user journeys, `.slow.` files | `fold.slow.test.ts`, `detail-pane.slow.test.ts` |
 | 4 | TTY/Snapshot | ~1.8s | Real terminal emulator, screenshots | `pty-integration.slow.spec.ts` |
 
