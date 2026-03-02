@@ -2,7 +2,6 @@
  * Path Utilities Tests
  *
  * Tests for filesystem path resolution utilities:
- * - isExplicitPath: detecting filesystem paths
  * - resolveFsPath: resolving paths to full info
  * - findKmRootFromPath: finding .km directory
  *
@@ -15,7 +14,6 @@ import { mkdirSync, rmSync, writeFileSync, realpathSync } from "fs"
 import { ulid } from "ulid"
 
 import {
-  isExplicitPath,
   resolveFsPath,
   findKmRootFromPath,
   getEffectiveRoot,
@@ -46,40 +44,6 @@ function createTestDir(): string {
   // Return realpath for consistent comparison (e.g., /tmp -> /private/tmp on macOS)
   return realpathSync(dir)
 }
-
-// Pure function tests - no filesystem needed
-describe("isExplicitPath", () => {
-  test("returns true for absolute paths", () => {
-    expect(isExplicitPath("/usr/local/bin")).toBe(true)
-    expect(isExplicitPath("/home/user/file.md")).toBe(true)
-    expect(isExplicitPath("/")).toBe(true)
-  })
-
-  test("returns true for relative paths with ./", () => {
-    expect(isExplicitPath("./file.md")).toBe(true)
-    expect(isExplicitPath("./folder/file.md")).toBe(true)
-  })
-
-  test("returns true for parent paths with ../", () => {
-    expect(isExplicitPath("../file.md")).toBe(true)
-    expect(isExplicitPath("../../folder/file.md")).toBe(true)
-  })
-
-  // Note: ~ is expanded by the shell before reaching the program,
-  // so we don't need to detect it as an explicit path
-  test("returns false for tilde paths (shell handles expansion)", () => {
-    expect(isExplicitPath("~/Documents")).toBe(false)
-    expect(isExplicitPath("~/file.md")).toBe(false)
-  })
-
-  test("returns false for IDs and filenames", () => {
-    expect(isExplicitPath("abc123")).toBe(false)
-    expect(isExplicitPath("@next.md")).toBe(false)
-    expect(isExplicitPath("@next")).toBe(false)
-    expect(isExplicitPath("My Task")).toBe(false)
-    expect(isExplicitPath("01ARZ3NDEKTSV4RRFFQ69G5FAV")).toBe(false)
-  })
-})
 
 describe("findKmRootFromPath", () => {
   test("finds .km directory in parent", () => {

@@ -10,70 +10,26 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("Toast rendering", () => {
-  test("info toast appears with icon and message", () => {
+  test.each([
+    { level: "info", icon: "ℹ" },
+    { level: "success", icon: "✓" },
+    { level: "warning", icon: "⚠" },
+    { level: "error", icon: "✗" },
+  ] as const)("$level toast renders with correct icon", ({ level, icon }) => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
+    const message = `Test ${level} message`
 
-    // Push info toast
-    toastQueue.info("Test info message")
-
-    // Re-render to pick up toast
+    toastQueue[level](message)
     board.press("l") // Trigger a re-render
     board.press("h")
 
-    // Verify toast element exists with correct level
     const toastEl = board.q("#toast")
     expect(toastEl.count()).toBe(1)
-    expect(toastEl.getAttribute("data-level")).toBe("info")
-
-    // Verify message includes info icon
-    const text = toastEl.textContent()
-    expect(text).toContain("ℹ")
-    expect(text).toContain("Test info message")
-  })
-
-  test("success toast shows checkmark icon", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
-
-    toastQueue.success("Operation completed")
-    board.press("l")
-    board.press("h")
-
-    const toastEl = board.q("#toast")
-    expect(toastEl.getAttribute("data-level")).toBe("success")
+    expect(toastEl.getAttribute("data-level")).toBe(level)
 
     const text = toastEl.textContent()
-    expect(text).toContain("✓")
-    expect(text).toContain("Operation completed")
-  })
-
-  test("warning toast shows warning icon", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
-
-    toastQueue.warning("Something might be wrong")
-    board.press("l")
-    board.press("h")
-
-    const toastEl = board.q("#toast")
-    expect(toastEl.getAttribute("data-level")).toBe("warning")
-
-    const text = toastEl.textContent()
-    expect(text).toContain("⚠")
-    expect(text).toContain("Something might be wrong")
-  })
-
-  test("error toast shows error icon", () => {
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
-
-    toastQueue.error("Something went wrong")
-    board.press("l")
-    board.press("h")
-
-    const toastEl = board.q("#toast")
-    expect(toastEl.getAttribute("data-level")).toBe("error")
-
-    const text = toastEl.textContent()
-    expect(text).toContain("✗")
-    expect(text).toContain("Something went wrong")
+    expect(text).toContain(icon)
+    expect(text).toContain(message)
   })
 
   test("Escape dismisses toast", () => {
