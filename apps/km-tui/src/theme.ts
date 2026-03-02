@@ -53,5 +53,16 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
   return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
 }
 
+/** Derive an unfocused variant: dims selection tokens so inactive pane is visually muted.
+ * Selection becomes subtle gray instead of bright gold, while text remains readable. */
+export function deriveUnfocusedTheme(theme: Theme): Theme {
+  return {
+    ...theme,
+    name: `${theme.name}-unfocused`,
+    selected: theme.text3, // tertiary text (gray) — gold → gray
+    selectedfg: theme.text, // normal text — still readable
+  }
+}
+
 // Backward compat — remove after full migration
 export { ansi16DarkTheme as kmDarkTheme, ansi16LightTheme as kmLightTheme } from "inkx"

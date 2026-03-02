@@ -9,7 +9,7 @@
 import React from "react"
 import { Box, Text, ErrorBoundary } from "inkx"
 import type { KNode } from "@km/core"
-import { decomposeDatetime, isOutline, isItem } from "@km/core"
+import { decomposeDatetime, isOutline, isItem, isTask } from "@km/core"
 import { extractBody } from "@km/tree"
 import { useRepo, type Repo } from "../repo-context.tsx"
 import { usePaneLabel } from "../pane-context.tsx"
@@ -188,9 +188,8 @@ function FolderDetailPane({
               return (
                 <Box
                   key={`${entry.node.id}-${i}`}
-                  backgroundColor={isCursored && detailFocused ? "$selected" : undefined}
-                  color={isCursored ? (detailFocused ? "$selectedfg" : "$selected") : undefined}
-                  dimColor={isCursored && !detailFocused || undefined}
+                  backgroundColor={isCursored ? "$selected" : undefined}
+                  color={isCursored ? "$selectedfg" : undefined}
                 >
                   <NodeLineView
                     node={entry.node}
@@ -405,9 +404,8 @@ function TaskDetailPane({
                 return (
                   <Box
                     key={bl.id}
-                    backgroundColor={isCursored && detailFocused ? "$selected" : undefined}
-                    color={isCursored ? (detailFocused ? "$selectedfg" : "$selected") : undefined}
-                    dimColor={isCursored && !detailFocused || undefined}
+                    backgroundColor={isCursored ? "$selected" : undefined}
+                    color={isCursored ? "$selectedfg" : undefined}
                   >
                     <Text wrap="truncate">
                       {"  "}
@@ -429,7 +427,7 @@ function TaskDetailPane({
         {/* Footer: keybindings + debug info — always visible */}
         <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            {"j/k:nav h/Esc:close Enter:open"}
+            {detailCursorNodeId?.startsWith(DETAIL_META_PREFIX) ? "j/k:nav Enter:edit h/Esc:close" : "j/k:nav Enter:open h/Esc:close"}
           </Text>
           <Text dimColor wrap="truncate">
             {node.type} {node.id}
@@ -532,16 +530,21 @@ function MetadataTable({
 }: MetadataTableProps): React.ReactElement | null {
   const repo = useRepo()
   const rows: MetadataRow[] = []
+  const nodeIsTask = isTask(node)
 
   // Status
   if (node.task_status) {
     rows.push({ key: "Status", value: statusInfo.text, valueColor: statusInfo.color })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Status", value: "none", valueColor: "$muted" })
   }
 
   // Priority
   if (node.priority) {
     const pColors = ["$error", "$warning", "$primary", "$muted"]
     rows.push({ key: "Priority", value: `P${node.priority}`, valueColor: pColors[node.priority - 1] })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Priority", value: "none", valueColor: "$muted" })
   }
 
   // Due date
@@ -553,17 +556,23 @@ function MetadataTable({
       normal: undefined,
     }
     rows.push({ key: "Due", value: dueDate.text, valueColor: urgencyColors[dueDate.urgency] })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Due", value: "none", valueColor: "$muted" })
   }
 
   // Start date
   if (startParts?.date) {
     const startDate = formatDate(startParts.date)
     rows.push({ key: "Start", value: startDate.text })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Start", value: "none", valueColor: "$muted" })
   }
 
   // Recurrence
   if (node.rrule) {
     rows.push({ key: "Recurrence", value: node.rrule })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Recurrence", value: "none", valueColor: "$muted" })
   }
 
   // Date-related metadata (created, completed) — group with other dates
@@ -575,6 +584,8 @@ function MetadataTable({
   // Assigned
   if (node.assigned_to) {
     rows.push({ key: "Assigned", value: node.assigned_to })
+  } else if (nodeIsTask) {
+    rows.push({ key: "Assigned", value: "none", valueColor: "$muted" })
   }
 
   // Projects — prefer data.projectMemberships (rich: project + section) over inline +project refs
@@ -668,11 +679,10 @@ function MetadataTable({
           <Box
             key={`${row.key}-${i}`}
             flexDirection="row"
-            backgroundColor={isCursored && isFocused ? "$selected" : undefined}
-            color={isCursored ? (isFocused ? "$selectedfg" : "$selected") : undefined}
-            dimColor={isCursored && !isFocused || undefined}
+            backgroundColor={isCursored ? "$selected" : undefined}
+            color={isCursored ? "$selectedfg" : undefined}
           >
-            <Text dimColor={!(isCursored && isFocused)}>{row.key.padEnd(maxKeyLen)} </Text>
+            <Text dimColor={!isCursored}>{row.key.padEnd(maxKeyLen)} </Text>
             <Text color={isCursored ? undefined : (row.valueColor ?? "$text")}>{row.value}</Text>
           </Box>
         )
@@ -746,9 +756,8 @@ function DetailSubitems({
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const isCursored = item.id === cursorNodeId
-        const cursorBg = isCursored && isFocused ? ("$selected" as const) : undefined
-        const cursorFg = isCursored ? (isFocused ? ("$selectedfg" as const) : ("$selected" as const)) : undefined
-        const cursorDim = isCursored && !isFocused || undefined
+        const cursorBg = isCursored ? ("$selected" as const) : undefined
+        const cursorFg = isCursored ? ("$selectedfg" as const) : undefined
         // Collapsed sections render muted with just the title + count
         // Comments and Attachments expand by default in detail pane (collapse only affects board view)
         const sectionName = getNodeDisplayName(repo, displayItem)
@@ -761,7 +770,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -783,7 +792,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -824,7 +833,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} dimColor={cursorDim}>
+            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}

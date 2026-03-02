@@ -859,8 +859,28 @@ describe("detail pane cursor styling", () => {
     board.expectNodeColor("task-1", { bg: TC.$selected })
 
     // Detail cursor item should no longer have gold background (unfocused)
+    // Per-pane theme: unfocused pane's $selected resolves to $text3 (gray) instead of gold
     const unfocusedSubColors = findTextColors(board, "sub-a")
     expect(unfocusedSubColors).not.toBeNull()
     expect(unfocusedSubColors!.bg, "unfocused detail cursor should NOT have gold bg").not.toBe(TC.$selected)
+    expect(unfocusedSubColors!.bg, "unfocused detail cursor should have dimmed $text3 bg").toBe(TC.$text3)
+  })
+
+  test("unfocused board pane uses dimmed selection via per-pane theme", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    // While focused, cursor card should have gold ($selected) border
+    board.expectNodeColor("task-1", { border: TC.$selected })
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail pane
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // Board pane is now unfocused — per-pane theme maps $selected → $text3 (gray)
+    // Cursor card border should resolve to gray, not gold
+    board.expectNodeColor("task-1", { border: TC.$text3 })
   })
 })

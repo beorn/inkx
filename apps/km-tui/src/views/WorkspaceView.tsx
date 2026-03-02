@@ -9,11 +9,12 @@
  * only a vertical separator between adjacent panes.
  */
 
-import React from "react"
-import { Box, Text } from "inkx"
+import React, { useMemo } from "react"
+import { Box, Text, useTheme } from "inkx"
 import { ownerPaneId, type LayoutNode, type PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
+import { deriveUnfocusedTheme } from "../theme.ts"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 import { PaneBar } from "./PaneBar.tsx"
 
@@ -153,6 +154,9 @@ function LayoutNodeView({
     const pane = panes.get(node.paneId)
     const isFocused = node.paneId === focusedPaneId
     const label = paneLabels.get(node.paneId)
+    const theme = useTheme()
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const paneTheme = useMemo(() => (isFocused ? undefined : deriveUnfocusedTheme(theme)), [isFocused, theme])
 
     if (!pane) {
       return (
@@ -167,7 +171,7 @@ function LayoutNodeView({
     const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
     return (
-      <Box flexGrow={1} flexDirection="column" focusScope testID={node.paneId} onMouseDown={() => onPaneClick?.(node.paneId)}>
+      <Box flexGrow={1} flexDirection="column" focusScope testID={node.paneId} theme={paneTheme} onMouseDown={() => onPaneClick?.(node.paneId)}>
         {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
         {/* Detail panes with renderDetailPane: DetailPane renders its own PaneBar */}
         {/* Detail panes without renderDetailPane / other panes: PaneTitleBar provides the top bar */}
