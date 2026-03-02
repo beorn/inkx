@@ -72,6 +72,18 @@ See the [domain → file mapping](../../../.claude/skills/tests/test-first-proto
 
 **Anti-pattern**: Creating `fold-border-blank.test.ts` — merge into `fold.slow.test.ts` instead.
 
+### Consolidation Target
+
+Current: ~112 files. Target: **~50-60 files** through domain-based consolidation. The domain mapping lists ~25-30 distinct areas — aim for roughly one file per domain.
+
+Each eliminated file saves ~1.8s of import overhead. Merging 20 files saves ~4s wall-clock time (distributed across 9 vitest workers).
+
+**How to consolidate**: Merge files sharing a domain prefix (e.g., all `cursor-*` files → `cursor.slow.test.ts`), absorb tiny files (<50 lines) into their domain file, combine tests with identical fixtures into journey tests. Use `describe` blocks to preserve logical grouping within the merged file.
+
+### Boundary Coverage
+
+Journey tests are the primary guard against bugs at layer boundaries (board↔storage, storage↔markdown). Ensure every major user action has a journey test that verifies **both** screen output AND persisted data — not just one or the other. If a journey test only checks screen state, a persistence bug slips through. If it only checks DB state, a rendering bug slips through.
+
 ## File Suffixes
 
 | Suffix | When | Example |

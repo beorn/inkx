@@ -31,12 +31,24 @@ test("fold action updates fold set and moves cursor", () => {
 })
 ```
 
-## Note on Test Count
+## This Package Needs More Tests
 
-This package has only 2 test files. Many board behaviors are currently tested through km-tui's `testEnv()` which exercises the full stack. Consider adding more pure reducer tests here when:
-- Testing complex action sequences (fold + zoom + cursor composition)
-- Testing state invariants that don't depend on rendering
-- The behavior is about state transitions, not visual output
+This package has only 2 test files. Most board behaviors are currently tested through km-tui's `testEnv()` (~1.8s per file). Pure reducer tests here cost ~50ms — **36x cheaper**.
+
+**Why fatten km-board tests** (validated by deep research, aligns with Bubble Tea/Elm best practices):
+- **Faster feedback**: Reducer tests run in ~50ms vs ~1.8s for testEnv()
+- **Precise failure localization**: A failing reducer test tells you WHERE; a failing journey test only tells you THAT
+- **Edge case coverage**: Some state machine edge cases are hard to reach through UI interaction
+- **Complements journey tests**: Unit tests don't replace journey tests — they complement them
+
+**Priority areas for new tests:**
+1. Fold/unfold edge cases: fold last card, fold empty column, fold nested, fold+zoom interaction
+2. Cursor movement rules: boundary behavior, wrapping, cursor-follows-fold/unfold
+3. Multi-action sequences: move+undo+redo, edit+move+undo restores both
+4. Selection invariants: cursor always points to valid node, selection is consistent after mutations
+5. Empty/degenerate states: empty board, single column, single card
+
+See `km-all.board-test-migration` (blocked on TEA machines refactor).
 
 ## Ad-Hoc Testing
 

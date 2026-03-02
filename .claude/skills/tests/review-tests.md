@@ -419,6 +419,7 @@ grep -l "parse\|parseMarkdown" packages/km-board/tests/*.test.ts 2>/dev/null
 - **Core test for a static lookup**: If `getX("y") === "z"` is a compile-time constant, the type system should enforce it — delete the test.
 - **Trivial boolean predicate tests**: `isDone("done") === true` — covered by types, delete.
 - **Property readback tests**: `createX({a: 1}).a === 1` — tests nothing, delete.
+- **Journey test checking only screen OR only persistence**: Should check BOTH — screen output AND saved data — to guard the full boundary chain.
 
 **Resolution:**
 1. Move the test to the correct layer, or
@@ -790,6 +791,20 @@ grep -r "name:" packages/km-storage/tests/sync/chaos/scenarios.ts
 ```bash
 # Playwright tests using hardcoded ports (should use dynamic)
 grep -r "7681" apps/km-tui/tests/*.playwright.ts
+```
+
+### Check for layer violations (CI candidate)
+
+These checks from Phase 3.8 could be automated as a CI lint step to continuously enforce layering:
+
+```bash
+# Fail CI if km-tui tests import km-markdown directly (should go through km-board/km-storage)
+echo "=== Direct parser imports in TUI tests ==="
+grep -l "from.*@km/markdown\|from.*km-markdown" apps/km-tui/tests/*.test.ts apps/km-tui/tests/*.spec.ts 2>/dev/null
+
+# Fail CI if .only() is left in committed tests
+echo "=== Stale .only() calls ==="
+grep -rn "\.only(" apps/*/tests/*.test.ts apps/*/tests/*.spec.ts packages/*/tests/*.test.ts 2>/dev/null | grep -v node_modules
 ```
 
 ### Check for slow tests not marked `.slow`

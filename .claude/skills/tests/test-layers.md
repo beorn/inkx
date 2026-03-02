@@ -71,6 +71,32 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 | **tap** | TAP stream merging, format conversion. | Nothing — standalone. |
 | **watcher-chaos** | Event stream corruption (drop, reorder, duplicate, burst) for chaos testing. | Nothing — standalone. |
 
+## Boundary Testing — When Trust Breaks Down
+
+The "trust the layer below" principle keeps tests focused, but bugs cluster at **boundaries** — where two layers' assumptions meet. Sometimes cross-layer verification is justified.
+
+### When cross-layer tests ARE warranted
+
+1. **Complex or implicit contracts**: If the interface between layers has subtle invariants that neither side fully specifies in its own tests, a test spanning both layers catches contract mismatches. Example: km-board assumes storage handles a certain action sequence, but storage changed its contract.
+
+2. **Consistently-wrong results**: Fuzz oracles catch *inconsistencies* (incremental != fresh) but not *consistently wrong* output. If flexx computes padding off-by-1 consistently, the differential fuzz oracle passes. A targeted inkx test asserting exact buffer positions catches this.
+
+3. **Feature combinations not covered by either layer**: If markdown content influences UI state (e.g., a special notation that collapses a card), neither km-markdown tests nor km-board tests alone cover it. A journey test exercising the full chain is the only guard.
+
+### Critical boundaries to watch
+
+| Boundary | Risk | Guard |
+|----------|------|-------|
+| **inkx → flexx** | Layout coordinates wrong but consistent | Targeted position assertions in inkx tests + golden file snapshots |
+| **km-tui → km-board** | Board reducer contract mismatch | Journey tests that verify BOTH screen AND state for every major action |
+| **km-board → km-storage** | Persistence assumption drift | Journey tests that verify saved data, not just screen |
+| **km-storage → km-markdown** | Parser edge case not in markdown tests | Ensure tricky real-world patterns (Obsidian, Asana) are tested at L2 |
+| **inkx → chalkx** | Low risk — stable, thin API | Unit tests sufficient; any breakage shows in UI color assertions |
+
+### The rule
+
+**Trust but verify at critical boundaries.** Don't re-test lower layers systematically, but DO write targeted integration tests where the interface is complex, implicit, or historically buggy. A few cross-boundary assertions are not the same as wholesale cross-layer re-testing.
+
 ## Value Check (before writing any test)
 
 Ask these three questions:
@@ -221,6 +247,76 @@ test("Obsidian callout with nested code block preserves structure", () => {
 })
 ```
 
+### Reducer Test (km-board)
+
+Test state machines in isolation — no rendering overhead. Each test costs ~50ms vs ~1.8s for testEnv(). The unit test tells you WHERE the bug is; the journey test tells you THAT something is broken.
+
+```typescript
+import { createBoardState, boardReducer } from "@km/board"
+
+test("fold + cursor + unfold round-trips cursor position", () => {
+  const state = createBoardState({ nodes, rootId: "board" })
+  const atCard = boardReducer(state, { type: "MOVE_CURSOR", to: "card-3" })
+  const folded = boardReducer(atCard, { type: "FOLD_NODE", nodeId: "col1" })
+
+  expect(folded.foldedNodes.has("col1")).toBe(true)
+  expect(folded.cursorId).not.toBe("card-3") // cursor moved away from folded content
+
+  const unfolded = boardReducer(folded, { type: "UNFOLD_NODE", nodeId: "col1" })
+  expect(unfolded.cursorId).toBe("card-3") // cursor restored
+})
+```
+
+Prioritize: fold/unfold edge cases, cursor movement rules, multi-action sequences (move+undo+redo), empty column handling, selection invariants.
+
+### Property-Based Test (km-markdown)
+
+For parser fidelity, property-based tests catch edge cases that hand-written examples miss. The key property: `roundtrip(md) === md` — parsing then serializing should preserve the original.
+
+```typescript
+import { gen, take } from "@beorn/vitestx"
+import { roundtrip } from "./helpers/test-utils"
+
+// Generate random markdown documents
+const mdGen = gen.oneOf(
+  gen.map(gen.string(), s => `# ${s}\n`),           // headings
+  gen.map(gen.string(), s => `- [ ] ${s}\n`),        // tasks
+  gen.map(gen.string(), s => `> ${s}\n`),             // blockquotes
+  gen.map(gen.array(gen.string()), lines =>           // paragraphs
+    lines.join("\n") + "\n\n"
+  ),
+)
+
+test.fuzz("markdown roundtrip preserves structure", () => {
+  const docs = take(mdGen, 100)
+  for (const md of docs) {
+    expect(roundtrip(md)).toBe(md)
+  }
+})
+```
+
+Also use for: frontmatter preservation, list nesting depth, inline formatting combinations.
+
+### Layout Verification Test (inkx)
+
+For the inkx→flexx boundary, assert exact buffer positions — not just content existence. The fuzz oracle catches inconsistencies, but these catch consistently-wrong layout.
+
+```typescript
+test("side-by-side boxes render at correct positions", () => {
+  const { buffer } = createRenderer(
+    <Box flexDirection="row" width={20}>
+      <Box width={10}><Text>LEFT</Text></Box>
+      <Box width={10}><Text>RIGHT</Text></Box>
+    </Box>
+  )
+  // LEFT starts at column 0, RIGHT starts at column 10
+  expect(buffer.cell(0, 0).char).toBe("L")
+  expect(buffer.cell(10, 0).char).toBe("R")
+})
+```
+
+Use sparingly — a handful of position-asserting tests at the inkx level catch flexx layout bugs that the fuzz oracle misses (consistently-wrong results).
+
 ### Parametric Variants (any layer)
 
 When testing N variants of the same behavior, use `test.each` — not N identical tests.
@@ -287,13 +383,13 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 ### km app
 
-- **km-board is thin** (2 test files). Most board behavior is tested through km-tui's `testEnv()`. This works but means board state logic can't be tested without rendering overhead. As action composition grows (fold + zoom + cursor), more pure reducer tests should migrate here. See `km-all.board-test-migration` (blocked on TEA machines).
+- **km-board needs more pure reducer tests** (currently 2 test files). Most board behavior is tested through km-tui's `testEnv()` (~1.8s overhead per file). Pure reducer tests cost ~50ms, give precise failure localization, and align with Bubble Tea/Elm best practices of testing the model layer in isolation. Priority areas: fold/unfold edge cases, cursor movement rules, multi-action sequences (move+undo+redo), empty column handling, selection invariants. See `km-all.board-test-migration` (blocked on TEA machines). The goal is not to replace journey tests but to complement them — the unit test pinpoints WHERE, the journey test confirms THAT everything works together.
 - **km-storage cross-tests parsing**. Some storage tests re-verify markdown edge cases. These belong in km-markdown — storage tests should trust the parser and focus on file ↔ DB integrity.
 - **km-tui tests sometimes skip screen assertions**. TUI tests that only check state/DB without verifying what the user sees may belong in km-board or km-storage. The value of km-tui tests is exercising the full pipeline: keys → screen → persistence.
 
 ### Vendor TUI stack
 
-- **inkx → flexx dependency is the critical boundary**. inkx trusts flexx for layout. A flexx caching bug could produce wrong positions in inkx's buffer. The flexx differential fuzz oracle (random tree → layout → dirty → relayout → compare) is the primary guard. No cross-package regression suite exists yet.
+- **inkx → flexx dependency is the critical boundary**. inkx trusts flexx for layout. The flexx differential fuzz oracle catches *inconsistencies* (incremental != fresh), but NOT *consistently wrong* results (e.g., padding off-by-1 that's consistent). To guard against the latter, add a few targeted inkx tests that assert exact buffer positions for known layouts (see [Layout Verification Test template](#layout-verification-test-inkx)). Also consider golden file snapshots for complex inkx layouts to catch position drift. No cross-package regression suite exists yet — these targeted tests are the recommended first step.
 - **inkx → chalkx dependency is stable**. chalkx's ANSI output is a thin, stable API. Unit tests are sufficient here.
 - **inkx-ui → inkx is consumer-level**. inkx-ui tests should verify component behavior (spinner animation, progress updates) without re-testing inkx rendering internals. Currently all `.test.ts`, no consumer-level specs.
 - **inkx has 199 test files but few consumer-facing tests**. Most tests are internal (buffer encoding, diff algorithm, scheduler). The consumer perspective ("render this component tree, press keys, verify buffer") is well-tested indirectly through km-tui's `testEnv()`, but inkx itself could benefit from more API-level tests that don't depend on km.
@@ -312,4 +408,33 @@ The import cost taxonomy in [test-first-protocol.md](test-first-protocol.md#test
 - A km-tui journey test will be Layer 2-3 in import cost AND Layer 5 semantically
 - If a test is high import cost but tests a low semantic layer, it's probably in the wrong place
 
-**Keywords**: test layers, test philosophy, value check, layer check, cross-layer testing, journey test, pipeline test, contract test
+## File Consolidation Targets
+
+112 TUI test files is high — the domain mapping lists ~25-30 distinct domains. Target: **~50-60 files** for km-tui through domain-based consolidation.
+
+| Action | Savings | Example |
+|--------|---------|---------|
+| Merge files sharing a domain prefix | ~1.8s per eliminated file | `cursor-colors.test.ts` + `cursor-stability.slow.spec.ts` → `cursor.slow.test.ts` |
+| Combine identical fixtures into journey tests | Reduced testEnv() calls | 5 separate fold tests → 1 fold journey test |
+| Absorb tiny files (<50 lines) into domain files | ~1.8s per absorbed file | Single-test regression file → existing domain file |
+
+**Don't merge**: Layer 0 (pure logic) into Layer 2+ files — makes light tests pay 1.8s overhead. Don't merge fast tests into `.slow.` files — removes them from the fast suite.
+
+**Estimated savings**: `(files_eliminated × 1.8s) / vitest_workers ≈ wall_clock_savings`. Example: 20 files × 1.8s / 9 workers ≈ 4s.
+
+## Benchmarks to Consider
+
+Beyond existing flexx layout and inkx rendering benchmarks:
+
+| Area | What to Measure | Why |
+|------|----------------|-----|
+| **Bulk rendering** | Board with 1000+ items: initial render + incremental update time | Catches nonlinear scaling in rendering pipeline |
+| **Input latency** | Time from keypress to rendered update (1000 sequential presses) | User-perceptible lag in interactive TUI |
+| **Sync at scale** | 1000+ file operations: scan, index, concurrent edit merge | Storage pipeline scaling |
+| **Large note rendering** | 10k+ line markdown file rendering | Text wrapping and scroll performance |
+| **CLI startup** | Time from `bun km` to first rendered frame | User-perceptible startup delay |
+| **Reducer throughput** | 1000 board actions (move+undo+redo churn) | State machine performance under load |
+
+Use `.bench.ts` suffix. Track regressions with `bench:compare`.
+
+**Keywords**: test layers, test philosophy, value check, layer check, cross-layer testing, journey test, pipeline test, contract test, boundary testing, property-based testing

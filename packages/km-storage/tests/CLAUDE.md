@@ -15,6 +15,8 @@
 - Board state transitions — those belong in km-board
 - How nodes render in the TUI — that's km-tui
 
+**Boundary note**: Trust km-markdown for parsing, but ensure tricky real-world content (Obsidian callouts, Asana exports, nested code blocks) is tested in km-markdown. If a storage test fails due to a parsing issue, the fix belongs in km-markdown with a new fidelity test — not here.
+
 ## Helpers
 
 ### `query-test-helpers.ts`

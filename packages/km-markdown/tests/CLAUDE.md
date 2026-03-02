@@ -73,6 +73,33 @@ test("quick check: my edge case", () => {
 })
 ```
 
+## Property-Based Testing
+
+For parser fidelity beyond hand-written examples, use property-based tests. The key property: **roundtrip preservation** — `roundtrip(md) === md`.
+
+```typescript
+import { gen, take } from "@beorn/vitestx"
+import { roundtrip } from "./helpers/test-utils"
+
+const mdGen = gen.oneOf(
+  gen.map(gen.string(), s => `# ${s}\n`),
+  gen.map(gen.string(), s => `- [ ] ${s}\n`),
+  gen.map(gen.string(), s => `> ${s}\n`),
+)
+
+test.fuzz("markdown roundtrip preserves structure", () => {
+  for (const md of take(mdGen, 100)) {
+    expect(roundtrip(md)).toBe(md)
+  }
+})
+```
+
+Good candidates for property-based tests:
+- Frontmatter preservation across parse/serialize
+- List nesting depth (arbitrary depth should roundtrip)
+- Inline formatting combinations (bold + italic + code)
+- Real-world document patterns (Obsidian, Asana exports)
+
 ## Efficiency
 
 Pure parsing — no database, no framework. These tests are fast (~20-50ms import). Keep them dependency-free. If a test needs a database or TUI, it belongs in a higher layer.
