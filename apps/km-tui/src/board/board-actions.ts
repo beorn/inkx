@@ -231,6 +231,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "NAV_SIBLING_BOARD":
       return handleNavSiblingBoard(ctx, action.direction)
     case "ZOOM_INWARDS":
+      // Scope-aware: if detail pane is focused, enter on detail cursor node
+      if (ctx.focusedPaneViewType() === "detail") {
+        return handleDetailEnter(ctx)
+      }
       return handleZoomInwards(ctx)
     case "FOLLOW_LINK":
       return handleFollowLink(ctx)
@@ -2113,8 +2117,10 @@ function handleDetailEnter(ctx: ActionCtx): Result<void, ActionError> {
   const enterNode = getDetailPaneCursorNode(ctx)
   if (enterNode) {
     saveNavHistory(ctx)
-    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
+    // Close detail pane first — this refocuses to the parent board pane,
+    // so the subsequent ZOOM_IN targets the board (not the detail pane).
     ctx.closeDetailPane()
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
   }
   return ok()
 }

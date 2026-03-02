@@ -531,7 +531,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "detail-pane",
     bindings: [
-      { key: "Return", commandId: "zoom_inwards", when: isInDetailPane },
+      { key: "Enter", commandId: "zoom_inwards", when: isInDetailPane },
     ],
   },
 

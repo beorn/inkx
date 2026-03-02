@@ -163,6 +163,33 @@ describe("Detail Pane Journeys", () => {
     expect(pane2?.cursorNodeId).toBe("__topbar__")
   })
 
+  test("Enter on structural child zooms board and closes detail pane", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Step 1: Open detail pane
+    board.press("D")
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+
+    // Step 2: Focus detail pane with n
+    board.press("n")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // Step 3: Navigate to structural child (folders have no metadata)
+    board.press("j")
+    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(detailPane?.cursorNodeId).toBe("child-a")
+
+    // Step 4: Enter zooms board into child-a and closes detail
+    board.press("Enter")
+    const ws = store.getState().workspace
+    expect(ws.panes.has("main-detail")).toBe(false)
+    expect(ws.focusedPaneId).toBe("main")
+    expect((ws.panes.get("main") as { rootId?: string })?.rootId).toBe("child-a")
+  })
+
   test("detail pane stays open when navigating between columns", () => {
     const { board, store } = testEnv(
       () =>
