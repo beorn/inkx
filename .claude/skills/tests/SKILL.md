@@ -146,17 +146,20 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ### Test File Suffixes
 
-| Suffix          | What It Tests                   |
-| --------------- | ------------------------------- |
-| `.test.ts`      | Unit/component - core logic     |
-| `.spec.ts`      | TUI acceptance - user behavior  |
-| `.slow.test.ts` | Heavy TUI tests (>5s), sync, real vault |
-| `.bench.ts`     | Performance measurement (vitest bench) |
-| `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) |
-| `.test.md`      | CLI commands via mdtest         |
+| Suffix          | What It Tests                   | Layer |
+| --------------- | ------------------------------- | ----- |
+| `.spec.ts`      | **User-level journeys** — keys in, observations out | km-tui (Layer 5) |
+| `.test.ts`      | Unit/component/pipeline — internal API | All layers |
+| `.slow.test.ts` | Heavy TUI tests (>5s), sync, real vault | Layers 3-5 |
+| `.slow.spec.ts` | Heavy user-level journeys (>5s) | km-tui (Layer 5) |
+| `.bench.ts`     | Performance measurement (vitest bench) | Any |
+| `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) | Any |
+| `.test.md`      | CLI commands via mdtest         | km-cli |
+
+**When to use `.spec.ts`**: If the test presses keys and asserts what the user sees + what got saved, use `.spec.ts`. If it calls internal functions or checks internal state, use `.test.ts`. See [test-layers.md](test-layers.md#when-suffix-should-be-spects-vs-testts) for details.
 
 **Rules**:
-- Tests taking >5s should be `.slow.test.ts`
+- Tests taking >5s should be `.slow.test.ts` or `.slow.spec.ts`
 - **Stress tests, large fixtures (100+ nodes), high iteration counts (100+), and performance measurements MUST be `.bench.ts`** — never `.test.ts` or `.slow.test.ts`. They run via `bun run bench`, not `test:all`.
 - Ad-hoc debugging tests that aren't evergreen regression guards should be deleted, not committed
 
@@ -236,6 +239,7 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | Need                         | Load                                            |
 | ---------------------------- | ----------------------------------------------- |
 | TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
+| Test layering philosophy     | [test-layers.md](test-layers.md)                |
 | TUI testing (inkx)           | [tui.md](tui.md)                                |
 | CLI testing (mdtest)         | [cli.md](cli.md)                                |
 | GUI/TTY testing (ttyd/playwright)| [gui.md](gui.md)                                |

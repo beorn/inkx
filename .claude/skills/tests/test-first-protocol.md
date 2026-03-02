@@ -6,11 +6,12 @@ description: Shared test-first protocol referenced by all skills
 
 Every bug fix, feature, and refactor follows this protocol:
 
-1. **Write a failing test FIRST** — before any fix/implementation code
-2. **Verify it fails for the right reason** — the test must demonstrate the actual bug/missing feature
-3. **Implement the minimal change** — fix only what's broken, no extras
-4. **Verify the test passes** — run `bun run test:fast`
-5. **Run full suite** — `bun run test:fast` must stay green (no regressions)
+1. **Value check** — does this test belong at this layer? Does it test what this layer adds? See [test-layers.md](test-layers.md) for the layering philosophy and anti-patterns.
+2. **Write a failing test FIRST** — before any fix/implementation code
+3. **Verify it fails for the right reason** — the test must demonstrate the actual bug/missing feature
+4. **Implement the minimal change** — fix only what's broken, no extras
+5. **Verify the test passes** — run `bun run test:fast`
+6. **Run full suite** — `bun run test:fast` must stay green (no regressions)
 
 For rendering bugs, use **buffer assertions** (not just state assertions):
 - `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` — see [tui.md](tui.md#buffer-assertions)

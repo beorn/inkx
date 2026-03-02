@@ -24,6 +24,7 @@ Review tests for pruning, overlap, and architecture alignment.
 - [Phase 2.5: Layer Analysis](#phase-25-layer-analysis)
 - [Phase 3: Overlap Detection](#phase-3-overlap-detection)
 - [Phase 3.5: File Proliferation Check](#phase-35-file-proliferation-check)
+- [Phase 3.8: Layer Violation Detection](#phase-38-layer-violation-detection)
 - [Phase 4: Smell Detection](#phase-4-smell-detection)
 - [Phase 5: Report](#phase-5-report)
 
@@ -384,6 +385,46 @@ During consolidation, note tests that overlap with existing tests in the target 
 **Estimated savings**: `(files_eliminated × 1.8s) / vitest_workers ≈ wall_clock_savings`
 Example: 15 files × 1.8s / 9 workers ≈ 3s wall-clock improvement.
 
+## Phase 3.8: Layer Violation Detection
+
+Detect tests that re-test behavior owned by a lower layer. Reference [test-layers.md](test-layers.md) for what each layer should test vs trust.
+
+```bash
+# km-storage tests that re-verify markdown parsing (belongs in km-markdown)
+echo "=== Storage tests re-testing parsing ==="
+grep -l "parse\|parseMarkdown\|parseDocument" packages/km-storage/tests/*.test.ts 2>/dev/null | \
+  xargs -I{} grep -l "expect.*heading\|expect.*listItem\|expect.*blockquote" {} 2>/dev/null
+
+# km-tui tests that only check state, never screen (belongs in km-board)
+echo -e "\n=== TUI tests that never check screen output ==="
+for f in apps/km-tui/tests/*.test.ts; do
+  [ -f "$f" ] || continue
+  if grep -q "expect(" "$f" && ! grep -q "board\.expect\|expectRow\|expectNodeColor\|screen\.\|toExist\|toHaveStyle\|buffer" "$f"; then
+    echo "  $(basename "$f") — state-only assertions, may belong in km-board"
+  fi
+done 2>/dev/null
+
+# km-core tests that verify static lookups (type system should enforce)
+echo -e "\n=== Core tests verifying static mappings ==="
+grep -n "expect(get.*For.*).toBe\|expect(map\[" packages/km-core/tests/*.test.ts 2>/dev/null
+
+# km-board tests that re-parse markdown (belongs in km-markdown)
+echo -e "\n=== Board tests re-testing parsing ==="
+grep -l "parse\|parseMarkdown" packages/km-board/tests/*.test.ts 2>/dev/null
+```
+
+**Red flags:**
+- **Storage test asserting AST structure**: Parsing belongs in km-markdown. Storage should test file ↔ DB round-trips.
+- **TUI test with no screen assertions**: If it only checks state/DB, it belongs in km-board or km-storage.
+- **Core test for a static lookup**: If `getX("y") === "z"` is a compile-time constant, the type system should enforce it — delete the test.
+- **Trivial boolean predicate tests**: `isDone("done") === true` — covered by types, delete.
+- **Property readback tests**: `createX({a: 1}).a === 1` — tests nothing, delete.
+
+**Resolution:**
+1. Move the test to the correct layer, or
+2. Delete if lower-layer tests already cover it, or
+3. Elevate to a journey test if it's testing a user-visible behavior at the wrong abstraction level
+
 ## Phase 4: Smell Detection
 
 Apply checklist from `docs/dev/test-review.md`:
@@ -395,6 +436,9 @@ Apply checklist from `docs/dev/test-review.md`:
 - Obsolete features
 - Flaky tests
 - Covered by types
+- **Cross-layer re-testing** — test re-verifies behavior owned by a lower layer (see Phase 3.8)
+- **Trivial property readback** — `createX({a: 1}).a === 1`
+- **Static map testing** — `getMarkerForStatus("done") === "[x]"` when the type system enforces the mapping
 
 **Fix candidates**:
 

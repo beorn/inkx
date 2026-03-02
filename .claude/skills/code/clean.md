@@ -265,6 +265,20 @@ if (String(row.id) === String(targetId)) { ... }
 
 **During `/code clean` review:** If you see something that looks wrong but is actually correct, that's exactly where a comment is needed. Add one — don't "fix" it. Flag any non-obvious change that lacks an inline explanation.
 
+## Test Consistency
+
+When reviewing code, also check that nearby test files follow the [test layering philosophy](../tests/test-layers.md):
+
+| Check | What to look for |
+|-------|-----------------|
+| **Layer placement** | Does the test verify what its layer adds? A km-storage test re-verifying markdown parsing belongs in km-markdown. |
+| **Cross-layer re-testing** | Tests that duplicate assertions from a lower layer (e.g., km-tui test checking reducer state shape instead of screen output). |
+| **Trivial tests** | Static map lookups, boolean predicate readback, property construction readback — delete if the type system enforces them. |
+| **Copy-paste variants** | N identical tests differing by one parameter → `test.each`. |
+| **Missing journey tests** | Multiple isolated km-tui tests that could be one multi-step journey exercising the same fixture. |
+
+Don't refactor tests during a code clean pass — just flag them. Use `/tests review` for systematic test cleanup.
+
 ## Anti-Patterns (Do NOT)
 
 - **Add lines to reduce complexity scores** - if refactoring adds 50+ lines, stop
