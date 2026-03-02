@@ -18,6 +18,8 @@ For rendering bugs, use **buffer assertions** (not just state assertions):
 
 **Never**: theorize without a test, skip the failing-test step, guess at fixes, or close a bead without a test that specifically targets the issue.
 
+**Non-obvious tests need rationale**: If the test guards a subtle edge case, add a comment explaining why it exists and when it's safe to remove. See [test-layers.md](test-layers.md#non-obvious-tests-need-rationale).
+
 ## Where to Put Regression Tests
 
 **Always add to an existing thematic test file first.** Only create a new file if no domain match exists AND the test would seed 5+ related cases.

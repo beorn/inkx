@@ -43,6 +43,28 @@ Ask these three questions:
    - km-markdown: AST structure from parsed markdown
    - km-core: return values, side-effect counts, invariant holds
 
+## Non-Obvious Tests Need Rationale
+
+If a test's purpose isn't self-evident from its name and assertions, add a comment explaining:
+
+1. **Why it exists** — what bug or edge case it guards against (bead ID, issue link, or description)
+2. **When it's safe to remove** — what condition would make this test obsolete
+
+```typescript
+// Guards against cursor drift when folding the last visible card in a column.
+// Without this, fold collapses the card but cursor stays at the old index,
+// pointing past the end of the visible list. See beads-k8m2x.
+// Safe to remove: if fold logic moves to a state machine with cursor-follows-fold built in.
+test("fold last card moves cursor up", () => { ... })
+
+// Regression: Obsidian callouts with nested code blocks lost the closing fence.
+// The parser was greedily consuming `>` prefixed lines including the fence.
+// Safe to remove: if we switch to a streaming parser that handles nesting natively.
+test("callout with nested code block preserves fence", () => { ... })
+```
+
+Tests without rationale look like candidates for deletion during reviews. The 5 seconds spent writing a comment saves 5 minutes of archaeology later.
+
 ## Anti-Pattern: Cross-Layer Re-Testing
 
 **Bad** — tests that re-verify behavior owned by a lower layer:
