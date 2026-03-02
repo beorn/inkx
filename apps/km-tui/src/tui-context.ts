@@ -121,6 +121,8 @@ export interface ActionCtx {
   cyclePaneFocus: (direction: "next" | "prev") => void
   /** Jump focus to pane by number (1-indexed, based on tab order) */
   focusPaneByNumber: (number: number) => void
+  /** Focus a specific pane by ID (updates workspace.focusedPaneId + saves/restores state) */
+  focusPaneById: (paneId: string) => void
 
   // === Workspace pane operations (Phase 5: resize, zoom, close-all, swap) ===
   /** Resize the focused pane by delta on the given axis */
@@ -139,6 +141,8 @@ export interface ActionCtx {
   activateEmptyPane: () => void
   /** Get the focused pane's viewType */
   focusedPaneViewType: () => "board" | "detail" | "empty"
+  /** Get the current focused pane ID from workspace state */
+  focusedPaneId: () => string
 
   // === Utilities ===
   /** Count visible descendants for outline mode */

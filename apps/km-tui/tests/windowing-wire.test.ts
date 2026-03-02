@@ -19,7 +19,7 @@ import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { StoreContext } from "inkx/runtime"
 import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
-import { createBoardState, createPaneState, isBoardPane } from "../src/board-types.ts"
+import { createBoardState, createPaneState, isBoardPane, isDetailPaneId } from "../src/board-types.ts"
 import type { PersistedWorkspace } from "../src/workspace-persist.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
@@ -478,5 +478,257 @@ describe("windowing — workspace restoration with detail-focused save", () => {
 
     const activePaneAfter = getActiveBoardPane(store.getState())!
     expect(activePaneAfter.cursorNodeId).toBe("task-2")
+  })
+})
+
+// =============================================================================
+// Pane focus + cursor: scope-aware tests
+//
+// Tests for focus scope initialization, pane switching via `n`, cursor movement
+// after focus changes, and scope-aware command dispatch.
+// =============================================================================
+
+describe("pane focus scopes — cursor movement in single-pane mode", () => {
+  test("j moves cursor down in single-pane board", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Initial cursor should be on first task
+    board.expect("#task-1[data-cursor]").toExist()
+
+    // Press j to move down
+    board.press("j")
+    board.expect("#task-2[data-cursor]").toExist()
+
+    // Press j again
+    board.press("j")
+    board.expect("#task-3[data-cursor]").toExist()
+  })
+
+  test("k moves cursor up in single-pane board", () => {
+    const { board } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
+      { columns: 80, rows: 24 },
+    )
+
+    board.press("j").press("j") // Move to task-3
+    board.expect("#task-3[data-cursor]").toExist()
+
+    board.press("k") // Move up to task-2
+    board.expect("#task-2[data-cursor]").toExist()
+  })
+})
+
+describe("pane focus scopes — detail pane toggle and focus", () => {
+  test("D opens detail pane and board keeps focus", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Toggle detail pane open
+
+    // Board should still be the focused pane
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+    // Detail pane should exist
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+  })
+
+  test("n cycles focus from board to detail pane", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+
+    board.press("n") // Cycle focus to detail pane
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+  })
+
+  test("n cycles focus back from detail to board", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    board.press("n") // Cycle back to board
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+  })
+})
+
+describe("pane focus scopes — cursor movement after pane focus change", () => {
+  test("j moves board cursor when board is focused", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane (board stays focused)
+
+    // j should move the board cursor
+    board.expect("#task-1[data-cursor]").toExist()
+    board.press("j")
+    board.expect("#task-2[data-cursor]").toExist()
+  })
+
+  test("j moves detail cursor when detail pane is focused", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail pane
+
+    // Detail pane should be focused
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // j in detail pane should move detail cursor, not board cursor
+    const boardCursorBefore = getActiveBoardPane(store.getState())
+    board.press("j") // Move detail cursor down
+
+    // Board cursor should NOT have changed (it's in the other pane)
+    // The board pane's cursor should remain on task-1
+    const mainPane = store.getState().workspace.panes.get("main")!
+    expect(mainPane.cursorNodeId).toBe("task-1")
+  })
+
+  test("cursor is preserved when switching back to board", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
+      { columns: 120, rows: 24 },
+    )
+
+    // Move cursor to task-2
+    board.press("j")
+    board.expect("#task-2[data-cursor]").toExist()
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail
+
+    // Do some navigation in detail pane
+    board.press("j")
+
+    // Switch back to board
+    board.press("n")
+
+    // Board cursor should still be on task-2
+    board.expect("#task-2[data-cursor]").toExist()
+  })
+
+  test("h returns focus from detail pane to board (left navigation)", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    board.press("h") // Left should return to board
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+  })
+
+  test("l navigates from board into detail pane (right navigation)", () => {
+    const { board, store } = testEnv(
+      () =>
+        item.root(
+          "board",
+          item("col1", item("task-1")),
+        ),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+
+    // l from rightmost column should enter detail pane
+    board.press("l")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+  })
+})
+
+describe("pane focus scopes — Escape layering with scope-aware commands", () => {
+  test("Escape in detail pane returns focus to board, pane stays open", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    board.press("Escape") // Should return focus to board
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+    // Detail pane should still be open
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+  })
+
+  test("second Escape closes detail pane when board is already focused", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail
+    board.press("Escape") // Return to board
+    board.press("Escape") // Close detail pane
+
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+  })
+})
+
+describe("pane focus scopes — activeScopeId tracks focused pane", () => {
+  test("activeScopeId is board pane when board is focused", () => {
+    const { board, focusManager, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane (board keeps focus)
+
+    // Board pane is focused, scope should be the board pane ID
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+    expect(isDetailPaneId(focusManager.activeScopeId ?? "")).toBe(false)
+  })
+
+  test("activeScopeId is detail pane when detail is focused", () => {
+    const { board, focusManager, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail pane
+
+    // Detail pane is focused, scope should be the detail pane ID
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    expect(isDetailPaneId(focusManager.activeScopeId ?? "")).toBe(true)
+  })
+
+  test("activeScopeId switches back to board when returning", () => {
+    const { board, focusManager, store } = testEnv(
+      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
+      { columns: 120, rows: 24 },
+    )
+
+    board.press("D") // Open detail pane
+    board.press("n") // Focus detail pane
+    expect(isDetailPaneId(focusManager.activeScopeId ?? "")).toBe(true)
+
+    board.press("n") // Back to board
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+    expect(isDetailPaneId(focusManager.activeScopeId ?? "")).toBe(false)
   })
 })

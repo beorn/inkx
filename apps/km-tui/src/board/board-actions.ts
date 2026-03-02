@@ -21,6 +21,7 @@ import { createLogger } from "@beorn/logger"
 import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
+import { ownerPaneId, detailPaneIdFor } from "../board-types.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
@@ -287,29 +288,39 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "HELP_SCROLL_DOWN":
       ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
       return ok()
-    case "CLOSE_DETAIL_PANE":
+    case "CLOSE_DETAIL_PANE": {
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
       ctx.closeDetailPane()
-      ctx.focus("board-area")
-      return ok()
-    case "FOCUS_BOARD":
-      ctx.focus("board-area")
+      ctx.focusPaneById(boardPane)
       ctx.syncFocusScope()
       return ok()
-    case "FOCUS_DETAIL":
+    }
+    case "FOCUS_BOARD": {
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
+      ctx.focusPaneById(boardPane)
+      ctx.syncFocusScope()
+      return ok()
+    }
+    case "FOCUS_DETAIL": {
       if (!ctx.hasDetailPane) {
         ctx.openDetailPane()
       }
-      ctx.focus("detail-pane")
+      const detailPane = detailPaneIdFor(ownerPaneId(ctx.focusedPaneId()))
+      ctx.focusPaneById(detailPane)
       ctx.syncFocusScope()
       // Default to topbar cursor if no cursor set
       if (!ctx.getDetailCursorId()) {
         ctx.setDetailCursor(DETAIL_TOPBAR_ID)
       }
       return ok()
-    case "TOGGLE_DETAIL_PANE":
+    }
+    case "TOGGLE_DETAIL_PANE": {
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
       ctx.toggleDetailPane()
-      ctx.focus("board-area")
+      ctx.focusPaneById(boardPane)
+      ctx.syncFocusScope()
       return ok()
+    }
     case "ZOOM_OUTWARDS":
       return handleZoomOutwards(ctx)
     case "ZOOM_TO_ROOT":
@@ -1153,11 +1164,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
 
     // === Detail pane ===
-    case "DETAIL_PANE_CLOSE":
+    case "DETAIL_PANE_CLOSE": {
       // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
-      ctx.focus("board-area")
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
+      ctx.focusPaneById(boardPane)
       ctx.syncFocusScope()
       return ok()
+    }
     case "DETAIL_PANE_CURSOR_DOWN": {
       const detailNode = getDetailPaneNode(ctx)
       if (detailNode) {
@@ -1564,15 +1577,19 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   }
 
   // --- Layer 2: Pane focused -> focus board (pane stays open) ---
-  if (ctx.hasDetailPane && ctx.focusManager.getSnapshot().activeId === "detail-pane") {
-    ctx.focus("board-area")
+  if (ctx.hasDetailPane && ctx.focusedPaneViewType() === "detail") {
+    const boardPane = ownerPaneId(ctx.focusedPaneId())
+    ctx.focusPaneById(boardPane)
+    ctx.syncFocusScope()
     return ok()
   }
 
   // --- Layer 2b: Pane open but unfocused -> close pane ---
   if (ctx.hasDetailPane) {
+    const boardPane = ownerPaneId(ctx.focusedPaneId())
     ctx.closeDetailPane()
-    ctx.focus("board-area")
+    ctx.focusPaneById(boardPane)
+    ctx.syncFocusScope()
     return ok()
   }
 
@@ -2073,7 +2090,8 @@ function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
 function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, ActionError> {
   if (dir === "left") {
     // Left exits detail pane focus (returns to board), pane stays open
-    ctx.focus("board-area")
+    const boardPane = ownerPaneId(ctx.focusedPaneId())
+    ctx.focusPaneById(boardPane)
     ctx.syncFocusScope()
     return ok()
   }

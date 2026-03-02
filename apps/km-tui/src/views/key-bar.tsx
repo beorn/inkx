@@ -8,6 +8,7 @@
 import React from "react"
 import { Box, Text, useFocusManager } from "inkx"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
+import { isDetailPaneId } from "../board-types.ts"
 
 /** A single key hint: key label + action description */
 interface KeyHint {
@@ -92,8 +93,8 @@ interface KeyBarProps {
 }
 
 export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
-  const { activeId } = useFocusManager()
-  const mode = getKeyBarMode(ui, activeId === "detail-pane")
+  const { activeScopeId } = useFocusManager()
+  const mode = getKeyBarMode(ui, activeScopeId !== null && isDetailPaneId(activeScopeId))
   const hints = getHints(mode, ui.multiSelected.size > 0)
 
   return (

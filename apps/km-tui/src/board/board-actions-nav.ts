@@ -12,6 +12,7 @@ import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import { getDetailItemsForNode, DETAIL_TOPBAR_ID } from "../views/detail-pane-items.ts"
+import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { KNode } from "@km/core"
 import type { NavState } from "../view-navigation.ts"
@@ -155,9 +156,10 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
 
   // At the right boundary, navigate into the detail pane if it exists as a workspace pane.
   if (dir === "right" && ctx.hasDetailPane) {
-    const alreadyInDetail = ctx.focusManager.getSnapshot().activeId === "detail-pane"
-    if (!alreadyInDetail) {
-      ctx.focus("detail-pane")
+    if (ctx.focusedPaneViewType() !== "detail") {
+      const detailPane = detailPaneIdFor(ctx.focusedPaneId())
+      ctx.focusPaneById(detailPane)
+      ctx.syncFocusScope()
       // Set initial detail cursor to topbar (the item itself) if not already set
       if (!ctx.getDetailCursorId()) {
         ctx.setDetailCursor(DETAIL_TOPBAR_ID)

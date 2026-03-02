@@ -529,7 +529,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "detail-pane",
     bindings: [
       // Escape unfocuses pane (returns to board) — pane stays open per v2 spec
-      // isInDetailPane = focus tree activeId === "detail-pane", NOT showDetailPane
+      // isInDetailPane = activeScopeId matches detail pane (scope-based, NOT showDetailPane)
       { key: "Escape", commandId: "detail_pane.close", when: isInDetailPane },
       { key: "j", commandId: "detail_pane.cursor_down", when: isInDetailPane },
       { key: "k", commandId: "detail_pane.cursor_up", when: isInDetailPane },

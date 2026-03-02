@@ -13,12 +13,13 @@ import type { PaneUI } from "../../src/ui-reducer.ts"
 
 const render = createRenderer()
 
-/** Render KeyBar with a FocusManager that has the given testID focused */
-function renderWithFocus(ui: PaneUI, termWidth: number, focusedId?: string) {
+/** Render KeyBar with a FocusManager that has the given scope active */
+function renderWithFocus(ui: PaneUI, termWidth: number, scopeId?: string) {
   const fm = createFocusManager()
-  if (focusedId) {
-    // Create a synthetic node to set active focus
-    fm.focus({ props: { testID: focusedId }, children: [], parent: null } as any, "programmatic")
+  // Activate scope BEFORE render so the component sees activeScopeId during initial render
+  if (scopeId) {
+    const scopeNode = { props: { testID: scopeId, focusScope: true }, children: [], parent: null } as any
+    fm.activateScope(scopeId, scopeNode)
   }
   return render(
     React.createElement(FocusManagerContext.Provider, { value: fm }, React.createElement(KeyBar, { ui, termWidth })),
@@ -120,7 +121,7 @@ describe("KeyBar", () => {
   })
 
   it("shows PANE mode when detail pane is focused", () => {
-    const app = renderWithFocus(makeUI(), 80, "detail-pane")
+    const app = renderWithFocus(makeUI(), 80, "board-detail")
     const text = app.text
     expect(text).toContain("PANE")
     expect(text).toContain("Enter")
