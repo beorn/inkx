@@ -58,7 +58,7 @@ export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | nul
       selected: "#EBCB8B", // Selected = primary
       selectedfg: "#1A1A1A", // Dark on gold
       control: "#B8A06E", // Muted gold
-      link: "#A8DBFF", // Bright clean blue
+      link: "#C0E8FF", // Light sky blue
       focusring: "#4A9EFF", // Bright blue
       // Status — warm tones
       error: "#E06C75", // Warm red
