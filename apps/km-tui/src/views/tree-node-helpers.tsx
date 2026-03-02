@@ -91,7 +91,7 @@ export function getNodeStyle(
   _dimInactiveChildren: boolean,
   _depth: number,
   isInlineEditing = false,
-  paneFocused = true,
+  _paneFocused = true,
 ): NodeStyleResult {
   const nodeIsTask = isTask(node)
   const ownColor = getOwnColor(node)
@@ -112,15 +112,9 @@ export function getNodeStyle(
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected || isMultiSelected) {
-    if (paneFocused) {
-      // Focused pane: bright yellow background, black foreground
-      backgroundColor = "$selected"
-      textColor = "$selectedfg"
-    } else {
-      // Unfocused pane: no background, yellow text dimmed
-      backgroundColor = undefined
-      textColor = "$selected"
-    }
+    // Selected: gold bg, dark text. Per-pane theme dims $selected for unfocused panes.
+    backgroundColor = "$selected"
+    textColor = "$selectedfg"
   } else {
     // Default: no explicit color — use terminal's default foreground (bright white in dark themes)
     // Explicit "white"/"whiteBright" may render as grey depending on terminal color scheme

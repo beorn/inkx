@@ -53,33 +53,42 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
   return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
 }
 
-/** Derive an unfocused variant: shifts all colors down one level so the
- * inactive pane is visually subdued compared to the focused pane.
- *
- * - Text: each level shifts down (text→text2, text2→text3, text3→text4)
- * - Primary/control/link: dim to text2 (secondary text)
- * - Selection: dim to separator bg with text2 fg — still visible but muted
- * - Status colors: shift to text2 (lose color distinction — unfocused, who cares)
- */
+/** Dim a single color value — same hue, reduced brightness.
+ * Truecolor (#RRGGBB): multiply RGB by factor.
+ * ANSI 16: map bright variants to normal (redBright→red). */
+function dimColor(color: string, factor = 0.6): string {
+  if (!color) return color
+  if (color.startsWith("#") && color.length === 7) {
+    const r = Math.round(parseInt(color.slice(1, 3), 16) * factor)
+    const g = Math.round(parseInt(color.slice(3, 5), 16) * factor)
+    const b = Math.round(parseInt(color.slice(5, 7), 16) * factor)
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
+  }
+  // ANSI 16: bright → normal is the closest we can get to "dimming"
+  if (color.endsWith("Bright")) return color.slice(0, -"Bright".length)
+  return color
+}
+
+/** Derive an unfocused variant: every color is dimmed proportionally.
+ * Same hues, same structure — just less bright so the focused pane stands out. */
 export function deriveUnfocusedTheme(theme: Theme): Theme {
   return {
     ...theme,
     name: `${theme.name}-unfocused`,
-    // Text hierarchy: shift everything down one level
-    text: theme.text2,
-    text2: theme.text3,
-    text3: theme.text4,
-    // Brand: dim to secondary text
-    primary: theme.text2,
-    control: theme.text3,
-    link: theme.text2,
-    // Selection: visible but muted (separator bg instead of bright primary)
-    selected: theme.separator,
-    selectedfg: theme.text2,
-    // Status: lose color, just dim text
-    error: theme.text2,
-    warning: theme.text2,
-    success: theme.text2,
+    primary: dimColor(theme.primary),
+    link: dimColor(theme.link),
+    control: dimColor(theme.control),
+    selected: dimColor(theme.selected),
+    selectedfg: dimColor(theme.selectedfg),
+    focusring: dimColor(theme.focusring),
+    text: dimColor(theme.text),
+    text2: dimColor(theme.text2),
+    text3: dimColor(theme.text3),
+    text4: dimColor(theme.text4),
+    separator: dimColor(theme.separator),
+    error: dimColor(theme.error),
+    warning: dimColor(theme.warning),
+    success: dimColor(theme.success),
   }
 }
 
