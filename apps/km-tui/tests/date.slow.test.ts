@@ -377,9 +377,9 @@ describe("date badge display", () => {
     }
   })
 
-  it("card border intact at various terminal widths with date badge", () => {
-    // Test across different terminal widths to check for rounding issues
-    for (const cols of [40, 50, 60, 70, 80, 100, 120]) {
+  it.each([40, 50, 60, 70, 80, 100, 120])(
+    "card border intact at %d cols with date badge",
+    (cols) => {
       const nodes = item(
         "board",
         item("col1", item.task("After Delei gets ring - change to d@delei.org")),
@@ -427,8 +427,8 @@ describe("date badge display", () => {
           }
         }
       }
-    }
-  })
+    },
+  )
 
   it("card border intact after navigation with date badge", () => {
     // Test that incremental rendering after cursor movement preserves borders

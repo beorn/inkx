@@ -761,8 +761,9 @@ describe("card border: date badge overflow", () => {
     }
   })
 
-  test("right border intact with long title and date badge at various widths", () => {
-    for (const termWidth of [30, 35, 40, 45, 50, 60, 80]) {
+  test.each([30, 35, 40, 45, 50, 60, 80])(
+    "right border intact with long title and date badge at %d cols",
+    (termWidth) => {
       const taskNodes = item.task("After Delei gets ring - change to d@delei.org")
       if (taskNodes[0]) {
         taskNodes[0].due_at = "2026-09-30T00:00:00Z"
@@ -772,7 +773,7 @@ describe("card border: date badge overflow", () => {
 
       const taskId = taskNodes[0]!.id
       const box = board.screen.nodeBox(taskId)
-      if (!box) continue
+      if (!box) return
 
       const borderRight = box.x + box.width
       if (borderRight < termWidth) {
@@ -784,8 +785,8 @@ describe("card border: date badge overflow", () => {
           ).toBe(true)
         }
       }
-    }
-  })
+    },
+  )
 })
 
 // ─── Card Overflow: Title Wrap Lines ──────────────────────────────────────────
@@ -904,14 +905,14 @@ describe("col-header-last-char", () => {
     expect(text).toContain("PORTFOLIO")
   })
 
-  test("column header last char not eaten by off-by-one", () => {
-    const names = ["SPRINT", "BACKLOG", "SCHEDULE", "PORTFOLIO", "PRODUCTIVITY"]
-    for (const name of names) {
+  test.each(["SPRINT", "BACKLOG", "SCHEDULE", "PORTFOLIO", "PRODUCTIVITY"])(
+    "column header last char not eaten by off-by-one: %s",
+    (name) => {
       const { board } = testEnv(() => item.root("board", item(name, item("task"))), { columns: 80, rows: 15 })
       const text = board.screenshot()
       expect(text, `Column "${name}" should be fully visible`).toContain(name)
-    }
-  })
+    },
+  )
 
   test("PUA nerdfont icons measured as 1-wide (km-tui.col-trunc2)", () => {
     // Nerdfont icons in the Private Use Area (U+E000-U+F8FF) are measured as

@@ -179,8 +179,9 @@ describe("km-qlib7: asymmetric horizontal scroll", () => {
 describe("km-tui.hscroll-partial: partial column visibility triggers scroll", () => {
   // Test at widths where maxCols >= 2 (columns narrower than viewport).
   // Widths 60, 65 have maxCols=1 and column width > viewport — a separate issue.
-  for (const width of [73, 75, 77, 85]) {
-    test(`width=${width}: cursor column is fully visible after navigating right`, () => {
+  test.each([73, 75, 77, 85])(
+    "width=%d: cursor column is fully visible after navigating right",
+    (width) => {
       const { board } = testEnv(
         () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
         { columns: width, rows: 20 },
@@ -207,8 +208,8 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
           `col3 right edge (${col3Box.x + col3Box.width}) should be <= viewport width (${width}) at width=${width}`,
         ).toBeLessThanOrEqual(width)
       }
-    })
-  }
+    },
+  )
 
   test("navigating to last column and back preserves full visibility", () => {
     // Use width=73 (a known failing width before the fix)
@@ -240,9 +241,9 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
     }
   })
 
-  test("widths where column fits: scroll ensures full visibility at various sizes", () => {
-    // Representative widths: narrow boundary (70), mid (80), wide (100), very wide (120)
-    for (const width of [70, 80, 100, 120]) {
+  test.each([70, 80, 100, 120])(
+    "scroll ensures full visibility at width=%d",
+    (width) => {
       const { board } = testEnv(
         () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
         { columns: width, rows: 20 },
@@ -256,8 +257,8 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
       if (col3Box) {
         expect(col3Box.x + col3Box.width, `col3 right edge at width=${width}`).toBeLessThanOrEqual(width)
       }
-    }
-  })
+    },
+  )
 })
 
 describe("Horizontal scroll indicators", () => {

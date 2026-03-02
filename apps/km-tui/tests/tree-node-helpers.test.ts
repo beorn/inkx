@@ -1,14 +1,20 @@
 /**
- * Implicit task detection tests
+ * Tree node helper tests
  *
- * Nodes with task-related properties (due_at, priority, start_at,
- * assigned_to, rrule) should be treated as implicit tasks even without
- * an explicit task_status. They should show task icons and metadata badges.
+ * Consolidated from:
+ * - implicit-task.test.ts (hasTaskProperties, getNodeStyle, formatInfoSuffix, visual rendering)
+ * - short-names.test.ts (shortName, formatInfoSuffix with short names, visual rendering)
+ *
+ * Tests for the display helpers in tree-node-helpers.tsx:
+ * - hasTaskProperties: detects implicit tasks (due_at, priority, start_at, assigned_to, rrule)
+ * - getNodeStyle: task status icons, dimming
+ * - shortName: assignee name abbreviation
+ * - formatInfoSuffix: info suffix with board pills, assignee codes
  */
 import { describe, it, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { hasTaskProperties } from "@km/core"
-import { formatDateBadge, formatInfoSuffix, getNodeStyle } from "../src/views/tree-node-helpers.tsx"
+import { formatDateBadge, formatInfoSuffix, getNodeStyle, shortName } from "../src/views/tree-node-helpers.tsx"
 import type { KNode } from "@km/core"
 
 // =============================================================================
@@ -73,7 +79,53 @@ describe("getNodeStyle with implicit tasks", () => {
 })
 
 // =============================================================================
-// Unit tests: formatInfoSuffix shows board pills for implicit tasks
+// Unit tests: shortName
+// =============================================================================
+
+describe("shortName", () => {
+  it("converts hyphenated name to initials", () => {
+    expect(shortName("bjorn-stabell")).toBe("BS")
+  })
+
+  it("converts single word to first letter", () => {
+    expect(shortName("beorn")).toBe("B")
+  })
+
+  it("handles multiple hyphens", () => {
+    expect(shortName("alice-bob-charlie")).toBe("ABC")
+  })
+
+  it("handles underscores", () => {
+    expect(shortName("john_doe")).toBe("JD")
+  })
+
+  it("handles spaces", () => {
+    expect(shortName("Jane Smith")).toBe("JS")
+  })
+
+  it("handles mixed separators", () => {
+    expect(shortName("foo-bar_baz qux")).toBe("FBBQ")
+  })
+
+  it("uppercases lowercase input", () => {
+    expect(shortName("alice")).toBe("A")
+  })
+
+  it("preserves already uppercase", () => {
+    expect(shortName("Alice-Bob")).toBe("AB")
+  })
+
+  it("handles single character", () => {
+    expect(shortName("x")).toBe("X")
+  })
+
+  it("handles leading/trailing separators", () => {
+    expect(shortName("-alice-")).toBe("A")
+  })
+})
+
+// =============================================================================
+// Unit tests: formatInfoSuffix
 // =============================================================================
 
 describe("formatInfoSuffix with implicit tasks", () => {
@@ -95,8 +147,32 @@ describe("formatInfoSuffix with implicit tasks", () => {
   })
 })
 
+describe("formatInfoSuffix with short names", () => {
+  const noopGetBoardPills = () => []
+
+  it("shows short code for hyphenated assignee", () => {
+    const node = { assigned_to: "bjorn-stabell", task_status: "todo" } as KNode
+    const suffix = formatInfoSuffix(node, false, new Set(), noopGetBoardPills)
+    expect(suffix).toContain("@BS")
+    expect(suffix).not.toContain("bjorn-stabell")
+  })
+
+  it("shows short code for single-word assignee", () => {
+    const node = { assigned_to: "beorn", task_status: "todo" } as KNode
+    const suffix = formatInfoSuffix(node, false, new Set(), noopGetBoardPills)
+    expect(suffix).toContain("@B")
+    expect(suffix).not.toContain("@beorn")
+  })
+
+  it("compact mode does not show assignee", () => {
+    const node = { assigned_to: "bjorn-stabell", task_status: "todo" } as KNode
+    const suffix = formatInfoSuffix(node, true, new Set(), noopGetBoardPills)
+    expect(suffix).not.toContain("@")
+  })
+})
+
 // =============================================================================
-// Integration: visual rendering
+// Integration: implicit task rendering
 // =============================================================================
 
 describe("implicit task rendering", () => {
@@ -125,7 +201,7 @@ describe("implicit task rendering", () => {
     board.expectScreen("P2")
   })
 
-  it("node with due_at shows task icon (□)", () => {
+  it("node with due_at shows task icon (\u25A1)", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_at = "2026-03-20"
@@ -133,14 +209,14 @@ describe("implicit task rendering", () => {
     taskNode.task_marker = undefined
 
     const { board } = testEnv(() => nodes)
-    // The □ (white square) todo icon should appear
+    // The \u25A1 (white square) todo icon should appear
     board.expectScreen("\u25A1")
   })
 
   it("plain node without task properties has no task icon", () => {
     const nodes = item("board", item("col", item.paragraph("plain text")))
     const { board } = testEnv(() => nodes)
-    // Should NOT have the □ task icon
+    // Should NOT have the \u25A1 task icon
     board.expectScreenNot("\u25A1")
   })
 
@@ -155,5 +231,30 @@ describe("implicit task rendering", () => {
     // shortName("beorn") → "B", so displays as "@B"
     const { board } = testEnv(() => nodes, { viewMode: "columns" })
     board.expectScreen("@B")
+  })
+})
+
+// =============================================================================
+// Integration: short-names rendering
+// =============================================================================
+
+describe("short-names integration", () => {
+  it("columns view shows short assignee code", () => {
+    const nodes = item("board", item("col", item("task1")))
+    const taskNode = nodes.find((n) => n.id === "task1")!
+    taskNode.assigned_to = "bjorn-stabell"
+
+    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+    board.expectScreen("@BS")
+    board.expectScreenNot("bjorn-stabell")
+  })
+
+  it("single-word assignee shows first letter", () => {
+    const nodes = item("board", item("col", item("task1")))
+    const taskNode = nodes.find((n) => n.id === "task1")!
+    taskNode.assigned_to = "alice"
+
+    const { board } = testEnv(() => nodes, { viewMode: "columns" })
+    board.expectScreen("@A")
   })
 })

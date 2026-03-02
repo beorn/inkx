@@ -1,15 +1,18 @@
 /**
- * Visual test toolbelt and navigation rendering tests.
+ * Visual test toolbelt, spatial helpers, and navigation rendering tests.
  *
  * Consolidated from:
  * - visual-toolbelt.test.ts (screen access, assertions, color, borders)
  * - visual-navigation-rendering.test.tsx (card position registration, findItemAtY)
+ * - spatial-helpers.spec.ts (at(), columns(), cards() spatial queries)
+ * - dim-subtree.test.ts (dim styling for done/dropped task children)
  */
 
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "inkx/testing"
 import { createGridNavigator } from "@km/board"
 import { createFakeRepo } from "@km/storage"
+import { createTestBoard } from "@km/tui/test"
 import { testEnv, item, renderBoardWithStore } from "./helpers/board-test.ts"
 
 // =============================================================================
@@ -223,5 +226,157 @@ describe("Visual navigation integration: card position registration", () => {
 
     // Should find 2b (index 1) since it's at similar Y to 1b
     expect(foundIdx).toBe(1)
+  })
+})
+
+// =============================================================================
+// Spatial helpers: at(), columns(), cards()
+// =============================================================================
+
+describe("spatial helpers", () => {
+  test("at() returns element info with bounding box", () => {
+    const board = createTestBoard(["Col1 > Task A", "Col1 > Task B", "Col2 > Task C"])
+
+    const colInfo = board.at("#Col1")
+    expect(colInfo.exists).toBe(true)
+    expect(colInfo.text).toContain("Task A")
+    expect(colInfo.box).toBeDefined()
+    if (colInfo.box) {
+      expect(colInfo.box.width).toBeGreaterThan(0)
+      expect(colInfo.box.height).toBeGreaterThan(0)
+    }
+  })
+
+  test("columns() returns column info array", () => {
+    const board = createTestBoard(["Col1 > A", "Col1 > B", "Col2 > C", "Col3 > D"])
+
+    const cols = board.columns()
+    expect(cols.length).toBeGreaterThanOrEqual(2) // At least 2 visible in 80 cols
+    expect(cols[0].cardCount).toBe(2) // Col1 has 2 cards
+    expect(cols[0].hasCursor).toBe(true) // Cursor starts in first column
+  })
+
+  test("cards() returns card info array", () => {
+    const board = createTestBoard(["Col > Task A", "Col > Task B", "Col > Task C"])
+
+    const cards = board.cards()
+    expect(cards.length).toBe(3)
+    expect(cards[0].text).toBe("Task A")
+    expect(cards[0].column).toBe(0)
+    expect(cards[0].hasCursor).toBe(true) // Cursor on first card
+  })
+
+  test("cursor moves update card.hasCursor", () => {
+    const board = createTestBoard(["Col > A", "Col > B", "Col > C"])
+
+    let cards = board.cards()
+    expect(cards[0].hasCursor).toBe(true)
+    expect(cards[1].hasCursor).toBe(false)
+
+    board.press("j")
+
+    cards = board.cards()
+    expect(cards[0].hasCursor).toBe(false)
+    expect(cards[1].hasCursor).toBe(true)
+  })
+})
+
+// =============================================================================
+// Dim subtree: children of done/dropped tasks are dimmed
+// =============================================================================
+
+describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
+  test("done task's sub-items are dimmed in outline view", () => {
+    // Create a folder with children, then mark it as done task
+    const nodes = item("board", item("col1", item("doneParent", item("child1"), item("child2"))))
+    const parent = nodes.find((n) => n.id === "doneParent")!
+    parent.task_status = "done"
+    parent.task_marker = "[x]"
+    parent.list_marker = "-"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // Use Tab to expand the card outline so children are visible
+    board.press("Tab")
+
+    const shot = board.screenshot()
+    expect(shot, "screenshot should contain child1").toContain("child1")
+
+    const childBox = board.screen.nodeBox("child1")
+    expect(childBox, "child1 should have a nodeBox").not.toBeNull()
+    if (!childBox) return
+
+    const row = board.screen.row(childBox.y)
+    const childIdx = row.indexOf("child1")
+    expect(childIdx, "child1 text should be in the row").toBeGreaterThan(-1)
+
+    const cell = board.screen.cell(childIdx, childBox.y)
+    expect(cell.attrs.dim, "child of done task should be dimmed").toBe(true)
+  })
+
+  test("dropped task's sub-items are dimmed", () => {
+    const nodes = item("board", item("col1", item("droppedParent", item("child1"))))
+    const parent = nodes.find((n) => n.id === "droppedParent")!
+    parent.task_status = "dropped"
+    parent.task_marker = "[-]"
+    parent.list_marker = "-"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    board.press("Tab")
+
+    const childBox = board.screen.nodeBox("child1")
+    expect(childBox, "child1 should be visible").not.toBeNull()
+    if (!childBox) return
+
+    const row = board.screen.row(childBox.y)
+    const childIdx = row.indexOf("child1")
+    expect(childIdx).toBeGreaterThan(-1)
+
+    const cell = board.screen.cell(childIdx, childBox.y)
+    expect(cell.attrs.dim, "child of dropped task should be dimmed").toBe(true)
+  })
+
+  test("open task's sub-items are NOT dimmed when parent is selected", () => {
+    const nodes = item("board", item("col1", item("openParent", item("child1"))))
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    board.press("Tab")
+
+    const childBox = board.screen.nodeBox("child1")
+    expect(childBox, "child1 should be visible").not.toBeNull()
+    if (!childBox) return
+
+    const row = board.screen.row(childBox.y)
+    const childIdx = row.indexOf("child1")
+    expect(childIdx).toBeGreaterThan(-1)
+
+    const cell = board.screen.cell(childIdx, childBox.y)
+    expect(cell.attrs.dim, "child of open task should not be dimmed").toBeFalsy()
+  })
+
+  test("done task's title itself is dimmed (non-selected)", () => {
+    const nodes = item("board", item("col1", item("doneParent", item("child1")), item.task("otherTask")))
+    const parent = nodes.find((n) => n.id === "doneParent")!
+    parent.task_status = "done"
+    parent.task_marker = "[x]"
+    parent.list_marker = "-"
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // Move cursor to otherTask so doneParent is not selected
+    board.press("j")
+
+    const nodeBox = board.screen.nodeBox("doneParent")
+    expect(nodeBox, "doneParent should be visible").not.toBeNull()
+    if (!nodeBox) return
+
+    const row = board.screen.row(nodeBox.y)
+    const titleIdx = row.indexOf("doneParent")
+    expect(titleIdx).toBeGreaterThan(-1)
+
+    const cell = board.screen.cell(titleIdx, nodeBox.y)
+    expect(cell.attrs.dim, "done task title should be dimmed").toBe(true)
   })
 })

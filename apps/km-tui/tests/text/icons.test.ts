@@ -6,65 +6,47 @@ import { describe, it, expect } from "vitest"
 import { getStatusIcon, getTypeIcon, type StatusIcon } from "../../src/index.ts"
 
 describe("getStatusIcon", () => {
-  const knownStatuses: Array<[string, string, string]> = [
+  it.each([
     ["todo", "□", "$text"],
     ["wip", "□", "$warning"],
     ["blocked", "✗", "$error"],
     ["done", "✓", "$success"],
     ["dropped", "✗", "$muted"],
-  ]
+  ] as const)("returns %s icon with correct char and color", (status, char, color) => {
+    const icon = getStatusIcon(status)
+    expect(icon.char).toBe(char)
+    expect(icon.color).toBe(color)
+  })
 
-  for (const [status, char, color] of knownStatuses) {
-    it(`returns ${char} (${color}) for ${status}`, () => {
-      const icon = getStatusIcon(status)
-      expect(icon.char).toBe(char)
-      expect(icon.color).toBe(color)
-    })
-  }
+  it.each([null, undefined])("returns red warning triangle for %s (missing status)", (val) => {
+    const icon = getStatusIcon(val)
+    expect(icon.char).toBe("⚠")
+    expect(icon.color).toBe("$error")
+    expect(icon.backgroundColor).toBeUndefined()
+  })
 
-  for (const val of [null, undefined]) {
-    it(`returns red warning triangle for ${val} (missing status)`, () => {
-      const icon = getStatusIcon(val)
-      expect(icon.char).toBe("⚠")
-      expect(icon.color).toBe("$error")
-      expect(icon.backgroundColor).toBeUndefined()
-    })
-  }
-
-  for (const status of ["invalid", "x"]) {
-    it(`returns first char with inverted colors for unrecognized '${status}'`, () => {
-      const icon = getStatusIcon(status)
-      expect(icon.char).toBe(status[0])
-      expect(icon.color).toBe("$selectedfg")
-      expect(icon.backgroundColor).toBe("$text")
-    })
-  }
+  it.each(["invalid", "x"])("returns first char with inverted colors for unrecognized '%s'", (status) => {
+    const icon = getStatusIcon(status)
+    expect(icon.char).toBe(status[0])
+    expect(icon.color).toBe("$selectedfg")
+    expect(icon.backgroundColor).toBe("$text")
+  })
 })
 
 describe("getTypeIcon", () => {
-  const outlineTypes: Array<[string, string]> = [
+  it.each([
     ["folder", "📁"],
     ["mdfile", "📄"],
     ["mdsection", "#"],
-  ]
+  ] as const)("returns %s icon for outline (h, item=true) %s", (fstype, icon) => {
+    expect(getTypeIcon("h", fstype, true)).toBe(icon)
+  })
 
-  for (const [fstype, icon] of outlineTypes) {
-    it(`returns ${icon} for outline (h, item=true) ${fstype}`, () => {
-      expect(getTypeIcon("h", fstype, true)).toBe(icon)
-    })
-  }
+  it.each(["p", "code", "quote"])("returns empty string for %s", (type) => {
+    expect(getTypeIcon(type)).toBe("")
+  })
 
-  const emptyTypes = ["p", "code", "quote"]
-  for (const type of emptyTypes) {
-    it(`returns empty string for ${type}`, () => {
-      expect(getTypeIcon(type)).toBe("")
-    })
-  }
-
-  const middleDotTypes = ["unknown", "list-item"]
-  for (const type of middleDotTypes) {
-    it(`returns middle dot for ${type}`, () => {
-      expect(getTypeIcon(type)).toBe("·")
-    })
-  }
+  it.each(["unknown", "list-item"])("returns middle dot for %s", (type) => {
+    expect(getTypeIcon(type)).toBe("·")
+  })
 })
