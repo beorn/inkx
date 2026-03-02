@@ -82,7 +82,7 @@ export const screenshotCommand = new Command("screenshot")
         cardIndex: 0,
         isAtCardLevel: true,
       },
-      ui: createInitialUIState(viewMode, [], { columns: width, rows: height }),
+      ui: createInitialUIState({ columns: width, rows: height }),
       derivedSelectionLevel: "card" as const,
       dimensions: { columns: width, rows: height },
       navigator: createGridNavigator(),

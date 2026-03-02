@@ -89,7 +89,15 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
-### inkx Usage (TUI components)
+### inkx & Vendor Philosophy
+
+**inkx should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in inkx, don't expect consumers to work around it.
+
+**km is inkx's perfect showcase.** It should leverage the framework to its fullest — never reinvent what inkx provides, never work around inkx problems. If km builds something generally useful that isn't in inkx, ask whether it belongs in inkx. If inkx has a bug or missing feature, fix it in inkx directly (vendor packages are git submodules — fix them in place).
+
+**This applies to all `vendor/` packages**, not just inkx. Never work around vendor bugs; fix them at the source.
+
+#### Theme & Token Patterns
 
 | Anti-Pattern | Correct Pattern | Why |
 |---|---|---|
@@ -216,6 +224,47 @@ Not all high-complexity functions need extraction. Suppress with `oxlint-disable
 
 **Rule of thumb**: If the fallback masks a bug that would be better caught during development, throw instead. Silent fallbacks turn immediate crashes into mysterious downstream failures.
 
+## Non-Obvious Changes Must Be Self-Explanatory
+
+**It should be trivially easy to understand why any non-obvious change exists.** This applies to code, configuration, tests, docs, build settings, lint overrides — anything. A reader — human or AI — should never need to dig through git blame, beads, or Slack to figure out why something looks "wrong." The explanation belongs right there, inline.
+
+**When to comment:**
+- The "obvious" version is actually broken
+- A workaround for a dependency/platform bug
+- Ordering, guards, or type coercions that exist for a specific reason
+- A config value or lint override that prevents a specific failure
+- A test assertion that looks wrong but guards a real edge case
+- An approach was chosen after trying and rejecting alternatives
+
+**What to include:**
+1. **What goes wrong without it** (the concrete failure, not just "it breaks")
+2. **A reference** when one exists: GitHub issue URL, docs link, bead ID, or commit hash
+
+```typescript
+// Flush before close — without this, last write is silently dropped
+// on Bun <1.2. See https://github.com/oven-sh/bun/issues/8921
+await stream.flush()
+
+// Sort AFTER filter. Sorting first is O(n²) on large lists because
+// filter re-indexes the sparse array. See beads-k8m2x.
+items = items.filter(predicate).sort(comparator)
+
+// String comparison, not ===. SQLite returns bigint for INTEGER
+// PRIMARY KEY on some drivers — strict equality silently fails.
+if (String(row.id) === String(targetId)) { ... }
+```
+
+```jsonc
+// tsconfig.json
+{
+  // Required: Bun's module resolution doesn't follow Node's
+  // exports map for workspace packages. See beads-j3nx1.
+  "paths": { "@km/*": ["./packages/*/src"] }
+}
+```
+
+**During `/code clean` review:** If you see something that looks wrong but is actually correct, that's exactly where a comment is needed. Add one — don't "fix" it. Flag any non-obvious change that lacks an inline explanation.
+
 ## Anti-Patterns (Do NOT)
 
 - **Add lines to reduce complexity scores** - if refactoring adds 50+ lines, stop
@@ -224,7 +273,7 @@ Not all high-complexity functions need extraction. Suppress with `oxlint-disable
 - **Extract helpers for single-use code** - 3 similar lines is fine, don't create a function
 - **Create abstractions "for future flexibility"** - solve today's problem only
 - **Add type complexity that hurts readability** - inference is usually enough
-- **Remove comments that explain "why"** - keep the narrative
+- **Remove comments that explain "why"** - keep the narrative (see Non-Obvious Changes above)
 - **Change behavior while simplifying** - refactor ≠ rewrite
 
 **The test**: After refactoring, is the code shorter or the same length? If not, reconsider.
