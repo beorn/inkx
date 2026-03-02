@@ -1,3 +1,6 @@
+// NOTE: This is a pure state test (no screen assertions). It belongs in km-board
+// but can't move yet because the source module (cursor-store.ts) lives in
+// km-tui/src. Move this test when cursor-store.ts migrates to @km/board.
 import { describe, it, expect } from "vitest"
 import { deriveCursorAncestors } from "../src/cursor-store.ts"
 

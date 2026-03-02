@@ -1,3 +1,6 @@
+// NOTE: This is a pure state test (no screen assertions). It belongs in km-board
+// but can't move yet because the source module (path.ts) lives in km-tui/src and
+// depends on sibling-index.ts. Move this test when path.ts migrates to @km/board.
 import { describe, expect, it } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"

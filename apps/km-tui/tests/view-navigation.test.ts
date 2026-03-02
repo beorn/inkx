@@ -3,6 +3,10 @@
  *
  * Tests the cards view navigation policy — the core of the navigation refactor.
  * Uses createFakeRepo + a mock GridNavigator.
+ *
+ * NOTE: This is a pure state test (no screen assertions). It belongs in km-board
+ * but can't move yet because the source module (view-navigation.ts) lives in
+ * km-tui/src. Move this test when view-navigation.ts migrates to @km/board.
  */
 
 import { describe, it, expect } from "vitest"
