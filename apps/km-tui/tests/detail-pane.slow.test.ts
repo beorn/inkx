@@ -2122,7 +2122,7 @@ describe("detail pane focus + topbar cursor", () => {
     board.expectScreen("task2")
   })
 
-  test("n (pane_focus_next) keeps detail pane node — detail is slaved to board cursor", { timeout: 5000 }, () => {
+  test("n (pane_focus_next) keeps detail pane node — detail tracks board cursor", { timeout: 5000 }, () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item.task("task1"), item.task("task2"))),
       { checkIncremental: false, incremental: false },
