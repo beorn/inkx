@@ -116,6 +116,12 @@ Catalog opportunities in these categories:
 - `$selected`=cyan, `$focusring`=blueBright, `$separator`=gray
 - `$bg`="" (transparent), `$raisedbg`=black
 
+**Mandatory pairing**: `$selected` as backgroundColor MUST pair with `$selectedfg` as foreground. Gold-on-white is unreadable; gold needs dark text.
+
+**Dim via inheritance, not explicit color**: Prefer `dimColor` over explicit dim-color props. Let text inherit its color from the parent and use `dimColor` to reduce brightness. This respects theme tokens and unfocused pane dimming.
+
+**Audit check**: Grep for hardcoded hex colors (`#[0-9a-fA-F]{6}`) and named terminal colors (`"red"`, `"cyan"`, `"white"`, etc.) in TSX/component files. Exception: icon color definitions in `icons.ts`, image rendering, and `theme.ts` itself.
+
 ### Logging Standards
 
 Check for incorrect logging patterns:

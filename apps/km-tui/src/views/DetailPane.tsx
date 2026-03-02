@@ -27,7 +27,7 @@ import {
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
 import { PaneBar } from "./PaneBar.tsx"
-import { computeFolderDetailItems, DETAIL_META_PREFIX } from "./detail-pane-items.ts"
+import { computeFolderDetailItems, DETAIL_META_PREFIX, DETAIL_TOPBAR_ID, KNOWN_DATA_KEYS } from "./detail-pane-items.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -86,14 +86,17 @@ interface InternalDetailPaneProps {
   detailCursorNodeId: string | null
 }
 
-/** Top bar for detail panes — icon + title, styled like ColumnHeader via PaneBar.
- * Always uses gold background when the pane is focused (like column headers). */
+/** Top bar for detail panes — icon + title via PaneBar.
+ * $selected bg when cursor is on the topbar, $border bg otherwise. */
 function DetailPaneTopBar({
   node,
   isFocused,
+  isCursored,
 }: {
   node: KNode
   isFocused: boolean
+  /** Whether the detail cursor is on the topbar row. */
+  isCursored: boolean
 }): React.ReactElement {
   const repo = useRepo()
   const paneLabel = usePaneLabel()
@@ -106,11 +109,9 @@ function DetailPaneTopBar({
       ? getNodeIcon(node.task_status, undefined, true)
       : getColumnHeaderIcon(node, iconStyle, false)
 
-  // Gold background (like selected column headers).
-  // Per-pane theme dims $selected for unfocused panes automatically.
-  const bg = "$selected"
-  const iconColor = "$selectedfg"
-  const textColor = "$selectedfg"
+  // $selected bg when cursor is on topbar, $border (white-ish) otherwise
+  const bg = isCursored ? "$selected" : undefined
+  const fg = isCursored ? "$selectedfg" : undefined
 
   return (
     <PaneBar
@@ -118,13 +119,13 @@ function DetailPaneTopBar({
       backgroundColor={bg}
       paneLabel={paneLabel}
       left={
-        <Text bold={isFocused} color={textColor} wrap="truncate">
+        <Text bold={isFocused} color={fg} wrap="truncate">
           {" "}
-          <Text color={iconColor}>{icon.char}</Text> <InlineText text={title} />
+          <Text color={isCursored ? fg : icon.color}>{icon.char}</Text> <InlineText text={title} />
         </Text>
       }
       right={
-        <Text color={textColor}>
+        <Text color={fg} dimColor={!isCursored}>
           {node.type} {node.id.length > 8 ? node.id.slice(0, 8) : node.id}
         </Text>
       }
@@ -171,7 +172,7 @@ function FolderDetailPane({
 
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={detailCursorNodeId === DETAIL_TOPBAR_ID} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
@@ -309,7 +310,7 @@ function TaskDetailPane({
 
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={detailCursorNodeId === DETAIL_TOPBAR_ID} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
@@ -454,45 +455,7 @@ function formatDataValue(v: unknown): string {
   return String(v)
 }
 
-const KNOWN_DATA_KEYS = new Set([
-  // Parser-generated
-  "tags",
-  "mentions",
-  "projects",
-  "projectMemberships",
-  "short_id",
-  "props",
-  "propsRaw",
-  "block_id",
-  "metadata",
-  "name",
-  "title",
-  "rrule",
-  "fstype",
-  "rules",
-  "tag",
-  "item_count",
-  "is_repo_root",
-  "embeddingTarget",
-  // Internal aggregation (parser)
-  "_h1Title",
-  "_allMentions",
-  "_allTags",
-  "_allProjects",
-  // Import provenance (shown in footer instead)
-  "imported_from",
-  "imported_at",
-  "asana_project_id",
-  // Containment tree (shown via breadcrumb)
-  "workspace",
-  "team",
-  // Timestamps (mapped to native fields)
-  "created_at",
-  "modified_at",
-  // Dependencies (rendered in MetadataTable)
-  "deps",
-  "blocks",
-])
+// KNOWN_DATA_KEYS imported from detail-pane-items.ts
 
 interface MetadataRow {
   key: string
