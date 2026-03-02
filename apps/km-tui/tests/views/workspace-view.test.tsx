@@ -39,7 +39,7 @@ function stubCursorStore() {
 function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState {
   const cs = stubCursorStore()
   if (viewType === "detail") {
-    return createDetailPaneState(id, { rootNodeId: null, cursorId: null, slavedTo: null, cursorStore: cs })
+    return createDetailPaneState(id, { rootNodeId: null, cursorId: null, cursorStore: cs })
   }
   if (viewType === "empty") {
     return createEmptyPaneState(id, cs)

@@ -100,21 +100,22 @@ export function getFocusedPane(state: BoardAppState): PaneState {
 /**
  * Get the board pane that keyboard commands and navigation should target.
  *
- * If the focused pane is a board, returns it. Otherwise returns the most
- * recent board pane (for commands that operate on the board while a
- * detail/empty pane is focused).
+ * If the focused pane is a board, returns it directly.
+ * If focused on a detail pane, returns its owner board (derived from pane ID convention).
+ * For empty panes, falls back to any board pane.
  */
 export function getActiveBoardPane(state: BoardAppState): BoardPaneState | null {
-  const focused = state.workspace.panes.get(state.workspace.focusedPaneId)
+  const focusedId = state.workspace.focusedPaneId
+  const focused = state.workspace.panes.get(focusedId)
   if (focused && isBoardPane(focused)) return focused
 
-  // Not focused on a board — try previous pane
-  if (state.workspace.previousFocusedPaneId) {
-    const prev = state.workspace.panes.get(state.workspace.previousFocusedPaneId)
-    if (prev && isBoardPane(prev)) return prev
+  // Detail pane → owner board pane (derived from ID convention)
+  if (isDetailPaneId(focusedId)) {
+    const owner = state.workspace.panes.get(ownerPaneId(focusedId))
+    if (owner && isBoardPane(owner)) return owner
   }
 
-  // Last resort: find any board pane
+  // Last resort (empty pane focused): find any board pane
   for (const pane of state.workspace.panes.values()) {
     if (isBoardPane(pane)) return pane
   }
@@ -686,12 +687,10 @@ export function createBoardAppStoreState(
 
       setDetailCursor(id: string | null) {
         set((state) => {
-          const focusedPaneId = state.workspace.focusedPaneId
-          const detailId = detailPaneIdFor(focusedPaneId)
-          const pane = state.workspace.panes.get(detailId)
-          if (!pane || !isDetailPane(pane)) return state
+          const pane = getDetailPaneFor(state.workspace, state.workspace.focusedPaneId)
+          if (!pane) return state
           const newPanes = new Map(state.workspace.panes)
-          newPanes.set(detailId, { ...pane, cursorId: id })
+          newPanes.set(pane.id, { ...pane, cursorId: id })
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
       },
@@ -740,8 +739,9 @@ export function createBoardAppStoreState(
         set((state) => {
           const focusedPaneId = state.workspace.focusedPaneId
           // If focused on a detail pane, close self and focus owner; otherwise close the detail for the focused board pane
-          const detailId = isDetailPaneId(focusedPaneId) ? focusedPaneId : detailPaneIdFor(focusedPaneId)
-          const boardId = isDetailPaneId(focusedPaneId) ? ownerPaneId(focusedPaneId) : focusedPaneId
+          const isDetail = isDetailPaneId(focusedPaneId)
+          const detailId = isDetail ? focusedPaneId : detailPaneIdFor(focusedPaneId)
+          const boardId = isDetail ? ownerPaneId(focusedPaneId) : focusedPaneId
           if (!state.workspace.panes.has(detailId)) return state
 
           const newPanes = new Map(state.workspace.panes)

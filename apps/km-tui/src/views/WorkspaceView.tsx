@@ -11,7 +11,7 @@
 
 import React from "react"
 import { Box, Text } from "inkx"
-import type { LayoutNode, PaneState } from "../board-types.ts"
+import { ownerPaneId, type LayoutNode, type PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
 import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
@@ -45,9 +45,8 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
     if (!pane) continue
 
     if (pane.viewType === "detail") {
-      // Detail pane — find parent board pane's number
-      // Convention: detail pane IDs end with "-detail" (e.g., "main-detail", "pane-2-detail")
-      const parentId = paneId.replace(/-detail$/, "")
+      // Detail pane — find parent board pane's number via ownerPaneId()
+      const parentId = ownerPaneId(paneId)
       const parentLabel = labels.get(parentId)
       if (parentLabel) {
         labels.set(paneId, `${parentLabel}d`)
