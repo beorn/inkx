@@ -53,14 +53,33 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
   return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
 }
 
-/** Derive an unfocused variant: dims selection tokens so inactive pane is visually muted.
- * Selection becomes subtle gray instead of bright gold, while text remains readable. */
+/** Derive an unfocused variant: shifts all colors down one level so the
+ * inactive pane is visually subdued compared to the focused pane.
+ *
+ * - Text: each level shifts down (text→text2, text2→text3, text3→text4)
+ * - Primary/control/link: dim to text2 (secondary text)
+ * - Selection: dim to separator bg with text2 fg — still visible but muted
+ * - Status colors: shift to text2 (lose color distinction — unfocused, who cares)
+ */
 export function deriveUnfocusedTheme(theme: Theme): Theme {
   return {
     ...theme,
     name: `${theme.name}-unfocused`,
-    selected: theme.text3, // tertiary text (gray) — gold → gray
-    selectedfg: theme.text, // normal text — still readable
+    // Text hierarchy: shift everything down one level
+    text: theme.text2,
+    text2: theme.text3,
+    text3: theme.text4,
+    // Brand: dim to secondary text
+    primary: theme.text2,
+    control: theme.text3,
+    link: theme.text2,
+    // Selection: visible but muted (separator bg instead of bright primary)
+    selected: theme.separator,
+    selectedfg: theme.text2,
+    // Status: lose color, just dim text
+    error: theme.text2,
+    warning: theme.text2,
+    success: theme.text2,
   }
 }
 
