@@ -527,11 +527,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   // --- Layer 6: Detail pane ---
   // Navigation (j/k/h/J/K/gg/G) falls through to standard navigation layer.
   // CURSOR_MOVE and ZOOM_IN handlers detect detail mode and dispatch accordingly.
-  // Only Enter needs interception (maps to zoom_inwards instead of enter_inline_edit).
+  // Enter = edit (same as board), not zoom — detail pane shows properties inline.
   {
     name: "detail-pane",
     bindings: [
-      { key: "Enter", commandId: "zoom_inwards", when: isInDetailPane },
+      { key: "Enter", commandId: "enter_inline_edit", when: isInDetailPane },
     ],
   },
 
