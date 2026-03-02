@@ -59,7 +59,7 @@ export function selectThemeForCaps(caps: TerminalCaps): Theme {
 /** Dim a single color value — same hue, reduced brightness.
  * Truecolor (#RRGGBB): multiply RGB by factor.
  * ANSI 16: map bright variants to normal (redBright→red). */
-function dimColor(color: string, factor = 0.92): string {
+function dimColor(color: string, factor = 0.85): string {
   if (!color) return color
   if (color.startsWith("#") && color.length === 7) {
     const r = Math.round(parseInt(color.slice(1, 3), 16) * factor)

@@ -115,10 +115,8 @@ export function getNodeStyle(
     // Selected: gold bg, dark text. Per-pane theme dims $selected for unfocused panes.
     backgroundColor = "$selected"
     textColor = "$selectedfg"
-  } else {
-    // Default: use $text token so unfocused pane theme dimming applies to all card text
-    textColor = "$text"
   }
+  // Default (no assignment): inherits $text from WorkspaceView wrapper via inkx fg inheritance
   // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)
