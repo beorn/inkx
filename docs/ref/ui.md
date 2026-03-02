@@ -514,7 +514,7 @@ Each pane (board, detail) is an inkx **focus scope** — a container that rememb
 
 **Focus source of truth:** `focusManager.activeScopeId` is the single source of truth for which pane is active. `workspace.focusedPaneId` is kept in sync via `syncFocusScope()` for persistence/state access.
 
-**Cursor visibility:** Both focused and unfocused panes show their cursor. The unfocused pane's cursor uses `dimColor` to appear subdued (gold dims to dark yellow). This matches the board's pattern where selected card borders dim when the pane loses focus.
+**Cursor visibility:** Both focused and unfocused panes show their cursor. The unfocused pane uses a per-pane theme override (`deriveUnfocusedTheme`) where `$selected` resolves to gray instead of gold. This is applied via `<Box theme={paneTheme}>` in WorkspaceView — all `$token` references inside automatically resolve against the dimmed theme.
 
 **Scope-aware commands:** Navigation commands (`cursor_down`, `cursor_up`, `enter`) check the active scope type and dispatch to the appropriate handler (board vs detail). This eliminates duplicate `detail_pane.*` commands.
 
