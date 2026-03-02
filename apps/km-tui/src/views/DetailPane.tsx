@@ -496,6 +496,8 @@ function MetadataTable({
   isFocused = true,
 }: MetadataTableProps): React.ReactElement | null {
   const repo = useRepo()
+  const theme = useTheme()
+  const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
   const rows: MetadataRow[] = []
   const nodeIsTask = isTask(node)
 
@@ -716,6 +718,8 @@ function DetailSubitems({
   cursorNodeId?: string | null
   isFocused?: boolean
 }): React.ReactElement {
+  const theme = useTheme()
+  const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
   return (
     <>
       {items.map((item, idx) => {
