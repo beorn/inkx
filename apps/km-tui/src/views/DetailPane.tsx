@@ -26,7 +26,7 @@ import {
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { NodeLineView } from "./NodeView.tsx"
 import { PaneBar } from "./PaneBar.tsx"
-import { computeFolderDetailItems, DETAIL_TOPBAR_ID, DETAIL_META_PREFIX } from "./detail-pane-items.ts"
+import { computeFolderDetailItems, DETAIL_META_PREFIX } from "./detail-pane-items.ts"
 
 export interface DetailPaneProps {
   node: KNode
@@ -86,16 +86,13 @@ interface InternalDetailPaneProps {
 }
 
 /** Top bar for detail panes — icon + title, styled like ColumnHeader via PaneBar.
- * When focused and cursor is on the topbar, uses gold background like selected column headers. */
+ * Always uses gold background when the pane is focused (like column headers). */
 function DetailPaneTopBar({
   node,
   isFocused,
-  isCursored,
 }: {
   node: KNode
   isFocused: boolean
-  /** Whether the detail cursor is on the topbar (the item itself). */
-  isCursored: boolean
 }): React.ReactElement {
   const repo = useRepo()
   const paneLabel = usePaneLabel()
@@ -107,11 +104,12 @@ function DetailPaneTopBar({
       ? getNodeIcon(node.task_status, undefined, true)
       : getColumnHeaderIcon(node, "regular", false)
 
-  // Gold background when focused + cursored (like selected column headers)
-  const isSelected = isFocused && isCursored
-  const bg = isSelected ? "$selected" : undefined
-  const iconColor = isSelected ? "$selectedfg" : icon.color
-  const textColor = isSelected ? "$selectedfg" : undefined
+  // Gold background when focused (like selected column headers).
+  // Stays gold even when cursor moves to items below — the topbar
+  // represents the "column" for the detail pane.
+  const bg = isFocused ? "$selected" : undefined
+  const iconColor = isFocused ? "$selectedfg" : icon.color
+  const textColor = isFocused ? "$selectedfg" : undefined
 
   return (
     <PaneBar
@@ -165,11 +163,9 @@ function FolderDetailPane({
   const totalChildren = children.length
   const hasMore = entries.length >= maxEntries
 
-  const topbarCursored = detailCursorNodeId === DETAIL_TOPBAR_ID || detailCursorNodeId == null
-
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={topbarCursored} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}
@@ -308,11 +304,9 @@ function TaskDetailPane({
 
   const maxBacklinks = 5
 
-  const topbarCursored = detailCursorNodeId === DETAIL_TOPBAR_ID || detailCursorNodeId == null
-
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
-      <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={topbarCursored} />
+      <DetailPaneTopBar node={node} isFocused={detailFocused} />
       <Box height={1} flexShrink={0} />
       <ErrorBoundary fallback={<Text color={"$error"}>Error loading details</Text>} resetKey={node.id}>
         {/* Scrollable content area */}

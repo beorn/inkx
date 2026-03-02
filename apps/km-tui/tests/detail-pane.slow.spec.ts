@@ -76,13 +76,13 @@ describe("Detail Pane Journeys", () => {
 
     // Step 3: Navigate down in detail to see children
     board.press("j")
-    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorId?: string }
-    expect(detailPane?.cursorId).toBe("subtask-a")
+    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(detailPane?.cursorNodeId).toBe("subtask-a")
 
     // Step 4: Continue navigating
     board.press("j")
-    const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorId?: string }
-    expect(detailPane2?.cursorId).toBe("subtask-b")
+    const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(detailPane2?.cursorNodeId).toBe("subtask-b")
   })
 
   test("l at rightmost column focuses detail, h returns to board", () => {
@@ -154,13 +154,13 @@ describe("Detail Pane Journeys", () => {
 
     // Step 2: Navigate down from topbar to first entry
     board.press("j")
-    const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorId?: string }
-    expect(pane1?.cursorId).not.toBe("__topbar__")
+    const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(pane1?.cursorNodeId).not.toBe("__topbar__")
 
     // Step 3: Navigate back up to topbar
     board.press("k")
-    const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorId?: string }
-    expect(pane2?.cursorId).toBe("__topbar__")
+    const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(pane2?.cursorNodeId).toBe("__topbar__")
   })
 
   test("detail pane stays open when navigating between columns", () => {
