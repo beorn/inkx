@@ -20,6 +20,7 @@ Review tests for pruning, overlap, and architecture alignment.
 - [Phase 1.5: DI Compliance Check](#phase-15-di-compliance-check)
 - [Phase 1.6: Test Setup Complexity Check](#phase-16-test-setup-complexity-check)
 - [Phase 1.7: Expensive Fixture Setup Check](#phase-17-expensive-fixture-setup-check)
+- [Phase 1.8: Test Infrastructure Grooming](#phase-18-test-infrastructure-grooming)
 - [Phase 2: Import Cost Profiling (Deep Dive)](#phase-2-import-cost-profiling-deep-dive)
 - [Phase 2.5: Layer Analysis](#phase-25-layer-analysis)
 - [Phase 3: Overlap Detection](#phase-3-overlap-detection)
@@ -188,6 +189,65 @@ done
 1. Identify tests with identical fixtures
 2. Combine into longer journey tests that exercise multiple behaviors with one fixture
 3. Preserve test isolation: only combine when navigation can be reset between assertions
+
+## Phase 1.8: Test Infrastructure Grooming
+
+This phase checks that the test infrastructure itself (CLAUDE.md files, layering docs, helpers) is well-maintained.
+
+### 1. Test CLAUDE.md Coverage Check
+```bash
+# Every tests/ directory should have a CLAUDE.md
+echo "=== Test Directories Without CLAUDE.md ==="
+for dir in packages/*/tests apps/*/tests vendor/beorn-*/tests; do
+  [ -d "$dir" ] && [ ! -f "$dir/CLAUDE.md" ] && echo "  MISSING: $dir"
+done
+```
+
+**Expected:** All test directories should have a CLAUDE.md that describes:
+- Layer number and what it tests vs trusts
+- Available test helpers
+- Example test patterns
+- Ad-hoc testing commands
+
+### 2. Layering Consistency Check
+```bash
+# Verify all test CLAUDE.md files reference test-layers.md
+echo "=== CLAUDE.md files not referencing test-layers.md ==="
+for f in packages/*/tests/CLAUDE.md apps/*/tests/CLAUDE.md vendor/beorn-*/tests/CLAUDE.md; do
+  [ -f "$f" ] && ! grep -q "test-layers" "$f" && echo "  $f"
+done
+```
+
+### 3. Helper Documentation Check
+```bash
+# Find test helpers not documented in their package's CLAUDE.md
+echo "=== Undocumented test helpers ==="
+for dir in packages/*/tests apps/*/tests; do
+  [ -d "$dir" ] || continue
+  helpers=$(find "$dir" -name "*.ts" ! -name "*.test.ts" ! -name "*.spec.ts" ! -name "*.bench.ts" ! -name "*.fuzz.ts" -type f 2>/dev/null)
+  if [ -n "$helpers" ] && [ -f "$dir/CLAUDE.md" ]; then
+    for h in $helpers; do
+      basename=$(basename "$h")
+      grep -q "$basename" "$dir/CLAUDE.md" || echo "  $dir: $basename not in CLAUDE.md"
+    done
+  fi
+done
+```
+
+### 4. Stale CLAUDE.md Check
+Look for test CLAUDE.md files that reference files that no longer exist or miss recently added helpers.
+
+**Red flags:**
+- **Missing CLAUDE.md**: Every test directory should have one
+- **CLAUDE.md not referencing test-layers.md**: Test layering philosophy should be linked
+- **Undocumented helpers**: All test utilities should be listed in their package's CLAUDE.md
+- **Stale references**: CLAUDE.md mentions files that have been renamed/deleted
+
+**Resolution:**
+1. Create missing CLAUDE.md files using the template from test-layers.md
+2. Add test-layers.md "See Also" link to all test CLAUDE.md files
+3. Document any undocumented helpers
+4. Remove stale references
 
 ## Phase 2: Import Cost Profiling (Deep Dive)
 

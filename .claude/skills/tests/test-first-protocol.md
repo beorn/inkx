@@ -43,15 +43,15 @@ For rendering bugs, use **buffer assertions** (not just state assertions):
 | Cursor stability | `cursor-stability.slow.spec.ts` | Cursor position after edits, border overflow, lost cursor |
 | Inline edit | `inline-edit.slow.spec.ts` | Enter during edit, focus ring, edit mode |
 | Scroll | `scroll.test.ts` | Scroll follow, indicators, height equalization, shift-body |
-| Search | `search-dialog.slow.test.ts` | Search open/close, scope, results |
+| Search | `search.slow.spec.ts` | Search dialog, navigation, replace |
 | Shift cursor | `shift-cursor.slow.test.ts` | Shift+J/K, boundary, range |
-| Undo/redo | `undo-system.test.ts` | Undo cursor restore, duplicate, redo |
+| Undo/redo | `undo-redo.slow.spec.ts` | Undo/redo stack, cursor restore, journeys |
 | Crash regressions | `crash-regressions.test.ts` | Any crash-type bug (OOB, null ref, etc.) |
 | Board structure | `board.test.ts` | Board state, app mount |
 | Status bar | `views/board-bottom-bar.test.tsx` | Bottom bar content, view indicators, bell messages, elapsed time |
 | Indent/outdent | `indent-outdent.slow.test.ts` | Tab/Shift+Tab indentation |
 | Alignment | `alignment.test.ts` | Column alignment, body alignment |
-| Breadcrumbs | `breadcrumb.test.ts` | ANSI replay, ghost prefix, zoom breadcrumbs, text bleed |
+| Breadcrumbs | `breadcrumb.slow.test.ts` | ANSI replay, ghost prefix, zoom breadcrumbs, text bleed |
 | Card layout | `card-layout.test.tsx` | Card borders, text overflow, body indicator (···), width sweep, title wrapping, truncation, display bugs (raw IDs, trailing #, query DSL), inline ^refs |
 | Column rendering | `column-rendering.test.ts` | Scroll indicators, selected style, title truncation, WIP counts, section card rendering, body block spacing |
 | Overflow indicators | `overflow.test.tsx` | Overflow ▲/▼, child counts, indicator positioning |
