@@ -21,7 +21,7 @@ The dialogs use `useInputLayer` because they have text input — raw character c
 Meanwhile, the command system already had everything needed:
 - `isInDetailPane` in `KeybindingContext` — the context flag existed
 - `when` predicates on keybindings — conditional resolution existed
-- `CLOSE_DETAIL_PANE` action type — the action existed
+- `CLOSE_DETAIL_PANE` action type — the action existed (now removed; Escape falls through to `close_or_quit`)
 - `handleCloseOrQuit` — already handled detail pane for Escape
 
 A 5-minute exploration of `@km/commands` would have revealed all of this. The planning session never looked there because it treated the task as a mechanical migration within `apps/km-tui/src/views/`, not as a change to the input architecture.

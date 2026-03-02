@@ -896,9 +896,10 @@ describe("Detail pane toggle (D key)", () => {
     expect(ws.panes.has("main")).toBe(true)
     expect(ws.panes.has("main-detail")).toBe(true)
 
-    // The detail pane should be a "detail" type, not "empty"
+    // The detail pane should be a board pane with viewMode "detail"
     const detailPane = ws.panes.get("main-detail")!
-    expect(detailPane.viewType).toBe("detail")
+    expect(detailPane.viewType).toBe("board")
+    expect((detailPane as any).viewMode).toBe("detail")
 
     // Detail pane should be present in workspace panes
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -935,14 +936,13 @@ describe("Detail pane toggle (D key)", () => {
 
     const ws = store.getState().workspace
     // Should have 3 panes: main, main-detail, and the split pane
-    // But the detail pane should be "detail" type, NOT "empty"
-    const paneTypes = [...ws.panes.values()].map((p) => p.viewType)
-    const detailPanes = paneTypes.filter((t) => t === "detail")
-    const emptyPanes = paneTypes.filter((t) => t === "empty")
-
-    // There should be exactly 1 detail pane
-    expect(detailPanes).toHaveLength(1)
+    // Detail pane is a BoardPaneState with viewMode "detail"
+    const detailPane = ws.panes.get("main-detail")
+    expect(detailPane).toBeDefined()
+    expect(detailPane!.viewType).toBe("board")
+    expect((detailPane as any).viewMode).toBe("detail")
     // Any empty panes should only be from the split (not from D)
+    const emptyPanes = [...ws.panes.values()].filter((p) => p.viewType === "empty")
     expect(emptyPanes.length).toBeLessThanOrEqual(1)
 
     // The rendered output should not show "Empty pane" text
@@ -1671,7 +1671,8 @@ describe("detail pane cursor", () => {
 
     board.press("D") // open detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    // Detail pane cursor starts at topbar (set via createBoardState initial cursorNodeId)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("__topbar__")
   })
 
   test("cursor resets when board cursor moves to different node", { timeout: 5000 }, () => {
@@ -1684,11 +1685,11 @@ describe("detail pane cursor", () => {
 
     // Manually set a cursor to simulate navigation within detail pane
     store.getState().setDetailCursor("some-child-id")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("some-child-id")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("some-child-id")
 
     board.press("j") // move to next card — should reset detail cursor
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(null)
   })
 
   test("cursor resets when detail pane is toggled", { timeout: 5000 }, () => {
@@ -1701,13 +1702,13 @@ describe("detail pane cursor", () => {
 
     // Manually set a cursor
     store.getState().setDetailCursor("some-child-id")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("some-child-id")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("some-child-id")
 
-    board.press("D") // close detail pane
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    board.press("D") // close detail pane — pane removed
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
-    board.press("D") // reopen detail pane
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    board.press("D") // reopen detail pane — fresh pane, cursor at topbar
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("__topbar__")
   })
 
   test("cursor state is independent of nav_back/nav_forward keys", { timeout: 5000 }, () => {
@@ -1720,10 +1721,10 @@ describe("detail pane cursor", () => {
 
     // {/} are nav_back/nav_forward in v2, not detail navigation
     board.press("}")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(null)
 
     board.press("{")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(null)
   })
 })
 
@@ -1895,9 +1896,11 @@ describe("detail pane on link-type nodes", () => {
 /** Derive colIndex from store state on demand. */
 function getColIndex(store: StoreApi<BoardAppStore>): number {
   const s = store.getState()
-  const columns = deriveColumnsFromRepo(s.repo, s.rootId, s.foldDepths)
+  const pane = getActiveBoardPane(s)
+  if (!pane) return -1
+  const columns = deriveColumnsFromRepo(s.repo, pane.rootId, pane.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, s.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, pane.cursorNodeId, nodeIndex)
   return cursor.colIndex
 }
 
@@ -1930,7 +1933,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     board.press("l") // at rightmost column → should focus detail pane
     expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
     // Detail cursor should be set to first item
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBeTruthy()
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBeTruthy()
   })
 
   test("h in detail pane returns focus to board", { timeout: 5000 }, () => {
@@ -2036,7 +2039,7 @@ describe("detail pane focus + topbar cursor", () => {
 
     board.press("l") // at rightmost column → focus detail pane
     expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(DETAIL_TOPBAR_ID)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(DETAIL_TOPBAR_ID)
   })
 
   test("j from topbar moves to first metadata row for task", { timeout: 5000 }, () => {
@@ -2048,11 +2051,11 @@ describe("detail pane focus + topbar cursor", () => {
     board.press("D")
     board.press("l") // focus detail
     expect(focusManager.getSnapshot().activeId).toBe("detail-pane")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(DETAIL_TOPBAR_ID)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(DETAIL_TOPBAR_ID)
 
     // j from topbar → first meta row (Status)
     board.press("j")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(`${DETAIL_META_PREFIX}Status`)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(`${DETAIL_META_PREFIX}Status`)
   })
 
   test("j navigates from topbar through items for folder detail", { timeout: 5000 }, () => {
@@ -2063,15 +2066,15 @@ describe("detail pane focus + topbar cursor", () => {
 
     board.press("D")
     board.press("l") // focus detail
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(DETAIL_TOPBAR_ID)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(DETAIL_TOPBAR_ID)
 
     // j → first child (sub1)
     board.press("j")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("sub1")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
 
     // j → second child (sub2)
     board.press("j")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe("sub2")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub2")
   })
 
   test("k from first item returns to topbar", { timeout: 5000 }, () => {
@@ -2084,10 +2087,10 @@ describe("detail pane focus + topbar cursor", () => {
     board.press("l") // focus detail
 
     board.press("j") // to Status
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(`${DETAIL_META_PREFIX}Status`)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(`${DETAIL_META_PREFIX}Status`)
 
     board.press("k") // back to topbar
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorId ?? null).toBe(DETAIL_TOPBAR_ID)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(DETAIL_TOPBAR_ID)
   })
 
   test("h from detail pane returns to board, keeps pane open", { timeout: 5000 }, () => {

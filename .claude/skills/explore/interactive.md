@@ -375,7 +375,7 @@ These keys only work during inline editing or when a text input field is active.
 | Console | `q` | `q` | quit | Quit from console |
 | Console | any other key | any | noop | All keys absorbed |
 | Toast active | `Escape` | `Escape` | toast.dismiss | Dismiss toast (not during inline edit) |
-| Detail pane focused | `Escape` | `Escape` | detail_pane.close | Unfocus detail pane (returns to board) |
+| Detail pane focused | `Escape` | `Escape` | close_or_quit | Unfocus detail pane (returns to board) |
 
 ## Screenshot Naming
 

@@ -90,7 +90,6 @@ const HIDDEN_COMMAND_IDS = new Set([
   "filter.nav_left",
   "filter.nav_right",
   "filter.clear_all",
-  "detail_pane.close",
 ])
 
 /** Build the static go-to location results */
