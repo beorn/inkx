@@ -694,7 +694,6 @@ export function deriveColumnHeaderProps(
     isColumnSelected: boolean
     isVirtual?: boolean
     isInlineEditing?: boolean
-    paneFocused?: boolean
   },
 ): {
   displayName: string
@@ -717,7 +716,7 @@ export function deriveColumnHeaderProps(
         backgroundColor: undefined as string | undefined,
         dimColor: false,
       }
-    : getHeaderStyle(ownColor, opts.isSelected, opts.isColumnSelected, opts.paneFocused ?? true)
+    : getHeaderStyle(ownColor, opts.isSelected, opts.isColumnSelected)
 
   // Virtual body columns: dim header unless cursor is on column header
   if (isVirtual && !opts.isColumnSelected) headerStyle.dimColor = true

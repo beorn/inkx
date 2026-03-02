@@ -169,10 +169,6 @@ const Card = React.memo(
       (s) => getActiveBoardPane(s)?.multiSelected.has(makeSelectionKey(nodeId)) ?? false,
     )
 
-    // Dual cursor: dim the cursor when board is not focused.
-    // Read from TreeRenderContext (set once per board in BoardMain, not per-card).
-    const { boardFocused } = useTreeRenderContext()
-
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
@@ -251,7 +247,7 @@ const Card = React.memo(
           >
             <Text
               color={isSelected || isMultiSelected ? "$selected" : undefined}
-              dimColor={(!isSelected && !isMultiSelected) || (isSelected && !boardFocused)}
+              dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
               {" ".repeat(padLeft)}
@@ -310,7 +306,7 @@ const Card = React.memo(
           width={width}
           borderStyle="round"
           borderColor={collapsedBorder}
-          borderDimColor={(!isSelected && !isMultiSelected && !isColSelected) || (isSelected && !boardFocused)}
+          borderDimColor={!isSelected && !isMultiSelected && !isColSelected}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -323,7 +319,7 @@ const Card = React.memo(
               "data-card-index": cardIndex,
             })}
           >
-            <Text dimColor={(!isSelected && !isMultiSelected) || (isSelected && !boardFocused)} wrap="truncate">
+            <Text dimColor={!isSelected && !isMultiSelected} wrap="truncate">
               <InlineText text={collapsedTitleText} />
               {childCount > 0 ? ` ··· ${childCount}` : " ···"}
             </Text>
@@ -619,11 +615,6 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && selectionLevel === "column"
 
-  // Dual cursor: dim the cursor when board is not focused.
-  // Read from TreeRenderContext (set once per board in BoardMain).
-  const { boardFocused } = useTreeRenderContext()
-  const colCursorDim = isColumnSelected && !boardFocused
-
   // Derive column header presentation props (icon, colors, style)
   const { ownColor, headerStyle, icon, typeSuffix, hasBody } = deriveColumnHeaderProps(repo, column.node, {
     iconStyle,
@@ -631,7 +622,6 @@ export const Column = React.memo(function Column({
     isColumnSelected,
     isVirtual,
     isInlineEditing,
-    paneFocused: boardFocused,
   })
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
@@ -708,17 +698,17 @@ export const Column = React.memo(function Column({
           flexGrow={1}
           borderStyle="round"
           borderColor={borderColor}
-          borderDimColor={colCursorDim}
+          borderDimColor={false}
           overflow="hidden"
-          backgroundColor={isColumnSelected ? (colCursorDim ? undefined : "$selected") : undefined}
+          backgroundColor={isColumnSelected ? "$selected" : undefined}
         >
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
               <Text
-                bold={isColumnSelected && !colCursorDim}
-                color={isColumnSelected ? (colCursorDim ? "$selected" : "$selectedfg") : (ownColor ?? "$muted")}
-                dimColor={!isColumnSelected || colCursorDim}
+                bold={isColumnSelected}
+                color={isColumnSelected ? "$selectedfg" : (ownColor ?? "$muted")}
+                dimColor={!isColumnSelected}
               >
                 {ch}
               </Text>
@@ -728,8 +718,8 @@ export const Column = React.memo(function Column({
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
             <Text
-              dimColor={!isColumnSelected || colCursorDim}
-              color={isColumnSelected ? (colCursorDim ? "$selected" : "$selectedfg") : undefined}
+              dimColor={!isColumnSelected}
+              color={isColumnSelected ? "$selectedfg" : undefined}
             >
               {countStr}
             </Text>

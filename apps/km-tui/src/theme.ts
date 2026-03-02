@@ -89,6 +89,7 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
+    raisedbg: dimColor(theme.raisedbg),
   }
 }
 

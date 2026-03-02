@@ -27,11 +27,11 @@ export interface PaneBarProps {
 }
 
 export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: PaneBarProps): React.ReactElement {
-  // Focused: white bg (ANSI 7). Unfocused: gray bg (ANSI 8) — subtly dimmed.
-  const bg = backgroundColor ?? (isFocused ? "$border" : "$muted")
+  // Per-pane theme dims all $tokens for unfocused panes — no manual dimColor needed.
+  const bg = backgroundColor ?? "$border"
 
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} dimColor={!isFocused}>
+    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg}>
       {/* Left: content (path, title, etc.) */}
       <Box flexGrow={1} overflow="hidden">
         {left}
@@ -40,7 +40,7 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
       <Box flexShrink={0} flexDirection="row">
         {right}
         {paneLabel != null && (
-          <Text dimColor={!isFocused} bold={isFocused}>
+          <Text bold={isFocused}>
             {" "}
             [{paneLabel}]
           </Text>

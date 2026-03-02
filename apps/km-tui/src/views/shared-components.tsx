@@ -210,7 +210,6 @@ export const MemoizedColumnHeader = React.memo(
     const repo = useRepo()
     const {
       treeConfig: { iconStyle },
-      boardFocused,
     } = useTreeRenderContext()
 
     // Derive column header presentation props (icon, colors, style)
@@ -218,7 +217,6 @@ export const MemoizedColumnHeader = React.memo(
       iconStyle,
       isSelected,
       isColumnSelected: isColSelected,
-      paneFocused: boardFocused,
     })
 
     return (

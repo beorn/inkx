@@ -104,12 +104,11 @@ function DetailPaneTopBar({
       ? getNodeIcon(node.task_status, undefined, true)
       : getColumnHeaderIcon(node, "regular", false)
 
-  // Gold background when focused (like selected column headers).
-  // Stays gold even when cursor moves to items below — the topbar
-  // represents the "column" for the detail pane.
-  const bg = isFocused ? "$selected" : undefined
-  const iconColor = isFocused ? "$selectedfg" : icon.color
-  const textColor = isFocused ? "$selectedfg" : undefined
+  // Gold background (like selected column headers).
+  // Per-pane theme dims $selected for unfocused panes automatically.
+  const bg = "$selected"
+  const iconColor = "$selectedfg"
+  const textColor = "$selectedfg"
 
   return (
     <PaneBar
@@ -120,6 +119,11 @@ function DetailPaneTopBar({
         <Text bold={isFocused} color={textColor} wrap="truncate">
           {" "}
           <Text color={iconColor}>{icon.char}</Text> <InlineText text={title} />
+        </Text>
+      }
+      right={
+        <Text color={textColor}>
+          {node.type} {node.id.length > 8 ? node.id.slice(0, 8) : node.id}
         </Text>
       }
     />
@@ -199,13 +203,10 @@ function FolderDetailPane({
           </Box>
         </Box>
 
-        {/* Footer: keybindings + debug info — always visible */}
-        <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
+        {/* Footer: keybindings */}
+        <Box flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
             {"j/k:nav h/Esc:close Enter:open"}
-          </Text>
-          <Text dimColor wrap="truncate">
-            {node.type} {node.id}
           </Text>
         </Box>
       </ErrorBoundary>
@@ -418,13 +419,10 @@ function TaskDetailPane({
           )}
         </Box>
 
-        {/* Footer: keybindings + debug info — always visible */}
-        <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
+        {/* Footer: keybindings */}
+        <Box flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
             {detailCursorNodeId?.startsWith(DETAIL_META_PREFIX) ? "j/k:nav Enter:edit h/Esc:close" : "j/k:nav Enter:open h/Esc:close"}
-          </Text>
-          <Text dimColor wrap="truncate">
-            {node.type} {node.id}
           </Text>
         </Box>
       </ErrorBoundary>

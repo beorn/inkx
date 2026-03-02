@@ -161,7 +161,6 @@ export function getHeaderStyle(
   _ownColor: string | undefined,
   isSelected: boolean,
   isActiveSelection: boolean,
-  paneFocused = true,
 ): { color: string | undefined; backgroundColor: string | undefined; dimColor: boolean } {
   // When actively selected (column is the selection cursor), use inverse yellow
   // Per-pane theme dims $selected for unfocused panes automatically

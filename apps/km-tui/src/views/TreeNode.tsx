@@ -348,7 +348,6 @@ function TreeNodeImpl({
     jobRunner,
     undoHandle,
     taskStatusFilter,
-    boardFocused,
   } = useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
@@ -413,7 +412,6 @@ function TreeNodeImpl({
       dimInactiveChildren,
       depth,
       isInlineEditing,
-      boardFocused,
     )
     if (dim) s.shouldDim = true
     return s
@@ -431,7 +429,6 @@ function TreeNodeImpl({
     depth,
     isInlineEditing,
     dim,
-    boardFocused,
   ])
 
   // Search match highlighting: white bg / black fg (current match brighter)

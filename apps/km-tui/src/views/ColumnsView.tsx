@@ -63,7 +63,6 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   const repo = useRepo()
   const {
     treeConfig: { iconStyle },
-    boardFocused,
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
@@ -86,7 +85,6 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
     iconStyle,
     isSelected,
     isColumnSelected: isColumnHeaderSelected,
-    paneFocused: boardFocused,
   })
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
