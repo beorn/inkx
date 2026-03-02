@@ -1,15 +1,19 @@
 /**
- * Breadcrumb tests — navigation, zoom, ghost chars, text bleed.
+ * Breadcrumb tests -- navigation, zoom, ghost chars, text bleed, ANSI replay.
  *
  * Consolidated from:
- * - breadcrumb-ansi-replay.test.ts (km-axswu: ANSI diff corruption)
- * - breadcrumb-ghost.test.ts (km-tui.breadcrumb-ghost: ghost prefix char)
- * - breadcrumb-zoom.test.ts (km-tui.breadcrumbs: zoom path display)
- * - zoom-mismatch.spec.ts (km-inkx.zoom-mismatch: multi-line text bleed)
+ * - breadcrumb.test.ts (ANSI diff, ghost prefix, zoom path, multi-line text bleed)
+ * - breadcrumb-replay-realvault.slow.test.ts (real vault ANSI replay)
+ *
+ * Note: breadcrumb-stale-on-hl.bench.ts stays separate (benchmark).
  */
 
 import { describe, test, expect } from "vitest"
 import { outputPhase, VirtualTerminal } from "inkx/toolbelt"
+import { createRepo, getChildren, type Repo } from "@km/storage"
+import { runGenerator } from "@km/core"
+import { withDiagnostics } from "inkx"
+import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 // =============================================================================
@@ -266,7 +270,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
   })
 
   test("breadcrumb screen buffer has no ghost chars after navigation", () => {
-    // Verify at the screen/buffer level — the actual rendered output
+    // Verify at the screen/buffer level -- the actual rendered output
     const { board } = testEnv(() => item("board", item("Projects", item("p1")), item("TaskNotes", item("t1"))), {
       columns: 80,
       rows: 24,
@@ -320,7 +324,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
 
   test("no ghost prefix after rapid h/l/h/l navigation (ainbox/CTaskNotes regression)", () => {
     // km-tui.breadcrumb-ghost: user saw "ainbox" instead of "inbox",
-    // "CTaskNotes" instead of "TaskNotes" — first char of previous column
+    // "CTaskNotes" instead of "TaskNotes" -- first char of previous column
     // leaks into the new breadcrumb. Test rapid h/l cycles with names that
     // start with different chars.
     const { board } = testEnv(
@@ -438,7 +442,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 
     const topBar = board.q("#top-bar").textContent()
     // Path should be truncated with ellipsis when it doesn't fit
-    expect(topBar).toContain("⋯")
+    expect(topBar).toContain("\u22EF")
     // The cursor target (DeepAlpha, first card) should be visible in the path
     expect(topBar).toContain("DeepAlpha")
   })
@@ -589,8 +593,8 @@ describe("zoom-mismatch: multi-line paragraph text bleed", () => {
     // The card should show:
     // - "Happylatte - convert hg to git" as card title
     // - "bitbucket.org/blog/sunsetting-me..." (truncated URL from paragraph line 1)
-    // - "✓ Clone all of xpilot" (clean task text)
-    // - "✓ Clone all of happylatte" (clean task text)
+    // - "Clone all of xpilot" (clean task text)
+    // - "Clone all of happylatte" (clean task text)
     //
     // Bug: "Clone all of xpilot" row shows "Clone all of xpilot4464396"
     // where "4464396" comes from the wikilink in paragraph line 2
@@ -610,5 +614,112 @@ describe("zoom-mismatch: multi-line paragraph text bleed", () => {
     const happylatteLine = lines.find((l) => l.includes("Clone all of happylatte"))
     expect(happylatteLine).toBeDefined()
     expect(happylatteLine).not.toContain("4464396")
+  })
+})
+
+// =============================================================================
+// Real vault ANSI replay (requires TEST_VAULT env var)
+// =============================================================================
+
+function findBoardRoot(repo: Repo): string {
+  const nodes = repo.query("type:folder")
+  for (const node of nodes) {
+    if (node.data?.is_repo_root) return node.id
+  }
+  for (const node of nodes) {
+    const children = getChildren(repo.db, node.id)
+    if (children.length > 0) return node.id
+  }
+  throw new Error("No suitable board root found")
+}
+
+describe.skipIf(!process.env.TEST_VAULT)("Real vault breadcrumb ANSI replay", () => {
+  test("h/l navigation ANSI replay including breadcrumb row", async () => {
+    const vaultPath = process.env.TEST_VAULT!
+    const repo = runGenerator(createRepo(vaultPath, { loadFiles: true }))
+    const rootId = findBoardRoot(repo)
+
+    const baseDriver = createBoardDriver(repo, rootId, {
+      columns: 120,
+      rows: 30,
+    })
+
+    // Enable ALL checks including ANSI replay (which the standard test doesn't use)
+    const driver = withDiagnostics(baseDriver, {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: true,
+      skipLines: [0, -1], // Only affects stability check
+    })
+
+    // Navigate right through columns (h/l changes breadcrumb)
+    await driver.cmd.right!()
+    await driver.cmd.right!()
+    await driver.cmd.left!()
+    await driver.cmd.right!()
+    await driver.cmd.left!()
+    await driver.cmd.left!()
+  })
+
+  test("j/k level changes with ANSI replay", async () => {
+    const vaultPath = process.env.TEST_VAULT!
+    const repo = runGenerator(createRepo(vaultPath, { loadFiles: true }))
+    const rootId = findBoardRoot(repo)
+
+    const baseDriver = createBoardDriver(repo, rootId, {
+      columns: 120,
+      rows: 30,
+    })
+
+    const driver = withDiagnostics(baseDriver, {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: true,
+      skipLines: [0, -1],
+    })
+
+    // Level changes also change breadcrumb
+    await driver.cmd.up!()
+    await driver.cmd.up!()
+    await driver.cmd.down!()
+    await driver.cmd.down!()
+    await driver.cmd.right!()
+    await driver.cmd.right!()
+    await driver.cmd.up!()
+    await driver.cmd.down!()
+  })
+
+  test("rapid mixed navigation with ANSI replay", async () => {
+    const vaultPath = process.env.TEST_VAULT!
+    const repo = runGenerator(createRepo(vaultPath, { loadFiles: true }))
+    const rootId = findBoardRoot(repo)
+
+    const baseDriver = createBoardDriver(repo, rootId, {
+      columns: 100,
+      rows: 30,
+    })
+
+    const driver = withDiagnostics(baseDriver, {
+      checkIncremental: true,
+      checkReplay: true,
+      checkStability: false,
+    })
+
+    const commands = [
+      () => driver.cmd.up!(),
+      () => driver.cmd.down!(),
+      () => driver.cmd.left!(),
+      () => driver.cmd.right!(),
+    ]
+
+    const rng = {
+      seed: 42,
+      next: () => (rng.seed = (rng.seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff,
+    }
+
+    for (let i = 0; i < 30; i++) {
+      const cmd = commands[Math.floor(rng.next() * commands.length)]
+      if (cmd) await cmd()
+    }
   })
 })

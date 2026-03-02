@@ -1,23 +1,20 @@
 /**
- * Search Navigation Tests
+ * Search Tests
  *
- * Tests for search-then-navigate behavior: when a user selects a search result,
- * the board zooms to make the target visible and places the cursor on it.
+ * Covers all search-related functionality:
+ * - Search dialog: fuzzy match/score, tags, opening/closing, special chars
+ * - Search navigation: zoom target resolution, body-board navigation, key flow
+ * - Search & replace: find, replace current, replace all, regex toggle
  *
- * Bug 1 (km-tui.search-board): Search lands on single-column body board when
- *   the zoom target has no oi children. findZoomTarget always returns the
- *   original target as cursorTarget, but if the target is a descendant of a
- *   body card, j/k navigation breaks because the navigation layer resolves the
- *   wrong ancestor level.
- *
- * Bug 2: Cursor stuck on single-column board after search. When cursorNodeId
- *   is a descendant of a body card, navigateVertical resolves the card ancestor
- *   at depth 2 (column→card pattern), but body cards are at depth 1. This means
- *   j/k navigates at the descendant level instead of the body card level.
+ * Consolidated from:
+ * - search-dialog.slow.test.ts (fuzzy match, dialog bugs, scope, special chars)
+ * - search-nav.slow.spec.ts (findZoomTarget, navigateToNode, zoom + cursor, key flow)
+ * - search-replace.slow.test.ts (find & replace dialog)
  */
 
 import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
+import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/search-utils.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
@@ -27,6 +24,10 @@ import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../s
 import type { StoreApi } from "zustand"
 import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
+
+// =============================================================================
+// Shared helpers
+// =============================================================================
 
 /**
  * Open the search dialog via the "search" command.
@@ -115,6 +116,482 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   }
 }
 
+// #############################################################################
+// SEARCH DIALOG
+// #############################################################################
+
+// =============================================================================
+// Fuzzy matching utilities
+// =============================================================================
+
+describe("fuzzyMatch", () => {
+  test("matches exact string", () => {
+    expect(fuzzyMatch("test", "test")).toBe(true)
+  })
+
+  test("matches characters in order", () => {
+    expect(fuzzyMatch("tst", "test")).toBe(true)
+  })
+
+  test("matches characters with gaps", () => {
+    expect(fuzzyMatch("tk", "task")).toBe(true)
+  })
+
+  test("is case-insensitive", () => {
+    expect(fuzzyMatch("TeSt", "test")).toBe(true)
+    expect(fuzzyMatch("test", "TEST")).toBe(true)
+  })
+
+  test("does not match out-of-order characters", () => {
+    expect(fuzzyMatch("tse", "test")).toBe(false)
+  })
+
+  test("does not match missing characters", () => {
+    expect(fuzzyMatch("xyz", "test")).toBe(false)
+  })
+
+  test("matches empty query", () => {
+    expect(fuzzyMatch("", "test")).toBe(true)
+  })
+})
+
+describe("fuzzyScore", () => {
+  test("scores exact match higher than partial", () => {
+    const exactScore = fuzzyScore("test", "test")
+    const partialScore = fuzzyScore("test", "testing")
+    expect(exactScore).toBeGreaterThan(partialScore)
+  })
+
+  test("scores consecutive matches with bonus", () => {
+    // Consecutive matches get bonus points (consecutive * 2 per match)
+    // This test verifies the algorithm works correctly, not comparing absolute scores
+    const score = fuzzyScore("abc", "abcdef")
+    expect(score).toBeGreaterThan(0) // Valid match
+    // Consecutive bonus: a=2, b=4, c=6 = 12 points from consecutive
+    // Plus start bonus: 10 points
+    // Minus length penalty: 6 * 0.1 = 0.6
+    // Expected approximately: 12 + 10 - 0.6 = 21.4
+    expect(score).toBeGreaterThan(20)
+  })
+
+  test("scores start matches higher", () => {
+    const startScore = fuzzyScore("te", "test")
+    const middleScore = fuzzyScore("st", "test")
+    expect(startScore).toBeGreaterThan(middleScore)
+  })
+
+  test("returns -1 for non-match", () => {
+    expect(fuzzyScore("xyz", "test")).toBe(-1)
+  })
+
+  test("prefers shorter targets", () => {
+    const shortScore = fuzzyScore("t", "task")
+    const longScore = fuzzyScore("t", "task with long description")
+    expect(shortScore).toBeGreaterThan(longScore)
+  })
+})
+
+describe("extractTags", () => {
+  test("extracts single tag", () => {
+    expect(extractTags("This is #urgent")).toEqual(["urgent"])
+  })
+
+  test("extracts multiple tags", () => {
+    expect(extractTags("This is #urgent and #blocked")).toEqual(["urgent", "blocked"])
+  })
+
+  test("handles no tags", () => {
+    expect(extractTags("No tags here")).toEqual([])
+  })
+
+  test("handles undefined content", () => {
+    expect(extractTags(undefined)).toEqual([])
+  })
+
+  test("handles tags with numbers", () => {
+    expect(extractTags("Tagged with #p1 and #tag2")).toEqual(["p1", "tag2"])
+  })
+
+  test("handles tags at start", () => {
+    expect(extractTags("#urgent task description")).toEqual(["urgent"])
+  })
+
+  test("handles multiple consecutive tags", () => {
+    expect(extractTags("#urgent #blocked #p1")).toEqual(["urgent", "blocked", "p1"])
+  })
+
+  test("does not extract # without word", () => {
+    expect(extractTags("Just a # symbol")).toEqual([])
+  })
+
+  test("includes hyphens in tag names", () => {
+    expect(extractTags("#tag-with-dash")).toEqual(["tag-with-dash"])
+  })
+})
+
+// =============================================================================
+// Search dialog bugs
+// =============================================================================
+
+describe("Search dialog bugs", () => {
+  describe("km-tui.2: [2 after backspace", () => {
+    test("backspacing to empty shows placeholder, not [2", () => {
+      const { board, store } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
+
+      // Open search and type
+      openSearchDialog(store, board)
+      board.press("a")
+      board.press("b")
+
+      // Verify we have "ab" in input
+      let output = board.screenshot()
+      expect(output).toContain("ab")
+
+      // Backspace twice to empty
+      board.press("Backspace")
+      board.press("Backspace")
+
+      output = board.screenshot()
+
+      // Should NOT contain [2
+      expect(output).not.toContain("[2")
+
+      // Should show placeholder or empty input area
+      // The dialog should still be open with "Search" title
+      expect(output).toContain("Search")
+    })
+
+    test("rapid backspace doesn't leave artifacts", () => {
+      const { board, store } = testEnv(() => item("board", item("col", item("test"))))
+
+      openSearchDialog(store, board)
+      board.press("t")
+      board.press("e")
+      board.press("s")
+      board.press("t")
+
+      // Rapid backspace
+      board.press("Backspace")
+      board.press("Backspace")
+      board.press("Backspace")
+      board.press("Backspace")
+
+      const output = board.screenshot()
+
+      // Should not have any escape sequence fragments
+      expect(output).not.toContain("[2")
+      expect(output).not.toContain("[A")
+      expect(output).not.toContain("[B")
+    })
+  })
+
+  describe("km-tui.3: title visibility during loading", () => {
+    test("Search title remains visible with results", () => {
+      const { board, store } = testEnv(
+        () =>
+          item(
+            "board",
+            item(
+              "col",
+              item("Task Alpha"),
+              item("Task Beta"),
+              item("Task Gamma"),
+              item("Task Delta"),
+              item("Task Epsilon"),
+            ),
+          ),
+        { rows: 20 },
+      )
+
+      openSearchDialog(store, board)
+      board.press("T")
+      board.press("a")
+
+      const output = board.screenshot()
+
+      // Title should always be visible
+      expect(output).toContain("Search")
+
+      // Input should be visible (either the typed text or placeholder)
+      expect(output).toMatch(/Ta|type to search/)
+    })
+  })
+})
+
+// =============================================================================
+// Escape closes search dialog (km-h9p52)
+// =============================================================================
+
+describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
+  function makeEscapeTestBoard() {
+    return testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("Alpha task"), item("Beta testing"), item("Gamma ray")),
+          item("col2", item("Delta force"), item("Epsilon value")),
+        ),
+      { columns: 100, rows: 30 },
+    )
+  }
+
+  test("pressing Escape closes the search dialog", () => {
+    const { board, store } = makeEscapeTestBoard()
+
+    // Open search dialog
+    openSearchDialog(store, board)
+    expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
+
+    // Press Escape to close
+    board.press("Escape")
+
+    // Search dialog should be gone
+    expect(board.q('[data-dialog="search"]').count()).toBe(0)
+  })
+
+  test("pressing Escape closes search dialog after typing a query", () => {
+    const { board, store } = makeEscapeTestBoard()
+
+    // Open search, type a query
+    openSearchDialog(store, board)
+    board.press("a").press("l")
+    expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
+
+    // Press Escape to close
+    board.press("Escape")
+
+    // Search dialog should be gone
+    expect(board.q('[data-dialog="search"]').count()).toBe(0)
+  })
+
+  test("board is navigable after closing search with Escape", () => {
+    const { board, store } = makeEscapeTestBoard()
+
+    // Open and close search
+    openSearchDialog(store, board)
+    board.press("Escape")
+
+    // Should be able to navigate normally
+    board.press("j")
+    const text = board.screenshot()
+    // Board content should be visible, not a dialog
+    expect(text).not.toContain("Type to search")
+  })
+})
+
+// =============================================================================
+// Search scope feature
+// =============================================================================
+
+function makeScopeBoard() {
+  return testEnv(
+    () =>
+      item(
+        "board",
+        item("col1", item("Alpha project", item("Alpha subtask one"), item("Alpha subtask two")), item("Beta project")),
+        item("col2", item("Gamma project"), item("Delta project")),
+      ),
+    { columns: 100, rows: 30 },
+  )
+}
+
+/** Get only the text rendered inside the search dialog overlay */
+function scopeDialogText(board: ReturnType<typeof testEnv>["board"]): string {
+  return board.q('[data-dialog="search"]').textContent()
+}
+
+describe("Search scope: UI toggle", () => {
+  test("search dialog opens with 'All' scope by default", () => {
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
+    const text = scopeDialogText(board)
+    // Scope prompt: "All > "
+    expect(text).toContain("All")
+    // Footer has Tab hint
+    expect(text).toContain("Tab")
+  })
+
+  test("Tab toggles scope between All and scoped, back to All", () => {
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
+
+    // Initially "All > " prompt
+    let text = scopeDialogText(board)
+    expect(text).toContain("All")
+
+    // Tab switches to scoped — prompt shows "in <node name> > "
+    board.press("Tab")
+    text = scopeDialogText(board)
+    expect(text).toContain("in ")
+    expect(text).toContain("search all") // Footer: "Tab search all"
+
+    // Tab switches back to "All > "
+    board.press("Tab")
+    text = scopeDialogText(board)
+    expect(text).toContain("All")
+    expect(text).toContain("narrow") // Footer: "Tab narrow ..."
+  })
+})
+
+describe("Search scope: result filtering", () => {
+  test("'All' scope returns results from entire repo", () => {
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
+
+    // Type a query that matches items in both columns
+    // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
+    // Only leaf nodes (tasks) are searchable.
+    board.press("p").press("r").press("o").press("j")
+    const text = scopeDialogText(board)
+
+    // Should find leaf items from both columns
+    expect(text).toContain("Beta")
+    expect(text).toContain("Gamma")
+    expect(text).toContain("Delta")
+  })
+
+  test("'Subtree' scope restricts results to cursor node descendants", () => {
+    const { board, store } = makeScopeBoard()
+
+    // Cursor starts on first card ("Alpha project" which has children)
+    // Open search, switch to Subtree scope
+    openSearchDialog(store, board)
+    board.press("Tab") // Switch to "Subtree" scope
+
+    // Search for "subtask" — only Alpha project descendants should match
+    board.press("s").press("u").press("b")
+    const text = scopeDialogText(board)
+    expect(text).toContain("Alpha subtask one")
+    expect(text).toContain("Alpha subtask two")
+
+    // Items from other columns/cards should NOT appear in dialog results
+    expect(text).not.toContain("Beta")
+    expect(text).not.toContain("Gamma")
+    expect(text).not.toContain("Delta")
+  })
+
+  test("'Subtree' scope with query matching nothing in subtree shows no results", () => {
+    const { board, store } = makeScopeBoard()
+
+    // Cursor starts on "Alpha project"
+    openSearchDialog(store, board)
+    board.press("Tab") // Subtree scope
+
+    // Search for "Delta" — not a descendant of Alpha
+    board.press("D").press("e").press("l")
+    const text = scopeDialogText(board)
+    expect(text).toContain("No matching items")
+  })
+
+  test("switching scope re-filters results", () => {
+    const { board, store } = makeScopeBoard()
+    openSearchDialog(store, board)
+
+    // Type query matching items across the board
+    board.press("p").press("r").press("o").press("j")
+
+    // In All scope, should see results from both columns
+    let text = scopeDialogText(board)
+    expect(text).toContain("Beta")
+    expect(text).toContain("Gamma")
+    expect(text).toContain("Delta")
+
+    // Switch to Subtree scope (cursor is on Alpha project)
+    // Alpha project descendants include Alpha subtask one/two but they don't match "proj"
+    // Alpha project itself is a folder (skipped). So only Alpha's leaf descendants matching "proj" would show.
+    board.press("Tab")
+    text = scopeDialogText(board)
+
+    // Gamma/Delta are not descendants of Alpha, should not appear in dialog results
+    expect(text).not.toContain("Gamma")
+    expect(text).not.toContain("Delta")
+  })
+})
+
+describe("Search scope: scope node capture", () => {
+  test("scope uses cursor node when search opens", () => {
+    const { board, store } = makeScopeBoard()
+
+    // Move cursor to second card (Beta project)
+    board.press("j")
+
+    // Open search with Subtree scope
+    openSearchDialog(store, board)
+    board.press("Tab")
+
+    // Search for "project" — only Beta should match (it has no descendants with "project")
+    board.press("p").press("r").press("o").press("j")
+    const text = scopeDialogText(board)
+    expect(text).toContain("Beta")
+    // Alpha is not a descendant of Beta — should not appear in dialog results
+    expect(text).not.toContain("Alpha project")
+    expect(text).not.toContain("Gamma")
+  })
+})
+
+// =============================================================================
+// Special characters in search (km-tui.search-blank)
+// =============================================================================
+
+describe("Bug: special characters in search cause blank screen (km-tui.search-blank)", () => {
+  function makeSearchBoard() {
+    return testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("ready-made task"), item("Alpha testing"), item("Beta project")),
+          item("col2", item("Gamma ray"), item("Delta force")),
+        ),
+      { columns: 100, rows: 30 },
+    )
+  }
+
+  test("typing 'ready-' does not blank the screen", () => {
+    const { board, store } = makeSearchBoard()
+
+    openSearchDialog(store, board)
+    // Type "ready-" character by character
+    for (const c of "ready-") board.press(c)
+
+    const output = board.screenshot()
+
+    // The search dialog must still be visible — not blank
+    expect(output).toContain("Search")
+    // Should show input text
+    expect(output).toContain("ready-")
+  })
+
+  test("typing backtick does not blank the screen", () => {
+    const { board, store } = makeSearchBoard()
+
+    openSearchDialog(store, board)
+    board.press("`")
+
+    const output = board.screenshot()
+
+    // The search dialog must still be visible — not blank
+    expect(output).toContain("Search")
+  })
+
+  test("typing parentheses in search does not crash", () => {
+    const { board, store } = makeSearchBoard()
+
+    openSearchDialog(store, board)
+    board.press("(").press("t").press("e").press("s").press("t").press(")")
+
+    const output = board.screenshot()
+    expect(output).toContain("Search")
+  })
+})
+
+// #############################################################################
+// SEARCH NAVIGATION
+// #############################################################################
+
+// =============================================================================
+// findZoomTarget
+// =============================================================================
+
 describe("findZoomTarget", () => {
   test("returns grandparent for depth-2 target", () => {
     const nodes = item("root", item("parent", item("child1"), item("child2")))
@@ -147,7 +624,7 @@ describe("findZoomTarget", () => {
   })
 
   test("body-only grandparent with great-grandparent: zooms to great-grandparent", () => {
-    // When grandparent (flatList) has no oi children → body-only board.
+    // When grandparent (flatList) has no oi children -> body-only board.
     // If a great-grandparent exists, zoom there instead so flatList becomes
     // a column and task1 becomes a visible card. Cursor lands on task1
     // (the parent of subtask1, which is the navigable card).
@@ -187,7 +664,7 @@ describe("findZoomTarget", () => {
   test("deep target (ancestors >= 4): zooms to grandparent with cursor on target", () => {
     // Structure: root > section1 > section2 > deep-task
     // ancestors: [deep-task, section2, section1, root] (length 4)
-    // grandparent = section1, which has oi children (section2) → normal multi-column board
+    // grandparent = section1, which has oi children (section2) -> normal multi-column board
     // Expected: zoom to grandparent (section1), cursor on target (deep-task)
     const nodes = item("root", item("section1", item("section2", item("deep-task"), item("other-task"))))
     const repo = createFakeRepo({ nodes })
@@ -215,7 +692,7 @@ describe("findZoomTarget", () => {
     const subtask1 = repo.getNode("subtask1")!
 
     // ancestors: [subtask1, task1, flatList, section1, root] (length 5)
-    // grandparent = flatList (no oi children → body-only)
+    // grandparent = flatList (no oi children -> body-only)
     // great-grandparent = section1
     // Should zoom to section1 (great-grandparent) so flatList is a column
     // and task1 is a visible card
@@ -224,6 +701,10 @@ describe("findZoomTarget", () => {
     expect(result.cursorTarget.id).toBe("task1")
   })
 })
+
+// =============================================================================
+// ZOOM_IN to body-only board: cursor + navigation
+// =============================================================================
 
 describe("ZOOM_IN to body-only board: cursor + navigation", () => {
   test("cursor lands on card level after zoom to body-only board", () => {
@@ -309,6 +790,10 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
   })
 })
 
+// =============================================================================
+// BUG: j/k broken when cursor is on body-card descendant
+// =============================================================================
+
 describe("BUG: j/k broken when cursor is on body-card descendant", () => {
   test("j/k navigates between body cards when cursor is on a descendant", () => {
     // This is the core bug scenario:
@@ -355,6 +840,10 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
   })
 })
 
+// =============================================================================
+// Paragraph-only board: cursor + navigation
+// =============================================================================
+
 describe("paragraph-only board: cursor + navigation", () => {
   test("cursor + j/k work on paragraph body board", () => {
     const { board, store } = testEnv(
@@ -386,6 +875,10 @@ describe("paragraph-only board: cursor + navigation", () => {
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("intro")
   })
 })
+
+// =============================================================================
+// Full search flow integration
+// =============================================================================
 
 describe("full search flow integration", () => {
   test("search in deep tree: zoom + cursor + j/k navigation", () => {
@@ -441,9 +934,13 @@ describe("full search flow integration", () => {
   })
 })
 
+// =============================================================================
+// Scroll to selection after zoom
+// =============================================================================
+
 describe("scroll to selection after zoom", () => {
   test("ZOOM_IN scrolls to cursor card when it would be off-screen", () => {
-    // Create a board with many items in a column — enough to require scrolling
+    // Create a board with many items in a column -- enough to require scrolling
     // on a small terminal (rows=15). With header + breadcrumb + separator,
     // only ~3 cards are visible (card height=4). Card at index 12 is off-screen.
     const tasks = Array.from({ length: 15 }, (_, i) => item(`task${i}`))
@@ -505,7 +1002,7 @@ describe("scroll to selection after zoom", () => {
       checkIncremental: false,
     })
 
-    // SELECT a card deep in col1 — should scroll to make it visible
+    // SELECT a card deep in col1 -- should scroll to make it visible
     dispatchAndFlush(store, { type: "SELECT", nodeId: "card15" })
 
     // Press j to trigger render and move cursor
@@ -561,11 +1058,11 @@ describe("scroll to selection after zoom", () => {
 })
 
 // =============================================================================
-// navigateToNode() — unified navigate function
+// navigateToNode() -- unified navigate function
 // =============================================================================
 
 describe("navigateToNode", () => {
-  test("target is current root → SELECT on itself", () => {
+  test("target is current root -> SELECT on itself", () => {
     const nodes = item("root", item("col1", item("task1")))
     const repo = createFakeRepo({ nodes })
 
@@ -573,7 +1070,7 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "root" })
   })
 
-  test("target not found → returns null", () => {
+  test("target not found -> returns null", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
     const nodes = item("root", item("col1"))
     const repo = createFakeRepo({ nodes })
@@ -583,7 +1080,7 @@ describe("navigateToNode", () => {
     spy.mockRestore()
   })
 
-  test("target is direct child of root (column level) → SELECT", () => {
+  test("target is direct child of root (column level) -> SELECT", () => {
     const nodes = item("root", item("col1", item("task1")), item("col2", item("task2")))
     const repo = createFakeRepo({ nodes })
 
@@ -591,7 +1088,7 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "col1" })
   })
 
-  test("target is grandchild of root (card level) → SELECT", () => {
+  test("target is grandchild of root (card level) -> SELECT", () => {
     const nodes = item("root", item("col1", item("task1"), item("task2")), item("col2"))
     const repo = createFakeRepo({ nodes })
 
@@ -599,12 +1096,12 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "task2" })
   })
 
-  test("target is one level deep → ZOOM_IN to parent", () => {
+  test("target is one level deep -> ZOOM_IN to parent", () => {
     // Structure: root > projects > project-a > taskA1
     // Current root = root, target = taskA1
     // taskA1's parent = project-a (child of projects), grandparent = projects
-    // projects is not a child/grandchild of root → need ZOOM_IN
-    // resolveZoomTarget: grandparent = projects → zoom to projects, cursor on taskA1
+    // projects is not a child/grandchild of root -> need ZOOM_IN
+    // resolveZoomTarget: grandparent = projects -> zoom to projects, cursor on taskA1
     const nodes = item("root", item("projects", item("project-a", item("taskA1"), item("taskA2"))))
     const repo = createFakeRepo({ nodes })
 
@@ -616,11 +1113,11 @@ describe("navigateToNode", () => {
     })
   })
 
-  test("target is deeply nested → ZOOM_IN to appropriate ancestor", () => {
+  test("target is deeply nested -> ZOOM_IN to appropriate ancestor", () => {
     // Structure: root > area > projects > project-a > task > subtask
     // Current root = root, target = subtask
     // subtask's grandparent = project-a, which has oi children
-    // → zoom to project-a (grandparent), cursor on subtask
+    // -> zoom to project-a (grandparent), cursor on subtask
     const nodes = item("root", item("area", item("projects", item("project-a", item("task", item("subtask"))))))
     const repo = createFakeRepo({ nodes })
 
@@ -632,10 +1129,10 @@ describe("navigateToNode", () => {
     })
   })
 
-  test("target with body-only grandparent → zooms to great-grandparent", () => {
+  test("target with body-only grandparent -> zooms to great-grandparent", () => {
     // Structure: vault(oi) > flatList(oi, no oi children) > task1(li) > subtask1(li)
     // flatList has only li children (body-only board).
-    // great-grandparent = vault → zoom there so flatList becomes a column
+    // great-grandparent = vault -> zoom there so flatList becomes a column
     const vaultNode = makeOiNode("vault", null, 0)
     const flatListNode = makeOiNode("flatList", "vault", 0)
     const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1"])
@@ -651,9 +1148,9 @@ describe("navigateToNode", () => {
     })
   })
 
-  test("body-only grandparent without great-grandparent → DETAIL_VIEW (flat list fallback)", () => {
+  test("body-only grandparent without great-grandparent -> DETAIL_VIEW (flat list fallback)", () => {
     // Structure: flatList(oi, no oi children) > task1(li) > subtask1(li)
-    // No great-grandparent → flatList is the zoom target but has no structure.
+    // No great-grandparent -> flatList is the zoom target but has no structure.
     // Returns DETAIL_VIEW so the caller opens the detail pane instead of
     // landing on a single-column flat board.
     const flatListNode = makeOiNode("flatList", null, 0)
@@ -670,9 +1167,9 @@ describe("navigateToNode", () => {
     })
   })
 
-  test("target already visible after zoom → SELECT without re-zoom", () => {
+  test("target already visible after zoom -> SELECT without re-zoom", () => {
     // Structure: root > col1 > task1, task2
-    // If we're already zoomed to root, and target is task1 (grandchild) → just SELECT
+    // If we're already zoomed to root, and target is task1 (grandchild) -> just SELECT
     const nodes = item("root", item("col1", item("task1"), item("task2")))
     const repo = createFakeRepo({ nodes })
 
@@ -680,10 +1177,10 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "task1" })
   })
 
-  test("target visible at zoomed-in level → SELECT", () => {
+  test("target visible at zoomed-in level -> SELECT", () => {
     // Structure: root > projects > project-a > taskA1, taskA2
     // Current root = projects (already zoomed in)
-    // target = taskA1 → grandchild of projects → SELECT
+    // target = taskA1 -> grandchild of projects -> SELECT
     const nodes = item("root", item("projects", item("project-a", item("taskA1"), item("taskA2"))))
     const repo = createFakeRepo({ nodes })
 
@@ -691,10 +1188,10 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "taskA1" })
   })
 
-  test("rootId is null (top-level) with depth-2 target → SELECT", () => {
+  test("rootId is null (top-level) with depth-2 target -> SELECT", () => {
     // When rootId is null, the board shows root nodes as columns
     // and their children as cards. A grandchild of null (i.e., child of
-    // a root node) is visible at card level → SELECT.
+    // a root node) is visible at card level -> SELECT.
     const nodes = item("root", item("child"))
     const repo = createFakeRepo({ nodes })
 
@@ -702,11 +1199,11 @@ describe("navigateToNode", () => {
     expect(result).toEqual({ action: "SELECT", cursorTarget: "child" })
   })
 
-  test("rootId is null with deeply nested target → ZOOM_IN", () => {
+  test("rootId is null with deeply nested target -> ZOOM_IN", () => {
     // When rootId is null and target is deep, ZOOM_IN is needed.
     // Structure: root > col > task > subtask
     // subtask's grandparent = col, col's parent = root, root's parent = null
-    // subtask is NOT a child or grandchild of null → ZOOM_IN
+    // subtask is NOT a child or grandchild of null -> ZOOM_IN
     const nodes = item("root", item("col", item("task", item("subtask"))))
     const repo = createFakeRepo({ nodes })
 
@@ -720,7 +1217,7 @@ describe("navigateToNode", () => {
 })
 
 // =============================================================================
-// Full search flow (key presses): / → type → Enter → cursor lands on match
+// Full search flow (key presses): / -> type -> Enter -> cursor lands on match
 // =============================================================================
 
 describe("search flow via key presses", () => {
@@ -801,7 +1298,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().ui.showSearchDialog).toBe(false)
 
-    // The cursor should be on a visible card — either the subtask itself
+    // The cursor should be on a visible card -- either the subtask itself
     // (if the board zoomed deep enough) or its nearest card ancestor.
     // Most importantly, j/k should work from here.
     const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
@@ -884,7 +1381,7 @@ describe("search flow via key presses", () => {
     // First result should be selected (order depends on repo.search)
     expect(store.getState().ui.showSearchDialog).toBe(false)
     const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
-    // Either alpha-task or alpha-note — both are valid first matches
+    // Either alpha-task or alpha-note -- both are valid first matches
     expect(cursorId === "alpha-task" || cursorId === "alpha-note").toBe(true)
     expect(derivedState(store).selectionLevel).toBe("card")
   })
@@ -921,7 +1418,7 @@ describe("search flow via key presses", () => {
     board.press("Enter")
 
     expect(store.getState().ui.showSearchDialog).toBe(false)
-    // README file is a grandchild of root → SELECT
+    // README file is a grandchild of root -> SELECT
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("readme-file")
   })
 
@@ -988,7 +1485,7 @@ describe("search flow via key presses", () => {
   test("search selects correct card when target is oi task under oi section (Asana-like)", () => {
     // Asana import structure: all nodes are oi
     // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
-    // User views Project, searches for Task B — cursor should land on Task B card
+    // User views Project, searches for Task B -- cursor should land on Task B card
     const { board, store } = testEnv(
       () => item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
       { checkIncremental: false },
@@ -1010,7 +1507,7 @@ describe("search flow via key presses", () => {
 
   test("search for oi subtask zooms correctly and lands cursor on subtask", () => {
     // Asana-like: Project > Section > Task > Subtask
-    // User views Project, searches for Subtask — should zoom to Section,
+    // User views Project, searches for Subtask -- should zoom to Section,
     // making Task a column and Subtask a card.
     const { board, store } = testEnv(
       () => item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
@@ -1055,5 +1552,231 @@ describe("search flow via key presses", () => {
     // Key assertion: selectedNode must match cursorNodeId
     expect(derivedState(store).selectedNode?.id).toBe("third")
     board.expect("#third[data-cursor]").toExist()
+  })
+})
+
+// #############################################################################
+// SEARCH & REPLACE
+// #############################################################################
+
+describe("Search & Replace", () => {
+  /** Helper to create a standard board with searchable content */
+  function searchBoard() {
+    return testEnv(
+      () =>
+        item(
+          "board",
+          item("Todo", item("Buy milk"), item("Buy eggs"), item("Read book")),
+          item("Done", item("Cook dinner"), item("Buy bread")),
+        ),
+      { columns: 100, checkIncremental: false },
+    )
+  }
+
+  test("S opens the search/replace dialog", () => {
+    const { board, store } = searchBoard()
+    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
+
+    board.press("F")
+
+    const sr = getActiveBoardPane(store.getState())!.searchReplace
+    expect(sr).not.toBeNull()
+    expect(sr!.searchQuery).toBe("")
+    expect(sr!.replaceQuery).toBe("")
+    expect(sr!.focusedField).toBe("search")
+    expect(sr!.useRegex).toBe(false)
+  })
+
+  test("Escape closes the search/replace dialog", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    expect(getActiveBoardPane(store.getState())!.searchReplace).not.toBeNull()
+
+    board.press("Escape")
+    expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
+  })
+
+  test("typing updates the search query and shows matches", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    // Type "Buy" into the search field
+    board.press("B").press("u").press("y")
+
+    const sr = getActiveBoardPane(store.getState())!.searchReplace
+    expect(sr).not.toBeNull()
+    expect(sr!.searchQuery).toBe("Buy")
+    expect(sr!.matchCount).toBe(3) // "Buy milk", "Buy eggs", "Buy bread"
+    expect(sr!.matchNodeIds).toHaveLength(3)
+  })
+
+  test("Tab switches between search and replace fields", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
+
+    board.press("Tab")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("replace")
+
+    board.press("Tab")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
+  })
+
+  test("Enter navigates to next match", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    board.press("B").press("u").press("y")
+
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr1.matchIndex).toBe(0)
+    expect(sr1.matchCount).toBe(3)
+
+    board.press("Enter")
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr2.matchIndex).toBe(1)
+
+    board.press("Enter")
+    const sr3 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr3.matchIndex).toBe(2)
+
+    // Wraps around
+    board.press("Enter")
+    const sr4 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr4.matchIndex).toBe(0)
+  })
+
+  test("match count displays correctly with no matches", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    board.press("z").press("z").press("z")
+
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr.matchCount).toBe(0)
+    expect(sr.matchNodeIds).toHaveLength(0)
+  })
+
+  test("Ctrl+R replaces the current match", () => {
+    const { board, store, repo } = searchBoard()
+
+    board.press("F")
+    // Search for "Buy"
+    board.press("B").press("u").press("y")
+
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr1.matchCount).toBe(3)
+
+    // Switch to replace field and type replacement
+    board.press("Tab")
+    board.press("G").press("e").press("t")
+
+    // Replace current match (first one: "Buy milk" -> "Get milk")
+    board.press("ctrl+r")
+
+    // Verify the replacement happened
+    const firstMatchId = sr1.matchNodeIds[0]!
+    const node = repo.getNode(firstMatchId)
+    expect(node).toBeDefined()
+    // The node should now have "Get" replacing "Buy"
+    const text = node!.content ?? node!.name ?? ""
+    expect(text).toContain("Get")
+    expect(text).not.toMatch(/^Buy/)
+
+    // Match count should decrease
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr2.matchCount).toBe(2) // "Buy eggs" and "Buy bread" remain
+  })
+
+  test("replace all matches via command dispatch", () => {
+    const { board, store, repo } = searchBoard()
+
+    board.press("F")
+    board.press("B").press("u").press("y")
+
+    const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr1.matchCount).toBe(3)
+    const matchIds = [...sr1.matchNodeIds]
+
+    // Switch to replace field and type replacement
+    board.press("Tab")
+    board.press("G").press("e").press("t")
+
+    // Replace all -- use dispatchCommandById since ctrl+shift+r
+    // can't be represented in standard ANSI terminal encoding
+    dispatchCommandById("search_replace.replace_all", store.getState)
+
+    // Verify all replacements happened
+    for (const nodeId of matchIds) {
+      const node = repo.getNode(nodeId)
+      expect(node).toBeDefined()
+      const text = node!.content ?? node!.name ?? ""
+      expect(text).toContain("Get")
+      expect(text).not.toContain("Buy")
+    }
+
+    // Match count should be 0
+    const sr2 = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr2.matchCount).toBe(0)
+  })
+
+  test("Ctrl+X toggles regex mode", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
+
+    board.press("ctrl+x")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
+
+    board.press("ctrl+x")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
+  })
+
+  test("regex search matches correctly", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+
+    // Enable regex
+    board.press("ctrl+x")
+    expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
+
+    // Search for "Buy.*k" (matches "Buy milk" -- k in milk)
+    board.press("B").press("u").press("y")
+    board.press(".").press("*").press("k")
+
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
+    // "Buy milk" matches Buy.*k (the k in milk)
+    expect(sr.matchCount).toBeGreaterThanOrEqual(1)
+  })
+
+  test("dialog renders in the board output", () => {
+    const { board } = searchBoard()
+
+    board.press("F")
+
+    const output = board.screenshot()
+    expect(output).toContain("[F]ind & Replace")
+    expect(output).toContain("Find:")
+    expect(output).toContain("Repl:")
+  })
+
+  test("invalid regex shows no matches instead of crashing", () => {
+    const { board, store } = searchBoard()
+
+    board.press("F")
+
+    // Enable regex
+    board.press("ctrl+x")
+
+    // Type an invalid regex
+    board.press("[")
+
+    const sr = getActiveBoardPane(store.getState())!.searchReplace!
+    expect(sr.matchCount).toBe(0)
+    // Should not crash
   })
 })
