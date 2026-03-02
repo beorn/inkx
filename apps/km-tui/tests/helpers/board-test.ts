@@ -334,6 +334,9 @@ function buildTestEventHandlerCtx(store: StoreApi<BoardAppStore>, fm: ReturnType
       // to virtual focus (sets activeId without a DOM node).
       fm.focusById(testID, app.getContainer(), "programmatic")
     },
+    activateScope(scopeId: string) {
+      fm.activateScope(scopeId, app.getContainer())
+    },
     getFocusPath() {
       return fm.getFocusPath(app.getContainer())
     },

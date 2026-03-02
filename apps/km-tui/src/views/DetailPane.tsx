@@ -184,9 +184,9 @@ function FolderDetailPane({
           <Box flexDirection="column">
             {entries.map((entry, i) => {
               // Cursor highlight: match by nodeId for depth-0 (navigable) entries
-              const isCursored = detailFocused && entry.depth === 0 && entry.node.id === detailCursorNodeId
+              const isCursored = entry.depth === 0 && entry.node.id === detailCursorNodeId
               return (
-                <Box key={`${entry.node.id}-${i}`} inverse={isCursored || undefined}>
+                <Box key={`${entry.node.id}-${i}`} color={isCursored ? "$selected" : undefined} dimColor={isCursored && !detailFocused || undefined}>
                   <NodeLineView
                     node={entry.node}
                     displayName={getNodeDisplayName(repo, entry.node)}
@@ -329,7 +329,8 @@ function TaskDetailPane({
             dueParts={dueParts}
             startParts={startParts}
             refs={refs}
-            cursorMetaKey={detailFocused && detailCursorNodeId?.startsWith(DETAIL_META_PREFIX) ? detailCursorNodeId.slice(DETAIL_META_PREFIX.length) : null}
+            cursorMetaKey={detailCursorNodeId?.startsWith(DETAIL_META_PREFIX) ? detailCursorNodeId.slice(DETAIL_META_PREFIX.length) : null}
+            isFocused={detailFocused}
           />
 
           {/* Content area */}
@@ -378,7 +379,8 @@ function TaskDetailPane({
                 repo={repo}
                 items={structuralChildren}
                 innerWidth={contentWidth}
-                cursorNodeId={detailFocused ? detailCursorNodeId : null}
+                cursorNodeId={detailCursorNodeId}
+                isFocused={detailFocused}
               />
             </Box>
           )}
@@ -394,12 +396,12 @@ function TaskDetailPane({
                 const blTitle = getNodeDisplayName(repo, bl)
                 const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
                 const backlinkCursorId = `__backlink__${bl.id}`
-                const isCursored = detailFocused && detailCursorNodeId === backlinkCursorId
+                const isCursored = detailCursorNodeId === backlinkCursorId
                 return (
-                  <Box key={bl.id} inverse={isCursored || undefined}>
+                  <Box key={bl.id} color={isCursored ? "$selected" : undefined} dimColor={isCursored && !detailFocused || undefined}>
                     <Text wrap="truncate">
                       {"  "}
-                      <Text dimColor>{breadcrumb}</Text>
+                      <Text dimColor={!isCursored}>{breadcrumb}</Text>
                       <Text bold>
                         <InlineText text={blTitle} context={{ resolveWikiLink, resolveBlockRef }} />
                       </Text>
@@ -503,6 +505,8 @@ interface MetadataTableProps {
   refs: { mentions: string[]; tags: string[]; projects: string[] }
   /** The metadata key currently cursored (e.g., "Status"), or null if no meta row is cursored. */
   cursorMetaKey?: string | null
+  /** Whether the detail pane is focused. */
+  isFocused?: boolean
 }
 
 function MetadataTable({
@@ -514,6 +518,7 @@ function MetadataTable({
   startParts,
   refs,
   cursorMetaKey = null,
+  isFocused = true,
 }: MetadataTableProps): React.ReactElement | null {
   const repo = useRepo()
   const rows: MetadataRow[] = []
@@ -650,8 +655,8 @@ function MetadataTable({
       {rows.map((row, i) => {
         const isCursored = cursorMetaKey === row.key
         return (
-          <Box key={`${row.key}-${i}`} flexDirection="row" inverse={isCursored || undefined}>
-            <Text dimColor={!isCursored}>{row.key.padEnd(maxKeyLen)} </Text>
+          <Box key={`${row.key}-${i}`} flexDirection="row" color={isCursored ? "$selected" : undefined} dimColor={isCursored && !isFocused || undefined}>
+            <Text dimColor={!(isCursored && isFocused)}>{row.key.padEnd(maxKeyLen)} </Text>
             <Text color={isCursored ? undefined : (row.valueColor ?? "$text")}>{row.value}</Text>
           </Box>
         )
@@ -709,11 +714,13 @@ function DetailSubitems({
   items,
   innerWidth,
   cursorNodeId = null,
+  isFocused = true,
 }: {
   repo: Repo
   items: KNode[]
   innerWidth: number
   cursorNodeId?: string | null
+  isFocused?: boolean
 }): React.ReactElement {
   return (
     <>
@@ -723,7 +730,8 @@ function DetailSubitems({
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const isCursored = item.id === cursorNodeId
-        const cursorInverse = isCursored || undefined
+        const cursorColor = isCursored ? ("$selected" as const) : undefined
+        const cursorDim = isCursored && !isFocused || undefined
         // Collapsed sections render muted with just the title + count
         // Comments and Attachments expand by default in detail pane (collapse only affects board view)
         const sectionName = getNodeDisplayName(repo, displayItem)
@@ -736,7 +744,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
+              <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -758,7 +766,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
+              <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -799,7 +807,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth} inverse={cursorInverse}>
+            <Box flexDirection="row" width={innerWidth} color={cursorColor} dimColor={cursorDim}>
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}

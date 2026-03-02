@@ -290,6 +290,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       // to virtual focus (sets activeId without a DOM node).
       focusManager.focusById(testID, baseApp.getContainer(), "programmatic")
     },
+    activateScope(scopeId: string) {
+      focusManager.activateScope(scopeId, baseApp.getContainer())
+    },
     getFocusPath() {
       return focusManager.getFocusPath(baseApp.getContainer())
     },

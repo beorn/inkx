@@ -183,11 +183,13 @@ These colors have specific semantic meanings and **MUST NOT** be reused:
 | ----------------- | ----------------------------- | -------------------------------------------- |
 | `cyan` background | **Selection only**            | Users must instantly identify where they are |
 | `inverse` video   | **Input cursor, mode badges** | Text input focus indicator                   |
+| `$selected` + `dimColor` | **Unfocused pane cursor** | Cursor visible but subdued in inactive pane |
 
 ### Anti-patterns
 
 - Using cyan background for status indication or general emphasis
-- Using inverse for general emphasis
+- Using inverse for general emphasis or cursor highlight (use `$selected` color instead)
+- Using `inverse` in detail pane items (use `color="$selected"` + `dimColor` pattern)
 
 ---
 
@@ -501,6 +503,27 @@ interface BoardState {
 **No tree data in state:** Repo provides tree queries directly. Columns are derived via `useColumns()` from repo data, not stored in state.
 
 **Terminology:** "cursor" = single focused node. "selection" = multi-select via visual mode ('v').
+
+### Pane Focus (Focus Scopes)
+
+Each pane (board, detail) is an inkx **focus scope** — a container that remembers its last focused element. Pane focus is managed via `focusManager.activateScope()` (WPF FocusScope model), which:
+
+1. Saves the current focus in the outgoing scope's memory
+2. Switches `activeScopeId` to the new scope
+3. Restores remembered focus in the incoming scope
+
+**Focus source of truth:** `focusManager.activeScopeId` is the single source of truth for which pane is active. `workspace.focusedPaneId` is kept in sync via `syncFocusScope()` for persistence/state access.
+
+**Cursor visibility:** Both focused and unfocused panes show their cursor. The unfocused pane's cursor uses `dimColor` to appear subdued (gold dims to dark yellow). This matches the board's pattern where selected card borders dim when the pane loses focus.
+
+**Scope-aware commands:** Navigation commands (`cursor_down`, `cursor_up`, `enter`) check the active scope type and dispatch to the appropriate handler (board vs detail). This eliminates duplicate `detail_pane.*` commands.
+
+| Key       | Board Scope           | Detail Scope                          |
+| --------- | --------------------- | ------------------------------------- |
+| `j` / `k` | Move cursor down/up   | Move detail cursor down/up            |
+| `h`       | Move to prev column   | Return to board pane                  |
+| `Enter`   | Zoom into card        | Zoom into detail cursor node          |
+| `n`       | Toggle detail pane    | Toggle detail pane (cycles focus)     |
 
 ### Cursor Depth and Direction Translation
 

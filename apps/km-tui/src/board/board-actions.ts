@@ -293,12 +293,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "FOCUS_BOARD":
       ctx.focus("board-area")
+      ctx.syncFocusScope()
       return ok()
     case "FOCUS_DETAIL":
       if (!ctx.hasDetailPane) {
         ctx.openDetailPane()
       }
       ctx.focus("detail-pane")
+      ctx.syncFocusScope()
       // Default to topbar cursor if no cursor set
       if (!ctx.getDetailCursorId()) {
         ctx.setDetailCursor(DETAIL_TOPBAR_ID)
@@ -344,8 +346,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
 
-    // === Board/navigation actions ===
+    // === Board/navigation actions (scope-aware) ===
     case "CURSOR_MOVE":
+      // Scope-aware: if detail pane is focused, delegate to detail cursor
+      if (ctx.focusedPaneViewType() === "detail") {
+        return handleDetailCursorMove(ctx, action.dir)
+      }
       // Navigate-away saves: confirm inline edit before moving cursor.
       // Calling confirm() saves the value and exits inline edit mode.
       // This fires synchronously before navigation so React picks up
@@ -404,6 +410,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "NAV_FORWARD":
       return handleNavForward(ctx)
     case "ZOOM_IN":
+      // Scope-aware: if detail pane is focused, enter on detail cursor node
+      if (ctx.focusedPaneViewType() === "detail") {
+        return handleDetailEnter(ctx)
+      }
       return handleZoomIn(ctx)
     case "CLEAR_SELECTION":
       clearSelection(ctx)
@@ -1086,18 +1096,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
     case "PANE_FOCUS": {
       ctx.focusPaneInDirection(action.direction)
+      ctx.syncFocusScope()
       return ok()
     }
     case "PANE_FOCUS_PREVIOUS": {
       ctx.focusPreviousPane()
+      ctx.syncFocusScope()
       return ok()
     }
     case "PANE_FOCUS_CYCLE": {
       ctx.cyclePaneFocus(action.direction)
+      ctx.syncFocusScope()
       return ok()
     }
     case "PANE_FOCUS_NUMBER": {
       ctx.focusPaneByNumber(action.number)
+      ctx.syncFocusScope()
       return ok()
     }
     case "PANE_RESIZE": {
@@ -1142,6 +1156,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DETAIL_PANE_CLOSE":
       // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
       ctx.focus("board-area")
+      ctx.syncFocusScope()
       return ok()
     case "DETAIL_PANE_CURSOR_DOWN": {
       const detailNode = getDetailPaneNode(ctx)
@@ -2049,4 +2064,54 @@ function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
   // Backlink items use __backlink__ prefix — strip it to get the real node ID
   const realId = cursorNodeId.startsWith("__backlink__") ? cursorNodeId.slice("__backlink__".length) : cursorNodeId
   return ctx.repo.getNode(realId) ?? undefined
+}
+
+/**
+ * Handle cursor movement in the detail pane (scope-aware dispatch).
+ * up/down: move within detail items. left: return to board. right/first/last: boundary.
+ */
+function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, ActionError> {
+  if (dir === "left") {
+    // Left exits detail pane focus (returns to board), pane stays open
+    ctx.focus("board-area")
+    ctx.syncFocusScope()
+    return ok()
+  }
+  if (dir !== "up" && dir !== "down") {
+    return boundary(dir, `Can't move ${dir} in detail pane`)
+  }
+
+  const detailNode = getDetailPaneNode(ctx)
+  if (!detailNode) return ok()
+
+  const items = getDetailItemsForNode(ctx.repo, detailNode)
+  if (items.length === 0) return ok()
+
+  const currentId = ctx.getDetailCursorId()
+  const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
+
+  if (dir === "down") {
+    const nextIdx = Math.min(currentIdx + 1, items.length - 1)
+    const nextItem = items[nextIdx]
+    if (nextItem) ctx.setDetailCursor(nextItem.nodeId)
+  } else {
+    const prevIdx = Math.max(currentIdx - 1, 0)
+    const prevItem = items[prevIdx]
+    if (prevItem) ctx.setDetailCursor(prevItem.nodeId)
+  }
+  return ok()
+}
+
+/**
+ * Handle Enter in the detail pane (scope-aware dispatch).
+ * Zooms into the detail cursor node.
+ */
+function handleDetailEnter(ctx: ActionCtx): Result<void, ActionError> {
+  const enterNode = getDetailPaneCursorNode(ctx)
+  if (enterNode) {
+    saveNavHistory(ctx)
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
+    ctx.closeDetailPane()
+  }
+  return ok()
 }

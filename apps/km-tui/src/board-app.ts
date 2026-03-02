@@ -40,6 +40,7 @@ export interface BoardAppLocals {
   lastKeyTime: number
   cachedFocusManager: FocusManager | null
   cachedFocus: ((testID: string) => void) | null
+  cachedActivateScope: ((scopeId: string) => void) | null
   layoutCache: {
     rootId: string | null
     foldDepths: Map<string, number>
@@ -64,6 +65,7 @@ export function createBoardAppLocals(): BoardAppLocals {
     lastKeyTime: 0,
     cachedFocusManager: null,
     cachedFocus: null,
+    cachedActivateScope: null,
     layoutCache: null,
     chordTimer: null,
     pendingChordShownAt: 0,
@@ -319,6 +321,13 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: locals.cachedFocusManager!,
     focus: locals.cachedFocus ?? (() => {}),
+    activateScope: locals.cachedActivateScope ?? (() => {}),
+    syncFocusScope: () => {
+      const paneId = get().workspace.focusedPaneId
+      if (locals.cachedActivateScope) {
+        locals.cachedActivateScope(paneId)
+      }
+    },
     hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
     countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
       countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
@@ -381,6 +390,13 @@ function handleKey(
   if (locals.cachedFocusManager !== ctx.focusManager) {
     locals.cachedFocusManager = ctx.focusManager
     locals.cachedFocus = ctx.focus.bind(ctx)
+    locals.cachedActivateScope = ctx.activateScope.bind(ctx)
+  }
+
+  // Activate the initial focus scope on first key event (before any command processing)
+  if (ctx.focusManager.activeScopeId === null) {
+    const paneId = get().workspace.focusedPaneId
+    ctx.activateScope(paneId)
   }
 
   // Track inter-event gap
@@ -678,6 +694,13 @@ function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>
   if (locals.cachedFocusManager !== ctx.focusManager) {
     locals.cachedFocusManager = ctx.focusManager
     locals.cachedFocus = ctx.focus.bind(ctx)
+    locals.cachedActivateScope = ctx.activateScope.bind(ctx)
+  }
+
+  // Activate the initial focus scope on first mouse event (before any processing)
+  if (ctx.focusManager.activeScopeId === null) {
+    const paneId = get().workspace.focusedPaneId
+    ctx.activateScope(paneId)
   }
 
   // --- Border drag resize (Phase 7: mouse support) ---

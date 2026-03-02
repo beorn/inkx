@@ -18,6 +18,7 @@ import {
 } from "@km/commands"
 import { detectTerminalCaps } from "inkx"
 import type { ActionCtx } from "./tui-context.ts"
+import { isDetailPaneId } from "./board-types.ts"
 import { getModeStack } from "./dialog-guard.ts"
 
 /** Cached Kitty keyboard protocol detection (static — doesn't change at runtime).
@@ -74,7 +75,7 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showOmnibox ||
       !!ui.searchReplace,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
-    isInDetailPane: ctx.focusManager.getSnapshot().activeId === "detail-pane",
+    isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
     textInputFocused: !!ui.inlineEditBlock || isDialogInput,

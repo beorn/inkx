@@ -19,6 +19,7 @@ import {
   HorizontalVirtualList,
   useContentRect,
   setWindowTitle,
+  useFocusManager,
   type PatchedConsole,
 } from "inkx"
 import { useApp as useAppStore, StoreContext } from "inkx/runtime"
@@ -180,8 +181,8 @@ function PaneBoardTopBar({
   selectedPathSegments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>
 }): React.ReactElement {
   const paneId = usePaneId()
-  const focusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
-  const isPaneFocused = paneId === focusedPaneId
+  const { activeScopeId } = useFocusManager()
+  const isPaneFocused = activeScopeId === null || activeScopeId === paneId
 
   return (
     <PaneBar
@@ -311,8 +312,8 @@ function CursorAwareDetailPane(): React.ReactElement {
   })
   const repo = useRepo()
   const paneLabel = usePaneLabel()
-  const focusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
-  const isPaneFocused = paneId === focusedPaneId
+  const { activeScopeId } = useFocusManager()
+  const isPaneFocused = activeScopeId === null || activeScopeId === paneId
   const parentRect = useContentRect()
   const width = parentRect.width > 0 ? parentRect.width : 40
   const height = parentRect.height > 0 ? parentRect.height : 20
@@ -569,10 +570,11 @@ export function Board({ patchedConsole }: BoardProps) {
   )
   const taskStatusFilter = ui.filterProperties.taskStatus
 
-  // Board focus state — derived from workspace's focusedPaneId (not inkx focus tree)
-  // to stay in sync with pane switching commands.
-  const boardFocusedPaneId = useAppStore<BoardAppStore, string>((s) => s.workspace.focusedPaneId)
-  const boardFocused = paneId === boardFocusedPaneId
+  // Board focus state — derived from inkx focus scope system.
+  // activeScopeId is set by syncFocusScope() when pane focus changes.
+  // null means no scope activated yet (first render) — treat as focused.
+  const { activeScopeId } = useFocusManager()
+  const boardFocused = activeScopeId === null || activeScopeId === paneId
   const hasDetailPane = useAppStore<BoardAppStore, boolean>((s) => hasDetailPaneFor(s.workspace, paneId))
 
   // Jotai store — per-pane scope, stable across re-renders

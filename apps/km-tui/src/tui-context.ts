@@ -85,6 +85,10 @@ export interface ActionCtx {
   focusManager: FocusManager
   /** Convenience: focus a node by testID */
   focus: (testID: string) => void
+  /** Activate a peer focus scope (saves/restores focus per scope) */
+  activateScope: (scopeId: string) => void
+  /** Sync the focus scope to the current workspace focusedPaneId. Call after pane switching. */
+  syncFocusScope: () => void
   /** Whether the detail pane exists as a workspace pane */
   hasDetailPane: boolean
 

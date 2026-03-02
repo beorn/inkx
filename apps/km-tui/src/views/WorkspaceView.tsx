@@ -167,7 +167,7 @@ function LayoutNodeView({
     const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
     return (
-      <Box flexGrow={1} flexDirection="column" onMouseDown={() => onPaneClick?.(node.paneId)}>
+      <Box flexGrow={1} flexDirection="column" focusScope testID={node.paneId} onMouseDown={() => onPaneClick?.(node.paneId)}>
         {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
         {/* Detail panes with renderDetailPane: DetailPane renders its own PaneBar */}
         {/* Detail panes without renderDetailPane / other panes: PaneTitleBar provides the top bar */}
