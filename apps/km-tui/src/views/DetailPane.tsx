@@ -15,6 +15,7 @@ import { useRepo, type Repo } from "../repo-context.tsx"
 import { usePaneLabel } from "../pane-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { InlineText, getNodeIcon, getStatusIcon, getColumnHeaderIcon, hyperlink, prettifyUrl } from "../text/index.ts"
+import { useTreeConfig } from "../ui-context.tsx"
 import {
   formatDate,
   getStatusDisplay,
@@ -96,13 +97,14 @@ function DetailPaneTopBar({
 }): React.ReactElement {
   const repo = useRepo()
   const paneLabel = usePaneLabel()
+  const { iconStyle } = useTreeConfig()
   const title = getNodeDisplayName(repo, node)
 
-  // Pick icon: task status icon for tasks, column header icon for outlines
+  // Pick icon: task status icon for tasks, type-aware icon for outlines
   const icon =
     node.task_status != null
       ? getNodeIcon(node.task_status, undefined, true)
-      : getColumnHeaderIcon(node, "regular", false)
+      : getColumnHeaderIcon(node, iconStyle, false)
 
   // Gold background (like selected column headers).
   // Per-pane theme dims $selected for unfocused panes automatically.
@@ -396,6 +398,7 @@ function TaskDetailPane({
                 const breadcrumb = path.length > 0 ? path.join(" / ") + " / " : ""
                 const backlinkCursorId = `__backlink__${bl.id}`
                 const isCursored = detailCursorNodeId === backlinkCursorId
+                const blIcon = getNodeIcon(bl.task_status, undefined, bl.task_marker !== undefined)
                 return (
                   <Box
                     key={bl.id}
@@ -404,6 +407,8 @@ function TaskDetailPane({
                   >
                     <Text wrap="truncate">
                       {"  "}
+                      <Text color={isCursored ? undefined : blIcon.color}>{blIcon.char}</Text>
+                      {" "}
                       <Text dimColor={!isCursored}>{breadcrumb}</Text>
                       <Text bold>
                         <InlineText text={blTitle} context={{ resolveWikiLink, resolveBlockRef }} />
