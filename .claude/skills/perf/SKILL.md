@@ -73,7 +73,8 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 | `INKX_INSTRUMENT=1` | Content-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
 | `INKX_STRICT=1` | Compare incremental vs fresh render every frame (crashes on mismatch) |
 | `INKX_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing |
-| `INKX_DEV=1` | Enable inspector (render stats, tree dumps, dirty flags) |
+| `INKX_DEV=1` | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
+| `INKX_PROFILE_RENDER=1` | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
 
 ### Other
 
