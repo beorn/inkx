@@ -147,23 +147,6 @@ export type TextEditAction =
   | TextExitEditAction
   | TextYankAction
 
-// Detail pane actions
-export interface DetailPaneCloseAction {
-  type: "DETAIL_PANE_CLOSE"
-}
-
-export interface DetailPaneCursorDownAction {
-  type: "DETAIL_PANE_CURSOR_DOWN"
-}
-
-export interface DetailPaneCursorUpAction {
-  type: "DETAIL_PANE_CURSOR_UP"
-}
-
-export interface DetailPaneEnterAction {
-  type: "DETAIL_PANE_ENTER"
-}
-
 // Custom action types for commands that operate outside the board reducer
 export interface TaskSetStatusAction {
   type: "TASK_SET_STATUS"
@@ -957,10 +940,6 @@ export type CommandAction =
   | HistoryAction
   | UIAction
   | TextEditAction
-  | DetailPaneCloseAction
-  | DetailPaneCursorDownAction
-  | DetailPaneCursorUpAction
-  | DetailPaneEnterAction
 
 // Re-export for convenience
 export type { BoardAction, TNode, ViewMode, TaskStatus }

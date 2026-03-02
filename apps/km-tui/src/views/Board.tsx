@@ -288,25 +288,25 @@ function BoardTopBar({
 }
 
 /**
- * CursorAwareDetailPane - reads root node and cursor from DetailPaneState.
+ * CursorAwareDetailPane - reads root node and cursor from the detail view pane.
  *
  * Architecture:
  * - Root node (rootNodeId) is derived from the owner board pane's cursor store,
  *   tracking cursor changes via pane ID convention (detailPaneIdFor/ownerPaneId).
- * - Detail cursor (cursorId) is stored in DetailPaneState and managed by
- *   DETAIL_PANE_CURSOR_DOWN/UP actions.
+ * - Detail cursor (cursorNodeId) is stored in the detail view pane and managed by
+ *   CURSOR_MOVE actions (routed to detail handler via viewMode check).
  * - Both are reset by SELECT when the board cursor moves to a different card.
  */
 function CursorAwareDetailPane(): React.ReactElement {
   const paneId = usePaneId()
   const { rootNodeId, detailCursorNodeId } = useAppStore<BoardAppStore, { rootNodeId: string | null; detailCursorNodeId: string | null }>((s) => {
     const pane = s.workspace.panes.get(paneId)
-    if (pane?.viewType === "detail") {
+    if (pane?.viewType === "board" && pane.viewMode === "detail") {
       // Detail panes always derive rootNodeId from cursor store so they track
       // cursor changes even if they bypass the SELECT handler.
       const cs = s.cursorStore.getState()
       const effectiveRoot = cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? null
-      return { rootNodeId: effectiveRoot, detailCursorNodeId: pane.cursorId }
+      return { rootNodeId: effectiveRoot, detailCursorNodeId: pane.cursorNodeId }
     }
     return { rootNodeId: null, detailCursorNodeId: null }
   })

@@ -37,7 +37,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { type KNode, isOutline, isListItem, isItem } from "@km/core"
+import { type KNode, isOutline, isListItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -81,7 +81,6 @@ import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./boar
 import {
   handleFollowLink,
   handleZoomIn,
-  handleZoomInNode,
   handleZoomInwards,
   handleZoomOutwards,
   handleZoomToRoot,
@@ -1163,57 +1162,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
 
-    // === Detail pane ===
-    case "DETAIL_PANE_CLOSE": {
-      // Per v2 spec: Escape unfocuses pane (returns to board), pane stays open
-      const boardPane = ownerPaneId(ctx.focusedPaneId())
-      ctx.focusPaneById(boardPane)
-      ctx.syncFocusScope()
-      return ok()
-    }
-    case "DETAIL_PANE_CURSOR_DOWN": {
-      const detailNode = getDetailPaneNode(ctx)
-      if (detailNode) {
-        const items = getDetailItemsForNode(ctx.repo, detailNode)
-        if (items.length > 0) {
-          const currentId = ctx.getDetailCursorId()
-          const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
-          const nextIdx = Math.min(currentIdx + 1, items.length - 1)
-          const nextItem = items[nextIdx]
-          if (nextItem) {
-            ctx.setDetailCursor(nextItem.nodeId)
-          }
-        }
-      }
-      return ok()
-    }
-    case "DETAIL_PANE_CURSOR_UP": {
-      const detailNode = getDetailPaneNode(ctx)
-      if (detailNode) {
-        const items = getDetailItemsForNode(ctx.repo, detailNode)
-        if (items.length > 0) {
-          const currentId = ctx.getDetailCursorId()
-          const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
-          const prevIdx = Math.max(currentIdx - 1, 0)
-          const prevItem = items[prevIdx]
-          if (prevItem) {
-            ctx.setDetailCursor(prevItem.nodeId)
-          }
-        }
-      }
-      return ok()
-    }
-    case "DETAIL_PANE_ENTER": {
-      const enterNode = getDetailPaneCursorNode(ctx)
-      if (enterNode) {
-        // Zoom into the selected child node
-        saveNavHistory(ctx)
-        ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
-        ctx.closeDetailPane()
-      }
-      return ok()
-    }
-
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
     // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
     case "DIALOG_NAV_UP":
@@ -2083,9 +2031,32 @@ function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
   return ctx.repo.getNode(realId) ?? undefined
 }
 
+/** Jump to the next/previous section boundary in detail items. */
+function detailBlockJump(
+  items: { nodeId: string; kind: string }[],
+  currentIdx: number,
+  forward: boolean,
+): { nodeId: string } | undefined {
+  const currentKind = currentIdx >= 0 ? items[currentIdx]?.kind : undefined
+  if (forward) {
+    let idx = currentIdx + 1
+    while (idx < items.length && items[idx]?.kind === currentKind) idx++
+    return items[idx] ?? items[items.length - 1]
+  }
+  // backward: skip to beginning of previous section
+  let idx = currentIdx - 1
+  while (idx >= 0 && items[idx]?.kind === currentKind) idx--
+  if (idx < 0) return items[0]
+  const prevKind = items[idx]?.kind
+  while (idx > 0 && items[idx - 1]?.kind === prevKind) idx--
+  return items[idx]
+}
+
 /**
  * Handle cursor movement in the detail pane (scope-aware dispatch).
- * up/down: move within detail items. left: return to board. right/first/last: boundary.
+ * up/down: move within detail items. left: return to board. right: boundary.
+ * block_up/block_down: jump between sections (meta → structural → backlinks).
+ * first/last: jump to first/last item.
  */
 function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, ActionError> {
   if (dir === "left") {
@@ -2095,8 +2066,8 @@ function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, Actio
     ctx.syncFocusScope()
     return ok()
   }
-  if (dir !== "up" && dir !== "down") {
-    return boundary(dir, `Can't move ${dir} in detail pane`)
+  if (dir === "right") {
+    return boundary(dir, "Can't move right in detail pane")
   }
 
   const detailNode = getDetailPaneNode(ctx)
@@ -2108,15 +2079,29 @@ function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, Actio
   const currentId = ctx.getDetailCursorId()
   const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
 
-  if (dir === "down") {
-    const nextIdx = Math.min(currentIdx + 1, items.length - 1)
-    const nextItem = items[nextIdx]
-    if (nextItem) ctx.setDetailCursor(nextItem.nodeId)
+  if (dir === "down" || dir === "up") {
+    if (dir === "down") {
+      const nextIdx = Math.min(currentIdx + 1, items.length - 1)
+      const nextItem = items[nextIdx]
+      if (nextItem) ctx.setDetailCursor(nextItem.nodeId)
+    } else {
+      const prevIdx = Math.max(currentIdx - 1, 0)
+      const prevItem = items[prevIdx]
+      if (prevItem) ctx.setDetailCursor(prevItem.nodeId)
+    }
+  } else if (dir === "first") {
+    const first = items[0]
+    if (first) ctx.setDetailCursor(first.nodeId)
+  } else if (dir === "last") {
+    const last = items[items.length - 1]
+    if (last) ctx.setDetailCursor(last.nodeId)
+  } else if (dir === "block_down" || dir === "block_up") {
+    const target = detailBlockJump(items, currentIdx, dir === "block_down")
+    if (target) ctx.setDetailCursor(target.nodeId)
   } else {
-    const prevIdx = Math.max(currentIdx - 1, 0)
-    const prevItem = items[prevIdx]
-    if (prevItem) ctx.setDetailCursor(prevItem.nodeId)
+    return boundary(dir, `Can't move ${dir} in detail pane`)
   }
+
   return ok()
 }
 

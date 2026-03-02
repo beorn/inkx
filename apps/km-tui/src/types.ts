@@ -50,7 +50,7 @@ export interface ColumnView {
  * - columns: Tree/outline view within each column
  * - tabs: Tab-based view (one column at a time with tab bar)
  */
-export type ViewMode = "cards" | "list" | "columns" | "tabs"
+export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
 /**
  * Selection key — just the node ID.

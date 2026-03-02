@@ -11,7 +11,7 @@ import { createRenderer } from "inkx/testing"
 import { Text } from "inkx"
 import { WorkspaceView } from "../../src/views/WorkspaceView.tsx"
 import type { LayoutNode, PaneState, PaneViewType } from "../../src/board-types.ts"
-import { createBoardState, createPaneState, createDetailPaneState, createEmptyPaneState } from "../../src/board-types.ts"
+import { createBoardState, createPaneState, createEmptyPaneState } from "../../src/board-types.ts"
 import { usePaneLabel } from "../../src/pane-context.tsx"
 
 const render = createRenderer()
@@ -39,7 +39,8 @@ function stubCursorStore() {
 function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState {
   const cs = stubCursorStore()
   if (viewType === "detail") {
-    return createDetailPaneState(id, { rootNodeId: null, cursorId: null, cursorStore: cs })
+    const pane = createPaneState(id, createBoardState(), { viewMode: "detail", cursorStore: cs })
+    return pane
   }
   if (viewType === "empty") {
     return createEmptyPaneState(id, cs)

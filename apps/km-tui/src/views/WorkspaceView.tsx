@@ -11,7 +11,7 @@
 
 import React, { useMemo } from "react"
 import { Box, Text, useTheme } from "inkx"
-import { ownerPaneId, type LayoutNode, type PaneState } from "../board-types.ts"
+import { ownerPaneId, isDetailViewPane, type LayoutNode, type PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
 import { deriveUnfocusedTheme } from "../theme.ts"
@@ -45,7 +45,7 @@ function derivePaneLabels(layout: LayoutNode, panes: Map<string, PaneState>): Ma
     const pane = panes.get(paneId)
     if (!pane) continue
 
-    if (pane.viewType === "detail") {
+    if (isDetailViewPane(pane)) {
       // Detail pane — find parent board pane's number via ownerPaneId()
       const parentId = ownerPaneId(paneId)
       const parentLabel = labels.get(parentId)
@@ -166,8 +166,8 @@ function LayoutNodeView({
       )
     }
 
-    const isBoard = pane.viewType === "board"
-    const isDetail = pane.viewType === "detail"
+    const isBoard = pane.viewType === "board" && !isDetailViewPane(pane)
+    const isDetail = isDetailViewPane(pane)
     const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
 
     return (

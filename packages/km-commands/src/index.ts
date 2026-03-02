@@ -15,7 +15,6 @@ export type {
   HistoryUndoAction,
   HistoryRedoAction,
   UIAction,
-  OpenDetailPaneAction,
   CloseDetailPaneAction,
   ShowHelpAction,
   HideHelpAction,
@@ -57,8 +56,6 @@ export type {
   TextDeleteToEndAction,
   TextConfirmAction,
   TextExitEditAction,
-  // Detail pane action
-  DetailPaneCloseAction,
 } from "./types.ts"
 
 // Registry

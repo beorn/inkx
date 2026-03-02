@@ -21,7 +21,7 @@ export type { TPath } from "@km/tree"
 
 // ===== Base Types =====
 
-export type ViewMode = "cards" | "list" | "columns" | "tabs"
+export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
 // ===== Board State =====
 
@@ -188,7 +188,7 @@ export function createBoardState(
 
 // ===== Workspace / Pane Types =====
 
-/** Discriminator for what a pane displays. */
+/** Discriminator for what a pane displays. "detail" is a BoardPaneState with viewMode "detail". */
 export type PaneViewType = "board" | "detail" | "empty"
 
 /**
@@ -262,6 +262,9 @@ interface PaneStateBase {
 export interface BoardPaneState extends PaneStateBase {
   viewType: "board"
 
+  /** When viewMode is "detail", this is the pane whose cursor we follow. */
+  parentPaneId?: string
+
   // Board navigation
   rootId: string | null
   rootPath: string | null
@@ -316,18 +319,6 @@ export interface BoardPaneState extends PaneStateBase {
 }
 
 /**
- * Detail pane — shows details of a specific node, linked to its owner board pane's cursor.
- * Ownership is derived from pane ID convention: a detail pane's owner is ownerPaneId(pane.id).
- */
-export interface DetailPaneState extends PaneStateBase {
-  viewType: "detail"
-  /** Which node this detail pane displays */
-  rootNodeId: string | null
-  /** Cursor within the detail pane (navigable items) */
-  cursorId: string | null
-}
-
-/**
  * Empty pane — placeholder before content is assigned.
  */
 export interface EmptyPaneState extends PaneStateBase {
@@ -335,16 +326,16 @@ export interface EmptyPaneState extends PaneStateBase {
 }
 
 /** Discriminated union of all pane types */
-export type PaneState = BoardPaneState | DetailPaneState | EmptyPaneState
+export type PaneState = BoardPaneState | EmptyPaneState
 
 /** Type guard for board panes */
 export function isBoardPane(pane: PaneState): pane is BoardPaneState {
   return pane.viewType === "board"
 }
 
-/** Type guard for detail panes */
-export function isDetailPane(pane: PaneState): pane is DetailPaneState {
-  return pane.viewType === "detail"
+/** Type guard for detail view mode (BoardPaneState with viewMode "detail") */
+export function isDetailViewPane(pane: PaneState): pane is BoardPaneState {
+  return pane.viewType === "board" && (pane as BoardPaneState).viewMode === "detail"
 }
 
 // ===== Pane ID Convention Helpers =====
@@ -367,7 +358,7 @@ export function isDetailPaneId(paneId: string): boolean {
 /** Resolved board + detail pane pair from any pane ID. */
 export interface PanePair {
   board: BoardPaneState | null
-  detail: DetailPaneState | null
+  detail: BoardPaneState | null
 }
 
 /**
@@ -377,7 +368,7 @@ export interface PanePair {
  */
 export function resolvePanes(workspace: WorkspaceState, paneId: string): PanePair {
   const pane = workspace.panes.get(paneId)
-  if (pane && isDetailPane(pane)) {
+  if (pane && isDetailViewPane(pane)) {
     const boardId = ownerPaneId(paneId)
     const boardPane = workspace.panes.get(boardId)
     return {
@@ -389,12 +380,12 @@ export function resolvePanes(workspace: WorkspaceState, paneId: string): PanePai
   const detailPane = workspace.panes.get(detailId)
   return {
     board: pane && isBoardPane(pane) ? pane : null,
-    detail: detailPane && isDetailPane(detailPane) ? detailPane : null,
+    detail: detailPane && isDetailViewPane(detailPane) ? detailPane : null,
   }
 }
 
 /** Get the detail pane associated with any pane ID (board or detail). */
-export function getDetailPaneFor(workspace: WorkspaceState, paneId: string): DetailPaneState | null {
+export function getDetailPaneFor(workspace: WorkspaceState, paneId: string): BoardPaneState | null {
   return resolvePanes(workspace, paneId).detail
 }
 
@@ -477,26 +468,6 @@ export function createPaneState(
     ignoreVersion: 0,
     mouseSelection: null,
     isMouseDragging: false,
-  }
-}
-
-/**
- * Create a DetailPaneState for displaying node details.
- */
-export function createDetailPaneState(
-  id: string,
-  opts: {
-    rootNodeId: string | null
-    cursorId?: string | null
-    cursorStore: CursorStore
-  },
-): DetailPaneState {
-  return {
-    id,
-    viewType: "detail",
-    rootNodeId: opts.rootNodeId,
-    cursorId: opts.cursorId ?? null,
-    cursorStore: opts.cursorStore,
   }
 }
 

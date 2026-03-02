@@ -93,7 +93,7 @@ export interface ActionCtx {
   hasDetailPane: boolean
 
   // === Detail pane cursor ===
-  /** Get the detail pane cursor ID (from DetailPaneState) */
+  /** Get the detail pane cursor ID (from detail view pane's cursorNodeId) */
   getDetailCursorId: () => string | null
   /** Set the detail pane cursor ID */
   setDetailCursor: (id: string | null) => void

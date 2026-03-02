@@ -12,6 +12,7 @@ import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import { isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
@@ -316,7 +317,10 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     focusedPaneViewType: () => {
       const ws = get().workspace
       const pane = ws.panes.get(ws.focusedPaneId)
-      return pane?.viewType ?? "board"
+      if (!pane) return "board"
+      if (pane.viewType === "empty") return "empty"
+      if (isDetailViewPane(pane)) return "detail"
+      return "board"
     },
     focusedPaneId: () => get().workspace.focusedPaneId,
     exit,

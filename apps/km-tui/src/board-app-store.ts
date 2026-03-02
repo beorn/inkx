@@ -20,8 +20,8 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, BoardPaneState, DetailPaneState, LayoutNode, NavHistoryEntry, PaneState, PerPaneUIFields, WorkspaceState } from "./board-types.ts"
-import { createBoardState, createPaneState, createDetailPaneState, createEmptyPaneState, isBoardPane, isDetailPane, mergePaneUI, detailPaneIdFor, ownerPaneId, isDetailPaneId, getDetailPaneFor, hasDetailPaneFor } from "./board-types.ts"
+import type { BoardAction, BoardState, BoardPaneState, LayoutNode, NavHistoryEntry, PaneState, PerPaneUIFields, WorkspaceState } from "./board-types.ts"
+import { createBoardState, createPaneState, createEmptyPaneState, isBoardPane, isDetailViewPane, mergePaneUI, detailPaneIdFor, ownerPaneId, isDetailPaneId, getDetailPaneFor, hasDetailPaneFor } from "./board-types.ts"
 import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
@@ -108,12 +108,13 @@ export function getFocusedPane(state: BoardAppState): PaneState {
 export function getActiveBoardPane(state: BoardAppState): BoardPaneState | null {
   const focusedId = state.workspace.focusedPaneId
   const focused = state.workspace.panes.get(focusedId)
-  if (focused && isBoardPane(focused)) return focused
-
-  // Detail pane → owner board pane (derived from ID convention)
-  if (isDetailPaneId(focusedId)) {
-    const owner = state.workspace.panes.get(ownerPaneId(focusedId))
-    if (owner && isBoardPane(owner)) return owner
+  if (focused && isBoardPane(focused)) {
+    // Detail view mode → return the parent board pane for board-level actions
+    if (isDetailViewPane(focused) && focused.parentPaneId) {
+      const parent = state.workspace.panes.get(focused.parentPaneId)
+      if (parent && isBoardPane(parent)) return parent
+    }
+    return focused
   }
 
   // Last resort (empty pane focused): find any board pane
@@ -143,7 +144,7 @@ export interface BoardAppActions {
   setDimensions(dims: { columns: number; rows: number }): void
 
   // Detail pane cursor (Phase 2: detail pane as workspace pane)
-  /** Get the detail pane cursor ID (from DetailPaneState) */
+  /** Get the detail pane cursor ID (from detail view pane's cursorNodeId) */
   getDetailCursorId(): string | null
   /** Set the detail pane cursor ID */
   setDetailCursor(id: string | null): void
@@ -234,11 +235,12 @@ function restoreWorkspaceFromPersisted(
 
     let pane: PaneState
     if (persisted.viewType === "detail") {
-      pane = createDetailPaneState(persisted.id, {
-        rootNodeId: null,
-        cursorId: null,
+      // Legacy detail panes are rehydrated as board panes with viewMode "detail"
+      pane = createPaneState(persisted.id, createBoardState(), {
+        viewMode: "detail",
         cursorStore: paneCursorStore,
       })
+      ;(pane as BoardPaneState).parentPaneId = ownerPaneId(persisted.id)
     } else if (persisted.viewType === "empty") {
       pane = createEmptyPaneState(persisted.id, paneCursorStore)
     } else {
@@ -260,7 +262,7 @@ function restoreWorkspaceFromPersisted(
   // board pane instead so the cursor is visible and navigation works immediately.
   const savedFocus = panes.get(saved.focusedPaneId)
   const focusedPaneId =
-    savedFocus && isBoardPane(savedFocus)
+    savedFocus && isBoardPane(savedFocus) && !isDetailViewPane(savedFocus)
       ? saved.focusedPaneId
       : firstBoardPaneId ?? saved.focusedPaneId
 
@@ -423,13 +425,13 @@ export function createBoardAppStoreState(
           const ancestors = deriveCursorAncestors(getNode, rootId, action.nodeId, (pid) => s.repo.getChildren(pid))
           // Reset detail cursor when board cursor moves to a different card.
           // rootNodeId is derived from cursorStore in the component selector,
-          // so we only need to reset cursorId here.
+          // so we only need to reset cursorNodeId here.
           const detailPane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
-          if (detailPane && detailPane.cursorId !== null) {
+          if (detailPane && detailPane.cursorNodeId !== null) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             const prevCardId = s.cursorStore.getState().cursorCardNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId !== prevCardId) {
-              detailPane.cursorId = null
+              detailPane.cursorNodeId = null
             }
           }
           // Notify CursorStore subscribers (only cursor-aware components re-render)
@@ -683,7 +685,7 @@ export function createBoardAppStoreState(
       getDetailCursorId(): string | null {
         const s = _get()
         const detail = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
-        return detail?.cursorId ?? null
+        return detail?.cursorNodeId ?? null
       },
 
       setDetailCursor(id: string | null) {
@@ -691,7 +693,7 @@ export function createBoardAppStoreState(
           const detail = getDetailPaneFor(state.workspace, state.workspace.focusedPaneId)
           if (!detail) return state
           const newPanes = new Map(state.workspace.panes)
-          newPanes.set(detail.id, { ...detail, cursorId: id })
+          newPanes.set(detail.id, { ...detail, cursorNodeId: id })
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
       },
@@ -706,15 +708,17 @@ export function createBoardAppStoreState(
           // Already open? No-op.
           if (state.workspace.panes.has(detailId)) return state
 
-          // Get the current card from cursor store for initial root
-          const cursorState = state.cursorStore.getState()
-          const rootNodeId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? null
+          // Get the focused board pane to derive initial state
+          const parentPane = state.workspace.panes.get(focusedPaneId)
+          if (!parentPane || !isBoardPane(parentPane)) return state
 
-          const detailPane = createDetailPaneState(detailId, {
-            rootNodeId,
-            cursorId: DETAIL_TOPBAR_ID,
-            cursorStore: state.cursorStore,
-          })
+          // Create a BoardPaneState with viewMode "detail" and parentPaneId
+          const detailPane = createPaneState(
+            detailId,
+            createBoardState(parentPane.rootId, parentPane.rootPath, DETAIL_TOPBAR_ID),
+            { viewMode: "detail", cursorStore: state.cursorStore },
+          )
+          detailPane.parentPaneId = focusedPaneId
 
           const newPanes = new Map(state.workspace.panes)
           newPanes.set(detailId, detailPane)

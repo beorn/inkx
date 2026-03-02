@@ -124,36 +124,8 @@ export const textEditingCommands: CommandDef[] = [
 ]
 
 /**
- * Detail pane commands.
- * h/Esc close detail pane via when: isInDetailPane predicate.
+ * Detail pane commands — kept for backward compat but now route through standard navigation.
+ * j/k/h fall through to standard cursor_down/cursor_up/cursor_left.
+ * Enter in detail pane is intercepted by the keybinding layer to zoom_inwards.
  */
-export const detailPaneCommands: CommandDef[] = [
-  {
-    id: "detail_pane.close",
-    name: "Unfocus Detail Pane",
-    description: "Return focus to board (pane stays open)",
-    category: "View",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_CLOSE" }),
-  },
-  {
-    id: "detail_pane.cursor_down",
-    name: "Detail Cursor Down",
-    description: "Move cursor down within detail pane items",
-    category: "Navigation",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_CURSOR_DOWN" }),
-  },
-  {
-    id: "detail_pane.cursor_up",
-    name: "Detail Cursor Up",
-    description: "Move cursor up within detail pane items",
-    category: "Navigation",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_CURSOR_UP" }),
-  },
-  {
-    id: "detail_pane.enter",
-    name: "Detail Enter",
-    description: "Zoom into the selected detail pane item",
-    category: "Navigation",
-    execute: (): CommandAction => ({ type: "DETAIL_PANE_ENTER" }),
-  },
-]
+export const detailPaneCommands: CommandDef[] = []

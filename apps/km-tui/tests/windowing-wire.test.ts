@@ -595,7 +595,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
 
     // Detail cursor should start at topbar (__topbar__)
     const detailPane = store.getState().workspace.panes.get("main-detail")!
-    expect(detailPane.cursorId).toBe("__topbar__")
+    expect(detailPane.cursorNodeId).toBe("__topbar__")
 
     // Capture screen before j
     const beforeJ = board.screen.ansi
@@ -603,8 +603,8 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     // j in detail pane should move detail cursor down (from topbar to first child)
     board.press("j")
     const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
-    expect(detailPaneAfter.cursorId).not.toBe("__topbar__")
-    expect(detailPaneAfter.cursorId).toBe("sub-a")
+    expect(detailPaneAfter.cursorNodeId).not.toBe("__topbar__")
+    expect(detailPaneAfter.cursorNodeId).toBe("sub-a")
 
     // Screen MUST change (cursor moved = different visual state)
     const afterJ = board.screen.ansi
@@ -777,7 +777,7 @@ describe("detail pane cursor styling", () => {
 
     // Verify state: cursor is on sub-a
     const detail = store.getState().workspace.panes.get("main-detail")!
-    expect(detail.cursorId).toBe("sub-a")
+    expect(detail.cursorNodeId).toBe("sub-a")
 
     // The text "sub-a" should have gold background ($selected=yellow=3)
     const colors = findTextColors(board, "sub-a")
@@ -796,7 +796,7 @@ describe("detail pane cursor styling", () => {
 
     // Cursor should be on topbar by default
     const detail = store.getState().workspace.panes.get("main-detail")!
-    expect(detail.cursorId).toBe("__topbar__")
+    expect(detail.cursorNodeId).toBe("__topbar__")
 
     // The detail topbar renders with PaneBar backgroundColor="$selected" when focused+cursored.
     // The top bar row should have gold bg somewhere on the right side (detail pane area).
