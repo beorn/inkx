@@ -200,6 +200,34 @@ test.each(["info", "success", "warning", "error"] as const)(
 
 **Rule of thumb**: If your test presses keys and asserts what the user sees, it's a `.spec.ts`. If it calls internal functions or checks internal state, it's a `.test.ts`. The `.spec.ts` suffix signals "this tests at the user level."
 
+## Per-Package Best Practices
+
+Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, and patterns. These are auto-loaded by Claude Code when working in that directory.
+
+| Package | Tests | Layer | Key Helpers | CLAUDE.md |
+|---------|-------|-------|-------------|-----------|
+| **km-core** | 11 | Contracts | None (pure functions) | [tests/CLAUDE.md](../../../packages/km-core/tests/CLAUDE.md) |
+| **km-markdown** | 15 | Parse fidelity | `parse()`, `roundtrip()`, `makeTestNode()` | [tests/CLAUDE.md](../../../packages/km-markdown/tests/CLAUDE.md) |
+| **km-storage** | 44 | Pipeline integrity | `createTestDatabase()`, `createTestSyncManager()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
+| **km-board** | 2 | Action sequences | None (inline state) | [tests/CLAUDE.md](../../../packages/km-board/tests/CLAUDE.md) |
+| **km-tui** | 112 | User journeys | `item()`, `testEnv()`, `board.app()`, invariants | [tests/CLAUDE.md](../../../apps/km-tui/tests/CLAUDE.md) |
+| **km-cli** | 7 | Command output | mdtest plugin, `km-repl.ts` | [tests/CLAUDE.md](../../../apps/km-cli/tests/CLAUDE.md) |
+| **inkx** | 198 | Rendering | `createRenderer()`, `expectFrame()` | [CLAUDE.md](../../../vendor/beorn-inkx/CLAUDE.md) |
+
+## Layering Observations
+
+### km-board is thin (2 test files)
+
+Most board behavior is tested through km-tui's `testEnv()`. This works but means board state logic can't be tested without rendering overhead. As action composition grows (fold + zoom + cursor), more pure reducer tests should migrate here.
+
+### km-storage cross-tests parsing
+
+Some storage tests re-verify markdown edge cases. These should live in km-markdown — storage tests should trust the parser and focus on file ↔ DB integrity.
+
+### km-tui tests sometimes skip screen assertions
+
+TUI tests that only check state/DB without verifying what the user sees may belong in km-board or km-storage. The value of km-tui tests is exercising the full pipeline: keys → screen → persistence.
+
 ## Relationship to Import Cost Layers
 
 The import cost taxonomy in [test-first-protocol.md](test-first-protocol.md#test-layer-taxonomy) describes **performance layers** (how expensive the test is to run). This document describes **semantic layers** (what the test should verify). They're complementary:
