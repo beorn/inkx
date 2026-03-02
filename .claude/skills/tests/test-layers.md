@@ -302,7 +302,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 - **These are standalone packages** — they don't form a dependency chain (logger doesn't depend on vitestx, etc.). Each is tested in isolation, which is correct.
 - **vitestx is self-testing** — it uses its own fuzz/chaos tools to test itself. This is the right pattern for test infrastructure.
-- **4 packages lack test CLAUDE.md** (mdtest, tools, tap, watcher-chaos). Low priority since they're small and stable, but worth adding if they grow.
+- **No vendor packages have test CLAUDE.md yet.** Only km app packages (km-tui, km-board, km-storage, km-markdown, km-core, km-cli) have per-directory test docs. Add vendor test CLAUDE.md on demand as packages grow or test patterns become complex enough to document.
 
 ## Relationship to Import Cost Layers
 
