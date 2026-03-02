@@ -84,7 +84,7 @@ See the [domain → file mapping](../../../.claude/skills/tests/test-first-proto
 
 ## Journey Test Pattern
 
-One well-designed journey test exercises multiple behaviors with a single fixture:
+**One user story per test**, 3-5 steps that naturally go together. If you're starting a second story, split into another test. Too short (1 step) loses integration benefit; too long (10+ steps) makes failures hard to diagnose.
 
 ```typescript
 test("edit card, move column, undo restores both", () => {
@@ -107,6 +107,46 @@ test("edit card, move column, undo restores both", () => {
 ```
 
 Prefer this over 5 separate tests each creating their own `testEnv()`.
+
+## Snapshot Testing (Layout Regression)
+
+For broad visual regression coverage, use **golden file snapshots** — capture the full buffer content and compare against a baseline. This catches unintended layout changes that point assertions miss.
+
+```typescript
+// Capture full screen as golden file
+test("kanban board renders correctly", () => {
+  const { board } = testEnv(() =>
+    item("board", item("Todo", item("Task 1"), item("Task 2")), item("Done"))
+  )
+  expect(board.screen.toString()).toMatchSnapshot()
+})
+
+// After navigation — verify layout didn't break
+test("zoom into column preserves layout", () => {
+  const { board } = testEnv(() => kanbanFixture())
+  board.press("z")  // zoom in
+  expect(board.screen.toString()).toMatchSnapshot()
+})
+```
+
+**Trade-offs**: Snapshots are brittle if UI text or layout changes often — update them intentionally with `--update`. Best for stable layout structures, not dynamic content. Use alongside point assertions, not instead of them.
+
+## Resize Testing
+
+Test at different terminal sizes to catch layout bugs. Column widths, overflow indicators, and scroll behavior can break at non-default dimensions.
+
+```typescript
+test.each([
+  { cols: 40, rows: 10, name: "tiny" },
+  { cols: 80, rows: 24, name: "standard" },
+  { cols: 200, rows: 50, name: "wide" },
+])("board renders at $name terminal ($cols x $rows)", ({ cols, rows }) => {
+  const { board } = testEnv(() => kanbanFixture(), { columns: cols, rows })
+  // Verify no crash, cards visible, overflow indicators correct
+  board.expect("#Todo").toExist()
+  expect(board.screen.width).toBe(cols)
+})
+```
 
 ## Ad-Hoc Testing (Quick Verification)
 

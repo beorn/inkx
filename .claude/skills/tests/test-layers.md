@@ -97,7 +97,11 @@ Tests without rationale look like candidates for deletion during reviews. The 5 
 
 ### Journey Test (km-tui, .spec.ts)
 
-One test exercises navigation + editing + persistence + undo in a single scenario. Each test tells a user story.
+**One user story per test.** A journey should be 3-5 steps that naturally go together — a coherent user goal. If you're simulating a second distinct story, break it into another test.
+
+- **Too short** (1 step): loses the integration benefit — you're back to unit tests
+- **Sweet spot** (3-5 steps): edit → move → undo, or search → replace → verify
+- **Too long** (10+ unrelated steps): hard to debug, brittle to UI changes
 
 ```typescript
 test("edit card, move to another column, undo restores both position and content", () => {
