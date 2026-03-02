@@ -87,7 +87,7 @@ export function WorkspaceView({
   const paneLabels = derivePaneLabels(layout, panes)
 
   return (
-    <Box flexGrow={1}>
+    <Box flexGrow={1} overflow="hidden">
       <LayoutNodeView
         node={layout}
         panes={panes}
