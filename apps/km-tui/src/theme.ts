@@ -98,5 +98,20 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
   }
 }
 
+/** Derive a theme for selected/cursor rows: all accent and status colors
+ * become selectedfg so text is always readable on $selected background. */
+export function deriveSelectedTheme(theme: Theme): Theme {
+  return {
+    ...theme,
+    name: `${theme.name}-selected`,
+    primary: theme.selectedfg,
+    link: theme.selectedfg,
+    control: theme.selectedfg,
+    error: theme.selectedfg,
+    warning: theme.selectedfg,
+    success: theme.selectedfg,
+  }
+}
+
 // Backward compat — remove after full migration
 export { ansi16DarkTheme as kmDarkTheme, ansi16LightTheme as kmLightTheme } from "inkx"

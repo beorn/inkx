@@ -7,7 +7,7 @@
 /* oxlint-disable complexity/complexity -- React component — node detail display with many conditionals */
 
 import React from "react"
-import { Box, Text, ErrorBoundary } from "inkx"
+import { Box, Text, ErrorBoundary, useTheme } from "inkx"
 import type { KNode } from "@km/core"
 import { decomposeDatetime, isOutline, isItem, isTask } from "@km/core"
 import { extractBody } from "@km/tree"
@@ -25,6 +25,7 @@ import {
   resolveProjectDisplayNames,
 } from "./detail-pane-helpers.ts"
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
+import { deriveSelectedTheme } from "../theme.ts"
 import { NodeLineView } from "./NodeView.tsx"
 import { PaneBar } from "./PaneBar.tsx"
 import { computeFolderDetailItems, DETAIL_META_PREFIX, DETAIL_TOPBAR_ID, KNOWN_DATA_KEYS } from "./detail-pane-items.ts"
@@ -141,6 +142,8 @@ function FolderDetailPane({
   detailCursorNodeId,
 }: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
+  const theme = useTheme()
+  const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
   // No outer border — WorkspaceView provides pane chrome
   const contentWidth = Math.max(8, width - 2) // 1-space padding each side for text content
   const children = repo.getChildren(node.id)
@@ -193,6 +196,7 @@ function FolderDetailPane({
                   key={`${entry.node.id}-${i}`}
                   backgroundColor={isCursored ? "$selected" : undefined}
                   color={isCursored ? "$selectedfg" : undefined}
+                  theme={isCursored ? selTheme : undefined}
                 >
                   <NodeLineView
                     node={entry.node}
@@ -229,6 +233,8 @@ function TaskDetailPane({
   detailCursorNodeId,
 }: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
+  const theme = useTheme()
+  const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
 
   // Wiki link resolver: resolves [[target]] to the node's display title
   const resolveWikiLink = (target: string): string | null => {
@@ -405,6 +411,7 @@ function TaskDetailPane({
                     key={bl.id}
                     backgroundColor={isCursored ? "$selected" : undefined}
                     color={isCursored ? "$selectedfg" : undefined}
+                    theme={isCursored ? selTheme : undefined}
                   >
                     <Text wrap="truncate">
                       {"  "}
@@ -641,6 +648,7 @@ function MetadataTable({
             flexDirection="row"
             backgroundColor={isCursored ? "$selected" : undefined}
             color={isCursored ? "$selectedfg" : undefined}
+            theme={isCursored ? selTheme : undefined}
           >
             <Text dimColor={!isCursored}>{row.key.padEnd(maxKeyLen)} </Text>
             <Text color={isCursored ? undefined : (row.valueColor ?? "$text")}>{row.value}</Text>
@@ -730,7 +738,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} theme={isCursored ? selTheme : undefined}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -752,7 +760,7 @@ function DetailSubitems({
               <Box>
                 <Text dimColor>{"─".repeat(innerWidth)}</Text>
               </Box>
-              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
+              <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} theme={isCursored ? selTheme : undefined}>
                 <Box width={2} flexShrink={0}>
                   <Text dimColor>{icon.char}</Text>
                 </Box>
@@ -793,7 +801,7 @@ function DetailSubitems({
             </Box>
 
             {/* Title line: hanging checkmark (checkmark col + title col) */}
-            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} >
+            <Box flexDirection="row" width={innerWidth} backgroundColor={cursorBg} color={cursorFg} theme={isCursored ? selTheme : undefined}>
               <Box width={2} flexShrink={0}>
                 <Text color={isDone ? undefined : icon.color} dimColor={isDone}>
                   {icon.char}
