@@ -1060,6 +1060,11 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding("D", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
   })
 
+  it("M key maps to manage_favorites", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("M", {}, ctx)).toEqual({ commandId: "manage_favorites" })
+  })
+
   it("Escape in detail pane falls through to close_or_quit", () => {
     const ctx = createContext({ isInDetailPane: true })
     expect(resolveKeybinding("Escape", {}, ctx)).toEqual({ commandId: "close_or_quit" })

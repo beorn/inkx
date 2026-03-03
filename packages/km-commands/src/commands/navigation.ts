@@ -297,6 +297,16 @@ const focusBoard = {
   execute: () => ({ type: "FOCUS_BOARD" }),
 } satisfies CommandDef
 
+// Manage favorites dialog
+const manageFavorites = {
+  id: "manage_favorites",
+  name: "Manage Favorites",
+  shortLabel: "favorites",
+  description: "Open manage favorites dialog (mnemonics/memory)",
+  category: "Navigation",
+  execute: () => ({ type: "MANAGE_FAVORITES" }),
+} satisfies CommandDef
+
 // Focus detail pane (Cmd+l — kitty)
 const focusDetail = {
   id: "focus_detail",
@@ -340,4 +350,5 @@ export const navigationCommands: CommandDef[] = [
   settings,
   focusBoard,
   focusDetail,
+  manageFavorites,
 ]

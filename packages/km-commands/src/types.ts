@@ -457,6 +457,31 @@ interface SetPriorityAction {
   nodeId: string
 }
 
+interface SetPriority0Action {
+  type: "SET_PRIORITY_0"
+  nodeId: string
+}
+
+interface SetPriority1Action {
+  type: "SET_PRIORITY_1"
+  nodeId: string
+}
+
+interface SetPriority2Action {
+  type: "SET_PRIORITY_2"
+  nodeId: string
+}
+
+interface SetPriority3Action {
+  type: "SET_PRIORITY_3"
+  nodeId: string
+}
+
+interface SetPriority4Action {
+  type: "SET_PRIORITY_4"
+  nodeId: string
+}
+
 // Date prompt dialog actions
 interface DatePromptConfirmAction {
   type: "DATE_PROMPT_CONFIRM"
@@ -751,6 +776,10 @@ interface FocusPrevAction {
   type: "FOCUS_PREV"
 }
 
+interface ManageFavoritesAction {
+  type: "MANAGE_FAVORITES"
+}
+
 type SearchReplaceAction =
   | SearchReplaceOpenAction
   | SearchReplaceCloseAction
@@ -816,6 +845,11 @@ export type TUIAction =
   | SetStartDateAction
   | SetRecurringAction
   | SetPriorityAction
+  | SetPriority0Action
+  | SetPriority1Action
+  | SetPriority2Action
+  | SetPriority3Action
+  | SetPriority4Action
   | SetLabelAction
   | SetAssigneeAction
   | DatePromptConfirmAction
@@ -859,6 +893,7 @@ export type TUIAction =
   | SearchReplaceAction
   | FocusNextAction
   | FocusPrevAction
+  | ManageFavoritesAction
 
 export type UIAction =
   | ZoomOutwardsAction

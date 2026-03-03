@@ -566,6 +566,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "l", commandId: "cursor_right" },
       { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
       { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
+      { key: "M", commandId: "manage_favorites", when: not(textInputFocused) },
       { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Block navigation (J/K — jump by block, auto-unfolds)
