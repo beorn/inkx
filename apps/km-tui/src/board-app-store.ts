@@ -26,7 +26,6 @@ import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
-import { DETAIL_TOPBAR_ID } from "./views/detail-pane-items.ts"
 import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -102,18 +101,13 @@ export function getFocusedPane(state: BoardAppState): PaneState {
  * Get the board pane that keyboard commands and navigation should target.
  *
  * If the focused pane is a board, returns it directly.
- * If focused on a detail pane, returns its owner board (derived from pane ID convention).
+ * If focused on a detail pane, returns the detail pane itself (it IS a board pane).
  * For empty panes, falls back to any board pane.
  */
 export function getActiveBoardPane(state: BoardAppState): BoardPaneState | null {
   const focusedId = state.workspace.focusedPaneId
   const focused = state.workspace.panes.get(focusedId)
   if (focused && isBoardPane(focused)) {
-    // Detail view mode → return the parent board pane for board-level actions
-    if (isDetailViewPane(focused) && focused.parentPaneId) {
-      const parent = state.workspace.panes.get(focused.parentPaneId)
-      if (parent && isBoardPane(parent)) return parent
-    }
     return focused
   }
 
@@ -121,6 +115,18 @@ export function getActiveBoardPane(state: BoardAppState): BoardPaneState | null 
   for (const pane of state.workspace.panes.values()) {
     if (isBoardPane(pane)) return pane
   }
+  return null
+}
+
+/**
+ * Get the parent board pane for a detail pane.
+ * Returns null if the focused pane is not a detail pane.
+ */
+export function getParentBoardPane(state: BoardAppState): BoardPaneState | null {
+  const focused = getActiveBoardPane(state)
+  if (!focused || !isDetailViewPane(focused) || !focused.parentPaneId) return null
+  const parent = state.workspace.panes.get(focused.parentPaneId)
+  if (parent && isBoardPane(parent)) return parent
   return null
 }
 
@@ -423,19 +429,36 @@ export function createBoardAppStoreState(
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
           const getNode = (id: string) => s.repo.getNode(id)
           const ancestors = deriveCursorAncestors(getNode, rootId, action.nodeId, (pid) => s.repo.getChildren(pid))
-          // Reset detail cursor when board cursor moves to a different card.
-          // rootNodeId is derived from cursorStore in the component selector,
-          // so we only need to reset cursorNodeId here.
+          // Sync detail pane when board cursor moves to a different card.
+          // Detail pane's rootId = the cursor card, so update it and reset its cursor.
+          // Must use set() (not silent mutation) so the detail Board re-renders with new rootId.
           const detailPane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
-          if (detailPane && detailPane.cursorNodeId !== null) {
+          if (detailPane) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             const prevCardId = s.cursorStore.getState().cursorCardNodeId
-            if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId !== prevCardId) {
-              detailPane.cursorNodeId = null
+            if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
+              const children = s.repo.getChildren(newCardId)
+              const firstChildId = children.length > 0 ? children[0]!.id : null
+              const newPanes = new Map(s.workspace.panes)
+              const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: firstChildId }
+              newPanes.set(detailPane.id, updatedDetail)
+              set({ workspace: { ...s.workspace, panes: newPanes } })
+              if (detailPane.cursorStore) {
+                detailPane.cursorStore.setState({
+                  cursorNodeId: firstChildId,
+                  cursorCardNodeId: firstChildId,
+                  cursorColumnNodeId: null,
+                  selectionLevel: firstChildId ? "card" : "board",
+                })
+              }
             }
           }
-          // Notify CursorStore subscribers (only cursor-aware components re-render)
-          s.cursorStore.setState({
+          // Notify CursorStore subscribers (only cursor-aware components re-render).
+          // Route to the focused pane's own cursor store (detail pane has its own).
+          const targetCursorStore = (focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore)
+            ? focusedPane.cursorStore
+            : s.cursorStore
+          targetCursorStore.setState({
             cursorNodeId: action.nodeId,
             ...ancestors,
           })
@@ -648,19 +671,7 @@ export function createBoardAppStoreState(
             result.ui = { ...state.ui, ...globalUpdates } as UIState
           }
           if (hasPane) {
-            let targetPaneId = state.workspace.focusedPaneId
-            const focused = state.workspace.panes.get(targetPaneId)
-            // When detail view pane is focused, route inlineEditBlock to the parent board pane.
-            // Rendering components read from getActiveBoardPane() which returns the parent,
-            // so inlineEditBlock must be stored there for components to find it.
-            if (
-              focused &&
-              isDetailViewPane(focused) &&
-              focused.parentPaneId &&
-              "inlineEditBlock" in paneUpdates
-            ) {
-              targetPaneId = focused.parentPaneId
-            }
+            const targetPaneId = state.workspace.focusedPaneId
             const pane = state.workspace.panes.get(targetPaneId)
             if (pane && isBoardPane(pane)) {
               const newPanes = updateBoardPane(state.workspace, targetPaneId, pane, paneUpdates)
@@ -724,11 +735,25 @@ export function createBoardAppStoreState(
           const parentPane = state.workspace.panes.get(focusedPaneId)
           if (!parentPane || !isBoardPane(parentPane)) return state
 
-          // Create a BoardPaneState with viewMode "detail" and parentPaneId
+          // Detail pane root = parent's cursor card (what we're showing details of)
+          const cursorState = state.cursorStore.getState()
+          const detailRootId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? parentPane.rootId
+
+          // Initial cursor = first child of the cursor card
+          const children = state.repo.getChildren(detailRootId)
+          const firstChildId = children.length > 0 ? children[0]!.id : null
+
+          // Create a BoardPaneState with its OWN CursorStore (independent cursor)
+          const detailCursorStore = createCursorStore({
+            cursorNodeId: firstChildId,
+            cursorCardNodeId: firstChildId,
+            cursorColumnNodeId: null,
+            selectionLevel: firstChildId ? "card" : "board",
+          })
           const detailPane = createPaneState(
             detailId,
-            createBoardState(parentPane.rootId, parentPane.rootPath, DETAIL_TOPBAR_ID),
-            { viewMode: "detail", cursorStore: state.cursorStore },
+            createBoardState(detailRootId, null, firstChildId),
+            { viewMode: "detail", cursorStore: detailCursorStore },
           )
           detailPane.parentPaneId = focusedPaneId
 

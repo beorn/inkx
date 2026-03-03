@@ -43,7 +43,6 @@ import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
-import { getDetailItemsForNode, DETAIL_TOPBAR_ID } from "../views/detail-pane-items.ts"
 
 const log = createLogger("km:tui:board-actions")
 
@@ -208,17 +207,9 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         log.debug?.("ENTER_INLINE_EDIT suppressed: dialog confirm grace period")
         return ok()
       }
-      // When detail pane is focused, edit the detail cursor node, not the board cursor
-      let editNodeId = action.nodeId
-      if (ctx.focusedPaneViewType() === "detail") {
-        const detailCursorId = ctx.getDetailCursorId()
-        if (!detailCursorId || detailCursorId === DETAIL_TOPBAR_ID) return ok()
-        // Strip __backlink__ prefix to get real node ID
-        editNodeId = detailCursorId.startsWith("__backlink__") ? detailCursorId.slice("__backlink__".length) : detailCursorId
-      }
       ctx.setUI({
         inlineEditBlock: {
-          nodeId: editNodeId,
+          nodeId: action.nodeId,
           blockIndex: action.blockIndex ?? 0,
         },
       })
@@ -240,10 +231,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "NAV_SIBLING_BOARD":
       return handleNavSiblingBoard(ctx, action.direction)
     case "ZOOM_INWARDS":
-      // Scope-aware: if detail pane is focused, enter on detail cursor node
-      if (ctx.focusedPaneViewType() === "detail") {
-        return handleDetailEnter(ctx)
-      }
       return handleZoomInwards(ctx)
     case "FOLLOW_LINK":
       return handleFollowLink(ctx)
@@ -320,10 +307,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const detailPane = detailPaneIdFor(ownerPaneId(ctx.focusedPaneId()))
       ctx.focusPaneById(detailPane)
       ctx.syncFocusScope()
-      // Default to topbar cursor if no cursor set
-      if (!ctx.getDetailCursorId()) {
-        ctx.setDetailCursor(DETAIL_TOPBAR_ID)
-      }
       return ok()
     }
     case "TOGGLE_DETAIL_PANE": {
@@ -377,10 +360,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 
     // === Board/navigation actions (scope-aware) ===
     case "CURSOR_MOVE":
-      // Scope-aware: if detail pane is focused, delegate to detail cursor
-      if (ctx.focusedPaneViewType() === "detail") {
-        return handleDetailCursorMove(ctx, action.dir)
-      }
       // Navigate-away saves: confirm inline edit before moving cursor.
       // Calling confirm() saves the value and exits inline edit mode.
       // This fires synchronously before navigation so React picks up
@@ -439,10 +418,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "NAV_FORWARD":
       return handleNavForward(ctx)
     case "ZOOM_IN":
-      // Scope-aware: if detail pane is focused, enter on detail cursor node
-      if (ctx.focusedPaneViewType() === "detail") {
-        return handleDetailEnter(ctx)
-      }
       return handleZoomIn(ctx)
     case "CLEAR_SELECTION":
       clearSelection(ctx)
@@ -1070,6 +1045,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // key change (different nodeId). The intermediate null creates a timing
       // vulnerability where batched events or sync I/O can leave the ref null.
       const target = activeEditTargetRef.current
+
+      // Detail pane: Enter just saves and exits (no outliner-style sibling creation)
+      if (ctx.focusedPaneViewType() === "detail") {
+        target?.save()
+        if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
+        return ok()
+      }
+
       if (target) {
         target.save()
         // Only create new sibling when inline editing (not for dialog text inputs
@@ -2026,116 +2009,4 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 // Detail pane cursor helpers — resolve detail node and cursor from nodeId-based state
 // =============================================================================
 
-/**
- * Get the detail pane's target node (the card/column the detail pane is showing).
- * Resolves embed sources so the navigable items come from the correct node.
- */
-function getDetailPaneNode(ctx: ActionCtx): KNode | undefined {
-  const card = ctx.card
-  if (!card) return undefined
-  const embedSrc = card.embed_source
-  return embedSrc ? (ctx.repo.getNode(embedSrc) ?? card) : card
-}
 
-/**
- * Get the node at the current detail pane cursor position.
- * Looks up the node from detail pane cursorId, handling the __backlink__ prefix.
- */
-function getDetailPaneCursorNode(ctx: ActionCtx): KNode | undefined {
-  const cursorNodeId = ctx.getDetailCursorId()
-  if (!cursorNodeId) return undefined
-
-  // Backlink items use __backlink__ prefix — strip it to get the real node ID
-  const realId = cursorNodeId.startsWith("__backlink__") ? cursorNodeId.slice("__backlink__".length) : cursorNodeId
-  return ctx.repo.getNode(realId) ?? undefined
-}
-
-/** Jump to the next/previous section boundary in detail items. */
-function detailBlockJump(
-  items: { nodeId: string; kind: string }[],
-  currentIdx: number,
-  forward: boolean,
-): { nodeId: string } | undefined {
-  const currentKind = currentIdx >= 0 ? items[currentIdx]?.kind : undefined
-  if (forward) {
-    let idx = currentIdx + 1
-    while (idx < items.length && items[idx]?.kind === currentKind) idx++
-    return items[idx] ?? items[items.length - 1]
-  }
-  // backward: skip to beginning of previous section
-  let idx = currentIdx - 1
-  while (idx >= 0 && items[idx]?.kind === currentKind) idx--
-  if (idx < 0) return items[0]
-  const prevKind = items[idx]?.kind
-  while (idx > 0 && items[idx - 1]?.kind === prevKind) idx--
-  return items[idx]
-}
-
-/**
- * Handle cursor movement in the detail pane (scope-aware dispatch).
- * up/down: move within detail items. left: return to board. right: boundary.
- * block_up/block_down: jump between sections (meta → structural → backlinks).
- * first/last: jump to first/last item.
- */
-function handleDetailCursorMove(ctx: ActionCtx, dir: string): Result<void, ActionError> {
-  if (dir === "left") {
-    // Left exits detail pane focus (returns to board), pane stays open
-    const boardPane = ownerPaneId(ctx.focusedPaneId())
-    ctx.focusPaneById(boardPane)
-    ctx.syncFocusScope()
-    return ok()
-  }
-  if (dir === "right") {
-    return boundary(dir, "Can't move right in detail pane")
-  }
-
-  const detailNode = getDetailPaneNode(ctx)
-  if (!detailNode) return ok()
-
-  const items = getDetailItemsForNode(ctx.repo, detailNode)
-  if (items.length === 0) return ok()
-
-  const currentId = ctx.getDetailCursorId()
-  const currentIdx = currentId ? items.findIndex((it) => it.nodeId === currentId) : -1
-
-  if (dir === "down" || dir === "up") {
-    if (dir === "down") {
-      const nextIdx = Math.min(currentIdx + 1, items.length - 1)
-      const nextItem = items[nextIdx]
-      if (nextItem) ctx.setDetailCursor(nextItem.nodeId)
-    } else {
-      const prevIdx = Math.max(currentIdx - 1, 0)
-      const prevItem = items[prevIdx]
-      if (prevItem) ctx.setDetailCursor(prevItem.nodeId)
-    }
-  } else if (dir === "first") {
-    const first = items[0]
-    if (first) ctx.setDetailCursor(first.nodeId)
-  } else if (dir === "last") {
-    const last = items[items.length - 1]
-    if (last) ctx.setDetailCursor(last.nodeId)
-  } else if (dir === "block_down" || dir === "block_up") {
-    const target = detailBlockJump(items, currentIdx, dir === "block_down")
-    if (target) ctx.setDetailCursor(target.nodeId)
-  } else {
-    return boundary(dir, `Can't move ${dir} in detail pane`)
-  }
-
-  return ok()
-}
-
-/**
- * Handle Enter in the detail pane (scope-aware dispatch).
- * Zooms into the detail cursor node.
- */
-function handleDetailEnter(ctx: ActionCtx): Result<void, ActionError> {
-  const enterNode = getDetailPaneCursorNode(ctx)
-  if (enterNode) {
-    saveNavHistory(ctx)
-    // Close detail pane first — this refocuses to the parent board pane,
-    // so the subsequent ZOOM_IN targets the board (not the detail pane).
-    ctx.closeDetailPane()
-    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: enterNode.id })
-  }
-  return ok()
-}

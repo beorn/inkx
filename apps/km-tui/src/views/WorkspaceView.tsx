@@ -24,8 +24,6 @@ export interface WorkspaceViewProps {
   focusedPaneId: string
   /** Render a pane's board content, receiving the pane ID for state isolation */
   renderPane: (paneId: string) => React.ReactNode
-  /** Render a detail pane's content */
-  renderDetailPane?: (paneId: string) => React.ReactNode
   /** Called when a pane is clicked (for click-to-focus) */
   onPaneClick?: (paneId: string) => void
 }
@@ -76,7 +74,6 @@ export function WorkspaceView({
   panes,
   focusedPaneId,
   renderPane,
-  renderDetailPane,
   onPaneClick,
 }: WorkspaceViewProps): React.ReactElement {
   // Single pane (the common case) — render board directly, no overhead
@@ -94,7 +91,6 @@ export function WorkspaceView({
         focusedPaneId={focusedPaneId}
         paneLabels={paneLabels}
         renderPane={renderPane}
-        renderDetailPane={renderDetailPane}
         onPaneClick={onPaneClick}
         isLeftChild={true}
       />
@@ -137,7 +133,6 @@ function LayoutNodeView({
   focusedPaneId,
   paneLabels,
   renderPane,
-  renderDetailPane,
   onPaneClick,
   isLeftChild,
 }: {
@@ -146,7 +141,6 @@ function LayoutNodeView({
   focusedPaneId: string
   paneLabels: Map<string, string>
   renderPane: (paneId: string) => React.ReactNode
-  renderDetailPane?: (paneId: string) => React.ReactNode
   onPaneClick?: (paneId: string) => void
   isLeftChild: boolean
 }): React.ReactElement {
@@ -166,25 +160,19 @@ function LayoutNodeView({
       )
     }
 
-    const isBoard = pane.viewType === "board" && !isDetailViewPane(pane)
-    const isDetail = isDetailViewPane(pane)
-    const labelSuffix = isDetail ? "Detail" : pane.viewType === "empty" ? "Empty" : ""
+    const isBoard = pane.viewType === "board"
+    const labelSuffix = pane.viewType === "empty" ? "Empty" : ""
 
     return (
       <Box flexGrow={1} flexDirection="column" color={isFocused ? undefined : "$text"} focusScope testID={node.paneId} theme={paneTheme} onMouseDown={() => onPaneClick?.(node.paneId)}>
-        {/* Board panes: Board renders its own PaneBar (top bar with path + view mode + [N]) */}
-        {/* Detail panes with renderDetailPane: DetailPane renders its own PaneBar */}
-        {/* Detail panes without renderDetailPane / other panes: PaneTitleBar provides the top bar */}
-        {!isBoard && !(isDetail && renderDetailPane) && (
+        {/* Board panes (including detail): Board renders its own PaneBar */}
+        {/* Empty panes: PaneTitleBar provides the top bar */}
+        {!isBoard && (
           <PaneTitleBar label={label} suffix={labelSuffix} isFocused={isFocused} />
         )}
         <Box flexGrow={1} flexDirection="column">
           {isBoard ? (
             <PaneLabelProvider value={label ?? "?"}>{renderPane(node.paneId)}</PaneLabelProvider>
-          ) : isDetail && renderDetailPane ? (
-            <PaneLabelProvider value={label ?? "?"}>{renderDetailPane(node.paneId)}</PaneLabelProvider>
-          ) : isDetail ? (
-            <Text dimColor>Detail pane</Text>
           ) : (
             <EmptyPaneWelcome />
           )}
@@ -206,7 +194,6 @@ function LayoutNodeView({
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
           renderPane={renderPane}
-          renderDetailPane={renderDetailPane}
           onPaneClick={onPaneClick}
           isLeftChild={true}
         />
@@ -222,7 +209,6 @@ function LayoutNodeView({
           focusedPaneId={focusedPaneId}
           paneLabels={paneLabels}
           renderPane={renderPane}
-          renderDetailPane={renderDetailPane}
           onPaneClick={onPaneClick}
           isLeftChild={false}
         />

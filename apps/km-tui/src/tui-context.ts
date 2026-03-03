@@ -143,6 +143,8 @@ export interface ActionCtx {
   focusedPaneViewType: () => "board" | "detail" | "empty"
   /** Get the current focused pane ID from workspace state */
   focusedPaneId: () => string
+  /** Get the parent pane ID when focused on a detail pane (null otherwise) */
+  getParentPaneId: () => string | null
 
   // === Utilities ===
   /** Count visible descendants for outline mode */

@@ -63,16 +63,13 @@ describe("Detail Pane Journeys", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    // Step 1: Open detail pane for folder card — auto-focuses detail
+    // Step 1: Open detail pane for folder card — auto-focuses detail, cursor on first child
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-
-    // Step 2: Navigate down in detail to see children (D auto-focused detail)
-    board.press("j")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("subtask-a")
 
-    // Step 3: Continue navigating
+    // Step 2: Navigate down to second child
     board.press("j")
     const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane2?.cursorNodeId).toBe("subtask-b")
@@ -133,24 +130,26 @@ describe("Detail Pane Journeys", () => {
     board.expect("#task3[data-cursor]").toExist()
   })
 
-  test("j/k navigation in detail pane with k returning to topbar", () => {
+  test("j/k navigation between detail pane children", () => {
     const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("my-task"))),
+      () => item("board", item("col1", item("parent", item("child-a"), item("child-b"), item("child-c")))),
       { checkIncremental: false, incremental: false },
     )
 
-    // Step 1: Open detail — D auto-focuses detail pane
+    // Step 1: Open detail — cursor starts on first child
     board.press("D")
-
-    // Step 2: Navigate down from topbar to first entry
-    board.press("j")
     const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane1?.cursorNodeId).not.toBe("__topbar__")
+    expect(pane1?.cursorNodeId).toBe("child-a")
 
-    // Step 3: Navigate back up to topbar
-    board.press("k")
+    // Step 2: j moves to next child
+    board.press("j")
     const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane2?.cursorNodeId).toBe("__topbar__")
+    expect(pane2?.cursorNodeId).toBe("child-b")
+
+    // Step 3: k moves back
+    board.press("k")
+    const pane3 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(pane3?.cursorNodeId).toBe("child-a")
   })
 
   test("Enter on structural child triggers inline edit and typing saves", () => {
@@ -159,17 +158,14 @@ describe("Detail Pane Journeys", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    // Step 1: Open detail pane — D auto-focuses detail
+    // Step 1: Open detail pane — cursor starts on first child (child-a)
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-
-    // Step 2: Navigate to structural child (folders have no metadata)
-    board.press("j")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("child-a")
 
-    // Step 3: Enter = inline edit on child-a in detail pane, detail stays open
+    // Step 2: Enter = inline edit on child-a in detail pane, detail stays open
     board.press("Enter")
     const ws = store.getState().workspace
     expect(ws.panes.has("main-detail")).toBe(true)
@@ -191,15 +187,36 @@ describe("Detail Pane Journeys", () => {
     expect(updated?.content).toContain("-ok")
   })
 
+  test("Enter during inline edit saves and exits (no stray sibling)", () => {
+    const { board, store, repo } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Open detail (cursor starts on child-a), start editing
+    board.press("D")
+    board.press("Enter")
+    expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
+
+    // Type something
+    for (const c of "-ok") board.press(c)
+
+    // Enter again should save and exit edit mode (not create a new sibling)
+    const childrenBefore = repo.getChildren("parent").length
+    board.press("Enter")
+    expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
+    expect(repo.getChildren("parent").length).toBe(childrenBefore) // no stray node
+    expect(repo.getNode("child-a")?.content).toContain("-ok") // saved
+  })
+
   test("i on structural child in detail pane also triggers inline edit", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
       { checkIncremental: false, incremental: false },
     )
 
-    // Open detail, navigate to child-a
+    // Open detail (cursor starts on child-a)
     board.press("D")
-    board.press("j")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("child-a")
 

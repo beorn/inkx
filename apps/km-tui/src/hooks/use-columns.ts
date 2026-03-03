@@ -158,7 +158,7 @@ export function deriveCursorIndices(
  * @param foldDepths - Map of node ID → depth budget (0 = folded, no entry = inherit)
  * @returns ColumnView[] for rendering
  */
-export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>): ColumnView[] {
+export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, viewMode?: string): ColumnView[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
@@ -186,9 +186,10 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
   // A single CTE query at depth 3 warms: root→columns→cards→card-children, so Card overflow
   // calc and TreeNode render all hit cache. ~6000 nodes for a typical board.
   // The action context (board-app.ts) already does this for keypresses; this covers initial render + zoom.
+  const derive = viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
   const [columns, setColumns] = useState<ColumnView[]>(() => {
     repo.preloadSubtree(rootId, 3)
-    return deriveColumnsFromRepo(repo, rootId, foldDepths)
+    return derive(repo, rootId, foldDepths)
   })
 
   // Track deps to detect changes. foldDepths is NOT tracked — fold expansion
@@ -204,7 +205,7 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
     depsRef.current = { rootId, version: effectiveVersion }
 
     if (isTest) {
-      setColumns(deriveColumnsFromRepo(repo, rootId, foldDepthsRef.current))
+      setColumns(derive(repo, rootId, foldDepthsRef.current))
       return
     }
 
@@ -212,7 +213,7 @@ export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<st
     // Per-column memoization makes non-zoom derivation fast (cache hits).
     // Preload on rootId change (zoom) — cache is already warm for version bumps.
     if (prev.rootId !== rootId) repo.preloadSubtree(rootId, 3)
-    setColumns(deriveColumnsFromRepo(repo, rootId, foldDepthsRef.current))
+    setColumns(derive(repo, rootId, foldDepthsRef.current))
   }, [effectiveVersion, rootId, isTest, repo])
 
   return columns
@@ -330,6 +331,70 @@ export function deriveColumnsFromRepo(
 
   span.spanData.columns = columns.length
   return columns
+}
+
+/**
+ * Derive columns for the detail view mode.
+ * Unlike deriveColumnsFromRepo which splits children into body + structural columns,
+ * this puts ALL children into a single virtual column (displayed as cards).
+ * This gives standard j/k navigation through all children.
+ */
+export function deriveDetailColumns(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+): ColumnView[] {
+  const allChildren = repo.getChildren(rootId)
+  if (allChildren.length === 0) return []
+
+  const virtualCardIds = new Set<string>()
+  for (const n of allChildren) {
+    virtualCardIds.add(n.id)
+  }
+
+  return [{
+    node: createVirtualBodyNode(rootId),
+    cardNodes: allChildren,
+    virtualCardIds,
+    isVirtual: true,
+    descendantIndex: mapDescendantsForColumn(allChildren, 0, foldDepths, repo),
+  }]
+}
+
+/** Build descendant index for a virtual column's cards */
+function mapDescendantsForColumn(
+  cards: KNode[],
+  colIndex: number,
+  foldDepths: Map<string, number>,
+  repo: Repo,
+): Map<string, { colIndex: number; cardIndex: number }> {
+  const index = new Map<string, { colIndex: number; cardIndex: number }>()
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i]!
+    const foldDepth = foldDepths.get(card.id) ?? 1
+    if (foldDepth > 0) {
+      mapDescendants(card.id, colIndex, i, 0, (id) => repo.getChildren(id), foldDepths, foldDepth)
+    }
+  }
+  return index
+
+  function mapDescendants(
+    nodeId: string,
+    colIdx: number,
+    cardIdx: number,
+    depth: number,
+    getChildren: (id: string) => KNode[],
+    depths: Map<string, number>,
+    maxDepth: number,
+  ) {
+    if (depth >= maxDepth) return
+    const children = getChildren(nodeId)
+    for (const child of children) {
+      index.set(child.id, { colIndex: colIdx, cardIndex: cardIdx })
+      const childDepth = depths.get(child.id) ?? maxDepth
+      mapDescendants(child.id, colIdx, cardIdx, depth + 1, getChildren, depths, childDepth)
+    }
+  }
 }
 
 /**

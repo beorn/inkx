@@ -106,26 +106,26 @@ describe("Detail pane toggle", () => {
   })
 
   test("detail cursor resets on each transition", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
-      checkIncremental: false,
-      incremental: false,
-    })
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("card1", item("sub-a"), item("sub-b")))),
+      { checkIncremental: false, incremental: false },
+    )
 
-    // Open pane — cursor defaults to topbar
+    // Open pane — cursor starts on first child
     board.press("D")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("__topbar__")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-a")
 
-    // Simulate cursor movement within detail
-    store.getState().setDetailCursor("some-child")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("some-child")
+    // Navigate within detail
+    board.press("j")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-b")
 
     // Close pane with D → pane removed
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
-    // Reopen → cursor should be fresh (topbar)
+    // Reopen → cursor should be fresh (first child)
     board.press("D")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("__topbar__")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-a")
   })
 
   test("multiple D cycles work correctly", () => {

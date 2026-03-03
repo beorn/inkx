@@ -12,7 +12,7 @@ import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"
-import { isDetailViewPane } from "./board-types.ts"
+import { isBoardPane, isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
@@ -23,7 +23,7 @@ import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
 import { createCardsViewNavigation } from "./view-navigation.ts"
-import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
@@ -254,7 +254,8 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
     const topChildren = s.repo.getChildren(rootId)
     s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
-    columns = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
+    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
+    columns = derive(s.repo, rootId, foldDepths)
     nodeIndex = buildNodeIndex(columns)
     locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
   }
@@ -323,6 +324,14 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
       return "board"
     },
     focusedPaneId: () => get().workspace.focusedPaneId,
+    getParentPaneId: () => {
+      const ws = get().workspace
+      const pane = ws.panes.get(ws.focusedPaneId)
+      if (pane && isBoardPane(pane) && isDetailViewPane(pane) && pane.parentPaneId) {
+        return pane.parentPaneId
+      }
+      return null
+    },
     exit,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
     focusManager: locals.cachedFocusManager!,

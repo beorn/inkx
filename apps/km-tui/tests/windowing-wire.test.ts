@@ -592,18 +592,17 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     // Detail pane should be focused
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
-    // Detail cursor should start at topbar (__topbar__)
+    // Detail cursor starts on first child (no topbar)
     const detailPane = store.getState().workspace.panes.get("main-detail")!
-    expect(detailPane.cursorNodeId).toBe("__topbar__")
+    expect(detailPane.cursorNodeId).toBe("sub-a")
 
     // Capture screen before j
     const beforeJ = board.screen.ansi
 
-    // j in detail pane should move detail cursor down (from topbar to first child)
+    // j moves detail cursor to second child
     board.press("j")
     const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
-    expect(detailPaneAfter.cursorNodeId).not.toBe("__topbar__")
-    expect(detailPaneAfter.cursorNodeId).toBe("sub-a")
+    expect(detailPaneAfter.cursorNodeId).toBe("sub-b")
 
     // Screen MUST change (cursor moved = different visual state)
     const afterJ = board.screen.ansi
@@ -747,14 +746,25 @@ describe("pane focus scopes — activeScopeId tracks focused pane", () => {
 
 describe("detail pane cursor styling", () => {
   /** Helper: find the first cell of a text string in the screen and return its color info */
-  function findTextColors(board: ReturnType<typeof testEnv>["board"], text: string) {
-    const row = board.screen.findRow(text)
-    if (row === -1) return null
+  /** Find text on screen and return its cell colors.
+   * occurrence: "first" = leftmost/topmost, "rightmost" = highest column (detail pane). */
+  function findTextColors(board: ReturnType<typeof testEnv>["board"], text: string, occurrence: "first" | "rightmost" = "first") {
     const screenRows = board.screen.text.split("\n")
-    const col = screenRows[row]!.indexOf(text)
-    if (col === -1) return null
-    const cell = board.screen.cell(col, row)
-    return { row, col, fg: cell.fg, bg: cell.bg, attrs: cell.attrs as Record<string, boolean> }
+    let foundRow = -1
+    let foundCol = -1
+    for (let r = 0; r < screenRows.length; r++) {
+      let col = 0
+      while (true) {
+        const idx = screenRows[r]!.indexOf(text, col)
+        if (idx === -1) break
+        if (occurrence === "first" && foundRow === -1) { foundRow = r; foundCol = idx }
+        if (occurrence === "rightmost" && idx > foundCol) { foundRow = r; foundCol = idx }
+        col = idx + 1
+      }
+    }
+    if (foundRow === -1) return null
+    const cell = board.screen.cell(foundCol, foundRow)
+    return { row: foundRow, col: foundCol, fg: cell.fg, bg: cell.bg, attrs: cell.attrs as Record<string, boolean> }
   }
 
   test("cursored detail item has gold background when detail pane is focused", () => {
@@ -763,50 +773,35 @@ describe("detail pane cursor styling", () => {
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail)
+    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
-    // Move cursor from topbar to first child
-    board.press("j")
-
-    // Verify state: cursor is on sub-a
+    // Verify state: cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")!
     expect(detail.cursorNodeId).toBe("sub-a")
 
     // The text "sub-a" should have gold background ($selected=yellow=3)
-    const colors = findTextColors(board, "sub-a")
+    // Use "last" to find the detail pane's rendering (right), not board card content (left)
+    const colors = findTextColors(board, "sub-a", "rightmost")
     expect(colors, "sub-a text should be visible on screen").not.toBeNull()
     expect(colors!.bg).toBe(TC.$selected) // gold background
   })
 
-  test("detail pane topbar has gold bg when focused and cursor on topbar", () => {
+  test("detail pane first child has gold bg when focused", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("col1", item("my-task", item("sub-a")), item("task-2"))),
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail)
+    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
-    // Cursor should be on topbar by default
+    // Cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")!
-    expect(detail.cursorNodeId).toBe("__topbar__")
+    expect(detail.cursorNodeId).toBe("sub-a")
 
-    // The detail topbar renders with PaneBar backgroundColor="$selected" when focused+cursored.
-    // The top bar row should have gold bg somewhere on the right side (detail pane area).
-    // Search for gold bg cells in the top few rows of the detail pane
-    const screenRows = board.screen.text.split("\n")
-    let foundGoldBg = false
-    for (let r = 0; r < 3; r++) {
-      // Detail pane is on the right side of the screen (roughly right half for 120-col)
-      for (let c = 60; c < 120; c++) {
-        const cell = board.screen.cell(c, r)
-        if (cell.bg === TC.$selected && cell.char.trim() !== "") {
-          foundGoldBg = true
-          break
-        }
-      }
-      if (foundGoldBg) break
-    }
-    expect(foundGoldBg, "detail topbar should have gold bg when focused+cursored").toBe(true)
+    // The cursored item "sub-a" should have gold background (last occurrence = detail pane)
+    const colors = findTextColors(board, "sub-a", "rightmost")
+    expect(colors, "sub-a text should be visible on screen").not.toBeNull()
+    expect(colors!.bg).toBe(TC.$selected)
   })
 
   test("both panes show cursor when detail pane is open", () => {
@@ -815,29 +810,23 @@ describe("detail pane cursor styling", () => {
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail)
+    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Board should still show cursor card (task-1 has $selected border)
     board.expect("#task-1[data-cursor]").toExist()
 
-    // Detail pane topbar should have gold bg (focused cursor)
-    let detailHasGoldBg = false
-    for (let r = 0; r < 3; r++) {
-      for (let c = 60; c < 120; c++) {
-        if (board.screen.cell(c, r).bg === TC.$selected) {
-          detailHasGoldBg = true
-          break
-        }
-      }
-    }
-    expect(detailHasGoldBg, "focused detail topbar should have gold bg").toBe(true)
-
-    // Move detail cursor to sub-a
-    board.press("j")
-    const focusedSubColors = findTextColors(board, "sub-a")
+    // Detail cursor starts on sub-a with gold background (rightmost = detail pane)
+    const focusedSubColors = findTextColors(board, "sub-a", "rightmost")
     expect(focusedSubColors).not.toBeNull()
     expect(focusedSubColors!.bg, "cursored detail item should have gold bg when focused").toBe(TC.$selected)
+
+    // Move cursor to sub-b — detail pane should update
+    board.press("j")
+    board.expect("#sub-b[data-cursor]").toExist()
+    const focusedSubBColors = findTextColors(board, "sub-b", "rightmost")
+    expect(focusedSubBColors).not.toBeNull()
+    expect(focusedSubBColors!.bg, "cursored sub-b should have gold bg").toBe(TC.$selected)
 
     // Switch back to board — both panes should still show their cursors
     board.press("n")
@@ -847,10 +836,8 @@ describe("detail pane cursor styling", () => {
     board.expect("#task-1[data-cursor]").toExist()
     board.expectNodeColor("task-1", { bg: TC.$selected })
 
-    // Detail cursor retains selection bg — dimColor preserves hue
-    // ANSI16: dimColor("yellow") = "yellow" (no Bright suffix to strip, same index)
-    // Truecolor: dimColor("#EBCB8B") = "#8D7A53" (visible dimming)
-    const unfocusedSubColors = findTextColors(board, "sub-a")
+    // Detail cursor retains selection bg
+    const unfocusedSubColors = findTextColors(board, "sub-b", "rightmost")
     expect(unfocusedSubColors).not.toBeNull()
     expect(unfocusedSubColors!.bg, "unfocused detail cursor bg").toBe(TC.$selected)
   })

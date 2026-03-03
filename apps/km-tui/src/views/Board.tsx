@@ -22,7 +22,7 @@ import {
   useFocusManager,
   type PatchedConsole,
 } from "inkx"
-import { useApp as useAppStore, StoreContext } from "inkx/runtime"
+import { useApp as useAppStore, useAppShallow, StoreContext } from "inkx/runtime"
 import { createStore, Provider as JotaiProvider } from "jotai"
 import {
   hydrateNodeAtoms,
@@ -34,7 +34,6 @@ import {
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import { DetailPane } from "./DetailPane.tsx"
 import { formatFilterIndicator } from "./FilterDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
@@ -52,7 +51,7 @@ import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-co
 import { CursorStoreProvider, useCursorNodePosition, useCursorStore } from "../cursor-context.tsx"
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
-import { hasDetailPaneFor, type BoardPaneState } from "../board-types.ts"
+import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
@@ -60,7 +59,7 @@ const log = createLogger("km:tui:board")
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
-import { TreeRenderProvider, deriveTreeConfig, usePaneUI, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
@@ -287,95 +286,6 @@ function BoardTopBar({
   )
 }
 
-/** Stable no-op subscribe for useSyncExternalStore fallback */
-function noopSubscribe() {
-  return () => {}
-}
-
-const EMPTY_SET: ReadonlySet<string> = new Set()
-
-/**
- * CursorAwareDetailPane - reads root node and cursor from the detail view pane.
- *
- * Architecture:
- * - Root node (rootNodeId) is derived from the cursor store via direct subscription,
- *   so it updates immediately when the board cursor moves (not on next app store change).
- * - Detail cursor (cursorNodeId) is stored in the detail view pane and managed by
- *   CURSOR_MOVE actions (routed to detail handler via viewMode check).
- * - Both are reset by SELECT when the board cursor moves to a different card.
- */
-function CursorAwareDetailPane(): React.ReactElement {
-  const paneId = usePaneId()
-
-  // Subscribe to cursor store directly so rootNodeId updates immediately on cursor move
-  const cursorStore = useCursorStore()
-  const rootNodeIdRef = useRef<string | null>(null)
-  const rootNodeId = useSyncExternalStore(cursorStore?.subscribe ?? noopSubscribe, () => {
-    if (!cursorStore) return null
-    const cs = cursorStore.getState()
-    const id = cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? null
-    if (id === rootNodeIdRef.current) return rootNodeIdRef.current
-    rootNodeIdRef.current = id
-    return id
-  })
-
-  // Detail cursor comes from the pane's own state in the app store
-  const detailCursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
-    const pane = s.workspace.panes.get(paneId)
-    if (pane?.viewType === "board" && pane.viewMode === "detail") {
-      return pane.cursorNodeId
-    }
-    return null
-  })
-
-  // Read inlineEditBlock from the parent board pane (where setUI routes it)
-  const inlineEditBlock = useAppStore<BoardAppStore, { nodeId: string; blockIndex: number } | null>((s) => {
-    const pane = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    if (!pane?.parentPaneId) return null
-    const parent = s.workspace.panes.get(pane.parentPaneId) as BoardPaneState | undefined
-    return parent?.inlineEditBlock ?? null
-  })
-  const repo = useRepo()
-  const paneLabel = usePaneLabel()
-  const { activeScopeId } = useFocusManager()
-  const isPaneFocused = activeScopeId === null || activeScopeId === paneId
-  const parentRect = useContentRect()
-  const width = parentRect.width > 0 ? parentRect.width : 40
-  const height = parentRect.height > 0 ? parentRect.height : 20
-  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>((s) => s.ui?.filterProperties?.taskStatus ?? EMPTY_SET)
-
-  const node = rootNodeId ? repo.getNode(rootNodeId) : undefined
-  if (!node) {
-    return (
-      <Box focusable testID="detail-pane" flexGrow={1} flexDirection="column" width={width} height={height}>
-        <PaneBar isFocused={false} paneLabel={paneLabel} left={<Text dimColor> Detail</Text>} />
-        <Box height={1} flexShrink={0} />
-        <Box flexGrow={1} flexDirection="column" paddingX={1}>
-          <Text dimColor>No node selected</Text>
-        </Box>
-        <Box flexDirection="row" justifyContent="space-between" flexShrink={0} paddingX={1}>
-          <Text dimColor wrap="truncate">
-            h/Esc:close
-          </Text>
-        </Box>
-      </Box>
-    )
-  }
-  return (
-    <Box focusable testID="detail-pane" flexGrow={1} flexDirection="column">
-      <DetailPane
-        node={node}
-        width={width}
-        height={height}
-        detailCursorNodeId={detailCursorNodeId}
-        isFocused={isPaneFocused}
-        taskStatusFilter={taskStatusFilter}
-        inlineEditBlock={inlineEditBlock}
-      />
-    </Box>
-  )
-}
-
 /**
  * Pure rendering component - NO cursor subscription.
  * Uses derivedSelectionLevel prop (stable on j/k).
@@ -459,8 +369,8 @@ export function BoardCore({
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Board area — focusable container for all card/column/list views */}
           <Box focusable autoFocus testID="board-area" flexGrow={1} flexDirection="column">
-            {/* Cards, Columns, or List view */}
-            {ui.viewMode === "cards" ? (
+            {/* Cards, Columns, List, or Detail view */}
+            {ui.viewMode === "cards" || ui.viewMode === "detail" ? (
               <ErrorBoundary
                 fallback={<Text color={"$error"}>Error loading cards view</Text>}
                 resetKey={errorBoundaryResetKey}
@@ -571,7 +481,12 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Read state from pane-specific state in workspace.
   // Each BoardPaneState owns its navigation state (rootId, foldDepths, etc).
-  const ui = usePaneUI()
+  // Read UI from THIS pane (not the focused pane) so both board and detail render correctly.
+  const ui = useAppShallow<BoardAppStore, PaneUI>((s) => {
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    if (!p || !isBoardPane(p)) return s.ui as unknown as PaneUI
+    return mergePaneUI(s.ui, p)
+  })
   const rootId = useAppStore<BoardAppStore, string | null>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.rootId ?? null
@@ -678,7 +593,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Column derivation is <1ms with per-column memoization. Progressive reveal
   // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
   // with skeleton placeholders, then revealing one column per frame.
-  const columns = useColumns(repo, rootId, foldDepths)
+  const columns = useColumns(repo, rootId, foldDepths, ui.viewMode)
 
   // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
   // On root change (zoom), columns with rules.collapse should start collapsed.
@@ -1070,17 +985,6 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
     [initialViewMode, storeDimensions, exit, toastQueue, navigator, patchedConsole],
   )
 
-  const renderDetailPane = useCallback(
-    (paneId: string) => (
-      <PaneIdProvider value={paneId}>
-        <CursorStoreProvider store={cursorStore}>
-          <CursorAwareDetailPane />
-        </CursorStoreProvider>
-      </PaneIdProvider>
-    ),
-    [cursorStore],
-  )
-
   // Workspace chrome (bottom bar, dialogs, toasts) rendered once for entire terminal
   const chrome = (
     <WorkspaceChrome
@@ -1113,7 +1017,6 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         panes={workspace.panes}
         focusedPaneId={workspace.focusedPaneId}
         renderPane={renderPane}
-        renderDetailPane={renderDetailPane}
         onPaneClick={focusPaneById}
       />
       {bottomBar}

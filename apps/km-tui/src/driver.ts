@@ -64,7 +64,7 @@ import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
-import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -243,7 +243,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const board = getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
-    const cols = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
+    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
+    const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
     const cursorNodeId = board?.cursorNodeId ?? null
     const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
@@ -334,7 +335,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
     // Derive layout on demand
-    const cols = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
+    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
+    const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
     const cursorNodeId = board?.cursorNodeId ?? null
     const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
