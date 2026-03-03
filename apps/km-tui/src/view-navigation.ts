@@ -13,6 +13,8 @@ import { isOutline } from "@km/core"
 import { createLogger } from "@beorn/logger"
 import { extractBody } from "@km/tree"
 import type { GridNavigator } from "@km/board"
+import type { ViewMode } from "./types.ts"
+import { deriveCursorAncestors } from "./cursor-store.ts"
 
 const log = createLogger("km:nav")
 
@@ -39,8 +41,15 @@ export interface NavState {
  * The one navigation rule: move to the next selectable node in that direction.
  * What "selectable" means depends on the view mode and current state.
  */
+export type CursorClassification = {
+  cursorCardNodeId: string | null
+  cursorColumnNodeId: string | null
+  selectionLevel: "board" | "column" | "card"
+}
+
 export interface ViewNavigation {
   navigate(dir: "up" | "down" | "left" | "right", state: NavState, repo: Repo, navigator: GridNavigator): string | null
+  classifyCursor(nodeId: string | null, rootId: string | null, repo: Repo): CursorClassification
 }
 
 // =============================================================================
@@ -64,6 +73,11 @@ export function createCardsViewNavigation(): ViewNavigation {
 
       // dir === "left" || dir === "right"
       return navigateHorizontal(dir, state, repo, navigator)
+    },
+    classifyCursor(nodeId, rootId, repo) {
+      return deriveCursorAncestors(
+        (id) => repo.getNode(id), rootId, nodeId, (pid) => repo.getChildren(pid),
+      )
     },
   }
 }
@@ -500,6 +514,10 @@ function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, s
  */
 export function createDetailViewNavigation(): ViewNavigation {
   return {
+    classifyCursor(nodeId) {
+      if (!nodeId) return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
+      return { cursorCardNodeId: nodeId, cursorColumnNodeId: null, selectionLevel: "card" }
+    },
     navigate(dir, state, repo) {
       const { cursorNodeId, rootId } = state
       const allChildren = repo.getChildren(rootId)
@@ -528,6 +546,25 @@ export function createDetailViewNavigation(): ViewNavigation {
       return allChildren[targetIdx]!.id
     },
   }
+}
+
+// =============================================================================
+// ViewNavigation lookup
+// =============================================================================
+
+const cardsNav = createCardsViewNavigation()
+const detailNav = createDetailViewNavigation()
+
+const navigations: Record<ViewMode, ViewNavigation> = {
+  cards: cardsNav,
+  list: cardsNav,
+  columns: cardsNav,
+  tabs: cardsNav,
+  detail: detailNav,
+}
+
+export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
+  return navigations[viewMode]
 }
 
 // =============================================================================

@@ -22,17 +22,13 @@ import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
-import { createCardsViewNavigation, createDetailViewNavigation } from "./view-navigation.ts"
+import { getViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
 
 const perfLog = createLogger("km:perf")
-
-// Singletons — stateless, so one instance suffices for all key events
-const cardsViewNavigation = createCardsViewNavigation()
-const detailViewNavigation = createDetailViewNavigation()
 
 // =============================================================================
 // Board App Locals — per-instance mutable state (no module-level lets)
@@ -288,7 +284,7 @@ function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     isAtCardLevel: cursor.isAtCardLevel,
     nodeIndex,
     navigator: s.navigator,
-    viewNavigation: board?.viewMode === "detail" ? detailViewNavigation : cardsViewNavigation,
+    viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
     toastQueue: s.toastQueue,
     undoStack: s.undoStack,
     undoHandle: s.undoHandle,

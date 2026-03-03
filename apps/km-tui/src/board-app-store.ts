@@ -27,6 +27,7 @@ import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "inkx"
 import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
+import { getViewNavigation } from "./view-navigation.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
 import {
@@ -427,14 +428,8 @@ export function createBoardAppStoreState(
           }
           // Derive cursor ancestors from tree structure
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
-          const getNode = (id: string) => s.repo.getNode(id)
-          const isDetail = focusedPane && isDetailViewPane(focusedPane)
-          // Detail pane: all children are cards in a single flat column — skip
-          // deriveCursorAncestors which would classify outline children as
-          // column-level (selectionLevel: "column"), breaking card highlight.
-          const ancestors = isDetail
-            ? { cursorCardNodeId: action.nodeId, cursorColumnNodeId: null, selectionLevel: "card" as const }
-            : deriveCursorAncestors(getNode, rootId, action.nodeId, (pid) => s.repo.getChildren(pid))
+          const viewNav = getViewNavigation(focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards")
+          const ancestors = viewNav.classifyCursor(action.nodeId, rootId, s.repo)
           // Sync detail pane when board cursor moves to a different card.
           // Detail pane's rootId = the cursor card, so update it and reset its cursor.
           // Must use set() (not silent mutation) so the detail Board re-renders with new rootId.
