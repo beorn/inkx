@@ -934,7 +934,7 @@ Effect runners are injected via `options.runners`, making them swappable: produc
 
 ### Status
 
-Shipped in inkx, export path `inkx/tea`. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
+Shipped in inkx, export path `inkx/tea`. PlainText already uses it internally. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
 
 ## See Also
 
