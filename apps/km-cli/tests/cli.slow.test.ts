@@ -685,7 +685,7 @@ describe("km new", () => {
 
   test("should add metadata from options", async () => {
     await km(["new", "Simple task", "-d", "2026-01-15", "-P", "2"])
-    expect(readInbox()).toContain("- [ ] Simple task due:2026-01-15 p:2")
+    expect(readInbox()).toContain("- [ ] Simple task due:2026-01-15 priority:: 2")
   })
 
   test("should output JSON with --json", async () => {

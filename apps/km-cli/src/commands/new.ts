@@ -23,7 +23,7 @@ function formatMetadata(options: { due?: string; start?: string; priority?: stri
     parts.push(`due:${options.due}`)
   }
   if (options.start) {
-    parts.push(`start:${options.start}`)
+    parts.push(`start:: ${options.start}`)
   }
   if (options.priority) {
     parts.push(`priority:: ${options.priority}`)

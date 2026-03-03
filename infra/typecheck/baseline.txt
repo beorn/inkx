@@ -211,6 +211,9 @@
 43 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
+1 vendor/beorn-termless/packages/viterm/tests/fixture.test.ts
+1 vendor/beorn-termless/packages/viterm/tests/serializer.test.ts
+1 vendor/beorn-termless/tests/svg.test.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts
