@@ -488,6 +488,49 @@ function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, s
 }
 
 // =============================================================================
+// Detail view navigation
+// =============================================================================
+
+/**
+ * Detail view navigation — flat single-column navigation.
+ *
+ * All children of rootId are cards in one virtual column.
+ * j/k moves sequentially through this flat list.
+ * h/l: left returns to parent pane (handled by handleHorizontalNav), right is boundary.
+ */
+export function createDetailViewNavigation(): ViewNavigation {
+  return {
+    navigate(dir, state, repo) {
+      const { cursorNodeId, rootId } = state
+      const allChildren = repo.getChildren(rootId)
+      if (allChildren.length === 0) return null
+
+      if (dir === "left" || dir === "right") return null
+
+      const idx = indexOfChild(allChildren, cursorNodeId)
+      if (idx < 0) {
+        // Cursor might be a descendant of a card — walk up to find the card-level ancestor
+        const cardId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
+        if (!cardId) {
+          throw new Error(`[detail-nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
+        }
+        const cardIdx = indexOfChild(allChildren, cardId)
+        if (cardIdx < 0) {
+          throw new Error(`[detail-nav] ancestor ${cardId} not found in children of ${rootId}`)
+        }
+        const targetIdx = dir === "down" ? cardIdx + 1 : cardIdx - 1
+        if (targetIdx < 0 || targetIdx >= allChildren.length) return null
+        return allChildren[targetIdx]!.id
+      }
+
+      const targetIdx = dir === "down" ? idx + 1 : idx - 1
+      if (targetIdx < 0 || targetIdx >= allChildren.length) return null
+      return allChildren[targetIdx]!.id
+    },
+  }
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
 

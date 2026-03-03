@@ -1128,3 +1128,96 @@ describe("detail pane focus + navigation", () => {
     board.expectScreen("task1")
   })
 })
+
+// =============================================================================
+// Detail pane j/k navigation
+// =============================================================================
+
+describe("detail pane j/k navigation", () => {
+  /** Get detail pane cursor */
+  const dc = (store: any): string | null =>
+    (store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null
+
+  test("folder children navigate sequentially", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("card1", item("child-a"), item("child-b"), item("child-c")))),
+      { checkIncremental: false, incremental: false },
+    )
+    board.press("D")
+    expect(dc(store)).toBe("child-a")
+    board.press("j"); expect(dc(store)).toBe("child-b")
+    board.press("j"); expect(dc(store)).toBe("child-c")
+  })
+
+  test("task with mixed children: body paragraphs + heading sections", () => {
+    const nodes: KNode[] = [
+      { id: "board", type: "h", item: true, fstype: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "col1", type: "h", item: true, fstype: "folder" as const, data: { name: "col1" }, parent_id: "board", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "task1", type: "p", item: true, content: "Review Q1 budget", list_marker: "-", task_marker: "[ ]", task_status: "todo" as const, data: {}, parent_id: "col1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "body1", type: "p", content: "This needs review by Friday", data: {}, parent_id: "task1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "heading1", type: "h", item: true, content: "Action items", data: { name: "Action items" }, parent_id: "task1", parent_idx: 1, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+    ] as KNode[]
+    const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
+    board.press("D")
+    expect(dc(store)).toBe("body1")
+    board.press("j"); expect(dc(store)).toBe("heading1")
+    board.press("k"); expect(dc(store)).toBe("body1")
+  })
+
+  test("j then k round-trips correctly", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("card1", item("c-a"), item("c-b"), item("c-c")))),
+      { checkIncremental: false, incremental: false },
+    )
+    board.press("D")
+    expect(dc(store)).toBe("c-a")
+    board.press("j"); expect(dc(store)).toBe("c-b")
+    board.press("j"); expect(dc(store)).toBe("c-c")
+    board.press("k"); expect(dc(store)).toBe("c-b")
+    board.press("k"); expect(dc(store)).toBe("c-a")
+  })
+})
+
+// =============================================================================
+// Board h/l navigation with detail pane open
+// =============================================================================
+
+describe("board h/l navigation with detail pane open", () => {
+  /** Get board cursor from main CursorStore */
+  const bc = (store: any): string | null =>
+    store.getState().cursorStore.getState().cursorNodeId ?? null
+
+  test("D → navigate detail → h → l: board cursor preserved, l works", () => {
+    const { board, store } = testEnv(
+      () => item("board",
+        item("Todo", item("task-1", item("sub-1"), item("sub-2"))),
+        item("Doing", item("task-2")),
+      ),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Navigate to task-1
+    board.press("j") // board → Todo header
+    board.press("j") // Todo header → task-1
+    expect(bc(store)).toBe("task-1")
+
+    // Open detail pane, navigate inside
+    board.press("D")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    const dc = (store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null
+    expect(dc).toBe("sub-1")
+
+    board.press("j") // navigate in detail
+
+    // Come back to board
+    board.press("h")
+    expect(store.getState().workspace.focusedPaneId).toBe("main")
+
+    // Board cursor should still be on task-1
+    expect(bc(store)).toBe("task-1")
+
+    // l should navigate to Doing column
+    board.press("l")
+    expect(bc(store)).toBe("task-2")
+  })
+})
