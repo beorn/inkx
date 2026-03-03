@@ -469,7 +469,7 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$selected" : "$raisedbg"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$selected" : "$surface"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
         <Text color={isSelected ? "$selectedfg" : undefined} wrap="truncate">

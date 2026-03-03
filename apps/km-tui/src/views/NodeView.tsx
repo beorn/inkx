@@ -592,7 +592,7 @@ export function NodeDetailView({
       height={height}
       borderStyle="round"
       borderColor={"$selected"}
-      backgroundColor={"$raisedbg"}
+      backgroundColor={"$surface"}
     >
       {/* Title header — yellow bg */}
       <Box flexDirection="column" width={width - 2} backgroundColor={"$selected"} paddingX={1}>

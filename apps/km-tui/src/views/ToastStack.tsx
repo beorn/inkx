@@ -72,7 +72,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       flexShrink={0}
       borderStyle="round"
       borderColor="$border"
-      backgroundColor={"$raisedbg"}
+      backgroundColor={"$surface"}
       paddingLeft={1}
       paddingRight={1}
       minWidth={40}

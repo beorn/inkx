@@ -42,5 +42,5 @@ export const TC = {
   /** Keyboard focus outline — blueBright (12) */
   $focusring: 12,
   /** Elevated surfaces — black (0) */
-  $raisedbg: 0,
+  $surface: 0,
 } as const

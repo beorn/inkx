@@ -231,7 +231,7 @@ const Card = React.memo(
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
     const yieldTop = isPrevBodyBlock && isPrevAtCursor
-    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$raisedbg" : "$muted"
+    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface" : "$muted"
 
     if (isHR && !isEditing) {
       const innerWidth = width - 2 // border or padding L+R both consume 2
@@ -343,7 +343,7 @@ const Card = React.memo(
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
-    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$raisedbg" : "$separator"
+    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface" : "$separator"
     const borderColor = isEditing
       ? "$focusring"
       : isSelected || isMultiSelected || isColSelected
@@ -462,7 +462,7 @@ function bodyBlockLayoutProps(
   return {
     borderStyle: "round" as const,
     borderColor: isMultiSelected || isColumnSelected ? "$selected" : defaultBorderColor,
-    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$raisedbg",
+    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$surface",
   }
 }
 
@@ -689,7 +689,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selected" : "$raisedbg"
+    const borderColor = isColumnSelected ? "$selected" : "$surface"
     return (
       <Box
         id={column.node.id}

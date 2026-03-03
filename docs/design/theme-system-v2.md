@@ -89,8 +89,8 @@ Implementation by tier:
 
 ## Theme Interface
 
-Defined in `themex` (`vendor/beorn-themex/src/types.ts`). The actual field name for elevated
-surfaces is `raisedbg`; `$surface` is a backward-compat alias (see alias table below).
+Defined in `themex` (`vendor/beorn-themex/src/types.ts`). The field name for elevated
+surfaces is `surface`; `$raisedbg` is a backward-compat alias (see alias table below).
 
 ```typescript
 interface Theme {
@@ -116,7 +116,7 @@ interface Theme {
 
   // Surface
   bg: string
-  raisedbg: string      // $surface is a backward-compat alias
+  surface: string       // $raisedbg is a backward-compat alias
   separator: string
   chromebg: string
   chromefg: string
@@ -160,7 +160,7 @@ const darkAnsi16: Theme = {
   text4: "gray",             // + dimColor
 
   bg: "",                    // terminal default
-  raisedbg: "black",         // explicit black for opaque overlays
+  surface: "black",          // explicit black for opaque overlays
   separator: "gray",         // + dimColor
 
   error: "redBright",
@@ -199,7 +199,7 @@ const lightAnsi16: Theme = {
   text4: "gray",             // + dimColor
 
   bg: "",                    // terminal default
-  raisedbg: "white",         // explicit white for opaque overlays
+  surface: "white",          // explicit white for opaque overlays
   separator: "gray",
 
   error: "red",
@@ -238,7 +238,7 @@ const darkTruecolor: Theme = {
   text4: "#545E72",          // 30%
 
   bg: "#2E3440",             // polar night
-  raisedbg: "#3B4252",       // one shade lighter
+  surface: "#3B4252",        // one shade lighter
   separator: "#4C566A",      // subtle border
 
   error: "#BF616A",          // aurora red
@@ -277,7 +277,7 @@ const lightTruecolor: Theme = {
   text4: "#B0B0B0",          // 30%
 
   bg: "#FFFFFF",             // white
-  raisedbg: "#F5F5F5",       // just off-white
+  surface: "#F5F5F5",        // just off-white
   separator: "#E0E0E0",      // light gray
 
   error: "#D32F2F",
@@ -330,7 +330,7 @@ text4       = gray + dimColor (dark) / gray + dimColor (light)
 
 ── Surface (derived from dark/light) ─────────────────────────────────
 bg          = "" (terminal default)
-raisedbg    = black (dark) / white (light)
+surface     = black (dark) / white (light)
 separator   = gray + dimColor
 ```
 
@@ -356,7 +356,7 @@ text4       = text @ 30%
 
 ── Surface (lightness cascade from bg) ───────────────────────────────
 bg          = detected via OSC 11, or #2E3440 (dark) / #FFFFFF (light)
-raisedbg    = bg lightened 5% (dark) / bg darkened 3% (light)
+surface     = bg lightened 5% (dark) / bg darkened 3% (light)
 separator   = text @ 20%
 ```
 
@@ -475,13 +475,13 @@ The `Theme` interface (now in `themex`) has 19 semantic tokens + palette. inkx i
 | `text2`       | Secondary text (was `muted`)               |
 | `text3`       | Tertiary text (new)                        |
 | `text4`       | Quaternary text (new)                      |
-| `raisedbg`    | Elevated surface bg (`$surface` is alias)  |
+| `surface`     | Elevated surface bg (`$raisedbg` is alias)  |
 | `palette`     | 16 content colors (new)                    |
 
 Renamed (old names available as aliases via `resolveThemeColor`):
 - `$accent` → `$primary`
 - `$muted` → `$text2`
-- `$surface` → `$raisedbg`
+- `$raisedbg` → `$surface`
 - `$background` → `$bg`
 - `$border` → `$separator`
 
@@ -508,7 +508,7 @@ Gruvbox (Dark, Light), Rose Pine (Main, Moon, Dawn).
 1. ~~Add `ThemePalette` interface~~ → `themex/src/types.ts`
 2. ~~Implement `deriveTheme(palette, opts)` → `Theme`~~ → `themex/src/derive.ts`
 3. ~~Define built-in `ThemePalette` values~~ → `themex/src/palettes/` (17 palettes)
-4. `$surface` is a backward-compat alias for `$raisedbg` (the canonical field name)
+4. `$raisedbg` is a backward-compat alias for `$surface` (the canonical field name)
 5. ~~Update `resolveThemeColor()` with aliases~~ → `themex/src/resolve.ts`
 6. ~~Derive built-in themes from the palettes~~ → `themex/src/palettes/index.ts`
 7. ~~Update `generateTheme()`~~ → `themex/src/generate.ts`
@@ -598,13 +598,13 @@ the full implementation.
 ### Token Aliases
 
 Defined in `themex` (`vendor/beorn-themex/src/resolve.ts`). The canonical field name for
-elevated surfaces is `raisedbg`; `$surface` is a backward-compat alias.
+elevated surfaces is `surface`; `$raisedbg` is a backward-compat alias.
 
 | Alias Token     | Resolves To    |
 |-----------------|--------------- |
 | `$accent`       | `$primary`     |
 | `$muted`        | `$text2`       |
-| `$surface`      | `$raisedbg`    |
+| `$raisedbg`     | `$surface`     |
 | `$background`   | `$bg`          |
 | `$border`       | `$separator`   |
 
@@ -629,7 +629,7 @@ The 19 semantic tokens + 16 palette colors are the same as listed at the
 | `$text3` | Child counts, timestamps, dot leaders, chord separators, footer hints |
 | `$text4` | Ghost fold dots, empty column placeholders, grid empty cells |
 | `$bg` | Main background (usually terminal default) |
-| `$raisedbg` (`$surface`) | Dialog/modal background, picker dropdown, tooltip bg |
+| `$surface` (`$raisedbg` alias) | Dialog/modal background, picker dropdown, tooltip bg |
 | `$separator` | All borders (auto-default), divider lines, column separators |
 | `$chromebg` | Status bar bg, title bar bg (inverted) |
 | `$chromefg` | Status bar text, title bar text (inverted) |
@@ -649,7 +649,7 @@ How our tokens relate to M3 roles:
 | Secondary | `$control` | M3 secondary = desaturated primary. Our control = muted accent for chrome |
 | Tertiary | `$focusring` / `$selected` | M3 tertiary = rotated hue. Our selection + focus use a contrasting hue |
 | Error | `$error` | Direct match |
-| Surface | `$bg` / `$raisedbg` | M3 has surface + surface container. We have bg + raisedbg |
+| Surface | `$bg` / `$surface` | M3 has surface + surface container. We have bg + surface |
 | On Surface | `$text` / `$text2` | Direct match |
 | Outline | `$separator` | Direct match |
 

@@ -32,19 +32,19 @@ function adjustBrightness(hex: string, delta: number): string {
 }
 
 /** Select the appropriate theme based on terminal capabilities.
- * When detectedBg is provided (from OSC 11 query), derive raisedbg and separator
+ * When detectedBg is provided (from OSC 11 query), derive surface and separator
  * from the actual terminal background for a neutral, matching tint. */
 export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | null): Theme {
   if (caps.colorLevel === "truecolor") {
     const dark = caps.darkBackground
     const base = dark ? defaultDarkTheme : defaultLightTheme
     // Derive surface colors from actual bg when detected, else use fallbacks
-    const raisedbg = detectedBg ? adjustBrightness(detectedBg, dark ? 12 : -12) : "#3B3F47"
+    const surface = detectedBg ? adjustBrightness(detectedBg, dark ? 12 : -12) : "#3B3F47"
     const separator = detectedBg ? adjustBrightness(detectedBg, dark ? 20 : -20) : "#4C5060"
     return {
       ...base,
       bg: "", // Use terminal's own background
-      raisedbg,
+      surface,
       separator,
       text: "#D4D4D4", // Neutral white
       text2: "#A0A0A0", // Neutral light gray
@@ -108,7 +108,7 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
-    raisedbg: dimColor(theme.raisedbg),
+    surface: dimColor(theme.surface),
   }
 }
 
