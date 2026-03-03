@@ -1164,6 +1164,43 @@ describe("detail pane j/k navigation", () => {
     board.press("k"); expect(dc(store)).toBe("body1")
   })
 
+  test("cursor highlight works for all children (not just first)", () => {
+    // Regression: deriveCursorAncestors classified outline children as column-level
+    // (selectionLevel: "column"), breaking card highlight for all but the initial item.
+    const nodes: KNode[] = [
+      { id: "board", type: "h", item: true, fstype: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "col1", type: "h", item: true, fstype: "folder" as const, data: { name: "col1" }, parent_id: "board", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "task1", type: "p", item: true, content: "Task", list_marker: "-", task_marker: "[ ]", task_status: "todo" as const, data: {}, parent_id: "col1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "body1", type: "p", content: "Description text", data: {}, parent_id: "task1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "heading1", type: "h", item: true, content: "Section A", data: { name: "Section A" }, parent_id: "task1", parent_idx: 1, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      { id: "heading2", type: "h", item: true, content: "Section B", data: { name: "Section B" }, parent_id: "task1", parent_idx: 2, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+    ] as KNode[]
+    const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
+    board.press("D")
+
+    /** Get detail pane's CursorStore state */
+    const detailCursor = () => {
+      const pane = store.getState().workspace.panes.get("main-detail") as any
+      return pane?.cursorStore?.getState()
+    }
+
+    // First child: body paragraph — should highlight
+    expect(detailCursor().cursorCardNodeId).toBe("body1")
+    expect(detailCursor().selectionLevel).toBe("card")
+
+    // Second child: heading (outline) — should ALSO highlight as card, not column
+    board.press("j")
+    expect(dc(store)).toBe("heading1")
+    expect(detailCursor().cursorCardNodeId).toBe("heading1")
+    expect(detailCursor().selectionLevel).toBe("card")
+
+    // Third child: another heading — same
+    board.press("j")
+    expect(dc(store)).toBe("heading2")
+    expect(detailCursor().cursorCardNodeId).toBe("heading2")
+    expect(detailCursor().selectionLevel).toBe("card")
+  })
+
   test("j then k round-trips correctly", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("card1", item("c-a"), item("c-b"), item("c-c")))),
