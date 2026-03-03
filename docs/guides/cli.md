@@ -121,7 +121,7 @@ km add @next ./inbox/**
 
 ```bash
 km tasks set <node> due:2025-01-20
-km tasks set <node> p:1
+km tasks set <node> priority:P1
 km tasks set <node> status:blocked
 
 km tasks clear <node> due

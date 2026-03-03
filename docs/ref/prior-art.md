@@ -32,7 +32,7 @@ Research on metadata syntax, recurrence models, and design patterns from other s
 | **Curly brace**     | `{#id .class key=val}` | Pandoc, kramdown          |
 
 km uses **property syntax** (`key:: value`) for all metadata. Task fields use
-shorthand keys: `due:: 2026-01-15`, `start:: 2026-01-20`, `p:: 1`,
+shorthand keys: `due:: 2026-01-15`, `start:: 2026-01-20`, `priority:: P1`,
 `recur:: FREQ=WEEKLY`. Column rules use prefixed keys: `km.add:: query`,
 `km.sync:: field:value`.
 

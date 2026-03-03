@@ -16,7 +16,7 @@ tags: [journal, planning]
 
 ### Project Alpha
 
-- [ ] Complete feature spec ⏫ 📅 2025-01-10
+- [ ] Complete feature spec priority:: P1 📅 2025-01-10
 - [ ] Review code changes
 - [x] Completed unit tests
 

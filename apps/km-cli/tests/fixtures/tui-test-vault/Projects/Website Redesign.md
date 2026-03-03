@@ -32,10 +32,10 @@ A complete overhaul of the company website with [[Resources/Design System|our de
 
 ## Tasks with Priorities
 
-- [ ] Critical security fix ⏫ 📅 2025-01-15
-- [ ] Update hero section 🔼 [priority:: 2]
-- [ ] Optimize images 🔽 p:3
-- [ ] Nice-to-have animations [priority:: 4]
+- [ ] Critical security fix priority:: P1 📅 2025-01-15
+- [ ] Update hero section priority:: P2
+- [ ] Optimize images priority:: P3
+- [ ] Nice-to-have animations priority:: P4
 
 ## Tasks with Dates
 

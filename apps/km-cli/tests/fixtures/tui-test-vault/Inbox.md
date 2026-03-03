@@ -30,8 +30,8 @@ Quick capture for unprocessed items.
 ## Inline Fields (Dataview style)
 
 - [ ] Task with due date [due:: 2025-02-01]
-- [ ] Task with priority [priority:: 1]
-- [ ] Task with multiple fields [due:: 2025-01-20] [priority:: 2]
+- [ ] Task with priority priority:: P1
+- [ ] Task with multiple fields [due:: 2025-01-20] priority:: P2
 - [ ] Task with custom field [status:: waiting] [context:: work]
 - [ ] Task with assignee [assigned:: @alice]
 
@@ -39,11 +39,11 @@ Quick capture for unprocessed items.
 
 - [ ] Due with emoji 📅 2025-01-25
 - [ ] Scheduled with emoji ⏳ 2025-01-18
-- [ ] High priority ⏫
-- [ ] Medium priority 🔼
-- [ ] Low priority 🔽
+- [ ] High priority priority:: P1
+- [ ] Medium priority priority:: P2
+- [ ] Low priority priority:: P3
 - [ ] Recurring task 🔁 every week
-- [ ] Full metadata 📅 2025-02-01 ⏳ 2025-01-15 ⏫ 🔁 every month
+- [ ] Full metadata 📅 2025-02-01 ⏳ 2025-01-15 priority:: P1 🔁 every month
 
 ## Tags and Mentions
 

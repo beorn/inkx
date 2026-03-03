@@ -406,23 +406,23 @@ This is a paragraph.
     })
 
     test("should strip all task metadata formats from content", () => {
-      // Emoji format (dates still extracted, priority not)
+      // Emoji format: date emoji stripped, priority emoji stays as plain text
       const emojiTask = parseMarkdownToNodes(`- [ ] Task A 📅 2025-03-15 ⏫`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )
-      expect(emojiTask!.content).toBe("Task A")
+      expect(emojiTask!.content).toBe("Task A ⏫")
       expect(emojiTask!.due_at).toBe("2025-03-15")
       expect(emojiTask!.priority).toBeUndefined()
 
-      // Legacy format (dates still extracted, priority not)
+      // Legacy format: due: stripped, p:N stays as plain text
       const legacyTask = parseMarkdownToNodes(`- [ ] Task B due:2025-06-01 p:2`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )
-      expect(legacyTask!.content).toBe("Task B")
+      expect(legacyTask!.content).toBe("Task B p:2")
       expect(legacyTask!.due_at).toBe("2025-06-01")
       expect(legacyTask!.priority).toBeUndefined()
 
-      // New key:: value format — only priority:: is recognized
+      // New key:: value format — priority:: is stripped and extracted
       const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 priority:: P3`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )

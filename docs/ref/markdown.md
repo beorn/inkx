@@ -205,7 +205,7 @@ function serializeNode(node: Node): string {
 ```markdown
 - [ ] Task with due date 📅 2024-01-15
 - [ ] Task with scheduled date ⏳ 2024-01-10
-- [ ] Task with priority ⏫
+- [ ] Task with priority priority:: P1
 - [ ] Task with recurrence 🔁 every week
 ```
 

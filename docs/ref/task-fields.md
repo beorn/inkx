@@ -12,7 +12,7 @@ See also: [tasks guide](../guides/tasks.md), [recurrence design](../design/recur
 | --- | --- | --- | --- | --- |
 | `task_marker` | `TaskMarker` | `[ ]` `[x]` `[/]` `[!]` `[-]` | `[x]` | Status marker (stored) |
 | `task_status` | `TaskStatus` | — | `done` | Derived from marker |
-| `priority` | `number` | `p:: N` | `p:: 1` | 0-4 (P0=urgent, P4=backlog) |
+| `priority` | `string` | `priority:: VALUE` | `priority:: P1` | Free-form string (P0-P4 convention) |
 | `due_at` | `string` | `due:: DATE` | `due:: 2026-03-15` | ISO 8601 date or datetime |
 | `start_at` | `string` | `start:: DATE` | `start:: 2026-03-01` | Defer until date |
 | `assigned_to` | `string` | `@slug` | `@alice` | First `@` reference |
@@ -54,7 +54,7 @@ Five statuses, stored as `task_marker` on the node.
 
 ## Priority
 
-Integer 0-4. Absence (`null`/`undefined`) means no priority set.
+Free-form string field. Convention is P0-P4. Absence (`null`/`undefined`) means no priority set.
 
 | Level | Name | Description | Keybinding |
 | --- | --- | --- | --- |
@@ -68,17 +68,13 @@ Integer 0-4. Absence (`null`/`undefined`) means no priority set.
 - `t !` cycles: none → P0 → P1 → P2 → P3 → P4 → none
 - `t 0`–`t 4` sets directly (no picker)
 
-### Markdown Formats
+### Markdown Format
 
 ```markdown
-- [ ] Task p:: 2            # Canonical (Dataview-compatible)
-- [ ] Task p:2              # Legacy (todo.txt-style, read-only)
-- [ ] Task ⏫               # Emoji: P1 (Obsidian Tasks, read-only)
-- [ ] Task 🔼               # Emoji: P2
-- [ ] Task 🔽               # Emoji: P3
+- [ ] Task priority:: P1
 ```
 
-Parsing accepts all formats; writes always use `p:: N`.
+Priority uses `priority:: VALUE` format only. Old formats (`p::`, `p:N`, emoji) are no longer supported.
 
 ### Cross-System Priority Mapping
 

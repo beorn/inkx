@@ -82,7 +82,7 @@ Match field values with `key:value`:
 | `due`      | today, past, week, none, YYYY-MM-DD | `due:past`        |
 | `start`    | past, today, YYYY-MM-DD             | `start:past`      |
 | `assigned` | name                                | `assigned:bjorn$` |
-| `p`        | 1-5                                 | `p:1`             |
+| `priority` | P0-P4                               | `priority:P1`     |
 
 ### Date Values
 
@@ -156,7 +156,7 @@ Terms are AND-ed (all must match):
 status:todo due:week              # Open AND due this week
 +website status:todo              # Has +website AND is open
 ./inbox/** -status:done           # In inbox AND not done
-@bjorn$ status:todo p:1           # Exactly bjorn, open, priority 1
+@bjorn$ status:todo priority:P1   # Exactly bjorn, open, priority P1
 ```
 
 ---

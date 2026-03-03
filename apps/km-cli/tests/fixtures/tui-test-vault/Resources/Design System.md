@@ -93,7 +93,7 @@ Based on 4px unit:
 
 ## Tasks
 
-- [ ] Add dark mode variants [priority:: 2]
+- [ ] Add dark mode variants priority:: P2
 - [ ] Create Figma component library
 - [x] Document color palette
 - [/] Build Storybook examples @frontend

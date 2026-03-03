@@ -101,14 +101,14 @@ describe("stringifyTaskMetadata", () => {
       expect(stringifyTaskMetadata("Task", node)).toBe("Task priority:: P3")
     })
 
-    test("migrates old p:N to priority:: on rewrite", () => {
+    test("old p:N in text is not stripped (no cleanup)", () => {
       const node = makeNode({ content: "Task p:1", priority: "P1" })
-      expect(stringifyTaskMetadata("Task p:1", node)).toBe("Task priority:: P1")
+      expect(stringifyTaskMetadata("Task p:1", node)).toBe("Task p:1 priority:: P1")
     })
 
-    test("migrates emoji ⏫ to priority:: on rewrite", () => {
+    test("old emoji ⏫ in text is not stripped (no cleanup)", () => {
       const node = makeNode({ content: "Task ⏫", priority: "P1" })
-      expect(stringifyTaskMetadata("Task ⏫", node)).toBe("Task priority:: P1")
+      expect(stringifyTaskMetadata("Task ⏫", node)).toBe("Task ⏫ priority:: P1")
     })
   })
 
@@ -170,8 +170,7 @@ describe("stringifyTaskMetadata", () => {
       )
     })
 
-    test("migrates mixed old formats to new format", () => {
-      // Content has emoji due date and text priority — both get migrated
+    test("migrates emoji dates but old p:N lingers (not stripped)", () => {
       const node = makeNode({
         content: "Task 📅 2025-06-01 p:2",
         due_at: "2025-06-01",
@@ -179,8 +178,9 @@ describe("stringifyTaskMetadata", () => {
         priority: "P2",
         rrule: "FREQ=WEEKLY",
       })
+      // 📅 is stripped (date compat), p:2 is NOT stripped (no priority cleanup)
       expect(stringifyTaskMetadata("Task 📅 2025-06-01 p:2", node)).toBe(
-        "Task due:: 2025-06-01 start:: 2025-05-15 priority:: P2 recur:: FREQ=WEEKLY",
+        "Task p:2 due:: 2025-06-01 start:: 2025-05-15 priority:: P2 recur:: FREQ=WEEKLY",
       )
     })
   })
@@ -219,9 +219,9 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.priority).toBe("P2")
     })
 
-    test("strips old p:: key without extracting priority", () => {
+    test("old p:: key stays in text (not stripped, not extracted)", () => {
       const result = parseTaskMetadataFromText("Task p:: 2")
-      expect(result.cleanContent).toBe("Task")
+      expect(result.cleanContent).toBe("Task p:: 2")
       expect(result.priority).toBeUndefined()
     })
 
@@ -268,9 +268,9 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.start_at).toBe("2026-03-10T09:00")
     })
 
-    test("strips p:N from text without extracting priority", () => {
+    test("p:N stays in text (not stripped, not extracted)", () => {
       const result = parseTaskMetadataFromText("Task p:2")
-      expect(result.cleanContent).toBe("Task")
+      expect(result.cleanContent).toBe("Task p:2")
       expect(result.priority).toBeUndefined()
     })
 
@@ -280,9 +280,9 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.rrule).toBe("FREQ=WEEKLY")
     })
 
-    test("strips all legacy metadata (priority not extracted)", () => {
+    test("strips legacy dates/recurrence, but p:N stays", () => {
       const result = parseTaskMetadataFromText("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
-      expect(result.cleanContent).toBe("Big task")
+      expect(result.cleanContent).toBe("Big task p:2")
       expect(result.due_at).toBe("2026-06-01")
       expect(result.start_at).toBe("2026-05-15")
       expect(result.priority).toBeUndefined()

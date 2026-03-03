@@ -566,8 +566,8 @@ describe("Round-trip: block_id preservation", () => {
     expect(output).toContain("^m3n4")
     // Emoji dates migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2025-12-25")
-    // Emoji priority (⏫) is stripped but NOT extracted — no priority:: emitted
-    expect(output).not.toContain("⏫")
+    // Emoji priority (⏫) stays as plain text — not stripped, not extracted
+    expect(output).toContain("⏫")
     expect(output).not.toContain("priority::")
     expect(output).toContain("Task")
   })

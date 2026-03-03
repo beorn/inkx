@@ -105,8 +105,8 @@ describe("Round-trip: Tasks", () => {
     // Emoji dates migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2025-04-01")
     expect(output).toContain("start:: 2025-03-25")
-    // Emoji priority (⏫) is stripped but NOT extracted — no priority:: emitted
-    expect(output).not.toContain("⏫")
+    // Emoji priority (⏫) is NOT stripped — stays as plain text, no priority:: emitted
+    expect(output).toContain("⏫")
     expect(output).not.toContain("priority::")
   })
 
@@ -786,14 +786,14 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.start_at).toBe("2025-12-20")
     // Emoji priority (⏫) is no longer extracted
     expect(task!.priority).toBeUndefined()
-    // Content is clean — emoji metadata stripped
-    expect(task!.content).toBe("Task with all metadata")
+    // Content keeps ⏫ as plain text — only date emoji are stripped
+    expect(task!.content).toBe("Task with all metadata ⏫")
 
-    // Roundtrip migrates emoji dates to key:: value; emoji priority stripped but not re-emitted
+    // Roundtrip migrates emoji dates to key:: value; ⏫ stays as plain text
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("due:: 2025-12-25")
     expect(output).toContain("start:: 2025-12-20")
-    expect(output).not.toContain("⏫")
+    expect(output).toContain("⏫")
     expect(output).not.toContain("priority::")
   })
 
@@ -815,26 +815,26 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.start_at).toBe("2025-11-10")
     // Legacy p:N format is no longer extracted for priority
     expect(task!.priority).toBeUndefined()
-    // p:2 is still stripped from content (cleanup)
-    expect(task!.content).toBe("Task with inline fields")
+    // p:2 is NOT stripped — stays as plain text (only date/recur legacy formats are stripped)
+    expect(task!.content).toBe("Task with inline fields p:2")
   })
 
-  test("emoji priority symbols are stripped but not extracted", () => {
+  test("emoji priority symbols are not extracted and stay as plain text", () => {
     const nodes = parse(`- [ ] High priority ⏫
 - [ ] Medium priority 🔼
 - [ ] Low priority 🔽`)
     const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
 
-    // Emoji priorities are no longer extracted
+    // Emoji priorities are not extracted
     expect(tasks[0]?.priority).toBeUndefined()
     expect(tasks[1]?.priority).toBeUndefined()
     expect(tasks[2]?.priority).toBeUndefined()
 
-    // Emoji symbols are stripped on write but no priority:: emitted
+    // Emoji priority symbols stay as plain text — no stripping, no priority:: emitted
     const output = nodesToMarkdown(nodes)
-    expect(output).not.toContain("⏫")
-    expect(output).not.toContain("🔼")
-    expect(output).not.toContain("🔽")
+    expect(output).toContain("⏫")
+    expect(output).toContain("🔼")
+    expect(output).toContain("🔽")
     expect(output).not.toContain("priority::")
   })
 

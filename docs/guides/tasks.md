@@ -81,7 +81,7 @@ All references create links to boards. The first `@` becomes the **assigned pers
 | --------- | ----------------------- | ---------------------------- |
 | `due::`   | `due:: 2026-01-15`     | When it's due                |
 | `start::` | `start:: 2026-01-20`   | Don't show until this date   |
-| `p::`     | `p:: 2`                | Priority (0-4, P0=urgent)    |
+| `priority::` | `priority:: P1`     | Priority (P0-P4 convention)  |
 | `recur::` | `recur:: every 2 weeks` | Recurrence rule (RRULE + FROM) |
 
 Legacy `key:value` syntax (single colon, no space) is also accepted for
@@ -100,7 +100,7 @@ interface Node {
   refs?: string[] // All @, #, + references (with sigils)
   due?: string // YYYY-MM-DD
   start?: string // YYYY-MM-DD (defer until)
-  p?: number // Priority 0-4 (P0=urgent, P4=backlog)
+  priority?: string // Priority (P0-P4 convention)
   rrule?: string // RRULE string (+ optional FROM=DUE)
   recur_prev?: string // Previous instance ID
 }
@@ -349,7 +349,7 @@ Completed items can be moved to `archive/` (manual or via automation).
 ### Task with Metadata
 
 ```markdown
-- [ ] Review Q1 budget @bjorn #finance +q1 due:: 2026-01-15 p:: 1
+- [ ] Review Q1 budget @bjorn #finance +q1 due:: 2026-01-15 priority:: P1
 ```
 
 ### Blocked Task

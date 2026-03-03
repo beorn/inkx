@@ -151,7 +151,7 @@ Recently completed.
 - [ ] Nice to have @issue #P3
 ```
 
-**Note:** km currently has a `priority` field (1-3 with emoji ⏫🔼🔽), but `#P0`-`#P4` tags are preferred for beads compatibility and visibility.
+**Note:** km uses `priority:: VALUE` format (e.g., `priority:: P1`). The `#P0`-`#P4` tags are also used for beads compatibility and visibility.
 
 ### Dependencies via Inline Properties
 

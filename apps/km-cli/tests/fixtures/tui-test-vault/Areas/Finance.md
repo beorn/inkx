@@ -16,12 +16,12 @@ Personal finance management and budgeting.
 
 ### Urgent
 
-- [ ] File quarterly taxes 📅 2025-04-15 ⏫ [priority:: 1]
+- [ ] File quarterly taxes 📅 2025-04-15 priority:: P1
 - [!] Dispute charge on credit card (waiting for response)
 
 ### Regular
 
-- [ ] Review investment portfolio 🔼
+- [ ] Review investment portfolio priority:: P2
 - [ ] Update budget spreadsheet
 - [/] Track expenses in YNAB
 - [x] Pay credit card bill
@@ -29,7 +29,7 @@ Personal finance management and budgeting.
 
 ### Future
 
-- [ ] Research Roth IRA conversion [priority:: 3]
+- [ ] Research Roth IRA conversion priority:: P3
 - [-] Open new brokerage account (decided to consolidate instead)
 
 ## Goals

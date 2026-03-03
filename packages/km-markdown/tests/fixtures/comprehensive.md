@@ -27,11 +27,11 @@ They are treated as regular list items. Use standard marks only for reliable par
 
 - [ ] Task with due date 📅 2025-03-15
 - [ ] Task with scheduled date ⏳ 2025-03-10
-- [ ] Task with high priority ⏫
-- [ ] Task with medium priority 🔼
-- [ ] Task with low priority 🔽
+- [ ] Task with high priority priority:: P1
+- [ ] Task with medium priority priority:: P2
+- [ ] Task with low priority priority:: P3
 - [ ] Task with recurrence 🔁 every week
-- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 ⏫ 🔁 every day
+- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 priority:: P1 🔁 every day
 
 ## Tasks with Tags
 

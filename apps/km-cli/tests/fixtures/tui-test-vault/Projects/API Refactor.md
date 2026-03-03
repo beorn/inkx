@@ -14,8 +14,8 @@ Modernizing the backend API with GraphQL and improved authentication.
 
 ### OAuth Integration
 
-- [ ] Google OAuth setup [priority:: 1]
-- [ ] GitHub OAuth setup [priority:: 2]
+- [ ] Google OAuth setup priority:: P1
+- [ ] GitHub OAuth setup priority:: P2
 - [-] Facebook OAuth (removed from scope)
 
 ## GraphQL Migration

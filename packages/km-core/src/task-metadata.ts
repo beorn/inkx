@@ -287,7 +287,7 @@ function parseDatetimeValue(value: string): { date: string; time?: string } | nu
 }
 
 /** Task-specific keys that stringifyTaskMetadata manages (stripped on rewrite) */
-const TASK_METADATA_KEYS = ["due", "start", "p", "priority", "recur"]
+const TASK_METADATA_KEYS = ["due", "start", "priority", "recur"]
 
 /** Strip task-specific metadata from all formats (key:: value + legacy + emoji) */
 function stripTaskMetadataFormats(text: string): string {
@@ -306,12 +306,10 @@ function stripLegacyAndEmojiMetadata(text: string): string {
   clean = clean.replace(STRIP_LEGACY_DUE, "")
   clean = clean.replace(STRIP_LEGACY_START, "")
   clean = clean.replace(STRIP_LEGACY_RECURRENCE, "")
-  clean = clean.replace(/\s*\bp:\d\b/g, "") // Legacy p:N priority (cleanup on rewrite)
   // Emoji
   clean = clean.replace(STRIP_EMOJI_DUE, "")
   clean = clean.replace(STRIP_EMOJI_START, "")
   clean = clean.replace(STRIP_EMOJI_RECURRENCE, "")
-  clean = clean.replace(/\s*[⏫🔼🔽]/gu, "") // Emoji priorities (cleanup on rewrite)
   // Normalize whitespace
   clean = clean.replace(/\s{2,}/g, " ").trim()
   return clean

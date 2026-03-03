@@ -21,7 +21,7 @@ Personal health and wellness tracking.
 
 ## Appointments
 
-- [ ] Annual physical exam 📅 2025-02-15 [priority:: 1]
+- [ ] Annual physical exam 📅 2025-02-15 priority:: P1
 - [ ] Dentist checkup 📅 2025-01-25
 - [x] Eye exam (got new glasses!)
 - [!] Dermatologist referral (waiting for insurance approval)

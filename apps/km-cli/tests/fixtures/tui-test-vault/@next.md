@@ -16,7 +16,7 @@ Tasks ready to work on now.
 - [/] Implement token generation @backend-team
 - [ ] Add refresh token flow
 - [!] Security audit (waiting for @security-team)
-- [ ] Google OAuth setup [priority:: 1]
+- [ ] Google OAuth setup priority:: P1
 - [/] Define schema types
 - [ ] Implement resolvers for User queries
 - [ ] Write integration tests
@@ -31,7 +31,7 @@ Tasks ready to work on now.
 
 ## Personal
 
-- [ ] Annual physical exam 📅 2025-02-15 [priority:: 1]
+- [ ] Annual physical exam 📅 2025-02-15 priority:: P1
 - [ ] Dentist checkup 📅 2025-01-25
 - [!] Dermatologist referral (waiting for insurance approval)
 - [ ] Run 3x per week 🔁 every week
@@ -39,14 +39,14 @@ Tasks ready to work on now.
 
 ## Finance
 
-- [ ] File quarterly taxes 📅 2025-04-15 ⏫ [priority:: 1]
+- [ ] File quarterly taxes 📅 2025-04-15 priority:: P1
 - [!] Dispute charge on credit card (waiting for response)
-- [ ] Review investment portfolio 🔼
+- [ ] Review investment portfolio priority:: P2
 - [/] Track expenses in YNAB
 
 ## Design
 
-- [ ] Add dark mode variants [priority:: 2]
+- [ ] Add dark mode variants priority:: P2
 - [ ] Create Figma component library
 - [/] Build Storybook examples @frontend
 
