@@ -562,7 +562,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "k", commandId: "cursor_up" },
       { key: "h", commandId: "cursor_left" },
       { key: "l", commandId: "cursor_right" },
-      { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
+      { key: "G", commandId: "filter", when: not(textInputFocused) },
+      { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
       { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
       // Block navigation (J/K — jump by block, auto-unfolds)
@@ -601,8 +602,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "z", commandId: "zoom_inwards" },
       { key: "Z", commandId: "zoom_outwards" },
 
-      // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
-      { key: "D", commandId: "toggle_detail_pane" },
+      // Smart-P: context-aware pane toggle (open+focus / focus / close) per v2 spec
+      { key: "P", commandId: "toggle_detail_pane" },
       // Cmd+W: always close detail pane regardless of focus state
       { key: "w", cmd: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },
@@ -658,8 +659,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Escape", commandId: "cancel_move", modes: ["move"] },
 
       // I = enter body edit at start, Shift+Enter = enter body edit at end
-      { key: "I", commandId: "noop" }, // TODO: enter_body_edit command needs to be created
-      { key: "Enter", shift: true, commandId: "noop" }, // TODO: enter_body_edit_end command needs to be created
+      { key: "I", commandId: "enter_body_edit" },
+      { key: "Enter", shift: true, commandId: "enter_body_edit" },
 
       // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
       { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
@@ -812,7 +813,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { chord: "t", key: "2", commandId: "set_priority_2" },
       { chord: "t", key: "3", commandId: "set_priority_3" },
       { chord: "t", key: "4", commandId: "set_priority_4" },
-      { chord: "t", key: "s", commandId: "set_start_date" },
+      { chord: "t", key: "s", commandId: "cycle_task_status" },
       { chord: "t", key: "r", commandId: "set_recurring" },
       // toggle_hide_done moved to v d (view prefix)
       { chord: "t", key: "l", commandId: "set_label" },

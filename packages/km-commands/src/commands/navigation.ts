@@ -123,7 +123,7 @@ const zoomOutwards = {
   execute: () => ({ type: "ZOOM_OUTWARDS" }),
 } satisfies CommandDef
 
-// Smart-D: context-aware detail pane toggle (v2 spec)
+// Smart-P: context-aware detail pane toggle (v2 spec)
 // Closed -> open+focus, open+board-focused -> focus pane, open+pane-focused -> close
 const toggleDetailPane = {
   id: "toggle_detail_pane",

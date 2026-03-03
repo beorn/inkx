@@ -70,6 +70,14 @@ const enterInlineEdit = {
   execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
 } satisfies CommandDef
 
+const enterBodyEdit = {
+  id: "enter_body_edit",
+  name: "Edit Body",
+  description: "Edit node body (first body block)",
+  category: "Edit",
+  execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId, blockIndex: 1 } : null),
+} satisfies CommandDef
+
 const renameNode = {
   id: "rename_node",
   name: "Rename",
@@ -283,6 +291,7 @@ export const editCommands: CommandDef[] = [
   confirmMove,
   cancelMove,
   enterInlineEdit,
+  enterBodyEdit,
   renameNode,
   shiftUp,
   shiftDown,

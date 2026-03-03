@@ -43,11 +43,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("wireframes")
 
     // Open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate — this should NOT throw or show error
@@ -87,7 +87,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("action-2")
 
     // Open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close with Escape
@@ -177,11 +177,11 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("milestone-2a")
 
     // Open detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate extensively — stress the ErrorBoundary recovery
@@ -222,8 +222,8 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-1b") board.press(c)
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-1b")
-    board.press("D") // open detail
-    board.press("D") // close detail
+    board.press("P") // open detail
+    board.press("P") // close detail
     board.press("j")
 
     let output = board.screenshot()
@@ -238,7 +238,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-3a") board.press(c)
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-3a")
-    board.press("D") // open detail
+    board.press("P") // open detail
     board.press("Escape") // close detail with Escape (unfocuses detail pane)
     board.press("j")
     board.press("l")

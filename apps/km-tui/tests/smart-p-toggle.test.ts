@@ -19,12 +19,12 @@ describe("Detail pane toggle", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // D opens pane and auto-focuses detail
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // D again closes pane
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -35,7 +35,7 @@ describe("Detail pane toggle", () => {
     })
 
     // Open pane (auto-focuses detail), return to board
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("h") // return to board
 
@@ -62,7 +62,7 @@ describe("Detail pane toggle", () => {
     })
 
     // Open pane (auto-focuses detail), return to board
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("h") // return to board
     board.expect("#card1[data-cursor]").toExist()
@@ -91,7 +91,7 @@ describe("Detail pane toggle", () => {
       incremental: false,
     })
 
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
@@ -112,7 +112,7 @@ describe("Detail pane toggle", () => {
     )
 
     // Open pane — cursor starts on first child
-    board.press("D")
+    board.press("P")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-a")
 
     // Navigate within detail
@@ -120,11 +120,11 @@ describe("Detail pane toggle", () => {
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-b")
 
     // Close pane with D → pane removed
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Reopen → cursor should be fresh (first child)
-    board.press("D")
+    board.press("P")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId).toBe("sub-a")
   })
 
@@ -135,15 +135,15 @@ describe("Detail pane toggle", () => {
     })
 
     // Rapid toggle: open → close
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Again
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("D")
+    board.press("P")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 })
