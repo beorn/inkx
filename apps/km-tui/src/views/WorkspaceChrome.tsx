@@ -427,7 +427,7 @@ export function WorkspaceChrome({
           topFraction={1 / 4}
           data-dialog="favorites"
         >
-          <FavoritesDialog cursor={ui.favoritesCursor} width={Math.min(50, Math.floor(termWidth / 2))} />
+          <FavoritesDialog cursor={ui.favoritesCursor} width={Math.min(50, Math.floor(termWidth / 2))} boardName={rootPath} />
         </DialogBox>
       )}
       {/* Help overlay */}
