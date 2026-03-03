@@ -431,7 +431,7 @@ export function WorkspaceChrome({
             cursor={ui.favoritesCursor}
             width={Math.min(50, Math.floor(termWidth / 2))}
             addMode={ui.favoritesAddMode}
-            assignNodeName={cursorNodeId ? (repo.getNode(cursorNodeId)?.name ?? cursorNodeId) : null}
+            assignNodeName={cursorNodeId ? (repo.getNode(cursorNodeId)?.title ?? cursorNodeId) : null}
           />
         </DialogBox>
       )}

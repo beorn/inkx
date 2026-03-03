@@ -1467,7 +1467,7 @@ function handleFavoritesAssign(ctx: ActionCtx, key: string): ActionResult {
   }
 
   const node = ctx.repo.getNode(nodeId)
-  const name = node?.name ?? nodeId
+  const name = node?.title ?? node?.name ?? nodeId
   setFavorite(key, nodeId)
   // Re-register keybindings so the new favorite is bound
   initDefaultKeybindings()

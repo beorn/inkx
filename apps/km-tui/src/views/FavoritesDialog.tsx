@@ -5,12 +5,15 @@
  * Press 'a' to add: shows an input row capturing the next key press.
  * x/X to clear the selected favorite, Escape to close.
  *
+ * Each favorite row shows the key badge + NodeLine (icon + title).
  * Purely presentational — all state is in UIState, all key handling
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
 import { Box, Text, ModalDialog } from "inkx"
 import { getAllFavorites } from "@km/commands"
+import { useRepo } from "../repo-context.tsx"
+import { NodeLine } from "./shared-components.tsx"
 
 interface FavoritesDialogProps {
   cursor: number
@@ -22,6 +25,7 @@ interface FavoritesDialogProps {
 }
 
 export function FavoritesDialog({ cursor, width, addMode, assignNodeName }: FavoritesDialogProps): React.ReactElement {
+  const repo = useRepo()
   const entries = Array.from(getAllFavorites().entries()).sort((a, b) => a[0].localeCompare(b[0]))
 
   return (
@@ -35,27 +39,33 @@ export function FavoritesDialog({ cursor, width, addMode, assignNodeName }: Favo
         {entries.length === 0 && !addMode ? (
           <Text dimColor>No favorites — press 'a' to add</Text>
         ) : (
-          entries.map(([key, boardId], i) => {
+          entries.map(([key, nodeId], i) => {
             const isActive = i === cursor && !addMode
+            const node = repo.getNode(nodeId)
+            const title = node?.title ?? node?.name ?? nodeId
             return (
-              <Box key={key} flexDirection="row" gap={1}>
+              <Box key={key} flexDirection="row" height={1}>
                 <Text inverse={isActive} bold={isActive}>
                   {` ${key} `}
                 </Text>
-                <Text inverse={isActive} dimColor={!isActive}>
-                  {boardId}
-                </Text>
+                <Box flexGrow={1} flexShrink={1} overflow="hidden">
+                  {node ? (
+                    <NodeLine node={node} title={title} isSelected={isActive} />
+                  ) : (
+                    <Text dimColor>{nodeId}</Text>
+                  )}
+                </Box>
               </Box>
             )
           })
         )}
         {/* Add mode: input row at the bottom */}
         {addMode && (
-          <Box flexDirection="row" gap={1}>
+          <Box flexDirection="row" height={1}>
             <Text inverse bold>
               {" _ "}
             </Text>
-            <Text>{assignNodeName ?? "(no node selected)"}</Text>
+            <Text> {assignNodeName ?? "(no node selected)"}</Text>
           </Box>
         )}
       </Box>
