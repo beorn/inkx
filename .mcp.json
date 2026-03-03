@@ -2,10 +2,6 @@
   "mcpServers": {
     "tty": {
       "command": "bun",
-      "args": ["vendor/beorn-tools/tools/playwright-tty-mcp.ts"]
-    },
-    "termless": {
-      "command": "bun",
       "args": ["vendor/beorn-termless/packages/cli/src/cli.ts", "mcp"]
     }
   }

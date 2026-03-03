@@ -160,11 +160,12 @@ km-<4-5 char random>
 
 ### Vendor Packages
 
-| Scope    | Covers                                           |
-| -------- | ------------------------------------------------ |
-| `term`   | vendor/beorn-term, beorn-tui, inkx/chalkx absorb |
-| `flexx`  | vendor/beorn-flexx                               |
-| `logger` | vendor/beorn-logger                              |
+| Scope      | Covers                                           |
+| ---------- | ------------------------------------------------ |
+| `term`     | vendor/beorn-term, beorn-tui, inkx/chalkx absorb |
+| `termless` | vendor/beorn-termless (headless terminal testing) |
+| `flexx`    | vendor/beorn-flexx                               |
+| `logger`   | vendor/beorn-logger                              |
 
 ### Infrastructure & Cross-Cutting
 
