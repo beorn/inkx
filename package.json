@@ -20,7 +20,7 @@
     "@beorn/flexx": "$@beorn/flexx",
     "@beorn/logger": "$@beorn/logger",
     "themex": "$themex",
-    "termless": "$termless",
+    "@termless/core": "$@termless/core",
     "zod": "^4.3.6"
   },
   "bin": {
@@ -84,10 +84,10 @@
     "@beorn/mdtest": "workspace:*",
     "@beorn/tap": "workspace:*",
     "@beorn/watcher-chaos": "workspace:*",
-    "termless": "workspace:*",
-    "termless-xtermjs": "workspace:*",
-    "termless-ghostty": "workspace:*",
-    "viterm": "workspace:*",
+    "@termless/core": "workspace:*",
+    "@termless/xtermjs": "workspace:*",
+    "@termless/ghostty": "workspace:*",
+    "@termless/test": "workspace:*",
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/board": "workspace:*",

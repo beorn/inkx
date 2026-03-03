@@ -213,9 +213,9 @@ Tests that feed inkx ANSI output through a real terminal emulator (xterm.js/Ghos
 **Speed**: ~30-100ms per test (WASM, in-process, deterministic). Fast enough for CI.
 
 ```typescript
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminal } from "@termless/core"
+import { createXtermBackend } from "@termless/xtermjs"
+import "@termless/test/matchers"
 
 test("board renders correct colors through real terminal", () => {
   // Render a board, capture ANSI output from inkx
@@ -236,7 +236,7 @@ test("board renders correct colors through real terminal", () => {
 
 **Canonical examples**: `vendor/beorn-inkx/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
 
-**viterm matchers** (auto-registered via `import "viterm/matchers"`):
+**@termless/test matchers** (auto-registered via `import "@termless/test/matchers"`):
 
 | Category | Matchers |
 |----------|----------|

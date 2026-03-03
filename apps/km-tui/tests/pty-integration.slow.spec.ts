@@ -12,7 +12,7 @@
 import { describe, test, expect, beforeAll } from "vitest"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
-import { createTerminalFixture } from "viterm"
+import { createTerminalFixture } from "@termless/test"
 
 const KM_CWD = "/Users/beorn/Code/pim/km"
 const TEST_VAULT = "/tmp/vt"
