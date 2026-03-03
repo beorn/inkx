@@ -19,6 +19,7 @@
     "chalkx": "$chalkx",
     "@beorn/flexx": "$@beorn/flexx",
     "@beorn/logger": "$@beorn/logger",
+    "themex": "$themex",
     "zod": "^4.3.6"
   },
   "bin": {

@@ -285,7 +285,7 @@
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^7.1.2",
         "string-width": "^8.0.0",
-        "themex": "workspace:*",
+        "themex": "github:beorn/themex",
         "zustand": "^5.0.11",
       },
       "devDependencies": {
@@ -536,6 +536,7 @@
     "@beorn/flexx": "vendor/beorn-flexx",
     "@beorn/logger": "vendor/beorn-logger",
     "chalkx": "vendor/beorn-chalkx",
+    "themex": "vendor/beorn-themex",
     "zod": "^4.3.6",
   },
   "catalog": {
