@@ -296,10 +296,10 @@ const lightTruecolor: Theme = {
 ## Theme Generation: One Knob
 
 Implemented in `themex` (`vendor/beorn-themex/src/derive.ts` and `generate.ts`).
-A complete theme is generated from 3 inputs:
+ANSI 16 themes are generated from 2 inputs:
 
 ```typescript
-function generateTheme(primary: string, dark: boolean, tier: "ansi16" | "truecolor"): Theme
+function generateTheme(primary: AnsiPrimary, dark: boolean): Theme
 ```
 
 ### Derivation Rules (ANSI 16)
