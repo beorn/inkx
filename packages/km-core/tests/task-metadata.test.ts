@@ -86,28 +86,28 @@ describe("stringifyTaskMetadata", () => {
   })
 
   describe("priority", () => {
-    test("appends p:: 1 for priority 1", () => {
-      const node = makeNode({ content: "Task", priority: 1 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 1")
+    test("appends priority:: P1 for priority P1", () => {
+      const node = makeNode({ content: "Task", priority: "P1" })
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task priority:: P1")
     })
 
-    test("appends p:: 2 for priority 2", () => {
-      const node = makeNode({ content: "Task", priority: 2 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 2")
+    test("appends priority:: P2 for priority P2", () => {
+      const node = makeNode({ content: "Task", priority: "P2" })
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task priority:: P2")
     })
 
-    test("appends p:: 3 for priority 3", () => {
-      const node = makeNode({ content: "Task", priority: 3 })
-      expect(stringifyTaskMetadata("Task", node)).toBe("Task p:: 3")
+    test("appends priority:: P3 for priority P3", () => {
+      const node = makeNode({ content: "Task", priority: "P3" })
+      expect(stringifyTaskMetadata("Task", node)).toBe("Task priority:: P3")
     })
 
     test("preserves old p:N format when values match", () => {
-      const node = makeNode({ content: "Task p:1", priority: 1 })
+      const node = makeNode({ content: "Task p:1", priority: "P1" })
       expect(stringifyTaskMetadata("Task p:1", node)).toBe("Task p:1")
     })
 
     test("preserves emoji ⏫ format when values match", () => {
-      const node = makeNode({ content: "Task ⏫", priority: 1 })
+      const node = makeNode({ content: "Task ⏫", priority: "P1" })
       expect(stringifyTaskMetadata("Task ⏫", node)).toBe("Task ⏫")
     })
   })
@@ -162,11 +162,11 @@ describe("stringifyTaskMetadata", () => {
         content: "Big task",
         due_at: "2025-06-01",
         start_at: "2025-05-15",
-        priority: 2,
+        priority: "P2",
         rrule: "FREQ=MONTHLY",
       })
       expect(stringifyTaskMetadata("Big task", node)).toBe(
-        "Big task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=MONTHLY",
+        "Big task due:: 2025-06-01 start:: 2025-05-15 priority:: P2 recur:: FREQ=MONTHLY",
       )
     })
 
@@ -176,11 +176,11 @@ describe("stringifyTaskMetadata", () => {
         content: "Task 📅 2025-06-01 p:2",
         due_at: "2025-06-01",
         start_at: "2025-05-15",
-        priority: 2,
+        priority: "P2",
         rrule: "FREQ=WEEKLY",
       })
       expect(stringifyTaskMetadata("Task 📅 2025-06-01 p:2", node)).toBe(
-        "Task due:: 2025-06-01 start:: 2025-05-15 p:: 2 recur:: FREQ=WEEKLY",
+        "Task due:: 2025-06-01 start:: 2025-05-15 priority:: P2 recur:: FREQ=WEEKLY",
       )
     })
   })
@@ -216,7 +216,7 @@ describe("parseTaskMetadataFromText", () => {
     test("strips p::", () => {
       const result = parseTaskMetadataFromText("Task p:: 2")
       expect(result.cleanContent).toBe("Task")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
     })
 
     test("strips recur::", () => {
@@ -232,7 +232,7 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.cleanContent).toBe("Big task")
       expect(result.due_at).toBe("2026-06-01")
       expect(result.start_at).toBe("2026-05-15")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
       expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
@@ -265,7 +265,7 @@ describe("parseTaskMetadataFromText", () => {
     test("strips p:N", () => {
       const result = parseTaskMetadataFromText("Task p:2")
       expect(result.cleanContent).toBe("Task")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
     })
 
     test("strips recur:value", () => {
@@ -279,7 +279,7 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.cleanContent).toBe("Big task")
       expect(result.due_at).toBe("2026-06-01")
       expect(result.start_at).toBe("2026-05-15")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
       expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
@@ -290,17 +290,17 @@ describe("parseTaskMetadataFromText", () => {
         content: "Task",
         due_at: "2026-01-15",
         start_at: "2026-01-10",
-        priority: 1,
+        priority: "P1",
         rrule: "FREQ=DAILY",
       })
       const stringified = stringifyTaskMetadata("Task", node)
-      expect(stringified).toBe("Task due:: 2026-01-15 start:: 2026-01-10 p:: 1 recur:: FREQ=DAILY")
+      expect(stringified).toBe("Task due:: 2026-01-15 start:: 2026-01-10 priority:: P1 recur:: FREQ=DAILY")
 
       const parsed = parseTaskMetadataFromText(stringified)
       expect(parsed.cleanContent).toBe("Task")
       expect(parsed.due_at).toBe("2026-01-15")
       expect(parsed.start_at).toBe("2026-01-10")
-      expect(parsed.priority).toBe(1)
+      expect(parsed.priority).toBe("P1")
       expect(parsed.rrule).toBe("FREQ=DAILY")
     })
 
@@ -356,7 +356,7 @@ describe("extractTaskMetadata", () => {
 
     test("extracts p:: priority", () => {
       const result = extractTaskMetadata("Task p:: 2")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
     })
 
     test("extracts recur::", () => {
@@ -390,7 +390,7 @@ describe("extractTaskMetadata", () => {
 
     test("extracts priority", () => {
       const result = extractTaskMetadata("Task p:2")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
     })
 
     test("extracts recurrence", () => {
@@ -402,7 +402,7 @@ describe("extractTaskMetadata", () => {
       const result = extractTaskMetadata("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
       expect(result.dueDate).toBe("2026-06-01")
       expect(result.startDate).toBe("2026-05-15")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
       expect(result.rrule).toBe("FREQ=MONTHLY")
     })
   })
@@ -424,19 +424,19 @@ describe("extractTaskMetadata", () => {
       expect(result.startDate).toBe("2026-01-10")
     })
 
-    test("extracts priority ⏫ as 1", () => {
+    test("extracts priority ⏫ as P1", () => {
       const result = extractTaskMetadata("Task ⏫")
-      expect(result.priority).toBe(1)
+      expect(result.priority).toBe("P1")
     })
 
-    test("extracts priority 🔼 as 2", () => {
+    test("extracts priority 🔼 as P2", () => {
       const result = extractTaskMetadata("Task 🔼")
-      expect(result.priority).toBe(2)
+      expect(result.priority).toBe("P2")
     })
 
-    test("extracts priority 🔽 as 3", () => {
+    test("extracts priority 🔽 as P3", () => {
       const result = extractTaskMetadata("Task 🔽")
-      expect(result.priority).toBe(3)
+      expect(result.priority).toBe("P3")
     })
 
     test("extracts recurrence from 🔁", () => {
@@ -458,7 +458,7 @@ describe("extractTaskMetadata", () => {
 
     test("p:N overrides ⏫", () => {
       const result = extractTaskMetadata("Task p:3 ⏫")
-      expect(result.priority).toBe(3)
+      expect(result.priority).toBe("P3")
     })
   })
 

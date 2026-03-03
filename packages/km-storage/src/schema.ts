@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   start_at TEXT,     -- ISO 8601: same format as due_at
   due_date TEXT,     -- UNUSED: kept for backward compat with existing DBs
   scheduled_date TEXT, -- UNUSED: kept for backward compat with existing DBs
-  priority INTEGER,
+  priority TEXT,
 
   -- Content
   content TEXT,
@@ -150,6 +150,18 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
     } else {
       db.run("UPDATE nodes SET type = 'embed' WHERE type = 'link'")
     }
+  }
+
+  // Migrate priority from INTEGER to TEXT (P-string format)
+  // SQLite stores the column type in PRAGMA but allows mixed types in columns.
+  // Convert any remaining numeric priority values to P-strings.
+  const colInfo = db.query("PRAGMA table_info(nodes)").all() as { name: string; type: string }[]
+  const priorityCol = colInfo.find((c) => c.name === "priority")
+  if (priorityCol) {
+    // Convert numeric values (1-9) to P-strings ("P1"-"P9")
+    db.run(
+      "UPDATE nodes SET priority = 'P' || priority WHERE priority IS NOT NULL AND typeof(priority) = 'integer'",
+    )
   }
 
   // Drop old single-column parent index (superseded by covering index)

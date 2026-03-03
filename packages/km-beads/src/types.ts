@@ -4,7 +4,7 @@ export interface Issue {
   title: string
   description?: string // Full description/content
   status: "todo" | "wip" | "blocked" | "done" | "dropped"
-  priority: number // 0-4 (P0=critical to P4=backlog)
+  priority: string // Free-form string (e.g., "P0"-"P4", "high", "A")
   type?: string // bug, feature, epic, task, docs (issue_type in bd)
   assignee?: string
   blockedBy?: string[] // Short IDs of blockers
@@ -34,7 +34,7 @@ export interface BeadsFs {
 
 export interface IssueFilter {
   status?: string | string[]
-  priority?: number
+  priority?: string
   type?: string
   assignee?: string
   blocked?: boolean
@@ -42,7 +42,7 @@ export interface IssueFilter {
 
 export interface CreateIssueOptions {
   type?: string
-  priority?: number
+  priority?: string
   assignee?: string
   labels?: string[]
   customId?: string // Custom short ID

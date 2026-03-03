@@ -113,13 +113,13 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
   }
 
   // Extract priority from tags or data
-  let priority = 2 // Default to P2 (medium)
+  let priority = "P2" // Default to P2 (medium)
   const tags = data?.tags as string[] | undefined
   if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i)
       if (pMatch?.[1]) {
-        priority = parseInt(pMatch[1], 10)
+        priority = `P${pMatch[1]}`
         break
       }
     }
@@ -234,7 +234,7 @@ export function queryReady(
     query += ` @${filter.assignee}`
   }
   if (filter?.priority !== undefined) {
-    query += ` #P${filter.priority}`
+    query += ` #${filter.priority}`
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status
@@ -256,8 +256,8 @@ export function queryReady(
     return !issue.blockedBy || issue.blockedBy.length === 0
   })
 
-  // Sort by priority (lower = higher priority)
-  ready.sort((a, b) => a.priority - b.priority)
+  // Sort by priority (lexicographic — P0 < P1 < P2 < P3 < P4)
+  ready.sort((a, b) => (a.priority ?? "").localeCompare(b.priority ?? ""))
 
   return ready
 }
@@ -296,7 +296,7 @@ export function queryIssues(
     query += ` @${filter.assignee}`
   }
   if (filter?.priority !== undefined) {
-    query += ` #P${filter.priority}`
+    query += ` #${filter.priority}`
   }
 
   // Don't filter by type='task' - issues can be file nodes with task_status

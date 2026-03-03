@@ -36,7 +36,7 @@ const makeTask = (
     status?: "todo" | "done" | "wip" | "dropped" | "blocked"
     marker?: "[ ]" | "[x]" | "[X]" | "[/]" | "[-]" | "[!]"
     dueAt?: string
-    priority?: number
+    priority?: string
   } = {},
 ) =>
   makeTestNode({
@@ -189,14 +189,14 @@ tags: [a, b, c]
     })
 
     test.each([
-      // Emoji format priorities
-      { text: "High priority ⏫", expected: 1 },
-      { text: "Medium priority 🔼", expected: 2 },
-      { text: "Low priority 🔽", expected: 3 },
-      // Inline field format priorities
-      { text: "Important task p:1", expected: 1 },
-      { text: "Normal task p:2", expected: 2 },
-      { text: "Low task p:3", expected: 3 },
+      // Emoji format priorities → P-strings
+      { text: "High priority ⏫", expected: "P1" },
+      { text: "Medium priority 🔼", expected: "P2" },
+      { text: "Low priority 🔽", expected: "P3" },
+      // Inline field format priorities → P-strings
+      { text: "Important task p:1", expected: "P1" },
+      { text: "Normal task p:2", expected: "P2" },
+      { text: "Low task p:3", expected: "P3" },
     ])("should parse priority $expected from '$text'", ({ text, expected }) => {
       expect(parseTaskMetadata(text).priority).toBe(expected)
     })
@@ -204,7 +204,7 @@ tags: [a, b, c]
     test("should parse multiple inline fields", () => {
       const result = parseTaskMetadata("Submit report due:2026-01-20 p:1")
       expect(result.dueAt).toBe("2026-01-20")
-      expect(result.priority).toBe(1)
+      expect(result.priority).toBe("P1")
     })
 
     test("text format takes precedence over emoji (canonical format)", () => {
@@ -382,7 +382,7 @@ This is a paragraph.
 
       expect(task).toBeDefined()
       expect(task!.due_at).toBe("2025-03-15")
-      expect(task!.priority).toBe(1) // ⏫ = high priority = 1
+      expect(task!.priority).toBe("P1") // ⏫ = high priority = P1
     })
 
     test("should strip task metadata from content field", () => {
@@ -412,7 +412,7 @@ This is a paragraph.
       )
       expect(emojiTask!.content).toBe("Task A")
       expect(emojiTask!.due_at).toBe("2025-03-15")
-      expect(emojiTask!.priority).toBe(1)
+      expect(emojiTask!.priority).toBe("P1")
 
       // Legacy format
       const legacyTask = parseMarkdownToNodes(`- [ ] Task B due:2025-06-01 p:2`, "test.md").find(
@@ -420,7 +420,7 @@ This is a paragraph.
       )
       expect(legacyTask!.content).toBe("Task B")
       expect(legacyTask!.due_at).toBe("2025-06-01")
-      expect(legacyTask!.priority).toBe(2)
+      expect(legacyTask!.priority).toBe("P2")
 
       // New key:: value format
       const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 p:: 3`, "test.md").find(
@@ -428,7 +428,7 @@ This is a paragraph.
       )
       expect(newTask!.content).toBe("Task C")
       expect(newTask!.due_at).toBe("2025-09-01")
-      expect(newTask!.priority).toBe(3)
+      expect(newTask!.priority).toBe("P3")
     })
 
     test("should not strip metadata from non-task list items", () => {
@@ -585,9 +585,9 @@ describe("Nodes to Markdown", () => {
     })
 
     test("should serialize task with metadata using key:: value format", () => {
-      const md = nodesToMarkdown([makeTask("Important task", { dueAt: "2025-03-15", priority: 1 })])
+      const md = nodesToMarkdown([makeTask("Important task", { dueAt: "2025-03-15", priority: "P1" })])
       expect(md).toContain("due:: 2025-03-15")
-      expect(md).toContain("p:: 1")
+      expect(md).toContain("priority:: P1")
     })
 
     test("should serialize section node as heading", () => {

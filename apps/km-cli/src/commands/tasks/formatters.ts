@@ -121,8 +121,7 @@ export function formatTaskLine(task: KNode, options: { detail?: boolean; showId?
       line += term.cyan(` 📅 ${task.due_at}`)
     }
     if (task.priority) {
-      const p = task.priority === 1 ? "⏫" : task.priority === 2 ? "🔼" : "🔽"
-      line += ` ${p}`
+      line += ` ${task.priority}`
     }
     if (task.assigned_to) {
       line += term.magenta(` @${task.assigned_to}`)

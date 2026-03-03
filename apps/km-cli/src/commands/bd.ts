@@ -40,7 +40,7 @@ import { buildQueryString, type SharedQueryFlags } from "./shared-query.ts"
 interface ReadyOptions {
   type?: string
   assignee?: string
-  priority?: number
+  priority?: string
   all?: boolean
   json?: boolean
 }
@@ -49,11 +49,17 @@ interface ListOptions {
   status?: string
   type?: string
   assignee?: string
-  priority?: number
+  priority?: string
   blocked?: boolean
   unblocked?: boolean
   all?: boolean
   json?: boolean
+}
+
+/** Normalize a CLI priority value: bare digits "1" → "P1", pass through "P2", "high", etc. */
+function normalizePriority(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  return /^\d$/.test(value) ? `P${value}` : value
 }
 
 export const bdCommand = new Command("bd")
@@ -73,7 +79,7 @@ bdCommand
   .description("List ready issues (unblocked, todo status)")
   .option("-t, --type <type>", "Filter by issue type (bug, feature, etc.)")
   .option("-a, --assignee <name>", "Filter by assignee")
-  .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
+  .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
   // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
@@ -87,7 +93,7 @@ bdCommand
     const filter: Partial<IssueFilter> = {}
     if (opts.type) filter.type = opts.type
     if (opts.assignee) filter.assignee = opts.assignee
-    if (opts.priority !== undefined) filter.priority = opts.priority
+    if (opts.priority !== undefined) filter.priority = normalizePriority(opts.priority)
 
     // Use board filter from config unless --all or explicit scope given
     const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
@@ -118,7 +124,7 @@ bdCommand
   .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
   .option("-t, --type <type>", "Filter by issue type")
   .option("-a, --assignee <name>", "Filter by assignee")
-  .option("-p, --priority <n>", "Filter by priority", parseInt)
+  .option("-p, --priority <value>", "Filter by priority (e.g. P1, P2, or 0-4)")
   .option("--blocked", "Show only blocked issues")
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
@@ -143,7 +149,7 @@ bdCommand
       if (opts.status) filter.status = opts.status.split(",")
       if (opts.type) filter.type = opts.type
       if (opts.assignee) filter.assignee = opts.assignee
-      if (opts.priority !== undefined) filter.priority = opts.priority
+      if (opts.priority !== undefined) filter.priority = normalizePriority(opts.priority)
       if (opts.blocked) filter.blocked = true
       if (opts.unblocked) filter.blocked = false
 
@@ -241,7 +247,7 @@ bdCommand
   .command("create <title>")
   .description("Create a new issue")
   .option("-t, --type <type>", "Issue type (bug, feature, epic, task, docs)")
-  .option("-p, --priority <n>", "Priority (0-4, default: 2)", parseInt)
+  .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
   .option("-a, --assignee <name>", "Assign to person")
   .option("-l, --label <labels...>", "Add labels")
   .option("--id <custom>", "Custom short ID")
@@ -254,7 +260,7 @@ bdCommand
 
     const { node, shortId } = createIssueNode(title, {
       type: opts.type,
-      priority: opts.priority,
+      priority: normalizePriority(opts.priority),
       assignee: opts.assignee,
       labels: opts.label,
       customId: opts.id,
@@ -285,7 +291,7 @@ bdCommand
     console.log(term.green(`Created issue: ${shortId}`))
     console.log(term.dim(`Title: ${title}`))
     if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
-    console.log(term.dim(`Priority: P${opts.priority ?? 2}`))
+    console.log(term.dim(`Priority: ${normalizePriority(opts.priority) ?? "P2"}`))
   })
 
 // bd update [id] - Update issue fields
@@ -293,7 +299,7 @@ const updateCmd = bdCommand
   .command("update [id]")
   .description("Update issue status, priority, or assignee")
   .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
-  .option("-p, --priority <n>", "Set priority (0-4)", parseInt)
+  .option("-p, --priority <value>", "Set priority (e.g. P0-P4 or 0-4)")
   .option("-a, --assignee <name>", "Set assignee")
   .option("-t, --title <title>", "Set title")
   .action(async (id, opts) => {
@@ -313,7 +319,7 @@ const updateCmd = bdCommand
 
     const changes: Parameters<typeof updateIssueFields>[1] = {}
     if (opts.status) changes.status = opts.status as Issue["status"]
-    if (opts.priority !== undefined) changes.priority = opts.priority
+    if (opts.priority !== undefined) changes.priority = normalizePriority(opts.priority)
     if (opts.assignee) changes.assignee = opts.assignee
     if (opts.title) changes.title = opts.title
 
@@ -325,7 +331,7 @@ const updateCmd = bdCommand
       console.log(term.dim(`  Status: ${updates.task_status}`))
     }
     if (updates.priority !== undefined) {
-      console.log(term.dim(`  Priority: P${updates.priority}`))
+      console.log(term.dim(`  Priority: ${updates.priority}`))
     }
     if (updates.content) {
       console.log(term.dim(`  Title: ${updates.content}`))

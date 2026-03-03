@@ -22,3 +22,6 @@
 [submodule "vendor/beorn-tools"]
 	path = vendor/beorn-tools
 	url = git@github.com:beorn/tools.git
+[submodule "vendor/beorn-termless"]
+	path = vendor/beorn-termless
+	url = git@github.com:beorn/termless.git

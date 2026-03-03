@@ -61,7 +61,7 @@ function randomTask(rng: SeededRandom): string {
   if (rng.bool(0.4)) {
     const propTypes = [
       () => `status:: ${rng.pick(["active", "pending", "done"])}`,
-      () => `priority:: ${rng.int(1, 5)}`,
+      () => `priority:: P${rng.int(1, 5)}`,
       () => `due:: 2026-${String(rng.int(1, 12)).padStart(2, "0")}-${String(rng.int(1, 28)).padStart(2, "0")}`,
       () => `owner:: [[${rng.pick(WORDS)}]]`,
     ]
@@ -360,7 +360,7 @@ describe("Roundtrip Fuzz: Edge Patterns", () => {
         let task = `- [${marker}] ${randomPhrase(random)}`
         // Optionally add a property
         if (random.bool(0.3)) {
-          task += ` priority:: ${random.int(1, 5)}`
+          task += ` priority:: P${random.int(1, 5)}`
         }
         tasks.push(task)
       }
@@ -378,7 +378,7 @@ describe("Roundtrip Fuzz: Edge Patterns", () => {
     const docs = gen(({ random }) => {
       const props = [
         `status:: ${random.pick(["active", "pending"])}`,
-        `priority:: ${random.int(1, 5)}`,
+        `priority:: P${random.int(1, 5)}`,
         `owner:: [[${random.pick(WORDS)}]]`,
       ]
       const count = random.int(1, 3)

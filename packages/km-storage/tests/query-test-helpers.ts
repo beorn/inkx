@@ -16,7 +16,7 @@ export interface TestNode {
   fstype?: string | null
   task_status?: string | null
   task_marker?: string | null
-  priority?: number | null
+  priority?: string | null
   content: string
   fs_path?: string | null
   due_at?: string | null

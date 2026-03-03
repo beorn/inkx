@@ -379,8 +379,8 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
     cleanText: (item.data?.cleanText as string | undefined) ?? text,
   }
 
-  // Priority from metadata only
-  const priority: number | undefined = metadata.priority
+  // Priority from metadata only (now a free-form string)
+  const priority: string | undefined = metadata.priority
 
   // Strip metadata from content for tasks only.
   // The serializer (nodes2md appendTaskMetadata) reconstructs task metadata from node fields

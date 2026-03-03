@@ -515,8 +515,8 @@ function DateBadgeDemo(): React.ReactElement {
     { label: "Due in 10 days", badge: formatDateBadge({ due_at: d(10) } as KNode) },
 
     // With priority
-    { label: "P1 overdue", badge: formatDateBadge({ priority: 1, due_at: d(-3) } as KNode) },
-    { label: "P2 due today", badge: formatDateBadge({ priority: 2, due_at: d(0) } as KNode) },
+    { label: "P1 overdue", badge: formatDateBadge({ priority: "P1", due_at: d(-3) } as KNode) },
+    { label: "P2 due today", badge: formatDateBadge({ priority: "P2", due_at: d(0) } as KNode) },
 
     // With recurrence
     { label: "Due tomorrow ↻", badge: formatDateBadge({ due_at: d(1), rrule: "weekly" } as KNode) },
@@ -537,11 +537,11 @@ function DateBadgeDemo(): React.ReactElement {
     // Full combo
     {
       label: "P2 start → due ↻",
-      badge: formatDateBadge({ priority: 2, start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode),
+      badge: formatDateBadge({ priority: "P2", start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode),
     },
 
     // Edge cases
-    { label: "P4 only (dim)", badge: formatDateBadge({ priority: 4 } as KNode) },
+    { label: "P4 only (dim)", badge: formatDateBadge({ priority: "P4" } as KNode) },
     { label: "No metadata", badge: formatDateBadge({} as KNode) },
   ]
 
@@ -768,7 +768,7 @@ function mockNode(
     linkAlias?: string
     due_at?: string
     start_at?: string
-    priority?: number
+    priority?: string
     rrule?: string
     fstype?: KNode["fstype"]
   },
@@ -848,11 +848,11 @@ function Layer3Views(): React.ReactElement {
 
   // Tasks with date badges
   const overdueTask = mockNode("dated-1", "Overdue payment", "todo", "p", {
-    priority: 1,
+    priority: "P1",
     due_at: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
   })
   const dueTodayTask = mockNode("dated-2", "Submit report", "wip", "p", {
-    priority: 2,
+    priority: "P2",
     due_at: `${new Date().toISOString().slice(0, 10)}T17:00`,
   })
   const dueWeekTask = mockNode("dated-3", "Review design docs", "todo", "p", {
@@ -863,7 +863,7 @@ function Layer3Views(): React.ReactElement {
     rrule: "weekly",
   })
   const fullBadgeTask = mockNode("dated-5", "Launch feature", "wip", "p", {
-    priority: 2,
+    priority: "P2",
     start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
     due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
     rrule: "monthly",
@@ -1468,7 +1468,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-1", "Overdue payment", "todo", "p", {
-          priority: 1,
+          priority: "P1",
           due_at: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
         })}
         isSelected={false}
@@ -1479,7 +1479,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-2", "Submit report", "wip", "p", {
-          priority: 2,
+          priority: "P2",
           due_at: `${new Date().toISOString().slice(0, 10)}T17:00`,
         })}
         isSelected={false}
@@ -1511,7 +1511,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-5", "Launch feature", "wip", "p", {
-          priority: 2,
+          priority: "P2",
           start_at: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
           due_at: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
           rrule: "monthly",
@@ -1524,7 +1524,7 @@ function VisualLanguageSection(): React.ReactElement {
       <TreeNode
         {...commonProps}
         node={mockNode("db-6", "Nice to have feature", "todo", "p", {
-          priority: 4,
+          priority: "P4",
         })}
         isSelected={false}
       />

@@ -44,22 +44,23 @@ describe("Round-trip: Multiple Link Values", () => {
 
 describe("Round-trip: Property Order Preservation", () => {
   test("preserves multiple properties in order", () => {
-    const original = "# Test\n\n- [ ] Task blocks:: [[x]] priority:: 1 author:: [[bob]]\n"
+    const original = "# Test\n\n- [ ] Task blocks:: [[x]] priority:: P1 author:: [[bob]]\n"
     const nodes = parseMarkdownToNodes(original, "test.md")
     const output = nodesToMarkdown(nodes)
 
     // All properties should be present
     expect(output).toContain("blocks:: [[x]]")
-    expect(output).toContain("priority:: 1")
+    expect(output).toContain("priority:: P1")
     expect(output).toContain("author:: [[bob]]")
 
-    // Check order is preserved
-    const blocksIdx = output.indexOf("blocks::")
+    // priority:: is task metadata (written first by stringifyTaskMetadata),
+    // blocks:: and author:: are structural properties (from propsRaw, written after)
     const priorityIdx = output.indexOf("priority::")
+    const blocksIdx = output.indexOf("blocks::")
     const authorIdx = output.indexOf("author::")
 
-    expect(blocksIdx).toBeLessThan(priorityIdx)
-    expect(priorityIdx).toBeLessThan(authorIdx)
+    expect(priorityIdx).toBeLessThan(blocksIdx)
+    expect(blocksIdx).toBeLessThan(authorIdx)
   })
 
   test("preserves task content before properties", () => {
@@ -153,7 +154,7 @@ describe("Round-trip: Double Round-trip Stability", () => {
   })
 
   test("stable after double round-trip - multiple properties", () => {
-    const original = "# Test\n\n- [ ] Task status:: active priority:: 1 owner:: [[alice]]\n"
+    const original = "# Test\n\n- [ ] Task status:: active priority:: P1 owner:: [[alice]]\n"
     const nodes1 = parseMarkdownToNodes(original, "test.md")
     const md1 = nodesToMarkdown(nodes1)
     const nodes2 = parseMarkdownToNodes(md1, "test.md")
@@ -194,7 +195,7 @@ describe("Round-trip: Mixed Content with Properties", () => {
 ## To Do
 
 - [ ] First task without properties
-- [ ] Second task status:: pending priority:: 2
+- [ ] Second task status:: pending priority:: P2
 - [ ] Third task blocked-by:: [[task-1]], [[task-2]]
 
 ## In Progress
@@ -220,7 +221,7 @@ describe("Round-trip: Mixed Content with Properties", () => {
 
     // Tasks with properties
     expect(output).toContain("status:: pending")
-    expect(output).toContain("priority:: 2")
+    expect(output).toContain("priority:: P2")
     expect(output).toContain("blocked-by:: [[task-1]], [[task-2]]")
     expect(output).toContain("owner:: [[alice]]")
     expect(output).toContain("started:: 2026-01-15")
@@ -235,7 +236,7 @@ describe("Round-trip: Mixed Content with Properties", () => {
     expect(output).toContain("status:: active")
     // Emoji format migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2026-02-01")
-    expect(output).toContain("p:: 1")
+    expect(output).toContain("priority:: P1")
   })
 
   test("preserves properties alongside tags and mentions", () => {

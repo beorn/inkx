@@ -22,10 +22,10 @@ describe("createIssueNode", () => {
   })
 
   test("creates issue with priority", () => {
-    const { node } = createIssueNode("Critical fix", { priority: 0 })
+    const { node } = createIssueNode("Critical fix", { priority: "P0" })
 
     expect(node.content).toContain("#P0")
-    expect(node.priority).toBe(0)
+    expect(node.priority).toBe("P0")
   })
 
   test("creates issue with assignee", () => {
@@ -60,7 +60,7 @@ describe("createIssueNode", () => {
     const { node } = createIssueNode("Normal task")
 
     expect(node.content).toContain("#P2")
-    expect(node.priority).toBe(2)
+    expect(node.priority).toBe("P2")
   })
 })
 
@@ -70,7 +70,7 @@ describe("updateIssueFields", () => {
     shortId: "km-abc1",
     title: "Test issue",
     status: "todo",
-    priority: 2,
+    priority: "P2",
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }
@@ -104,9 +104,9 @@ describe("updateIssueFields", () => {
   })
 
   test("updates priority", () => {
-    const updates = updateIssueFields(baseIssue, { priority: 1 })
+    const updates = updateIssueFields(baseIssue, { priority: "P1" })
 
-    expect(updates.priority).toBe(1)
+    expect(updates.priority).toBe("P1")
   })
 
   test("updates title", () => {

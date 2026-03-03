@@ -266,7 +266,7 @@ describe("date badge display", () => {
     // Manually set due_at on the task node before creating repo
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2026-03-15"
-    taskNode.priority = 1
+    taskNode.priority = "P1"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screen = board.screenshot()
@@ -284,10 +284,10 @@ describe("date badge display", () => {
     // Set due_at on Task A
     const taskA = nodes.find((n) => n.content === "Task A")!
     taskA.due_at = "2026-03-15"
-    taskA.priority = 2
+    taskA.priority = "P2"
     // Set priority on Task C
     const taskC = nodes.find((n) => n.content === "Task C")!
-    taskC.priority = 3
+    taskC.priority = "P3"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screen = board.screenshot()
@@ -486,7 +486,7 @@ describe("date badge display", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
     const taskNode = nodes.find((n) => n.content === "Task with date")!
     taskNode.due_at = "2026-03-15"
-    taskNode.priority = 2
+    taskNode.priority = "P2"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24, viewMode: "columns" })
     const screen = board.screenshot()
@@ -561,7 +561,7 @@ describe("date badge display", () => {
     const col = repo.getChildren("board")[0]!
     const taskA = repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: 1 })
+      repo.updateNode(taskA.id, { due_at: "2026-03-15", priority: "P1" })
     })
     board.press("j") // flush
     let screen = board.screenshot()
@@ -583,7 +583,7 @@ describe("date badge display", () => {
   it("priority badge visible in cards view (testEnv)", () => {
     const nodes = item("board", item("col1", item.task("Priority task")))
     const taskNode = nodes.find((n) => n.content === "Priority task")!
-    taskNode.priority = 2
+    taskNode.priority = "P2"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screen = board.screenshot()
@@ -892,21 +892,21 @@ describe("date prompt (td)", () => {
 // ---------------------------------------------------------------------------
 
 describe("priority (sp)", () => {
-  test("sp sets P1 on card", () => {
+  test("sp sets P0 on card", () => {
     const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
 
     board.press("j")
 
     // Initially no priority in full screenshot
-    expect(board.screenshot()).not.toMatch(/P[1-4]/)
+    expect(board.screenshot()).not.toMatch(/P[0-4]/)
 
-    // t! → P1
+    // t! → P0 (first in cycle)
     board.press("t")
     board.press("!")
 
-    // Should show P1 somewhere (toast or card)
+    // Should show P0 somewhere (toast or card)
     const text = board.screenshot()
-    expect(text).toContain("P1")
+    expect(text).toContain("P0")
   })
 
   test("sp cycles through priorities", () => {
@@ -915,8 +915,11 @@ describe("priority (sp)", () => {
 
     board.press("j")
 
-    // Cycle: none → P1 → P2 → P3 → P4 → none
+    // Cycle: none → P0 → P1 → P2 → P3 → P4 → none
     // Each sp should show the next priority in a toast
+    board.press("t").press("!")
+    expect(board.screenshot()).toContain("Priority: P0")
+
     board.press("t").press("!")
     expect(board.screenshot()).toContain("Priority: P1")
 

@@ -259,7 +259,7 @@ export function extractAllRefs(text: string): {
 export function parseTaskMetadata(text: string): {
   dueAt?: string
   startAt?: string
-  priority?: number
+  priority?: string
   rrule?: string
 } {
   // Delegate to shared extraction in @km/core (DRY: same regexes for parser and editor)

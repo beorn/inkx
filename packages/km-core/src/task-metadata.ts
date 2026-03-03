@@ -72,7 +72,7 @@ export interface ExtractedTaskMetadata {
   dueTime?: string
   startDate?: string
   startTime?: string
-  priority?: number
+  priority?: string
   rrule?: string
 }
 
@@ -105,9 +105,11 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
       if (parsed.time) result.startTime = parsed.time
     }
   }
-  if (entries.p) {
-    const n = parseInt(entries.p, 10)
-    if (n >= 1 && n <= 9) result.priority = n
+  // Priority: read both "priority::" and "p::" keys, store as string
+  if (entries.priority) {
+    result.priority = normalizePriorityValue(entries.priority)
+  } else if (entries.p) {
+    result.priority = normalizePriorityValue(entries.p)
   }
   if (entries.recur) {
     result.rrule = entries.recur
@@ -130,7 +132,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
   }
   if (result.priority === undefined) {
     const match = text.match(PRIORITY_LEGACY_REGEX)
-    if (match?.[1]) result.priority = parseInt(match[1], 10)
+    if (match?.[1]) result.priority = `P${match[1]}`
   }
   if (!result.rrule) {
     const match = text.match(RECURRENCE_LEGACY_REGEX)
@@ -153,9 +155,9 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
     }
   }
   if (result.priority === undefined) {
-    if (text.includes("⏫")) result.priority = 1
-    else if (text.includes("🔼")) result.priority = 2
-    else if (text.includes("🔽")) result.priority = 3
+    if (text.includes("⏫")) result.priority = "P1"
+    else if (text.includes("🔼")) result.priority = "P2"
+    else if (text.includes("🔽")) result.priority = "P3"
   }
   if (!result.rrule) {
     const match = text.match(RECURRENCE_EMOJI_REGEX)
@@ -234,7 +236,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
     entries.start = startParts.time ? `${startParts.date}T${startParts.time}` : startParts.date
   }
   if (node.priority) {
-    entries.p = String(node.priority)
+    entries.priority = node.priority
   }
   if (recurrence) {
     entries.recur = recurrence
@@ -263,7 +265,7 @@ export function parseTaskMetadataFromText(text: string): {
   cleanContent: string
   due_at?: string
   start_at?: string
-  priority?: number
+  priority?: string
   rrule?: string
 } {
   // Extract metadata from all formats
@@ -296,6 +298,17 @@ export function parseTaskMetadataFromText(text: string): {
 // Helpers
 // =============================================================================
 
+/**
+ * Normalize a priority value string.
+ * Bare digits (e.g., "1", "2") are converted to P-strings ("P1", "P2").
+ * Already-formatted strings (e.g., "P2", "high") are returned as-is.
+ */
+function normalizePriorityValue(value: string): string {
+  // Bare digit → P-string
+  if (/^\d$/.test(value)) return `P${value}`
+  return value
+}
+
 /** Parse a datetime string like "2026-02-15" or "2026-02-15T14:30" */
 function parseDatetimeValue(value: string): { date: string; time?: string } | null {
   const match = value.match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/)
@@ -304,7 +317,7 @@ function parseDatetimeValue(value: string): { date: string; time?: string } | nu
 }
 
 /** Task-specific keys that stringifyTaskMetadata manages */
-const TASK_METADATA_KEYS = ["due", "start", "p", "recur"]
+const TASK_METADATA_KEYS = ["due", "start", "p", "priority", "recur"]
 
 /** Strip task-specific metadata from all formats (new key:: value + legacy + emoji) */
 function stripTaskMetadataFormats(text: string): string {

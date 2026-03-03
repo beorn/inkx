@@ -188,10 +188,10 @@ export function extractTitleTaskMarker(text: string): {
  * Check if a node has task-related properties set, indicating it should be
  * treated as an implicit task even without an explicit task_status.
  *
- * Properties checked: due_at, priority (1-4), start_at, assigned_to, rrule.
+ * Properties checked: due_at, priority (any truthy string), start_at, assigned_to, rrule.
  *
  * @example hasTaskProperties({ due_at: "2026-02-20" } as KNode) // true
- * @example hasTaskProperties({ priority: 2 } as KNode) // true
+ * @example hasTaskProperties({ priority: "P2" } as KNode) // true
  * @example hasTaskProperties({} as KNode) // false
  */
 export function hasTaskProperties(
@@ -199,7 +199,7 @@ export function hasTaskProperties(
 ): boolean {
   return !!(
     node.due_at ||
-    (node.priority && node.priority >= 1 && node.priority <= 4) ||
+    node.priority ||
     node.start_at ||
     node.assigned_to ||
     node.rrule
@@ -375,7 +375,7 @@ export interface KNode {
   assigned_to?: string
   due_at?: string // ISO 8601: "2026-02-20" or "2026-02-20T14:00:00-08:00"
   start_at?: string // ISO 8601: same format as due_at
-  priority?: number // 1-4 (P1=critical, P4=backlog)
+  priority?: string // Free-form string (e.g., "P0"-"P4", "high", "A")
   rrule?: string // iCal RRULE format
   recur_prev?: string // Previous recurrence instance ID
   completed_at?: number // Unix ms — when task was marked done (stored in data blob)
@@ -476,7 +476,7 @@ export interface NodeCreatedData {
   assigned_to?: string
   due_at?: string
   start_at?: string
-  priority?: number
+  priority?: string
   title?: string
   content?: string
   content_hash?: string

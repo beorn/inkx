@@ -302,7 +302,7 @@ describe("NodeCardView (card style)", () => {
       content: "High priority task",
       task_status: "todo",
       task_marker: " ",
-      priority: 1,
+      priority: "P1",
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
     expect(output).toContain("High priority task")
@@ -315,7 +315,7 @@ describe("NodeCardView (card style)", () => {
       task_status: "done",
       task_marker: "x",
       due_at: "2027-06-15",
-      priority: 2,
+      priority: "P2",
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
     expect(output).toContain("Done task")
@@ -574,7 +574,7 @@ describe("NodeDetailView (detail style)", () => {
       task_marker: "/",
       due_at: "2027-03-15",
       assigned_to: "bjorn-stabell",
-      priority: 2,
+      priority: "P2",
     })
     const output = await renderString(<NodeDetailView node={node} children={[]} width={50} height={25} />, {
       plain: true,

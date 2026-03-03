@@ -84,7 +84,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
             dueAt: "2026-03-01",
             startAt: "2026-02-15",
             createdAt: "2026-02-10T08:00:00Z",
-            priority: 1,
+            priority: "P1",
             tags: ["design"],
             projects: ["Sprint 4", "Backlog"],
             body: "Create wireframes\nReview with team",
@@ -399,7 +399,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
           startAt: "2026-01-20",
           createdAt: "2026-01-15T09:00:00Z",
           completedAt: "2026-02-10T17:00:00Z",
-          priority: 2,
+          priority: "P2",
           tags: ["backend", "urgent"],
           projects: ["Test", "Other Project"],
           children: [{ sourceId: "cs1", title: "Sub-step", status: "done" }],
@@ -422,7 +422,7 @@ describe("Stage 2: Convert ImportData to markdown", () => {
       { skipActivities: false },
     )
     expect(md).toContain(
-      "## [x] Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 p:: 2 ^tf1",
+      "## [x] Full task @alice-smith #backend #urgent +other-project created:: 2026-01-15 due:: 2026-02-15 start:: 2026-01-20 completed:: 2026-02-10 priority:: P2 ^tf1",
     )
     expect(md).not.toContain("+test")
     // Body appears directly under heading (no indent since parent is oi)
@@ -1414,7 +1414,7 @@ describe("roundtrip: convert → parse", () => {
         title: "Metadata task",
         dueAt: "2026-03-15",
         startAt: "2026-03-01",
-        priority: 2,
+        priority: "P2",
         assignee: "alice-smith",
         tags: ["backend", "urgent"],
         createdAt: "2026-02-01T09:00:00Z",

@@ -566,7 +566,7 @@ describe("Round-trip: block_id preservation", () => {
     expect(output).toContain("^m3n4")
     // Emoji format migrated to key:: value on roundtrip (content stripped, serializer rewrites)
     expect(output).toContain("due:: 2025-12-25")
-    expect(output).toContain("p:: 1")
+    expect(output).toContain("priority:: P1")
     expect(output).toContain("Task")
   })
 

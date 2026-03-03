@@ -250,8 +250,14 @@ function formatScheduledDisplay(dateStr: string): string {
   return text
 }
 
-// Priority ANSI colors: P1=red, P2=yellow, P3=bright yellow, P4=dim
-const PRIORITY_COLORS = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"]
+// Priority ANSI colors for known P-values: P0=red+bold, P1=red, P2=yellow, P3=bright yellow, P4=dim
+const PRIORITY_COLOR_MAP: Record<string, string> = {
+  P0: "\x1b[1;31m", // bold red
+  P1: "\x1b[31m", // red
+  P2: "\x1b[33m", // yellow
+  P3: "\x1b[93m", // bright yellow
+  P4: "\x1b[2m", // dim
+}
 
 /**
  * Build a compact right-aligned date badge for a node.
@@ -262,10 +268,11 @@ const PRIORITY_COLORS = ["\x1b[31m", "\x1b[33m", "\x1b[93m", "\x1b[2m"]
 export function formatDateBadge(node: KNode): string {
   const parts: string[] = []
 
-  // Priority badge
-  if (node.priority && node.priority >= 1 && node.priority <= 4) {
-    const color = PRIORITY_COLORS[node.priority - 1] ?? ""
-    parts.push(`${color}P${node.priority}\x1b[0m`)
+  // Priority badge — display the string as-is, color known P-values
+  if (node.priority) {
+    const color = PRIORITY_COLOR_MAP[node.priority.toUpperCase()] ?? ""
+    const reset = color ? "\x1b[0m" : ""
+    parts.push(`${color}${node.priority}${reset}`)
   }
 
   const dueDate = decomposeDatetime(node.due_at)?.date
@@ -406,8 +413,14 @@ export function truncateContext(context: string | null, maxLen: number): string 
 // React Component Equivalents
 // =============================================================================
 
-// Priority colors: P1=error, P2=warning, P3=primary (bright), P4=dim (no color)
-const PRIORITY_TEXT_COLORS = ["$error", "$warning", "$primary", undefined] as const
+// Priority text colors for known P-values: P0/P1=error, P2=warning, P3=primary, P4=dim
+const PRIORITY_TEXT_COLOR_MAP: Record<string, { color: string | undefined; dim: boolean }> = {
+  P0: { color: "$error", dim: false },
+  P1: { color: "$error", dim: false },
+  P2: { color: "$warning", dim: false },
+  P3: { color: "$primary", dim: false },
+  P4: { color: undefined, dim: true },
+}
 
 /**
  * React component version of formatDateBadge.
@@ -416,13 +429,12 @@ const PRIORITY_TEXT_COLORS = ["$error", "$warning", "$primary", undefined] as co
 export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: boolean }): React.ReactElement | null {
   const parts: React.ReactElement[] = []
 
-  // Priority badge
-  if (node.priority && node.priority >= 1 && node.priority <= 4) {
-    const color = stripColor ? undefined : PRIORITY_TEXT_COLORS[node.priority - 1]
-    const dim = node.priority === 4 && !stripColor
+  // Priority badge — display the string as-is, color known P-values
+  if (node.priority) {
+    const style = stripColor ? undefined : PRIORITY_TEXT_COLOR_MAP[node.priority.toUpperCase()]
     parts.push(
-      <Text key="p" color={color} dimColor={dim}>
-        P{node.priority}
+      <Text key="p" color={style?.color} dimColor={style?.dim}>
+        {node.priority}
       </Text>,
     )
   }

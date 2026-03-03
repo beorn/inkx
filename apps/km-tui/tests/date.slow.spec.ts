@@ -126,7 +126,7 @@ describe("Date Badge Display Journeys", () => {
     const nodes = item("board", item("col1", item.task("Urgent task"), item.task("Normal task")))
     const urgentNode = nodes.find((n) => n.content === "Urgent task")!
     urgentNode.due_at = daysFromNow(3)
-    urgentNode.priority = 1
+    urgentNode.priority = "P1"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 

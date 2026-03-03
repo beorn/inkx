@@ -29,7 +29,7 @@ export interface TNode {
   title: string | null
   task_status?: TaskStatus
   task_marker?: TaskMarker
-  priority?: number
+  priority?: string
   due_at?: string
   start_at?: string
   content?: string

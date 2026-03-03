@@ -800,7 +800,7 @@ function* applyEvents(
             (data.assigned_to as string) ?? null,
             (data.due_at as string) ?? null,
             (data.start_at as string) ?? null,
-            (data.priority as number) ?? null,
+            (data.priority as string) ?? null,
             (data.content as string) ?? null,
             (data.content_hash as string) ?? null,
             JSON.stringify(data.data ?? {}),

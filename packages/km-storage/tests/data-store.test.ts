@@ -149,12 +149,12 @@ function testDataStore(name: string, factory: () => DataStore) {
           type: "p",
           item: true,
           content: "Test",
-          priority: 1,
+          priority: "P1",
         })
         store.updateNode(id, { content: "Updated" })
 
         const node = store.getNode(id)
-        expect(node?.priority).toBe(1)
+        expect(node?.priority).toBe("P1")
       })
 
       test("updates updated_at timestamp", () => {

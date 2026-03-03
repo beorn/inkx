@@ -29,7 +29,7 @@ describe("hasTaskProperties", () => {
 
   const taskProps: Array<[string, Record<string, unknown>]> = [
     ["due_at", { due_at: "2026-02-20" }],
-    ["priority", { priority: 2 }],
+    ["priority", { priority: "P2" }],
     ["start_at", { start_at: "2026-02-20" }],
     ["assigned_to", { assigned_to: "beorn" }],
     ["rrule", { rrule: "FREQ=WEEKLY" }],
@@ -41,9 +41,9 @@ describe("hasTaskProperties", () => {
     })
   }
 
-  it("returns false for priority 0 (falsy but set)", () => {
-    // priority 0 is not a valid priority (valid range is 1-4)
-    expect(hasTaskProperties({ priority: 0 } as KNode)).toBe(false)
+  it("returns false for empty string priority (falsy but set)", () => {
+    // empty string priority is not a valid priority
+    expect(hasTaskProperties({ priority: "" } as KNode)).toBe(false)
   })
 })
 
@@ -60,7 +60,7 @@ describe("getNodeStyle with implicit tasks", () => {
   })
 
   it("returns taskStatusIcon for node with priority but no task_status", () => {
-    const node = { priority: 2 } as KNode
+    const node = { priority: "P2" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
   })
@@ -194,7 +194,7 @@ describe("implicit task rendering", () => {
   it("node with priority shows priority badge", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
-    taskNode.priority = 2
+    taskNode.priority = "P2"
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
 

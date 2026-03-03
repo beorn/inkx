@@ -81,7 +81,7 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     assigned_to: (row.assigned_to ?? undefined) as string | undefined,
     due_at: (row.due_at ?? undefined) as string | undefined,
     start_at: (row.start_at ?? undefined) as string | undefined,
-    priority: (row.priority ?? undefined) as number | undefined,
+    priority: (row.priority ?? undefined) as string | undefined,
     content,
     content_hash: row.content_hash as string | undefined,
     title: row.title as string | undefined,

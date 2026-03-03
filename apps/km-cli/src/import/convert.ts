@@ -183,7 +183,7 @@ function buildTaskContent(item: ImportItem, currentProject?: string, userSlugMap
   if (item.dueAt) parts.push(`due:: ${item.dueAt.slice(0, 10)}`)
   if (item.startAt) parts.push(`start:: ${item.startAt.slice(0, 10)}`)
   if (item.completedAt) parts.push(`completed:: ${item.completedAt.slice(0, 10)}`)
-  if (item.priority) parts.push(`p:: ${item.priority}`)
+  if (item.priority) parts.push(`priority:: ${item.priority}`)
   if (item.rrule) parts.push(`recur:: ${item.rrule}`)
   return parts.join(" ")
 }

@@ -784,6 +784,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CAPTURE_INBOX":
     case "CAPTURE_DIALOG":
     case "SETTINGS":
+    case "MANAGE_FAVORITES":
       return unimplemented("ui")
 
     // === Property actions ===
@@ -795,6 +796,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return handleSetDatePrompt(ctx, "rrule")
     case "SET_PRIORITY":
       return handleSetPriority(ctx)
+    case "SET_PRIORITY_0":
+      return handleSetPriority(ctx, "P0")
+    case "SET_PRIORITY_1":
+      return handleSetPriority(ctx, "P1")
+    case "SET_PRIORITY_2":
+      return handleSetPriority(ctx, "P2")
+    case "SET_PRIORITY_3":
+      return handleSetPriority(ctx, "P3")
+    case "SET_PRIORITY_4":
+      return handleSetPriority(ctx, "P4")
     case "DATE_PROMPT_CONFIRM":
       return handleDatePromptConfirm(ctx)
     case "DATE_PROMPT_CANCEL":
@@ -1743,26 +1754,37 @@ function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "rru
   return ok()
 }
 
-/** Cycle priority: none → P1 → P2 → P3 → P4 → none */
-function handleSetPriority(ctx: ActionCtx): ActionResult {
+/** Priority cycle order for the cycling command */
+const PRIORITY_CYCLE = ["P0", "P1", "P2", "P3", "P4"] as const
+
+/** Cycle priority: none → P0 → P1 → P2 → P3 → P4 → none */
+function handleSetPriority(ctx: ActionCtx, value?: string): ActionResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary("priority", "No card selected")
   const firstNodeId = nodeIds[0]
   if (!firstNodeId) return boundary("priority", "No card selected")
 
-  const firstNode = ctx.repo.getNode(firstNodeId)
-  const current = firstNode?.priority ?? 0
-  const next = current >= 4 ? 0 : (current || 0) + 1
+  let next: string | undefined
+  if (value !== undefined) {
+    // Direct set from t 0-4 keybindings
+    next = value || undefined
+  } else {
+    // Cycle through P0 → P1 → P2 → P3 → P4 → none
+    const firstNode = ctx.repo.getNode(firstNodeId)
+    const current = firstNode?.priority
+    const idx = current ? PRIORITY_CYCLE.indexOf(current as (typeof PRIORITY_CYCLE)[number]) : -1
+    next = idx >= 0 && idx < PRIORITY_CYCLE.length - 1 ? PRIORITY_CYCLE[idx + 1] : idx === -1 ? PRIORITY_CYCLE[0] : undefined
+  }
 
   // Auto-recorded by undoable repo — batch multiple updates into one undo entry
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
-    ctx.repo.updateNode(nodeId, { priority: next || null })
+    ctx.repo.updateNode(nodeId, { priority: next ?? null })
   }
   if (nodeIds.length > 1) ctx.undoHandle.endBatch()
 
-  const label = next ? `P${next}` : "None"
+  const label = next ?? "None"
   ctx.toastQueue.info(`Priority: ${label}`)
   ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
   return ok()

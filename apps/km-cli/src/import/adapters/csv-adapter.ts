@@ -224,8 +224,13 @@ function csvRowToItem(row: string[], columns: Map<number, ColumnRole>, counter: 
 
   const priority = get("priority")
   if (priority) {
-    const p = parseInt(priority, 10)
-    if (p >= 1 && p <= 4) item.priority = p
+    // Accept as free-form string; normalize bare digits to P-strings
+    const trimmed = priority.trim()
+    if (/^\d$/.test(trimmed)) {
+      item.priority = `P${trimmed}`
+    } else if (trimmed) {
+      item.priority = trimmed
+    }
   }
 
   const tags = get("tags")

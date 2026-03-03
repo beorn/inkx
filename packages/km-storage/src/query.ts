@@ -200,6 +200,17 @@ function buildPathCteSelect(): string {
       WHERE 1=1`
 }
 
+/**
+ * Normalize priority query values: bare digits "1" → "P1", comma-separated "1,2" → "P1,P2".
+ * Passes through already-formatted strings like "P1" or "high" unchanged.
+ */
+function normalizePriorityQuery(value: string): string {
+  return value
+    .split(",")
+    .map((v) => (/^\d$/.test(v) ? `P${v}` : v))
+    .join(",")
+}
+
 /** Handle date shortcut resolution and general field conditions */
 function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond
@@ -215,8 +226,11 @@ function buildFieldCondition(cond: QueryCondition, params: (string | number)[]):
     if (dateRange) return buildDateCondition(field, op, dateRange, params)
   }
 
+  // Normalize priority values: bare digits like "1" → "P1"
+  const effectiveValue = field === "priority" ? normalizePriorityQuery(value) : value
+
   // Handle comma-separated values (e.g., status:open,blocked -> IN clause)
-  const values = value.split(",").filter((v: string) => v.length > 0)
+  const values = effectiveValue.split(",").filter((v: string) => v.length > 0)
 
   if (op === "=") {
     if (values.length > 1) {
@@ -224,7 +238,7 @@ function buildFieldCondition(cond: QueryCondition, params: (string | number)[]):
       params.push(...values)
       return ` AND ${field} IN (${placeholders})`
     }
-    params.push(value)
+    params.push(effectiveValue)
     return ` AND ${field} = ?`
   }
   if (op === "!=") {
@@ -233,15 +247,15 @@ function buildFieldCondition(cond: QueryCondition, params: (string | number)[]):
       params.push(...values)
       return ` AND (${field} NOT IN (${placeholders}) OR ${field} IS NULL)`
     }
-    params.push(value)
+    params.push(effectiveValue)
     return ` AND (${field} != ? OR ${field} IS NULL)`
   }
   if (op === ">" || op === "<" || op === ">=" || op === "<=") {
-    params.push(value)
+    params.push(effectiveValue)
     return ` AND ${field} ${op} ?`
   }
   if (op === "LIKE") {
-    params.push(`%${value}%`)
+    params.push(`%${effectiveValue}%`)
     return ` AND ${field} LIKE ?`
   }
   return ""

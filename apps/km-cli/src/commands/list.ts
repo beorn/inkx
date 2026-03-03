@@ -35,7 +35,7 @@ export const listCommand = new Command("list")
   .option("-s, --status <status>", "Filter tasks by status (todo, wip, done)")
   .option("-a, --all", "Show all (including done tasks)")
   .option("--assignee <name>", "Filter by assignee")
-  .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
+  .option("-p, --priority <value>", "Filter by priority (e.g. P0-P4 or 0-4)")
   .option("--blocked", "Show only blocked")
   .option("--unblocked", "Show only unblocked")
   .option("-c, --context", "Show ancestor paths (like tasks command)")
@@ -136,7 +136,7 @@ function getFilteredNodesWithQuery(
     status?: string
     all?: boolean
     assignee?: string
-    priority?: number
+    priority?: string
     blocked?: boolean
     unblocked?: boolean
   },

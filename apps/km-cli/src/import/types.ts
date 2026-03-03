@@ -41,7 +41,7 @@ export interface ImportItem {
   completedAt?: string
   dueAt?: string
   startAt?: string
-  priority?: number
+  priority?: string
   assignee?: string
   tags?: string[]
   /** Projects this item belongs to (for multi-project membership) */

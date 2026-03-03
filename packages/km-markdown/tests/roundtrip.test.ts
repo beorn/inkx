@@ -105,7 +105,7 @@ describe("Round-trip: Tasks", () => {
     // Emoji format migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2025-04-01")
     expect(output).toContain("start:: 2025-03-25")
-    expect(output).toContain("p:: 1")
+    expect(output).toContain("priority:: P1")
   })
 
   test("should preserve task with tags", () => {
@@ -512,12 +512,12 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
-    expect(task!.priority).toBe(1)
+    expect(task!.priority).toBe("P1")
 
     // After round-trip, metadata should be preserved
     const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "p" && n.item === true && n.task_marker)
     expect(task2!.due_at).toBe("2025-12-25")
-    expect(task2!.priority).toBe(1)
+    expect(task2!.priority).toBe("P1")
   })
 
   test("should preserve section depth via tree structure", () => {
@@ -781,7 +781,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
     expect(task!.start_at).toBe("2025-12-20")
-    expect(task!.priority).toBe(1)
+    expect(task!.priority).toBe("P1")
     // Content is clean — metadata stripped to node fields
     expect(task!.content).toBe("Task with all metadata")
 
@@ -789,7 +789,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("due:: 2025-12-25")
     expect(output).toContain("start:: 2025-12-20")
-    expect(output).toContain("p:: 1")
+    expect(output).toContain("priority:: P1")
   })
 
   test("should preserve recurrence metadata", () => {
@@ -808,7 +808,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-11-15")
     expect(task!.start_at).toBe("2025-11-10")
-    expect(task!.priority).toBe(2)
+    expect(task!.priority).toBe("P2")
     expect(task!.content).toBe("Task with inline fields")
   })
 
@@ -818,14 +818,14 @@ describe("Round-trip: Task Metadata Formats", () => {
 - [ ] Low priority 🔽`)
     const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
 
-    expect(tasks[0]?.priority).toBe(1)
-    expect(tasks[1]?.priority).toBe(2)
-    expect(tasks[2]?.priority).toBe(3)
+    expect(tasks[0]?.priority).toBe("P1")
+    expect(tasks[1]?.priority).toBe("P2")
+    expect(tasks[2]?.priority).toBe("P3")
 
     const output = nodesToMarkdown(nodes)
-    expect(output).toContain("p:: 1")
-    expect(output).toContain("p:: 2")
-    expect(output).toContain("p:: 3")
+    expect(output).toContain("priority:: P1")
+    expect(output).toContain("priority:: P2")
+    expect(output).toContain("priority:: P3")
   })
 })
 

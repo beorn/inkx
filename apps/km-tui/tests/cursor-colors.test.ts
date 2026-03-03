@@ -285,7 +285,7 @@ describe("cursor color override", () => {
   it("selected node with priority date badge renders without colored foreground", () => {
     const nodes = item("board", item("col1", item.task("Important task")))
     const taskNode = nodes.find((n) => n.content === "Important task")!
-    taskNode.priority = 1
+    taskNode.priority = "P1"
     taskNode.due_at = "2025-01-01"
 
     const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
@@ -538,7 +538,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
   it("done task with priority hides date badge (including priority)", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("donePrio")))
     const doneTask = nodes.find((n) => n.content === "donePrio")!
-    doneTask.priority = 1
+    doneTask.priority = "P1"
     doneTask.due_at = "2025-01-01"
     doneTask.task_status = "done"
     doneTask.task_marker = "[x]"
@@ -593,7 +593,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("droppedTask")))
     const droppedTask = nodes.find((n) => n.content === "droppedTask")!
     droppedTask.due_at = "2025-01-01"
-    droppedTask.priority = 2
+    droppedTask.priority = "P2"
     droppedTask.task_status = "dropped"
     droppedTask.task_marker = "[-]"
 

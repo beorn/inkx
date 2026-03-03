@@ -63,7 +63,7 @@ export function createSetCommand() {
             break
           case "p":
           case "priority":
-            updates.priority = value ? parseInt(value, 10) : null
+            updates.priority = value ? (/^\d$/.test(value) ? `P${value}` : value) : null
             break
           case "status":
           case "task_status":

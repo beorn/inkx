@@ -22,7 +22,7 @@ interface TaskJson {
   content: string
   task_status?: string
   due_at?: string
-  priority?: number
+  priority?: string
   parent_id?: string | null
   fs_path?: string
 }
@@ -969,7 +969,7 @@ describe("Query language integration - km task with queries", () => {
   test("should filter by priority p:1", async () => {
     const tasks = await getTasks(["p:1"])
     expect(tasks.length).toBeGreaterThanOrEqual(1)
-    expect(tasks.some((t) => t.priority === 1)).toBe(true)
+    expect(tasks.some((t) => t.priority === "P1")).toBe(true)
   })
 })
 

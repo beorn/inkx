@@ -5,7 +5,7 @@
  * Pure parsing - no database dependencies.
  *
  * Syntax:
- * - field:value      Filter by field (status:open, priority:1, due:2026-01-20)
+ * - field:value      Filter by field (status:open, priority:P2, due:2026-01-20)
  * - @ref             Filter by mention
  * - #tag             Filter by tag
  * - +project         Filter by project

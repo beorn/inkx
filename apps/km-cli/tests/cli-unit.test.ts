@@ -94,12 +94,12 @@ describe.sequential("Task Status Filtering", () => {
 describe.sequential("Task Priority Sorting", () => {
   test("should sort by priority ascending", async () => {
     await withTestEnv(async ({ db }) => {
-      createTask(db, "Low priority", { priority: 5 })
-      createTask(db, "High priority", { priority: 1 })
-      createTask(db, "Medium priority", { priority: 3 })
+      createTask(db, "Low priority", { priority: "P5" })
+      createTask(db, "High priority", { priority: "P1" })
+      createTask(db, "Medium priority", { priority: "P3" })
 
       const tasks = getTasksByStatus(db, ["todo"])
-      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+      tasks.sort((a, b) => (a.priority ?? "ZZ").localeCompare(b.priority ?? "ZZ"))
 
       expect(tasks[0]!.content).toBe("High priority")
       expect(tasks[1]!.content).toBe("Medium priority")
@@ -110,10 +110,10 @@ describe.sequential("Task Priority Sorting", () => {
   test("should handle null priorities", async () => {
     await withTestEnv(async ({ db }) => {
       createTask(db, "No priority")
-      createTask(db, "Has priority", { priority: 2 })
+      createTask(db, "Has priority", { priority: "P2" })
 
       const tasks = getTasksByStatus(db, ["todo"])
-      tasks.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+      tasks.sort((a, b) => (a.priority ?? "ZZ").localeCompare(b.priority ?? "ZZ"))
 
       expect(tasks[0]!.content).toBe("Has priority")
       expect(tasks[1]!.content).toBe("No priority")
@@ -203,7 +203,7 @@ describe.sequential("Node ID Prefix Matching", () => {
   test("should get node with all fields", async () => {
     await withTestEnv(async ({ db }) => {
       const task = createTask(db, "Test task", {
-        priority: 2,
+        priority: "P2",
         due_at: "2026-01-15",
         assigned_to: "alice",
       })
@@ -211,7 +211,7 @@ describe.sequential("Node ID Prefix Matching", () => {
       const found = getNode(db, task.id)
 
       expect(found?.content).toBe("Test task")
-      expect(found?.priority).toBe(2)
+      expect(found?.priority).toBe("P2")
       expect(found?.due_at).toBe("2026-01-15")
       expect(found?.assigned_to).toBe("alice")
     })

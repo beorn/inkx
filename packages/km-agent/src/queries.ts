@@ -119,22 +119,22 @@ export interface AgentQueueItem {
   issueId: string
   issueShortId: string
   title: string
-  priority: number
+  priority: string
   assignedAt: number
 }
 
 /**
  * Extract priority from node data tags.
  */
-function extractPriority(data: Record<string, unknown>): number {
+function extractPriority(data: Record<string, unknown>): string {
   const tags = data.tags as string[] | undefined
   if (tags) {
     for (const tag of tags) {
       const pMatch = tag.match(/^P([0-4])$/i)
       if (pMatch?.[1]) {
-        return parseInt(pMatch[1], 10)
+        return `P${pMatch[1]}`
       }
     }
   }
-  return 2 // Default P2
+  return "P2" // Default P2
 }

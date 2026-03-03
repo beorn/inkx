@@ -42,8 +42,8 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
   }
 
   // Add priority tag
-  const priority = options.priority ?? 2
-  content += ` #P${priority}`
+  const priority = options.priority ?? "P2"
+  content += ` #${priority}`
 
   // Add assignee
   if (options.assignee) {
@@ -73,7 +73,7 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
     priority,
     data: {
       short_id: shortId,
-      tags: [options.type, `P${priority}`, ...(options.labels || [])].filter(Boolean),
+      tags: [options.type, priority, ...(options.labels || [])].filter(Boolean),
       mentions: options.assignee ? [options.assignee] : [],
     },
     created_at: now,
@@ -93,7 +93,7 @@ export function updateIssueFields(
   issue: Issue,
   changes: {
     status?: Issue["status"]
-    priority?: number
+    priority?: string
     assignee?: string
     title?: string
   },

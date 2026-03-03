@@ -12,7 +12,7 @@ export interface SharedQueryFlags {
   status?: string
   type?: string
   assignee?: string
-  priority?: number
+  priority?: string
   blocked?: boolean
   unblocked?: boolean
   all?: boolean
@@ -62,7 +62,10 @@ export function buildQueryString(
 
   if (flags.type) parts.push(`#${flags.type}`)
   if (flags.assignee) parts.push(`@${flags.assignee}`)
-  if (flags.priority !== undefined) parts.push(`#P${flags.priority}`)
+  if (flags.priority !== undefined) {
+    const p = /^\d$/.test(flags.priority) ? `P${flags.priority}` : flags.priority
+    parts.push(`#${p}`)
+  }
 
   return parts.join(" ").trim() || "*"
 }
@@ -77,7 +80,7 @@ export function addSharedQueryOptions<T extends Command>(cmd: T): T {
     .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
     .option("-t, --type <type>", "Filter by type")
     .option("-a, --assignee <name>", "Filter by assignee")
-    .option("-p, --priority <n>", "Filter by priority (0-4)", parseInt)
+    .option("-p, --priority <value>", "Filter by priority (e.g. P0-P4 or 0-4)")
     .option("--blocked", "Show only blocked")
     .option("--unblocked", "Show only unblocked")
     .option("--all", "Show all (ignore default filters)")

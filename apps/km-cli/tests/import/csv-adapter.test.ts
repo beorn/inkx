@@ -80,7 +80,7 @@ describe("column mapping", () => {
     expect(item.status).toBe("todo")
     expect(item.assignee).toBe("alice")
     expect(item.dueAt).toBe("2026-03-01")
-    expect(item.priority).toBe(1)
+    expect(item.priority).toBe("P1")
     expect(item.tags).toEqual(["design"])
   })
 
@@ -256,22 +256,22 @@ describe("tags normalization", () => {
 // ============================================================================
 
 describe("priority", () => {
-  test("accepts valid priority 1-4", () => {
+  test("normalizes bare digit to P-string", () => {
     const csv = "title,priority\nTask,2\n"
     const data = parseCSVToImportData(csv)
-    expect(data.projects[0]!.items![0]!.priority).toBe(2)
+    expect(data.projects[0]!.items![0]!.priority).toBe("P2")
   })
 
-  test("ignores out-of-range priority", () => {
-    const csv = "title,priority\nTask,99\n"
-    const data = parseCSVToImportData(csv)
-    expect(data.projects[0]!.items![0]!.priority).toBeUndefined()
-  })
-
-  test("ignores non-numeric priority", () => {
+  test("accepts free-form priority string", () => {
     const csv = "title,priority\nTask,high\n"
     const data = parseCSVToImportData(csv)
-    expect(data.projects[0]!.items![0]!.priority).toBeUndefined()
+    expect(data.projects[0]!.items![0]!.priority).toBe("high")
+  })
+
+  test("accepts multi-digit number as string", () => {
+    const csv = "title,priority\nTask,99\n"
+    const data = parseCSVToImportData(csv)
+    expect(data.projects[0]!.items![0]!.priority).toBe("99")
   })
 })
 

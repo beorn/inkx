@@ -118,7 +118,7 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(task1.assignee).toBe("alice-smith")
     expect(task1.dueAt).toBe("2026-03-01")
     expect(task1.startAt).toBe("2026-02-15")
-    expect(task1.priority).toBe(1)
+    expect(task1.priority).toBe("P1")
     expect(task1.tags).toEqual(["design", "frontend"])
   })
 
@@ -303,7 +303,7 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(full.createdAt).toBe("2026-01-15T09:00:00Z")
     expect(full.completedAt).toBe("2026-02-10T17:00:00Z")
     expect(full.status).toBe("done")
-    expect(full.priority).toBe(2)
+    expect(full.priority).toBe("P2")
     expect(full.tags).toEqual(["backend", "urgent"])
     expect(full.projects).toEqual(["Edge Cases", "Sprint 4"])
     expect(full.permalink).toBe("https://app.asana.com/0/proj-3/task-full")
