@@ -893,6 +893,49 @@ Option 1 is cleaner for local edits (operations are typed, intentions are clear)
 
 The common pattern: **the state transition function produces enough information to compute the minimal UI update**. In km's case, the operations themselves are that information — no additional diffing needed.
 
+## inkx/tea — Zustand Middleware
+
+The TEA effects-as-data pattern now has a concrete runtime in inkx: a ~30-line Zustand `StateCreator` middleware exported from `inkx/tea`.
+
+### Shape
+
+```ts
+import { tea, collect } from "inkx/tea"
+
+const store = createStore(
+  tea(initialState, reducer, { runners })
+)
+```
+
+`tea(initialState, reducer, options?)` returns a Zustand `StateCreator`. The `reducer` is a noun-singleton `.apply()` — it receives `(state, op)` and returns either:
+
+- **Level 3** (pure state): `state` — no effects, just a state transition.
+- **Level 4** (state + effects): `[state, effects]` — the full TEA tuple.
+
+Detection is automatic via `Array.isArray`: a reducer can return bare state for simple cases and upgrade to the tuple form per-case, within the same function. No mode flag, no wrapper type.
+
+### Connection to km
+
+km's noun-singletons already produce the right shape. `Board.apply(state, op)`, `PlainText.apply(state, op)`, and `Tree.apply(state, op)` all return `[state, effects]`. The `tea()` middleware wraps these so Zustand dispatches through them — the store gains a `dispatch(op)` method that calls `.apply()`, replaces state, and runs effects.
+
+On the app side, `EventHandlerContext` now has a `dispatch` property. When the backing store uses `tea()`, command handlers call `ctx.dispatch(op)` instead of imperative `ctx.set()` mutations. This is the bridge between the command system (user intent) and the state machine (pure transitions).
+
+### Testing
+
+`collect()` normalizes a reducer result into a `[state, effects]` tuple regardless of whether the reducer returned bare state or the tuple form. Tests assert against pure data without touching Zustand:
+
+```ts
+const [state, effects] = collect(Board.apply(initialState, { type: "fold_node", nodeId }))
+expect(state.folds.get(nodeId)).toBe(true)
+expect(effects).toContainEqual({ type: "persist", nodeId })
+```
+
+Effect runners are injected via `options.runners`, making them swappable: production runners persist to SQLite and dispatch cross-machine effects; test runners collect effects into an array for assertion.
+
+### Status
+
+Shipped in inkx, export path `inkx/tea`. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
+
 ## See Also
 
 - [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
