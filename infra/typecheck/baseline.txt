@@ -77,6 +77,7 @@
 17 apps/km-tui/tests/navigation-fuzz.fuzz.ts
 37 apps/km-tui/tests/production-entry.slow.spec.ts
 2 apps/km-tui/tests/profile-startup.ts
+1 apps/km-tui/tests/pty-integration.slow.spec.ts
 1 apps/km-tui/tests/real-vault.slow.test.ts
 4 apps/km-tui/tests/storybook.tsx
 6 apps/km-tui/tests/toast.spec.ts
@@ -211,14 +212,17 @@
 43 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
+2 vendor/beorn-termless/packages/cli/src/session.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts
+2 vendor/beorn-tools/tools/lib/playwright-tty/server.ts
 2 vendor/beorn-tools/tools/llm.ts
 8 vendor/beorn-tools/tools/playwright-tty-mcp.ts
 7 vendor/beorn-tools/tools/recall/extract.ts
 1 vendor/beorn-tools/tools/recall/search.ts
+1 vendor/beorn-tools/tools/tty.ts
 1 vendor/beorn-vitestx/src/dotz/index.tsx
 2 vendor/beorn-vitestx/src/fuzz/gen.ts
 1 vendor/beorn-vitestx/src/fuzz/regression.ts

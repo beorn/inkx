@@ -2,6 +2,12 @@
 
 > Design spec for km-tui.theme-system (P1)
 
+> **Note:** The core theme system (ThemePalette, Theme, deriveTheme, resolveThemeColor,
+> color utilities, built-in palettes) has been extracted to the `themex` package
+> (`vendor/beorn-themex/`, importable as `"themex"`). This doc retains the design rationale,
+> km-specific token usage, and migration plan. See `vendor/beorn-themex/CLAUDE.md` for
+> the package API reference.
+
 ## Goals
 
 1. **Semantic tokens** with simple English names, inspired by Apple HIG
@@ -14,36 +20,40 @@
 
 ## Token System
 
-### Semantic Tokens (17)
+### Semantic Tokens (19)
 
 Components reference tokens with `$` prefix: `color="$primary"`, `borderColor="$separator"`.
+Derived from a `ThemePalette` (14 raw colors) via `deriveTheme()` — both defined in the
+`themex` package. See [ThemePalette](#themepalette-cross-platform-color-input).
 
 ```
 ── Brand ─────────────────────────────────────────────────────────────
-$primary        Brand tint, active indicators, interactive controls
-$link           Hyperlinks, references (derived from primary)
-$control        Interactive chrome, input borders (derived from primary)
+$primary        Brand accent — active indicators, headings, badges
+$link           Hyperlinks, references (always blue)
+$control        Interactive chrome — shortcuts, input borders (muted accent)
 
 ── Selection ─────────────────────────────────────────────────────────
-$selected       Selection highlight background
-$selectedfg     Text on selected background (contrast-paired)
+$selected       Selection highlight background (contrasting hue)
+$selectedfg     Text on selected background
 $focusring      Keyboard focus outline (always blue — accessibility)
 
 ── Text ──────────────────────────────────────────────────────────────
-$text           Primary content — headings, body
-$text2          Secondary — descriptions, metadata
-$text3          Tertiary — timestamps, hints, placeholders
-$text4          Quaternary — ghost text, watermarks, barely visible
+$text           Primary content — headings, body, node titles
+$text2          Secondary — descriptions, metadata, unfocused labels
+$text3          Tertiary — timestamps, hints, counts, placeholders
+$text4          Quaternary — ghost text, watermarks, decorative dots
 
 ── Surface ───────────────────────────────────────────────────────────
-$bg             Default background (detected or configured)
-$raisedbg       Elevated surfaces — dialogs, overlays, popovers
+$bg             Default background
+$surface        Elevated surfaces — cards, dialogs, popovers
 $separator      Dividers, borders, rules
+$chromebg       Inverted areas — title bars, status bars (bg)
+$chromefg       Inverted areas — title bars, status bars (fg)
 
 ── Status ────────────────────────────────────────────────────────────
-$error          Destructive, overdue, validation errors
-$warning        Caution, unsaved changes
-$success        Positive, completed, saved
+$error          Destructive, overdue, blocked, validation errors
+$warning        Caution, unsaved, in-progress (orange, not yellow)
+$success        Positive, completed, saved, actionable
 ```
 
 ### Content Palette (16)
@@ -79,6 +89,9 @@ Implementation by tier:
 
 ## Theme Interface
 
+Defined in `themex` (`vendor/beorn-themex/src/types.ts`). The actual field name for elevated
+surfaces is `raisedbg`; `$surface` is a backward-compat alias (see alias table below).
+
 ```typescript
 interface Theme {
   // Metadata
@@ -103,8 +116,10 @@ interface Theme {
 
   // Surface
   bg: string
-  raisedbg: string
+  raisedbg: string      // $surface is a backward-compat alias
   separator: string
+  chromebg: string
+  chromefg: string
 
   // Status
   error: string
@@ -117,6 +132,10 @@ interface Theme {
 ```
 
 ## Themes
+
+Built-in themes are now defined in `themex` (`vendor/beorn-themex/src/generate.ts` for ANSI 16,
+`vendor/beorn-themex/src/palettes/` for truecolor). The examples below show the design intent;
+the canonical definitions are in the themex source.
 
 ### Dark ANSI 16
 
@@ -276,6 +295,7 @@ const lightTruecolor: Theme = {
 
 ## Theme Generation: One Knob
 
+Implemented in `themex` (`vendor/beorn-themex/src/derive.ts` and `generate.ts`).
 A complete theme is generated from 3 inputs:
 
 ```typescript
@@ -387,7 +407,7 @@ Settings are persisted in the vault's `.km/settings.json`.
 | `km.hintKey`            | `$primary`   | Keys in popups = brand color           |
 | `km.hintKeyDim`         | `$text3`     | Dimmed keys = tertiary text            |
 | `km.modeMagenta`        | `$color5`    | Mode indicator via palette             |
-| `km.overlayBg`          | `$raisedbg`  | Overlay background = raised surface    |
+| `km.overlayBg`          | `$surface`   | Overlay background = raised surface    |
 | `km.dialogBorder`       | `$separator` | Dialog border = separator              |
 | `km.dialogTitle`        | `$text`      | Dialog title = primary text (bold)     |
 | `km.dialogBody`         | `$text`      | Dialog body = primary text             |
@@ -437,14 +457,15 @@ eliminates the need to specify `borderColor` on every bordered element.
                                             grid empty "·": $text4
                                             footer: $text3
                                             scroll hint: $text3
-                                            dialog bg: $raisedbg
+                                            dialog bg: $surface
 ```
 
-### inkx Theme Interface Changes
+### Theme Interface Changes (now in themex)
 
-The inkx `Theme` interface expands from 10 to 17 semantic tokens + palette:
+The `Theme` interface (now in `themex`) has 19 semantic tokens + palette. inkx imports
+`Theme`, `resolveThemeColor`, and theme state management from `"themex"`.
 
-| Added Token   | Purpose                                    |
+| Token         | Purpose                                    |
 |---------------|-------------------------------------------|
 | `link`        | Hyperlinks (was implicit via `primary`)    |
 | `control`     | Interactive chrome (was implicit)          |
@@ -454,36 +475,52 @@ The inkx `Theme` interface expands from 10 to 17 semantic tokens + palette:
 | `text2`       | Secondary text (was `muted`)               |
 | `text3`       | Tertiary text (new)                        |
 | `text4`       | Quaternary text (new)                      |
-| `raisedbg`    | Elevated surface bg (was `surface`)        |
+| `raisedbg`    | Elevated surface bg (`$surface` is alias)  |
 | `palette`     | 16 content colors (new)                    |
 
-Removed/renamed:
-- `accent` → removed (absorbed into `primary`)
-- `muted` → renamed to `text2`
-- `surface` → renamed to `raisedbg`
-- `background` → renamed to `bg`
-- `border` → renamed to `separator`
+Renamed (old names available as aliases via `resolveThemeColor`):
+- `$accent` → `$primary`
+- `$muted` → `$text2`
+- `$surface` → `$raisedbg`
+- `$background` → `$bg`
+- `$border` → `$separator`
 
 ## Implementation Plan
 
-### Phase 1: inkx Theme Interface (vendor/beorn-inkx)
+### Phase 0: Color Utilities — DONE (vendor/beorn-themex)
 
-1. Update `Theme` interface in `theme-defs.ts` with new 17 tokens + palette
-2. Update `resolveThemeColor()` for new token names + palette ($color0-$color15)
-3. Create 4 built-in themes (dark/light × ANSI16/truecolor)
-4. Add `generateTheme(primary, dark, tier)` function
-5. Backward compat: alias old token names (`$accent` → `$primary`, `$muted` → `$text2`, etc.)
-6. Default Box borderColor/outlineColor to `$separator` when style is set but color is not
-7. Add `opacity` prop to Box (ANSI 16: dimColor inheritance)
-8. Update inkx docs
+Extracted to `themex` package (`vendor/beorn-themex/src/color.ts`).
+
+1. ~~Add OKLCH conversion utilities (`toOKLCH`, `fromOKLCH`)~~
+2. ~~Implement `blend()`, `brighten()`, `darken()`, `contrastFg()`, `isWarm()`~~
+3. ~~Implement `brightVariant()` using Catppuccin OKLCH formula~~
+4. ~~Unit tests for all color math~~
+
+### Phase 1: ThemePalette + deriveTheme() — DONE (vendor/beorn-themex)
+
+Extracted to the `themex` package (`vendor/beorn-themex/`, importable as `"themex"`).
+ThemePalette and deriveTheme now live in `themex`. inkx imports from `"themex"`.
+
+Built-in palettes (17 total): Catppuccin (Mocha, Frappe, Macchiato, Latte), Nord,
+Dracula, Solarized (Dark, Light), Tokyo Night (Night, Storm, Day), One Dark,
+Gruvbox (Dark, Light), Rose Pine (Main, Moon, Dawn).
+
+1. ~~Add `ThemePalette` interface~~ → `themex/src/types.ts`
+2. ~~Implement `deriveTheme(palette, opts)` → `Theme`~~ → `themex/src/derive.ts`
+3. ~~Define built-in `ThemePalette` values~~ → `themex/src/palettes/` (17 palettes)
+4. `$surface` is a backward-compat alias for `$raisedbg` (the canonical field name)
+5. ~~Update `resolveThemeColor()` with aliases~~ → `themex/src/resolve.ts`
+6. ~~Derive built-in themes from the palettes~~ → `themex/src/palettes/index.ts`
+7. ~~Update `generateTheme()`~~ → `themex/src/generate.ts`
+8. ~~Update docs~~ → `vendor/beorn-themex/CLAUDE.md`
 
 ### Phase 2: km-tui Migration (apps/km-tui)
 
-1. Replace all `km.*` constants with `$token` references across views
-2. Delete `apps/km-tui/src/theme.ts` (km constants file)
+1. Replace all hardcoded color names with `$token` references across views
+2. Delete `GTD_BOARD_COLORS`, `getTermColor()`, `colorize()` helpers
 3. Update `tui.tsx` ThemeProvider to use new themes
 4. Add primary color cycling to view settings
-5. Add theme switching (dark/light, ANSI16/truecolor) to view settings
+5. Add theme switching (dark/light, palette selection) to view settings
 6. Persist theme settings in vault `.km/settings.json`
 
 ### Phase 3: Storybook (apps/km-tui/tests/storybook.tsx)
@@ -496,8 +533,293 @@ Removed/renamed:
 
 ### Phase 4: Tests
 
-1. Update all test helpers to use new theme
-2. Test theme switching doesn't break layout
-3. Test primary color cycling produces valid themes
-4. Test opacity inheritance (ANSI 16 dimColor propagation)
-5. Snapshot tests for storybook sections
+1. Test `deriveTheme()` produces valid themes for all built-in palettes
+2. Test OKLCH bright variants are perceptually correct
+3. Test `blend()` / `contrastFg()` edge cases
+4. Update all test helpers to use new theme
+5. Test theme switching doesn't break layout
+6. Snapshot tests for storybook sections
+
+## ThemePalette: Cross-Platform Color Input
+
+The `ThemePalette` is the universal input a theme author provides. From it, all semantic
+tokens are derived. The same palette works across terminal, web, and native.
+
+Defined in `themex` (`vendor/beorn-themex/src/types.ts`). See `vendor/beorn-themex/CLAUDE.md`
+for the full API reference.
+
+### Architecture: Three Layers
+
+```
+Layer 1: ThemePalette (theme author provides — 14 colors)
+  Surface ramp: crust, base, surface, overlay, subtext, text
+  Accent hues:  red, orange, yellow, green, teal, blue, purple, pink
+
+Layer 2: Theme (app uses in JSX — 19 semantic tokens + palette)
+  Derived from ThemePalette via deriveTheme()
+
+Layer 3: Platform binding (automatic)
+  Terminal: resolveThemeColor() → ANSI name or hex
+  Web:      Theme → CSS custom properties (--km-primary, --km-text, etc.)
+  Native:   Theme → UIColor / SwiftUI Color
+```
+
+### ThemePalette Interface
+
+14 colors + 2 metadata fields. Surface ramp (crust/base/surface/overlay/subtext/text) +
+8 accent hues (red/orange/yellow/green/teal/blue/purple/pink). Full definition in
+`vendor/beorn-themex/src/types.ts`.
+
+### How Popular Themes Map to ThemePalette
+
+```
+                    crust    base     surface  overlay  subtext  text
+Catppuccin Mocha    #11111B  #1E1E2E  #313244  #6C7086  #A6ADC8  #CDD6F4
+Nord                #2E3440  #2E3440  #3B4252  #4C566A  #D8DEE9  #ECEFF4
+Dracula             #21222C  #282A36  #44475A  #6272A4  #6272A4  #F8F8F2
+Solarized Dark      #002B36  #073642  #586E75  #657B83  #839496  #FDF6E3
+Tokyo Night         #1A1B26  #24283B  #292E42  #545C7E  #A9B1D6  #C0CAF5
+One Dark            #21252B  #282C34  #2C313A  #5C6370  #ABB2BF  #ABB2BF
+
+                    red      orange   yellow   green    teal     blue     purple   pink
+Catppuccin Mocha    #F38BA8  #FAB387  #F9E2AF  #A6E3A1  #94E2D5  #89B4FA  #CBA6F7  #F5C2E7
+Nord                #BF616A  #D08770  #EBCB8B  #A3BE8C  #8FBCBB  #5E81AC  #B48EAD  #B48EAD
+Dracula             #FF5555  #FFB86C  #F1FA8C  #50FA7B  #8BE9FD  #BD93F9  #BD93F9  #FF79C6
+Solarized           #DC322F  #CB4B16  #B58900  #859900  #2AA198  #268BD2  #6C71C4  #D33682
+```
+
+### Derivation: ThemePalette → Theme
+
+Implemented in `themex` (`vendor/beorn-themex/src/derive.ts`). The derivation logic maps
+palette fields to semantic tokens — primary from the chosen accent hue, links always blue,
+text hierarchy from the surface ramp, status from direct hue mapping. See the source for
+the full implementation.
+
+### Token Aliases
+
+Defined in `themex` (`vendor/beorn-themex/src/resolve.ts`). The canonical field name for
+elevated surfaces is `raisedbg`; `$surface` is a backward-compat alias.
+
+| Alias Token     | Resolves To    |
+|-----------------|--------------- |
+| `$accent`       | `$primary`     |
+| `$muted`        | `$text2`       |
+| `$surface`      | `$raisedbg`    |
+| `$background`   | `$bg`          |
+| `$border`       | `$separator`   |
+
+### Semantic Token Reference
+
+Defined in `themex`. See `vendor/beorn-themex/CLAUDE.md` for the full token list.
+The 19 semantic tokens + 16 palette colors are the same as listed at the
+[top of this document](#semantic-tokens-19).
+
+### Where Each Token Is Used in km
+
+| Token | UI Elements |
+|-------|-------------|
+| `$primary` | Active tab dot, board heading, column header (focused), shortcut keys in help, favorite keys |
+| `$link` | Inline links, `@board` references, wiki-links |
+| `$control` | Keyboard shortcut badges, input borders, chord hint keys |
+| `$selected` | Cursor row background, selected card bg, picker selected row |
+| `$selectedfg` | Text on cursor row, text on selected items |
+| `$focusring` | Focused pane border, editing card border, active input outline |
+| `$text` | Node titles, body text, fold markers, column headers |
+| `$text2` | Node descriptions, metadata labels, unfocused column headers |
+| `$text3` | Child counts, timestamps, dot leaders, chord separators, footer hints |
+| `$text4` | Ghost fold dots, empty column placeholders, grid empty cells |
+| `$bg` | Main background (usually terminal default) |
+| `$raisedbg` (`$surface`) | Dialog/modal background, picker dropdown, tooltip bg |
+| `$separator` | All borders (auto-default), divider lines, column separators |
+| `$chromebg` | Status bar bg, title bar bg (inverted) |
+| `$chromefg` | Status bar text, title bar text (inverted) |
+| `$error` | Overdue dates, P0/P1 priority, blocked status, validation errors, broken embeds |
+| `$warning` | In-progress status (WIP icon), unsaved indicator, P2 priority |
+| `$success` | Done status (checkmark), actionable dates, start dates |
+| `$color0`–`$color15` | Board-specific colors, tag colors, calendar event colors |
+
+### M3 Mapping Summary
+
+How our tokens relate to M3 roles:
+
+| M3 Role | Our Token | Notes |
+|---------|-----------|-------|
+| Primary | `$primary` | Same concept — the brand accent |
+| On Primary | `$selectedfg` | Text on primary-colored backgrounds |
+| Secondary | `$control` | M3 secondary = desaturated primary. Our control = muted accent for chrome |
+| Tertiary | `$focusring` / `$selected` | M3 tertiary = rotated hue. Our selection + focus use a contrasting hue |
+| Error | `$error` | Direct match |
+| Surface | `$bg` / `$raisedbg` | M3 has surface + surface container. We have bg + raisedbg |
+| On Surface | `$text` / `$text2` | Direct match |
+| Outline | `$separator` | Direct match |
+
+### Cross-Platform Binding
+
+The same `ThemePalette` + `deriveTheme()` (from `themex`) produces a `Theme` that binds to any platform:
+
+**Terminal** (current):
+```typescript
+// resolveThemeColor("$primary", theme) → "yellow" or "#EBCB8B"
+<Text color="$primary">Hello</Text>
+```
+
+**Web** (future):
+```css
+:root {
+  --km-primary: #EBCB8B;
+  --km-text: #ECEFF4;
+  --km-surface: #3B4252;
+  /* ... all 19 tokens */
+}
+```
+```html
+<span style="color: var(--km-primary)">Hello</span>
+```
+
+**Native** (future):
+```swift
+extension Color {
+  static let kmPrimary = Color("primary")  // from asset catalog
+  static let kmText = Color("text")
+}
+Text("Hello").foregroundColor(.kmPrimary)
+```
+
+## Color Manipulation Utilities
+
+Implemented in `themex` (`vendor/beorn-themex/src/color.ts`). Operates in OKLCH for
+perceptual uniformity. Core functions: `blend()`, `brighten()`, `darken()`, `contrastFg()`,
+`isWarm()`, `brightVariant()`. See the source for details.
+
+## Design Influences
+
+Research on existing theme systems — what we learned and what we adopted.
+
+### Systems Compared
+
+| System | Architecture | Tokens | Key Innovation |
+|--------|-------------|--------|----------------|
+| **Catppuccin** | 26-color palette → port applies | 26 | OKLCH bright derivation, cross-app consistency |
+| **oh-my-pi** | `vars` palette → `colors` semantic → component interfaces | 66 | Two-layer indirection, color-blind mode, symbol theming |
+| **Charm/lipgloss** | CompleteAdaptiveColor (6 values per token) | Per-component | Dark/light × truecolor/256/16 adaptive, color utilities |
+| **oh-my-posh** | Palette refs (`p:name`) + template conditionals | ~20 | Decorator chain, conditional palettes |
+| **Omarchy (DHH)** | 22 tokens in `colors.toml` → cross-app config generation | 22 | Config generation pipeline (Neovim, tmux, bat, lazygit) |
+| **Zed** | 150+ tokens with state variants | 150+ | Hover/active/disabled per token, 24 terminal colors |
+| **Apple HIG** | ONE accent + opacity cascade | ~20 | Text hierarchy via opacity, system palette |
+| **Material Design 3** | HCT color space, one seed color | ~25 roles | Primary/secondary/tertiary from hue rotation |
+
+### What We Adopted
+
+**From Catppuccin**: Surface ramp naming (crust/base/surface/overlay/subtext/text) — widely
+recognized, self-explanatory. OKLCH bright variant formula for perceptually correct derivation.
+Dark/light palette flip for ANSI 16 color0/7/8/15.
+
+**From oh-my-pi**: Two-layer indirection pattern (`ThemePalette` → `Theme`). This is the core
+architectural insight — theme authors provide raw colors, the system derives semantic tokens.
+Validates our exact architecture. Their 66 tokens are too many (UI-framework-specific tokens
+like `input_border_active_hover`); our 19 semantic tokens + 16 palette = 35 total is the right
+level of abstraction.
+
+**From Apple HIG**: Text hierarchy via opacity cascade (text → text2 → text3 → text4 as
+decreasing opacity of the same base color). ONE user-chosen accent color, not multiple accent
+families.
+
+**From Charm/lipgloss v2**: Color manipulation utilities as first-class API (`Darken`, `Lighten`,
+`Alpha`). We adopt `blend()`, `brighten()`, `darken()`, `contrastFg()` as core utilities.
+The `CompleteAdaptiveColor` pattern (dark/light × tier = 6 values per token) validates our
+progressive enhancement approach.
+
+**From Omarchy**: Cross-app config generation from a single source. Our `ThemePalette` →
+`deriveTheme()` is the same idea — one palette input, automatic derivation for any platform.
+The 22-token system (6 semantic + 16 ANSI) is too minimal for a rich TUI; we need text hierarchy
+and chrome tokens. But the "generate configs for Neovim, tmux, bat, lazygit" pipeline is a
+future direction (generate Ghostty theme, Neovim colorscheme, tmux status line from one palette).
+
+### What We Rejected
+
+**M3's secondary/tertiary accent tokens**: Over-engineered for TUIs. Our content palette
+($color0–$color15) provides multi-color categorization; brand tokens ($primary/$link/$control)
+provide accent variation; status tokens cover semantic colors. No need for hue-rotated secondary
+and tertiary accent families.
+
+**Zed's 150+ tokens with state variants**: Too granular. `input_border_active_hover` vs
+`input_border_active` vs `input_border` — this level of specificity belongs in CSS, not in a
+theme interface. TUI components have fewer states than web components.
+
+**oh-my-pi's component interfaces**: Interesting (components declare color needs via interfaces),
+but premature for us. Our components use `$token` strings directly — adding a typed interface
+layer adds complexity without proportional benefit at our scale.
+
+**oh-my-pi's 66 tokens**: Too many. Many are component-specific (`breadcrumb_active_fg`,
+`tab_close_hover_bg`) which couples the theme interface to UI implementation details. Our 19
+semantic tokens are UI-agnostic — any component can use `$primary`, `$text2`, `$separator`.
+
+### Cross-Theme Palette Comparison
+
+| Theme | Base/Surface | Accent Hues | Status | Total | Primary Accent? |
+|-------|-------------|-------------|--------|-------|----------------|
+| **Catppuccin** | 12 (3 bg + 3 surface + 3 overlay + 2 subtext + text) | 14 | 4 (from accents) | 26 | No (port chooses) |
+| **Dracula** | 7 (bg ×5, fg, selection) | 7 (R/O/Y/G/C/Pu/Pk) | 5 (functional UI) | ~15 | No (peers) |
+| **Nord** | 7 (4 Polar Night + 3 Snow Storm) | 9 (4 Frost + 5 Aurora) | 3 (from Aurora) | 16 | Yes (nord8 blue) |
+| **Solarized** | 8 (symmetric base03–base3) | 8 (YORGMVBC) | 0 (informal) | 16 | No (equals) |
+| **Tokyo Night** | ~15 (7 bg + 5 fg + neutrals) | ~16 (7 blues + 9 others) | 4 (error/warn/info/hint) | ~55 | Yes (blue) |
+| **One Dark** | 5 (bg + 3 mono + accent) | 8 (hue-1 through hue-6-2) | 0 (informal) | ~13 | Yes (syntax-accent) |
+| **themex** | 6 (crust/base/surface/overlay/subtext/text) | 8 (R/O/Y/G/T/B/Pu/Pk) | 3 (error/warning/success) | 14 | Yes (user-chosen) |
+
+### Key Insights
+
+1. **Every theme defines the same two layers**: raw palette (hues + neutrals) → semantic mapping
+2. **Universal hue set**: red, orange, yellow, green, teal, blue, purple, pink — present in every theme
+3. **Surface ramp**: 6–12 levels. 6 is sufficient (Solarized, Nord prove this); more granularity adds complexity without proportional benefit
+4. **Status colors**: error=red, warning=orange/yellow, success=green is universal
+5. **Terminal emulators expose 16 ANSI + fg/bg/cursor/selection** — the universal baseline
+6. **Two-layer indirection** (palette → semantic) is the dominant pattern across all mature systems
+7. **OKLCH** is the right color space for derivation (perceptually uniform, unlike RGB/HSL)
+8. **35 tokens is the sweet spot** — enough for rich TUIs, few enough to maintain
+
+## Hardcoded Color Migration
+
+~160 hardcoded color names across ~28 view files need migration to `$token` references.
+
+### What to Remove
+
+- **GTD board colors** (`GTD_BOARD_COLORS` in `apps/km-tui/src/text/colors.ts`): Template-specific. Board colors should come from content palette (`$color0`–`$color15`).
+- **`getTermColor()`/`colorize()` helpers**: Replace with `$token` props.
+
+### Migration Pattern
+
+```tsx
+// Before: hardcoded color name
+<Text color="cyan">description</Text>
+<Text color="gray">timestamp</Text>
+<Text color="yellowBright">active</Text>
+
+// After: semantic token
+<Text color="$text2">description</Text>
+<Text color="$text3">timestamp</Text>
+<Text color="$primary">active</Text>
+```
+
+### Migration Priority
+
+1. Status colors (red/green/yellow for task states) → `$error`/`$success`/`$warning`
+2. Text hierarchy (white/gray/dim variations) → `$text`/`$text2`/`$text3`/`$text4`
+3. Interactive elements (cyan/blue for links, borders) → `$primary`/`$link`/`$control`
+4. Categorization colors (per-board, per-tag) → `$color0`–`$color15`
+5. Chrome/surface colors (bg, borders) → `$bg`/`$surface`/`$separator`
+
+## Future: Cross-App Theme Generation
+
+Inspired by Omarchy's config generation pipeline, a single `ThemePalette` could generate
+themed configs for the user's entire terminal environment:
+
+```
+palette.toml → deriveTheme() → ghostty.conf    (terminal theme)
+                              → neovim.lua      (colorscheme)
+                              → tmux.conf       (status line colors)
+                              → bat-theme.tmTheme (syntax highlighting)
+                              → lazygit.yml     (git TUI colors)
+```
+
+This is out of scope for v2 but the `ThemePalette` interface is designed to support it.
+The 14-color input (6 surface + 8 hues) is expressive enough to generate any of these configs.
