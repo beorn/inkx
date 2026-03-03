@@ -158,7 +158,6 @@
 1 vendor/beorn-inkx/scripts/measure-bundle.ts
 4 vendor/beorn-inkx/src/components/ErrorBoundary.tsx
 2 vendor/beorn-inkx/src/components/HorizontalVirtualList.tsx
-1 vendor/beorn-inkx/src/core/slice.ts
 2 vendor/beorn-inkx/src/pipeline/index.ts
 1 vendor/beorn-inkx/src/scheduler.ts
 1 vendor/beorn-inkx/src/unicode.ts
@@ -202,6 +201,7 @@
 10 vendor/beorn-inkx/tests/suspense-embed.test.tsx
 3 vendor/beorn-inkx/tests/suspense-flicker.test.tsx
 11 vendor/beorn-inkx/tests/tea-store.test.ts
+4 vendor/beorn-inkx/tests/tea.test.ts
 2 vendor/beorn-inkx/tests/terminal-compat/protocol-features.test.ts
 2 vendor/beorn-inkx/tests/terminal-lifecycle.test.ts
 3 vendor/beorn-inkx/tests/terminal-multiplexers.test.ts
