@@ -118,7 +118,6 @@ const COLUMN_ALIASES: Record<string, ColumnRole> = {
   start_date: "start",
   "start date": "start",
   priority: "priority",
-  p: "priority",
   tags: "tags",
   labels: "tags",
   project: "project",
@@ -222,15 +221,9 @@ function csvRowToItem(row: string[], columns: Map<number, ColumnRole>, counter: 
   const start = get("start")
   if (start) item.startAt = start.trim()
 
-  const priority = get("priority")
+  const priority = get("priority")?.trim()
   if (priority) {
-    // Accept as free-form string; normalize bare digits to P-strings
-    const trimmed = priority.trim()
-    if (/^\d$/.test(trimmed)) {
-      item.priority = `P${trimmed}`
-    } else if (trimmed) {
-      item.priority = trimmed
-    }
+    item.priority = priority
   }
 
   const tags = get("tags")
