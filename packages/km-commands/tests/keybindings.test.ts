@@ -1227,8 +1227,12 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("u", { ctrl: true }, inlineCtx)).toEqual({ commandId: "text.delete_to_start" })
     })
 
-    it("Ctrl+k → text.delete_to_end", () => {
-      expect(resolveKeybinding("k", { ctrl: true }, inlineCtx)).toEqual({ commandId: "text.delete_to_end" })
+    it("Ctrl+k → text.delete_to_end (with Kitty) or command_palette (without)", () => {
+      // Without Kitty: Ctrl+K overrides emacs to open omnibox
+      expect(resolveKeybinding("k", { ctrl: true }, inlineCtx)).toEqual({ commandId: "command_palette" })
+      // With Kitty: Ctrl+K keeps emacs kill-line (Cmd+K available for omnibox)
+      const kittyCtx = createContext({ isInlineEditing: true, textInputFocused: true, hasKitty: true })
+      expect(resolveKeybinding("k", { ctrl: true }, kittyCtx)).toEqual({ commandId: "text.delete_to_end" })
     })
   })
 
