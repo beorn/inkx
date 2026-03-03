@@ -56,11 +56,6 @@ interface ListOptions {
   json?: boolean
 }
 
-/** Normalize a CLI priority value: bare digits "1" → "P1", pass through "P2", "high", etc. */
-function normalizePriority(value: string | undefined): string | undefined {
-  if (value === undefined) return undefined
-  return /^\d$/.test(value) ? `P${value}` : value
-}
 
 export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
@@ -93,7 +88,7 @@ bdCommand
     const filter: Partial<IssueFilter> = {}
     if (opts.type) filter.type = opts.type
     if (opts.assignee) filter.assignee = opts.assignee
-    if (opts.priority !== undefined) filter.priority = normalizePriority(opts.priority)
+    if (opts.priority !== undefined) filter.priority = opts.priority
 
     // Use board filter from config unless --all or explicit scope given
     const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
@@ -149,7 +144,7 @@ bdCommand
       if (opts.status) filter.status = opts.status.split(",")
       if (opts.type) filter.type = opts.type
       if (opts.assignee) filter.assignee = opts.assignee
-      if (opts.priority !== undefined) filter.priority = normalizePriority(opts.priority)
+      if (opts.priority !== undefined) filter.priority = opts.priority
       if (opts.blocked) filter.blocked = true
       if (opts.unblocked) filter.blocked = false
 
@@ -260,7 +255,7 @@ bdCommand
 
     const { node, shortId } = createIssueNode(title, {
       type: opts.type,
-      priority: normalizePriority(opts.priority),
+      priority: opts.priority,
       assignee: opts.assignee,
       labels: opts.label,
       customId: opts.id,
@@ -291,7 +286,7 @@ bdCommand
     console.log(term.green(`Created issue: ${shortId}`))
     console.log(term.dim(`Title: ${title}`))
     if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
-    console.log(term.dim(`Priority: ${normalizePriority(opts.priority) ?? "P2"}`))
+    console.log(term.dim(`Priority: ${opts.priority ?? "P2"}`))
   })
 
 // bd update [id] - Update issue fields
@@ -319,7 +314,7 @@ const updateCmd = bdCommand
 
     const changes: Parameters<typeof updateIssueFields>[1] = {}
     if (opts.status) changes.status = opts.status as Issue["status"]
-    if (opts.priority !== undefined) changes.priority = normalizePriority(opts.priority)
+    if (opts.priority !== undefined) changes.priority = opts.priority
     if (opts.assignee) changes.assignee = opts.assignee
     if (opts.title) changes.title = opts.title
 

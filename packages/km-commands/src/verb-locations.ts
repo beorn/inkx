@@ -13,6 +13,7 @@ import type { Keybinding, KeybindingContext } from "./keybindings.ts"
 import type { WhenPredicate } from "./when.ts"
 import { hasKitty } from "./when.ts"
 import { REPO_LOCS } from "./locations.ts"
+import { getAllFavorites } from "./favorites.ts"
 
 // --- Target Resolvers ---
 // Functions that resolve a target nodeId from context
@@ -32,9 +33,9 @@ export const last: TargetResolver = () => "last"
 
 // Favorite target factory
 export const fav =
-  (n: number): TargetResolver =>
+  (key: string): TargetResolver =>
   () =>
-    `fav:${n}`
+    `fav:${key}`
 
 // Picker target factory — return marker strings the TUI interprets
 export const pick =
@@ -55,7 +56,7 @@ export const goTo =
     if (!t) return null
     // Delegate to existing goto command logic
     if (t === "parent") return { type: "ZOOM_OUTWARDS" }
-    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteKey: t.slice(4) }
     if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" }
     return { type: "GOTO_BOARD", boardId: t }
   }
@@ -69,7 +70,7 @@ export const moveTo =
     if (t === "parent") return { type: "OUTDENT_NODE" }
     if (t === "first") return { type: "SHIFT_TO_TOP" }
     if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
-    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteKey: t.slice(4) }
     if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" }
     return { type: "MOVE_TO_BOARD", boardId: t }
   }
@@ -84,7 +85,7 @@ export const addTo =
     if (t === "pick:@") return { type: "SET_ASSIGNEE" }
     if (t === "pick:+") return { type: "REPARENT_PICKER" }
     if (t === "pick:[") return { type: "ADD_LINK" }
-    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteKey: t.slice(4) }
     return { type: "ADD_LINK_TO_BOARD", boardId: t }
   }
 
@@ -156,15 +157,15 @@ export function verbLocationGrid(): Keybinding[] {
       })
     }
 
-    // Favorites (0-9) — for all verbs except c (create)
+    // Favorites — for all verbs except c (create)
     if (vKey !== "c") {
-      for (let n = 0; n <= 9; n++) {
+      for (const [favKey] of getAllFavorites()) {
         bindings.push({
           chord: verb.prefix,
-          key: String(n),
+          key: favKey,
           commandId: verb.commandId,
-          targetId: `fav:${n}`,
-          execute: verb.fn(fav(n)),
+          targetId: `fav:${favKey}`,
+          execute: verb.fn(fav(favKey)),
         })
       }
     }

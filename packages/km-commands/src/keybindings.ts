@@ -8,6 +8,7 @@ import {
   searchDialogOpen,
   anyDialogOpen,
   filterDialogOpen,
+  favoritesDialogOpen,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
@@ -21,6 +22,7 @@ import {
   and,
 } from "./when.ts"
 import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
+import { getAllFavorites } from "./favorites.ts"
 
 export interface Keybinding {
   key: string
@@ -68,6 +70,8 @@ export interface KeybindingContext {
   omniboxOpen?: boolean
   /** True when the search/replace dialog is open */
   searchReplaceOpen?: boolean
+  /** True when the favorites dialog is open */
+  favoritesDialogOpen?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
@@ -402,6 +406,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
       { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
       { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
+    ],
+  },
+
+  // --- Layer 3a: Favorites dialog (manage key→board mappings) ---
+  {
+    name: "favorites-dialog",
+    bindings: [
+      { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
+      { key: "j", commandId: "dialog.nav_down", when: favoritesDialogOpen },
+      { key: "k", commandId: "dialog.nav_up", when: favoritesDialogOpen },
+      { key: "ArrowDown", commandId: "dialog.nav_down", when: favoritesDialogOpen },
+      { key: "ArrowUp", commandId: "dialog.nav_up", when: favoritesDialogOpen },
+      { key: "x", commandId: "favorites.clear", when: favoritesDialogOpen },
+      { key: "X", commandId: "favorites.clear", when: favoritesDialogOpen },
+      // Wildcard: any other key → assign current board to that key
+      { key: "*", wildcard: true, commandId: "favorites.assign", when: favoritesDialogOpen },
     ],
   },
 
@@ -926,16 +946,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "p", cmd: true, commandId: "toggle_detail_pane" },
       { key: ",", cmd: true, commandId: "settings" },
 
-      // Favorites (1-9) — composable goto with target digit
-      { key: "1", commandId: "goto", targetId: "fav:1" },
-      { key: "2", commandId: "goto", targetId: "fav:2" },
-      { key: "3", commandId: "goto", targetId: "fav:3" },
-      { key: "4", commandId: "goto", targetId: "fav:4" },
-      { key: "5", commandId: "goto", targetId: "fav:5" },
-      { key: "6", commandId: "goto", targetId: "fav:6" },
-      { key: "7", commandId: "goto", targetId: "fav:7" },
-      { key: "8", commandId: "goto", targetId: "fav:8" },
-      { key: "9", commandId: "goto", targetId: "fav:9" },
+      // Favorites — dynamic bindings from favorites registry
+      ...Array.from(getAllFavorites().keys()).map((key) => ({
+        key,
+        commandId: "goto",
+        targetId: `fav:${key}`,
+      })),
 
       // Contextual close/quit (Escape)
       // Closes dialogs, panes, modes, or quits if nothing to close

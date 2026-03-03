@@ -112,6 +112,7 @@ export {
   blockEditCommands,
   dialogCommands,
   filterDialogCommands,
+  favoritesDialogCommands,
   type TaskAction,
 } from "./commands/index.ts"
 
@@ -141,6 +142,7 @@ export {
   localFindActive,
   omniboxOpen,
   searchReplaceOpen,
+  favoritesDialogOpen,
   hasKitty,
   // Input type predicates
   inputTypeField,
@@ -157,6 +159,9 @@ export {
   inDialogDatePrompt,
   inDialogFilter,
 } from "./when.ts"
+
+// Favorites
+export { getFavorite, setFavorite, clearFavorite, getAllFavorites, RESERVED_KEYS, getReservedKeyLabel } from "./favorites.ts"
 
 // Locations (composable command targets)
 export { REPO_LOCS, locationLabel } from "./locations.ts"

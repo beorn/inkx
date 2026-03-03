@@ -659,10 +659,18 @@ function routeThroughCommandSystem(
         result.commandId.startsWith("dialog.") ||
         result.commandId.startsWith("text.") ||
         result.commandId === "filter" ||
-        result.commandId.startsWith("filter.")
+        result.commandId.startsWith("filter.") ||
+        result.commandId.startsWith("favorites.")
       if (!isDialogOrTextCommand) {
         parentSpan.spanData.outcome = "dialog-filtered"
         return
+      }
+    }
+
+    // Inject pressed key into FAVORITES_ASSIGN (wildcard catches key, command doesn't have it)
+    for (const action of actionList) {
+      if (action.type === "FAVORITES_ASSIGN" && !(action as { key?: string }).key) {
+        ;(action as { key: string }).key = input
       }
     }
 

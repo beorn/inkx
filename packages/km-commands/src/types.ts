@@ -236,7 +236,7 @@ interface ShowSearchDialogAction {
 
 interface JumpToFavoriteAction {
   type: "JUMP_TO_FAVORITE"
-  favoriteNumber: number // 0-9
+  favoriteKey: string
 }
 
 interface JumpToColumnAction {
@@ -260,7 +260,7 @@ interface MoveToBoardAction {
 
 interface MoveToFavoriteAction {
   type: "MOVE_TO_FAVORITE"
-  favoriteNumber: number // 0-9
+  favoriteKey: string
 }
 
 interface ShiftToTopAction {
@@ -282,7 +282,7 @@ interface AddLinkToBoardAction {
 
 interface AddLinkToFavoriteAction {
   type: "ADD_LINK_TO_FAVORITE"
-  favoriteNumber: number // 0-9
+  favoriteKey: string
 }
 
 interface ReparentPickerAction {
@@ -780,6 +780,15 @@ interface ManageFavoritesAction {
   type: "MANAGE_FAVORITES"
 }
 
+interface FavoritesAssignAction {
+  type: "FAVORITES_ASSIGN"
+  key: string
+}
+
+interface FavoritesClearAction {
+  type: "FAVORITES_CLEAR"
+}
+
 type SearchReplaceAction =
   | SearchReplaceOpenAction
   | SearchReplaceCloseAction
@@ -894,6 +903,8 @@ export type TUIAction =
   | FocusNextAction
   | FocusPrevAction
   | ManageFavoritesAction
+  | FavoritesAssignAction
+  | FavoritesClearAction
 
 export type UIAction =
   | ZoomOutwardsAction

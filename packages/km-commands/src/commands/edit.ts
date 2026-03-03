@@ -171,7 +171,7 @@ const move = {
     if (t === "parent") return { type: "OUTDENT_NODE" }
     if (t === "first") return { type: "SHIFT_TO_TOP" }
     if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
-    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteKey: t.slice(4) }
     if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" } // TODO: generic picker
 
     // Real node ID — move there
@@ -197,7 +197,7 @@ const add = {
     if (t === "pick:+") return { type: "REPARENT_PICKER" }
     if (t === "pick:[") return { type: "ADD_LINK" }
 
-    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteKey: t.slice(4) }
 
     // Real node ID — add link to that board
     return { type: "ADD_LINK_TO_BOARD", boardId: t }

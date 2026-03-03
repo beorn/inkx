@@ -111,7 +111,6 @@ export interface QueryAST {
 const FIELD_ALIASES: Record<string, string> = {
   status: "task_status",
   priority: "priority",
-  p: "priority",
   due: "due_at",
   start: "start_at",
   scheduled: "start_at",

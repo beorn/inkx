@@ -10,7 +10,7 @@
  *   assignee               — @mention name
  *   due (or due_date)      — Due date (ISO 8601 or YYYY-MM-DD)
  *   start (or start_date)  — Start date
- *   priority (or p)        — 1-4
+ *   priority               — Free-form string (e.g., P1, high, A)
  *   tags                   — Comma-separated tags
  *   project (or section)   — Groups tasks into sections
  *   parent                 — Parent task title (for hierarchy)

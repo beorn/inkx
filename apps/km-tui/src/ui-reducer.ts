@@ -43,7 +43,8 @@ export function getEditMode(ui: PaneUI): EditMode {
     ui.deleteConfirm ||
     ui.localSearch ||
     ui.showOmnibox ||
-    ui.searchReplace
+    ui.searchReplace ||
+    ui.showFavoritesDialog
   ) {
     return "dialog"
   }
@@ -140,6 +141,10 @@ export interface UIState {
 
   // Omnibox / command palette state (global)
   showOmnibox: boolean
+
+  // Favorites dialog state (global)
+  showFavoritesDialog: boolean
+  favoritesCursor: number
 }
 
 /**
@@ -344,6 +349,9 @@ export function createInitialUIState(
     chordTimedOut: false,
 
     showOmnibox: false,
+
+    showFavoritesDialog: false,
+    favoritesCursor: 0,
   }
 }
 

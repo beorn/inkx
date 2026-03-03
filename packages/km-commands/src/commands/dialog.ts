@@ -52,6 +52,30 @@ export const dialogCommands: CommandDef[] = [
  * These use DIALOG_NAV_UP/DOWN for row navigation and DIALOG_CONFIRM for toggle.
  * h/l and clear operations dispatch filter-specific actions.
  */
+/**
+ * Favorites dialog commands
+ *
+ * Commands for managing key→board favorites.
+ * favorites.assign uses the raw pressed key (injected by routeThroughCommandSystem).
+ * favorites.clear removes the favorite at the current cursor position.
+ */
+export const favoritesDialogCommands: CommandDef[] = [
+  {
+    id: "favorites.assign",
+    name: "Assign Favorite",
+    description: "Assign current board to the pressed key",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FAVORITES_ASSIGN", key: "" }), // key injected by caller
+  },
+  {
+    id: "favorites.clear",
+    name: "Clear Favorite",
+    description: "Remove the favorite at cursor",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FAVORITES_CLEAR" }),
+  },
+]
+
 export const filterDialogCommands: CommandDef[] = [
   {
     id: "filter.nav_left",

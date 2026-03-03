@@ -97,6 +97,9 @@ export const localFindActive = when("localFindActive", (ctx) => !!ctx.localFindA
 
 export const searchReplaceOpen = when("searchReplaceOpen", (ctx) => !!ctx.searchReplaceOpen)
 
+/** True when the favorites dialog is open */
+export const favoritesDialogOpen = when("favoritesDialogOpen", (ctx) => !!ctx.favoritesDialogOpen)
+
 /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
 export const hasKitty = when("hasKitty", (ctx) => !!ctx.hasKitty)
 

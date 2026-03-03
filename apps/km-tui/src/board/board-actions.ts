@@ -39,7 +39,7 @@ import {
 } from "@km/tree"
 import { type KNode, isOutline, isListItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { DEFAULT_FAVORITES } from "../keyboard/keyboard-types.ts"
+import { getFavorite, setFavorite, clearFavorite, getAllFavorites, RESERVED_KEYS, getReservedKeyLabel, initDefaultKeybindings } from "@km/commands"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
@@ -159,7 +159,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       clearSelection(ctx)
       return ok()
     case "JUMP_TO_FAVORITE":
-      handleJumpToFavorite(ctx, action.favoriteNumber)
+      handleJumpToFavorite(ctx, action.favoriteKey)
       return ok()
     case "GOTO_BOARD":
       handleGotoBoard(ctx, action.boardId)
@@ -167,10 +167,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "MOVE_TO_BOARD":
       handleMoveToBoard(ctx, action.boardId)
       return ok()
-    case "MOVE_TO_FAVORITE":
-      ctx.toastQueue.info(`Move to favorite ${action.favoriteNumber} not yet implemented`)
-      ctx.setUI({})
+    case "MOVE_TO_FAVORITE": {
+      const favBoardId = getFavorite(action.favoriteKey)
+      if (favBoardId) {
+        handleMoveToBoard(ctx, favBoardId)
+      } else {
+        ctx.toastQueue.warning(`No favorite assigned to key '${action.favoriteKey}'`)
+        ctx.setUI({})
+      }
       return ok()
+    }
     case "SHIFT_TO_TOP":
       // Move node to first position among siblings
       handleShiftToExtreme(ctx, "top")
@@ -184,7 +190,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({})
       return ok()
     case "ADD_LINK_TO_FAVORITE":
-      ctx.toastQueue.info(`Add link to favorite ${action.favoriteNumber} not yet implemented`)
+      ctx.toastQueue.info(`Add link to favorite '${action.favoriteKey}' not yet implemented`)
       ctx.setUI({})
       return ok()
     case "ADD_LINK":
@@ -784,8 +790,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CAPTURE_INBOX":
     case "CAPTURE_DIALOG":
     case "SETTINGS":
-    case "MANAGE_FAVORITES":
       return unimplemented("ui")
+    case "MANAGE_FAVORITES":
+      pushDialogMode("dialog:favorites")
+      ctx.setUI({ showFavoritesDialog: true, favoritesCursor: 0 })
+      clearSelection(ctx)
+      return ok()
+    case "FAVORITES_ASSIGN":
+      return handleFavoritesAssign(ctx, action.key)
+    case "FAVORITES_CLEAR":
+      return handleFavoritesClear(ctx)
 
     // === Property actions ===
     case "SET_DUE_DATE":
@@ -1178,6 +1192,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
     // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
     case "DIALOG_NAV_UP":
+      if (ctx.ui.showFavoritesDialog) {
+        ctx.setUI((prev) => ({
+          favoritesCursor: Math.max(prev.favoritesCursor - 1, 0),
+        }))
+        return ok()
+      }
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
           filterCursorRow: Math.max(prev.filterCursorRow - 1, 0),
@@ -1188,6 +1208,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       dialogTargetRef.current?.navUp()
       return ok()
     case "DIALOG_NAV_DOWN":
+      if (ctx.ui.showFavoritesDialog) {
+        const favCount = getAllFavorites().size
+        ctx.setUI((prev) => ({
+          favoritesCursor: Math.min(prev.favoritesCursor + 1, favCount - 1),
+        }))
+        return ok()
+      }
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
           filterCursorRow: Math.min(prev.filterCursorRow + 1, VIEW_DIALOG_ROWS.length - 1),
@@ -1263,6 +1290,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "DIALOG_CANCEL":
+      if (ctx.ui.showFavoritesDialog) {
+        popDialogMode()
+        ctx.setUI({ showFavoritesDialog: false })
+        return ok()
+      }
       if (ctx.ui.showFilterDialog) {
         popDialogMode()
         ctx.setUI({ showFilterDialog: false })
@@ -1412,8 +1444,50 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
   return ok()
 }
 
-function handleJumpToFavorite(ctx: ActionCtx, favoriteNumber: number): void {
-  const favoriteId = DEFAULT_FAVORITES[`${favoriteNumber}`]
+function handleFavoritesAssign(ctx: ActionCtx, key: string): ActionResult {
+  if (!key) return ok() // no key (shouldn't happen)
+  if (RESERVED_KEYS.has(key)) {
+    const label = getReservedKeyLabel(key)
+    ctx.toastQueue.warning(`Key '${key}' is reserved for '${label}'`)
+    ctx.setUI({})
+    return ok()
+  }
+
+  const rootId = ctx.rootId
+  if (!rootId) {
+    ctx.toastQueue.warning("No board to assign")
+    ctx.setUI({})
+    return ok()
+  }
+
+  setFavorite(key, rootId)
+  // Re-register keybindings so the new favorite is bound
+  initDefaultKeybindings()
+  ctx.toastQueue.success(`Favorite '${key}' → ${rootId}`)
+  popDialogMode()
+  ctx.setUI({ showFavoritesDialog: false })
+  return ok()
+}
+
+function handleFavoritesClear(ctx: ActionCtx): ActionResult {
+  const sortedFavorites = Array.from(getAllFavorites().entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  const cursorIndex = ctx.ui.favoritesCursor
+  const entry = sortedFavorites[cursorIndex]
+  if (!entry) return ok()
+
+  clearFavorite(entry[0])
+  // Re-register keybindings
+  initDefaultKeybindings()
+  ctx.toastQueue.info(`Cleared favorite '${entry[0]}'`)
+  // Adjust cursor if we deleted the last item
+  const newSize = getAllFavorites().size
+  const newCursor = cursorIndex >= newSize ? Math.max(0, newSize - 1) : cursorIndex
+  ctx.setUI({ favoritesCursor: newCursor })
+  return ok()
+}
+
+function handleJumpToFavorite(ctx: ActionCtx, favoriteKey: string): void {
+  const favoriteId = getFavorite(favoriteKey)
 
   if (!favoriteId) return
 

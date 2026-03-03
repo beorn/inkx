@@ -7,7 +7,7 @@ export { historyCommands } from "./history.ts"
 export { tuiCommands } from "./tui.ts"
 export { textEditingCommands, detailPaneCommands } from "./text-editing.ts"
 export { blockEditCommands } from "./block-edit.ts"
-export { dialogCommands, filterDialogCommands } from "./dialog.ts"
+export { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "./dialog.ts"
 export { paneCommands } from "./pane.ts"
 
 import { navigationCommands } from "./navigation.ts"
@@ -19,7 +19,7 @@ import { historyCommands } from "./history.ts"
 import { tuiCommands } from "./tui.ts"
 import { textEditingCommands, detailPaneCommands } from "./text-editing.ts"
 import { blockEditCommands } from "./block-edit.ts"
-import { dialogCommands, filterDialogCommands } from "./dialog.ts"
+import { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "./dialog.ts"
 import { paneCommands } from "./pane.ts"
 
 export const allCommands = [
@@ -35,5 +35,6 @@ export const allCommands = [
   ...blockEditCommands,
   ...dialogCommands,
   ...filterDialogCommands,
+  ...favoritesDialogCommands,
   ...paneCommands,
 ]

@@ -206,7 +206,7 @@ const goto = {
     if (!t) return null
 
     if (t === "parent") return { type: "ZOOM_OUTWARDS" }
-    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteNumber: Number(t.slice(4)) }
+    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteKey: t.slice(4) }
     if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // TODO: generic picker
 
     // Real node ID — navigate there
