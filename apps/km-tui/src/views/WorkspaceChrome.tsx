@@ -27,6 +27,7 @@ import { FilterDialog } from "./FilterDialog.tsx"
 import { Omnibox, type OmniboxResult } from "./Omnibox.tsx"
 import { ConfirmDialog } from "./shared-components.tsx"
 import { SearchReplaceDialog } from "./SearchReplaceDialog.tsx"
+import { FavoritesDialog } from "./FavoritesDialog.tsx"
 import { NewItemDialog } from "./NewItemDialog.tsx"
 import { popDialogMode } from "../dialog-guard.ts"
 import { dispatchCommandById } from "../board-app.ts"
@@ -415,6 +416,18 @@ export function WorkspaceChrome({
             onSearchChange={searchReplaceSearchHandler ?? (() => {})}
             onReplaceChange={searchReplaceReplaceHandler ?? (() => {})}
           />
+        </DialogBox>
+      )}
+      {/* Favorites dialog */}
+      {ui.showFavoritesDialog && (
+        <DialogBox
+          termWidth={termWidth}
+          contentHeight={contentHeight}
+          maxWidth={50}
+          topFraction={1 / 4}
+          data-dialog="favorites"
+        >
+          <FavoritesDialog cursor={ui.favoritesCursor} width={Math.min(50, Math.floor(termWidth / 2))} />
         </DialogBox>
       )}
       {/* Help overlay */}
