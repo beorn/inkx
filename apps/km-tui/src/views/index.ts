@@ -8,7 +8,7 @@
  * - tabs: TabsView (tabbed single column)
  *
  * Supporting views:
- * - DetailPane: Side panel showing item details
+ * - detail: Detail view mode (board pane with viewMode "detail")
  * - HelpOverlay: Keyboard shortcuts overlay
  * - ItemPicker: Generic picker for selecting nodes
  * - TreeNode: Shared tree node component

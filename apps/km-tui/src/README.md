@@ -102,7 +102,7 @@ Key principle: **AST before rendering** — parse to structured nodes, then rend
 | `tui.ts`                    | Entry point, sync manager lifecycle       |
 | `views/Board.tsx`           | Main container, state, keyboard handling  |
 | `views/TreeNode.tsx`        | Unified tree node rendering               |
-| `views/DetailPane.tsx`      | Task detail view with fields              |
+| `views/detail-pane-items.ts`| Detail metadata key computation           |
 | `text/inline-parser.ts`     | Markdown → InlineNode[] AST parser        |
 | `text/InlineComponents.tsx` | InlineNode[] → React JSX rendering        |
 | `text/rich.ts`              | ANSI utilities (displayLength, stripAnsi) |

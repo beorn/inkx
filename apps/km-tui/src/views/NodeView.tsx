@@ -7,7 +7,7 @@
  * - shared-components.tsx (MemoizedColumnHeader for list view, NodeLine)
  * - TabsView.tsx (tab pills)
  * - TreeNode.tsx (card rendering with subitems)
- * - DetailPane.tsx (detail view)
+ * - Board.tsx detail view mode (viewMode "detail")
  *
  * ## Style Levels
  *
@@ -552,8 +552,8 @@ export interface NodeDetailViewProps {
 /**
  * Detail-style node display: title + metadata + body + children (as lines) + backlinks.
  *
- * Used in the side pane (detail view). Provides layout that mirrors DetailPane.tsx
- * but through the unified NodeView component API.
+ * Used in the side pane (detail view mode). Provides layout for the unified
+ * board pane with viewMode "detail".
  */
 export function NodeDetailView({
   node,
