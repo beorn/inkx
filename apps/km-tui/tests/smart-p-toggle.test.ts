@@ -1,34 +1,31 @@
 /**
  * Detail pane toggle tests
  *
- * D toggles detail pane open/closed. Focus stays on board.
+ * D toggles detail pane open/closed. D auto-focuses detail pane on open.
  * Detail pane follows cursor selection (read-only preview).
- * Pane focus (interactive mode) is future work.
  */
 import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Detail pane toggle", () => {
-  test("D opens pane, D again closes it (focus stays on board)", () => {
-    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
+  test("D opens pane and auto-focuses detail, D again closes it", () => {
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"), item("card2"))), {
       checkIncremental: false,
       incremental: false,
     })
 
-    // Initial: pane closed, board focused
+    // Initial: pane closed
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
 
-    // D opens pane, focus stays on board
+    // D opens pane and auto-focuses detail
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // D again closes pane
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("cursor movement works while detail pane is open", () => {
@@ -37,9 +34,10 @@ describe("Detail pane toggle", () => {
       incremental: false,
     })
 
-    // Open pane
+    // Open pane (auto-focuses detail), return to board
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.press("h") // return to board
 
     // j moves cursor down on the board
     board.press("j")
@@ -63,9 +61,10 @@ describe("Detail pane toggle", () => {
       checkIncremental: true,
     })
 
-    // Open pane
+    // Open pane (auto-focuses detail), return to board
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.press("h") // return to board
     board.expect("#card1[data-cursor]").toExist()
 
     // j moves cursor down — incremental render must reflect change
@@ -86,18 +85,24 @@ describe("Detail pane toggle", () => {
     board.expect("#card3[data-cursor]").toExist()
   })
 
-  test("Escape closes detail pane", () => {
-    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"))), {
+  test("Escape unfocuses then closes detail pane", () => {
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
       checkIncremental: false,
       incremental: false,
     })
 
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
+    // Escape 1: unfocus detail, return to board (pane stays open)
+    board.press("Escape")
+    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+
+    // Escape 2: close pane
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("detail cursor resets on each transition", () => {
@@ -124,7 +129,7 @@ describe("Detail pane toggle", () => {
   })
 
   test("multiple D cycles work correctly", () => {
-    const { board, store, focusManager } = testEnv(() => item("board", item("col1", item("card1"))), {
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1"))), {
       checkIncremental: false,
       incremental: false,
     })
@@ -140,6 +145,5 @@ describe("Detail pane toggle", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 })

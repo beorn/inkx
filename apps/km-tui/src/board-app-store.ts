@@ -648,10 +648,22 @@ export function createBoardAppStoreState(
             result.ui = { ...state.ui, ...globalUpdates } as UIState
           }
           if (hasPane) {
-            const focusedPaneId = state.workspace.focusedPaneId
-            const pane = state.workspace.panes.get(focusedPaneId)
+            let targetPaneId = state.workspace.focusedPaneId
+            const focused = state.workspace.panes.get(targetPaneId)
+            // When detail view pane is focused, route inlineEditBlock to the parent board pane.
+            // Rendering components read from getActiveBoardPane() which returns the parent,
+            // so inlineEditBlock must be stored there for components to find it.
+            if (
+              focused &&
+              isDetailViewPane(focused) &&
+              focused.parentPaneId &&
+              "inlineEditBlock" in paneUpdates
+            ) {
+              targetPaneId = focused.parentPaneId
+            }
+            const pane = state.workspace.panes.get(targetPaneId)
             if (pane && isBoardPane(pane)) {
-              const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, paneUpdates)
+              const newPanes = updateBoardPane(state.workspace, targetPaneId, pane, paneUpdates)
               result.workspace = { ...state.workspace, panes: newPanes }
             }
           }

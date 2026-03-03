@@ -27,8 +27,10 @@ import {
 import { shortName, parseDepsRefs } from "./tree-node-helpers.tsx"
 import { deriveSelectedTheme } from "../theme.ts"
 import { NodeLineView } from "./NodeView.tsx"
+import { InlineEditField } from "./InlineEditField.tsx"
 import { PaneBar } from "./PaneBar.tsx"
 import { computeFolderDetailItems, DETAIL_META_PREFIX, DETAIL_TOPBAR_ID, KNOWN_DATA_KEYS } from "./detail-pane-items.ts"
+import { useSetUI } from "../ui-context.tsx"
 
 export interface DetailPaneProps {
   node: KNode
@@ -38,6 +40,10 @@ export interface DetailPaneProps {
   detailCursorNodeId?: string | null
   /** Whether this pane is focused (from workspace pane system). Default: true. */
   isFocused?: boolean
+  /** When non-empty, only show tasks with these statuses (hide done/dropped). */
+  taskStatusFilter?: ReadonlySet<string>
+  /** Inline edit block from parent pane (routed via setUI). */
+  inlineEditBlock?: { nodeId: string; blockIndex: number } | null
 }
 
 export function DetailPane({
@@ -46,6 +52,8 @@ export function DetailPane({
   height,
   detailCursorNodeId = null,
   isFocused = true,
+  taskStatusFilter,
+  inlineEditBlock = null,
 }: DetailPaneProps): React.ReactElement {
   const repo = useRepo()
   const detailFocused = isFocused
@@ -61,6 +69,7 @@ export function DetailPane({
         height={height}
         focused={detailFocused}
         detailCursorNodeId={detailCursorNodeId}
+        inlineEditBlock={inlineEditBlock}
       />
     )
   }
@@ -71,6 +80,8 @@ export function DetailPane({
       height={height}
       focused={detailFocused}
       detailCursorNodeId={detailCursorNodeId}
+      taskStatusFilter={taskStatusFilter}
+      inlineEditBlock={inlineEditBlock}
     />
   )
 }
@@ -85,6 +96,8 @@ interface InternalDetailPaneProps {
   height: number
   focused?: boolean
   detailCursorNodeId: string | null
+  taskStatusFilter?: ReadonlySet<string>
+  inlineEditBlock?: { nodeId: string; blockIndex: number } | null
 }
 
 /** Top bar for detail panes — icon + title via PaneBar.
@@ -140,8 +153,10 @@ function FolderDetailPane({
   height,
   focused: detailFocused = true,
   detailCursorNodeId,
+  inlineEditBlock = null,
 }: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
+  const setUI = useSetUI()
   const theme = useTheme()
   const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
   // No outer border — WorkspaceView provides pane chrome
@@ -173,6 +188,22 @@ function FolderDetailPane({
   const totalChildren = children.length
   const hasMore = entries.length >= maxEntries
 
+  // Inline edit callbacks
+  const handleEditConfirm = React.useCallback(
+    (newValue: string) => {
+      if (inlineEditBlock) {
+        const editNode = repo.getNode(inlineEditBlock.nodeId)
+        if (editNode) {
+          const oldContent = editNode.content ?? ""
+          if (newValue !== oldContent) repo.updateNode(inlineEditBlock.nodeId, { content: newValue })
+        }
+      }
+      setUI({ inlineEditBlock: null })
+    },
+    [inlineEditBlock, repo, setUI],
+  )
+  const handleEditCancel = React.useCallback(() => setUI({ inlineEditBlock: null }), [setUI])
+
   return (
     <Box flexDirection="column" flexGrow={1} width={width} height={height}>
       <DetailPaneTopBar node={node} isFocused={detailFocused} isCursored={detailCursorNodeId === DETAIL_TOPBAR_ID} />
@@ -191,6 +222,7 @@ function FolderDetailPane({
             {entries.map((entry, i) => {
               // Cursor highlight: match by nodeId for depth-0 (navigable) entries
               const isCursored = entry.depth === 0 && entry.node.id === detailCursorNodeId
+              const isEditing = entry.depth === 0 && inlineEditBlock?.nodeId === entry.node.id
               return (
                 <Box
                   key={`${entry.node.id}-${i}`}
@@ -198,11 +230,22 @@ function FolderDetailPane({
                   color={isCursored ? "$selectedfg" : undefined}
                   theme={isCursored ? selTheme : undefined}
                 >
-                  <NodeLineView
-                    node={entry.node}
-                    displayName={getNodeDisplayName(repo, entry.node)}
-                    indent={entry.depth}
-                  />
+                  {isEditing ? (
+                    <Text wrap="truncate">
+                      {"  ".repeat(entry.depth)}
+                      <InlineEditField
+                        initialValue={entry.node.content ?? getNodeDisplayName(repo, entry.node)}
+                        onConfirm={handleEditConfirm}
+                        onCancel={handleEditCancel}
+                      />
+                    </Text>
+                  ) : (
+                    <NodeLineView
+                      node={entry.node}
+                      displayName={getNodeDisplayName(repo, entry.node)}
+                      indent={entry.depth}
+                    />
+                  )}
                 </Box>
               )
             })}
@@ -213,7 +256,7 @@ function FolderDetailPane({
         {/* Footer: keybindings */}
         <Box flexShrink={0} paddingX={1}>
           <Text dimColor wrap="truncate">
-            {"j/k:nav h/Esc:close Enter:open"}
+            {"j/k:nav h/Esc:close Enter:edit"}
           </Text>
         </Box>
       </ErrorBoundary>
@@ -231,6 +274,8 @@ function TaskDetailPane({
   height,
   focused: detailFocused = true,
   detailCursorNodeId,
+  taskStatusFilter,
+  inlineEditBlock = null,
 }: InternalDetailPaneProps): React.ReactElement {
   const repo = useRepo()
   const theme = useTheme()
@@ -297,7 +342,12 @@ function TaskDetailPane({
       bodyChildren.push(child)
     }
   }
-  const structuralChildren = [...liItems, ...oiItems]
+  const allStructuralChildren = [...liItems, ...oiItems]
+  // Apply task status filter (hide done/dropped) when active
+  const structuralChildren =
+    taskStatusFilter && taskStatusFilter.size > 0
+      ? allStructuralChildren.filter((n) => !n.task_status || taskStatusFilter.has(n.task_status))
+      : allStructuralChildren
 
   // Get backlinks (deduplicated by node ID)
   const backlinks = repo.getBacklinks(node.id)
@@ -307,7 +357,7 @@ function TaskDetailPane({
     if (seenBacklinkIds.has(link.source_id)) continue
     seenBacklinkIds.add(link.source_id)
     const sourceNode = repo.getNode(link.source_id)
-    if (sourceNode) {
+    if (sourceNode && (!taskStatusFilter || taskStatusFilter.size === 0 || !sourceNode.task_status || taskStatusFilter.has(sourceNode.task_status))) {
       backlinkNodes.push(sourceNode)
     }
   }
@@ -389,6 +439,7 @@ function TaskDetailPane({
                 innerWidth={contentWidth}
                 cursorNodeId={detailCursorNodeId}
                 isFocused={detailFocused}
+                inlineEditBlock={inlineEditBlock}
               />
             </Box>
           )}
@@ -711,15 +762,34 @@ function DetailSubitems({
   innerWidth,
   cursorNodeId = null,
   isFocused = true,
+  inlineEditBlock = null,
 }: {
   repo: Repo
   items: KNode[]
   innerWidth: number
   cursorNodeId?: string | null
   isFocused?: boolean
+  inlineEditBlock?: { nodeId: string; blockIndex: number } | null
 }): React.ReactElement {
   const theme = useTheme()
+  const setUI = useSetUI()
   const selTheme = React.useMemo(() => deriveSelectedTheme(theme), [theme])
+
+  // Inline edit callbacks
+  const handleEditConfirm = React.useCallback(
+    (newValue: string) => {
+      if (inlineEditBlock) {
+        const editNode = repo.getNode(inlineEditBlock.nodeId)
+        if (editNode) {
+          const oldContent = editNode.content ?? ""
+          if (newValue !== oldContent) repo.updateNode(inlineEditBlock.nodeId, { content: newValue })
+        }
+      }
+      setUI({ inlineEditBlock: null })
+    },
+    [inlineEditBlock, repo, setUI],
+  )
+  const handleEditCancel = React.useCallback(() => setUI({ inlineEditBlock: null }), [setUI])
   return (
     <>
       {items.map((item, idx) => {
@@ -728,6 +798,7 @@ function DetailSubitems({
         const icon = getNodeIcon(displayItem.task_status, undefined, displayItem.task_marker !== undefined)
         const isDone = displayItem.task_status === "done" || displayItem.task_status === "dropped"
         const isCursored = item.id === cursorNodeId
+        const isEditing = inlineEditBlock?.nodeId === item.id
         const cursorBg = isCursored ? ("$selected" as const) : undefined
         const cursorFg = isCursored ? ("$selectedfg" as const) : undefined
         // Collapsed sections render muted with just the title + count
@@ -812,15 +883,25 @@ function DetailSubitems({
                 </Text>
               </Box>
               <Box flexGrow={1} flexShrink={1}>
-                <Text bold wrap="wrap" dimColor={isDone}>
-                  <InlineText text={getNodeDisplayName(repo, displayItem)} />
-                  {(dueBadge || assigneeBadge) && (
-                    <Text dimColor bold={false}>
-                      {dueBadge}
-                      {assigneeBadge}
-                    </Text>
-                  )}
-                </Text>
+                {isEditing ? (
+                  <Text wrap="wrap">
+                    <InlineEditField
+                      initialValue={displayItem.content ?? getNodeDisplayName(repo, displayItem)}
+                      onConfirm={handleEditConfirm}
+                      onCancel={handleEditCancel}
+                    />
+                  </Text>
+                ) : (
+                  <Text bold wrap="wrap" dimColor={isDone}>
+                    <InlineText text={getNodeDisplayName(repo, displayItem)} />
+                    {(dueBadge || assigneeBadge) && (
+                      <Text dimColor bold={false}>
+                        {dueBadge}
+                        {assigneeBadge}
+                      </Text>
+                    )}
+                  </Text>
+                )}
               </Box>
             </Box>
 

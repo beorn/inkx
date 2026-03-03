@@ -292,6 +292,8 @@ function noopSubscribe() {
   return () => {}
 }
 
+const EMPTY_SET: ReadonlySet<string> = new Set()
+
 /**
  * CursorAwareDetailPane - reads root node and cursor from the detail view pane.
  *
@@ -325,6 +327,14 @@ function CursorAwareDetailPane(): React.ReactElement {
     }
     return null
   })
+
+  // Read inlineEditBlock from the parent board pane (where setUI routes it)
+  const inlineEditBlock = useAppStore<BoardAppStore, { nodeId: string; blockIndex: number } | null>((s) => {
+    const pane = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    if (!pane?.parentPaneId) return null
+    const parent = s.workspace.panes.get(pane.parentPaneId) as BoardPaneState | undefined
+    return parent?.inlineEditBlock ?? null
+  })
   const repo = useRepo()
   const paneLabel = usePaneLabel()
   const { activeScopeId } = useFocusManager()
@@ -332,6 +342,7 @@ function CursorAwareDetailPane(): React.ReactElement {
   const parentRect = useContentRect()
   const width = parentRect.width > 0 ? parentRect.width : 40
   const height = parentRect.height > 0 ? parentRect.height : 20
+  const taskStatusFilter = useAppStore<BoardAppStore, ReadonlySet<string>>((s) => s.ui?.filterProperties?.taskStatus ?? EMPTY_SET)
 
   const node = rootNodeId ? repo.getNode(rootNodeId) : undefined
   if (!node) {
@@ -358,6 +369,8 @@ function CursorAwareDetailPane(): React.ReactElement {
         height={height}
         detailCursorNodeId={detailCursorNodeId}
         isFocused={isPaneFocused}
+        taskStatusFilter={taskStatusFilter}
+        inlineEditBlock={inlineEditBlock}
       />
     </Box>
   )

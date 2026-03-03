@@ -700,9 +700,10 @@ describe("Escape priority layering", () => {
   test("Escape exits visual mode before closing detail pane", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
-    // Open detail pane
+    // Open detail pane (auto-focuses detail), return to board
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.press("h") // return to board
 
     // Enter visual mode via v+space chord
     board.press("v").press("v").press(" ")

@@ -198,7 +198,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
-    case "ENTER_INLINE_EDIT":
+    case "ENTER_INLINE_EDIT": {
       // P1 fix (km-tui.keys-as-text): Suppress edit mode entry if a dialog was
       // just confirmed. When the user presses Enter to select a search result,
       // the Enter can propagate (in the same event batch or via rapid double-tap)
@@ -208,13 +208,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         log.debug?.("ENTER_INLINE_EDIT suppressed: dialog confirm grace period")
         return ok()
       }
+      // When detail pane is focused, edit the detail cursor node, not the board cursor
+      let editNodeId = action.nodeId
+      if (ctx.focusedPaneViewType() === "detail") {
+        const detailCursorId = ctx.getDetailCursorId()
+        if (!detailCursorId || detailCursorId === DETAIL_TOPBAR_ID) return ok()
+        // Strip __backlink__ prefix to get real node ID
+        editNodeId = detailCursorId.startsWith("__backlink__") ? detailCursorId.slice("__backlink__".length) : detailCursorId
+      }
       ctx.setUI({
         inlineEditBlock: {
-          nodeId: action.nodeId,
+          nodeId: editNodeId,
           blockIndex: action.blockIndex ?? 0,
         },
       })
       return ok()
+    }
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
     case "CLOSE_OR_QUIT":
@@ -318,9 +327,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TOGGLE_DETAIL_PANE": {
-      const boardPane = ownerPaneId(ctx.focusedPaneId())
+      const boardPaneId = ownerPaneId(ctx.focusedPaneId())
+      const wasOpen = ctx.hasDetailPane
       ctx.toggleDetailPane()
-      ctx.focusPaneById(boardPane)
+      // Opening → focus the detail pane; Closing → focus the board pane
+      if (!wasOpen) {
+        ctx.focusPaneById(detailPaneIdFor(boardPaneId))
+      } else {
+        ctx.focusPaneById(boardPaneId)
+      }
       ctx.syncFocusScope()
       return ok()
     }

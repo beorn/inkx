@@ -753,18 +753,22 @@ describe("Detail Pane Navigation", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
-  test("Escape closes detail pane", () => {
-    const { board, store, focusManager } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
+  test("Escape from detail: unfocus → close", () => {
+    const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
-    // Open detail pane (focus stays on board)
+    // D opens + auto-focuses detail pane
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
-    // Escape closes pane
+    // Escape 1: unfocus detail → return to board (pane stays open)
+    board.press("Escape")
+    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
+    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+
+    // Escape 2: close pane
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(focusManager.getSnapshot().activeId).not.toBe("detail-pane")
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
@@ -778,9 +782,10 @@ describe("Detail Pane Navigation", () => {
         columns: 120,
       })
 
-      // Open detail pane on card1
+      // D opens + auto-focuses detail pane, h returns to board
       board.press("D")
       expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+      board.press("h") // return to board
 
       // h/l should navigate columns — detail pane stays open
       board.press("l")
