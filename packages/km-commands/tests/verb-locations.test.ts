@@ -94,11 +94,12 @@ describe("verb-locations", () => {
       expect(last(emptyCtx)).toBe("last")
     })
 
-    it("fav(n) returns 'fav:N' for various n", () => {
-      expect(fav(0)(emptyCtx)).toBe("fav:0")
-      expect(fav(1)(emptyCtx)).toBe("fav:1")
-      expect(fav(5)(emptyCtx)).toBe("fav:5")
-      expect(fav(9)(emptyCtx)).toBe("fav:9")
+    it("fav(key) returns 'fav:KEY' for various keys", () => {
+      expect(fav("0")(emptyCtx)).toBe("fav:0")
+      expect(fav("1")(emptyCtx)).toBe("fav:1")
+      expect(fav("5")(emptyCtx)).toBe("fav:5")
+      expect(fav("9")(emptyCtx)).toBe("fav:9")
+      expect(fav("q")(emptyCtx)).toBe("fav:q")
     })
 
     it("pick(prefix) returns 'pick:PREFIX'", () => {
@@ -122,10 +123,10 @@ describe("verb-locations", () => {
         expect(goTo(archive)(emptyCtx)).toEqual({ type: "GOTO_BOARD", boardId: "@archive" })
       })
 
-      it("returns JUMP_TO_FAVORITE for fav:N", () => {
-        expect(goTo(fav(1))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteNumber: 1 })
-        expect(goTo(fav(0))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteNumber: 0 })
-        expect(goTo(fav(9))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteNumber: 9 })
+      it("returns JUMP_TO_FAVORITE for fav:KEY", () => {
+        expect(goTo(fav("1"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "1" })
+        expect(goTo(fav("0"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "0" })
+        expect(goTo(fav("9"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "9" })
       })
 
       it("returns ZOOM_OUTWARDS for parent", () => {
@@ -152,9 +153,9 @@ describe("verb-locations", () => {
         expect(moveTo(archive)(emptyCtx)).toEqual({ type: "MOVE_TO_BOARD", boardId: "@archive" })
       })
 
-      it("returns MOVE_TO_FAVORITE for fav:N", () => {
-        expect(moveTo(fav(3))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteNumber: 3 })
-        expect(moveTo(fav(0))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteNumber: 0 })
+      it("returns MOVE_TO_FAVORITE for fav:KEY", () => {
+        expect(moveTo(fav("3"))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: "3" })
+        expect(moveTo(fav("0"))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: "0" })
       })
 
       it("returns OUTDENT_NODE for parent", () => {
@@ -201,9 +202,9 @@ describe("verb-locations", () => {
         expect(addTo(pick("["))(emptyCtx)).toEqual({ type: "ADD_LINK" })
       })
 
-      it("returns ADD_LINK_TO_FAVORITE for fav:N", () => {
-        expect(addTo(fav(1))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteNumber: 1 })
-        expect(addTo(fav(7))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteNumber: 7 })
+      it("returns ADD_LINK_TO_FAVORITE for fav:KEY", () => {
+        expect(addTo(fav("1"))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: "1" })
+        expect(addTo(fav("7"))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: "7" })
       })
 
       it("returns null when target resolver returns null", () => {
@@ -216,7 +217,7 @@ describe("verb-locations", () => {
       it("returns CAPTURE_DIALOG for any target", () => {
         expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
         expect(createIn(journal)(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
-        expect(createIn(fav(1))(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
+        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
       })
 
       it("returns CAPTURE_DIALOG even with null target resolver", () => {
@@ -386,7 +387,7 @@ describe("verb-locations", () => {
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "JUMP_TO_FAVORITE", favoriteNumber: n })
+        expect(action).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: String(n) })
       }
     })
 
@@ -396,7 +397,7 @@ describe("verb-locations", () => {
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "MOVE_TO_FAVORITE", favoriteNumber: n })
+        expect(action).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: String(n) })
       }
     })
 
@@ -405,7 +406,7 @@ describe("verb-locations", () => {
         const b = grid.find((b) => b.chord === "a" && b.key === String(n))
         expect(b).toBeDefined()
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteNumber: n })
+        expect(action).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: String(n) })
       }
     })
 

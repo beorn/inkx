@@ -24,7 +24,7 @@
 2 apps/km-tui/src/board/board-actions-edit.ts
 4 apps/km-tui/src/board/board-actions-search-replace.ts
 4 apps/km-tui/src/board/board-actions-zoom.ts
-11 apps/km-tui/src/board/board-actions.ts
+9 apps/km-tui/src/board/board-actions.ts
 1 apps/km-tui/src/command-bridge.ts
 3 apps/km-tui/src/cursor-context.tsx
 1 apps/km-tui/src/cursor-store.ts
@@ -93,7 +93,6 @@
 20 packages/km-commands/src/index.ts
 3 packages/km-commands/tests/commands.test.ts
 1 packages/km-commands/tests/keybindings.test.ts
-12 packages/km-commands/tests/verb-locations.test.ts
 1 packages/km-connector-caldav/src/webdav-base.ts
 4 packages/km-core/src/index.ts
 1 packages/km-infra/vitest/setup.ts
@@ -110,6 +109,7 @@
 1 packages/km-storage/src/db-queries/utils.ts
 1 packages/km-storage/src/db-rules.ts
 3 packages/km-storage/src/event-compaction.ts
+4 packages/km-storage/src/query.ts
 3 packages/km-storage/src/repo.ts
 1 packages/km-storage/src/store-memory.ts
 1 packages/km-storage/src/testing/fake-repo.ts
@@ -211,13 +211,6 @@
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
 43 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
-4 vendor/beorn-termless/packages/viterm/tests/matchers.test.ts
-4 vendor/beorn-termless/packages/viterm/tests/serializer.test.ts
-1 vendor/beorn-termless/packages/xtermjs/src/backend.ts
-16 vendor/beorn-termless/src/svg.ts
-2 vendor/beorn-termless/src/terminal.ts
-6 vendor/beorn-termless/tests/svg.test.ts
-2 vendor/beorn-termless/tests/terminal.test.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts

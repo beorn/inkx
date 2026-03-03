@@ -111,6 +111,8 @@ describe("CommandBox", () => {
     pendingChord: null,
     chordTimedOut: false,
     showOmnibox: false,
+    showFavoritesDialog: false,
+    favoritesCursor: 0,
     iconStyle: "nerdfont",
     borderMode: "normal",
   }
@@ -314,6 +316,8 @@ describe("StatusCounters", () => {
     pendingChord: null,
     chordTimedOut: false,
     showOmnibox: false,
+    showFavoritesDialog: false,
+    favoritesCursor: 0,
   }
 
   const mockRootPath = "/tmp/test-repo"
