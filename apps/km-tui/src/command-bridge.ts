@@ -95,7 +95,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     omniboxOpen: ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
     favoritesDialogOpen: ui.showFavoritesDialog,
-    favoritesAddMode: ui.favoritesAddMode,
+    favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
     inputType: ui.inlineEditBlock ? "textarea" : isDialogInput ? "field" : undefined,
   })

@@ -143,7 +143,7 @@ export {
   omniboxOpen,
   searchReplaceOpen,
   favoritesDialogOpen,
-  favoritesAddMode,
+  favoritesKeySelected,
   hasKitty,
   // Input type predicates
   inputTypeField,

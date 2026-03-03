@@ -55,38 +55,39 @@ export const dialogCommands: CommandDef[] = [
 /**
  * Favorites dialog commands
  *
- * Press 'a' to start assigning, then press a key to capture it.
- * favorites.assign uses the raw pressed key (injected by routeThroughCommandSystem).
- * favorites.clear removes the favorite at the current cursor position.
+ * "Key first, then action" flow:
+ * 1. M opens dialog showing all favorites (read-only list)
+ * 2. Press any key → favorites.select_key → detail view for that key
+ * 3. Enter → assign cursor node, Delete/Backspace → clear, Esc → back to list
  */
 export const favoritesDialogCommands: CommandDef[] = [
   {
-    id: "favorites.start_assign",
-    name: "Start Assign Favorite",
-    description: "Enter key capture mode to assign current node",
+    id: "favorites.select_key",
+    name: "Select Favorite Key",
+    description: "Select a key to view/assign/clear",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_START_ASSIGN" }),
+    execute: (): CommandAction => ({ type: "FAVORITES_SELECT_KEY", key: "" }), // key injected by caller
   },
   {
     id: "favorites.assign",
     name: "Assign Favorite",
-    description: "Assign current node to the pressed key",
+    description: "Assign cursor node to the selected key",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_ASSIGN", key: "" }), // key injected by caller
-  },
-  {
-    id: "favorites.cancel_assign",
-    name: "Cancel Assign",
-    description: "Cancel key capture mode",
-    category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_CANCEL_ASSIGN" }),
+    execute: (): CommandAction => ({ type: "FAVORITES_ASSIGN" }),
   },
   {
     id: "favorites.clear",
     name: "Clear Favorite",
-    description: "Remove the favorite at cursor",
+    description: "Clear the selected favorite",
     category: "Navigation",
     execute: (): CommandAction => ({ type: "FAVORITES_CLEAR" }),
+  },
+  {
+    id: "favorites.back",
+    name: "Back to Favorites List",
+    description: "Return to favorites list from detail view",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FAVORITES_BACK" }),
   },
 ]
 

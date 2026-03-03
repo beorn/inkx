@@ -112,8 +112,7 @@ describe("CommandBox", () => {
     chordTimedOut: false,
     showOmnibox: false,
     showFavoritesDialog: false,
-    favoritesCursor: 0,
-    favoritesAddMode: false,
+    favoritesSelectedKey: null,
     iconStyle: "nerdfont",
     borderMode: "normal",
   }
@@ -318,8 +317,7 @@ describe("StatusCounters", () => {
     chordTimedOut: false,
     showOmnibox: false,
     showFavoritesDialog: false,
-    favoritesCursor: 0,
-    favoritesAddMode: false,
+    favoritesSelectedKey: null,
   }
 
   const mockRootPath = "/tmp/test-repo"

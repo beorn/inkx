@@ -144,8 +144,7 @@ export interface UIState {
 
   // Favorites dialog state (global)
   showFavoritesDialog: boolean
-  favoritesCursor: number
-  favoritesAddMode: boolean
+  favoritesSelectedKey: string | null
 }
 
 /**
@@ -352,8 +351,7 @@ export function createInitialUIState(
     showOmnibox: false,
 
     showFavoritesDialog: false,
-    favoritesCursor: 0,
-    favoritesAddMode: false,
+    favoritesSelectedKey: null,
   }
 }
 

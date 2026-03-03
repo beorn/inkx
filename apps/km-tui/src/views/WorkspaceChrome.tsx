@@ -428,10 +428,9 @@ export function WorkspaceChrome({
           data-dialog="favorites"
         >
           <FavoritesDialog
-            cursor={ui.favoritesCursor}
+            selectedKey={ui.favoritesSelectedKey}
             width={Math.min(50, Math.floor(termWidth / 2))}
-            addMode={ui.favoritesAddMode}
-            assignNodeName={cursorNodeId ? (repo.getNode(cursorNodeId)?.title ?? cursorNodeId) : null}
+            assignNodeId={cursorNodeId}
           />
         </DialogBox>
       )}

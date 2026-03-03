@@ -667,9 +667,9 @@ function routeThroughCommandSystem(
       }
     }
 
-    // Inject pressed key into FAVORITES_ASSIGN (wildcard catches key, command doesn't have it)
+    // Inject pressed key into FAVORITES_SELECT_KEY (wildcard catches key, command doesn't have it)
     for (const action of actionList) {
-      if (action.type === "FAVORITES_ASSIGN" && !(action as { key?: string }).key) {
+      if (action.type === "FAVORITES_SELECT_KEY" && !(action as { key?: string }).key) {
         ;(action as { key: string }).key = input
       }
     }

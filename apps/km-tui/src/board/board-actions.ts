@@ -793,19 +793,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return unimplemented("ui")
     case "MANAGE_FAVORITES":
       pushDialogMode("dialog:favorites")
-      ctx.setUI({ showFavoritesDialog: true, favoritesCursor: 0, favoritesAddMode: false })
+      ctx.setUI({ showFavoritesDialog: true, favoritesSelectedKey: null })
       clearSelection(ctx)
       return ok()
-    case "FAVORITES_START_ASSIGN":
-      ctx.setUI({ favoritesAddMode: true })
-      return ok()
+    case "FAVORITES_SELECT_KEY":
+      return handleFavoritesSelectKey(ctx, action.key)
     case "FAVORITES_ASSIGN":
-      return handleFavoritesAssign(ctx, action.key)
-    case "FAVORITES_CANCEL_ASSIGN":
-      ctx.setUI({ favoritesAddMode: false })
-      return ok()
+      return handleFavoritesAssign(ctx)
     case "FAVORITES_CLEAR":
       return handleFavoritesClear(ctx)
+    case "FAVORITES_BACK":
+      ctx.setUI({ favoritesSelectedKey: null })
+      return ok()
 
     // === Property actions ===
     case "SET_DUE_DATE":
@@ -1198,12 +1197,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
     // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
     case "DIALOG_NAV_UP":
-      if (ctx.ui.showFavoritesDialog) {
-        ctx.setUI((prev) => ({
-          favoritesCursor: Math.max(prev.favoritesCursor - 1, 0),
-        }))
-        return ok()
-      }
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
           filterCursorRow: Math.max(prev.filterCursorRow - 1, 0),
@@ -1214,13 +1207,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       dialogTargetRef.current?.navUp()
       return ok()
     case "DIALOG_NAV_DOWN":
-      if (ctx.ui.showFavoritesDialog) {
-        const favCount = getAllFavorites().size
-        ctx.setUI((prev) => ({
-          favoritesCursor: Math.min(prev.favoritesCursor + 1, favCount - 1),
-        }))
-        return ok()
-      }
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
           filterCursorRow: Math.min(prev.filterCursorRow + 1, VIEW_DIALOG_ROWS.length - 1),
@@ -1298,7 +1284,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DIALOG_CANCEL":
       if (ctx.ui.showFavoritesDialog) {
         popDialogMode()
-        ctx.setUI({ showFavoritesDialog: false, favoritesAddMode: false })
+        ctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
         return ok()
       }
       if (ctx.ui.showFilterDialog) {
@@ -1450,47 +1436,52 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
   return ok()
 }
 
-function handleFavoritesAssign(ctx: ActionCtx, key: string): ActionResult {
-  if (!key) return ok() // no key (shouldn't happen)
+function handleFavoritesSelectKey(ctx: ActionCtx, key: string): ActionResult {
+  if (!key) return ok()
   if (RESERVED_KEYS.has(key)) {
     const label = getReservedKeyLabel(key)
     ctx.toastQueue.warning(`Key '${key}' is reserved for '${label}'`)
-    ctx.setUI({ favoritesAddMode: false })
     return ok()
   }
+  ctx.setUI({ favoritesSelectedKey: key })
+  return ok()
+}
+
+function handleFavoritesAssign(ctx: ActionCtx): ActionResult {
+  const key = ctx.ui.favoritesSelectedKey
+  if (!key) return ok()
 
   const nodeId = ctx.cursorNodeId
   if (!nodeId) {
     ctx.toastQueue.warning("No node selected")
-    ctx.setUI({ favoritesAddMode: false })
     return ok()
   }
 
   const node = ctx.repo.getNode(nodeId)
   const name = node?.title ?? node?.name ?? nodeId
   setFavorite(key, nodeId)
-  // Re-register keybindings so the new favorite is bound
   initDefaultKeybindings()
   ctx.toastQueue.success(`Favorite '${key}' → ${name}`)
   popDialogMode()
-  ctx.setUI({ showFavoritesDialog: false, favoritesAddMode: false })
+  ctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
   return ok()
 }
 
 function handleFavoritesClear(ctx: ActionCtx): ActionResult {
-  const sortedFavorites = Array.from(getAllFavorites().entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  const cursorIndex = ctx.ui.favoritesCursor
-  const entry = sortedFavorites[cursorIndex]
-  if (!entry) return ok()
+  const key = ctx.ui.favoritesSelectedKey
+  if (!key) return ok()
 
-  clearFavorite(entry[0])
-  // Re-register keybindings
+  const existing = getFavorite(key)
+  if (!existing) {
+    ctx.toastQueue.warning(`No favorite assigned to '${key}'`)
+    ctx.setUI({ favoritesSelectedKey: null })
+    return ok()
+  }
+
+  clearFavorite(key)
   initDefaultKeybindings()
-  ctx.toastQueue.info(`Cleared favorite '${entry[0]}'`)
-  // Adjust cursor if we deleted the last item
-  const newSize = getAllFavorites().size
-  const newCursor = cursorIndex >= newSize ? Math.max(0, newSize - 1) : cursorIndex
-  ctx.setUI({ favoritesCursor: newCursor })
+  ctx.toastQueue.info(`Cleared favorite '${key}'`)
+  ctx.setUI({ favoritesSelectedKey: null })
   return ok()
 }
 

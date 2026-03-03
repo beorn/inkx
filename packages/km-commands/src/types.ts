@@ -780,21 +780,21 @@ interface ManageFavoritesAction {
   type: "MANAGE_FAVORITES"
 }
 
-interface FavoritesStartAssignAction {
-  type: "FAVORITES_START_ASSIGN"
+interface FavoritesSelectKeyAction {
+  type: "FAVORITES_SELECT_KEY"
+  key: string
 }
 
 interface FavoritesAssignAction {
   type: "FAVORITES_ASSIGN"
-  key: string
-}
-
-interface FavoritesCancelAssignAction {
-  type: "FAVORITES_CANCEL_ASSIGN"
 }
 
 interface FavoritesClearAction {
   type: "FAVORITES_CLEAR"
+}
+
+interface FavoritesBackAction {
+  type: "FAVORITES_BACK"
 }
 
 type SearchReplaceAction =
@@ -911,10 +911,10 @@ export type TUIAction =
   | FocusNextAction
   | FocusPrevAction
   | ManageFavoritesAction
-  | FavoritesStartAssignAction
+  | FavoritesSelectKeyAction
   | FavoritesAssignAction
-  | FavoritesCancelAssignAction
   | FavoritesClearAction
+  | FavoritesBackAction
 
 export type UIAction =
   | ZoomOutwardsAction

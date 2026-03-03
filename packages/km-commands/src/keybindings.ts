@@ -9,7 +9,7 @@ import {
   anyDialogOpen,
   filterDialogOpen,
   favoritesDialogOpen,
-  favoritesAddMode,
+  favoritesKeySelected,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
@@ -73,8 +73,8 @@ export interface KeybindingContext {
   searchReplaceOpen?: boolean
   /** True when the favorites dialog is open */
   favoritesDialogOpen?: boolean
-  /** True when favorites dialog is in "add" mode (capturing a key) */
-  favoritesAddMode?: boolean
+  /** True when a key is selected in the favorites detail view */
+  favoritesKeySelected?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
@@ -416,18 +416,14 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "favorites-dialog",
     bindings: [
-      // Add mode: capture the pressed key or cancel
-      { key: "Escape", commandId: "favorites.cancel_assign", when: and(favoritesDialogOpen, favoritesAddMode) },
-      { key: "*", wildcard: true, commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesAddMode) },
-      // Normal mode: navigate, add, clear, close
+      // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
+      { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
+      { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
+      { key: "Backspace", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
+      { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
+      // List view: Escape closes, any key selects it
       { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
-      { key: "a", commandId: "favorites.start_assign", when: favoritesDialogOpen },
-      { key: "j", commandId: "dialog.nav_down", when: favoritesDialogOpen },
-      { key: "k", commandId: "dialog.nav_up", when: favoritesDialogOpen },
-      { key: "ArrowDown", commandId: "dialog.nav_down", when: favoritesDialogOpen },
-      { key: "ArrowUp", commandId: "dialog.nav_up", when: favoritesDialogOpen },
-      { key: "x", commandId: "favorites.clear", when: favoritesDialogOpen },
-      { key: "X", commandId: "favorites.clear", when: favoritesDialogOpen },
+      { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
     ],
   },
 
