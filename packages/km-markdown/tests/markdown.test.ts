@@ -179,8 +179,9 @@ tags: [a, b, c]
         field: "dueAt",
         expected: "2026-01-20",
       },
+      // start:DATE legacy format is no longer read (only start:: and ⏳ are)
       {
-        text: "Call client start:2026-01-15",
+        text: "Call client start:: 2026-01-15",
         field: "startAt",
         expected: "2026-01-15",
       },

@@ -395,7 +395,7 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
       // Also strip emoji/legacy task metadata formats that cleanText doesn't handle
       displayContent = parseTaskMetadataFromText(displayContent).cleanContent
     } else {
-      // No inline properties, just strip task-specific metadata (due::, start::, p::, recur::)
+      // No inline properties, just strip task-specific metadata (due::, start::, priority::, recur::, due:, 📅, ⏳, 🔁)
       displayContent = parseTaskMetadataFromText(text).cleanContent
     }
   }

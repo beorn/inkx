@@ -463,7 +463,7 @@ function serializeLi(
   return md
 }
 
-/** Append task metadata as text key:value tags (due:, start:, p:, recur:, plus data.metadata and data.propsRaw entries). */
+/** Append task metadata as key:: value pairs (plus data.metadata and data.propsRaw entries). */
 function appendTaskMetadata(node: KNode): string {
   let content = stringifyTaskMetadata(node.content ?? "", node)
   const metadata = (node.data?.metadata as Record<string, string>) ?? {}

@@ -254,7 +254,7 @@ export function extractAllRefs(text: string): {
  *
  * Supported formats:
  * - Obsidian Tasks: 📅 2024-01-15, ⏳ 2024-01-10, ⏫/🔼/🔽, 🔁 every week
- * - Inline fields: due:2024-01-15, start:2024-01-10, p:1
+ * - todo.txt compat: due:2024-01-15
  */
 export function parseTaskMetadata(text: string): {
   dueAt?: string

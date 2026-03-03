@@ -805,18 +805,20 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.data?.rrule).toBe("every week")
   })
 
-  test("should extract inline field format (due:, start:) and strip from content", () => {
+  test("should extract due: (todo.txt compat) but not start: or p: legacy formats", () => {
     const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
       (n) => n.type === "p" && n.item === true && n.task_marker,
     )
 
     expect(task).toBeDefined()
+    // due:DATE is still supported (todo.txt compat)
     expect(task!.due_at).toBe("2025-11-15")
-    expect(task!.start_at).toBe("2025-11-10")
+    // start:DATE is NO LONGER read — only start:: and ⏳ are supported
+    expect(task!.start_at).toBeUndefined()
     // Legacy p:N format is no longer extracted for priority
     expect(task!.priority).toBeUndefined()
-    // p:2 is NOT stripped — stays as plain text (only date/recur legacy formats are stripped)
-    expect(task!.content).toBe("Task with inline fields p:2")
+    // start:2025-11-10 and p:2 stay as plain text (not stripped, not extracted)
+    expect(task!.content).toBe("Task with inline fields start:2025-11-10 p:2")
   })
 
   test("emoji priority symbols are not extracted and stay as plain text", () => {

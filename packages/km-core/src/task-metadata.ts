@@ -7,12 +7,11 @@
  * Canonical format (key:: value — Dataview-compatible):
  *   due:: 2024-01-15  start:: 2024-01-10  priority:: P2  recur:: FREQ=WEEKLY
  *
- * Reads three formats (backward compat for dates/recurrence only):
- * 1. New: key:: value (canonical, always written)
- * 2. Legacy: key:value (todo.txt-style, read-only — dates/recurrence only)
- * 3. Emoji: 📅 ⏳ 🔁 (Obsidian Tasks, read-only — dates/recurrence only)
+ * Also reads external formats (compat with other systems):
+ * - due:YYYY-MM-DD (todo.txt compat, read-only)
+ * - 📅 ⏳ 🔁 (Obsidian Tasks compat, read-only)
  *
- * Priority uses ONLY the key:: value format (priority:: key).
+ * Priority uses ONLY the key:: value format (priority:: VALUE).
  */
 
 import type { KNode } from "./types.ts"
@@ -20,20 +19,14 @@ import { decomposeDatetime } from "./date-utils.ts"
 import { extractMetadata, stringifyMetadata, type MetadataEntries } from "./metadata.ts"
 
 // =============================================================================
-// Legacy extraction regexes — key:value format (read-only backward compat)
+// External format regexes — todo.txt compat (read-only)
 // =============================================================================
 
-/** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM */
+/** Matches due:YYYY-MM-DD or due:YYYY-MM-DDTHH:MM (todo.txt compat) */
 const DUE_LEGACY_REGEX = /\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
 
-/** Matches start:YYYY-MM-DD or start:YYYY-MM-DDTHH:MM */
-const START_LEGACY_REGEX = /\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
-
-/** Matches recur:VALUE (non-whitespace) */
-const RECURRENCE_LEGACY_REGEX = /\brecur:(\S+)/
-
 // =============================================================================
-// Emoji extraction regexes (read-only backward compat)
+// External format regexes — Obsidian Tasks compat (read-only)
 // =============================================================================
 
 const DUE_EMOJI_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/
@@ -44,10 +37,8 @@ const RECURRENCE_EMOJI_REGEX = /🔁\s*(.+?)(?:\s*[📅⏳]|$)/u
 // Stripping regexes — remove metadata from text (all formats)
 // =============================================================================
 
-/** Strip legacy key:value format */
+/** Strip todo.txt format */
 const STRIP_LEGACY_DUE = /\s*\bdue:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-const STRIP_LEGACY_START = /\s*\bstart:(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?\b/
-const STRIP_LEGACY_RECURRENCE = /\s*\brecur:(\S+)/
 
 /** Strip emoji format */
 const STRIP_EMOJI_DUE = /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
@@ -70,8 +61,10 @@ export interface ExtractedTaskMetadata {
 
 /**
  * Extract task metadata from text content.
- * Priority: only reads `priority::` key.
- * Dates/recurrence: reads key:: value > legacy key:value > emoji formats.
+ * Priority: only `priority::` key.
+ * Due: `due::` > `due:` (todo.txt) > `📅` (Obsidian Tasks).
+ * Start: `start::` > `⏳` (Obsidian Tasks).
+ * Recurrence: `recur::` > `🔁` (Obsidian Tasks).
  *
  * Used by:
  * - km-markdown parser (parseTaskMetadata wrapper)
@@ -105,7 +98,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
     result.rrule = entries.recur
   }
 
-  // Pass 2: Fall back to legacy key:value format for dates/recurrence only
+  // Pass 2: Fall back to todo.txt due:DATE format
   if (!result.dueDate) {
     const match = text.match(DUE_LEGACY_REGEX)
     if (match) {
@@ -113,19 +106,8 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
       if (match[2]) result.dueTime = match[2]
     }
   }
-  if (!result.startDate) {
-    const match = text.match(START_LEGACY_REGEX)
-    if (match) {
-      result.startDate = match[1]
-      if (match[2]) result.startTime = match[2]
-    }
-  }
-  if (!result.rrule) {
-    const match = text.match(RECURRENCE_LEGACY_REGEX)
-    if (match?.[1]) result.rrule = match[1]
-  }
 
-  // Pass 3: Fall back to emoji format for dates/recurrence only
+  // Pass 3: Fall back to Obsidian Tasks emoji format
   if (!result.dueDate) {
     const match = text.match(DUE_EMOJI_REGEX)
     if (match) {
@@ -238,7 +220,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
 
 /**
  * Parse metadata from edited text and return clean content + field values.
- * Priority: only key:: value. Dates/recurrence: all three formats.
+ * Reads canonical key:: value, plus external formats (todo.txt due:, Obsidian emoji).
  *
  * Used by TUI save handlers to restore structured fields from inline-edited text.
  */
@@ -299,14 +281,12 @@ function stripTaskMetadataFormats(text: string): string {
   return stripLegacyAndEmojiMetadata(clean)
 }
 
-/** Strip legacy key:value and emoji metadata from text (dates/recurrence + priority) */
+/** Strip external format metadata from text (todo.txt due: + Obsidian Tasks emoji) */
 function stripLegacyAndEmojiMetadata(text: string): string {
   let clean = text
-  // Legacy key:value
+  // todo.txt
   clean = clean.replace(STRIP_LEGACY_DUE, "")
-  clean = clean.replace(STRIP_LEGACY_START, "")
-  clean = clean.replace(STRIP_LEGACY_RECURRENCE, "")
-  // Emoji
+  // Obsidian Tasks emoji
   clean = clean.replace(STRIP_EMOJI_DUE, "")
   clean = clean.replace(STRIP_EMOJI_START, "")
   clean = clean.replace(STRIP_EMOJI_RECURRENCE, "")

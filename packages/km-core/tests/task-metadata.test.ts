@@ -2,11 +2,16 @@
  * Tests for task metadata — shared extraction, stringify, and parse.
  *
  * Covers:
- * - extractTaskMetadata: text → { dueDate, priority, ... } (priority:: only, dates/recurrence 3 formats)
+ * - extractTaskMetadata: text → { dueDate, priority, ... } (priority:: only; due 3 formats; start/recur 2 formats)
  * - stringifyTaskMetadata: node fields → appended key:: value metadata
  * - parseTaskMetadataFromText: edited text → { cleanContent, fields }
  * - Round-trip: stringify → parse recovers original fields
- * - Format migration: old key:value and emoji → key:: value on save
+ * - Format migration: emoji → key:: value on save
+ *
+ * Legacy format support:
+ * - due:DATE (todo.txt) — still read and stripped (backward compat)
+ * - start:DATE — NO LONGER recognized (only start:: and ⏳)
+ * - recur:VALUE — NO LONGER recognized (only recur:: and 🔁)
  */
 import { describe, test, expect } from "vitest"
 import { extractTaskMetadata, stringifyTaskMetadata, parseTaskMetadataFromText } from "../src/task-metadata.ts"
@@ -74,9 +79,9 @@ describe("stringifyTaskMetadata", () => {
       expect(stringifyTaskMetadata("Task", node)).toBe("Task start:: 2025-03-10T09:00")
     })
 
-    test("preserves old start:value format when values match", () => {
+    test("start:value is not recognized — rewrites with start::", () => {
       const node = makeNode({ content: "Task start:2025-03-10", start_at: "2025-03-10" })
-      expect(stringifyTaskMetadata("Task start:2025-03-10", node)).toBe("Task start:2025-03-10")
+      expect(stringifyTaskMetadata("Task start:2025-03-10", node)).toBe("Task start:2025-03-10 start:: 2025-03-10")
     })
 
     test("preserves emoji ⏳ format when values match", () => {
@@ -123,9 +128,9 @@ describe("stringifyTaskMetadata", () => {
       expect(stringifyTaskMetadata("Review", node)).toBe('Review recur:: "every week"')
     })
 
-    test("preserves old recur:value format when values match", () => {
+    test("recur:value is not recognized — rewrites with recur::", () => {
       const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=WEEKLY" })
-      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY")
+      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY recur:: FREQ=WEEKLY")
     })
 
     test("preserves emoji 🔁 format when values match", () => {
@@ -135,7 +140,7 @@ describe("stringifyTaskMetadata", () => {
 
     test("rewrites to key:: value when rrule changes", () => {
       const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=DAILY" })
-      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:: FREQ=DAILY")
+      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY recur:: FREQ=DAILY")
     })
   })
 
@@ -243,7 +248,7 @@ describe("parseTaskMetadataFromText", () => {
     })
   })
 
-  describe("legacy format (key:value) — backward compat", () => {
+  describe("legacy format (key:value) — only due: (todo.txt)", () => {
     test("strips due:value", () => {
       const result = parseTaskMetadataFromText("Ideas due:2026-02-15")
       expect(result.cleanContent).toBe("Ideas")
@@ -256,16 +261,16 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.due_at).toBe("2026-02-15T14:30")
     })
 
-    test("strips start:value", () => {
+    test("start:value is not stripped or extracted", () => {
       const result = parseTaskMetadataFromText("Task start:2026-03-10")
-      expect(result.cleanContent).toBe("Task")
-      expect(result.start_at).toBe("2026-03-10")
+      expect(result.cleanContent).toBe("Task start:2026-03-10")
+      expect(result.start_at).toBeUndefined()
     })
 
-    test("strips start:value with time", () => {
+    test("start:value with time is not stripped or extracted", () => {
       const result = parseTaskMetadataFromText("Task start:2026-03-10T09:00")
-      expect(result.cleanContent).toBe("Task")
-      expect(result.start_at).toBe("2026-03-10T09:00")
+      expect(result.cleanContent).toBe("Task start:2026-03-10T09:00")
+      expect(result.start_at).toBeUndefined()
     })
 
     test("p:N stays in text (not stripped, not extracted)", () => {
@@ -274,19 +279,19 @@ describe("parseTaskMetadataFromText", () => {
       expect(result.priority).toBeUndefined()
     })
 
-    test("strips recur:value", () => {
+    test("recur:value is not stripped or extracted", () => {
       const result = parseTaskMetadataFromText("Review recur:FREQ=WEEKLY")
-      expect(result.cleanContent).toBe("Review")
-      expect(result.rrule).toBe("FREQ=WEEKLY")
+      expect(result.cleanContent).toBe("Review recur:FREQ=WEEKLY")
+      expect(result.rrule).toBeUndefined()
     })
 
-    test("strips legacy dates/recurrence, but p:N stays", () => {
+    test("only due: is stripped from legacy; start:, p:N, recur: stay", () => {
       const result = parseTaskMetadataFromText("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
-      expect(result.cleanContent).toBe("Big task p:2")
+      expect(result.cleanContent).toBe("Big task start:2026-05-15 p:2 recur:FREQ=MONTHLY")
       expect(result.due_at).toBe("2026-06-01")
-      expect(result.start_at).toBe("2026-05-15")
+      expect(result.start_at).toBeUndefined()
       expect(result.priority).toBeUndefined()
-      expect(result.rrule).toBe("FREQ=MONTHLY")
+      expect(result.rrule).toBeUndefined()
     })
   })
 
@@ -376,7 +381,7 @@ describe("extractTaskMetadata", () => {
     })
   })
 
-  describe("legacy format (key:value)", () => {
+  describe("legacy format (key:value) — only due: (todo.txt)", () => {
     test("extracts due date", () => {
       const result = extractTaskMetadata("Task due:2026-03-15")
       expect(result.dueDate).toBe("2026-03-15")
@@ -388,15 +393,15 @@ describe("extractTaskMetadata", () => {
       expect(result.dueTime).toBe("14:30")
     })
 
-    test("extracts start date", () => {
+    test("does not extract legacy start:value", () => {
       const result = extractTaskMetadata("Task start:2026-01-10")
-      expect(result.startDate).toBe("2026-01-10")
+      expect(result.startDate).toBeUndefined()
     })
 
-    test("extracts start date with time", () => {
+    test("does not extract legacy start:value with time", () => {
       const result = extractTaskMetadata("Task start:2026-01-10T09:00")
-      expect(result.startDate).toBe("2026-01-10")
-      expect(result.startTime).toBe("09:00")
+      expect(result.startDate).toBeUndefined()
+      expect(result.startTime).toBeUndefined()
     })
 
     test("does not extract legacy p:N as priority", () => {
@@ -404,17 +409,17 @@ describe("extractTaskMetadata", () => {
       expect(result.priority).toBeUndefined()
     })
 
-    test("extracts recurrence", () => {
+    test("does not extract legacy recur:value", () => {
       const result = extractTaskMetadata("Review recur:FREQ=WEEKLY")
-      expect(result.rrule).toBe("FREQ=WEEKLY")
+      expect(result.rrule).toBeUndefined()
     })
 
-    test("extracts all metadata (priority not extracted from legacy)", () => {
+    test("only due: extracted from legacy; start/p/recur not extracted", () => {
       const result = extractTaskMetadata("Big task due:2026-06-01 start:2026-05-15 p:2 recur:FREQ=MONTHLY")
       expect(result.dueDate).toBe("2026-06-01")
-      expect(result.startDate).toBe("2026-05-15")
+      expect(result.startDate).toBeUndefined()
       expect(result.priority).toBeUndefined()
-      expect(result.rrule).toBe("FREQ=MONTHLY")
+      expect(result.rrule).toBeUndefined()
     })
   })
 
