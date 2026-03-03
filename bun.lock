@@ -299,6 +299,7 @@
         "mitata": "^0.1.11",
         "playwright": "^1.58.2",
         "react": "^19.0.0",
+        "termless": "github:beorn/termless",
         "typescript": "^5.5.0",
         "vitepress": "^1.5.0",
         "vitepress-plugin-llms": "^1.0.0",
@@ -380,12 +381,14 @@
       },
     },
     "vendor/beorn-termless": {
-      "name": "termless",
+      "name": "termless-monorepo",
       "version": "0.1.0",
       "devDependencies": {
         "@types/bun": "^1.1.0",
         "@types/node": "^22.0.0",
         "typescript": "^5.9.3",
+        "vitepress": "^1.5.0",
+        "vitepress-plugin-llms": "^1.0.0",
         "vitest": "^4.0.0",
       },
     },
@@ -396,7 +399,7 @@
         "@napi-rs/cli": "^3.0.0",
       },
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
       },
     },
     "vendor/beorn-termless/packages/cli": {
@@ -411,9 +414,13 @@
         "zod": "^3.24.0",
       },
       "peerDependencies": {
-        "termless": "workspace:*",
-        "termless-xtermjs": "workspace:*",
+        "termless": "*",
+        "termless-xtermjs": "*",
       },
+    },
+    "vendor/beorn-termless/packages/core": {
+      "name": "termless",
+      "version": "0.1.0",
     },
     "vendor/beorn-termless/packages/ghostty": {
       "name": "termless-ghostty",
@@ -422,7 +429,7 @@
         "ghostty-web": "^0.4.0",
       },
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
       },
     },
     "vendor/beorn-termless/packages/peekaboo": {
@@ -432,15 +439,15 @@
         "@xterm/headless": "^5.5.0",
       },
       "peerDependencies": {
-        "termless": "workspace:*",
-        "termless-xtermjs": "workspace:*",
+        "termless": "*",
+        "termless-xtermjs": "*",
       },
     },
     "vendor/beorn-termless/packages/viterm": {
       "name": "viterm",
       "version": "0.1.0",
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
         "vitest": ">=2.0.0",
       },
     },
@@ -448,14 +455,14 @@
       "name": "termless-vt100",
       "version": "0.1.0",
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
       },
     },
     "vendor/beorn-termless/packages/wezterm": {
       "name": "termless-wezterm",
       "version": "0.1.0",
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
       },
     },
     "vendor/beorn-termless/packages/xtermjs": {
@@ -465,7 +472,7 @@
         "@xterm/headless": "^5.5.0",
       },
       "peerDependencies": {
-        "termless": "workspace:*",
+        "termless": "*",
       },
     },
     "vendor/beorn-themex": {
@@ -536,6 +543,7 @@
     "@beorn/flexx": "vendor/beorn-flexx",
     "@beorn/logger": "vendor/beorn-logger",
     "chalkx": "vendor/beorn-chalkx",
+    "termless": "vendor/beorn-termless/packages/core",
     "themex": "vendor/beorn-themex",
     "zod": "^4.3.6",
   },
@@ -2106,13 +2114,15 @@
 
     "tap-yaml": ["tap-yaml@4.3.0", "", { "dependencies": { "yaml": "^2.8.1", "yaml-types": "^0.4.0" } }, "sha512-48BiwXj3cUa1Lt6BLzfawJGZVihfRCY19gyjaHftQpe8ulEmB9gZW9kChQkdb0+L4YUlGWUJMpWRAJ/9bPSgVA=="],
 
-    "termless": ["termless@workspace:vendor/beorn-termless"],
+    "termless": ["termless@workspace:vendor/beorn-termless/packages/core"],
 
     "termless-alacritty": ["termless-alacritty@workspace:vendor/beorn-termless/packages/alacritty"],
 
     "termless-cli": ["termless-cli@workspace:vendor/beorn-termless/packages/cli"],
 
     "termless-ghostty": ["termless-ghostty@workspace:vendor/beorn-termless/packages/ghostty"],
+
+    "termless-monorepo": ["termless-monorepo@workspace:vendor/beorn-termless"],
 
     "termless-peekaboo": ["termless-peekaboo@workspace:vendor/beorn-termless/packages/peekaboo"],
 
@@ -2404,6 +2414,8 @@
 
     "inkx/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
 
+    "inkx/termless": ["termless-monorepo@github:beorn/termless#e119082", {}, "beorn-termless-e119082"],
+
     "inquirer/@inquirer/prompts": ["@inquirer/prompts@7.10.1", "", { "dependencies": { "@inquirer/checkbox": "^4.3.2", "@inquirer/confirm": "^5.1.21", "@inquirer/editor": "^4.2.23", "@inquirer/expand": "^4.0.23", "@inquirer/input": "^4.3.1", "@inquirer/number": "^3.0.23", "@inquirer/password": "^4.0.23", "@inquirer/rawlist": "^4.1.11", "@inquirer/search": "^3.2.2", "@inquirer/select": "^4.4.2" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-Dx/y9bCQcXLI5ooQ5KyvA4FTgeo2jYj/7plWfV5Ak5wDPKQZgudKez2ixyfz7tKXzcJciTxqLeK7R9HItwiByg=="],
 
     "markdown-it/entities": ["entities@4.5.0", "", {}, "sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw=="],
@@ -2432,11 +2444,11 @@
 
     "strip-literal/js-tokens": ["js-tokens@9.0.1", "", {}, "sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ=="],
 
-    "termless/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
-
-    "termless/@types/node": ["@types/node@22.19.7", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw=="],
-
     "termless-cli/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
+
+    "termless-monorepo/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
+
+    "termless-monorepo/@types/node": ["@types/node@22.19.7", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw=="],
 
     "themex/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
 
@@ -2586,9 +2598,9 @@
 
     "string-width-cjs/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
-    "termless/@types/bun/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
+    "termless-monorepo/@types/bun/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
-    "termless/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "termless-monorepo/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "themex/@types/bun/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
@@ -2620,7 +2632,7 @@
 
     "inquirer/@inquirer/prompts/@inquirer/editor/@inquirer/external-editor": ["@inquirer/external-editor@1.0.3", "", { "dependencies": { "chardet": "^2.1.1", "iconv-lite": "^0.7.0" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-RWbSrDiYmO4LbejWY7ttpxczuwQyZLBUyygsA9Nsv95hpzUWwnNTVQmAq3xuh7vNwCp07UTmE5i11XAEExx4RA=="],
 
-    "termless/@types/bun/bun-types/@types/node": ["@types/node@25.2.2", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-BkmoP5/FhRYek5izySdkOneRyXYN35I860MFAGupTdebyE66uZaR+bXLHq8k4DirE5DwQi3NuhvRU1jqTVwUrQ=="],
+    "termless-monorepo/@types/bun/bun-types/@types/node": ["@types/node@25.2.2", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-BkmoP5/FhRYek5izySdkOneRyXYN35I860MFAGupTdebyE66uZaR+bXLHq8k4DirE5DwQi3NuhvRU1jqTVwUrQ=="],
 
     "vitepress/vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.21.5", "", { "os": "aix", "cpu": "ppc64" }, "sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ=="],
 
