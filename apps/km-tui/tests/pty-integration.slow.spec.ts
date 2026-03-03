@@ -1,7 +1,7 @@
 /**
  * PTY Integration Tests — Real terminal pipeline via termless
  *
- * Uses termless (createTerminal + xterm.js backend + PTY spawn) to test through
+ * Uses viterm (createTerminalFixture + PTY spawn) to test through
  * the REAL async event pipeline: stdin → TermProvider → merge → pump → event loop → render.
  *
  * Headless tests (testEnv/board.press) call handleKey synchronously, bypassing
@@ -9,12 +9,10 @@
  *
  * Run: bun vitest run apps/km-tui/tests/pty-integration.slow.spec.ts
  */
-import { describe, test, expect, afterAll, beforeAll } from "vitest"
+import { describe, test, expect, beforeAll } from "vitest"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
-import { createTerminal } from "termless"
-import { createXtermBackend } from "termless-xtermjs"
-import "viterm/matchers"
+import { createTerminalFixture } from "viterm"
 
 const KM_CWD = "/Users/beorn/Code/pim/km"
 const TEST_VAULT = "/tmp/vt"
@@ -23,14 +21,13 @@ const SNAPSHOT_DIR = join(KM_CWD, "apps/km-tui/tests/__snapshots__/pty")
 // Ensure snapshot directory exists
 if (!existsSync(SNAPSHOT_DIR)) mkdirSync(SNAPSHOT_DIR, { recursive: true })
 
-type TermlessTerminal = ReturnType<typeof createTerminal>
+type TermlessTerminal = ReturnType<typeof createTerminalFixture>
 
-/** Create a termless terminal with xterm.js backend and spawn km view */
+/** Create a terminal fixture and spawn km view */
 async function createKmTerminal(id: string, opts: { cols?: number; rows?: number } = {}) {
   const cols = opts.cols ?? 400
   const rows = opts.rows ?? 150
-  const term = createTerminal({
-    backend: createXtermBackend({ cols, rows }),
+  const term = createTerminalFixture({
     cols,
     rows,
   })
@@ -97,10 +94,6 @@ describe("PTY integration: auto-repeat", () => {
     await term.waitForStable(1500, 20000)
   }, 30000)
 
-  afterAll(async () => {
-    await term.close()
-  })
-
   test("rapid j presses move cursor continuously", async () => {
     const initialBreadcrumb = getBreadcrumb(term)
 
@@ -139,10 +132,6 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
   }, 30000)
-
-  afterAll(async () => {
-    await term.close()
-  })
 
   test("burst of j chars in single write (simulates OS stdin buffering)", async () => {
     const initialBreadcrumb = getBreadcrumb(term)
@@ -191,10 +180,6 @@ describe("PTY integration: h/l false bell", () => {
     await term.waitForStable(1500, 20000)
   }, 30000)
 
-  afterAll(async () => {
-    await term.close()
-  })
-
   test("alternating h/l does not trigger bell when not at boundary", async () => {
     // Move right first to ensure we're not at a column boundary
     await pressAndWait(term, "l")
@@ -232,10 +217,6 @@ describe("PTY integration: navigation correctness", () => {
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
   }, 30000)
-
-  afterAll(async () => {
-    await term.close()
-  })
 
   test("zoom in with Enter and back out with Escape", async () => {
     saveSnapshot(term, "nav-initial")
@@ -295,10 +276,6 @@ describe("PTY integration: SVG snapshot capture", () => {
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
   }, 30000)
-
-  afterAll(async () => {
-    await term.close()
-  })
 
   test("initial board render captures valid SVG", async () => {
     const svg = term.screenshotSvg()
