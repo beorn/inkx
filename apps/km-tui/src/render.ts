@@ -9,7 +9,7 @@
  *
  * Uses term for UI chrome:
  * - Headers, borders, status bars
- * - Selection/current highlighting (bgBlue, bgYellow)
+ * - Selection/current highlighting via theme tokens ($selected/$selectedfg)
  */
 
 import { createTerm, type StyleChain } from "inkx"
@@ -18,7 +18,7 @@ import type { Repo } from "./repo-context.tsx"
 import type { InitialBoardData, RenderOptions } from "./types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName } from "./state.ts"
-import { getStatusIcon as getStatusIconBase, parseToPlainText, colorize } from "./text/index.ts"
+import { getStatusIcon as getStatusIconBase, parseToPlainText, colorize, themeFg, themeFgBg } from "./text/index.ts"
 
 /**
  * Create a term instance with truecolor support.
@@ -81,7 +81,7 @@ export function renderBoard(
     const header = ` ${name} (${count}) `
     const isSelected = i === colIndex
     const padded = header.padEnd(colWidth - 1).slice(0, colWidth - 1)
-    return isSelected ? style.bold.bgBlue.white(padded) : style.bold(padded)
+    return isSelected ? style.bold(themeFgBg(padded, "$selectedfg", "$selected")) : style.bold(padded)
   })
   lines.push(headers.join(" "))
   lines.push(style.dim("─".repeat(width)))
@@ -160,9 +160,9 @@ export function renderCard(
 
   // Apply styling
   if (isCurrent) {
-    firstLine = style.bgBlue.white(firstLine.padEnd(width).slice(0, width))
+    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selectedfg", "$selected")
   } else if (isSelected) {
-    firstLine = style.bgYellow.black(firstLine.padEnd(width).slice(0, width))
+    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selectedfg", "$selected")
   } else {
     firstLine = firstLine.padEnd(width).slice(0, width)
   }
@@ -214,10 +214,11 @@ export function renderStatusBar(_state: InitialBoardData, width: number): string
  */
 export function renderHelp(width: number): string {
   const style = createTermStyle()
+  const primary = (text: string) => themeFg(text, "$primary")
   const help = `
 ${style.bold("BOARDLINER - Keyboard Reference")}
 
-${style.yellow("Navigation")}
+${primary("Navigation")}
   h / Ctrl+B      Move to left column
   l / Ctrl+F      Move to right column
   j / Ctrl+N      Move to next card
@@ -227,26 +228,26 @@ ${style.yellow("Navigation")}
   Enter / o       Zoom into card
   Escape / q      Zoom out / Quit
 
-${style.yellow("Selection")}
+${primary("Selection")}
   Space           Toggle card selection
   v               Visual mode (multi-select)
 
-${style.yellow("Actions")}
+${primary("Actions")}
   x               Cycle status (todo → wip → blocked → done → ...)
   Tab             Fold/unfold card outline
 
-${style.yellow("Card Movement")}
+${primary("Card Movement")}
   H               Move card to previous column
   L               Move card to next column
   K               Move card up in column
   J               Move card down in column
 
-${style.yellow("Clipboard")}
+${primary("Clipboard")}
   Ctrl+C          Copy selected node(s)
   Ctrl+X          Cut selected node(s)
   Ctrl+V          Paste node(s)
 
-${style.yellow("Other")}
+${primary("Other")}
   /               Search
   ?               This help
   q               Quit
@@ -255,7 +256,7 @@ ${style.dim("Press any key to close")}
 `
 
   const lines: string[] = []
-  lines.push(style.bgBlue.white(" ".repeat(width)))
+  lines.push(themeFgBg(" ".repeat(width), "$selectedfg", "$selected"))
   for (const line of help.split("\n")) {
     lines.push(line.padEnd(width).slice(0, width))
   }
@@ -270,7 +271,7 @@ export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status)
   // Handle custom markers with background color (inverted display)
   if (icon.backgroundColor) {
-    return createTermStyle().bgWhite.black(icon.char)
+    return themeFgBg(icon.char, "$text", "$surface")
   }
   // Map icon color to colorize-compatible color
   // Note: "blue" in icon.color maps to "cyan" for visibility

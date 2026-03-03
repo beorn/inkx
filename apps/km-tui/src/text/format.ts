@@ -3,12 +3,19 @@
  *
  * Format nodes for display in CLI commands and TUI components.
  * Extracted from list.ts and show.ts for reuse.
+ *
+ * Uses theme tokens via themeFg() for semantic coloring:
+ * - $text3 for dimmed chrome (suffixes, markers)
+ * - $link for navigation elements (folders, files)
+ * - $primary for headings and section names
+ * - $success/$warning/$error for task status
  */
 
 import { createTerm, type StyleChain } from "inkx"
 import { getStatusForMarker, isOutline, type KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
+import { themeFg } from "./colors.ts"
 
 /**
  * Compute section depth from tree nesting.
@@ -52,19 +59,19 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
 
   const name = getNodeDisplayNameBase(ca.node, (id) => repo.getChildren(id))
   if (ca.typeSuffix) {
-    return prefix + name + style.gray(` ${ca.typeSuffix}`)
+    return prefix + name + themeFg(` ${ca.typeSuffix}`, "$text3")
   }
   // No collapsed suffix - show individual type indicator based on fstype
   if (isOutline(ca.node.type, ca.node.item)) {
     switch (ca.node.fstype) {
       case "folder":
-        return prefix + name + style.gray("/")
+        return prefix + name + themeFg("/", "$text3")
       case "file":
       case "mdfile":
-        return prefix + (name.endsWith(".md") ? name : name + style.gray(".md"))
+        return prefix + (name.endsWith(".md") ? name : name + themeFg(".md", "$text3"))
       case "mdsection": {
         const depth = computeSectionDepth(ca.node, (id) => repo.getNode(id))
-        return prefix + style.gray("#".repeat(depth) + " ") + name
+        return prefix + themeFg("#".repeat(depth) + " ", "$text3") + name
       }
     }
   }
@@ -87,16 +94,16 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   if (isOutline(node.type, node.item)) {
     switch (node.fstype) {
       case "folder":
-        return prefix + style.blue(name) + style.gray("/")
+        return prefix + themeFg(name, "$link") + themeFg("/", "$text3")
       case "file":
       case "mdfile":
-        return prefix + style.cyan(name)
+        return prefix + themeFg(name, "$link")
       case "mdsection": {
         const depth = computeSectionDepth(node, (id) => repo.getNode(id))
-        return prefix + style.gray("#".repeat(depth) + " ") + style.yellow(name)
+        return prefix + themeFg("#".repeat(depth) + " ", "$text3") + themeFg(name, "$primary")
       }
       default:
-        return prefix + style.yellow(name)
+        return prefix + themeFg(name, "$primary")
     }
   }
 
@@ -109,11 +116,11 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
     // Only color the marker character, not the brackets
     const coloredMark =
       status === "done"
-        ? style.green(inner)
+        ? themeFg(inner, "$success")
         : status === "wip"
-          ? style.yellow(inner)
+          ? themeFg(inner, "$warning")
           : status === "blocked"
-            ? style.red(inner)
+            ? themeFg(inner, "$error")
             : style.dim(inner)
     const checkbox = style.dim("[") + coloredMark + style.dim("]")
     return prefix + checkbox + " " + oneLine(node.content ?? "(no content)")
@@ -139,16 +146,15 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
  * Format task status with color.
  */
 export function formatStatus(status: string): string {
-  const style = createTermStyle()
   switch (status) {
     case "done":
-      return style.green(status)
+      return themeFg(status, "$success")
     case "wip":
-      return style.blue(status)
+      return themeFg(status, "$link")
     case "blocked":
-      return style.red(status)
+      return themeFg(status, "$error")
     case "waiting":
-      return style.yellow(status)
+      return themeFg(status, "$warning")
     default:
       return status
   }
@@ -162,7 +168,7 @@ export function formatNodeBrief(node: KNode): string {
   const parts: string[] = []
 
   parts.push(style.dim(node.id.slice(0, 8)))
-  parts.push(style.cyan(node.type))
+  parts.push(themeFg(node.type, "$link"))
 
   if (node.content) {
     parts.push(node.content.slice(0, 50))

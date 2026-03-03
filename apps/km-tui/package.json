@@ -17,6 +17,7 @@
     "chalkx": "workspace:*",
     "inkx": "workspace:*",
     "react": "catalog:",
+    "themex": "workspace:*",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
