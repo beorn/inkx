@@ -427,7 +427,12 @@ export function WorkspaceChrome({
           topFraction={1 / 4}
           data-dialog="favorites"
         >
-          <FavoritesDialog cursor={ui.favoritesCursor} width={Math.min(50, Math.floor(termWidth / 2))} boardName={rootPath} />
+          <FavoritesDialog
+            cursor={ui.favoritesCursor}
+            width={Math.min(50, Math.floor(termWidth / 2))}
+            addMode={ui.favoritesAddMode}
+            assignNodeName={cursorNodeId ? (repo.getNode(cursorNodeId)?.name ?? cursorNodeId) : null}
+          />
         </DialogBox>
       )}
       {/* Help overlay */}

@@ -793,11 +793,17 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return unimplemented("ui")
     case "MANAGE_FAVORITES":
       pushDialogMode("dialog:favorites")
-      ctx.setUI({ showFavoritesDialog: true, favoritesCursor: 0 })
+      ctx.setUI({ showFavoritesDialog: true, favoritesCursor: 0, favoritesAddMode: false })
       clearSelection(ctx)
+      return ok()
+    case "FAVORITES_START_ASSIGN":
+      ctx.setUI({ favoritesAddMode: true })
       return ok()
     case "FAVORITES_ASSIGN":
       return handleFavoritesAssign(ctx, action.key)
+    case "FAVORITES_CANCEL_ASSIGN":
+      ctx.setUI({ favoritesAddMode: false })
+      return ok()
     case "FAVORITES_CLEAR":
       return handleFavoritesClear(ctx)
 
@@ -1292,7 +1298,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "DIALOG_CANCEL":
       if (ctx.ui.showFavoritesDialog) {
         popDialogMode()
-        ctx.setUI({ showFavoritesDialog: false })
+        ctx.setUI({ showFavoritesDialog: false, favoritesAddMode: false })
         return ok()
       }
       if (ctx.ui.showFilterDialog) {
@@ -1449,23 +1455,25 @@ function handleFavoritesAssign(ctx: ActionCtx, key: string): ActionResult {
   if (RESERVED_KEYS.has(key)) {
     const label = getReservedKeyLabel(key)
     ctx.toastQueue.warning(`Key '${key}' is reserved for '${label}'`)
-    ctx.setUI({})
+    ctx.setUI({ favoritesAddMode: false })
     return ok()
   }
 
-  const rootId = ctx.rootId
-  if (!rootId) {
-    ctx.toastQueue.warning("No board to assign")
-    ctx.setUI({})
+  const nodeId = ctx.cursorNodeId
+  if (!nodeId) {
+    ctx.toastQueue.warning("No node selected")
+    ctx.setUI({ favoritesAddMode: false })
     return ok()
   }
 
-  setFavorite(key, rootId)
+  const node = ctx.repo.getNode(nodeId)
+  const name = node?.name ?? nodeId
+  setFavorite(key, nodeId)
   // Re-register keybindings so the new favorite is bound
   initDefaultKeybindings()
-  ctx.toastQueue.success(`Favorite '${key}' → ${rootId}`)
+  ctx.toastQueue.success(`Favorite '${key}' → ${name}`)
   popDialogMode()
-  ctx.setUI({ showFavoritesDialog: false })
+  ctx.setUI({ showFavoritesDialog: false, favoritesAddMode: false })
   return ok()
 }
 

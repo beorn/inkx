@@ -277,6 +277,8 @@ export function buildKeybindingContext(options: {
   searchReplaceOpen?: boolean
   /** True when the favorites dialog is open */
   favoritesDialogOpen?: boolean
+  /** True when favorites dialog is in "add" mode (capturing a key) */
+  favoritesAddMode?: boolean
   /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
@@ -310,6 +312,7 @@ export function buildKeybindingContext(options: {
     localFindActive: options.localFindActive ?? false,
     searchReplaceOpen: options.searchReplaceOpen ?? false,
     favoritesDialogOpen: options.favoritesDialogOpen ?? false,
+    favoritesAddMode: options.favoritesAddMode ?? false,
     hasKitty: options.hasKitty ?? false,
     inputType: options.inputType,
   }

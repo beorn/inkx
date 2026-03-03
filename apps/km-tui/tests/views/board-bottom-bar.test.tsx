@@ -113,6 +113,7 @@ describe("CommandBox", () => {
     showOmnibox: false,
     showFavoritesDialog: false,
     favoritesCursor: 0,
+    favoritesAddMode: false,
     iconStyle: "nerdfont",
     borderMode: "normal",
   }
@@ -318,6 +319,7 @@ describe("StatusCounters", () => {
     showOmnibox: false,
     showFavoritesDialog: false,
     favoritesCursor: 0,
+    favoritesAddMode: false,
   }
 
   const mockRootPath = "/tmp/test-repo"

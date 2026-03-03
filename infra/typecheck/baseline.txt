@@ -109,7 +109,6 @@
 1 packages/km-storage/src/db-queries/utils.ts
 1 packages/km-storage/src/db-rules.ts
 3 packages/km-storage/src/event-compaction.ts
-4 packages/km-storage/src/query.ts
 3 packages/km-storage/src/repo.ts
 1 packages/km-storage/src/store-memory.ts
 1 packages/km-storage/src/testing/fake-repo.ts
@@ -211,6 +210,7 @@
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
 43 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
+8 vendor/beorn-termless/packages/cli/src/mcp.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts

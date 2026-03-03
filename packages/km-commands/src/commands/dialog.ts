@@ -55,17 +55,31 @@ export const dialogCommands: CommandDef[] = [
 /**
  * Favorites dialog commands
  *
- * Commands for managing key→board favorites.
+ * Press 'a' to start assigning, then press a key to capture it.
  * favorites.assign uses the raw pressed key (injected by routeThroughCommandSystem).
  * favorites.clear removes the favorite at the current cursor position.
  */
 export const favoritesDialogCommands: CommandDef[] = [
   {
+    id: "favorites.start_assign",
+    name: "Start Assign Favorite",
+    description: "Enter key capture mode to assign current node",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FAVORITES_START_ASSIGN" }),
+  },
+  {
     id: "favorites.assign",
     name: "Assign Favorite",
-    description: "Assign current board to the pressed key",
+    description: "Assign current node to the pressed key",
     category: "Navigation",
     execute: (): CommandAction => ({ type: "FAVORITES_ASSIGN", key: "" }), // key injected by caller
+  },
+  {
+    id: "favorites.cancel_assign",
+    name: "Cancel Assign",
+    description: "Cancel key capture mode",
+    category: "Navigation",
+    execute: (): CommandAction => ({ type: "FAVORITES_CANCEL_ASSIGN" }),
   },
   {
     id: "favorites.clear",
