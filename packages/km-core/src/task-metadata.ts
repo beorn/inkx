@@ -299,17 +299,19 @@ function stripTaskMetadataFormats(text: string): string {
   return stripLegacyAndEmojiMetadata(clean)
 }
 
-/** Strip legacy key:value and emoji metadata from text (dates/recurrence only) */
+/** Strip legacy key:value and emoji metadata from text (dates/recurrence + priority) */
 function stripLegacyAndEmojiMetadata(text: string): string {
   let clean = text
   // Legacy key:value
   clean = clean.replace(STRIP_LEGACY_DUE, "")
   clean = clean.replace(STRIP_LEGACY_START, "")
   clean = clean.replace(STRIP_LEGACY_RECURRENCE, "")
+  clean = clean.replace(/\s*\bp:\d\b/g, "") // Legacy p:N priority (cleanup on rewrite)
   // Emoji
   clean = clean.replace(STRIP_EMOJI_DUE, "")
   clean = clean.replace(STRIP_EMOJI_START, "")
   clean = clean.replace(STRIP_EMOJI_RECURRENCE, "")
+  clean = clean.replace(/\s*[⏫🔼🔽]/gu, "") // Emoji priorities (cleanup on rewrite)
   // Normalize whitespace
   clean = clean.replace(/\s{2,}/g, " ").trim()
   return clean

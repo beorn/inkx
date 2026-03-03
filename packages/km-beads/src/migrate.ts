@@ -121,7 +121,7 @@ export function issueToMarkdown(issue: BeadsIssue, boardTag?: string): string {
   if (issue.issue_type) {
     tags.push(`#${issue.issue_type}`)
   }
-  tags.push(`#P${issue.priority}`)
+  tags.push(`#${issue.priority}`)
   if (issue.labels) {
     tags.push(...issue.labels.map((l) => `#${l}`))
   }

@@ -234,9 +234,10 @@ describe("Round-trip: Mixed Content with Properties", () => {
     const output = nodesToMarkdown(nodes)
 
     expect(output).toContain("status:: active")
-    // Emoji format migrated to key:: value on roundtrip
+    // Emoji dates migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2026-02-01")
-    expect(output).toContain("priority:: P1")
+    // Emoji priority (⏫) is no longer extracted — no priority:: emitted
+    expect(output).not.toContain("priority::")
   })
 
   test("preserves properties alongside tags and mentions", () => {

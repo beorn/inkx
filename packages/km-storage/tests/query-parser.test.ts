@@ -23,12 +23,12 @@ describe("Query Parser", () => {
       })
     })
 
-    test("parses priority:N with alias p:", () => {
-      const ast = parseQuery("p:1")
+    test("parses priority:P1", () => {
+      const ast = parseQuery("priority:P1")
       expect(ast.conditions[0]).toMatchObject({
         field: "priority",
         op: "=",
-        value: "1",
+        value: "P1",
         negated: false,
       })
     })

@@ -225,7 +225,7 @@ function buildFieldCondition(cond: QueryCondition, params: (string | number)[]):
       params.push(...values)
       return ` AND ${field} IN (${placeholders})`
     }
-    params.push(effectiveValue)
+    params.push(value)
     return ` AND ${field} = ?`
   }
   if (op === "!=") {
@@ -234,15 +234,15 @@ function buildFieldCondition(cond: QueryCondition, params: (string | number)[]):
       params.push(...values)
       return ` AND (${field} NOT IN (${placeholders}) OR ${field} IS NULL)`
     }
-    params.push(effectiveValue)
+    params.push(value)
     return ` AND (${field} != ? OR ${field} IS NULL)`
   }
   if (op === ">" || op === "<" || op === ">=" || op === "<=") {
-    params.push(effectiveValue)
+    params.push(value)
     return ` AND ${field} ${op} ?`
   }
   if (op === "LIKE") {
-    params.push(`%${effectiveValue}%`)
+    params.push(`%${value}%`)
     return ` AND ${field} LIKE ?`
   }
   return ""

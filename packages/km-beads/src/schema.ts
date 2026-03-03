@@ -19,7 +19,7 @@ export const beadsIssueSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   status: beadsStatusSchema,
-  priority: z.union([z.string(), z.number()]).transform((v) => (typeof v === "number" ? `P${v}` : v)),
+  priority: z.string(),
   issue_type: z.string().optional(),
   created_at: z.string(),
   created_by: z.string().optional(),

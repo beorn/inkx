@@ -564,9 +564,11 @@ describe("Round-trip: block_id preservation", () => {
   test("task with metadata and block_id survives round-trip", () => {
     const output = roundtrip(`- [ ] Task 📅 2025-12-25 ⏫ ^m3n4`)
     expect(output).toContain("^m3n4")
-    // Emoji format migrated to key:: value on roundtrip (content stripped, serializer rewrites)
+    // Emoji dates migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2025-12-25")
-    expect(output).toContain("priority:: P1")
+    // Emoji priority (⏫) is stripped but NOT extracted — no priority:: emitted
+    expect(output).not.toContain("⏫")
+    expect(output).not.toContain("priority::")
     expect(output).toContain("Task")
   })
 

@@ -102,10 +102,12 @@ describe("Round-trip: Tasks", () => {
 
   test("should preserve task with full metadata", () => {
     const output = roundtrip(`- [ ] Full metadata 📅 2025-04-01 ⏳ 2025-03-25 ⏫`)
-    // Emoji format migrated to key:: value on roundtrip
+    // Emoji dates migrated to key:: value on roundtrip
     expect(output).toContain("due:: 2025-04-01")
     expect(output).toContain("start:: 2025-03-25")
-    expect(output).toContain("priority:: P1")
+    // Emoji priority (⏫) is stripped but NOT extracted — no priority:: emitted
+    expect(output).not.toContain("⏫")
+    expect(output).not.toContain("priority::")
   })
 
   test("should preserve task with tags", () => {
@@ -512,12 +514,13 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
-    expect(task!.priority).toBe("P1")
+    // Emoji priority (⏫) is no longer extracted
+    expect(task!.priority).toBeUndefined()
 
-    // After round-trip, metadata should be preserved
+    // After round-trip, due date preserved; emoji priority stripped but not re-emitted
     const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "p" && n.item === true && n.task_marker)
     expect(task2!.due_at).toBe("2025-12-25")
-    expect(task2!.priority).toBe("P1")
+    expect(task2!.priority).toBeUndefined()
   })
 
   test("should preserve section depth via tree structure", () => {
@@ -781,15 +784,17 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
     expect(task!.start_at).toBe("2025-12-20")
-    expect(task!.priority).toBe("P1")
-    // Content is clean — metadata stripped to node fields
+    // Emoji priority (⏫) is no longer extracted
+    expect(task!.priority).toBeUndefined()
+    // Content is clean — emoji metadata stripped
     expect(task!.content).toBe("Task with all metadata")
 
-    // Roundtrip migrates emoji to key:: value format
+    // Roundtrip migrates emoji dates to key:: value; emoji priority stripped but not re-emitted
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("due:: 2025-12-25")
     expect(output).toContain("start:: 2025-12-20")
-    expect(output).toContain("priority:: P1")
+    expect(output).not.toContain("⏫")
+    expect(output).not.toContain("priority::")
   })
 
   test("should preserve recurrence metadata", () => {
@@ -800,7 +805,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task!.data?.rrule).toBe("every week")
   })
 
-  test("should extract inline field format (due:, start:, p:) and strip from content", () => {
+  test("should extract inline field format (due:, start:) and strip from content", () => {
     const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
       (n) => n.type === "p" && n.item === true && n.task_marker,
     )
@@ -808,14 +813,35 @@ describe("Round-trip: Task Metadata Formats", () => {
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-11-15")
     expect(task!.start_at).toBe("2025-11-10")
-    expect(task!.priority).toBe("P2")
+    // Legacy p:N format is no longer extracted for priority
+    expect(task!.priority).toBeUndefined()
+    // p:2 is still stripped from content (cleanup)
     expect(task!.content).toBe("Task with inline fields")
   })
 
-  test("should extract all priority levels and migrate to key:: value", () => {
+  test("emoji priority symbols are stripped but not extracted", () => {
     const nodes = parse(`- [ ] High priority ⏫
 - [ ] Medium priority 🔼
 - [ ] Low priority 🔽`)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+
+    // Emoji priorities are no longer extracted
+    expect(tasks[0]?.priority).toBeUndefined()
+    expect(tasks[1]?.priority).toBeUndefined()
+    expect(tasks[2]?.priority).toBeUndefined()
+
+    // Emoji symbols are stripped on write but no priority:: emitted
+    const output = nodesToMarkdown(nodes)
+    expect(output).not.toContain("⏫")
+    expect(output).not.toContain("🔼")
+    expect(output).not.toContain("🔽")
+    expect(output).not.toContain("priority::")
+  })
+
+  test("priority:: VALUE format is extracted and roundtrips", () => {
+    const nodes = parse(`- [ ] High priority priority:: P1
+- [ ] Medium priority priority:: P2
+- [ ] Low priority priority:: P3`)
     const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
 
     expect(tasks[0]?.priority).toBe("P1")

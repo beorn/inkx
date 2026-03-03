@@ -18,14 +18,14 @@ import { loadRepo } from "../../load-repo.ts"
  * Create the set subcommand
  *
  * km task set <id> due:2025-01-20      # Set due date
- * km task set <id> p:1                 # Set priority
+ * km task set <id> priority:P1          # Set priority
  * km task set <id> status:blocked      # Set blocked
  */
 export function createSetCommand() {
   return new Command("set")
     .description("Set task field values")
     .argument("<id>", "Task ID or prefix")
-    .argument("<fields...>", "Field:value pairs (due:2025-01-20, p:1, status:todo)")
+    .argument("<fields...>", "Field:value pairs (due:2025-01-20, priority:P1, status:todo)")
     .option("--json", "Output as JSON")
     .action(async (id, fields, options) => {
       const resolved = resolvePathArg(process.cwd(), getRootPath())
@@ -61,9 +61,8 @@ export function createSetCommand() {
           case "start_at":
             updates.start_at = value || null
             break
-          case "p":
           case "priority":
-            updates.priority = value ? (/^\d$/.test(value) ? `P${value}` : value) : null
+            updates.priority = value || null
             break
           case "status":
           case "task_status":

@@ -140,7 +140,7 @@ Some content here.
           `# Task List
 
 - [ ] Task with due date 📅 2025-03-15
-- [ ] High priority task ⏫
+- [ ] High priority task priority:: P1
 - [ ] Task with scheduled date ⏳ 2025-03-10
 - [x] Completed task
 `,

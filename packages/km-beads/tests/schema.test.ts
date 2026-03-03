@@ -22,7 +22,7 @@ describe("beadsIssueSchema", () => {
       title: "Full issue",
       description: "A complete issue with all fields",
       status: "in_progress",
-      priority: 1,
+      priority: "P1",
       issue_type: "feature",
       created_at: "2024-01-15T10:00:00Z",
       created_by: "user",

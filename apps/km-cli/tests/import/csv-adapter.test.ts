@@ -68,7 +68,7 @@ describe("CSV parser", () => {
 
 describe("column mapping", () => {
   test("maps standard column names", () => {
-    const csv = "title,status,assignee,due,priority,tags\nDesign page,todo,alice,2026-03-01,1,design\n"
+    const csv = "title,status,assignee,due,priority,tags\nDesign page,todo,alice,2026-03-01,P1,design\n"
     const data = parseCSVToImportData(csv)
 
     expect(data.projects).toHaveLength(1)
@@ -256,10 +256,10 @@ describe("tags normalization", () => {
 // ============================================================================
 
 describe("priority", () => {
-  test("normalizes bare digit to P-string", () => {
+  test("passes bare digit through as-is", () => {
     const csv = "title,priority\nTask,2\n"
     const data = parseCSVToImportData(csv)
-    expect(data.projects[0]!.items![0]!.priority).toBe("P2")
+    expect(data.projects[0]!.items![0]!.priority).toBe("2")
   })
 
   test("accepts free-form priority string", () => {

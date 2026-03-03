@@ -189,20 +189,21 @@ tags: [a, b, c]
     })
 
     test.each([
-      // Emoji format priorities → P-strings
-      { text: "High priority ⏫", expected: "P1" },
-      { text: "Medium priority 🔼", expected: "P2" },
-      { text: "Low priority 🔽", expected: "P3" },
-      // Inline field format priorities → P-strings
-      { text: "Important task p:1", expected: "P1" },
-      { text: "Normal task p:2", expected: "P2" },
-      { text: "Low task p:3", expected: "P3" },
+      // Only priority:: format is recognized
+      { text: "Important task priority:: P1", expected: "P1" },
+      { text: "Normal task priority:: P2", expected: "P2" },
+      { text: "Low task priority:: P3", expected: "P3" },
     ])("should parse priority $expected from '$text'", ({ text, expected }) => {
       expect(parseTaskMetadata(text).priority).toBe(expected)
     })
 
+    test("emoji/legacy priority not extracted", () => {
+      expect(parseTaskMetadata("High priority ⏫").priority).toBeUndefined()
+      expect(parseTaskMetadata("Task p:1").priority).toBeUndefined()
+    })
+
     test("should parse multiple inline fields", () => {
-      const result = parseTaskMetadata("Submit report due:2026-01-20 p:1")
+      const result = parseTaskMetadata("Submit report due:2026-01-20 priority:: P1")
       expect(result.dueAt).toBe("2026-01-20")
       expect(result.priority).toBe("P1")
     })
@@ -374,15 +375,14 @@ This is a paragraph.
       expect(tasks.length).toBe(2)
     })
 
-    test("should extract task metadata with emoji format", () => {
-      // Parser uses Obsidian Tasks emoji format: 📅 for due, ⏳ for scheduled, ⏫/🔼/🔽 for priority
-      const md = `- [ ] Task with due 📅 2025-03-15 ⏫`
+    test("should extract task metadata with emoji format (dates only, not priority)", () => {
+      const md = `- [ ] Task with due 📅 2025-03-15 priority:: P1`
       const nodes = parseMarkdownToNodes(md, "test.md")
       const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
 
       expect(task).toBeDefined()
       expect(task!.due_at).toBe("2025-03-15")
-      expect(task!.priority).toBe("P1") // ⏫ = high priority = P1
+      expect(task!.priority).toBe("P1")
     })
 
     test("should strip task metadata from content field", () => {
@@ -406,24 +406,24 @@ This is a paragraph.
     })
 
     test("should strip all task metadata formats from content", () => {
-      // Emoji format
+      // Emoji format (dates still extracted, priority not)
       const emojiTask = parseMarkdownToNodes(`- [ ] Task A 📅 2025-03-15 ⏫`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )
       expect(emojiTask!.content).toBe("Task A")
       expect(emojiTask!.due_at).toBe("2025-03-15")
-      expect(emojiTask!.priority).toBe("P1")
+      expect(emojiTask!.priority).toBeUndefined()
 
-      // Legacy format
+      // Legacy format (dates still extracted, priority not)
       const legacyTask = parseMarkdownToNodes(`- [ ] Task B due:2025-06-01 p:2`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )
       expect(legacyTask!.content).toBe("Task B")
       expect(legacyTask!.due_at).toBe("2025-06-01")
-      expect(legacyTask!.priority).toBe("P2")
+      expect(legacyTask!.priority).toBeUndefined()
 
-      // New key:: value format
-      const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 p:: 3`, "test.md").find(
+      // New key:: value format — only priority:: is recognized
+      const newTask = parseMarkdownToNodes(`- [ ] Task C due:: 2025-09-01 priority:: P3`, "test.md").find(
         (n) => n.type === "p" && n.item === true && n.task_marker,
       )
       expect(newTask!.content).toBe("Task C")

@@ -29,8 +29,8 @@ describe("mapFieldName", () => {
     expect(mapFieldName("priority")).toBe("priority")
   })
 
-  test("normalizes 'p' to 'priority'", () => {
-    expect(mapFieldName("p")).toBe("priority")
+  test("'p' is not aliased (alias removed)", () => {
+    expect(mapFieldName("p")).toBe("p")
   })
 
   test("normalizes 'type' to 'type'", () => {

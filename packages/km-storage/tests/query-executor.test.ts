@@ -60,7 +60,7 @@ describe("Query Executor", () => {
   test.each([
     ["status:todo", 2, (r: { task_status: string }) => r.task_status === "todo"],
     ["status:done", 1, (r: { task_status: string }) => r.task_status === "done"],
-    ["p:1", 1, (r: { id: string }) => r.id === "task1"],
+    ["priority:P1", 1, (r: { id: string }) => r.id === "task1"],
     ["@bjorn", 1, (r: { id: string }) => r.id === "task1"],
     ["#urgent", 1, (r: { id: string }) => r.id === "task1"],
     ["+project-alpha", 1, (r: { id: string }) => r.id === "task3"],

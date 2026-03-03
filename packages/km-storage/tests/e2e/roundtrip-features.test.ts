@@ -106,7 +106,7 @@ describe("E2E Round-Trip Features", () => {
           data.database,
           repoDir,
           "priority.md",
-          "# Priority\n\n- [ ] Urgent ⏫\n- [ ] High 🔼\n- [ ] Low 🔽\n",
+          "# Priority\n\n- [ ] Urgent priority:: P1\n- [ ] High priority:: P2\n- [ ] Low priority:: P3\n",
         )
 
         const tasks = nodes.filter((n) => n.task_status != null)
