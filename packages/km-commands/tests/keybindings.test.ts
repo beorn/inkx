@@ -430,8 +430,8 @@ describe("initDefaultKeybindings", () => {
     ["h", {}, "cursor_left"],
     ["l", {}, "cursor_right"],
     ["g", {}, "cursor_first"],
-    ["G", {}, "filter"],
-    ["G", { shift: true }, "filter"], // Ink reports shift+G
+    ["G", {}, "cursor_last"],
+    ["G", { shift: true }, "cursor_last"], // Ink reports shift+G
     // Arrow key navigation (same as hjkl per docs/06-ui.md)
     ["ArrowDown", {}, "cursor_down"],
     ["ArrowUp", {}, "cursor_up"],
@@ -1033,10 +1033,10 @@ describe("chord keybindings", () => {
     // z → zoom_inwards (one level closer to cursor), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toEqual({ commandId: "zoom_inwards" })
     expect(resolveKeybinding("Z", {}, ctx)).toEqual({ commandId: "zoom_outwards" })
-    // v2: e bare removed (archive is m a), c → capture_inbox, C → capture_dialog, P → toggle_detail_pane (Smart-P)
+    // v2: e bare removed (archive is m a), c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("c", {}, ctx)).toEqual({ commandId: "capture_inbox" })
     expect(resolveKeybinding("C", {}, ctx)).toEqual({ commandId: "capture_dialog" })
-    expect(resolveKeybinding("P", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
+    expect(resolveKeybinding("D", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
     // v2: Space → select_toggle
     expect(resolveKeybinding(" ", {}, ctx)).toEqual({ commandId: "select_toggle" })
     // v2: H → fold_node, L → unfold_node
@@ -1055,9 +1055,9 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding("/", { ctrl: true }, ctx)).toEqual({ commandId: "filter" })
   })
 
-  it("Smart-P: P key maps to toggle_detail_pane", () => {
+  it("Smart-D: D key maps to toggle_detail_pane", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("P", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
+    expect(resolveKeybinding("D", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
   })
 
   it("Escape in detail pane falls through to close_or_quit", () => {

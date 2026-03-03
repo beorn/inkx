@@ -251,7 +251,7 @@ describe("date badge display", () => {
     })
 
     // Open detail pane (D = toggle_detail_pane in v2)
-    await driver.press("P")
+    await driver.press("D")
 
     const screen = driver.getState().screen
     const clean = screen.replace(/\x1b\[[0-9;]*m/g, "")

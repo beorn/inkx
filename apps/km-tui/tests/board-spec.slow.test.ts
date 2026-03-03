@@ -701,7 +701,7 @@ describe("Escape priority layering", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Open detail pane (auto-focuses detail), return to board
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("h") // return to board
 

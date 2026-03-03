@@ -26,13 +26,13 @@ describe("Detail Pane Journeys", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Step 1: Open detail pane with D — auto-focuses detail
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     board.expectScreen("Buy milk")
 
     // Step 2: Close detail pane with D (from detail pane)
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -43,7 +43,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane — auto-focuses detail, shows task1
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task1")
 
@@ -64,7 +64,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane for folder card — auto-focuses detail, cursor on first child
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("subtask-a")
@@ -82,7 +82,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane, return to board
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("h") // return focus to board
 
@@ -109,7 +109,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane with D — auto-focuses detail
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
@@ -137,7 +137,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail — cursor starts on first child
-    board.press("P")
+    board.press("D")
     const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(pane1?.cursorNodeId).toBe("child-a")
 
@@ -159,7 +159,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane — cursor starts on first child (child-a)
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
@@ -194,7 +194,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Open detail (cursor starts on child-a), start editing
-    board.press("P")
+    board.press("D")
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
 
@@ -216,7 +216,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Open detail (cursor starts on child-a)
-    board.press("P")
+    board.press("D")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("child-a")
 
@@ -238,7 +238,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane, return focus to board
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.press("h") // return to board
 

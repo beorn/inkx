@@ -562,7 +562,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "k", commandId: "cursor_up" },
       { key: "h", commandId: "cursor_left" },
       { key: "l", commandId: "cursor_right" },
-      { key: "G", commandId: "filter", when: not(textInputFocused) },
+      { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
       { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
       { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
@@ -602,8 +602,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "z", commandId: "zoom_inwards" },
       { key: "Z", commandId: "zoom_outwards" },
 
-      // Smart-P: context-aware pane toggle (open+focus / focus / close) per v2 spec
-      { key: "P", commandId: "toggle_detail_pane" },
+      // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
+      { key: "D", commandId: "toggle_detail_pane" },
       // Cmd+W: always close detail pane regardless of focus state
       { key: "w", cmd: true, commandId: "close_detail_pane" },
       { key: "Enter", ctrl: true, commandId: "follow_link" },

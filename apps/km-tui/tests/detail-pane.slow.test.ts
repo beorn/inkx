@@ -264,7 +264,7 @@ describe("Detail pane toggle (D key)", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Press D to toggle detail pane open
-    board.press("P")
+    board.press("D")
 
     // Should have exactly 2 panes: main + main-detail
     const ws = store.getState().workspace
@@ -303,7 +303,7 @@ describe("Detail pane toggle (D key)", () => {
     expect(store.getState().workspace.panes.size).toBe(2)
 
     // Now press D to open detail pane
-    board.press("P")
+    board.press("D")
 
     const ws = store.getState().workspace
     // Should have 3 panes: main, main-detail, and the split pane
@@ -328,11 +328,11 @@ describe("Detail pane toggle (D key)", () => {
     })
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.size).toBe(2)
 
     // Close detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.size).toBe(1)
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
@@ -441,7 +441,7 @@ describe("border rendering after detail pane close", () => {
     }
 
     // --- Phase 2: Open detail pane ---
-    board.press("P")
+    board.press("D")
 
     // Some nodes may be narrower or shifted, but visible ones should still have borders
     const duringBorders = checkBorders(board, allNodes)
@@ -453,7 +453,7 @@ describe("border rendering after detail pane close", () => {
     ).toBeGreaterThan(0)
 
     // --- Phase 3: Close detail pane ---
-    board.press("P")
+    board.press("D")
 
     const afterBorders = checkBorders(board, allNodes)
     // All nodes that were visible initially should still have borders after close
@@ -480,8 +480,8 @@ describe("border rendering after detail pane close", () => {
 
     // 3 open/close cycles
     for (let i = 0; i < 3; i++) {
-      board.press("P")
-      board.press("P")
+      board.press("D")
+      board.press("D")
     }
 
     const finalBorders = checkBorders(board, allNodes)
@@ -508,10 +508,10 @@ describe("border rendering after detail pane close", () => {
 
     // Navigate, open detail, navigate more, close detail
     board.press("j") // move down
-    board.press("P") // open detail
+    board.press("D") // open detail
     board.press("h") // return to board
     board.press("l") // move right
-    board.press("P") // close detail
+    board.press("D") // close detail
 
     const afterBorders = checkBorders(board, allNodes)
     for (const [id, hadBorder] of Object.entries(initialBorders)) {
@@ -549,17 +549,17 @@ test.each([
     )
 
     if (variant === "D open/close") {
-      await driver.press("P")
-      await driver.press("P")
+      await driver.press("D")
+      await driver.press("D")
     } else if (variant === "D open → l → D close") {
-      await driver.press("P")
+      await driver.press("D")
       await driver.cmd.right!()
-      await driver.press("P")
+      await driver.press("D")
     } else {
       // D open → j → D close
-      await driver.press("P")
+      await driver.press("D")
       await driver.press("j")
-      await driver.press("P")
+      await driver.press("D")
     }
   },
 )
@@ -587,9 +587,9 @@ test(
     )
 
     // Exact repro variant: Space → l → Space
-    await driver.press("P") // open detail pane
+    await driver.press("D") // open detail pane
     await driver.cmd.right!() // move column right (l)
-    await driver.press("P") // close detail pane
+    await driver.press("D") // close detail pane
   },
 )
 
@@ -603,7 +603,7 @@ describe("detail pane empty state fallback", () => {
     })
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Detail pane should show the current card's content
@@ -638,7 +638,7 @@ describe("detail pane empty state fallback", () => {
     })
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Simulate board-level selection (no card or column selected)
@@ -668,7 +668,7 @@ describe("detail pane empty state fallback", () => {
     })
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Make cursor invalid
@@ -699,7 +699,7 @@ describe("detail pane cursor", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Detail pane cursor starts on first child of the focused card
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
@@ -711,7 +711,7 @@ describe("detail pane cursor", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     board.press("h") // return to board
 
     board.press("j") // move to card2 — detail pane root should update
@@ -726,16 +726,16 @@ describe("detail pane cursor", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open detail pane
+    board.press("D") // open detail pane
 
     // Navigate to second child
     board.press("j")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub2")
 
-    board.press("P") // close detail pane — pane removed
+    board.press("D") // close detail pane — pane removed
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
-    board.press("P") // reopen detail pane — fresh pane, cursor on first child
+    board.press("D") // reopen detail pane — fresh pane, cursor on first child
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
   })
 
@@ -774,11 +774,11 @@ describe("detail pane on link-type nodes", () => {
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("link-to-target")
 
     // Open detail pane with Space
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane with Space
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -794,7 +794,7 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // D opens + focuses detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
@@ -838,7 +838,7 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Space is the correct key to open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Backslash does NOT close it either
@@ -846,7 +846,7 @@ describe("detail pane on link-type nodes", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Space closes it
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -862,7 +862,7 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // D opens + focuses detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Return to board, navigate to next card
@@ -872,7 +872,7 @@ describe("detail pane on link-type nodes", () => {
 
     // Detail pane still open, should close with D
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -888,7 +888,7 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // D opens + focuses detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Return to board, navigate to different column
@@ -915,11 +915,11 @@ describe("detail pane on link-type nodes", () => {
     )
 
     // Open detail pane
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close with Space
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 })
@@ -944,7 +944,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       incremental: false,
     })
 
-    board.press("P") // open + focus detail pane
+    board.press("D") // open + focus detail pane
     board.press("h") // return to board
     expect(getColIndex(store)).toBe(0)
 
@@ -959,7 +959,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       incremental: false,
     })
 
-    board.press("P") // open detail pane — auto-focuses it
+    board.press("D") // open detail pane — auto-focuses it
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     // Detail cursor should be on first child
@@ -972,7 +972,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       incremental: false,
     })
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     board.press("h") // should return to board
@@ -986,7 +986,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     board.press("h") // return to board
 
     board.press("l") // col1 → col2
@@ -1009,7 +1009,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     })
 
     board.press("l") // go to col2 first
-    board.press("P") // open + focus detail pane
+    board.press("D") // open + focus detail pane
     board.press("h") // return to board (from detail)
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(getColIndex(store)).toBe(1)
@@ -1025,7 +1025,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + focus detail pane
+    board.press("D") // open + focus detail pane
     board.press("h") // return to board
 
     board.press("j") // move down
@@ -1041,7 +1041,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + focus detail pane
+    board.press("D") // open + focus detail pane
     board.press("h") // return to board
 
     board.press("l") // col1 → col2
@@ -1067,7 +1067,7 @@ describe("detail pane focus + navigation", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
 
@@ -1082,7 +1082,7 @@ describe("detail pane focus + navigation", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail
+    board.press("D") // open + auto-focus detail
     board.press("h") // back to board
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -1094,7 +1094,7 @@ describe("detail pane focus + navigation", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Board cursor is on task1 → detail pane should show task1
@@ -1112,7 +1112,7 @@ describe("detail pane focus + navigation", () => {
       { checkIncremental: false, incremental: false },
     )
 
-    board.press("P") // open + auto-focus detail pane
+    board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Detail pane should show "task1"
@@ -1143,7 +1143,7 @@ describe("detail pane j/k navigation", () => {
       () => item("board", item("col1", item("card1", item("child-a"), item("child-b"), item("child-c")))),
       { checkIncremental: false, incremental: false },
     )
-    board.press("P")
+    board.press("D")
     expect(dc(store)).toBe("child-a")
     board.press("j"); expect(dc(store)).toBe("child-b")
     board.press("j"); expect(dc(store)).toBe("child-c")
@@ -1158,7 +1158,7 @@ describe("detail pane j/k navigation", () => {
       { id: "heading1", type: "h", item: true, content: "Action items", data: { name: "Action items" }, parent_id: "task1", parent_idx: 1, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
     ] as KNode[]
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
-    board.press("P")
+    board.press("D")
     expect(dc(store)).toBe("body1")
     board.press("j"); expect(dc(store)).toBe("heading1")
     board.press("k"); expect(dc(store)).toBe("body1")
@@ -1176,7 +1176,7 @@ describe("detail pane j/k navigation", () => {
       { id: "heading2", type: "h", item: true, content: "Section B", data: { name: "Section B" }, parent_id: "task1", parent_idx: 2, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
     ] as KNode[]
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
-    board.press("P")
+    board.press("D")
 
     /** Get detail pane's CursorStore state */
     const detailCursor = () => {
@@ -1206,7 +1206,7 @@ describe("detail pane j/k navigation", () => {
       () => item("board", item("col1", item("card1", item("c-a"), item("c-b"), item("c-c")))),
       { checkIncremental: false, incremental: false },
     )
-    board.press("P")
+    board.press("D")
     expect(dc(store)).toBe("c-a")
     board.press("j"); expect(dc(store)).toBe("c-b")
     board.press("j"); expect(dc(store)).toBe("c-c")
@@ -1239,7 +1239,7 @@ describe("board h/l navigation with detail pane open", () => {
     expect(bc(store)).toBe("task-1")
 
     // Open detail pane, navigate inside
-    board.press("P")
+    board.press("D")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     const dc = (store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null
     expect(dc).toBe("sub-1")
