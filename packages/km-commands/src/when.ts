@@ -99,6 +99,7 @@ export const searchReplaceOpen = when("searchReplaceOpen", (ctx) => !!ctx.search
 
 /** True when the favorites dialog is open */
 export const favoritesDialogOpen = when("favoritesDialogOpen", (ctx) => !!ctx.favoritesDialogOpen)
+export const favoritesAddMode = when("favoritesAddMode", (ctx) => !!ctx.favoritesAddMode)
 
 /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
 export const hasKitty = when("hasKitty", (ctx) => !!ctx.hasKitty)

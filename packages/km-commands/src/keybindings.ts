@@ -9,6 +9,7 @@ import {
   anyDialogOpen,
   filterDialogOpen,
   favoritesDialogOpen,
+  favoritesAddMode,
   helpOverlayOpen,
   deleteConfirmOpen,
   consoleOpen,
@@ -72,6 +73,8 @@ export interface KeybindingContext {
   searchReplaceOpen?: boolean
   /** True when the favorites dialog is open */
   favoritesDialogOpen?: boolean
+  /** True when favorites dialog is in "add" mode (capturing a key) */
+  favoritesAddMode?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
@@ -409,19 +412,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     ],
   },
 
-  // --- Layer 3a: Favorites dialog (manage key→board mappings) ---
+  // --- Layer 3a: Favorites dialog (manage key→node mappings) ---
   {
     name: "favorites-dialog",
     bindings: [
+      // Add mode: capture the pressed key or cancel
+      { key: "Escape", commandId: "favorites.cancel_assign", when: and(favoritesDialogOpen, favoritesAddMode) },
+      { key: "*", wildcard: true, commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesAddMode) },
+      // Normal mode: navigate, add, clear, close
       { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
+      { key: "a", commandId: "favorites.start_assign", when: favoritesDialogOpen },
       { key: "j", commandId: "dialog.nav_down", when: favoritesDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: favoritesDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: favoritesDialogOpen },
       { key: "ArrowUp", commandId: "dialog.nav_up", when: favoritesDialogOpen },
       { key: "x", commandId: "favorites.clear", when: favoritesDialogOpen },
       { key: "X", commandId: "favorites.clear", when: favoritesDialogOpen },
-      // Wildcard: any other key → assign current board to that key
-      { key: "*", wildcard: true, commandId: "favorites.assign", when: favoritesDialogOpen },
     ],
   },
 

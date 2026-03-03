@@ -780,9 +780,17 @@ interface ManageFavoritesAction {
   type: "MANAGE_FAVORITES"
 }
 
+interface FavoritesStartAssignAction {
+  type: "FAVORITES_START_ASSIGN"
+}
+
 interface FavoritesAssignAction {
   type: "FAVORITES_ASSIGN"
   key: string
+}
+
+interface FavoritesCancelAssignAction {
+  type: "FAVORITES_CANCEL_ASSIGN"
 }
 
 interface FavoritesClearAction {
@@ -903,7 +911,9 @@ export type TUIAction =
   | FocusNextAction
   | FocusPrevAction
   | ManageFavoritesAction
+  | FavoritesStartAssignAction
   | FavoritesAssignAction
+  | FavoritesCancelAssignAction
   | FavoritesClearAction
 
 export type UIAction =
