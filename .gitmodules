@@ -25,3 +25,6 @@
 [submodule "vendor/beorn-termless"]
 	path = vendor/beorn-termless
 	url = git@github.com:beorn/termless.git
+[submodule "vendor/beorn-themex"]
+	path = vendor/beorn-themex
+	url = git@github.com:beorn/themex.git

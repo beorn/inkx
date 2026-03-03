@@ -5,7 +5,7 @@
  * to their resolved ANSI 256-color indices. Use these instead of magic
  * numbers in color assertions.
  *
- * Source of truth: vendor/beorn-inkx/src/theme-defs.ts (ansi16DarkTheme)
+ * Source of truth: vendor/beorn-themex/src/palettes/index.ts (ansi16DarkTheme)
  *                  vendor/beorn-inkx/src/pipeline/render-helpers.ts (namedColors)
  *
  * @example
