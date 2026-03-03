@@ -525,6 +525,11 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       if (dir === "left" || dir === "right") return null
 
+      // Cursor IS the root (e.g., zoomed to a root-level node) — move to first/last child
+      if (cursorNodeId === rootId) {
+        return dir === "down" ? allChildren[0]!.id : allChildren[allChildren.length - 1]!.id
+      }
+
       const idx = indexOfChild(allChildren, cursorNodeId)
       if (idx < 0) {
         // Cursor might be a descendant of a card — walk up to find the card-level ancestor

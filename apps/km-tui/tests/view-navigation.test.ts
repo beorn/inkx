@@ -12,7 +12,11 @@
 import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
-import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
+import {
+  createCardsViewNavigation,
+  createDetailViewNavigation,
+  type NavState,
+} from "../src/view-navigation.ts"
 import { createGridNavigator } from "@km/board"
 
 function makeState(cursorNodeId: string, rootId: string | null = "board"): NavState {
@@ -140,5 +144,42 @@ describe("CardsViewNavigation", () => {
       const target = nav.navigate("right", makeState("a0"), emptyRepo, registry)
       expect(target).toBe("col1")
     })
+  })
+})
+
+describe("DetailViewNavigation", () => {
+  const nav = createDetailViewNavigation()
+  const nodes = item("root", item("child0"), item("child1"), item("child2"))
+  const repo = createFakeRepo({ nodes })
+  const grid = createGridNavigator()
+
+  it("cursor === root, down → first child (bug: km-tui.detail-nav-ancestor)", () => {
+    const target = nav.navigate("down", makeState("root", "root"), repo, grid)
+    expect(target).toBe("child0")
+  })
+
+  it("cursor === root, up → last child", () => {
+    const target = nav.navigate("up", makeState("root", "root"), repo, grid)
+    expect(target).toBe("child2")
+  })
+
+  it("j from first child → second child", () => {
+    const target = nav.navigate("down", makeState("child0", "root"), repo, grid)
+    expect(target).toBe("child1")
+  })
+
+  it("k from first child → null (boundary)", () => {
+    const target = nav.navigate("up", makeState("child0", "root"), repo, grid)
+    expect(target).toBeNull()
+  })
+
+  it("j from last child → null (boundary)", () => {
+    const target = nav.navigate("down", makeState("child2", "root"), repo, grid)
+    expect(target).toBeNull()
+  })
+
+  it("left/right → null", () => {
+    expect(nav.navigate("left", makeState("child0", "root"), repo, grid)).toBeNull()
+    expect(nav.navigate("right", makeState("child0", "root"), repo, grid)).toBeNull()
   })
 })

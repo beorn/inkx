@@ -515,9 +515,16 @@ export function createBoardAppStoreState(
             case "ZOOM_IN": {
               const zoomNodeId = action.nodeId
               const zoomDepths = computeDefaultFoldDepths(zoomNodeId, new Map())
+              // Don't set cursor to the root itself — navigate() can't find an ancestor
+              // of a node under itself. Default to first child when cursor === root.
+              let cursorId = action.cursorNodeId ?? null
+              if (cursorId && cursorId === zoomNodeId) {
+                const children = state.repo.getChildren(zoomNodeId)
+                cursorId = children[0]?.id ?? null
+              }
               paneUpdate = {
                 rootId: zoomNodeId,
-                cursorNodeId: action.cursorNodeId ?? null,
+                cursorNodeId: cursorId,
                 foldDepths: zoomDepths,
                 curswantX: null,
                 curswantY: null,
