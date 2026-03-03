@@ -204,7 +204,7 @@ Not all high-complexity functions need extraction. Suppress with `oxlint-disable
 
 | Pattern | Why it's fine | Example |
 |---------|---------------|---------|
-| React components with many conditionals | JSX conditionals inflate scores but structure is readable | `DetailPane`, `CommandBox`, `TreeNode` |
+| React components with many conditionals | JSX conditionals inflate scores but structure is readable | `Board`, `CommandBox`, `TreeNode` |
 | Exhaustive `switch` validated by TypeScript | Lookup table **loses** compile-time completeness checking | `handleCommandAction`, `executeCommand` |
 | Test setup helpers | Tests are consumers, not APIs — setup complexity is fine | `createBoardTest`, `createFakeRepo`, fixture builders |
 | Consolidated test files | Merging many small test files into fewer domain files saves ~1.8s import overhead per file — larger test files are expected and desirable | `breadcrumb.slow.test.ts`, `overflow.test.tsx`, `column-rendering.test.ts` |

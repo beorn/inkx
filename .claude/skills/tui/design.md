@@ -147,7 +147,7 @@ NOT every operation clears the selection. The rule depends on what happened to t
 **DO:**
 - Add keybindings with `when` predicates for mode-specific behavior
 - Handle all discrete actions in `board-actions.ts` via the command system
-- Keep DetailPane, HelpOverlay, ConsoleModal as pure rendering — no input handling
+- Keep HelpOverlay, ConsoleModal as pure rendering — no input handling
 
 ## TUI Testing
 

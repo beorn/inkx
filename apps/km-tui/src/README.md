@@ -19,7 +19,7 @@ Board.tsx (main container)
 │   └── TabsView - tabbed single column
 │
 ├── Overlays (conditionally rendered)
-│   ├── DetailPane (right panel)
+│   ├── Detail view mode (right panel, viewMode "detail")
 │   ├── ItemPicker (modal, project/tag/assignee)
 │   ├── HelpOverlay (modal)
 │   └── NewItemDialog (modal)
@@ -69,8 +69,7 @@ These are managed inside `Board.tsx`:
 | `state`          | BoardState (columns, cursor, etc.)    |
 | `foldDepths`     | Map of node IDs to fold depth budget  |
 | `multiSelected`  | Set of selected item keys             |
-| `viewMode`       | "cards" / "columns" / "list" / "tabs" |
-| `showDetailPane` | Detail pane visibility                |
+| `viewMode`       | "cards" / "columns" / "list" / "tabs" / "detail" |
 | `showHelp`       | Help overlay visibility               |
 | `inOutlineMode`  | Whether navigating within card        |
 | `subIndex`       | Position within card outline          |
