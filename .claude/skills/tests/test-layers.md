@@ -16,7 +16,8 @@ Every test should answer: **"Does this test what THIS layer adds?"**
 
 ```
 ── km app ──────────────────────────────────────────────────────────────
-Layer 5: km-tui (.spec.ts)       → User journeys: keys in, screen + persistence out  ← TOP PRIORITY
+Layer 5b: termless (.termless.test.ts) → ANSI output verification: buffer → real terminal emulator
+Layer 5a: km-tui (.spec.ts)           → User journeys: keys in, screen + persistence out  ← TOP PRIORITY
 Layer 4: km-board (.test.ts)     → Action sequences: actions in, state transitions out
 Layer 3: km-storage (.test.ts)   → Pipeline integrity: files in, nodes out, files back
 Layer 2: km-markdown (.test.ts)  → Parse fidelity: markdown in, AST/nodes out
@@ -44,6 +45,7 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
+| **termless** | ANSI output → real terminal emulator state. Style correctness, cursor positioning, wide chars. | inkx buffer is correct. |
 | **km-tui** | Key → visual outcome + data saved. Multi-step journeys. | Board reducer works. Storage persists. Rendering is correct. |
 | **km-board** | Action sequences → state transitions. Fold/zoom/cursor composition. | Nodes exist. Markdown parses. |
 | **km-storage** | File ↔ DB round-trip integrity. Concurrent edits. Sync safety. | Markdown parser is correct. |

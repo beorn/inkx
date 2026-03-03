@@ -1,8 +1,8 @@
 /**
- * PTY Integration Tests — Real terminal pipeline
+ * PTY Integration Tests — Real terminal pipeline via termless
  *
- * Uses createTtyEngine (Bun PTY + xterm-headless) to test through the
- * REAL async event pipeline: stdin → TermProvider → merge → pump → event loop → render.
+ * Uses termless (createTerminal + xterm.js backend + PTY spawn) to test through
+ * the REAL async event pipeline: stdin → TermProvider → merge → pump → event loop → render.
  *
  * Headless tests (testEnv/board.press) call handleKey synchronously, bypassing
  * all 4 async layers. These tests catch bugs that only manifest with real timing.
@@ -12,10 +12,9 @@
 import { describe, test, expect, afterAll, beforeAll } from "vitest"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
-
-// Direct import — no tsconfig alias exists for beorn-tools
-const { createTtyEngine } = await import("/Users/beorn/Code/pim/km/vendor/beorn-tools/tools/lib/tty-engine/engine.ts")
-type TtyEngine = Awaited<ReturnType<typeof createTtyEngine>>
+import { createTerminal } from "termless"
+import { createXtermBackend } from "termless-xtermjs"
+import "viterm/matchers"
 
 const KM_CWD = "/Users/beorn/Code/pim/km"
 const TEST_VAULT = "/tmp/vt"
@@ -24,15 +23,38 @@ const SNAPSHOT_DIR = join(KM_CWD, "apps/km-tui/tests/__snapshots__/pty")
 // Ensure snapshot directory exists
 if (!existsSync(SNAPSHOT_DIR)) mkdirSync(SNAPSHOT_DIR, { recursive: true })
 
+type TermlessTerminal = ReturnType<typeof createTerminal>
+
+/** Create a termless terminal with xterm.js backend and spawn km view */
+async function createKmTerminal(id: string, opts: { cols?: number; rows?: number } = {}) {
+  const cols = opts.cols ?? 400
+  const rows = opts.rows ?? 150
+  const term = createTerminal({
+    backend: createXtermBackend({ cols, rows }),
+    cols,
+    rows,
+  })
+  await term.spawn(["bun", "km", "view", TEST_VAULT], { cwd: KM_CWD })
+  return term
+}
+
 /** Press key, wait for render to settle */
-async function pressAndWait(e: TtyEngine, key: string, stableMs = 500) {
-  e.press(key)
-  await e.waitForStable(stableMs, 10000)
+async function pressAndWait(term: TermlessTerminal, key: string, stableMs = 500) {
+  term.press(key)
+  await term.waitForStable(stableMs, 10000)
+}
+
+/** Simulate key auto-repeat: sends `count` presses with `gapMs` between each */
+async function repeatKey(term: TermlessTerminal, key: string, count: number, gapMs = 33) {
+  for (let i = 0; i < count; i++) {
+    term.press(key)
+    await new Promise((resolve) => setTimeout(resolve, gapMs))
+  }
 }
 
 /** Extract breadcrumb line (first non-empty line) */
-function getBreadcrumb(e: TtyEngine): string {
-  const lines = e.getText().split("\n")
+function getBreadcrumb(term: TermlessTerminal): string {
+  const lines = term.getText().split("\n")
   for (const line of lines) {
     if (line.trim().length > 0) return line
   }
@@ -40,15 +62,26 @@ function getBreadcrumb(e: TtyEngine): string {
 }
 
 /** Check if terminal text contains bell/warning indicators */
-function hasBellIndicator(e: TtyEngine): boolean {
-  const text = e.getText()
+function hasBellIndicator(term: TermlessTerminal): boolean {
+  const text = term.getText()
   return text.includes("Can't move") || text.includes("⚠")
 }
 
-/** Save HTML snapshot for visual regression reference */
-function saveSnapshot(e: TtyEngine, name: string) {
-  const html = e.getHTML()
-  writeFileSync(join(SNAPSHOT_DIR, `${name}.html`), html, "utf-8")
+/** Save SVG snapshot for visual regression reference */
+function saveSnapshot(term: TermlessTerminal, name: string) {
+  const svg = term.screenshotSvg()
+  writeFileSync(join(SNAPSHOT_DIR, `${name}.svg`), svg, "utf-8")
+}
+
+/** Wait for terminal to have any content */
+async function waitForContent(term: TermlessTerminal, timeout: number) {
+  const start = Date.now()
+  while (Date.now() - start < timeout) {
+    const content = term.getText().trim()
+    if (content.length > 0) return
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  throw new Error(`No terminal content after ${timeout}ms`)
 }
 
 // =============================================================================
@@ -56,261 +89,242 @@ function saveSnapshot(e: TtyEngine, name: string) {
 // =============================================================================
 
 describe("PTY integration: auto-repeat", () => {
-  let e: TtyEngine
+  let term: TermlessTerminal
 
   beforeAll(async () => {
-    e = createTtyEngine("pty-auto-repeat", {
-      command: ["bun", "km", "view", TEST_VAULT],
-      cols: 400,
-      rows: 150,
-      cwd: KM_CWD,
-    })
-    await e.waitForContent(15000)
-    await e.waitForStable(1500, 20000)
+    term = await createKmTerminal("pty-auto-repeat")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
   }, 30000)
 
   afterAll(async () => {
-    await e.close()
+    await term.close()
   })
 
   test("rapid j presses move cursor continuously", async () => {
-    const initialBreadcrumb = getBreadcrumb(e)
+    const initialBreadcrumb = getBreadcrumb(term)
 
     // Single j press, wait for stable
-    await pressAndWait(e, "j")
-    const afterOneJ = getBreadcrumb(e)
+    await pressAndWait(term, "j")
+    const afterOneJ = getBreadcrumb(term)
     expect(afterOneJ).not.toBe(initialBreadcrumb)
 
     // Use repeatKey for auto-repeat simulation (~30Hz)
-    await e.repeatKey("j", 5)
-    await e.waitForStable(500, 10000)
-    const afterRapidJ = getBreadcrumb(e)
+    await repeatKey(term, "j", 5)
+    await term.waitForStable(500, 10000)
+    const afterRapidJ = getBreadcrumb(term)
     expect(afterRapidJ).not.toBe(afterOneJ)
 
     // Save snapshot for visual reference
-    saveSnapshot(e, "after-rapid-j")
+    saveSnapshot(term, "after-rapid-j")
   }, 20000)
 
   test("very rapid j presses (15ms gap, ~67Hz) still move cursor", async () => {
-    const initialBreadcrumb = getBreadcrumb(e)
+    const initialBreadcrumb = getBreadcrumb(term)
 
     // Very rapid — faster than typical key repeat
-    await e.repeatKey("j", 5, 15)
-    await e.waitForStable(500, 10000)
+    await repeatKey(term, "j", 5, 15)
+    await term.waitForStable(500, 10000)
 
-    const afterRapid = getBreadcrumb(e)
+    const afterRapid = getBreadcrumb(term)
     expect(afterRapid).not.toBe(initialBreadcrumb)
   }, 20000)
 })
 
 describe("PTY integration: burst input (real key repeat simulation)", () => {
-  let e: TtyEngine
+  let term: TermlessTerminal
 
   beforeAll(async () => {
-    e = createTtyEngine("pty-burst", {
-      command: ["bun", "km", "view", TEST_VAULT],
-      cols: 400,
-      rows: 150,
-      cwd: KM_CWD,
-    })
-    await e.waitForContent(15000)
-    await e.waitForStable(1500, 20000)
+    term = await createKmTerminal("pty-burst")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
   }, 30000)
 
   afterAll(async () => {
-    await e.close()
+    await term.close()
   })
 
   test("burst of j chars in single write (simulates OS stdin buffering)", async () => {
-    const initialBreadcrumb = getBreadcrumb(e)
+    const initialBreadcrumb = getBreadcrumb(term)
 
     // Real key repeat: OS buffers multiple keystrokes into one stdin read.
-    e.type("jjjjj")
-    await e.waitForStable(500, 10000)
+    term.type("jjjjj")
+    await term.waitForStable(500, 10000)
 
-    const afterBurst = getBreadcrumb(e)
+    const afterBurst = getBreadcrumb(term)
     expect(afterBurst).not.toBe(initialBreadcrumb)
   }, 20000)
 
   test("repeated bursts of j chars (simulates held key over time)", async () => {
-    const initialBreadcrumb = getBreadcrumb(e)
+    const initialBreadcrumb = getBreadcrumb(term)
 
     // Simulate how OS delivers key repeat: bursts of 2-3 chars every ~50ms
     for (let i = 0; i < 3; i++) {
-      e.type("jj")
+      term.type("jj")
       await Bun.sleep(50)
     }
-    await e.waitForStable(500, 10000)
+    await term.waitForStable(500, 10000)
 
-    const afterBursts = getBreadcrumb(e)
+    const afterBursts = getBreadcrumb(term)
     expect(afterBursts).not.toBe(initialBreadcrumb)
   }, 20000)
 
   test("burst h/l alternation (simulates rapid column switching)", async () => {
     // Move right first
-    await pressAndWait(e, "l")
+    await pressAndWait(term, "l")
 
     // Burst of alternating h/l as single writes
-    e.type("hlhlhlhl")
-    await e.waitForStable(500, 10000)
+    term.type("hlhlhlhl")
+    await term.waitForStable(500, 10000)
 
     // No bell
-    expect(hasBellIndicator(e)).toBe(false)
+    expect(hasBellIndicator(term)).toBe(false)
   }, 20000)
 })
 
 describe("PTY integration: h/l false bell", () => {
-  let e: TtyEngine
+  let term: TermlessTerminal
 
   beforeAll(async () => {
-    e = createTtyEngine("pty-bell", {
-      command: ["bun", "km", "view", TEST_VAULT],
-      cols: 400,
-      rows: 150,
-      cwd: KM_CWD,
-    })
-    await e.waitForContent(15000)
-    await e.waitForStable(1500, 20000)
+    term = await createKmTerminal("pty-bell")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
   }, 30000)
 
   afterAll(async () => {
-    await e.close()
+    await term.close()
   })
 
   test("alternating h/l does not trigger bell when not at boundary", async () => {
     // Move right first to ensure we're not at a column boundary
-    await pressAndWait(e, "l")
-    expect(hasBellIndicator(e)).toBe(false)
+    await pressAndWait(term, "l")
+    expect(hasBellIndicator(term)).toBe(false)
 
     // Now alternate h/l rapidly — should bounce between columns without bell
     for (let i = 0; i < 8; i++) {
-      e.press(i % 2 === 0 ? "h" : "l")
+      term.press(i % 2 === 0 ? "h" : "l")
       await Bun.sleep(50)
     }
-    await e.waitForStable(500, 10000)
+    await term.waitForStable(500, 10000)
 
-    expect(hasBellIndicator(e)).toBe(false)
+    expect(hasBellIndicator(term)).toBe(false)
   }, 20000)
 
   test("rapid h at left boundary: bells on each press without crash", async () => {
     // Navigate back to leftmost column first
-    for (let i = 0; i < 10; i++) e.press("h")
-    await e.waitForStable(500, 10000)
+    for (let i = 0; i < 10; i++) term.press("h")
+    await term.waitForStable(500, 10000)
 
     // We should be at col 0 — pressing h should hit left boundary
-    await pressAndWait(e, "h")
+    await pressAndWait(term, "h")
 
     // Rapid boundary hits — each fires bell, should not crash
-    await e.repeatKey("h", 5)
-    await e.waitForStable(500, 10000)
+    await repeatKey(term, "h", 5)
+    await term.waitForStable(500, 10000)
   }, 20000)
 })
 
 describe("PTY integration: navigation correctness", () => {
-  let e: TtyEngine
+  let term: TermlessTerminal
 
   beforeAll(async () => {
-    e = createTtyEngine("pty-nav", {
-      command: ["bun", "km", "view", TEST_VAULT],
-      cols: 400,
-      rows: 150,
-      cwd: KM_CWD,
-    })
-    await e.waitForContent(15000)
-    await e.waitForStable(1500, 20000)
+    term = await createKmTerminal("pty-nav")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
   }, 30000)
 
   afterAll(async () => {
-    await e.close()
+    await term.close()
   })
 
   test("zoom in with Enter and back out with Escape", async () => {
-    saveSnapshot(e, "nav-initial")
+    saveSnapshot(term, "nav-initial")
 
-    const initialBreadcrumb = getBreadcrumb(e)
+    const initialBreadcrumb = getBreadcrumb(term)
 
     // Move down to first item and zoom in
-    await pressAndWait(e, "j")
-    await pressAndWait(e, "Enter")
-    const zoomedIn = getBreadcrumb(e)
+    await pressAndWait(term, "j")
+    await pressAndWait(term, "Enter")
+    const zoomedIn = getBreadcrumb(term)
     expect(zoomedIn).not.toBe(initialBreadcrumb)
-    saveSnapshot(e, "nav-zoomed-in")
+    saveSnapshot(term, "nav-zoomed-in")
 
     // Back out
-    await pressAndWait(e, "Escape")
-    await e.waitForStable(500, 10000)
-    saveSnapshot(e, "nav-zoomed-out")
+    await pressAndWait(term, "Escape")
+    await term.waitForStable(500, 10000)
+    saveSnapshot(term, "nav-zoomed-out")
   }, 20000)
 
   test("view mode toggle with v preserves content", async () => {
-    const textBefore = e.getText()
+    const textBefore = term.getText()
 
     // Toggle view mode
-    await pressAndWait(e, "v")
-    const textAfterV = e.getText()
+    await pressAndWait(term, "v")
+    const textAfterV = term.getText()
 
     // View mode should change something (status bar at minimum)
     // Content should still be visible
     expect(textAfterV.length).toBeGreaterThan(0)
-    saveSnapshot(e, "nav-after-view-toggle")
+    saveSnapshot(term, "nav-after-view-toggle")
 
     // Toggle back
-    await pressAndWait(e, "v")
+    await pressAndWait(term, "v")
   }, 20000)
 
   test("search opens with cmd+f and closes with Escape", async () => {
     // Open search (Cmd+f triggers global search dialog)
-    e.press("cmd+f")
-    await e.waitForStable(300, 5000)
+    term.press("cmd+f")
+    await term.waitForStable(300, 5000)
 
     // Type a search term
-    e.type("test")
-    await e.waitForStable(300, 5000)
-    saveSnapshot(e, "nav-search-open")
+    term.type("test")
+    await term.waitForStable(300, 5000)
+    saveSnapshot(term, "nav-search-open")
 
     // Close search with Escape
-    await pressAndWait(e, "Escape")
-    saveSnapshot(e, "nav-search-closed")
+    await pressAndWait(term, "Escape")
+    saveSnapshot(term, "nav-search-closed")
   }, 20000)
 })
 
-describe("PTY integration: HTML snapshot capture", () => {
-  let e: TtyEngine
+describe("PTY integration: SVG snapshot capture", () => {
+  let term: TermlessTerminal
 
   beforeAll(async () => {
-    e = createTtyEngine("pty-snapshot", {
-      command: ["bun", "km", "view", TEST_VAULT],
-      cols: 120,
-      rows: 40,
-      cwd: KM_CWD,
-    })
-    await e.waitForContent(15000)
-    await e.waitForStable(1500, 20000)
+    term = await createKmTerminal("pty-snapshot", { cols: 120, rows: 40 })
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
   }, 30000)
 
   afterAll(async () => {
-    await e.close()
+    await term.close()
   })
 
-  test("initial board render captures valid HTML", async () => {
-    const html = e.getHTML()
+  test("initial board render captures valid SVG", async () => {
+    const svg = term.screenshotSvg()
 
-    // HTML should contain terminal content
-    expect(html).toContain("<pre")
-    expect(html.length).toBeGreaterThan(100)
+    // SVG should contain terminal content
+    expect(svg).toContain("<svg")
+    expect(svg.length).toBeGreaterThan(100)
 
-    saveSnapshot(e, "snapshot-initial-board")
+    saveSnapshot(term, "snapshot-initial-board")
   }, 10000)
 
-  test("after navigation, HTML updates", async () => {
-    const htmlBefore = e.getHTML()
+  test("after navigation, screen updates", async () => {
+    const textBefore = term.getText()
 
-    await pressAndWait(e, "j")
-    const htmlAfter = e.getHTML()
+    await pressAndWait(term, "j")
+    const textAfter = term.getText()
 
-    // HTML should have changed (cursor moved)
-    expect(htmlAfter).not.toBe(htmlBefore)
+    // Screen should have changed (cursor moved)
+    expect(textAfter).not.toBe(textBefore)
 
-    saveSnapshot(e, "snapshot-after-nav")
+    saveSnapshot(term, "snapshot-after-nav")
+  }, 10000)
+
+  test("board renders with visible content via viterm matchers", async () => {
+    // Use viterm matchers — the real power of termless
+    expect(term.screen).toContainText(getBreadcrumb(term).trim())
+    expect(term.getText().trim().length).toBeGreaterThan(0)
   }, 10000)
 })

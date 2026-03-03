@@ -206,10 +206,54 @@ board.expectNodeColor("Buy milk", "whiteBright")
 - **Tests >5s → `.slow.test.ts`** or `.slow.spec.ts`. The fast suite is capped at 20s.
 - **Tests with >100 nodes or >100 iterations → `.bench.ts`**. Never `.test.ts`.
 
+## Termless TTY Regression Tests
+
+Tests that feed inkx ANSI output through a real terminal emulator (xterm.js/Ghostty WASM) and assert on the resulting terminal state. Catches bugs that virtual buffer tests miss: ANSI generation errors, style leaks across frames, cursor positioning after diff output, wide character rendering.
+
+**Speed**: ~30-100ms per test (WASM, in-process, deterministic). Fast enough for CI.
+
+```typescript
+import { createTerminal } from "termless"
+import { createXtermBackend } from "termless-xtermjs"
+import "viterm/matchers"
+
+test("board renders correct colors through real terminal", () => {
+  // Render a board, capture ANSI output from inkx
+  const { board } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
+  const ansiOutput = board.ansi  // raw ANSI from inkx output phase
+
+  // Feed to real terminal emulator
+  const term = createTerminal({ backend: createXtermBackend({ cols: 80, rows: 24 }) })
+  term.feed(ansiOutput)
+
+  // Assert on terminal state (not inkx buffer — the actual parsed result)
+  expect(term.screen).toContainText("Buy milk")
+  expect(term.cell(0, 0)).toBeBold()
+  expect(term.cell(0, 0)).toHaveFg("#cyan")
+  term.close()
+})
+```
+
+**Canonical examples**: `vendor/beorn-inkx/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
+
+**viterm matchers** (auto-registered via `import "viterm/matchers"`):
+
+| Category | Matchers |
+|----------|----------|
+| Text (RegionView) | `toContainText()`, `toHaveText()`, `toMatchLines()` |
+| Cell style | `toBeBold()`, `toBeItalic()`, `toHaveFg()`, `toHaveBg()`, `toHaveUnderline()`, `toBeWide()` |
+| Terminal | `toHaveCursorAt()`, `toHaveCursorVisible()`, `toBeInMode()`, `toHaveTitle()` |
+| Snapshot | `toMatchTerminalSnapshot()`, `toMatchSvgSnapshot()` |
+
+**Region selectors**: `term.screen`, `term.scrollback`, `term.row(n)`, `term.cell(r, c)`, `term.range(r1, c1, r2, c2)`.
+
+**File suffix**: `.termless.test.ts` for termless-specific tests.
+
 ## Related Test Types
 
 | Type | Location | When |
 |------|----------|------|
+| **Termless** | `*.termless.test.ts` | ANSI output verification through real terminal emulator (CI-friendly). |
 | **Fuzz/chaos** | `*.fuzz.ts` | Randomized keypresses, monkey testing. Run with `bun run test:fuzz`. |
 | **Benchmarks** | `*.bench.ts` | Rendering, scroll, navigation perf. Run with `bun run bench`. |
 | **GUI/TTY** | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI). |
