@@ -204,7 +204,6 @@
 2 vendor/beorn-inkx/tests/terminal-compat/protocol-features.test.ts
 2 vendor/beorn-inkx/tests/terminal-lifecycle.test.ts
 3 vendor/beorn-inkx/tests/terminal-multiplexers.test.ts
-7 vendor/beorn-inkx/tests/theming.test.tsx
 1 vendor/beorn-inkx/tests/wide-terminal-repro.test.tsx
 7 vendor/beorn-inkx/tests/with-commands.test.tsx
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
@@ -212,8 +211,7 @@
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
-1 vendor/beorn-themex/tests/derive.test.ts
-1 vendor/beorn-themex/tests/palettes.test.ts
+3 vendor/beorn-themex/src/cli.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts
