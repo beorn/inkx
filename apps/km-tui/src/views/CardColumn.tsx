@@ -15,6 +15,7 @@ import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, useScreenRectCallback } from "inkx"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
+import { isDetailViewPane } from "../board-types.ts"
 import type { ColumnView } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -25,6 +26,7 @@ import { parseToPlainText, InlineText } from "../text/index.ts"
 import { displayLength } from "../text/rich.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
+import { usePaneId } from "../pane-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
@@ -98,11 +100,21 @@ interface CardProps {
  */
 function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIndex: number; nodeId: string }): null {
   const registry = useNavigator()
+  const paneId = usePaneId()
+
+  // Detail panes use flat sequential navigation (createDetailViewNavigation)
+  // that doesn't use the grid navigator. Without this guard, the detail pane's
+  // section 0 overwrites the parent board pane's section 0 (both use colIndex
+  // starting from 0), corrupting stickyY-based h/l navigation in the board.
+  const isDetailPane = useAppStore<BoardAppStore, boolean>((s) => {
+    const pane = s.workspace.panes.get(paneId)
+    return !!pane && isDetailViewPane(pane)
+  })
 
   const handleLayout = useCallback(
     (computed: { x: number; y: number; width: number; height: number }) => {
-      if (!registry) {
-        layoutLog.trace?.(`CardLayoutRegistrar: no registry for col=${colIndex} card=${cardIndex}`)
+      if (!registry || isDetailPane) {
+        layoutLog.trace?.(`CardLayoutRegistrar: skip col=${colIndex} card=${cardIndex} (${isDetailPane ? "detail pane" : "no registry"})`)
         return
       }
 
@@ -114,7 +126,7 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
         height: computed.height,
       })
     },
-    [registry, colIndex, cardIndex],
+    [registry, colIndex, cardIndex, isDetailPane],
   )
 
   useScreenRectCallback(handleLayout)
@@ -125,9 +137,9 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
   // card during h/l navigation (stickyY intersects stale bounding box).
   useEffect(() => {
     return () => {
-      registry?.unregister(colIndex, cardIndex)
+      if (!isDetailPane) registry?.unregister(colIndex, cardIndex)
     }
-  }, [registry, colIndex, cardIndex])
+  }, [registry, colIndex, cardIndex, isDetailPane])
 
   return null
 }
