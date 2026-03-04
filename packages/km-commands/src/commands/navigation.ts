@@ -260,21 +260,21 @@ const commandPalette = {
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 
-// Block-by-block navigation (J/K — auto-unfolds, jumps blocks)
+// Block-by-block navigation (J/K — same as j/k, navigate spatially)
 const blockNavDown = {
   id: "block_nav_down",
   name: "Block Down",
-  description: "Move cursor down by block (auto-unfolds)",
+  description: "Move cursor down (same as j)",
   category: "Navigation",
-  execute: () => ({ type: "CURSOR_MOVE", dir: "block_down" }),
+  execute: () => ({ type: "CURSOR_MOVE", dir: "down" }),
 } satisfies CommandDef
 
 const blockNavUp = {
   id: "block_nav_up",
   name: "Block Up",
-  description: "Move cursor up by block (auto-unfolds)",
+  description: "Move cursor up (same as k)",
   category: "Navigation",
-  execute: () => ({ type: "CURSOR_MOVE", dir: "block_up" }),
+  execute: () => ({ type: "CURSOR_MOVE", dir: "up" }),
 } satisfies CommandDef
 
 // Settings / view modes

@@ -49,13 +49,6 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return result
   }
 
-  // Block navigation (J/K) — structural drill-in/drill-out
-  if (dir === "block_down" || dir === "block_up") {
-    const result = handleBlockNav(ctx, dir)
-    ctx.navigator.clearStickyY()
-    return result
-  }
-
   // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
   if (dir === "up" || dir === "down") {
     const result = handleVerticalNav(ctx, dir)
@@ -191,43 +184,6 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
-}
-
-/** Block navigation (J/K) — structural drill-in/drill-out. */
-function handleBlockNav(ctx: ActionCtx, dir: "block_down" | "block_up"): ActionResult {
-  const { dispatchBoard } = ctx
-
-  if (!ctx.cursorNodeId) {
-    return boundary(dir, "no cursor")
-  }
-
-  if (dir === "block_down") {
-    // Drill in: auto-unfold if folded, then move to first child.
-    // We must pass the updated foldDepths to handleTreeNavigation because
-    // ctx.foldDepths won't reflect the setFoldDepths call until next render.
-    let foldDepths = ctx.foldDepths
-    const currentDepth = foldDepths.get(ctx.cursorNodeId)
-    if (currentDepth === 0) {
-      foldDepths = new Map(foldDepths)
-      foldDepths.delete(ctx.cursorNodeId)
-      ctx.setFoldDepths(foldDepths)
-    }
-    const navState = { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId, foldDepths }
-    const targetId = handleTreeNavigation("child", navState, ctx.repo)
-    if (targetId && targetId !== ctx.cursorNodeId) {
-      dispatchBoard({ type: "SELECT", nodeId: targetId })
-      return ok()
-    }
-    return boundary(dir, "no children")
-  }
-
-  // block_up: drill out to parent
-  const targetId = handleTreeNavigation("parent", ctx, ctx.repo)
-  if (targetId && targetId !== ctx.cursorNodeId) {
-    dispatchBoard({ type: "SELECT", nodeId: targetId })
-    return ok()
-  }
-  return boundary(dir, "at root")
 }
 
 /** Default tree navigation (first, last, prev, next, in, out). */

@@ -127,30 +127,47 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
 
   // Resolve sub-card descendants to their card-level ancestor.
-  // After indent, cursorNodeId may point to a node nested inside a card.
-  // j/k must navigate at card level (column children), not at the descendant's sibling level.
-  //
-  // Body-card descendants need special handling: body cards live at depth 1
-  // (direct children of root), not depth 2 (root→column→card). When cursor
-  // is inside a body card's subtree, resolve at depth 1 so j/k navigates
-  // between body cards rather than between subtasks.
+  // Needed to know which card we're inside, even when navigating at sub-block level.
   let cardNodeId = cursorNodeId
   let isBodyCardDescendant = false
   if (isAtCardLevel && !isBodyContent) {
-    // Check if the direct-child-of-root ancestor is a body node (not outline).
-    // If so, cursor is inside a body card's subtree → resolve at depth 1.
     const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
     if (directChildOfRoot) {
       const directChildNode = repo.getNode(directChildOfRoot)
       if (directChildNode && !isOutline(directChildNode.type, directChildNode.item)) {
-        // Descendant of a body card — resolve to the body card itself
         cardNodeId = directChildOfRoot
         isBodyCardDescendant = true
       } else {
-        // Standard multi-column card — resolve at depth 2
         const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
         if (cardAncestor) cardNodeId = cardAncestor
       }
+    }
+  }
+
+  // Sub-block navigation: when cursor is inside a card (not the card title itself),
+  // j/k navigate between siblings at the current level instead of jumping between cards.
+  // On boundaries: j walks up ancestors to find one with a next sibling (DFS-like),
+  // k goes to parent. This gives natural spatial navigation within a card's tree.
+  const isInsideCard = isAtCardLevel && !isBodyContent && cursorNodeId !== cardNodeId
+  if (isInsideCard) {
+    if (dir === "down") {
+      const next = getSibling(cursorNodeId, repo, 1)
+      if (next) return next
+      // Walk up ancestors to find one with a next sibling (DFS next)
+      let walkId: string | null = cursorNode.parent_id
+      while (walkId && walkId !== cardNodeId) {
+        const parentNext = getSibling(walkId, repo, 1)
+        if (parentNext) return parentNext
+        const walkNode = repo.getNode(walkId)
+        walkId = walkNode?.parent_id ?? null
+      }
+      // Reached card level: jump to next card
+      return getSibling(cardNodeId, repo, 1)
+    } else {
+      const prev = getSibling(cursorNodeId, repo, -1)
+      if (prev) return prev
+      // At first sibling: go to parent
+      return cursorNode.parent_id
     }
   }
 

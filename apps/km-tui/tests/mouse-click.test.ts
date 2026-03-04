@@ -162,6 +162,56 @@ describe("mouse click targeting", () => {
     }
   })
 
+  test("j/k navigate between siblings when inside a card", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click on child-1 to enter sub-block navigation
+    const el = board.q("[id='child-1']")
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+
+    // j → child-2
+    board.command("cursor_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+
+    // j → child-3
+    board.command("cursor_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-3")
+
+    // k → child-2
+    board.command("cursor_up")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+
+    // k → child-1
+    board.command("cursor_up")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+
+    // k from first child → parent (card title)
+    board.command("cursor_up")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card")
+  })
+
+  test("j from last sub-block jumps to next card", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("card-a", item("a-child-1"), item("a-child-2")), item("card-b"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click on a-child-2 (last child of card-a)
+    const el = board.q("[id='a-child-2']")
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("a-child-2")
+
+    // j → next card (card-b), since there's no next sibling
+    board.command("cursor_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-b")
+  })
+
   test("pressing Enter on a sub-block enters inline edit for that block", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
