@@ -16,6 +16,7 @@ import {
   isChordPrefix,
   resolveChord,
   getChordSuffixes,
+  parseKeyString,
   type Keybinding,
   type KeybindingContext,
 } from "../src/keybindings.ts"
@@ -202,11 +203,11 @@ describe("resolveKeybinding", () => {
 
   describe("modifier matching", () => {
     it.each([
-      ["ctrl", "z", { ctrl: true }, "undo"],
-      ["shift", "Tab", { shift: true }, "shift_left"],
-      ["opt", "ArrowUp", { opt: true }, "shift_up"],
-    ] as const)("matches %s modifier", (_name, key, mods, commandId) => {
-      registerKeybinding({ key, commandId, ...mods })
+      ["ctrl", "ctrl-z", "z", { ctrl: true }, "undo"],
+      ["shift", "shift-Tab", "Tab", { shift: true }, "shift_left"],
+      ["opt", "opt-ArrowUp", "ArrowUp", { opt: true }, "shift_up"],
+    ] as const)("matches %s modifier", (_name, keyStr, key, mods, commandId) => {
+      registerKeybinding({ key: keyStr, commandId })
       const ctx = createContext()
       expect(resolveKeybinding(key, mods, ctx)).toEqual({ commandId })
       expect(resolveKeybinding(key, {}, ctx)).toBeNull()
@@ -214,9 +215,7 @@ describe("resolveKeybinding", () => {
 
     it("matches multiple modifiers", () => {
       registerKeybinding({
-        key: "z",
-        ctrl: true,
-        shift: true,
+        key: "ctrl-shift-z",
         commandId: "redo",
       })
 
@@ -227,7 +226,7 @@ describe("resolveKeybinding", () => {
     })
 
     it("requires exact modifier match (no extra modifiers)", () => {
-      registerKeybinding({ key: "z", ctrl: true, commandId: "undo" })
+      registerKeybinding({ key: "ctrl-z", commandId: "undo" })
 
       const ctx = createContext()
       // Extra shift modifier should not match
@@ -868,7 +867,7 @@ describe("chord keybindings", () => {
 
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
-    const chordBindings = all.filter((b) => b.chord)
+    const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
     expect(chordBindings.length).toBe(186) // 25 g + 29 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v
   })
 

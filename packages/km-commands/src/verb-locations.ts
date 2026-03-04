@@ -149,8 +149,7 @@ export function verbLocationGrid(): Keybinding[] {
       if (vKey === "c" && lKey !== "i") continue
 
       bindings.push({
-        chord: verb.prefix,
-        key: lKey,
+        key: `${verb.prefix} ${lKey}`,
         commandId: verb.commandId,
         targetId: loc.resolve({} as CommandContext) ?? undefined,
         execute: verb.fn(loc.resolve),
@@ -161,8 +160,7 @@ export function verbLocationGrid(): Keybinding[] {
     if (vKey !== "c") {
       for (const [favKey] of getAllFavorites()) {
         bindings.push({
-          chord: verb.prefix,
-          key: favKey,
+          key: `${verb.prefix} ${favKey}`,
           commandId: verb.commandId,
           targetId: `fav:${favKey}`,
           execute: verb.fn(fav(favKey)),
@@ -174,8 +172,7 @@ export function verbLocationGrid(): Keybinding[] {
     for (const [pKey, ploc] of Object.entries(PICKER_LOCS)) {
       if (vKey === "c" && pKey !== "#") continue // c # is useful (create + label)
       bindings.push({
-        chord: verb.prefix,
-        key: pKey,
+        key: `${verb.prefix} ${pKey}`,
         commandId: verb.commandId,
         targetId: ploc.resolve({} as CommandContext) ?? undefined,
         execute: verb.fn(ploc.resolve),
@@ -192,13 +189,17 @@ export function ctrlVerbLocationGrid(): Keybinding[] {
   const ctrlBindings: Keybinding[] = []
 
   for (const b of grid) {
-    if (b.chord === "g") {
-      ctrlBindings.push({ ...b, chord: "Ctrl+g" })
+    // All verbLocationGrid keys are "prefix suffix" — split on first space
+    const spaceIdx = b.key.indexOf(" ")
+    const chord = spaceIdx > 0 ? b.key.slice(0, spaceIdx) : ""
+    const suffix = spaceIdx > 0 ? b.key.slice(spaceIdx + 1) : b.key
+    if (chord === "g") {
+      ctrlBindings.push({ ...b, key: `Ctrl+g ${suffix}` })
     }
-    if (b.chord === "m") {
+    if (chord === "m") {
       ctrlBindings.push({
         ...b,
-        chord: "Ctrl+m",
+        key: `Ctrl+m ${suffix}`,
         when: hasKitty as WhenPredicate | ((ctx: KeybindingContext) => boolean),
       })
     }
