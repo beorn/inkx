@@ -39,7 +39,7 @@ import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } f
 import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
 import { parseKey } from "inkx/runtime"
-import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
+import { createFocusManager, FocusManagerContext, ThemeProvider, hitTest } from "inkx"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
@@ -446,6 +446,9 @@ function buildTestEventHandlerCtx(store: StoreApi<BoardAppStore>, fm: ReturnType
     },
     getFocusPath() {
       return fm.getFocusPath(app.getContainer())
+    },
+    hitTest(x: number, y: number) {
+      return hitTest(app.getContainer(), x, y)
     },
   }
 }

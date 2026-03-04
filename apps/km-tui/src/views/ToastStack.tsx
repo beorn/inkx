@@ -119,6 +119,7 @@ export function ToastStack({ toasts, termWidth, termHeight }: ToastStackProps): 
       paddingBottom={BOTTOM_BAR_HEIGHT}
       alignItems="flex-end"
       paddingRight={2}
+      pointerEvents="none"
     >
       <Box flexDirection="column-reverse" gap={1}>
         {visibleToasts.map((toast) => (

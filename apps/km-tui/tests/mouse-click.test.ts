@@ -121,6 +121,47 @@ describe("mouse click targeting", () => {
     expect(cursorText).toContain("task-2")
   })
 
+  test("clicking a body block inside a card selects it", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("card-1", item.paragraph("body text"), item("sub-item")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Find the body block element
+    const bodyEl = board.q("[id='body text']")
+    expect(bodyEl.count()).toBeGreaterThan(0)
+    const bodyBox = bodyEl.boundingBox()
+    expect(bodyBox).not.toBeNull()
+
+    // Click on the body block
+    board.click(bodyBox!.x + 1, bodyBox!.y)
+
+    // Cursor should move to the body block
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("body text")
+  })
+
+  test("clicking each child in a card selects the correct one", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Verify all children are rendered and get their positions
+    const cardEl = board.q("[id='card']")
+    const cardBox = cardEl.boundingBox()
+    expect(cardBox).not.toBeNull()
+
+    for (const id of ["child-1", "child-2", "child-3"]) {
+      const el = board.q(`[id='${id}']`)
+      expect(el.count(), `${id} should be rendered`).toBeGreaterThan(0)
+      const box = el.boundingBox()!
+      // Click at the center of the child element
+      board.click(box.x + 1, box.y)
+      const actual = getActiveBoardPane(store.getState())!.cursorNodeId
+      expect(actual, `click at y=${box.y} (card y=${cardBox!.y}) should select ${id}`).toBe(id)
+    }
+  })
+
   test("clicking column header deselects card in same column", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),

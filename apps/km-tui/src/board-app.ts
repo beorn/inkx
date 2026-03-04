@@ -3,11 +3,11 @@
  *
  * Defines the board application with Zustand store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
- * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=SELECT(card/column/sub-block), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT(blockIndex)
+ * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
-import type { Key, ParsedMouse, FocusManager } from "inkx"
+import type { Key, ParsedMouse, FocusManager, InkxNode } from "inkx"
 import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -113,20 +113,6 @@ const SCROLL_STEP = 3
 const DOUBLE_CLICK_MS = 400
 const DOUBLE_CLICK_DISTANCE = 2
 
-/** Mouse click target — what the user clicked on */
-export interface MouseTarget {
-  /** "card" = clicked on a card, "column" = clicked on column header or empty space */
-  kind: "card" | "column"
-  /** Column index in the columns array */
-  colIndex: number
-  /** Column node ID (the column's own node) */
-  columnNodeId: string
-  /** Card node ID (only for kind="card") */
-  cardNodeId?: string
-  /** Sub-block index within the card: 0 = title, 1+ = body children (only for kind="card") */
-  blockIndex: number
-}
-
 /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
 function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
   const { navigator } = actionCtx
@@ -149,78 +135,6 @@ function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
     }
   }
   return -1
-}
-
-/**
- * Resolve mouse (x, y) to a precise click target.
- *
- * Returns a MouseTarget describing what was clicked:
- * - Card click: identifies the specific card and sub-block (title vs body child)
- * - Column click: clicking the header or empty space below cards selects the column
- * - null: click didn't land on any recognizable UI element
- */
-function resolveMouseTarget(actionCtx: ActionCtx, mouseX: number, mouseY: number): MouseTarget | null {
-  const targetColIndex = resolveMouseToColumn(actionCtx, mouseX)
-  if (targetColIndex < 0) return null
-
-  const column = actionCtx.columns[targetColIndex]
-  if (!column) return null
-  const columnNodeId = column.node.id
-
-  // Find which card in the column the click falls on.
-  // findItemAtY may snap to the closest card (for keyboard stickyY navigation),
-  // so we verify the click actually intersects the card's bounding box.
-  const cardIndex = actionCtx.navigator.findItemAtY(targetColIndex, mouseY)
-
-  if (cardIndex < 0) {
-    // Click didn't land on a card — column header or empty space.
-    return { kind: "column", colIndex: targetColIndex, columnNodeId, blockIndex: 0 }
-  }
-
-  const card = column.cardNodes[cardIndex]
-  if (!card) return null
-
-  // Verify the click actually falls within this card's bounding box.
-  // Without this check, clicks on empty space between/below cards would snap to the nearest card.
-  const cardRect = actionCtx.navigator.getPosition(targetColIndex, cardIndex)
-  if (!cardRect) {
-    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
-  }
-
-  if (mouseY < cardRect.y || mouseY >= cardRect.y + cardRect.height) {
-    // Click is outside the card's vertical bounds — treat as column background
-    return { kind: "column", colIndex: targetColIndex, columnNodeId, blockIndex: 0 }
-  }
-
-  // Relative Y within the card's bounding box
-  const relY = mouseY - cardRect.y
-
-  // Bordered cards: row 0 = top border, row 1 = title, row 2+ = children
-  // The first content row (title) is at relY=1 for bordered cards.
-  // Children start at relY=2.
-  // For virtual/body block cards (which still have borders per bodyBlockLayoutProps),
-  // the layout is the same.
-  const isVirtual = column.isVirtual || column.virtualCardIds.has(card.id)
-  const titleRow = isVirtual ? 0 : 1 // virtual cards may not have borders, but bodyBlockLayoutProps adds them
-  const childStartRow = titleRow + 1
-
-  if (relY <= titleRow) {
-    // Clicked on the title row (or border above it)
-    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
-  }
-
-  // Clicked below the title — determine which child block
-  const childOffset = relY - childStartRow
-  // Get children to validate the offset
-  const children = actionCtx.repo.getChildren(card.id)
-  if (children.length === 0 || childOffset < 0) {
-    // No children or clicked on a non-child row (e.g., bottom border)
-    return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex: 0 }
-  }
-
-  // blockIndex: 0 = title, 1 = first child, 2 = second child, etc.
-  const blockIndex = Math.min(childOffset + 1, children.length)
-  return { kind: "card", colIndex: targetColIndex, columnNodeId, cardNodeId: card.id, blockIndex }
 }
 
 // =============================================================================
@@ -815,8 +729,26 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     if (mouse.action === "down" && mouse.button === 0) {
       const actionCtx = buildActionCtx(get, () => {})
-      const target = resolveMouseTarget(actionCtx, mouse.x, mouse.y)
-      if (!target) return
+
+      // DOM-style hit testing via inkx render tree
+      const hitNode = ctx.hitTest(mouse.x, mouse.y)
+      if (!hitNode) return
+
+      // Walk up InkxNode ancestors to find the clicked item's KNode ID and column index.
+      // data-view="item" = card/sub-block, data-view="column" = column header/background
+      let nodeId: string | null = null
+      let isColumnNode = false
+      let colIndex: number | null = null
+      let current: InkxNode | null = hitNode
+      while (current) {
+        const props = current.props as Record<string, unknown>
+        if (!nodeId && typeof props.id === "string") {
+          nodeId = props.id
+          isColumnNode = props["data-view"] === "column"
+        }
+        if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
+        current = current.parent
+      }
 
       const now = Date.now()
       const dx = Math.abs(mouse.x - locals.lastClick.x)
@@ -829,20 +761,17 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         clearSelection(actionCtx)
       }
 
-      if (target.kind === "column") {
-        // Column background / empty space click → deselect all, cursor to board root
+      if (!nodeId || isColumnNode) {
+        // Column header / empty space click → deselect all, cursor to board root
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
 
-      // Card click (target.kind === "card")
-      const nodeId = target.cardNodeId
-      if (!nodeId) return
-
       if (isDoubleClick) {
-        // Double-click → enter inline edit on the clicked block
-        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: target.blockIndex })
+        // Double-click → select the node and enter inline edit
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
       } else if (mouse.ctrl) {
         // Ctrl-click → move cursor to clicked card and toggle its selection
@@ -850,22 +779,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
-        // Single click on card: select card and (if sub-block) navigate cursor to that child node
+        // Single click → select the exact node the hit test found
         actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-        if (target.blockIndex > 0) {
-          // Clicked a sub-block within the card body — set cursor to that child's node ID
-          const descendantIds = getVisibleDescendantIds(
-            actionCtx.repo,
-            { id: nodeId },
-            Infinity,
-            actionCtx.foldDepths,
-            actionCtx.rootId,
-          )
-          const childId = descendantIds[target.blockIndex]
-          if (childId) {
-            actionCtx.dispatchBoard({ type: "SELECT", nodeId: childId })
-          }
-        }
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       }
       return

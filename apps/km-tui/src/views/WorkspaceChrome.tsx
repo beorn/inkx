@@ -248,6 +248,7 @@ export function WorkspaceChrome({
         flexDirection="column-reverse"
         alignItems="flex-start"
         paddingLeft={1}
+        pointerEvents="none"
       >
         {/* Sync activity pane (above bottom bar) */}
         {ui.showSyncPane && <SyncPane events={ui.syncEvents} watcherStatus={ui.watcherStatus} width={termWidth} />}
