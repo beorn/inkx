@@ -168,6 +168,7 @@ export {
   clearFavorite,
   getAllFavorites,
   RESERVED_KEYS,
+  DIGIT_KEYS,
   getReservedKeyLabel,
 } from "./favorites.ts"
 

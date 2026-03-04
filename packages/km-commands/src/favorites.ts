@@ -8,19 +8,8 @@
  * used by system locations and picker locations.
  */
 
-/** Default favorites: common boards accessed via digit keys */
-const favorites = new Map<string, string>([
-  ["0", "@inbox"],
-  ["1", "@next"],
-  ["2", "@someday"],
-  ["3", "@waiting"],
-  ["4", "@someday"],
-  ["5", "@projects"],
-  ["6", "@areas"],
-  ["7", "@archive"],
-  ["8", "@reference"],
-  ["9", "@goals"],
-])
+/** User-assigned favorites: key → board ID for quick navigation. Starts empty; digits 0-9 are always shown in the dialog. */
+const favorites = new Map<string, string>()
 
 /**
  * Keys reserved by system locations (h,i,j,a,p,g,G) and picker locations (#,@,+,[).
@@ -42,6 +31,9 @@ const RESERVED_KEY_LABELS: Record<string, string> = {
 }
 
 export const RESERVED_KEYS: ReadonlySet<string> = new Set(Object.keys(RESERVED_KEY_LABELS))
+
+/** Digit keys 0-9 — always shown in the favorites dialog */
+export const DIGIT_KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] as const
 
 /** Get the board ID for a favorite key */
 export function getFavorite(key: string): string | undefined {
