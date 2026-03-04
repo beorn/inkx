@@ -23,14 +23,7 @@ import {
   type PatchedConsole,
 } from "inkx"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "inkx/runtime"
-import { createStore, Provider as JotaiProvider } from "jotai"
-import {
-  hydrateNodeAtoms,
-  syncCursorToAtoms,
-  syncFoldDepthsToAtoms,
-  syncMultiSelectedToAtoms,
-  syncEditToAtoms,
-} from "../node-atoms-hydrate.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -520,53 +513,46 @@ export function Board({ patchedConsole }: BoardProps) {
   const boardFocused = activeScopeId === null || activeScopeId === paneId
   const hasDetailPane = useAppStore<BoardAppStore, boolean>((s) => hasDetailPaneFor(s.workspace, paneId))
 
-  // Jotai store — per-pane scope, stable across re-renders
-  const jotaiStore = useMemo(() => createStore(), [])
+  // Reactive node store — per-pane scope, stable across re-renders
+  const nodeStore = useMemo(() => new ReactiveNodeStore(), [])
 
-  // Hydrate Jotai atoms on initial load and root change (zoom)
+  // Hydrate reactive node state on initial load and root change (zoom)
   const multiSelected = ui.multiSelected
   useEffect(() => {
-    hydrateNodeAtoms(jotaiStore, repo, rootId, foldDepths, multiSelected)
+    nodeStore.hydrate(repo, rootId, foldDepths, multiSelected)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
-  }, [jotaiStore, repo, rootId])
+  }, [nodeStore, repo, rootId])
 
-  // Incrementally sync fold depth changes to Jotai atoms
+  // Incrementally sync fold depth changes to reactive node state
   const prevFoldDepthsRef = useRef(foldDepths)
   useEffect(() => {
     const prev = prevFoldDepthsRef.current
     if (prev !== foldDepths) {
-      syncFoldDepthsToAtoms(jotaiStore, prev, foldDepths)
+      nodeStore.syncFoldDepths(prev, foldDepths)
       prevFoldDepthsRef.current = foldDepths
     }
-  }, [jotaiStore, foldDepths])
+  }, [nodeStore, foldDepths])
 
-  // Incrementally sync multi-selection changes to Jotai atoms
+  // Incrementally sync multi-selection changes to reactive node state
   const prevMultiSelectedRef = useRef(multiSelected)
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
     if (prev !== multiSelected) {
-      syncMultiSelectedToAtoms(jotaiStore, prev, multiSelected)
+      nodeStore.syncMultiSelected(prev, multiSelected)
       prevMultiSelectedRef.current = multiSelected
     }
-  }, [jotaiStore, multiSelected])
+  }, [nodeStore, multiSelected])
 
-  // Incrementally sync inline edit state to Jotai atoms
+  // Incrementally sync inline edit state to reactive node state
   const inlineEditBlock = ui.inlineEditBlock
   const prevInlineEditRef = useRef(inlineEditBlock)
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== inlineEditBlock) {
-      syncEditToAtoms(jotaiStore, prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
+      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
       prevInlineEditRef.current = inlineEditBlock
     }
-  }, [jotaiStore, inlineEditBlock])
-
-  // Sync cursor state to Jotai atoms when CursorStore changes
-  useEffect(() => {
-    const sync = () => syncCursorToAtoms(jotaiStore, cursorStore.getState(), boardFocused)
-    sync() // Initial sync
-    return cursorStore.subscribe(sync)
-  }, [jotaiStore, cursorStore, boardFocused])
+  }, [nodeStore, inlineEditBlock])
 
   // Layout is derived on demand — no store sync needed
 
@@ -884,7 +870,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
 
   return (
-    <JotaiProvider store={jotaiStore}>
+    <ReactiveNodeStoreProvider value={nodeStore}>
       <CursorStoreProvider store={cursorStore}>
         <TreeRenderProvider
           treeConfig={treeConfig}
@@ -911,7 +897,7 @@ export function Board({ patchedConsole }: BoardProps) {
           />
         </TreeRenderProvider>
       </CursorStoreProvider>
-    </JotaiProvider>
+    </ReactiveNodeStoreProvider>
   )
 }
 

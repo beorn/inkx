@@ -34,7 +34,7 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "inkx/testing"
 import { compareBuffers, formatMismatch } from "inkx/toolbelt"
 import { StoreContext } from "inkx/runtime"
@@ -1706,7 +1706,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     collapsedNodes: new Set<string>(),
     moveMode: false,
   })
-  // Wrap in StoreContext + JotaiProvider + TreeRenderProvider so TreeNode's hooks work
+  // Wrap in StoreContext + ReactiveNodeStoreProvider + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialPaneUI("cards", [], { columns, rows })
   const mockPane = createPaneState("main", createBoardState(state.rootId, state.rootPath), {
     viewMode: "cards",
@@ -1727,7 +1727,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     },
   }))
   const treeConfig = deriveTreeConfig(initialUI.viewMode, initialUI.maxContentLines, initialUI)
-  const jotaiStore = createJotaiStore()
+  const nodeStore = new ReactiveNodeStore()
   const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
   const noopUndoHandle = {
     startBatch: () => {},
@@ -1756,8 +1756,8 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
       React.createElement(
-        JotaiProvider,
-        { store: jotaiStore },
+        ReactiveNodeStoreProvider,
+        { value: nodeStore },
         React.createElement(RepoProvider, { repo, children: wrappedElement }),
       ),
     ),

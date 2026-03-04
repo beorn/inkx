@@ -10,8 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { useApp as useAppStore } from "inkx/runtime"
 import type { BoardAppStore } from "../board-app-store.ts"
-import { useAtomValue } from "jotai"
-import { nodeMultiSelectedAtom, nodeEditAtom, nodeFoldOverrideAtom, nodeExcludedSigilsAtom } from "../node-atoms.ts"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
@@ -309,10 +308,11 @@ function TreeNodeImpl({
   } = useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
-  // Per-node state via Jotai atoms — only this node re-renders when its state changes
-  const isMultiSelected = useAtomValue(nodeMultiSelectedAtom(makeSelectionKey(node.id)))
-  const editState = useAtomValue(nodeEditAtom(node.id))
-  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+  // Per-node state via reactive signals — only this node re-renders when its state changes
+  const nodeStore = useNodeStore()
+  const isMultiSelected = useReactive(nodeStore.getOrCreate(makeSelectionKey(node.id)).multiSelected)
+  const editState = useReactive(nodeStore.getOrCreate(node.id).edit)
+  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
   const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
   const isFolded = resolvedDepth <= 0
@@ -322,16 +322,16 @@ function TreeNodeImpl({
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
   const repo = useRepo()
-  // Excluded sigils: use Jotai-derived ancestry if available, fallback for compatibility
-  const jotaiExcludedSigils = useAtomValue(nodeExcludedSigilsAtom(node.id))
+  // Excluded sigils: use reactive store if hydrated, fallback for compatibility
+  const reactiveExcludedSigils = useReactive(nodeStore.getOrCreate(node.id).excludedSigils)
   const excludedSigils = useMemo(() => {
-    // If Jotai ancestry is hydrated, use it directly
-    if (jotaiExcludedSigils.length > 0) return jotaiExcludedSigils
+    // If reactive store is hydrated, use it directly
+    if (reactiveExcludedSigils.length > 0) return reactiveExcludedSigils
     // Fallback: derive from rootBoardId + extraExcludedSigils
     const rootSigils = deriveExcludedSigils(repo, rootBoardId)
     if (!extraExcludedSigils?.length) return rootSigils
     return [...rootSigils, ...extraExcludedSigils]
-  }, [jotaiExcludedSigils, repo, rootBoardId, extraExcludedSigils])
+  }, [reactiveExcludedSigils, repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
@@ -1037,7 +1037,7 @@ function composeRawEditContent(node: KNode): string {
 // =============================================================================
 
 /**
- * Reads per-node fold override via Jotai atom instead of subscribing to the
+ * Reads per-node fold override via reactive signal instead of subscribing to the
  * entire foldDepths Map from Zustand. When any fold changes, only the affected
  * node's FoldAwareChild re-renders — not every NodeChildren in the tree.
  */
@@ -1068,7 +1068,8 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   extraExcludedSigils?: string[]
   childCount: number
 }): React.ReactElement {
-  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+  const nodeStore = useNodeStore()
+  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
