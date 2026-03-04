@@ -33,7 +33,7 @@ export function OverflowIndicator({ direction, count, width }: OverflowIndicator
     const rightPad = width - text.length - leftPad
     return (
       <Box width={width} flexShrink={0}>
-        <Text backgroundColor="$muted" color="$text">
+        <Text backgroundColor="$muted-fg" color="$fg">
           {" ".repeat(leftPad)}
           {text}
           {" ".repeat(rightPad)}
@@ -44,7 +44,7 @@ export function OverflowIndicator({ direction, count, width }: OverflowIndicator
 
   // No width or too narrow - just show the text with inverse styling
   return (
-    <Text backgroundColor="$muted" color="$text">
+    <Text backgroundColor="$muted-fg" color="$fg">
       {text}
     </Text>
   )

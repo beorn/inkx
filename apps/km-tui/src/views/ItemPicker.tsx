@@ -110,7 +110,7 @@ function PickerOptions({
             isSelected={isSelected}
           >
             {opt.isRecent && (
-              <Text color={isSelected ? "$selectedfg" : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selection-fg" : "$primary"} dimColor={!isSelected}>
                 {" (recent)"}
               </Text>
             )}
@@ -226,9 +226,9 @@ export function ItemPicker({
   return (
     <ModalDialog title={title} width={width} height={height} footer={footerContent}>
       {/* Search input */}
-      <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$ring"} flexShrink={0}>
         <Text>
-          <Text color={"$selected"}>{"/ "}</Text>
+          <Text color={"$selection"}>{"/ "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>

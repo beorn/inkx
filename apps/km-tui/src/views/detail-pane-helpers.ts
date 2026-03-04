@@ -71,11 +71,11 @@ const STATUS_DISPLAY: Record<string, { text: string; color: string }> = {
   done: { text: "done", color: "$success" },
   wip: { text: "wip", color: "$warning" },
   blocked: { text: "blocked", color: "$error" },
-  dropped: { text: "dropped", color: "$muted" },
+  dropped: { text: "dropped", color: "$muted-fg" },
 }
 
 export function getStatusDisplay(status?: string): { text: string; color: string } {
-  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "$focusring" }
+  return STATUS_DISPLAY[status ?? ""] ?? { text: "todo", color: "$ring" }
 }
 
 // =============================================================================

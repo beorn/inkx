@@ -116,7 +116,7 @@ export function getBoardPills(repo: Repo, taskNode: KNode, excludeBoardIds: Set<
     // Get color: custom rules > inherited > GTD default
     const customColor = getInheritedColor(repo, board)
     const gtdColor = GTD_BOARD_COLORS[normalizeBoardName(boardName)]
-    const color = customColor || gtdColor || "$text"
+    const color = customColor || gtdColor || "$fg"
 
     pills.push({
       name: boardName,
@@ -166,8 +166,8 @@ export function getHeaderStyle(
   // Per-pane theme dims $selected for unfocused panes automatically
   if (isActiveSelection) {
     return {
-      color: "$selectedfg",
-      backgroundColor: "$selected",
+      color: "$selection-fg",
+      backgroundColor: "$selection",
       dimColor: false,
     }
   }
@@ -179,7 +179,7 @@ export function getHeaderStyle(
   //   the terminal's bright-white default, matching card text.
   // Note: headers are always bold (handled by component)
   return {
-    color: isSelected ? "$selected" : undefined,
+    color: isSelected ? "$selection" : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

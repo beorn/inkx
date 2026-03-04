@@ -164,12 +164,18 @@ function LayoutNodeView({
     const labelSuffix = pane.viewType === "empty" ? "Empty" : ""
 
     return (
-      <Box flexGrow={1} flexDirection="column" color={isFocused ? undefined : "$text"} focusScope testID={node.paneId} theme={paneTheme} onMouseDown={() => onPaneClick?.(node.paneId)}>
+      <Box
+        flexGrow={1}
+        flexDirection="column"
+        color={isFocused ? undefined : "$fg"}
+        focusScope
+        testID={node.paneId}
+        theme={paneTheme}
+        onMouseDown={() => onPaneClick?.(node.paneId)}
+      >
         {/* Board panes (including detail): Board renders its own PaneBar */}
         {/* Empty panes: PaneTitleBar provides the top bar */}
-        {!isBoard && (
-          <PaneTitleBar label={label} suffix={labelSuffix} isFocused={isFocused} />
-        )}
+        {!isBoard && <PaneTitleBar label={label} suffix={labelSuffix} isFocused={isFocused} />}
         <Box flexGrow={1} flexDirection="column">
           {isBoard ? (
             <PaneLabelProvider value={label ?? "?"}>{renderPane(node.paneId)}</PaneLabelProvider>

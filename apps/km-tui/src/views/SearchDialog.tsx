@@ -112,7 +112,7 @@ function SearchResults({
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? "$selectedfg" : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selection-fg" : "$primary"} dimColor={!isSelected}>
                 {` #${result.tags.join(" #")}`}
               </Text>
             )}
@@ -239,7 +239,7 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   // Scope prompt prefix for the InputBox (e.g., "[All] " or "[in Alpha] ")
   const scopePrompt = scope === "all" ? "All ▸ " : `in ${scopeNodeName ?? "selection"} ▸ `
-  const scopePromptColor = scope === "all" ? "$text" : "$primary"
+  const scopePromptColor = scope === "all" ? "$fg" : "$primary"
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">

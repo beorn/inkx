@@ -86,7 +86,7 @@ function getColorForMethod(method: string): string {
       return "$primary"
     default:
       // console.log and console.debug — white for readability
-      return "$text"
+      return "$fg"
   }
 }
 

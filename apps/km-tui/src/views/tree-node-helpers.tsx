@@ -113,10 +113,10 @@ export function getNodeStyle(
     textColor = undefined
   } else if (isSelected || isMultiSelected) {
     // Selected: gold bg, dark text. Per-pane theme dims $selected for unfocused panes.
-    backgroundColor = "$selected"
-    textColor = "$selectedfg"
+    backgroundColor = "$selection"
+    textColor = "$selection-fg"
   }
-  // Default (no assignment): inherits $text from WorkspaceView wrapper via inkx fg inheritance
+  // Default (no assignment): inherits $fg from WorkspaceView wrapper via inkx fg inheritance
   // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)

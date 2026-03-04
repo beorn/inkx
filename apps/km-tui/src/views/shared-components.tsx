@@ -94,7 +94,7 @@ export const MemoizedTreeCard = React.memo(
     // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box outlineStyle="round" outlineColor={"$focusring"}>
+        <Box outlineStyle="round" outlineColor={"$ring"}>
           {content}
         </Box>
       )
@@ -289,7 +289,7 @@ function isChord(segment: string): boolean {
  * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
  * Otherwise renders the segment as-is in yellow.
  */
-function KeySegment({ segment, color = "$control" }: { segment: string; color?: string }): React.ReactElement {
+function KeySegment({ segment, color = "$input" }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
@@ -307,7 +307,7 @@ function KeySegment({ segment, color = "$control" }: { segment: string; color?: 
       <Text bold color={color}>
         {parts.map((part, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+            {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
             {part}
           </React.Fragment>
         ))}
@@ -330,7 +330,7 @@ function KeySegment({ segment, color = "$control" }: { segment: string; color?: 
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
  */
-export function KeyBinding({ keys, color = "$control" }: { keys: string; color?: string }): React.ReactElement {
+export function KeyBinding({ keys, color = "$input" }: { keys: string; color?: string }): React.ReactElement {
   // Double-space separator: "a #  #" → a·# (space) # (no slash)
   if (keys.includes("  ")) {
     const segments = keys.split("  ")
@@ -354,7 +354,7 @@ export function KeyBinding({ keys, color = "$control" }: { keys: string; color?:
     <>
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
           <KeySegment segment={seg} color={color} />
         </React.Fragment>
       ))}
@@ -397,7 +397,7 @@ export function InputBox({
   afterCursor,
   prompt = "",
   placeholder = "",
-  promptColor = "$selected",
+  promptColor = "$selection",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -421,7 +421,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor={"$focusring"}>
+      <Box borderStyle="round" borderColor={"$ring"}>
         {content}
       </Box>
     )
@@ -469,21 +469,21 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$selected" : "$surface"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$selection" : "$surface"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-        <Text color={isSelected ? "$selectedfg" : undefined} wrap="truncate">
+        <Text color={isSelected ? "$selection-fg" : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? "$selectedfg" : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? "$selection-fg" : icon.color}>{icon.char} </Text>
           <InlineText text={title} decorations={decorations} />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "$selectedfg" : undefined}>
+          <Text color={isSelected ? "$selection-fg" : undefined}>
             {parentContext && (
-              <Text dimColor={!isSelected} color={isSelected ? "$selectedfg" : undefined}>
+              <Text dimColor={!isSelected} color={isSelected ? "$selection-fg" : undefined}>
                 {` < ${parentContext}`}
               </Text>
             )}

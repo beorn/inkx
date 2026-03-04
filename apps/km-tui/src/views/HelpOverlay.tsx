@@ -71,7 +71,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$separator"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$border"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}
@@ -87,13 +87,13 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text> </Text>}
-          <KeyBinding keys={k} color={"$control"} />
+          <KeyBinding keys={k} color={"$input"} />
         </React.Fragment>
       ))}
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text color={"$muted"} dimColor>
+          <Text color={"$muted-fg"} dimColor>
             {"·"}
           </Text>
         </Fill>
@@ -198,7 +198,7 @@ const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
   if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
-  return <KeyBinding keys={value} color={"$control"} />
+  return <KeyBinding keys={value} color={"$input"} />
 }
 
 function buildVerbGridLines(): React.ReactElement[] {
@@ -239,21 +239,21 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$control"}>{"g"}</Text>
+        <Text color={"$input"}>{"g"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$control"}>{"⌃g"}</Text>
+        <Text color={"$input"}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$control"}>{"m"}</Text>
+        <Text color={"$input"}>{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$control"}>{"⌃m"}</Text>
+        <Text color={"$input"}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$control"}>{"a"}</Text>
+        <Text color={"$input"}>{"a"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$control"}>{"⌃l"}</Text>
+        <Text color={"$input"}>{"⌃l"}</Text>
       </Box>
-      <Text color={"$control"}>{"c"}</Text>
+      <Text color={"$input"}>{"c"}</Text>
     </Box>,
   )
 
@@ -268,7 +268,7 @@ function buildVerbGridLines(): React.ReactElement[] {
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Box width={VG_LOC_W} flexDirection="row">
-          <Text color={"$control"}>{row.key}</Text>
+          <Text color={"$input"}>{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
         <Box width={VG_COL_W} flexDirection="row">
@@ -306,7 +306,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         borderColor={"$border"}
         data-dialog="help"
       >
-        <Text color={"$text"}>Terminal too small</Text>
+        <Text color={"$fg"}>Terminal too small</Text>
         <Text dimColor>Press ? or Esc</Text>
       </Box>
     )
@@ -342,7 +342,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color={"$control"}>{scrollHint}</Text>
+          <Text color={"$input"}>{scrollHint}</Text>
         </>
       )}
     </Box>

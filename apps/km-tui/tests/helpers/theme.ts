@@ -12,23 +12,23 @@
  * ```ts
  * import { TC } from "./helpers/theme.ts"
  *
- * expect(cell.bg).toEqual(TC.$selected)   // instead of 3
- * expect(cell.fg).toEqual(TC.$selectedfg) // instead of 0
+ * expect(cell.bg).toEqual(TC.$selection)     // instead of 3
+ * expect(cell.fg).toEqual(TC["$selection-fg"]) // instead of 0
  * ```
  */
 export const TC = {
   /** Selection highlight background — yellow (3) */
-  $selected: 3,
+  $selection: 3,
   /** Text on selected background — black (0) */
-  $selectedfg: 0,
-  /** Primary text — whiteBright (15) */
-  $text: 15,
-  /** Secondary text — white (7) */
-  $text2: 7,
-  /** Tertiary text — gray (8) */
-  $text3: 8,
+  "$selection-fg": 0,
+  /** Primary foreground text — whiteBright (15) */
+  $fg: 15,
+  /** Muted foreground text — white (7) */
+  "$muted-fg": 7,
+  /** Disabled foreground text — gray (8) */
+  "$disabled-fg": 8,
   /** Dividers, borders, rules — gray (8) */
-  $separator: 8,
+  $border: 8,
   /** Error/destructive — redBright (9) */
   $error: 9,
   /** Warning/caution — yellow (3) */
@@ -39,8 +39,21 @@ export const TC = {
   $primary: 3,
   /** Hyperlinks, references — blueBright (12) */
   $link: 12,
-  /** Keyboard focus outline — blueBright (12) */
-  $focusring: 12,
+  /** Focus ring outline — blueBright (12) */
+  $ring: 12,
+  /** Interactive control borders — blueBright (12) */
+  $input: 12,
   /** Elevated surfaces — black (0) */
   $surface: 0,
+
+  // ── Backward compatibility aliases ────────────────────────────────
+  // Old token names → same color values. Use new names in new tests.
+  $selected: 3,
+  $selectedfg: 0,
+  $text: 15,
+  $text2: 7,
+  $text3: 8,
+  $separator: 8,
+  $focusring: 12,
+  $control: 12,
 } as const

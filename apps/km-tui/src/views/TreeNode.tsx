@@ -363,14 +363,7 @@ function TreeNodeImpl({
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
-    const s = getNodeStyle(
-      displayNode,
-      isSelected,
-      isMultiSelected,
-      dimInactiveChildren,
-      depth,
-      isInlineEditing,
-    )
+    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
     if (dim) s.shouldDim = true
     return s
   }, [
@@ -819,7 +812,7 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0}
-                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$muted" : (tc ?? style.ownColor)}
+                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$muted-fg" : (tc ?? style.ownColor)}
                 dimColor={sd || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
@@ -863,7 +856,7 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$text3"}>{` ${childCount}`}</Text>
+              <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
@@ -875,7 +868,7 @@ function TreeNodeImpl({
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
           {subtaskBadge && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$text3"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -900,7 +893,7 @@ function TreeNodeImpl({
           const isActiveBlock = editBlockIndex === blockIndex
           return (
             <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color={"$focusring"}>
+              <Text dimColor={!isActiveBlock} color={"$ring"}>
                 {"  "}
               </Text>
               {isActiveBlock ? (
@@ -952,7 +945,7 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text color={"$focusring"} dimColor>
+                <Text color={"$ring"} dimColor>
                   <InlineText text={child.content ?? ""} />
                 </Text>
               )}
@@ -1220,7 +1213,7 @@ const FoldedChildRow = React.memo(
         {/* Right-aligned: child count — mirrors TreeNode's count display */}
         {hasChildren && (
           <Box flexShrink={0}>
-            <Text color={"$text3"}>{` ${childCount}`}</Text>
+            <Text color={"$disabled-fg"}>{` ${childCount}`}</Text>
           </Box>
         )}
       </Box>

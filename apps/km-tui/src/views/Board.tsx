@@ -186,22 +186,22 @@ function PaneBoardTopBar({
   return (
     <PaneBar
       isFocused={isPaneFocused}
-      backgroundColor={isBoardSelected ? "$selected" : undefined}
+      backgroundColor={isBoardSelected ? "$selection" : undefined}
       paneLabel={paneLabel}
       left={
-        <Text color={isBoardSelected ? "$selectedfg" : undefined} wrap="truncate">
+        <Text color={isBoardSelected ? "$selection-fg" : undefined} wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
         </Text>
       }
       right={
         <>
-          <Text color={isBoardSelected ? "$selectedfg" : undefined} id="view-mode">
+          <Text color={isBoardSelected ? "$selection-fg" : undefined} id="view-mode">
             {" "}
             {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
-            <Text color={isBoardSelected ? "$selectedfg" : undefined} id="filter-indicator">
+            <Text color={isBoardSelected ? "$selection-fg" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>
@@ -261,21 +261,21 @@ function BoardTopBar({
   return (
     <PaneBar
       isFocused={true}
-      backgroundColor={isBoardSelected ? "$selected" : undefined}
+      backgroundColor={isBoardSelected ? "$selection" : undefined}
       left={
-        <Text color={isBoardSelected ? "$selectedfg" : undefined} wrap="truncate">
+        <Text color={isBoardSelected ? "$selection-fg" : undefined} wrap="truncate">
           {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
         </Text>
       }
       right={
         <>
-          <Text color={isBoardSelected ? "$selectedfg" : undefined} dimColor={!isBoardSelected} id="view-mode">
+          <Text color={isBoardSelected ? "$selection-fg" : undefined} dimColor={!isBoardSelected} id="view-mode">
             {" "}
             {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
             {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
           </Text>
           {filterIndicator && (
-            <Text color={isBoardSelected ? "$selectedfg" : undefined} id="filter-indicator">
+            <Text color={isBoardSelected ? "$selection-fg" : undefined} id="filter-indicator">
               {" [F] "}
               {filterIndicator}
             </Text>

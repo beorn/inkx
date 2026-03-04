@@ -152,11 +152,11 @@ describe("formatDate", () => {
 
 describe("getStatusDisplay", () => {
   test.each([
-    [undefined, "todo", "$focusring"],
+    [undefined, "todo", "$ring"],
     ["done", "done", "$success"],
     ["wip", "wip", "$warning"],
     ["blocked", "blocked", "$error"],
-    ["dropped", "dropped", "$muted"],
+    ["dropped", "dropped", "$muted-fg"],
   ] as const)("status %s returns text=%s color=%s", (status, expectedText, expectedColor) => {
     const result = getStatusDisplay(status)
     expect(result.text).toBe(expectedText)
@@ -466,12 +466,7 @@ describe("border rendering after detail pane close", () => {
 
   test("borders intact after multiple open/close cycles", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3"), item("task4")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"), item("task4"))),
       { columns: 80, rows: 20 },
     )
 
@@ -494,12 +489,7 @@ describe("border rendering after detail pane close", () => {
 
   test("borders survive navigation + detail pane toggle", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task1"), item("task2")),
-          item("col2", item("task3"), item("task4")),
-        ),
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"), item("task4"))),
       { columns: 80, rows: 20 },
     )
 
@@ -523,11 +513,7 @@ describe("border rendering after detail pane close", () => {
 })
 
 // Regression: detail pane open/close with real repo (async driver)
-test.each([
-  "D open/close",
-  "D open → l → D close",
-  "D open → j → D close",
-] as const)(
+test.each(["D open/close", "D open → l → D close", "D open → j → D close"] as const)(
   "border regression: %s with createBoardDriver",
   async (variant) => {
     const nodes = item("board", item("col1", item("t1"), item("t2")), item("col2", item("t3")))
@@ -565,33 +551,30 @@ test.each([
 )
 
 // Regression variant: Space → l → Space
-test(
-  "border regression: Space → l → Space with createBoardDriver",
-  async () => {
-    const nodes = item("board", item("col1", item("t1"), item("t2")), item("col2", item("t3")))
-    const boardRootId = nodes[0]!.id
-    const repo = createFakeRepo({ nodes })
+test("border regression: Space → l → Space with createBoardDriver", async () => {
+  const nodes = item("board", item("col1", item("t1"), item("t2")), item("col2", item("t3")))
+  const boardRootId = nodes[0]!.id
+  const repo = createFakeRepo({ nodes })
 
-    const driver = withDiagnostics(
-      createBoardDriver(repo, boardRootId, {
-        columns: 120,
-        rows: 31,
-        incremental: false,
-      }),
-      {
-        checkIncremental: false,
-        checkStability: false,
-        checkLayout: false, // inkx layout overflow bug — not what this test checks
-        skipLines: [0, -1],
-      },
-    )
+  const driver = withDiagnostics(
+    createBoardDriver(repo, boardRootId, {
+      columns: 120,
+      rows: 31,
+      incremental: false,
+    }),
+    {
+      checkIncremental: false,
+      checkStability: false,
+      checkLayout: false, // inkx layout overflow bug — not what this test checks
+      skipLines: [0, -1],
+    },
+  )
 
-    // Exact repro variant: Space → l → Space
-    await driver.press("D") // open detail pane
-    await driver.cmd.right!() // move column right (l)
-    await driver.press("D") // close detail pane
-  },
-)
+  // Exact repro variant: Space → l → Space
+  await driver.press("D") // open detail pane
+  await driver.cmd.right!() // move column right (l)
+  await driver.press("D") // close detail pane
+})
 
 // --- Detail pane empty state fallback ---
 
@@ -721,10 +704,10 @@ describe("detail pane cursor", () => {
   })
 
   test("cursor resets when detail pane is toggled", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1", item("sub1"), item("sub2")))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1"), item("sub2")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open detail pane
 
@@ -1062,10 +1045,10 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
 
 describe("detail pane focus + navigation", () => {
   test("D opens pane and focuses detail, j navigates children", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1", item("sub1"), item("sub2")))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub1"), item("sub2")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -1077,10 +1060,10 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("h from detail pane returns to board, keeps pane open", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("task1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open + auto-focus detail
     board.press("h") // back to board
@@ -1089,10 +1072,10 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("detail pane root node follows board cursor", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("task1"), item.task("task2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"), item.task("task2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -1107,10 +1090,10 @@ describe("detail pane focus + navigation", () => {
   })
 
   test("n (pane_focus_next) cycles from detail to board", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("task1"), item.task("task2"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"), item.task("task2"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -1145,35 +1128,175 @@ describe("detail pane j/k navigation", () => {
     )
     board.press("D")
     expect(dc(store)).toBe("child-a")
-    board.press("j"); expect(dc(store)).toBe("child-b")
-    board.press("j"); expect(dc(store)).toBe("child-c")
+    board.press("j")
+    expect(dc(store)).toBe("child-b")
+    board.press("j")
+    expect(dc(store)).toBe("child-c")
   })
 
   test("task with mixed children: body paragraphs + heading sections", () => {
     const nodes: KNode[] = [
-      { id: "board", type: "h", item: true, fstype: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "col1", type: "h", item: true, fstype: "folder" as const, data: { name: "col1" }, parent_id: "board", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "task1", type: "p", item: true, content: "Review Q1 budget", list_marker: "-", task_marker: "[ ]", task_status: "todo" as const, data: {}, parent_id: "col1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "body1", type: "p", content: "This needs review by Friday", data: {}, parent_id: "task1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "heading1", type: "h", item: true, content: "Action items", data: { name: "Action items" }, parent_id: "task1", parent_idx: 1, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      {
+        id: "board",
+        type: "h",
+        item: true,
+        fstype: "folder" as const,
+        data: { name: "board" },
+        parent_id: null,
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "col1",
+        type: "h",
+        item: true,
+        fstype: "folder" as const,
+        data: { name: "col1" },
+        parent_id: "board",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "task1",
+        type: "p",
+        item: true,
+        content: "Review Q1 budget",
+        list_marker: "-",
+        task_marker: "[ ]",
+        task_status: "todo" as const,
+        data: {},
+        parent_id: "col1",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "body1",
+        type: "p",
+        content: "This needs review by Friday",
+        data: {},
+        parent_id: "task1",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "heading1",
+        type: "h",
+        item: true,
+        content: "Action items",
+        data: { name: "Action items" },
+        parent_id: "task1",
+        parent_idx: 1,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
     ] as KNode[]
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
     expect(dc(store)).toBe("body1")
-    board.press("j"); expect(dc(store)).toBe("heading1")
-    board.press("k"); expect(dc(store)).toBe("body1")
+    board.press("j")
+    expect(dc(store)).toBe("heading1")
+    board.press("k")
+    expect(dc(store)).toBe("body1")
   })
 
   test("cursor highlight works for all children (not just first)", () => {
     // Regression: deriveCursorAncestors classified outline children as column-level
     // (selectionLevel: "column"), breaking card highlight for all but the initial item.
     const nodes: KNode[] = [
-      { id: "board", type: "h", item: true, fstype: "folder" as const, data: { name: "board" }, parent_id: null, parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "col1", type: "h", item: true, fstype: "folder" as const, data: { name: "col1" }, parent_id: "board", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "task1", type: "p", item: true, content: "Task", list_marker: "-", task_marker: "[ ]", task_status: "todo" as const, data: {}, parent_id: "col1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "body1", type: "p", content: "Description text", data: {}, parent_id: "task1", parent_idx: 0, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "heading1", type: "h", item: true, content: "Section A", data: { name: "Section A" }, parent_id: "task1", parent_idx: 1, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
-      { id: "heading2", type: "h", item: true, content: "Section B", data: { name: "Section B" }, parent_id: "task1", parent_idx: 2, embed_source: null, created_at: Date.now(), updated_at: Date.now(), version: "v1" },
+      {
+        id: "board",
+        type: "h",
+        item: true,
+        fstype: "folder" as const,
+        data: { name: "board" },
+        parent_id: null,
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "col1",
+        type: "h",
+        item: true,
+        fstype: "folder" as const,
+        data: { name: "col1" },
+        parent_id: "board",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "task1",
+        type: "p",
+        item: true,
+        content: "Task",
+        list_marker: "-",
+        task_marker: "[ ]",
+        task_status: "todo" as const,
+        data: {},
+        parent_id: "col1",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "body1",
+        type: "p",
+        content: "Description text",
+        data: {},
+        parent_id: "task1",
+        parent_idx: 0,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "heading1",
+        type: "h",
+        item: true,
+        content: "Section A",
+        data: { name: "Section A" },
+        parent_id: "task1",
+        parent_idx: 1,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
+      {
+        id: "heading2",
+        type: "h",
+        item: true,
+        content: "Section B",
+        data: { name: "Section B" },
+        parent_id: "task1",
+        parent_idx: 2,
+        embed_source: null,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        version: "v1",
+      },
     ] as KNode[]
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
@@ -1208,10 +1331,14 @@ describe("detail pane j/k navigation", () => {
     )
     board.press("D")
     expect(dc(store)).toBe("c-a")
-    board.press("j"); expect(dc(store)).toBe("c-b")
-    board.press("j"); expect(dc(store)).toBe("c-c")
-    board.press("k"); expect(dc(store)).toBe("c-b")
-    board.press("k"); expect(dc(store)).toBe("c-a")
+    board.press("j")
+    expect(dc(store)).toBe("c-b")
+    board.press("j")
+    expect(dc(store)).toBe("c-c")
+    board.press("k")
+    expect(dc(store)).toBe("c-b")
+    board.press("k")
+    expect(dc(store)).toBe("c-a")
   })
 })
 
@@ -1221,15 +1348,11 @@ describe("detail pane j/k navigation", () => {
 
 describe("board h/l navigation with detail pane open", () => {
   /** Get board cursor from main CursorStore */
-  const bc = (store: any): string | null =>
-    store.getState().cursorStore.getState().cursorNodeId ?? null
+  const bc = (store: any): string | null => store.getState().cursorStore.getState().cursorNodeId ?? null
 
   test("D → navigate detail → h → l: board cursor preserved, l works", () => {
     const { board, store } = testEnv(
-      () => item("board",
-        item("Todo", item("task-1", item("sub-1"), item("sub-2"))),
-        item("Doing", item("task-2")),
-      ),
+      () => item("board", item("Todo", item("task-1", item("sub-1"), item("sub-2"))), item("Doing", item("task-2"))),
       { checkIncremental: false, incremental: false },
     )
 

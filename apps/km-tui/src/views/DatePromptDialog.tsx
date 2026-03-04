@@ -24,7 +24,7 @@ export interface DatePromptDialogProps {
 /** Get live preview text for the current input */
 function getPreview(field: string, input: string): { text: string; color: string } {
   const trimmed = input.trim()
-  if (!trimmed) return { text: "Empty = clear value", color: "$muted" }
+  if (!trimmed) return { text: "Empty = clear value", color: "$muted-fg" }
 
   if (field === "rrule") {
     const rrule = naturalToRRule(trimmed)
@@ -74,9 +74,9 @@ export function DatePromptDialog({
   return (
     <ModalDialog title={title} width={width} height={height} footer="Enter confirm  Esc cancel">
       {/* Input field */}
-      <Box borderStyle="round" borderColor={"$focusring"} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$ring"} flexShrink={0}>
         <Text>
-          <Text color={"$text"}>{"> "}</Text>
+          <Text color={"$fg"}>{"> "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>

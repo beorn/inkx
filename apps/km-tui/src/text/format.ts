@@ -5,7 +5,7 @@
  * Extracted from list.ts and show.ts for reuse.
  *
  * Uses theme tokens via themeFg() for semantic coloring:
- * - $text3 for dimmed chrome (suffixes, markers)
+ * - $disabled-fg for dimmed chrome (suffixes, markers)
  * - $link for navigation elements (folders, files)
  * - $primary for headings and section names
  * - $success/$warning/$error for task status
@@ -59,19 +59,19 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
 
   const name = getNodeDisplayNameBase(ca.node, (id) => repo.getChildren(id))
   if (ca.typeSuffix) {
-    return prefix + name + themeFg(` ${ca.typeSuffix}`, "$text3")
+    return prefix + name + themeFg(` ${ca.typeSuffix}`, "$disabled-fg")
   }
   // No collapsed suffix - show individual type indicator based on fstype
   if (isOutline(ca.node.type, ca.node.item)) {
     switch (ca.node.fstype) {
       case "folder":
-        return prefix + name + themeFg("/", "$text3")
+        return prefix + name + themeFg("/", "$disabled-fg")
       case "file":
       case "mdfile":
-        return prefix + (name.endsWith(".md") ? name : name + themeFg(".md", "$text3"))
+        return prefix + (name.endsWith(".md") ? name : name + themeFg(".md", "$disabled-fg"))
       case "mdsection": {
         const depth = computeSectionDepth(ca.node, (id) => repo.getNode(id))
-        return prefix + themeFg("#".repeat(depth) + " ", "$text3") + name
+        return prefix + themeFg("#".repeat(depth) + " ", "$disabled-fg") + name
       }
     }
   }
@@ -94,13 +94,13 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   if (isOutline(node.type, node.item)) {
     switch (node.fstype) {
       case "folder":
-        return prefix + themeFg(name, "$link") + themeFg("/", "$text3")
+        return prefix + themeFg(name, "$link") + themeFg("/", "$disabled-fg")
       case "file":
       case "mdfile":
         return prefix + themeFg(name, "$link")
       case "mdsection": {
         const depth = computeSectionDepth(node, (id) => repo.getNode(id))
-        return prefix + themeFg("#".repeat(depth) + " ", "$text3") + themeFg(name, "$primary")
+        return prefix + themeFg("#".repeat(depth) + " ", "$disabled-fg") + themeFg(name, "$primary")
       }
       default:
         return prefix + themeFg(name, "$primary")

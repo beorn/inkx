@@ -9,7 +9,7 @@
  *
  * Uses term for UI chrome:
  * - Headers, borders, status bars
- * - Selection/current highlighting via theme tokens ($selected/$selectedfg)
+ * - Selection/current highlighting via theme tokens ($selection/$selection-fg)
  */
 
 import { createTerm, type StyleChain } from "inkx"
@@ -81,7 +81,7 @@ export function renderBoard(
     const header = ` ${name} (${count}) `
     const isSelected = i === colIndex
     const padded = header.padEnd(colWidth - 1).slice(0, colWidth - 1)
-    return isSelected ? style.bold(themeFgBg(padded, "$selectedfg", "$selected")) : style.bold(padded)
+    return isSelected ? style.bold(themeFgBg(padded, "$selection-fg", "$selection")) : style.bold(padded)
   })
   lines.push(headers.join(" "))
   lines.push(style.dim("─".repeat(width)))
@@ -160,9 +160,9 @@ export function renderCard(
 
   // Apply styling
   if (isCurrent) {
-    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selectedfg", "$selected")
+    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selection-fg", "$selection")
   } else if (isSelected) {
-    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selectedfg", "$selected")
+    firstLine = themeFgBg(firstLine.padEnd(width).slice(0, width), "$selection-fg", "$selection")
   } else {
     firstLine = firstLine.padEnd(width).slice(0, width)
   }
@@ -256,7 +256,7 @@ ${style.dim("Press any key to close")}
 `
 
   const lines: string[] = []
-  lines.push(themeFgBg(" ".repeat(width), "$selectedfg", "$selected"))
+  lines.push(themeFgBg(" ".repeat(width), "$selection-fg", "$selection"))
   for (const line of help.split("\n")) {
     lines.push(line.padEnd(width).slice(0, width))
   }
@@ -271,7 +271,7 @@ export function renderStatusIcon(status?: TaskStatus): string {
   const icon = getStatusIconBase(status)
   // Handle custom markers with background color (inverted display)
   if (icon.backgroundColor) {
-    return themeFgBg(icon.char, "$text", "$surface")
+    return themeFgBg(icon.char, "$fg", "$surface")
   }
   // Map icon color to colorize-compatible color
   // Note: "blue" in icon.color maps to "cyan" for visibility

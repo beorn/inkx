@@ -260,8 +260,8 @@ function SectionDivider({ label }: { label: string }): React.ReactElement {
 
 function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
-  const bg = isSelected ? "$selected" : undefined
-  const fg = isSelected ? "$selectedfg" : undefined
+  const bg = isSelected ? "$selection" : undefined
+  const fg = isSelected ? "$selection-fg" : undefined
 
   return (
     <Box>
@@ -272,7 +272,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
         <Text dimColor>{result.description}</Text>
       </Text>
       {result.shortcutHint && (
-        <Text color={isSelected ? "$selectedfg" : "$control"} backgroundColor={bg}>
+        <Text color={isSelected ? "$selection-fg" : "$input"} backgroundColor={bg}>
           {"  "}
           {result.shortcutHint}
         </Text>

@@ -95,7 +95,7 @@ export function SearchReplaceDialog({
     <ModalDialog title="Find & Replace" hotkey="F" titleRight={matchRight} width={width} focusScope={true}>
       {/* Search field */}
       <Box flexDirection="row" testID="search-field">
-        <Text color={focusedField === "search" ? "$text" : "$text3"}>Find: </Text>
+        <Text color={focusedField === "search" ? "$fg" : "$disabled-fg"}>Find: </Text>
         <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
 
@@ -103,7 +103,7 @@ export function SearchReplaceDialog({
 
       {/* Replace field */}
       <Box flexDirection="row" testID="replace-field">
-        <Text color={focusedField === "replace" ? "$text" : "$text3"}>Repl: </Text>
+        <Text color={focusedField === "replace" ? "$fg" : "$disabled-fg"}>Repl: </Text>
         <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
 
