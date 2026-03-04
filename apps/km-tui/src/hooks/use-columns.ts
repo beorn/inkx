@@ -204,9 +204,24 @@ export function useColumns(
   const foldDepthsRef = useRef(foldDepths)
   foldDepthsRef.current = foldDepths
 
+  // Synchronous column derivation on rootId change.
+  // When rootId changes (e.g., detail pane following cursor), columns must update
+  // in the SAME render — deferring to useEffect causes a frame where the title
+  // (from rootId) shows the new node but content shows stale columns.
+  // React handles setState-during-render by immediately re-rendering with the
+  // new state without committing the intermediate frame.
+  if (depsRef.current.rootId !== rootId) {
+    repo.preloadSubtree(rootId, 3)
+    const newColumns = derive(repo, rootId, foldDepthsRef.current)
+    depsRef.current = { rootId, version: effectiveVersion }
+    setColumns(newColumns)
+  }
+
+  // Version-driven re-derivation (repo mutations) uses useEffect for coalescing.
+  // Multiple rapid version bumps settle to a single derivation via debouncedVersion.
   useEffect(() => {
     const prev = depsRef.current
-    if (prev.rootId === rootId && prev.version === effectiveVersion) return
+    if (prev.version === effectiveVersion) return
     depsRef.current = { rootId, version: effectiveVersion }
 
     if (isTest) {
@@ -216,8 +231,6 @@ export function useColumns(
 
     // Coalesced derivation — runs after rapid version bumps settle.
     // Per-column memoization makes non-zoom derivation fast (cache hits).
-    // Preload on rootId change (zoom) — cache is already warm for version bumps.
-    if (prev.rootId !== rootId) repo.preloadSubtree(rootId, 3)
     setColumns(derive(repo, rootId, foldDepthsRef.current))
   }, [effectiveVersion, rootId, isTest, repo])
 
