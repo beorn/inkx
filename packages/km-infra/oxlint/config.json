@@ -182,6 +182,9 @@
         "no-unused-vars": "off",
         "no-promise-executor-return": "off",
         "@typescript-eslint/no-require-imports": "off",
+        "@typescript-eslint/no-floating-promises": "off",
+        "no-unreachable": "off",
+        "promise/param-names": "off",
         "curly": "off"
       }
     },

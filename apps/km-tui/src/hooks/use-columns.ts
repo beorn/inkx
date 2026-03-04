@@ -386,7 +386,8 @@ function mapDescendantsForColumn(
 ): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
   for (let i = 0; i < cards.length; i++) {
-    const card = cards[i]!
+    const card = cards[i]
+    if (!card) continue
     const foldDepth = foldDepths.get(card.id) ?? 1
     if (foldDepth > 0) {
       mapDescendants(card.id, colIndex, i, 0, (id) => repo.getChildren(id), foldDepths, foldDepth)

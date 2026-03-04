@@ -530,7 +530,7 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       // Cursor IS the root (e.g., zoomed to a root-level node) — move to first/last child
       if (cursorNodeId === rootId) {
-        return dir === "down" ? allChildren[0]!.id : allChildren[allChildren.length - 1]!.id
+        return dir === "down" ? (allChildren[0]?.id ?? null) : (allChildren[allChildren.length - 1]?.id ?? null)
       }
 
       const idx = indexOfChild(allChildren, cursorNodeId)
@@ -546,12 +546,12 @@ export function createDetailViewNavigation(): ViewNavigation {
         }
         const targetIdx = dir === "down" ? cardIdx + 1 : cardIdx - 1
         if (targetIdx < 0 || targetIdx >= allChildren.length) return null
-        return allChildren[targetIdx]!.id
+        return allChildren[targetIdx]?.id ?? null
       }
 
       const targetIdx = dir === "down" ? idx + 1 : idx - 1
       if (targetIdx < 0 || targetIdx >= allChildren.length) return null
-      return allChildren[targetIdx]!.id
+      return allChildren[targetIdx]?.id ?? null
     },
   }
 }

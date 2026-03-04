@@ -460,7 +460,7 @@ export function createBoardAppStoreState(
             const prevCardId = s.cursorStore.getState().cursorCardNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
               const children = s.repo.getChildren(newCardId)
-              const firstChildId = children.length > 0 ? children[0]!.id : null
+              const firstChildId = children.length > 0 ? (children[0]?.id ?? null) : null
               const newPanes = new Map(s.workspace.panes)
               const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: firstChildId }
               newPanes.set(detailPane.id, updatedDetail)
@@ -780,7 +780,7 @@ export function createBoardAppStoreState(
 
           // Initial cursor = first child of the cursor card
           const children = state.repo.getChildren(detailRootId)
-          const firstChildId = children.length > 0 ? children[0]!.id : null
+          const firstChildId = children.length > 0 ? (children[0]?.id ?? null) : null
 
           // Create a BoardPaneState with its OWN CursorStore (independent cursor)
           const detailCursorStore = createCursorStore({

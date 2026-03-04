@@ -96,7 +96,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
             <Text dimColor>{"Current  "}</Text>
             {currentNode ? (
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                <NodeLine node={currentNode} title={currentNode.title ?? currentNode.name ?? currentNodeId!} />
+                <NodeLine node={currentNode} title={currentNode.title ?? currentNode.name ?? currentNodeId ?? ""} />
               </Box>
             ) : (
               <Text color="$disabled-fg">{currentNodeId ?? "(unassigned)"}</Text>
@@ -106,7 +106,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
             <Text bold>{"Assign \u2192 "}</Text>
             {assignNode ? (
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                <NodeLine node={assignNode} title={assignTitle!} />
+                <NodeLine node={assignNode} title={assignTitle ?? ""} />
               </Box>
             ) : (
               <Text color="$disabled-fg">{assignNodeId ?? "(no node selected)"}</Text>

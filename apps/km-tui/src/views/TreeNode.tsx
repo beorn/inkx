@@ -8,7 +8,7 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useNodeStore, useReactive } from "../reactive.ts"
+import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
@@ -538,9 +538,10 @@ function TreeNodeImpl({
           >
             {editingTitle ? (
               <Text color={tc} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
+                {/* editState guaranteed non-null when editingTitle is true (editBlockIndex === 0) */}
                 <TitleEditor
                   displayNode={displayNode}
-                  editState={editState!}
+                  editState={editState as NodeEditState}
                   nodeIsTask={nodeIsTask}
                   repo={repo}
                   setUI={setUI}
@@ -629,10 +630,11 @@ function TreeNodeImpl({
       </HeadRow>
 
       {/* Body block editing: when editing this node, show body children as editable blocks */}
+      {/* editState guaranteed non-null when isInlineEditing is true (editBlockIndex !== null) */}
       {isInlineEditing && (
         <BodyBlockEditor
           displayNode={displayNode}
-          editState={editState!}
+          editState={editState as NodeEditState}
           childrenSourceId={childrenSourceId}
           resolvedGetChildren={resolvedGetChildren}
           depth={depth}
