@@ -797,3 +797,95 @@ describe("Boundary Feedback (Bell + Status)", () => {
     expect(board.bell).toBe(true)
   })
 })
+
+// =============================================================================
+// Sub-block navigation (j/k inside a card)
+// =============================================================================
+
+describe("Sub-block navigation", () => {
+  test("click sub-block → j/k navigate siblings → k to parent card", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click child-1 to enter sub-block mode
+    const el = board.q("[id='child-1']")
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // j → child-2
+    board.command("cursor_down")
+    board.expect("#child-2[data-cursor]").toExist()
+
+    // j → child-3
+    board.command("cursor_down")
+    board.expect("#child-3[data-cursor]").toExist()
+
+    // k → child-2
+    board.command("cursor_up")
+    board.expect("#child-2[data-cursor]").toExist()
+
+    // k → child-1
+    board.command("cursor_up")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // k from first child → parent card title
+    board.command("cursor_up")
+    board.expect("#card[data-cursor]").toExist()
+  })
+
+  test("j from last sub-block jumps to next card", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card-a", item("a-child-1"), item("a-child-2")), item("card-b"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click last child of card-a
+    const el = board.q("[id='a-child-2']")
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    board.expect("#a-child-2[data-cursor]").toExist()
+
+    // j → next card (card-b)
+    board.command("cursor_down")
+    board.expect("#card-b[data-cursor]").toExist()
+  })
+
+  test("Enter on sub-block edits that block, not the card title", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click child-2 to select it
+    const el = board.q("[id='child-2']")
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    board.expect("#child-2[data-cursor]").toExist()
+
+    // Enter to edit — should edit child-2
+    board.press("Enter")
+
+    // Should show INSERT mode indicator
+    expect(board.screenshot()).toContain("INSERT")
+    // Screen should show child-2 content (edit mode)
+    expect(board.screenshot()).toContain("child-2")
+  })
+
+  test("clicking each child in a card selects the correct one (hitTest)", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    for (const id of ["child-1", "child-2", "child-3"]) {
+      const el = board.q(`[id='${id}']`)
+      expect(el.count(), `${id} should be rendered`).toBeGreaterThan(0)
+      const box = el.boundingBox()!
+      board.click(box.x + 1, box.y)
+      board.expect(`#${id}[data-cursor]`).toExist()
+    }
+  })
+})

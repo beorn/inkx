@@ -1094,4 +1094,80 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // After editing: command box hidden again (NORMAL mode)
     expect(board.screenshot()).not.toContain("INSERT")
   })
+
+  // ===========================================================================
+  // Edit-mode navigation (arrows/ctrl-n/p cross nodes, stay in edit mode)
+  // ===========================================================================
+
+  describe("edit-mode node navigation", () => {
+    test("ArrowDown at boundary crosses to next card, stays in edit mode", () => {
+      const { board } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"), item("task-3"))))
+
+      // Enter edit mode on task-1
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // Arrow down → task-2, still in edit mode
+      board.press("ArrowDown")
+      expect(board.screenshot()).toContain("INSERT")
+      board.expect("#task-2[data-cursor]").toExist()
+
+      // Arrow down → task-3, still in edit mode
+      board.press("ArrowDown")
+      expect(board.screenshot()).toContain("INSERT")
+      board.expect("#task-3[data-cursor]").toExist()
+
+      // Arrow up → task-2, still in edit mode
+      board.press("ArrowUp")
+      expect(board.screenshot()).toContain("INSERT")
+      board.expect("#task-2[data-cursor]").toExist()
+    })
+
+    test("mouse click in edit mode repositions within same card", () => {
+      const { board } = testEnv(
+        () => item("board", item("Column", item("card", item("child-1"), item("child-2")))),
+        { columns: 80, rows: 24 },
+      )
+
+      // Click child-1 and enter edit mode
+      const c1 = board.q("[id='child-1']")
+      const c1Box = c1.boundingBox()!
+      board.click(c1Box.x + 1, c1Box.y)
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // Click child-2 (same card) → should reposition edit, stay in edit mode
+      const c2 = board.q("[id='child-2']")
+      const c2Box = c2.boundingBox()!
+      board.click(c2Box.x + 1, c2Box.y)
+      expect(board.screenshot()).toContain("INSERT")
+      board.expect("#child-2[data-cursor]").toExist()
+    })
+
+    test("mouse click outside card exits edit mode", () => {
+      const { board } = testEnv(
+        () =>
+          item.root(
+            "board",
+            item("Column", item("card-a", item("child-1"))),
+            item("Other", item("card-b")),
+          ),
+        { columns: 80, rows: 24 },
+      )
+
+      // Enter edit mode on child-1
+      const c1 = board.q("[id='child-1']")
+      const c1Box = c1.boundingBox()!
+      board.click(c1Box.x + 1, c1Box.y)
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // Click card-b (different card) → should exit edit mode
+      const cb = board.q("[id='card-b']")
+      const cbBox = cb.boundingBox()!
+      board.click(cbBox.x + 1, cbBox.y)
+      expect(board.screenshot()).not.toContain("INSERT")
+      board.expect("#card-b[data-cursor]").toExist()
+    })
+  })
 })
