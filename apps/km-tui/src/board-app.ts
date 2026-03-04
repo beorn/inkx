@@ -31,6 +31,35 @@ import type { PaneUI } from "./ui-reducer.ts"
 const perfLog = createLogger("km:perf")
 
 // =============================================================================
+// Shared key-name lookup table (Key boolean → display name)
+// =============================================================================
+
+/** Map Key boolean properties to human-readable names. Used by diagnostics and describeKey(). */
+const KEY_NAMES: [keyof Key, string][] = [
+  ["escape", "Escape"],
+  ["return", "Enter"],
+  ["backspace", "Backspace"],
+  ["delete", "Delete"],
+  ["tab", "Tab"],
+  ["upArrow", "Up"],
+  ["downArrow", "Down"],
+  ["leftArrow", "Left"],
+  ["rightArrow", "Right"],
+  ["pageUp", "PageUp"],
+  ["pageDown", "PageDown"],
+  ["home", "Home"],
+  ["end", "End"],
+]
+
+/** Look up the display name for a special key, or return null for printable/unknown keys. */
+function lookupKeyName(key: Key): string | null {
+  for (const [prop, name] of KEY_NAMES) {
+    if (key[prop]) return name
+  }
+  return null
+}
+
+// =============================================================================
 // Board App Locals — per-instance mutable state (no module-level lets)
 // =============================================================================
 
@@ -372,23 +401,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-    ;(globalThis as any).__km_last_key = key.escape
-      ? "Escape"
-      : key.return
-        ? "Enter"
-        : key.backspace
-          ? "Backspace"
-          : key.tab
-            ? "Tab"
-            : key.upArrow
-              ? "Up"
-              : key.downArrow
-                ? "Down"
-                : key.leftArrow
-                  ? "Left"
-                  : key.rightArrow
-                    ? "Right"
-                    : input || "?"
+    ;(globalThis as any).__km_last_key = lookupKeyName(key) ?? (input || "?")
 
     // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
     if (locals.cachedFocusManager !== ctx.focusManager) {
@@ -559,10 +572,66 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   }
 
   /**
+   * Handle chord state transitions after keybinding resolution.
+   *
+   * Returns "consumed" if the chord state machine fully handled the key (pending/cancelled),
+   * or "continue" if the caller should proceed with action execution.
+   */
+  function handleChordInput(
+    result: ReturnType<typeof processKeyWithContext>,
+    ctx: ActionCtx,
+    get: () => BoardAppStore,
+    exitApp: () => void,
+    parentSpan: SpanLogger,
+  ): "consumed" | "continue" {
+    // Chord pending: show status indicator and start timeout
+    if (result.pending) {
+      parentSpan.spanData.outcome = "chord"
+      locals.pendingChordShownAt = performance.now()
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({
+        status: { level: "info", message: `${result.pending}-` },
+        pendingChord: result.pending,
+        chordTimedOut: false,
+      })
+      locals.chordTimer = setTimeout(() => {
+        locals.chordTimer = null
+        fireChordTimeout(get, exitApp)
+      }, CHORD_TIMEOUT_MS)
+      return "consumed"
+    }
+
+    // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
+    if (result.chordResolved && get().ui.pendingChord !== null) {
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({ pendingChord: null, chordTimedOut: false })
+    }
+
+    // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
+    if (result.chordCancelled) {
+      parentSpan.spanData.outcome = "chord-cancelled"
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
+      process.stdout.write("\x07")
+      return "consumed"
+    }
+
+    return "continue"
+  }
+
+  /**
    * Route key through the command system and handle resulting actions.
    * When a dialog is open, only dialog.* and text.* commands are processed.
    */
-  // oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
   function routeThroughCommandSystem(
     parentSpan: SpanLogger,
     input: string,
@@ -585,49 +654,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
     }
 
+    // Phase 1.5: Chord state machine — pending/resolved/cancelled
+    if (handleChordInput(result, ctx, get, exitApp, parentSpan) === "consumed") return
+
     // When a dialog is open, unhandled keys are expected (limited key set).
-    // Uses the mode stack instead of checking individual UI booleans.
     const dialogOpen = getModeStack().isDialog()
-    // Chord pending: show status indicator and start timeout
-    if (result.pending) {
-      parentSpan.spanData.outcome = "chord"
-      locals.pendingChordShownAt = performance.now()
-      if (locals.chordDismissTimer !== null) {
-        clearTimeout(locals.chordDismissTimer)
-        locals.chordDismissTimer = null
-      }
-      ctx.setUI({
-        status: { level: "info", message: `${result.pending}-` },
-        pendingChord: result.pending,
-        chordTimedOut: false,
-      })
-      locals.chordTimer = setTimeout(() => {
-        locals.chordTimer = null
-        fireChordTimeout(get, exitApp)
-      }, CHORD_TIMEOUT_MS)
-      return
-    }
-
-    // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
-    if (result.chordResolved && get().ui.pendingChord !== null) {
-      if (locals.chordDismissTimer !== null) {
-        clearTimeout(locals.chordDismissTimer)
-        locals.chordDismissTimer = null
-      }
-      ctx.setUI({ pendingChord: null, chordTimedOut: false })
-    }
-
-    // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
-    if (result.chordCancelled) {
-      parentSpan.spanData.outcome = "chord-cancelled"
-      if (locals.chordDismissTimer !== null) {
-        clearTimeout(locals.chordDismissTimer)
-        locals.chordDismissTimer = null
-      }
-      ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
-      process.stdout.write("\x07")
-      return
-    }
 
     if (!result.handled) {
       parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
@@ -861,44 +892,15 @@ export const __triggerChordTimeout = defaultHandlers.triggerChordTimeout
 // =============================================================================
 
 /** Produce a human-readable label for a key press (e.g. "Ctrl+x", "F5", "w"). */
-// oxlint-disable-next-line complexity/complexity -- exhaustive ternary chain for key descriptions
 function describeKey(input: string, key: Key): string {
   const parts: string[] = []
   if (key.ctrl) parts.push("Ctrl")
   if (key.meta) parts.push("Meta")
   if (key.shift) parts.push("Shift")
 
-  const name = key.upArrow
-    ? "Up"
-    : key.downArrow
-      ? "Down"
-      : key.leftArrow
-        ? "Left"
-        : key.rightArrow
-          ? "Right"
-          : key.pageUp
-            ? "PageUp"
-            : key.pageDown
-              ? "PageDown"
-              : key.home
-                ? "Home"
-                : key.end
-                  ? "End"
-                  : key.return
-                    ? "Enter"
-                    : key.escape
-                      ? "Esc"
-                      : key.tab
-                        ? "Tab"
-                        : key.backspace
-                          ? "Backspace"
-                          : key.delete
-                            ? "Delete"
-                            : input.length === 1 && input >= " "
-                              ? input
-                              : input.length > 0
-                                ? `<${input.charCodeAt(0).toString(16)}>`
-                                : "?"
+  const name =
+    lookupKeyName(key) ??
+    (input.length === 1 && input >= " " ? input : input.length > 0 ? `<${input.charCodeAt(0).toString(16)}>` : "?")
 
   parts.push(name)
   return parts.join("+")
@@ -952,6 +954,32 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
 // Helpers
 // =============================================================================
 
+/**
+ * Walk visible descendants in DFS order, calling `visitor` for each visible child.
+ * Shared tree-walk logic used by both countVisibleDescendants and getVisibleDescendantIds.
+ *
+ * @param maxChildren - Optional cap on children per node (e.g., 10 for counting).
+ */
+function walkVisibleDescendants(
+  repo: { getChildren(id: string): { id: string }[] },
+  node: { id: string },
+  depth: number,
+  maxDepth: number,
+  foldDepths: Map<string, number>,
+  remainingDepth: number,
+  visitor: (child: { id: string }) => void,
+  maxChildren?: number,
+): void {
+  if (depth >= maxDepth || remainingDepth <= 0) return
+  const allChildren = repo.getChildren(node.id)
+  const children = maxChildren != null ? allChildren.slice(0, maxChildren) : allChildren
+  for (const child of children) {
+    visitor(child)
+    const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1
+    walkVisibleDescendants(repo, child, depth + 1, maxDepth, foldDepths, childDepth, visitor, maxChildren)
+  }
+}
+
 function countVisibleDescendants(
   repo: { getChildren(id: string): { id: string }[] },
   node: { id: string },
@@ -961,15 +989,20 @@ function countVisibleDescendants(
   remainingDepth?: number,
 ): number {
   const effectiveDepth = foldDepths.get(node.id) ?? remainingDepth ?? Infinity
-  if (depth > maxDepth || effectiveDepth <= 0) {
-    return 0
-  }
-  const children = repo.getChildren(node.id).slice(0, 10)
-  let count = children.length
-  for (const child of children) {
-    const childDepth = foldDepths.get(child.id) ?? effectiveDepth - 1
-    count += countVisibleDescendants(repo, child, depth + 1, maxDepth, foldDepths, childDepth)
-  }
+  if (depth > maxDepth || effectiveDepth <= 0) return 0
+  let count = 0
+  walkVisibleDescendants(
+    repo,
+    node,
+    depth,
+    maxDepth,
+    foldDepths,
+    effectiveDepth,
+    () => {
+      count++
+    },
+    10,
+  )
   return count
 }
 
@@ -988,16 +1021,9 @@ function getVisibleDescendantIds(
 ): string[] {
   const result: string[] = [cardNode.id]
   const cardDepth = foldDepths.get(cardNode.id) ?? foldDepths.get(rootId ?? "") ?? 1
-  function walk(node: { id: string }, depth: number, remainingDepth: number): void {
-    if (depth >= maxDepth || remainingDepth <= 0) return
-    const children = repo.getChildren(node.id)
-    for (const child of children) {
-      result.push(child.id)
-      const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1
-      walk(child, depth + 1, childDepth)
-    }
-  }
-  walk(cardNode, 0, cardDepth)
+  walkVisibleDescendants(repo, cardNode, 0, maxDepth, foldDepths, cardDepth, (child) => {
+    result.push(child.id)
+  })
   return result
 }
 
