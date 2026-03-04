@@ -21,7 +21,7 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../ui-context.tsx"
-import { useIsCursorAtNode } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -59,8 +59,11 @@ export const MemoizedTreeCard = React.memo(
     getBoardPills,
     extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
-    // Self-subscribe to CursorStore for selection state (by nodeId)
-    const cursorIsSelected = useIsCursorAtNode(card.id)
+    // Self-subscribe to ReactiveNodeStore for selection state (by nodeId)
+    const nodeStore = useNodeStore()
+    const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+    const _selLevel = useReactive(nodeStore.selectionLevel)
+    const cursorIsSelected = _cursorCardNodeId === card.id && _selLevel === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useAppStore<BoardAppStore, boolean>(
       (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === card.id,

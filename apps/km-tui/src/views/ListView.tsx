@@ -19,7 +19,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
-import { useCursorNodePosition } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { useApp as useAppStore } from "inkx/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
@@ -57,8 +57,10 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const { rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
 
-  const cursorPos = useCursorNodePosition()
-  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+  const nodeStore = useNodeStore()
+  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>(

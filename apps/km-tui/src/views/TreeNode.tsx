@@ -44,7 +44,7 @@ import {
 } from "../text/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
-import { useCursorNodePosition } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
 import {
@@ -1300,8 +1300,9 @@ function NodeChildren({
     [allFolded, repo, orderedChildren],
   )
 
-  // Get cursor position from CursorStore to determine which child is selected.
-  const { cursorNodeId } = useCursorNodePosition()
+  // Get cursor position from ReactiveNodeStore to determine which child is selected.
+  const nodeStore = useNodeStore()
+  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children

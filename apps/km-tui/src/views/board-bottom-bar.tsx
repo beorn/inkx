@@ -9,7 +9,7 @@ import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import type { ColumnView } from "../types.ts"
-import { useCursorNodePosition } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 
 // Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -104,8 +104,9 @@ export function BottomBar({
   consoleStats,
   toastQueue,
 }: BottomBarProps): React.ReactElement {
-  const cursorPos = useCursorNodePosition()
-  const colIndex = columns.findIndex((c) => c.node.id === cursorPos.cursorColumnNodeId)
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const colIndex = columns.findIndex((c) => c.node.id === cursorColumnNodeId)
   const layout = {
     colIndex: colIndex >= 0 ? colIndex : 0,
   }

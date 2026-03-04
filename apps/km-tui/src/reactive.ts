@@ -98,6 +98,25 @@ export class ReactiveNodeStore {
   private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
+  // ── Cursor state (synced from CursorStore by Board.tsx) ──
+  cursorNodeId = new Reactive<string | null>(null)
+  cursorCardNodeId = new Reactive<string | null>(null)
+  cursorColumnNodeId = new Reactive<string | null>(null)
+  selectionLevel = new Reactive<"board" | "column" | "card">("board")
+
+  /** Sync cursor state from CursorStore to Reactive fields */
+  syncCursor(cursorState: {
+    cursorNodeId: string | null
+    cursorCardNodeId: string | null
+    cursorColumnNodeId: string | null
+    selectionLevel: "board" | "column" | "card"
+  }): void {
+    this.cursorNodeId.value = cursorState.cursorNodeId
+    this.cursorCardNodeId.value = cursorState.cursorCardNodeId
+    this.cursorColumnNodeId.value = cursorState.cursorColumnNodeId
+    this.selectionLevel.value = cursorState.selectionLevel
+  }
+
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
   getOrCreate(nodeId: string): NodeReactiveState {
     let state = this.nodes.get(nodeId)

@@ -23,7 +23,7 @@ import {
   type PatchedConsole,
 } from "inkx"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "inkx/runtime"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../reactive.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -41,7 +41,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "@beorn/logger"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { CursorStoreProvider, useCursorNodePosition, useCursorStore } from "../cursor-context.tsx"
+// cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board-types.ts"
@@ -215,8 +215,10 @@ function BoardTopBar({
   maxContentLines,
 }: TopBarProps): React.ReactElement {
   const repo = useRepo()
-  const cursorPos = useCursorNodePosition()
-  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+  const nodeStore = useNodeStore()
+  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
   const paneLabel = usePaneLabel()
 
   const pathNodeId =
@@ -554,6 +556,13 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [nodeStore, inlineEditBlock])
 
+  // Sync cursor state from CursorStore to Reactive fields (for Board-internal components)
+  useEffect(() => {
+    const sync = () => nodeStore.syncCursor(cursorStore.getState())
+    sync() // Initial sync
+    return cursorStore.subscribe(sync)
+  }, [nodeStore, cursorStore])
+
   // Layout is derived on demand — no store sync needed
 
   // Screen switching for console
@@ -871,32 +880,30 @@ export function Board({ patchedConsole }: BoardProps) {
 
   return (
     <ReactiveNodeStoreProvider value={nodeStore}>
-      <CursorStoreProvider store={cursorStore}>
-        <TreeRenderProvider
-          treeConfig={treeConfig}
-          setUI={setUI}
-          rootBoardId={findBoardRootId(repo, rootId)}
-          searchMatchNodeIds={searchMatchNodeIds}
-          currentMatchNodeId={currentMatchNodeId}
-          searchQuery={ui.localSearch?.query ?? null}
-          jobRunner={jobRunner}
-          undoHandle={undoHandle}
-          taskStatusFilter={taskStatusFilter}
-          boardFocused={boardFocused}
-        >
-          <BoardCore
-            rootId={rootId}
-            columns={filteredColumns}
-            colIndex={visibleColIndex}
-            cardIndex={columnsLayout.cardIndex}
-            ui={ui}
-            derivedSelectionLevel={derivedSelectionLevel}
-            dimensions={ui.dimensions}
-            collapsedNodes={collapsedNodes}
-            hasDetailPane={hasDetailPane}
-          />
-        </TreeRenderProvider>
-      </CursorStoreProvider>
+      <TreeRenderProvider
+        treeConfig={treeConfig}
+        setUI={setUI}
+        rootBoardId={findBoardRootId(repo, rootId)}
+        searchMatchNodeIds={searchMatchNodeIds}
+        currentMatchNodeId={currentMatchNodeId}
+        searchQuery={ui.localSearch?.query ?? null}
+        jobRunner={jobRunner}
+        undoHandle={undoHandle}
+        taskStatusFilter={taskStatusFilter}
+        boardFocused={boardFocused}
+      >
+        <BoardCore
+          rootId={rootId}
+          columns={filteredColumns}
+          colIndex={visibleColIndex}
+          cardIndex={columnsLayout.cardIndex}
+          ui={ui}
+          derivedSelectionLevel={derivedSelectionLevel}
+          dimensions={ui.dimensions}
+          collapsedNodes={collapsedNodes}
+          hasDetailPane={hasDetailPane}
+        />
+      </TreeRenderProvider>
     </ReactiveNodeStoreProvider>
   )
 }
