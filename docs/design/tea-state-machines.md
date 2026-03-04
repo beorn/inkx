@@ -791,95 +791,57 @@ Each phase is independently useful. Phase 1 improves inkx today. Phase 2 improve
 
 TEA produces **one new state object per operation**. React performance requires **per-node granular subscriptions** — when the cursor moves, only 2 nodes should re-render (old and new), not 1000+.
 
-km currently solves this with a **dual-source-of-truth**: Zustand store (board state) + Jotai atoms (per-node reactive state) + 5 manual `sync*ToAtoms()` functions bridging them (~1500 LOC). This works but is fragile, hard to test, and creates subtle bugs when sync drifts.
+### The Solution: Reactive\<T\> Signals
 
-### Why Not "One Big Atom + Derived Atoms"?
+km uses `Reactive<T>` — a lightweight signal primitive (value holder + subscriber set, `Object.is` comparison) — for per-node reactive state. Each node has independent signals for fold, edit, multi-selection, and excluded sigils. Cursor position uses board-level signals.
 
-The naive approach — one `boardStateAtom` with `atomFamily` atoms derived from it — causes **O(n) recomputation per change**. When the base atom changes reference (every operation), Jotai marks ALL derived atoms as potentially stale. Even with structural sharing, every mounted derived atom must re-evaluate its selector to check whether its slice changed. With 1000+ nodes, this defeats the purpose of granular reactivity.
-
-Recoil's documentation explicitly warns against this: coupling every item to one list state causes unnecessary re-renders. The fix is independent atoms per entity.
-
-### The Architecture: Operation-Targeted Atom Updates
-
-Operations already carry the affected node IDs. The dispatch function uses this to update **only the relevant atoms** — no diffing, no stale-checking, no O(n) propagation:
+The `ReactiveNodeStore` manages per-node signal lifecycle with delta-based sync methods:
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  TEA State Machine (pure)                            │
-│  Tree.apply(state, op) → [newState, effects]         │
-│  Board.apply(state, op) → [newState, effects]        │
+│  Zustand Store (board-app-store.ts)                  │
+│  Board state: columns, cursor, foldDepths, etc.      │
 └──────────────┬───────────────────────────────────────┘
-               │ op carries affected nodeIds
+               │ useEffect syncs on change
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  Dispatch Bridge (thin, impure)                      │
-│  1. Call pure .apply()                                │
-│  2. Read op.nodeId / op.type to know what changed    │
-│  3. atom.set() on only affected per-node atoms       │
-│  4. Handle effects (load, persist, dispatch)         │
+│  ReactiveNodeStore (reactive.ts)                     │
+│  syncCursor(), syncFoldDepths(), syncMultiSelected() │
+│  syncEdit() — delta-based, only update changed keys  │
 └──────────────┬───────────────────────────────────────┘
-               │ only touched atoms notify
+               │ only changed signals notify
                ▼
 ┌──────────────────────────────────────────────────────┐
-│  Per-Node Atoms (Jotai atomFamily)                   │
-│  cursorNodeIdAtom, nodeFoldAtom(id), nodeEditAtom(id)│
-│  Only mounted components re-render                   │
-│  VirtualList limits mounted nodes to ~30-50 visible  │
+│  Per-Node Reactive<T> Signals                        │
+│  cursorNodeId, foldOverride(id), edit(id), etc.      │
+│  useReactive() hook → useSyncExternalStore           │
+│  Only subscribed components re-render                │
 └──────────────────────────────────────────────────────┘
 ```
 
-**Performance**: O(affected) per operation. Cursor move touches 2 atoms (~0.1ms). Fold toggle touches 1 atom + its descendants. Structural edits touch the modified subtree. VirtualList ensures only visible nodes have mounted subscriptions — unmounted atoms are inert.
+**Performance**: O(affected) per operation. Cursor move touches 1 signal (~0.1ms). Fold toggle touches 1 signal. Sync methods compare previous vs current and skip unchanged nodes.
 
-### What This Replaces
+### What Was Replaced
 
-| Current (dual-source) | Target (TEA + atoms) |
+| Before | After |
 |---|---|
-| `board-app-store.ts` — Zustand store (1107 LOC) | TEA machines (Board/Tree/Dialog.apply) |
-| `node-atoms-hydrate.ts` — 5 sync functions (216 LOC) | Dispatch bridge reads op targets |
-| `cursor-store.ts` — hand-rolled pub/sub (204 LOC) | `cursorNodeIdAtom` updated by dispatch |
-| Manual `syncCursorToAtoms()`, `syncFoldDepthsToAtoms()`, etc. | Eliminated — dispatch does targeted sets |
+| Jotai atoms + atomFamily (9 atom families, 5 cursor globals) | `Reactive<T>` signals in `ReactiveNodeStore` |
+| `node-atoms-hydrate.ts` — 5 manual sync functions (216 LOC) | `ReactiveNodeStore.hydrate()` + delta sync methods |
+| `node-atoms.ts` — atom definitions (135 LOC) | Deleted — signals created on-demand via `getOrCreate()` |
+| Jotai `useAtomValue()` in 10+ component files | `useReactive()` hook (thin wrapper around `useSyncExternalStore`) |
+| Jotai + jotai-family npm dependencies | Zero external deps — `Reactive<T>` is 27 lines |
 
-The per-node atoms (`node-atoms.ts`) survive mostly unchanged — they're already the right granularity. What changes is how they get updated: from manual sync to operation-targeted dispatch.
+### Future: Operation-Targeted Updates
 
-### How Operations Map to Atom Updates
+When TEA machines replace the Zustand store, the dispatch bridge will update signals directly from operation targets — no sync functions needed:
 
 ```ts
 function dispatch(state: BoardState, op: BoardOp): BoardState {
   const [next, effects] = Board.apply(state, op)
-
-  // Operation-targeted atom updates (examples):
-  switch (op.type) {
-    case "select_node":
-      cursorNodeIdAtom.set(op.nodeId)                    // 1 atom
-      break
-    case "set_node":
-      nodeDataAtom(op.nodeId).set(next.nodes.get(op.nodeId))  // 1 atom
-      break
-    case "fold_node":
-      nodeFoldAtom(op.nodeId).set(next.folds.get(op.nodeId))  // 1 atom
-      // + descendants if cascade
-      break
-    case "insert_node":
-      // hydrate new node's atoms, update parent's children
-      break
-  }
-
-  handleEffects(effects)
+  // Operation carries affected IDs → targeted signal.value = ...
   return next
 }
 ```
-
-The dispatch bridge is the **only impure boundary** — everything before it (TEA machines) is pure and testable, everything after it (atoms → React) is automatic.
-
-### With Automerge (CRDT-First)
-
-When the persistent layer is Automerge, the CRDT provides its own change notification mechanism. Two options:
-
-1. **TEA veneer**: `Tree.apply()` wraps `Automerge.change()`. The dispatch bridge reads the TreeOp to know which atoms to update (same as above). This preserves the typed operation API.
-
-2. **CRDT patches**: Subscribe to Automerge's patch stream. Each patch identifies the changed path (e.g., `nodes.${nodeId}.title`), which maps directly to a per-node atom update. Remote changes from collaborators arrive as patches and flow through the same atom update path.
-
-Option 1 is cleaner for local edits (operations are typed, intentions are clear). Option 2 handles remote changes naturally. Both can coexist — local edits go through TEA, remote patches go directly to atoms.
 
 ### How Editors Solve This
 
@@ -889,9 +851,9 @@ Option 1 is cleaner for local edits (operations are typed, intentions are clear)
 | **ProseMirror** | Transaction steps | Steps describe affected document range → targeted DOM reconciliation |
 | **Lexical** | Immutable tree + React | Dirty node tracking — only re-renders nodes whose data changed |
 | **Elm** | Single model + VDOM | `Html.lazy` memoizes subtrees; VDOM diff handles the rest |
-| **km (target)** | TEA machines + Jotai atoms | Operations carry affected IDs → targeted atom.set() → React re-renders |
+| **km** | Zustand + Reactive\<T\> signals | Delta sync from store → per-node signals → React re-renders |
 
-The common pattern: **the state transition function produces enough information to compute the minimal UI update**. In km's case, the operations themselves are that information — no additional diffing needed.
+The common pattern: **the state transition function produces enough information to compute the minimal UI update**.
 
 ## inkx/tea — Zustand Middleware
 
