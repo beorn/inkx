@@ -170,7 +170,10 @@ describe("Clipboard operations", () => {
   })
 
   test("undo reverses paste", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+    // incremental: false — undo status bar message changes bottom bar rendering
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))), {
+      incremental: false,
+    })
 
     // Copy A and paste
     board.press("y")
@@ -185,7 +188,10 @@ describe("Clipboard operations", () => {
   })
 
   test("undo reverses cut+paste (restores original position)", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+    // incremental: false — undo status bar message changes bottom bar rendering
+    const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
+      incremental: false,
+    })
 
     // Cut A, navigate to C, paste
     board.press("d")

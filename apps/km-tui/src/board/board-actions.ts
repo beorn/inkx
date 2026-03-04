@@ -84,7 +84,6 @@ import {
   handleNavForward,
   handleNavSiblingBoard,
   handlePageJump,
-  navStateFrom,
 } from "./board-actions-nav.ts"
 import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./board-actions-selection.ts"
 import {
@@ -1060,12 +1059,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     case "TEXT_CURSOR_UP": {
       const moved = activeEditTargetRef.current?.cursorUp() ?? false
-      if (!moved) return handleEditNodeNavigate(ctx, "up")
+      if (!moved) return handleEditBlockNavigate(ctx, "up")
       return ok()
     }
     case "TEXT_CURSOR_DOWN": {
       const moved = activeEditTargetRef.current?.cursorDown() ?? false
-      if (!moved) return handleEditNodeNavigate(ctx, "down")
+      if (!moved) return handleEditBlockNavigate(ctx, "down")
       return ok()
     }
     case "TEXT_CURSOR_START":
@@ -1084,35 +1083,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       activeEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM": {
-      // Outliner-style Enter: save current + create new sibling + edit it.
-      // Key insight: don't clear inlineEditBlock to null as intermediate state.
-      // Go directly from old edit → new edit. React handles unmount/mount via
-      // key change (different nodeId). The intermediate null creates a timing
-      // vulnerability where batched events or sync I/O can leave the ref null.
+      // Enter in edit mode: save and exit.
       const target = activeEditTargetRef.current
-
-      // Detail pane: Enter just saves and exits (no outliner-style sibling creation)
-      if (ctx.focusedPaneViewType() === "detail") {
-        target?.save()
-        if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
-        return ok()
-      }
-
-      if (target) {
-        target.save()
-        // Only create new sibling when inline editing (not for dialog text inputs
-        // like the date prompt, which also use activeEditTargetRef)
-        if (ctx.ui.inlineEditBlock) {
-          target.insertBreak?.()
-          handleAddNodeAfter(ctx)
-        }
-      } else if (ctx.ui.inlineEditBlock) {
-        // Batched Enter: inlineEditBlock is set but React hasn't rendered the
-        // InlineEditField yet (no ref). This happens when events arrive faster
-        // than React renders. The new node has empty content, so just create
-        // another sibling directly.
-        handleAddNodeAfter(ctx)
-      }
+      if (target) target.save()
+      if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
       return ok()
     }
     case "TEXT_EXIT_EDIT": {
@@ -1373,39 +1347,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // =============================================================================
 // Helper Functions (local to this file)
 // =============================================================================
-
-/** Navigate to adjacent node while staying in edit mode (ctrl-n/p, arrows at boundary). */
-function handleEditNodeNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
-  const edit = ctx.ui.inlineEditBlock
-  if (!edit) return ok()
-
-  // Capture stickyX before saving/unmounting
-  const editCtx = activeEditContextRef.current
-  const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : edit.stickyX
-
-  // Save current edit before navigating
-  activeEditTargetRef.current?.save()
-
-  // Use the same navigation logic as j/k
-  if (!ctx.cursorNodeId) return ok()
-  const targetId = ctx.viewNavigation.navigate(direction, navStateFrom(ctx), ctx.repo, ctx.navigator)
-  if (!targetId) {
-    // At boundary — stay in edit mode on current node
-    return ok()
-  }
-
-  // Navigate and re-enter edit mode on the target node
-  ctx.dispatchBoard({ type: "SELECT", nodeId: targetId })
-  ctx.setUI({
-    inlineEditBlock: {
-      nodeId: targetId,
-      blockIndex: 0,
-      initialCursorPos: direction === "down" ? "start" : "end",
-      stickyX,
-    },
-  })
-  return ok()
-}
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx
