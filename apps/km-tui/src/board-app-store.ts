@@ -702,7 +702,17 @@ export function createBoardAppStoreState(
             const targetPaneId = state.workspace.focusedPaneId
             const pane = state.workspace.panes.get(targetPaneId)
             if (pane && isBoardPane(pane)) {
-              const newPanes = updateBoardPane(state.workspace, targetPaneId, pane, paneUpdates)
+              let newPanes = updateBoardPane(state.workspace, targetPaneId, pane, paneUpdates)
+              // Propagate filterProperties to detail pane (if open)
+              if (paneUpdates.filterProperties && !isDetailPaneId(targetPaneId)) {
+                const detailId = detailPaneIdFor(targetPaneId)
+                const detailPane = newPanes.get(detailId)
+                if (detailPane && isBoardPane(detailPane)) {
+                  newPanes = updateBoardPane({ ...state.workspace, panes: newPanes }, detailId, detailPane, {
+                    filterProperties: paneUpdates.filterProperties,
+                  })
+                }
+              }
               result.workspace = { ...state.workspace, panes: newPanes }
             }
           }
@@ -783,6 +793,8 @@ export function createBoardAppStoreState(
             cursorStore: detailCursorStore,
           })
           detailPane.parentPaneId = focusedPaneId
+          // Inherit filter state from parent board pane (e.g., hide-done toggle)
+          detailPane.filterProperties = { ...parentPane.filterProperties }
 
           const newPanes = new Map(state.workspace.panes)
           newPanes.set(detailId, detailPane)
