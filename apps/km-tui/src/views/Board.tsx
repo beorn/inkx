@@ -33,6 +33,7 @@ import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { ColumnsView } from "./ColumnsView.tsx"
 import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
+import { DetailView } from "./DetailView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
 import type { PaneUI, FilterProperties } from "../ui-reducer.ts"
@@ -364,8 +365,16 @@ export function BoardCore({
         <Box flexGrow={1} flexDirection="row" minHeight={1} maxHeight={contentHeight} overflow="hidden">
           {/* Board area — focusable container for all card/column/list views */}
           <Box focusable autoFocus testID="board-area" flexGrow={1} flexDirection="column">
-            {/* Cards, Columns, List, or Detail view */}
-            {ui.viewMode === "cards" || ui.viewMode === "detail" ? (
+            {/* Cards, Columns, List, Detail, or Tabs view */}
+            {ui.viewMode === "detail" ? (
+              <ErrorBoundary
+                fallback={<Text color={"$error"}>Error loading detail view</Text>}
+                resetKey={errorBoundaryResetKey}
+                onError={handleRenderError}
+              >
+                <DetailView rootId={rootId} width={termWidth} height={contentHeight} />
+              </ErrorBoundary>
+            ) : ui.viewMode === "cards" ? (
               <ErrorBoundary
                 fallback={<Text color={"$error"}>Error loading cards view</Text>}
                 resetKey={errorBoundaryResetKey}

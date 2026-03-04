@@ -62,6 +62,7 @@ import {
   setSplitRatioAbsolute,
 } from "./layout-helpers.ts"
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
+import { computeMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
 
 // =============================================================================
 // Store Types
@@ -459,18 +460,26 @@ export function createBoardAppStoreState(
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             const prevCardId = s.cursorStore.getState().cursorCardNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
-              const children = s.repo.getChildren(newCardId)
-              const firstChildId = children.length > 0 ? (children[0]?.id ?? null) : null
+              // Initial cursor = first metadata row, then first child
+              const newRootNode = s.repo.getNode(newCardId)
+              const newMetaKeys = newRootNode ? computeMetadataKeys(newRootNode) : []
+              const newChildren = s.repo.getChildren(newCardId)
+              const newFirstItemId =
+                newMetaKeys.length > 0
+                  ? `${DETAIL_META_PREFIX}${newMetaKeys[0]}`
+                  : newChildren.length > 0
+                    ? (newChildren[0]?.id ?? null)
+                    : null
               const newPanes = new Map(s.workspace.panes)
-              const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: firstChildId }
+              const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: newFirstItemId }
               newPanes.set(detailPane.id, updatedDetail)
               set({ workspace: { ...s.workspace, panes: newPanes } })
               if (detailPane.cursorStore) {
                 detailPane.cursorStore.setState({
-                  cursorNodeId: firstChildId,
-                  cursorCardNodeId: firstChildId,
+                  cursorNodeId: newFirstItemId,
+                  cursorCardNodeId: newFirstItemId,
                   cursorColumnNodeId: null,
-                  selectionLevel: firstChildId ? "card" : "board",
+                  selectionLevel: newFirstItemId ? "card" : "board",
                 })
               }
             }
@@ -778,18 +787,25 @@ export function createBoardAppStoreState(
           const cursorState = state.cursorStore.getState()
           const detailRootId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? parentPane.rootId
 
-          // Initial cursor = first child of the cursor card
+          // Initial cursor = first metadata row, then first child
+          const rootNode = detailRootId ? state.repo.getNode(detailRootId) : null
+          const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
           const children = state.repo.getChildren(detailRootId)
-          const firstChildId = children.length > 0 ? (children[0]?.id ?? null) : null
+          const firstItemId =
+            metaKeys.length > 0
+              ? `${DETAIL_META_PREFIX}${metaKeys[0]}`
+              : children.length > 0
+                ? (children[0]?.id ?? null)
+                : null
 
           // Create a BoardPaneState with its OWN CursorStore (independent cursor)
           const detailCursorStore = createCursorStore({
-            cursorNodeId: firstChildId,
-            cursorCardNodeId: firstChildId,
+            cursorNodeId: firstItemId,
+            cursorCardNodeId: firstItemId,
             cursorColumnNodeId: null,
-            selectionLevel: firstChildId ? "card" : "board",
+            selectionLevel: firstItemId ? "card" : "board",
           })
-          const detailPane = createPaneState(detailId, createBoardState(detailRootId, null, firstChildId), {
+          const detailPane = createPaneState(detailId, createBoardState(detailRootId, null, firstItemId), {
             viewMode: "detail",
             cursorStore: detailCursorStore,
           })

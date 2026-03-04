@@ -592,8 +592,10 @@ describe("detail pane empty state fallback", () => {
     // Detail pane should show the current card's content
     expect(board.screenshot()).toContain("task1")
 
-    // Simulate cursor pointing to a non-existent node.
+    // Simulate cursor pointing to a non-existent node on the BOARD pane.
     // This happens when a new item is being created or a node was deleted.
+    // The detail pane has its own rootId (set when opened), so it keeps
+    // showing the original card even when the board cursor is invalid.
     const cursorStore = store.getState().cursorStore
     act(() => {
       cursorStore.setState({
@@ -610,8 +612,9 @@ describe("detail pane empty state fallback", () => {
     // Flush render
     board.press("Ctrl+l")
 
-    // Detail pane must NOT be blank — shows empty board fallback
-    expect(board.screenshot()).toContain("Empty board")
+    // Detail pane still shows the original card (its rootId is independent)
+    expect(board.screenshot()).toContain("task1")
+    expect(board.screenshot()).not.toContain("Error loading")
   })
 
   test("shows empty board when both card and column are null", () => {
@@ -624,7 +627,9 @@ describe("detail pane empty state fallback", () => {
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
-    // Simulate board-level selection (no card or column selected)
+    // Simulate board-level selection (no card or column selected).
+    // The detail pane has its own rootId (set when opened), so it keeps
+    // showing the original card even when the board cursor is cleared.
     const cursorStore = store.getState().cursorStore
     act(() => {
       cursorStore.setState({
@@ -640,8 +645,9 @@ describe("detail pane empty state fallback", () => {
     })
     board.press("Ctrl+l")
 
-    // Detail pane must show the fallback, not be blank
-    expect(board.screenshot()).toContain("Empty board")
+    // Detail pane still shows the original card (its rootId is independent)
+    expect(board.screenshot()).toContain("task1")
+    expect(board.screenshot()).not.toContain("Error loading")
   })
 
   test("detail pane shows header bar in fallback state", () => {
@@ -1206,6 +1212,13 @@ describe("detail pane j/k navigation", () => {
     ] as KNode[]
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
+    // Task nodes show metadata rows first; cursor starts on __meta__Status
+    expect(dc(store)).toBe("__meta__Status")
+    // Navigate through metadata rows (Status, Priority, Due, Start, Recurrence, Assigned)
+    for (let i = 0; i < 5; i++) board.press("j")
+    expect(dc(store)).toBe("__meta__Assigned")
+    // Next j reaches first child
+    board.press("j")
     expect(dc(store)).toBe("body1")
     board.press("j")
     expect(dc(store)).toBe("heading1")
@@ -1307,7 +1320,15 @@ describe("detail pane j/k navigation", () => {
       return pane?.cursorStore?.getState()
     }
 
-    // First child: body paragraph — should highlight
+    // Task nodes show metadata rows first; cursor starts on __meta__Status
+    expect(detailCursor().cursorCardNodeId).toBe("__meta__Status")
+    expect(detailCursor().selectionLevel).toBe("card")
+
+    // Navigate past metadata rows (Status, Priority, Due, Start, Recurrence, Assigned)
+    for (let i = 0; i < 6; i++) board.press("j")
+
+    // First child: body paragraph — should highlight as card
+    expect(dc(store)).toBe("body1")
     expect(detailCursor().cursorCardNodeId).toBe("body1")
     expect(detailCursor().selectionLevel).toBe("card")
 

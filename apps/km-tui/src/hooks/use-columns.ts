@@ -20,6 +20,7 @@ import { extractBody } from "@km/tree"
 import type { ColumnView } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
+import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 
 const log = createLogger("km:tui:columns")
 
@@ -353,28 +354,60 @@ export function deriveColumnsFromRepo(
 
 /**
  * Derive columns for the detail view mode.
- * Unlike deriveColumnsFromRepo which splits children into body + structural columns,
- * this puts ALL children into a single virtual column (displayed as cards).
- * This gives standard j/k navigation through all children.
+ *
+ * Returns a single virtual column containing:
+ * 1. Virtual metadata property nodes (with __meta__ IDs) — navigable property rows
+ * 2. Actual tree children — shown as card-like rows below the properties
+ *
+ * This gives standard j/k navigation through metadata rows first, then children.
  */
 export function deriveDetailColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>): ColumnView[] {
-  const allChildren = repo.getChildren(rootId)
-  if (allChildren.length === 0) return []
+  const rootNode = rootId ? repo.getNode(rootId) : null
 
+  // Compute metadata rows for the root node
+  const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
+  const metaNodes = metaKeys.map((key) => createVirtualMetaNode(rootId, key))
+
+  const allChildren = repo.getChildren(rootId)
+
+  // If no metadata rows and no children, still show an empty column
+  if (metaNodes.length === 0 && allChildren.length === 0) return []
+
+  // All items (meta + children) are virtual for the column
   const virtualCardIds = new Set<string>()
-  for (const n of allChildren) {
-    virtualCardIds.add(n.id)
-  }
+  for (const n of metaNodes) virtualCardIds.add(n.id)
+  for (const n of allChildren) virtualCardIds.add(n.id)
+
+  const cardNodes = [...metaNodes, ...allChildren]
 
   return [
     {
       node: createVirtualBodyNode(rootId),
-      cardNodes: allChildren,
+      cardNodes,
       virtualCardIds,
       isVirtual: true,
       descendantIndex: mapDescendantsForColumn(allChildren, 0, foldDepths, repo),
     },
   ]
+}
+
+/**
+ * Create a virtual node representing a metadata property row in the detail pane.
+ * Uses the DETAIL_META_PREFIX convention: "__meta__Status", "__meta__Due", etc.
+ */
+function createVirtualMetaNode(parentId: string | null, key: string): KNode {
+  const now = Date.now()
+  return {
+    id: `${DETAIL_META_PREFIX}${key}`,
+    type: "p",
+    parent_id: parentId,
+    parent_idx: 0,
+    content: key,
+    data: {},
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
 }
 
 /** Build descendant index for a virtual column's cards */

@@ -22,6 +22,7 @@ import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
 import { ownerPaneId, detailPaneIdFor } from "../board-types.ts"
+import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
@@ -219,6 +220,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       // keys then corrupt the card title instead of navigating.
       if (isDialogConfirmGracePeriod()) {
         log.debug?.("ENTER_INLINE_EDIT suppressed: dialog confirm grace period")
+        return ok()
+      }
+      // Virtual metadata rows in the detail pane are not editable nodes
+      if (action.nodeId?.startsWith(DETAIL_META_PREFIX)) {
+        log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
       }
       ctx.setUI({

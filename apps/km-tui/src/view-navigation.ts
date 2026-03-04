@@ -15,6 +15,7 @@ import { extractBody } from "@km/tree"
 import type { GridNavigator } from "@km/board"
 import type { ViewMode } from "./types.ts"
 import { deriveCursorAncestors } from "./cursor-store.ts"
+import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
 
 const log = createLogger("km:nav")
 
@@ -509,10 +510,10 @@ function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, s
 // =============================================================================
 
 /**
- * Detail view navigation — flat single-column navigation.
+ * Detail view navigation — flat single-column navigation through properties + children.
  *
- * All children of rootId are cards in one virtual column.
- * j/k moves sequentially through this flat list.
+ * The detail pane shows metadata property rows (with __meta__ cursor IDs) first,
+ * followed by tree children. j/k navigates sequentially through all items.
  * h/l: left returns to parent pane (handled by handleHorizontalNav), right is boundary.
  */
 export function createDetailViewNavigation(): ViewNavigation {
@@ -523,35 +524,54 @@ export function createDetailViewNavigation(): ViewNavigation {
     },
     navigate(dir, state, repo) {
       const { cursorNodeId, rootId } = state
-      const allChildren = repo.getChildren(rootId)
-      if (allChildren.length === 0) return null
 
       if (dir === "left" || dir === "right") return null
 
-      // Cursor IS the root (e.g., zoomed to a root-level node) — move to first/last child
+      // Build the flat list of navigable items: metadata keys + children
+      const rootNode = rootId ? repo.getNode(rootId) : null
+      const metaKeys = rootNode ? computeDetailMetadataKeys(rootNode) : []
+      const metaIds = metaKeys.map((key) => `${DETAIL_META_PREFIX}${key}`)
+      const allChildren = repo.getChildren(rootId)
+      const allItems = [...metaIds, ...allChildren.map((c) => c.id)]
+
+      if (allItems.length === 0) return null
+
+      // Cursor IS the root — move to first/last item
       if (cursorNodeId === rootId) {
-        return dir === "down" ? (allChildren[0]?.id ?? null) : (allChildren[allChildren.length - 1]?.id ?? null)
+        return dir === "down" ? (allItems[0] ?? null) : (allItems[allItems.length - 1] ?? null)
       }
 
-      const idx = indexOfChild(allChildren, cursorNodeId)
-      if (idx < 0) {
-        // Cursor might be a descendant of a card — walk up to find the card-level ancestor
-        const cardId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-        if (!cardId) {
-          throw new Error(`[detail-nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
-        }
-        const cardIdx = indexOfChild(allChildren, cardId)
-        if (cardIdx < 0) {
-          throw new Error(`[detail-nav] ancestor ${cardId} not found in children of ${rootId}`)
-        }
-        const targetIdx = dir === "down" ? cardIdx + 1 : cardIdx - 1
-        if (targetIdx < 0 || targetIdx >= allChildren.length) return null
-        return allChildren[targetIdx]?.id ?? null
+      // Check if cursor is a __meta__ item
+      const isMetaCursor = cursorNodeId.startsWith(DETAIL_META_PREFIX)
+
+      if (isMetaCursor) {
+        const idx = allItems.indexOf(cursorNodeId)
+        if (idx < 0) return allItems[0] ?? null
+        const targetIdx = dir === "down" ? idx + 1 : idx - 1
+        if (targetIdx < 0 || targetIdx >= allItems.length) return null
+        return allItems[targetIdx] ?? null
       }
 
-      const targetIdx = dir === "down" ? idx + 1 : idx - 1
-      if (targetIdx < 0 || targetIdx >= allChildren.length) return null
-      return allChildren[targetIdx]?.id ?? null
+      // Regular child node — find it in allItems
+      const idx = allItems.indexOf(cursorNodeId)
+      if (idx >= 0) {
+        const targetIdx = dir === "down" ? idx + 1 : idx - 1
+        if (targetIdx < 0 || targetIdx >= allItems.length) return null
+        return allItems[targetIdx] ?? null
+      }
+
+      // Cursor might be a descendant of a child — walk up to find the card-level ancestor
+      const cardId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
+      if (!cardId) {
+        throw new Error(`[detail-nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
+      }
+      const cardIdx = allItems.indexOf(cardId)
+      if (cardIdx < 0) {
+        throw new Error(`[detail-nav] ancestor ${cardId} not found in detail items of ${rootId}`)
+      }
+      const targetIdx = dir === "down" ? cardIdx + 1 : cardIdx - 1
+      if (targetIdx < 0 || targetIdx >= allItems.length) return null
+      return allItems[targetIdx] ?? null
     },
   }
 }

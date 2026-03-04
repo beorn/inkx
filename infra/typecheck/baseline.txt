@@ -28,7 +28,7 @@
 1 apps/km-tui/src/command-bridge.ts
 3 apps/km-tui/src/cursor-context.tsx
 1 apps/km-tui/src/cursor-store.ts
-2 apps/km-tui/src/driver.ts
+3 apps/km-tui/src/driver.ts
 3 apps/km-tui/src/hooks/use-columns.ts
 2 apps/km-tui/src/ignored.ts
 1 apps/km-tui/src/log.ts
@@ -42,13 +42,12 @@
 1 apps/km-tui/src/ui-context.tsx
 6 apps/km-tui/src/views/Board.tsx
 6 apps/km-tui/src/views/CardColumn.tsx
-2 apps/km-tui/src/views/CommandBox.tsx
+1 apps/km-tui/src/views/CommandBox.tsx
 11 apps/km-tui/src/views/HelpOverlay.tsx
 1 apps/km-tui/src/views/ItemPicker.tsx
 1 apps/km-tui/src/views/NodeView.tsx
 1 apps/km-tui/src/views/Omnibox.tsx
 6 apps/km-tui/src/views/TreeNode.tsx
-1 apps/km-tui/src/views/board-bottom-bar.tsx
 6 apps/km-tui/src/views/embed-display.ts
 2 apps/km-tui/src/views/shared-components.tsx
 1 apps/km-tui/src/views/tree-node-edit.tsx
@@ -72,7 +71,7 @@
 2 apps/km-tui/tests/fold.slow.test.ts
 1 apps/km-tui/tests/help-slash-color.test.tsx
 4 apps/km-tui/tests/helpers/board-app.ts
-3 apps/km-tui/tests/helpers/board-test.ts
+4 apps/km-tui/tests/helpers/board-test.ts
 2 apps/km-tui/tests/helpers/fuzz-term.fuzz.ts
 3 apps/km-tui/tests/helpers/fuzz-term.ts
 1 apps/km-tui/tests/helpers/real-board.ts
@@ -212,7 +211,8 @@
 1 vendor/beorn-inkx/tests/wide-terminal-repro.test.tsx
 7 vendor/beorn-inkx/tests/with-commands.test.tsx
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
-43 vendor/beorn-logger/tests/logger.test.ts
+1 vendor/beorn-logger/tests/features.test.ts
+42 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
