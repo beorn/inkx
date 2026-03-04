@@ -58,7 +58,7 @@ describe("withCommands", () => {
     handleAction: (action) => {
       dispatchedActions.push(action)
     },
-    getKeybindings: () => defaultKeybindings,
+    getKeybindings: () => defaultKeybindings(),
   })
 
   test("cmd.down() executes cursor movement command", async () => {
@@ -242,11 +242,11 @@ describe("withKeybindings", () => {
       registry,
       getContext: () => mockContext,
       handleAction: (action) => dispatchedActions.push(action),
-      getKeybindings: () => defaultKeybindings,
+      getKeybindings: () => defaultKeybindings(),
     })
 
     const app = withKeybindings(appWithCmd, {
-      bindings: defaultKeybindings,
+      bindings: defaultKeybindings(),
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
@@ -272,11 +272,11 @@ describe("withKeybindings", () => {
       registry,
       getContext: () => mockContext,
       handleAction: (action) => dispatchedActions.push(action),
-      getKeybindings: () => defaultKeybindings,
+      getKeybindings: () => defaultKeybindings(),
     })
 
     const app = withKeybindings(appWithCmd, {
-      bindings: defaultKeybindings,
+      bindings: defaultKeybindings(),
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
@@ -301,11 +301,11 @@ describe("withKeybindings", () => {
       registry,
       getContext: () => mockContext,
       handleAction: (action) => dispatchedActions.push(action),
-      getKeybindings: () => defaultKeybindings,
+      getKeybindings: () => defaultKeybindings(),
     })
 
     const app = withKeybindings(appWithCmd, {
-      bindings: defaultKeybindings,
+      bindings: defaultKeybindings(),
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
@@ -330,11 +330,11 @@ describe("withKeybindings", () => {
       registry,
       getContext: () => mockContext,
       handleAction: (action) => dispatchedActions.push(action),
-      getKeybindings: () => defaultKeybindings,
+      getKeybindings: () => defaultKeybindings(),
     })
 
     const app = withKeybindings(appWithCmd, {
-      bindings: defaultKeybindings,
+      bindings: defaultKeybindings(),
       getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
     })
 
@@ -381,10 +381,10 @@ describe("composed app driver", () => {
         registry,
         getContext: () => mockContext,
         handleAction: (action) => actions.push(action),
-        getKeybindings: () => defaultKeybindings,
+        getKeybindings: () => defaultKeybindings(),
       }),
       {
-        bindings: defaultKeybindings,
+        bindings: defaultKeybindings(),
         getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
       },
     )

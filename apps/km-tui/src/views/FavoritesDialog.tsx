@@ -1,7 +1,12 @@
 /**
  * Favorites Dialog
  *
- * M opens the favorites dialog showing all key→node mappings.
+ * M opens the favorites dialog showing all locations organized by type:
+ * - System locations (h,i,j,a,p,g,G) — read-only navigation targets
+ * - Picker locations (#,@,+,[) — read-only picker triggers
+ * - Digit favorites (0-9) — always shown, assignable, "(empty)" when unset
+ * - Custom favorites — any other user-assigned letter keys
+ *
  * "Key first, then action" flow:
  * 1. List view: press any key to select it
  * 2. Detail view: shows current assignment + what Enter would assign
@@ -12,7 +17,7 @@
  */
 import React from "react"
 import { Box, Text, ModalDialog } from "inkx"
-import { getAllFavorites, getFavorite } from "@km/commands"
+import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
 
@@ -22,6 +27,51 @@ interface FavoritesDialogProps {
   width: number
   /** The node ID that would be assigned on Enter */
   assignNodeId: string | null
+}
+
+/** Section header with dimmed label */
+function SectionHeader({ label }: { label: string }): React.ReactElement {
+  return (
+    <Box height={1}>
+      <Text color="$muted-fg" bold>
+        {label}
+      </Text>
+    </Box>
+  )
+}
+
+/** A single key→label/node row */
+function KeyRow({
+  keyChar,
+  label,
+  nodeId,
+  dimLabel,
+}: {
+  keyChar: string
+  label?: string
+  nodeId?: string | null
+  dimLabel?: boolean
+}): React.ReactElement {
+  const repo = useRepo()
+  const node = nodeId ? repo.getNode(nodeId) : null
+  const title = node?.title ?? node?.name ?? nodeId
+
+  return (
+    <Box flexDirection="row" height={1}>
+      <Text color="$primary" bold>
+        {` ${keyChar} `}
+      </Text>
+      {node && title ? (
+        <Box flexGrow={1} flexShrink={1} overflow="hidden">
+          <NodeLine node={node} title={title} />
+        </Box>
+      ) : label ? (
+        <Text color={dimLabel ? "$disabled-fg" : "$fg"}>{label}</Text>
+      ) : (
+        <Text color="$disabled-fg">{"(empty)"}</Text>
+      )}
+    </Box>
+  )
 }
 
 export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesDialogProps): React.ReactElement {
@@ -49,17 +99,17 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
                 <NodeLine node={currentNode} title={currentNode.title ?? currentNode.name ?? currentNodeId!} />
               </Box>
             ) : (
-              <Text dimColor>{currentNodeId ?? "(unassigned)"}</Text>
+              <Text color="$disabled-fg">{currentNodeId ?? "(unassigned)"}</Text>
             )}
           </Box>
           <Box flexDirection="row" height={1}>
-            <Text bold>{"Assign → "}</Text>
+            <Text bold>{"Assign \u2192 "}</Text>
             {assignNode ? (
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 <NodeLine node={assignNode} title={assignTitle!} />
               </Box>
             ) : (
-              <Text dimColor>{assignNodeId ?? "(no node selected)"}</Text>
+              <Text color="$disabled-fg">{assignNodeId ?? "(no node selected)"}</Text>
             )}
           </Box>
         </Box>
@@ -67,28 +117,53 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
     )
   }
 
-  // List view: show all favorites, press any key to select
-  const entries = Array.from(getAllFavorites().entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  // List view: show all locations organized by type
+  const allFavorites = getAllFavorites()
+
+  // Collect custom favorites (non-digit, non-reserved keys)
+  const digitKeySet = new Set<string>(DIGIT_KEYS)
+  const systemKeySet = new Set(Object.keys(SYSTEM_LOCS))
+  const pickerKeySet = new Set(Object.keys(PICKER_LOCS))
+  const customEntries: Array<[string, string]> = []
+  for (const [key, nodeId] of allFavorites) {
+    if (!digitKeySet.has(key) && !systemKeySet.has(key) && !pickerKeySet.has(key)) {
+      customEntries.push([key, nodeId])
+    }
+  }
+  customEntries.sort((a, b) => a[0].localeCompare(b[0]))
 
   return (
-    <ModalDialog title="Favorites" titleAlign="flex-start" width={width} footer="press a key to edit  esc close">
-      <Box flexDirection="column">
-        {entries.length === 0 ? (
-          <Text dimColor>No favorites — press any key to assign</Text>
-        ) : (
-          entries.map(([key, nodeId]) => {
-            const node = repo.getNode(nodeId)
-            const title = node?.title ?? node?.name ?? nodeId
-            return (
-              <Box key={key} flexDirection="row" height={1}>
-                <Text bold>{` ${key} `}</Text>
-                <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                  {node ? <NodeLine node={node} title={title} /> : <Text dimColor>{nodeId}</Text>}
-                </Box>
-              </Box>
-            )
-          })
-        )}
+    <ModalDialog title="Locations" titleAlign="flex-start" width={width} footer="press a key to assign  esc close">
+      <Box flexDirection="row" gap={2}>
+        {/* Left column: System + Picker locations */}
+        <Box flexDirection="column" flexGrow={1} flexBasis={0}>
+          <SectionHeader label="System" />
+          {Object.entries(SYSTEM_LOCS).map(([key, loc]) => (
+            <KeyRow key={key} keyChar={key} label={loc.label} />
+          ))}
+          <Box height={1} />
+          <SectionHeader label="Pickers" />
+          {Object.entries(PICKER_LOCS).map(([key, loc]) => (
+            <KeyRow key={key} keyChar={key} label={loc.label} />
+          ))}
+        </Box>
+
+        {/* Right column: Digit favorites + Custom favorites */}
+        <Box flexDirection="column" flexGrow={1} flexBasis={0}>
+          <SectionHeader label="Favorites" />
+          {DIGIT_KEYS.map((key) => (
+            <KeyRow key={key} keyChar={key} nodeId={allFavorites.get(key)} />
+          ))}
+          {customEntries.length > 0 && (
+            <>
+              <Box height={1} />
+              <SectionHeader label="Custom" />
+              {customEntries.map(([key, nodeId]) => (
+                <KeyRow key={key} keyChar={key} nodeId={nodeId} />
+              ))}
+            </>
+          )}
+        </Box>
       </Box>
     </ModalDialog>
   )

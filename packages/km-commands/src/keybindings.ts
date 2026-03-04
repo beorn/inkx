@@ -61,6 +61,17 @@ export interface ParsedKey {
   chord?: string
 }
 
+/** Maps modifier name variants to ParsedKey boolean fields */
+const MODIFIERS: Record<string, keyof Pick<ParsedKey, "ctrl" | "opt" | "shift" | "cmd">> = {
+  ctrl: "ctrl",
+  control: "ctrl",
+  opt: "opt",
+  alt: "opt",
+  shift: "shift",
+  cmd: "cmd",
+  meta: "cmd",
+}
+
 /**
  * Parse a compact key string into its components.
  *
@@ -94,11 +105,8 @@ export function parseKeyString(keyStr: string): ParsedKey {
   const result: ParsedKey = { key: "", ctrl: false, opt: false, shift: false, cmd: false }
 
   for (const part of parts) {
-    const lower = part.toLowerCase()
-    if (lower === "ctrl") result.ctrl = true
-    else if (lower === "opt" || lower === "alt") result.opt = true
-    else if (lower === "shift") result.shift = true
-    else if (lower === "cmd" || lower === "meta") result.cmd = true
+    const mod = MODIFIERS[part.toLowerCase()]
+    if (mod) result[mod] = true
     else result.key = part // Last non-modifier part is the key
   }
 
@@ -415,621 +423,626 @@ export interface KeybindingLayer {
  *
  * NOTE: These match docs/06-ui.md Navigation Model
  */
-export const defaultKeybindingLayers: KeybindingLayer[] = [
-  // --- Layer 1: Blocking modals (absorb ALL keys via wildcards) ---
-  {
-    name: "modal",
-    bindings: [
-      // Help overlay — dismiss with ?, Escape, q; j/k scroll; absorb everything else
-      { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
-      { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
-      { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
-      { key: "j", commandId: "help.scroll_down", when: helpOverlayOpen },
-      { key: "k", commandId: "help.scroll_up", when: helpOverlayOpen },
-      { key: "ArrowDown", commandId: "help.scroll_down", when: helpOverlayOpen },
-      { key: "ArrowUp", commandId: "help.scroll_up", when: helpOverlayOpen },
-      { key: "*", wildcard: true, commandId: "noop", when: helpOverlayOpen },
+export function defaultKeybindingLayers(): KeybindingLayer[] {
+  return [
+    // --- Layer 1: Blocking modals (absorb ALL keys via wildcards) ---
+    {
+      name: "modal",
+      bindings: [
+        // Help overlay — dismiss with ?, Escape, q; j/k scroll; absorb everything else
+        { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
+        { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
+        { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
+        { key: "j", commandId: "help.scroll_down", when: helpOverlayOpen },
+        { key: "k", commandId: "help.scroll_up", when: helpOverlayOpen },
+        { key: "ArrowDown", commandId: "help.scroll_down", when: helpOverlayOpen },
+        { key: "ArrowUp", commandId: "help.scroll_up", when: helpOverlayOpen },
+        { key: "*", wildcard: true, commandId: "noop", when: helpOverlayOpen },
 
-      // Delete confirmation — Enter confirms, any other key cancels
-      { key: "Enter", commandId: "delete_confirm.confirm", when: deleteConfirmOpen },
-      { key: "*", wildcard: true, commandId: "delete_confirm.cancel", when: deleteConfirmOpen },
+        // Delete confirmation — Enter confirms, any other key cancels
+        { key: "Enter", commandId: "delete_confirm.confirm", when: deleteConfirmOpen },
+        { key: "*", wildcard: true, commandId: "delete_confirm.cancel", when: deleteConfirmOpen },
 
-      // Console — Escape/backtick close, q quits, absorb rest
-      { key: "Escape", commandId: "console.close", when: consoleOpen },
-      { key: "`", commandId: "console.close", when: consoleOpen },
-      { key: "q", commandId: "quit", when: consoleOpen },
-      { key: "*", wildcard: true, commandId: "noop", when: consoleOpen },
+        // Console — Escape/backtick close, q quits, absorb rest
+        { key: "Escape", commandId: "console.close", when: consoleOpen },
+        { key: "`", commandId: "console.close", when: consoleOpen },
+        { key: "q", commandId: "quit", when: consoleOpen },
+        { key: "*", wildcard: true, commandId: "noop", when: consoleOpen },
 
-      // Toast dismiss (non-blocking — only intercepts Escape when toast active)
-      { key: "Escape", commandId: "toast.dismiss", when: and(hasActiveToast, not(isInlineEditing)) },
-    ],
-  },
+        // Toast dismiss (non-blocking — only intercepts Escape when toast active)
+        { key: "Escape", commandId: "toast.dismiss", when: and(hasActiveToast, not(isInlineEditing)) },
+      ],
+    },
 
-  // --- Layer 2: Global shortcuts (always available) ---
-  {
-    name: "global",
-    bindings: [
-      { key: "`", commandId: "console.toggle" },
-      { key: "ctrl-t", commandId: "task_dialog" },
-      { key: "ctrl-k", commandId: "command_palette", when: not(textInputFocused) },
-      { key: "cmd-k", commandId: "command_palette" },
-    ],
-  },
+    // --- Layer 2: Global shortcuts (always available) ---
+    {
+      name: "global",
+      bindings: [
+        { key: "`", commandId: "console.toggle" },
+        { key: "ctrl-t", commandId: "task_dialog" },
+        { key: "ctrl-k", commandId: "command_palette", when: not(textInputFocused) },
+        { key: "cmd-k", commandId: "command_palette" },
+      ],
+    },
 
-  // --- Layer 3: Filter dialog navigation (when filter panel is open) ---
-  {
-    name: "filter-dialog",
-    bindings: [
-      { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
-      { key: "ctrl-/", commandId: "dialog.cancel", when: filterDialogOpen },
-      // ⌃g is now a goto chord prefix — no longer cancels filter dialog
-      { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
-      { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
-      { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
-      { key: "ArrowUp", commandId: "dialog.nav_up", when: filterDialogOpen },
-      { key: "h", commandId: "filter.nav_left", when: filterDialogOpen },
-      { key: "l", commandId: "filter.nav_right", when: filterDialogOpen },
-      { key: "ArrowLeft", commandId: "filter.nav_left", when: filterDialogOpen },
-      { key: "ArrowRight", commandId: "filter.nav_right", when: filterDialogOpen },
-      { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
-      { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
-      { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
-    ],
-  },
+    // --- Layer 3: Filter dialog navigation (when filter panel is open) ---
+    {
+      name: "filter-dialog",
+      bindings: [
+        { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
+        { key: "ctrl-/", commandId: "dialog.cancel", when: filterDialogOpen },
+        // ⌃g is now a goto chord prefix — no longer cancels filter dialog
+        { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
+        { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
+        { key: "ArrowDown", commandId: "dialog.nav_down", when: filterDialogOpen },
+        { key: "ArrowUp", commandId: "dialog.nav_up", when: filterDialogOpen },
+        { key: "h", commandId: "filter.nav_left", when: filterDialogOpen },
+        { key: "l", commandId: "filter.nav_right", when: filterDialogOpen },
+        { key: "ArrowLeft", commandId: "filter.nav_left", when: filterDialogOpen },
+        { key: "ArrowRight", commandId: "filter.nav_right", when: filterDialogOpen },
+        { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
+        { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
+        { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
+      ],
+    },
 
-  // --- Layer 3a: Favorites dialog (manage key→node mappings) ---
-  {
-    name: "favorites-dialog",
-    bindings: [
-      // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
-      { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
-      { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
-      { key: "Backspace", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
-      { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
-      // List view: Escape closes, any key selects it
-      { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
-      { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
-    ],
-  },
+    // --- Layer 3a: Favorites dialog (manage key→node mappings) ---
+    {
+      name: "favorites-dialog",
+      bindings: [
+        // Detail view (key selected): Enter assigns, Delete/Backspace clears, Escape goes back
+        { key: "Enter", commandId: "favorites.assign", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        { key: "Delete", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        { key: "Backspace", commandId: "favorites.clear", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        { key: "Escape", commandId: "favorites.back", when: and(favoritesDialogOpen, favoritesKeySelected) },
+        // List view: Escape closes, any key selects it
+        { key: "Escape", commandId: "dialog.cancel", when: favoritesDialogOpen },
+        { key: "*", wildcard: true, commandId: "favorites.select_key", when: favoritesDialogOpen },
+      ],
+    },
 
-  // --- Layer 3b: Search & replace dialog ---
-  // When dialog is open: Tab switches fields, Enter finds next, Escape closes.
-  // These bindings intercept before the generic dialog layer.
-  {
-    name: "search-replace",
-    bindings: [
-      { key: "Escape", commandId: "search_replace.close", when: searchReplaceOpen },
-      { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
-      { key: "shift-Enter", commandId: "search_replace.prev", when: searchReplaceOpen },
-      { key: "ctrl-r", commandId: "search_replace.replace", when: searchReplaceOpen },
-      { key: "cmd-r", commandId: "search_replace.replace", when: searchReplaceOpen },
-      { key: "ctrl-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
-      { key: "cmd-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
-      { key: "ctrl-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
-      { key: "cmd-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
-    ],
-  },
+    // --- Layer 3b: Search & replace dialog ---
+    // When dialog is open: Tab switches fields, Enter finds next, Escape closes.
+    // These bindings intercept before the generic dialog layer.
+    {
+      name: "search-replace",
+      bindings: [
+        { key: "Escape", commandId: "search_replace.close", when: searchReplaceOpen },
+        { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
+        { key: "shift-Enter", commandId: "search_replace.prev", when: searchReplaceOpen },
+        { key: "ctrl-r", commandId: "search_replace.replace", when: searchReplaceOpen },
+        { key: "cmd-r", commandId: "search_replace.replace", when: searchReplaceOpen },
+        { key: "ctrl-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
+        { key: "cmd-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
+        { key: "ctrl-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+        { key: "cmd-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+      ],
+    },
 
-  // --- Layer 3c: Local find (inline search bar) ---
-  // When find bar input is active: intercept Enter/Escape before generic dialog layer.
-  // When find bar is closed but matches exist: n/N navigate matches, Escape clears.
-  {
-    name: "local-find",
-    bindings: [
-      // Find bar input active (text input focused): Enter confirms, Escape cancels
-      // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
-      { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused, not(isInlineEditing)) },
-      { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
-      { key: "ctrl-n", commandId: "find_next", when: and(localFindActive, textInputFocused) },
-      { key: "ctrl-p", commandId: "find_prev", when: and(localFindActive, textInputFocused) },
-      // Find bar closed but matches remain: n/N navigate, Escape clears
-      // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
-      { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
-      { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
-      {
-        key: "Escape",
-        commandId: "find_close",
-        when: and(localFindActive, not(textInputFocused), not(isInlineEditing)),
-      },
-    ],
-  },
+    // --- Layer 3c: Local find (inline search bar) ---
+    // When find bar input is active: intercept Enter/Escape before generic dialog layer.
+    // When find bar is closed but matches exist: n/N navigate matches, Escape clears.
+    {
+      name: "local-find",
+      bindings: [
+        // Find bar input active (text input focused): Enter confirms, Escape cancels
+        // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
+        { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused, not(isInlineEditing)) },
+        { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
+        { key: "ctrl-n", commandId: "find_next", when: and(localFindActive, textInputFocused) },
+        { key: "ctrl-p", commandId: "find_prev", when: and(localFindActive, textInputFocused) },
+        // Find bar closed but matches remain: n/N navigate, Escape clears
+        // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
+        { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
+        { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
+        {
+          key: "Escape",
+          commandId: "find_close",
+          when: and(localFindActive, not(textInputFocused), not(isInlineEditing)),
+        },
+      ],
+    },
 
-  // --- Layer 3d: Tab routing by input type ---
-  // When a text input is focused in field mode (dialogs), Tab cycles focus.
-  // When no inputType is active, Tab falls through to Layer 9 indent_node.
-  {
-    name: "input-type-tab",
-    bindings: [
-      { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(searchDialogOpen)) },
-      { key: "shift-Tab", commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
-    ],
-  },
+    // --- Layer 3d: Tab routing by input type ---
+    // When a text input is focused in field mode (dialogs), Tab cycles focus.
+    // When no inputType is active, Tab falls through to Layer 9 indent_node.
+    {
+      name: "input-type-tab",
+      bindings: [
+        { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(searchDialogOpen)) },
+        { key: "shift-Tab", commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
+      ],
+    },
 
-  // --- Layer 4: Dialog navigation (when any text-input dialog is open) ---
-  {
-    name: "dialog",
-    bindings: [
-      { key: "Escape", commandId: "dialog.cancel", when: anyDialogOpen },
-      { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
-      { key: "ArrowUp", commandId: "dialog.nav_up", when: anyDialogOpen },
-      { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
-      { key: "ctrl-p", commandId: "dialog.nav_up", when: anyDialogOpen },
-      { key: "ctrl-n", commandId: "dialog.nav_down", when: anyDialogOpen },
-      { key: "Tab", commandId: "dialog.toggle_search_scope", when: searchDialogOpen },
-    ],
-  },
+    // --- Layer 4: Dialog navigation (when any text-input dialog is open) ---
+    {
+      name: "dialog",
+      bindings: [
+        { key: "Escape", commandId: "dialog.cancel", when: anyDialogOpen },
+        { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
+        { key: "ArrowUp", commandId: "dialog.nav_up", when: anyDialogOpen },
+        { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
+        { key: "ctrl-p", commandId: "dialog.nav_up", when: anyDialogOpen },
+        { key: "ctrl-n", commandId: "dialog.nav_down", when: anyDialogOpen },
+        { key: "Tab", commandId: "dialog.toggle_search_scope", when: searchDialogOpen },
+      ],
+    },
 
-  // --- Layer 4: Block editing (when isInlineEditing) ---
-  {
-    name: "block-edit",
-    bindings: [
-      // Up/Down: move text cursor within visual lines, fall through to block navigation at boundaries
-      { key: "ArrowUp", commandId: "text.cursor_up", when: isInlineEditing },
-      { key: "ArrowDown", commandId: "text.cursor_down", when: isInlineEditing },
-    ],
-  },
+    // --- Layer 4: Block editing (when isInlineEditing) ---
+    {
+      name: "block-edit",
+      bindings: [
+        // Up/Down: move text cursor within visual lines, fall through to block navigation at boundaries
+        { key: "ArrowUp", commandId: "text.cursor_up", when: isInlineEditing },
+        { key: "ArrowDown", commandId: "text.cursor_down", when: isInlineEditing },
+      ],
+    },
 
-  // --- Layer 5: Text editing (when textInputFocused) ---
-  {
-    name: "text",
-    bindings: [
-      { key: "Backspace", commandId: "text.delete_backward", when: textInputFocused },
-      { key: "Delete", commandId: "text.delete_forward", when: textInputFocused },
-      { key: "ArrowLeft", commandId: "text.cursor_left", when: textInputFocused },
-      { key: "ArrowRight", commandId: "text.cursor_right", when: textInputFocused },
-      { key: "ctrl-a", commandId: "text.cursor_start", when: textInputFocused },
-      { key: "ctrl-e", commandId: "text.cursor_end", when: textInputFocused },
-      { key: "ctrl-b", commandId: "text.cursor_left", when: textInputFocused },
-      { key: "ctrl-f", commandId: "text.cursor_right", when: and(textInputFocused, hasKitty) },
-      { key: "ctrl-f", commandId: "local_find", when: and(textInputFocused, not(hasKitty)) },
-      { key: "ctrl-w", commandId: "text.delete_word", when: textInputFocused },
-      { key: "ctrl-u", commandId: "text.delete_to_start", when: textInputFocused },
-      { key: "ctrl-k", commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
-      { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
-      // Enter during text input → confirm (save+exit for inline edit, submit for search)
-      { key: "Enter", commandId: "text.confirm", when: textInputFocused },
-      { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
-    ],
-  },
+    // --- Layer 5: Text editing (when textInputFocused) ---
+    {
+      name: "text",
+      bindings: [
+        { key: "Backspace", commandId: "text.delete_backward", when: textInputFocused },
+        { key: "Delete", commandId: "text.delete_forward", when: textInputFocused },
+        { key: "ArrowLeft", commandId: "text.cursor_left", when: textInputFocused },
+        { key: "ArrowRight", commandId: "text.cursor_right", when: textInputFocused },
+        { key: "ctrl-a", commandId: "text.cursor_start", when: textInputFocused },
+        { key: "ctrl-e", commandId: "text.cursor_end", when: textInputFocused },
+        { key: "ctrl-b", commandId: "text.cursor_left", when: textInputFocused },
+        { key: "ctrl-f", commandId: "text.cursor_right", when: and(textInputFocused, hasKitty) },
+        { key: "ctrl-f", commandId: "local_find", when: and(textInputFocused, not(hasKitty)) },
+        { key: "ctrl-w", commandId: "text.delete_word", when: textInputFocused },
+        { key: "ctrl-u", commandId: "text.delete_to_start", when: textInputFocused },
+        { key: "ctrl-k", commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
+        { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
+        // Enter during text input → confirm (save+exit for inline edit, submit for search)
+        { key: "Enter", commandId: "text.confirm", when: textInputFocused },
+        { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
+      ],
+    },
 
-  // --- Layer 5b: Inline editing catch-all ---
-  // Undo/redo/yank must be explicitly bound above the wildcard so they still work.
-  // The wildcard absorbs all remaining keys during inline editing, preventing
-  // node-mode commands (navigation, edit, task, fold, view, quit) from firing.
-  // Printable chars never reach here — processInkKey's TEXT_INSERT short-circuit
-  // handles them before keybinding resolution.
-  {
-    name: "inline-edit-barrier",
-    bindings: [
-      { key: "ctrl-z", commandId: "undo", when: and(isInlineEditing, not(hasKitty)) },
-      { key: "cmd-z", commandId: "undo", when: isInlineEditing },
-      { key: "ctrl-shift-z", commandId: "redo", when: and(isInlineEditing, not(hasKitty)) },
-      { key: "cmd-shift-z", commandId: "redo", when: isInlineEditing },
-      { key: "ctrl-y", commandId: "text.yank", when: isInlineEditing },
-      // Text formatting (Cmd+b/i — kitty protocol, text edit only)
-      { key: "cmd-b", commandId: "text.bold", when: isInlineEditing },
-      { key: "cmd-i", commandId: "text.italic", when: isInlineEditing },
-      { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
-    ],
-  },
+    // --- Layer 5b: Inline editing catch-all ---
+    // Undo/redo/yank must be explicitly bound above the wildcard so they still work.
+    // The wildcard absorbs all remaining keys during inline editing, preventing
+    // node-mode commands (navigation, edit, task, fold, view, quit) from firing.
+    // Printable chars never reach here — processInkKey's TEXT_INSERT short-circuit
+    // handles them before keybinding resolution.
+    {
+      name: "inline-edit-barrier",
+      bindings: [
+        { key: "ctrl-z", commandId: "undo", when: and(isInlineEditing, not(hasKitty)) },
+        { key: "cmd-z", commandId: "undo", when: isInlineEditing },
+        { key: "ctrl-shift-z", commandId: "redo", when: and(isInlineEditing, not(hasKitty)) },
+        { key: "cmd-shift-z", commandId: "redo", when: isInlineEditing },
+        { key: "ctrl-y", commandId: "text.yank", when: isInlineEditing },
+        // Text formatting (Cmd+b/i — kitty protocol, text edit only)
+        { key: "cmd-b", commandId: "text.bold", when: isInlineEditing },
+        { key: "cmd-i", commandId: "text.italic", when: isInlineEditing },
+        { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
+      ],
+    },
 
-  // --- Layer 6: Detail pane ---
-  // Navigation (j/k/h/J/K/gg/G) falls through to standard navigation layer.
-  // CURSOR_MOVE and ZOOM_IN handlers detect detail mode and dispatch accordingly.
-  // Enter = edit (same as board), not zoom — detail pane shows properties inline.
-  {
-    name: "detail-pane",
-    bindings: [{ key: "Enter", commandId: "enter_inline_edit", when: isInDetailPane }],
-  },
+    // --- Layer 6: Detail pane ---
+    // Navigation (j/k/h/J/K/gg/G) falls through to standard navigation layer.
+    // CURSOR_MOVE and ZOOM_IN handlers detect detail mode and dispatch accordingly.
+    // Enter = edit (same as board), not zoom — detail pane shows properties inline.
+    {
+      name: "detail-pane",
+      bindings: [{ key: "Enter", commandId: "enter_inline_edit", when: isInDetailPane }],
+    },
 
-  // --- Layer 6b: Visual mode (vim-style range selection) ---
-  // In visual mode, hjkl extends selection instead of moving cursor.
-  // Escape exits visual mode. Must be above navigation to intercept movement keys.
-  {
-    name: "visual-mode",
-    bindings: [
-      { key: "Escape", commandId: "visual_mode_exit", when: inVisualMode },
-      { key: "j", commandId: "extend_select_down", when: inVisualMode },
-      { key: "k", commandId: "extend_select_up", when: inVisualMode },
-      { key: "h", commandId: "extend_select_left", when: inVisualMode },
-      { key: "l", commandId: "extend_select_right", when: inVisualMode },
-      { key: "ArrowDown", commandId: "extend_select_down", when: inVisualMode },
-      { key: "ArrowUp", commandId: "extend_select_up", when: inVisualMode },
-      { key: "ArrowLeft", commandId: "extend_select_left", when: inVisualMode },
-      { key: "ArrowRight", commandId: "extend_select_right", when: inVisualMode },
-    ],
-  },
+    // --- Layer 6b: Visual mode (vim-style range selection) ---
+    // In visual mode, hjkl extends selection instead of moving cursor.
+    // Escape exits visual mode. Must be above navigation to intercept movement keys.
+    {
+      name: "visual-mode",
+      bindings: [
+        { key: "Escape", commandId: "visual_mode_exit", when: inVisualMode },
+        { key: "j", commandId: "extend_select_down", when: inVisualMode },
+        { key: "k", commandId: "extend_select_up", when: inVisualMode },
+        { key: "h", commandId: "extend_select_left", when: inVisualMode },
+        { key: "l", commandId: "extend_select_right", when: inVisualMode },
+        { key: "ArrowDown", commandId: "extend_select_down", when: inVisualMode },
+        { key: "ArrowUp", commandId: "extend_select_up", when: inVisualMode },
+        { key: "ArrowLeft", commandId: "extend_select_left", when: inVisualMode },
+        { key: "ArrowRight", commandId: "extend_select_right", when: inVisualMode },
+      ],
+    },
 
-  // --- Layer 7: Navigation ---
-  {
-    name: "navigation",
-    bindings: [
-      // Visual navigation (j/k/arrows) — document traversal, crosses tree levels
-      { key: "j", commandId: "cursor_down" },
-      { key: "k", commandId: "cursor_up" },
-      { key: "h", commandId: "cursor_left" },
-      { key: "l", commandId: "cursor_right" },
-      { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
-      { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
-      { key: "M", commandId: "manage_favorites", when: not(textInputFocused) },
-      { key: "F", commandId: "search_replace", when: not(textInputFocused) },
+    // --- Layer 7: Navigation ---
+    {
+      name: "navigation",
+      bindings: [
+        // Visual navigation (j/k/arrows) — document traversal, crosses tree levels
+        { key: "j", commandId: "cursor_down" },
+        { key: "k", commandId: "cursor_up" },
+        { key: "h", commandId: "cursor_left" },
+        { key: "l", commandId: "cursor_right" },
+        { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
+        { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
+        { key: "M", commandId: "manage_favorites", when: not(textInputFocused) },
+        { key: "F", commandId: "search_replace", when: not(textInputFocused) },
 
-      // Block navigation (J/K — jump by block, auto-unfolds)
-      { key: "J", commandId: "block_nav_down" },
-      { key: "K", commandId: "block_nav_up" },
+        // Block navigation (J/K — jump by block, auto-unfolds)
+        { key: "J", commandId: "block_nav_down" },
+        { key: "K", commandId: "block_nav_up" },
 
-      // Arrows behave identically to hjkl
-      { key: "ArrowDown", commandId: "cursor_down" },
-      { key: "ArrowUp", commandId: "cursor_up" },
-      { key: "ArrowLeft", commandId: "cursor_left" },
-      { key: "ArrowRight", commandId: "cursor_right" },
+        // Arrows behave identically to hjkl
+        { key: "ArrowDown", commandId: "cursor_down" },
+        { key: "ArrowUp", commandId: "cursor_up" },
+        { key: "ArrowLeft", commandId: "cursor_left" },
+        { key: "ArrowRight", commandId: "cursor_right" },
 
-      // Emacs-style Ctrl+N/P (normal mode only — dialogs take priority above)
-      { key: "ctrl-n", commandId: "cursor_down", when: not(anyDialogOpen) },
-      { key: "ctrl-p", commandId: "cursor_up", when: not(anyDialogOpen) },
+        // Emacs-style Ctrl+N/P (normal mode only — dialogs take priority above)
+        { key: "ctrl-n", commandId: "cursor_down", when: not(anyDialogOpen) },
+        { key: "ctrl-p", commandId: "cursor_up", when: not(anyDialogOpen) },
 
-      // History navigation: {/} = history back/forward (v2 spec)
-      { key: "{", commandId: "nav_back" },
-      { key: "}", commandId: "nav_forward" },
+        // History navigation: {/} = history back/forward (v2 spec)
+        { key: "{", commandId: "nav_back" },
+        { key: "}", commandId: "nav_forward" },
 
-      // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
-      { key: "ctrl-d", commandId: "page_down" },
-      { key: "ctrl-u", commandId: "page_up" },
-      { key: "PageDown", commandId: "page_down" },
-      { key: "PageUp", commandId: "page_up" },
+        // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
+        { key: "ctrl-d", commandId: "page_down" },
+        { key: "ctrl-u", commandId: "page_up" },
+        { key: "PageDown", commandId: "page_down" },
+        { key: "PageUp", commandId: "page_up" },
 
-      // Sibling board navigation
-      { key: "ctrl-j", commandId: "sibling_board_next" },
-      { key: "ctrl-k", commandId: "sibling_board_prev" },
+        // Sibling board navigation
+        { key: "ctrl-j", commandId: "sibling_board_next" },
+        { key: "ctrl-k", commandId: "sibling_board_prev" },
 
-      // Edit entry: i = edit title at start, Enter = edit title at end
-      { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
-      { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
+        // Edit entry: i = edit title at start, Enter = edit title at end
+        { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
+        { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
 
-      // Zoom: z = zoom inwards one level, Z = zoom out one level
-      { key: "z", commandId: "zoom_inwards" },
-      { key: "Z", commandId: "zoom_outwards" },
+        // Zoom: z = zoom inwards one level, Z = zoom out one level
+        { key: "z", commandId: "zoom_inwards" },
+        { key: "Z", commandId: "zoom_outwards" },
 
-      // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
-      { key: "D", commandId: "toggle_detail_pane" },
-      // Cmd+W: always close detail pane regardless of focus state
-      { key: "cmd-w", commandId: "close_detail_pane" },
-      { key: "ctrl-Enter", commandId: "follow_link" },
-      { key: "ctrl-i", commandId: "toggle_detail_pane" },
+        // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
+        { key: "D", commandId: "toggle_detail_pane" },
+        // Cmd+W: always close detail pane regardless of focus state
+        { key: "cmd-w", commandId: "close_detail_pane" },
+        { key: "ctrl-Enter", commandId: "follow_link" },
+        { key: "ctrl-i", commandId: "toggle_detail_pane" },
 
-      // Ctrl equivalents for chord prefixes and pickers
-      { key: "ctrl-l", commandId: "add_link", when: not(textInputFocused) },
-      // ⌃r freed up (was reparent_picker — now use ⌃m prefix + p/[/+ with Kitty)
-      { key: "ctrl-o", commandId: "open_in_system", when: not(textInputFocused) },
+        // Ctrl equivalents for chord prefixes and pickers
+        { key: "ctrl-l", commandId: "add_link", when: not(textInputFocused) },
+        // ⌃r freed up (was reparent_picker — now use ⌃m prefix + p/[/+ with Kitty)
+        { key: "ctrl-o", commandId: "open_in_system", when: not(textInputFocused) },
 
-      // Cmd shortcuts (kitty protocol — macOS native feel)
-      // Cmd+i: toggle detail pane (when not inline editing — Cmd+i is italic there)
-      { key: "cmd-i", commandId: "toggle_detail_pane", when: not(isInlineEditing) },
-      // Focus switching: Cmd+h = board, Cmd+l = detail pane
-      { key: "cmd-h", commandId: "focus_board" },
-      { key: "cmd-l", commandId: "focus_detail" },
-      // History: Cmd+[/] = back/forward
-      { key: "cmd-[", commandId: "nav_back" },
-      { key: "cmd-]", commandId: "nav_forward" },
-      // Smart open: Cmd+o = system open, Cmd+Shift+o = terminal/editor open
-      { key: "cmd-o", commandId: "open_in_system" },
-      { key: "cmd-shift-o", commandId: "open_in_terminal" },
-    ],
-  },
+        // Cmd shortcuts (kitty protocol — macOS native feel)
+        // Cmd+i: toggle detail pane (when not inline editing — Cmd+i is italic there)
+        { key: "cmd-i", commandId: "toggle_detail_pane", when: not(isInlineEditing) },
+        // Focus switching: Cmd+h = board, Cmd+l = detail pane
+        { key: "cmd-h", commandId: "focus_board" },
+        { key: "cmd-l", commandId: "focus_detail" },
+        // History: Cmd+[/] = back/forward
+        { key: "cmd-[", commandId: "nav_back" },
+        { key: "cmd-]", commandId: "nav_forward" },
+        // Smart open: Cmd+o = system open, Cmd+Shift+o = terminal/editor open
+        { key: "cmd-o", commandId: "open_in_system" },
+        { key: "cmd-shift-o", commandId: "open_in_terminal" },
+      ],
+    },
 
-  // --- Layer 8: Selection ---
-  {
-    name: "selection",
-    bindings: [
-      // Space = toggle selection (v2 spec)
-      { key: " ", commandId: "select_toggle" },
-      // Progressive select all with Shift+A
-      // A reserved for Agent Dialog
-      // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
-      { key: "ctrl-a", commandId: "select_all", when: not(textInputFocused) },
-      // Cmd+A selects all (kitty protocol)
-      { key: "cmd-a", commandId: "select_all" },
+    // --- Layer 8: Selection ---
+    {
+      name: "selection",
+      bindings: [
+        // Space = toggle selection (v2 spec)
+        { key: " ", commandId: "select_toggle" },
+        // Progressive select all with Shift+A
+        // A reserved for Agent Dialog
+        // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
+        { key: "ctrl-a", commandId: "select_all", when: not(textInputFocused) },
+        // Cmd+A selects all (kitty protocol)
+        { key: "cmd-a", commandId: "select_all" },
 
-      // Extend selection with Shift+arrows (xterm modified arrow sequences)
-      { key: "shift-ArrowUp", commandId: "extend_select_up" },
-      { key: "shift-ArrowDown", commandId: "extend_select_down" },
-      { key: "shift-ArrowLeft", commandId: "extend_select_left" },
-      { key: "shift-ArrowRight", commandId: "extend_select_right" },
-    ],
-  },
+        // Extend selection with Shift+arrows (xterm modified arrow sequences)
+        { key: "shift-ArrowUp", commandId: "extend_select_up" },
+        { key: "shift-ArrowDown", commandId: "extend_select_down" },
+        { key: "shift-ArrowLeft", commandId: "extend_select_left" },
+        { key: "shift-ArrowRight", commandId: "extend_select_right" },
+      ],
+    },
 
-  // --- Layer 9: Edit ---
-  {
-    name: "edit",
-    bindings: [
-      // Move mode
-      { key: "Enter", commandId: "confirm_move", modes: ["move"] },
-      { key: "Escape", commandId: "cancel_move", modes: ["move"] },
+    // --- Layer 9: Edit ---
+    {
+      name: "edit",
+      bindings: [
+        // Move mode
+        { key: "Enter", commandId: "confirm_move", modes: ["move"] },
+        { key: "Escape", commandId: "cancel_move", modes: ["move"] },
 
-      // I = enter body edit at start, Shift+Enter = enter body edit at end
-      { key: "I", commandId: "enter_body_edit" },
-      { key: "shift-Enter", commandId: "enter_body_edit" },
+        // I = enter body edit at start, Shift+Enter = enter body edit at end
+        { key: "I", commandId: "enter_body_edit" },
+        { key: "shift-Enter", commandId: "enter_body_edit" },
 
-      // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
-      { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
-      { key: "shift-Backspace", commandId: "clipboard_cut" },
-      { key: "Backspace", commandId: "delete_node" },
-      { key: "Delete", commandId: "delete_node" },
+        // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
+        { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
+        { key: "shift-Backspace", commandId: "clipboard_cut" },
+        { key: "Backspace", commandId: "delete_node" },
+        { key: "Delete", commandId: "delete_node" },
 
-      // y = copy (yank), p = paste — only without Kitty (conflicts with Kitty key protocol)
-      { key: "y", commandId: "clipboard_copy", when: not(hasKitty) },
-      { key: "p", commandId: "clipboard_paste", when: not(hasKitty) },
+        // y = copy (yank), p = paste — only without Kitty (conflicts with Kitty key protocol)
+        { key: "y", commandId: "clipboard_copy", when: not(hasKitty) },
+        { key: "p", commandId: "clipboard_paste", when: not(hasKitty) },
 
-      // o/O = new item below/above (outliner-style)
-      { key: "o", commandId: "insert_below" },
-      { key: "O", commandId: "insert_above" },
-      { key: "cmd-Enter", commandId: "insert_below" },
-      { key: "cmd-shift-Enter", commandId: "new_item" },
+        // o/O = new item below/above (outliner-style)
+        { key: "o", commandId: "insert_below" },
+        { key: "O", commandId: "insert_above" },
+        { key: "cmd-Enter", commandId: "insert_below" },
+        { key: "cmd-shift-Enter", commandId: "new_item" },
 
-      // u/U = undo/redo (vim-style)
-      { key: "u", commandId: "undo" },
-      { key: "U", commandId: "redo" },
+        // u/U = undo/redo (vim-style)
+        { key: "u", commandId: "undo" },
+        { key: "U", commandId: "redo" },
 
-      // Shifting (Cmd/Super+direction) — move nodes in tree
-      // Also bound to Alt/Meta for terminals without Kitty protocol
-      { key: "cmd-ArrowUp", commandId: "shift_up" },
-      { key: "cmd-ArrowDown", commandId: "shift_down" },
-      { key: "cmd-ArrowLeft", commandId: "shift_left" },
-      { key: "cmd-ArrowRight", commandId: "shift_right" },
-      { key: "cmd-k", commandId: "shift_up" },
-      { key: "cmd-j", commandId: "shift_down" },
-      // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
-      // Use Alt/Meta+h/l for shifting instead
-      { key: "opt-ArrowUp", commandId: "shift_up" },
-      { key: "opt-ArrowDown", commandId: "shift_down" },
-      { key: "opt-ArrowLeft", commandId: "shift_left" },
-      { key: "opt-ArrowRight", commandId: "shift_right" },
-      { key: "opt-k", commandId: "shift_up" },
-      { key: "opt-j", commandId: "shift_down" },
-      { key: "opt-h", commandId: "shift_left" },
-      { key: "opt-l", commandId: "shift_right" },
+        // Shifting (Cmd/Super+direction) — move nodes in tree
+        // Also bound to Alt/Meta for terminals without Kitty protocol
+        { key: "cmd-ArrowUp", commandId: "shift_up" },
+        { key: "cmd-ArrowDown", commandId: "shift_down" },
+        { key: "cmd-ArrowLeft", commandId: "shift_left" },
+        { key: "cmd-ArrowRight", commandId: "shift_right" },
+        { key: "cmd-k", commandId: "shift_up" },
+        { key: "cmd-j", commandId: "shift_down" },
+        // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
+        // Use Alt/Meta+h/l for shifting instead
+        { key: "opt-ArrowUp", commandId: "shift_up" },
+        { key: "opt-ArrowDown", commandId: "shift_down" },
+        { key: "opt-ArrowLeft", commandId: "shift_left" },
+        { key: "opt-ArrowRight", commandId: "shift_right" },
+        { key: "opt-k", commandId: "shift_up" },
+        { key: "opt-j", commandId: "shift_down" },
+        { key: "opt-h", commandId: "shift_left" },
+        { key: "opt-l", commandId: "shift_right" },
 
-      // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
-      { key: "Tab", commandId: "indent_node" },
-      { key: "shift-Tab", commandId: "outdent" },
+        // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
+        { key: "Tab", commandId: "indent_node" },
+        { key: "shift-Tab", commandId: "outdent" },
 
-      // Clipboard (Cmd — macOS; Ctrl fallbacks when Kitty unavailable)
-      { key: "ctrl-c", commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "ctrl-x", commandId: "clipboard_cut", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "ctrl-v", commandId: "clipboard_paste", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "cmd-c", commandId: "clipboard_copy", when: not(textInputFocused) },
-      { key: "cmd-x", commandId: "clipboard_cut", when: not(textInputFocused) },
-      { key: "cmd-v", commandId: "clipboard_paste", when: not(textInputFocused) },
-      // Cmd+d = duplicate (kitty)
-      { key: "cmd-d", commandId: "duplicate_node" },
-      // Cmd+n = capture dialog (kitty) — per help spec
-      { key: "cmd-n", commandId: "capture_dialog" },
-    ],
-  },
+        // Clipboard (Cmd — macOS; Ctrl fallbacks when Kitty unavailable)
+        { key: "ctrl-c", commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
+        { key: "ctrl-x", commandId: "clipboard_cut", when: and(not(textInputFocused), not(hasKitty)) },
+        { key: "ctrl-v", commandId: "clipboard_paste", when: and(not(textInputFocused), not(hasKitty)) },
+        { key: "cmd-c", commandId: "clipboard_copy", when: not(textInputFocused) },
+        { key: "cmd-x", commandId: "clipboard_cut", when: not(textInputFocused) },
+        { key: "cmd-v", commandId: "clipboard_paste", when: not(textInputFocused) },
+        // Cmd+d = duplicate (kitty)
+        { key: "cmd-d", commandId: "duplicate_node" },
+        // Cmd+n = capture dialog (kitty) — per help spec
+        { key: "cmd-n", commandId: "capture_dialog" },
+      ],
+    },
 
-  // --- Layer 10: Task ---
-  {
-    name: "task",
-    bindings: [
-      // x = toggle done/not-done (quick), X = cycle through all statuses
-      { key: "x", commandId: "toggle_task_done" },
-      { key: "X", commandId: "cycle_task_status" },
-      // e removed — archive is now m a (move to archive)
-      // { key: "e", commandId: "archive" }, // removed: too easy to hit accidentally
-      // c = capture to inbox, C = capture with dialog
-      { key: "c", commandId: "capture_inbox" },
-      { key: "C", commandId: "capture_dialog" },
-    ],
-  },
+    // --- Layer 10: Task ---
+    {
+      name: "task",
+      bindings: [
+        // x = toggle done/not-done (quick), X = cycle through all statuses
+        { key: "x", commandId: "toggle_task_done" },
+        { key: "X", commandId: "cycle_task_status" },
+        // e removed — archive is now m a (move to archive)
+        // { key: "e", commandId: "archive" }, // removed: too easy to hit accidentally
+        // c = capture to inbox, C = capture with dialog
+        { key: "c", commandId: "capture_inbox" },
+        { key: "C", commandId: "capture_dialog" },
+      ],
+    },
 
-  // --- Layer 11: Fold & chords ---
-  {
-    name: "fold",
-    bindings: [
-      // H/L = fold/unfold subtree at cursor (progressive)
-      { key: "H", commandId: "fold_node" },
-      { key: "L", commandId: "unfold_node" },
-      // </> = fold/unfold all (board-wide)
-      { key: "<", commandId: "fold_all" },
-      { key: ">", commandId: "unfold_all" },
+    // --- Layer 11: Fold & chords ---
+    {
+      name: "fold",
+      bindings: [
+        // H/L = fold/unfold subtree at cursor (progressive)
+        { key: "H", commandId: "fold_node" },
+        { key: "L", commandId: "unfold_node" },
+        // </> = fold/unfold all (board-wide)
+        { key: "<", commandId: "fold_all" },
+        { key: ">", commandId: "unfold_all" },
 
-      // Bare symbol shortcuts (convenience aliases for common chord actions)
-      // These only fire in node mode (not text edit, not dialog)
-      { key: "@", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "#", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "+", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(anyDialogOpen)) },
-      { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        // Bare symbol shortcuts (convenience aliases for common chord actions)
+        // These only fire in node mode (not text edit, not dialog)
+        { key: "@", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        { key: "#", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        { key: "+", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
-      // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
-      { key: "g", commandId: "cursor_first" },
-      { key: "m", commandId: "enter_move_mode" },
-      { key: "a", commandId: "noop" },
-      { key: "t", commandId: "noop" },
-      { key: "c", commandId: "capture_inbox" },
+        // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
+        { key: "g", commandId: "cursor_first" },
+        { key: "m", commandId: "enter_move_mode" },
+        { key: "a", commandId: "noop" },
+        { key: "t", commandId: "noop" },
+        { key: "c", commandId: "capture_inbox" },
 
-      // g-prefix chords (go-to — non-location entries)
-      { key: "g g", commandId: "cursor_first" },
-      { key: "g G", commandId: "cursor_last" },
-      { key: "g o", commandId: "open_in_system" },
-      { key: "g O", commandId: "open_in_terminal" },
+        // g-prefix chords (go-to — non-location entries)
+        { key: "g g", commandId: "cursor_first" },
+        { key: "g G", commandId: "cursor_last" },
+        { key: "g o", commandId: "open_in_system" },
+        { key: "g O", commandId: "open_in_terminal" },
 
-      // v-prefix chords — VIEW operations
-      { key: "v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { key: "v m", commandId: "cycle_view_mode" },
-      { key: "v i", commandId: "cycle_icon_style" },
-      { key: "v c", commandId: "toggle_collapse" },
-      { key: "v X", commandId: "toggle_show_ignored" },
-      { key: "v d", commandId: "toggle_hide_done" },
-      { key: "v x", commandId: "ignore_node" },
-      { key: "v -", commandId: "clear_filters" },
-      { key: "v ,", commandId: "filter" },
+        // v-prefix chords — VIEW operations
+        { key: "v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+        { key: "v m", commandId: "cycle_view_mode" },
+        { key: "v i", commandId: "cycle_icon_style" },
+        { key: "v c", commandId: "toggle_collapse" },
+        { key: "v X", commandId: "toggle_show_ignored" },
+        { key: "v d", commandId: "toggle_hide_done" },
+        { key: "v x", commandId: "ignore_node" },
+        { key: "v -", commandId: "clear_filters" },
+        { key: "v ,", commandId: "filter" },
 
-      // v-prefix chords — PANE operations
-      { key: "v s", commandId: "pane_split_vertical" },
-      { key: "v h", commandId: "pane_focus_left" },
-      { key: "v j", commandId: "pane_focus_down" },
-      { key: "v k", commandId: "pane_focus_up" },
-      { key: "v l", commandId: "pane_focus_right" },
-      { key: "v >", commandId: "pane_resize_grow" },
-      { key: "v <", commandId: "pane_resize_shrink" },
-      { key: "v =", commandId: "pane_equalize" },
-      { key: "v H", commandId: "pane_swap_left" },
-      { key: "v J", commandId: "pane_swap_down" },
-      { key: "v K", commandId: "pane_swap_up" },
-      { key: "v L", commandId: "pane_swap_right" },
-      { key: "v n", commandId: "pane_focus_next" },
-      { key: "v N", commandId: "pane_focus_prev" },
-      { key: "v p", commandId: "pane_focus_previous" },
-      { key: "v Tab", commandId: "pane_focus_next" },
-      { key: "v shift-Tab", commandId: "pane_focus_prev" },
-      { key: "v w", commandId: "pane_close" },
-      { key: "v o", commandId: "pane_only" },
-      { key: "v z", commandId: "pane_zoom" },
+        // v-prefix chords — PANE operations
+        { key: "v s", commandId: "pane_split_vertical" },
+        { key: "v h", commandId: "pane_focus_left" },
+        { key: "v j", commandId: "pane_focus_down" },
+        { key: "v k", commandId: "pane_focus_up" },
+        { key: "v l", commandId: "pane_focus_right" },
+        { key: "v >", commandId: "pane_resize_grow" },
+        { key: "v <", commandId: "pane_resize_shrink" },
+        { key: "v =", commandId: "pane_equalize" },
+        { key: "v H", commandId: "pane_swap_left" },
+        { key: "v J", commandId: "pane_swap_down" },
+        { key: "v K", commandId: "pane_swap_up" },
+        { key: "v L", commandId: "pane_swap_right" },
+        { key: "v n", commandId: "pane_focus_next" },
+        { key: "v N", commandId: "pane_focus_prev" },
+        { key: "v p", commandId: "pane_focus_previous" },
+        { key: "v Tab", commandId: "pane_focus_next" },
+        { key: "v shift-Tab", commandId: "pane_focus_prev" },
+        { key: "v w", commandId: "pane_close" },
+        { key: "v o", commandId: "pane_only" },
+        { key: "v z", commandId: "pane_zoom" },
 
-      // m-prefix chords (move — non-location entries)
-      { key: "m m", commandId: "enter_move_mode" },
-      { key: "m a", commandId: "archive" },
+        // m-prefix chords (move — non-location entries)
+        { key: "m m", commandId: "enter_move_mode" },
+        { key: "m a", commandId: "archive" },
 
-      // t-prefix chords (task properties — v2 spec)
-      { key: "t t", commandId: "task_dialog" },
-      { key: "t -", commandId: "clear_task" },
-      { key: "t o", commandId: "set_assignee" },
-      { key: "t d", commandId: "set_due_date" },
-      { key: "t !", commandId: "set_priority" },
-      { key: "t 0", commandId: "set_priority_0" },
-      { key: "t 1", commandId: "set_priority_1" },
-      { key: "t 2", commandId: "set_priority_2" },
-      { key: "t 3", commandId: "set_priority_3" },
-      { key: "t 4", commandId: "set_priority_4" },
-      { key: "t s", commandId: "cycle_task_status" },
-      { key: "t r", commandId: "set_recurring" },
-      // toggle_hide_done moved to v d (view prefix)
-      { key: "t l", commandId: "set_label" },
+        // t-prefix chords (task properties — v2 spec)
+        { key: "t t", commandId: "task_dialog" },
+        { key: "t -", commandId: "clear_task" },
+        { key: "t o", commandId: "set_assignee" },
+        { key: "t d", commandId: "set_due_date" },
+        { key: "t !", commandId: "set_priority" },
+        { key: "t 0", commandId: "set_priority_0" },
+        { key: "t 1", commandId: "set_priority_1" },
+        { key: "t 2", commandId: "set_priority_2" },
+        { key: "t 3", commandId: "set_priority_3" },
+        { key: "t 4", commandId: "set_priority_4" },
+        { key: "t s", commandId: "cycle_task_status" },
+        { key: "t r", commandId: "set_recurring" },
+        // toggle_hide_done moved to v d (view prefix)
+        { key: "t l", commandId: "set_label" },
 
-      // Verb x location grid (composable chords: g/m/a/c x locations)
-      ...verbLocationGrid(),
+        // Verb x location grid (composable chords: g/m/a/c x locations)
+        ...verbLocationGrid(),
 
-      // Ctrl+g/Ctrl+m non-location entries
-      { key: "Ctrl+g g", commandId: "cursor_first" },
-      { key: "Ctrl+g G", commandId: "cursor_last" },
-      { key: "Ctrl+g o", commandId: "open_in_system" },
-      { key: "Ctrl+g O", commandId: "open_in_terminal" },
-      { key: "Ctrl+m m", commandId: "enter_move_mode", when: hasKitty },
-      { key: "Ctrl+m a", commandId: "archive", when: hasKitty },
+        // Ctrl+g/Ctrl+m non-location entries
+        { key: "Ctrl+g g", commandId: "cursor_first" },
+        { key: "Ctrl+g G", commandId: "cursor_last" },
+        { key: "Ctrl+g o", commandId: "open_in_system" },
+        { key: "Ctrl+g O", commandId: "open_in_terminal" },
+        { key: "Ctrl+m m", commandId: "enter_move_mode", when: hasKitty },
+        { key: "Ctrl+m a", commandId: "archive", when: hasKitty },
 
-      // Ctrl+prefix verb x location grid (Kitty terminal alternatives)
-      ...ctrlVerbLocationGrid(),
-    ],
-  },
+        // Ctrl+prefix verb x location grid (Kitty terminal alternatives)
+        ...ctrlVerbLocationGrid(),
+      ],
+    },
 
-  // --- Layer 12: View ---
-  {
-    name: "view",
-    bindings: [
-      // v is a chord prefix (v c, v d, v m, etc.) — visual mode via v v chord
-      // V (uppercase) = view settings (opens filter dialog)
-      { key: "V", commandId: "filter" },
-      { key: "?", commandId: "show_help" },
-      { key: ".", commandId: "increase_content_lines" },
-      { key: "=", commandId: "increase_content_lines" },
-      { key: ",", commandId: "decrease_content_lines" },
-      { key: "-", commandId: "decrease_content_lines" },
+    // --- Layer 12: View ---
+    {
+      name: "view",
+      bindings: [
+        // v is a chord prefix (v c, v d, v m, etc.) — visual mode via v v chord
+        // V (uppercase) = view settings (opens filter dialog)
+        { key: "V", commandId: "filter" },
+        { key: "?", commandId: "show_help" },
+        { key: ".", commandId: "increase_content_lines" },
+        { key: "=", commandId: "increase_content_lines" },
+        { key: ",", commandId: "decrease_content_lines" },
+        { key: "-", commandId: "decrease_content_lines" },
 
-      // Filter and command palette
-      { key: "ctrl-/", commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
-      { key: ":", commandId: "command_palette" },
-    ],
-  },
+        // Filter and command palette
+        { key: "ctrl-/", commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
+        { key: ":", commandId: "command_palette" },
+      ],
+    },
 
-  // --- Layer 13: History (undo/redo via Cmd) ---
-  {
-    name: "history",
-    bindings: [
-      { key: "ctrl-z", commandId: "undo", when: not(hasKitty) },
-      { key: "cmd-z", commandId: "undo" },
-      { key: "ctrl-shift-z", commandId: "redo", when: not(hasKitty) },
-      { key: "cmd-shift-z", commandId: "redo" },
-      // Ctrl+Y → text.yank in text input, redo otherwise
-      { key: "ctrl-y", commandId: "text.yank", when: textInputFocused },
-    ],
-  },
+    // --- Layer 13: History (undo/redo via Cmd) ---
+    {
+      name: "history",
+      bindings: [
+        { key: "ctrl-z", commandId: "undo", when: not(hasKitty) },
+        { key: "cmd-z", commandId: "undo" },
+        { key: "ctrl-shift-z", commandId: "redo", when: not(hasKitty) },
+        { key: "cmd-shift-z", commandId: "redo" },
+        // Ctrl+Y → text.yank in text input, redo otherwise
+        { key: "ctrl-y", commandId: "text.yank", when: textInputFocused },
+      ],
+    },
 
-  // --- Layer 14: Ctrl+V chord prefix (alternative for v — view & pane) ---
-  {
-    name: "ctrl-v",
-    bindings: [
-      // View operations (mirrors v-prefix)
-      { key: "Ctrl+v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { key: "Ctrl+v m", commandId: "cycle_view_mode" },
-      { key: "Ctrl+v i", commandId: "cycle_icon_style" },
-      { key: "Ctrl+v c", commandId: "toggle_collapse" },
-      { key: "Ctrl+v X", commandId: "toggle_show_ignored" },
-      { key: "Ctrl+v d", commandId: "toggle_hide_done" },
-      { key: "Ctrl+v x", commandId: "ignore_node" },
-      { key: "Ctrl+v -", commandId: "clear_filters" },
-      { key: "Ctrl+v ,", commandId: "filter" },
-      // Pane operations (mirrors v-prefix)
-      { key: "Ctrl+v s", commandId: "pane_split_vertical" },
-      { key: "Ctrl+v h", commandId: "pane_focus_left" },
-      { key: "Ctrl+v j", commandId: "pane_focus_down" },
-      { key: "Ctrl+v k", commandId: "pane_focus_up" },
-      { key: "Ctrl+v l", commandId: "pane_focus_right" },
-      { key: "Ctrl+v >", commandId: "pane_resize_grow" },
-      { key: "Ctrl+v <", commandId: "pane_resize_shrink" },
-      { key: "Ctrl+v =", commandId: "pane_equalize" },
-      { key: "Ctrl+v H", commandId: "pane_swap_left" },
-      { key: "Ctrl+v J", commandId: "pane_swap_down" },
-      { key: "Ctrl+v K", commandId: "pane_swap_up" },
-      { key: "Ctrl+v L", commandId: "pane_swap_right" },
-      { key: "Ctrl+v n", commandId: "pane_focus_next" },
-      { key: "Ctrl+v N", commandId: "pane_focus_prev" },
-      { key: "Ctrl+v p", commandId: "pane_focus_previous" },
-      { key: "Ctrl+v Tab", commandId: "pane_focus_next" },
-      { key: "Ctrl+v w", commandId: "pane_close" },
-      { key: "Ctrl+v o", commandId: "pane_only" },
-      { key: "Ctrl+v z", commandId: "pane_zoom" },
+    // --- Layer 14: Ctrl+V chord prefix (alternative for v — view & pane) ---
+    {
+      name: "ctrl-v",
+      bindings: [
+        // View operations (mirrors v-prefix)
+        { key: "Ctrl+v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+        { key: "Ctrl+v m", commandId: "cycle_view_mode" },
+        { key: "Ctrl+v i", commandId: "cycle_icon_style" },
+        { key: "Ctrl+v c", commandId: "toggle_collapse" },
+        { key: "Ctrl+v X", commandId: "toggle_show_ignored" },
+        { key: "Ctrl+v d", commandId: "toggle_hide_done" },
+        { key: "Ctrl+v x", commandId: "ignore_node" },
+        { key: "Ctrl+v -", commandId: "clear_filters" },
+        { key: "Ctrl+v ,", commandId: "filter" },
+        // Pane operations (mirrors v-prefix)
+        { key: "Ctrl+v s", commandId: "pane_split_vertical" },
+        { key: "Ctrl+v h", commandId: "pane_focus_left" },
+        { key: "Ctrl+v j", commandId: "pane_focus_down" },
+        { key: "Ctrl+v k", commandId: "pane_focus_up" },
+        { key: "Ctrl+v l", commandId: "pane_focus_right" },
+        { key: "Ctrl+v >", commandId: "pane_resize_grow" },
+        { key: "Ctrl+v <", commandId: "pane_resize_shrink" },
+        { key: "Ctrl+v =", commandId: "pane_equalize" },
+        { key: "Ctrl+v H", commandId: "pane_swap_left" },
+        { key: "Ctrl+v J", commandId: "pane_swap_down" },
+        { key: "Ctrl+v K", commandId: "pane_swap_up" },
+        { key: "Ctrl+v L", commandId: "pane_swap_right" },
+        { key: "Ctrl+v n", commandId: "pane_focus_next" },
+        { key: "Ctrl+v N", commandId: "pane_focus_prev" },
+        { key: "Ctrl+v p", commandId: "pane_focus_previous" },
+        { key: "Ctrl+v Tab", commandId: "pane_focus_next" },
+        { key: "Ctrl+v w", commandId: "pane_close" },
+        { key: "Ctrl+v o", commandId: "pane_only" },
+        { key: "Ctrl+v z", commandId: "pane_zoom" },
 
-      // Bare n/N for pane cycling (when find is not active)
-      { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
-      { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },
-    ],
-  },
+        // Bare n/N for pane cycling (when find is not active)
+        { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
+        { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },
+      ],
+    },
 
-  // --- Layer 15: TUI-specific ---
-  {
-    name: "tui",
-    bindings: [
-      { key: "q", commandId: "quit" },
-      { key: "/", commandId: "local_find" },
-      { key: "cmd-f", commandId: "local_find" },
-      { key: "cmd-shift-f", commandId: "search_replace" },
-      // S and F moved to navigation layer (G = filter, F = find & replace)
+    // --- Layer 15: TUI-specific ---
+    {
+      name: "tui",
+      bindings: [
+        { key: "q", commandId: "quit" },
+        { key: "/", commandId: "local_find" },
+        { key: "cmd-f", commandId: "local_find" },
+        { key: "cmd-shift-f", commandId: "search_replace" },
+        // S and F moved to navigation layer (G = filter, F = find & replace)
 
-      // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
-      { key: "cmd-t", commandId: "task_dialog" },
-      { key: "cmd-g", commandId: "filter" },
-      { key: "cmd-p", commandId: "toggle_detail_pane" },
-      { key: "cmd-,", commandId: "settings" },
+        // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
+        { key: "cmd-t", commandId: "task_dialog" },
+        { key: "cmd-g", commandId: "filter" },
+        { key: "cmd-p", commandId: "toggle_detail_pane" },
+        { key: "cmd-,", commandId: "settings" },
 
-      // Favorites — dynamic bindings from favorites registry
-      ...Array.from(getAllFavorites().keys()).map((key) => ({
-        key,
-        commandId: "goto",
-        targetId: `fav:${key}`,
-      })),
+        // Favorites — dynamic bindings from favorites registry
+        ...Array.from(getAllFavorites().keys()).map((key) => ({
+          key,
+          commandId: "goto",
+          targetId: `fav:${key}`,
+        })),
 
-      // Contextual close/quit (Escape)
-      // Closes dialogs, panes, modes, or quits if nothing to close
-      { key: "Escape", commandId: "close_or_quit" },
-    ],
-  },
-]
+        // Contextual close/quit (Escape)
+        // Closes dialogs, panes, modes, or quits if nothing to close
+        { key: "Escape", commandId: "close_or_quit" },
+      ],
+    },
+  ]
+}
 
-/** Flat array of all default keybindings (layers flattened in priority order). */
-export const defaultKeybindings: Keybinding[] = defaultKeybindingLayers.flatMap((layer) => layer.bindings)
+/** Flat array of all default keybindings (layers flattened in priority order).
+ * Recomputed each call so verb-location grid picks up current favorites. */
+export function defaultKeybindings(): Keybinding[] {
+  return defaultKeybindingLayers().flatMap((layer) => layer.bindings)
+}
 
-// Initialize with defaults
+// Initialize with defaults (recomputes verb-location grid from current favorites)
 export function initDefaultKeybindings(): void {
   clearKeybindings()
-  registerKeybindings(defaultKeybindings)
+  registerKeybindings(defaultKeybindings())
 }

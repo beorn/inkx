@@ -418,7 +418,7 @@ describe("initDefaultKeybindings", () => {
     initDefaultKeybindings()
 
     const all = getAllKeybindings()
-    expect(all.length).toBe(defaultKeybindings.length)
+    expect(all.length).toBe(defaultKeybindings().length)
     // Custom binding should be gone
     expect(all.some((b) => b.commandId === "custom_cmd")).toBe(false)
   })
@@ -683,12 +683,13 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
 
 describe("defaultKeybindings", () => {
   it("is an array of keybinding objects", () => {
-    expect(Array.isArray(defaultKeybindings)).toBe(true)
-    expect(defaultKeybindings.length).toBeGreaterThan(0)
+    const bindings = defaultKeybindings()
+    expect(Array.isArray(bindings)).toBe(true)
+    expect(bindings.length).toBeGreaterThan(0)
   })
 
   it("all bindings have required fields", () => {
-    for (const binding of defaultKeybindings) {
+    for (const binding of defaultKeybindings()) {
       expect(binding.key).toBeDefined()
       expect(typeof binding.key).toBe("string")
       expect(binding.commandId).toBeDefined()
@@ -697,7 +698,7 @@ describe("defaultKeybindings", () => {
   })
 
   it("covers expected command categories", () => {
-    const commandIds = defaultKeybindings.map((b) => b.commandId)
+    const commandIds = defaultKeybindings().map((b) => b.commandId)
 
     // Navigation (j/k use cursor_down/up for visual navigation)
     expect(commandIds).toContain("cursor_down")

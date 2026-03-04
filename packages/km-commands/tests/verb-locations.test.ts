@@ -29,7 +29,13 @@ import {
 } from "../src/verb-locations.ts"
 import { REPO_LOCS } from "../src/locations.ts"
 import { initCommandSystem } from "../src/ink-adapter.ts"
-import { resolveChord, clearKeybindings, parseKeyString, type KeybindingContext, type Keybinding } from "../src/keybindings.ts"
+import {
+  resolveChord,
+  clearKeybindings,
+  parseKeyString,
+  type KeybindingContext,
+  type Keybinding,
+} from "../src/keybindings.ts"
 import type { CommandContext } from "../src/types.ts"
 import { setFavorite, clearFavorite } from "../src/favorites.ts"
 
