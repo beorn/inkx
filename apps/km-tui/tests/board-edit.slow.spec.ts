@@ -36,7 +36,7 @@ describe("Edit Operations", () => {
       item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"))),
     )
     // Move to 1b
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Shift 1b up (swaps with 1a)
@@ -53,7 +53,7 @@ describe("Edit Operations", () => {
 
   test("opt+j at bottom boundary does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     board.press("opt+j")
@@ -116,7 +116,7 @@ describe("Edit Operations", () => {
   test("opt+k then opt+j round-trips card back to original position", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
     // Move to 1b
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Shift up then back down — should return to original position
@@ -175,7 +175,7 @@ describe("Edit Operations", () => {
   test("opt+h shifts card left to previous column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("opt+h")
@@ -193,7 +193,7 @@ describe("Edit Operations", () => {
 
   test("opt+l at rightmost column does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("opt+l")
@@ -215,7 +215,7 @@ describe("Edit Operations", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to column header level
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("opt+l")
@@ -233,8 +233,8 @@ describe("Edit Operations", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
-    board.press("l")
-    board.press("k")
+    board.command("cursor_right")
+    board.command("cursor_up")
     board.expect("#col2[data-cursor]").toExist()
 
     board.press("opt+h")
@@ -249,8 +249,8 @@ describe("Edit Operations", () => {
 
   test("opt+l at rightmost column header does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
-    board.press("l")
-    board.press("k")
+    board.command("cursor_right")
+    board.command("cursor_up")
     board.expect("#col2[data-cursor]").toExist()
 
     board.press("opt+l")
@@ -271,7 +271,7 @@ describe("Edit Operations", () => {
       }
     }
     const { board } = testEnv(() => nodes)
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("opt+l")
@@ -292,7 +292,7 @@ describe("Edit Operations", () => {
       if (n.type === "heading") n.parent_idx = 0
     }
     const { board } = testEnv(() => nodes)
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Should complete instantly — only 2 columns normalized, not all 20
@@ -306,7 +306,7 @@ describe("Edit Operations", () => {
 
   test("opt+h at leftmost column header does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("opt+h")
@@ -328,9 +328,9 @@ describe("Edit Operations", () => {
       ),
     )
     // Navigate to col3 header (right to col2, then right to col3, then up to header)
-    board.press("l")
-    board.press("l")
-    board.press("k")
+    board.command("cursor_right")
+    board.command("cursor_right")
+    board.command("cursor_up")
     board.expect("#col3[data-cursor]").toExist()
 
     // Shift col3 left twice (col3 → position 1 → position 0)
@@ -340,7 +340,7 @@ describe("Edit Operations", () => {
     board.expect("#col3[data-cursor]").toExist()
 
     // Zoom in ('z' = zoom_inwards) — should not throw "cursor node not in repo"
-    board.press("z")
+    board.command("zoom_inwards")
 
     // After zoom, root should be col3 and cursor on first child
     board.expect("#3a[data-cursor]").toExist()
@@ -361,7 +361,7 @@ describe("Edit Operations", () => {
 
   test("Backspace on last card in column moves cursor to previous card", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     board.press("Backspace")
@@ -377,8 +377,8 @@ describe("Edit Operations", () => {
     board.press("Enter")
 
     // Should be in edit mode - typing should not navigate
-    board.press("j")
-    board.press("k")
+    board.command("cursor_down")
+    board.command("cursor_up")
 
     // Board should still show both cards (didn't navigate)
     const output = board.screenshot()
@@ -464,7 +464,7 @@ describe("Delete Confirmation", () => {
   test("Backspace on column header shows confirmation for column delete", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to column header (k from first card)
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("Backspace")
@@ -482,7 +482,7 @@ describe("Delete Confirmation", () => {
   test("Enter confirms column delete, cursor moves to adjacent column", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("Backspace") // show confirm
@@ -510,7 +510,7 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m").press("m")
+    board.command("enter_move_mode")
 
     const output = board.screenshot()
     expect(output).toContain("MOVE")
@@ -520,11 +520,11 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m").press("m")
+    board.command("enter_move_mode")
     expect(board.screenshot()).toContain("MOVE")
 
     // Navigate to different column while in move mode
-    board.press("l")
+    board.command("cursor_right")
 
     // Cancel move mode
     board.press("Escape")
@@ -538,11 +538,11 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m").press("m")
+    board.command("enter_move_mode")
     expect(board.screenshot()).toContain("MOVE")
 
     // Navigate to col2
-    board.press("l")
+    board.command("cursor_right")
 
     // Confirm move
     board.press("Enter")
@@ -563,10 +563,10 @@ describe("Move Mode", () => {
     )
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("m").press("m")
+    board.command("enter_move_mode")
 
     // Can navigate while in move mode
-    board.press("l")
+    board.command("cursor_right")
     expect(board.screenshot()).toContain("MOVE")
 
     // Escape to cancel
@@ -578,7 +578,7 @@ describe("Move Mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("only"))))
     board.expect("#only[data-cursor]").toExist()
 
-    board.press("m").press("m")
+    board.command("enter_move_mode")
     expect(board.screenshot()).toContain("MOVE")
 
     board.press("Escape")
@@ -592,13 +592,13 @@ describe("Move Mode", () => {
     )
 
     // Navigate normally - no MOVE indicator
-    board.press("j")
+    board.command("cursor_down")
     expect(board.screenshot()).not.toContain("MOVE")
 
-    board.press("l")
+    board.command("cursor_right")
     expect(board.screenshot()).not.toContain("MOVE")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(board.screenshot()).not.toContain("MOVE")
   })
 })

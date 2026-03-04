@@ -197,7 +197,7 @@ describe("PTY integration: h/l false bell", () => {
 
   test("rapid h at left boundary: bells on each press without crash", async () => {
     // Navigate back to leftmost column first
-    for (let i = 0; i < 10; i++) term.press("h")
+    for (let i = 0; i < 10; i++) term.command("cursor_left")
     await term.waitForStable(500, 10000)
 
     // We should be at col 0 — pressing h should hit left boundary

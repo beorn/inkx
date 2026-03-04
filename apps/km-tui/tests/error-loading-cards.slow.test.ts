@@ -43,18 +43,18 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("wireframes")
 
     // Open detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate — this should NOT throw or show error
-    board.press("j") // move down
-    board.press("k") // move up
-    board.press("l") // move right
-    board.press("h") // move left
+    board.command("cursor_down") // move down
+    board.command("cursor_up") // move up
+    board.command("cursor_right") // move right
+    board.command("cursor_left") // move left
 
     // The board should render without error
     const output = board.screenshot()
@@ -87,7 +87,7 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("action-2")
 
     // Open detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close with Escape
@@ -95,10 +95,10 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate — should not crash
-    board.press("j")
-    board.press("l")
-    board.press("h")
-    board.press("k")
+    board.command("cursor_down")
+    board.command("cursor_right")
+    board.command("cursor_left")
+    board.command("cursor_up")
 
     const output = board.screenshot()
     expect(output).not.toContain("Error loading cards view")
@@ -128,12 +128,12 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-beta")
 
     // Z to zoom back
-    board.press("Z")
+    board.command("zoom_outwards")
 
     // Navigate
-    board.press("j")
-    board.press("l")
-    board.press("h")
+    board.command("cursor_down")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     const output = board.screenshot()
     expect(output).not.toContain("Error loading cards view")
@@ -177,22 +177,22 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("milestone-2a")
 
     // Open detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Close detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Navigate extensively — stress the ErrorBoundary recovery
-    board.press("j")
-    board.press("j")
-    board.press("k")
-    board.press("l")
-    board.press("l")
-    board.press("h")
-    board.press("h")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
+    board.command("cursor_up")
+    board.command("cursor_right")
+    board.command("cursor_right")
+    board.command("cursor_left")
+    board.command("cursor_left")
+    board.command("cursor_down")
 
     const output = board.screenshot()
     expect(output).not.toContain("Error loading cards view")
@@ -222,9 +222,9 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-1b") board.press(c)
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-1b")
-    board.press("D") // open detail
-    board.press("D") // close detail
-    board.press("j")
+    board.command("toggle_detail_pane") // open detail
+    board.command("toggle_detail_pane") // close detail
+    board.command("cursor_down")
 
     let output = board.screenshot()
     expect(output).not.toContain("Error loading")
@@ -238,10 +238,10 @@ describe("km-tui.error-loading-cards: no error after search nav + detail pane cl
     for (const c of "card-3a") board.press(c)
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-3a")
-    board.press("D") // open detail
+    board.command("toggle_detail_pane") // open detail
     board.press("Escape") // close detail with Escape (unfocuses detail pane)
-    board.press("j")
-    board.press("l")
+    board.command("cursor_down")
+    board.command("cursor_right")
 
     output = board.screenshot()
     expect(output).not.toContain("Error loading")

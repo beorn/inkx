@@ -39,7 +39,7 @@ describe("Visual mode", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Enter visual mode with v + space (chord)
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     // Current card should be selected
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
@@ -49,11 +49,11 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Move down to extend selection
-    board.press("j")
+    board.command("cursor_down")
     // Should have task1 and task2 selected (visual mode extends range)
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThanOrEqual(2)
   })
@@ -62,15 +62,15 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
 
     // Extend down twice
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     const selectedAfterDown = getActiveBoardPane(store.getState())!.multiSelected.size
 
     // Contract up
-    board.press("k")
+    board.command("cursor_up")
     const selectedAfterUp = getActiveBoardPane(store.getState())!.multiSelected.size
     expect(selectedAfterUp).toBeLessThan(selectedAfterDown)
   })
@@ -79,8 +79,8 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode and extend selection
-    board.press("v").press("v").press(" ")
-    board.press("j")
+    board.command("visual_mode_enter").command("select_toggle")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
@@ -96,8 +96,8 @@ describe("Visual mode", () => {
     )
 
     // Enter visual mode and extend selection to include task1 + task2
-    board.press("v").press("v").press(" ")
-    board.press("j")
+    board.command("visual_mode_enter").command("select_toggle")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Cut selected cards (stages to clipboard, doesn't remove yet)
@@ -119,7 +119,7 @@ describe("Visual mode", () => {
     expect(childIds(repo, "col1")).toEqual(["task1", "task2", "task3"])
 
     // Enter visual mode and select task1
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Copy stages to clipboard
@@ -145,11 +145,11 @@ describe("Visual mode", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Move to task2
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task2[data-cursor]").toExist()
 
     // Enter and exit visual mode
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     board.press("Escape")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
@@ -162,7 +162,7 @@ describe("Visual mode", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Enter visual mode
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
 
     // Screen should show VISUAL mode indicator in status bar
     const screen = board.screenshot()
@@ -186,7 +186,7 @@ describe("J/K block navigation", () => {
     board.expect("#Parent[data-cursor]").toExist()
 
     // J drills into first child
-    board.press("J")
+    board.command("block_nav_down")
     board.expect("#child-1[data-cursor]").toExist()
   })
 
@@ -196,11 +196,11 @@ describe("J/K block navigation", () => {
     )
 
     // Move to child-1
-    board.press("J")
+    board.command("block_nav_down")
     board.expect("#child-1[data-cursor]").toExist()
 
     // K drills out to parent
-    board.press("K")
+    board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
 
@@ -210,7 +210,7 @@ describe("J/K block navigation", () => {
     board.expect("#leaf-task[data-cursor]").toExist()
 
     // J on a leaf node should ring bell (no children to drill into)
-    board.press("J")
+    board.command("block_nav_down")
     expect(board.bell).toBe(true)
   })
 
@@ -218,10 +218,10 @@ describe("J/K block navigation", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Move cursor up to column header
-    board.press("k")
+    board.command("cursor_up")
 
     // K at column level should try to drill out and hit boundary
-    board.press("K")
+    board.command("block_nav_up")
     // Either bell or at root
     const screen = board.screenshot()
     // We should still be at a valid position
@@ -234,11 +234,11 @@ describe("J/K block navigation", () => {
     )
 
     // Fold the parent
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-1")
 
     // J should auto-unfold and drill into the first child
-    board.press("J")
+    board.command("block_nav_down")
     expect(board.screenshot()).toContain("child-1")
     board.expect("#child-1[data-cursor]").toExist()
   })
@@ -251,10 +251,10 @@ describe("J/K block navigation", () => {
     board.expect("#Parent[data-cursor]").toExist()
 
     // Drill in and back out
-    board.press("J")
+    board.command("block_nav_down")
     board.expect("#child-1[data-cursor]").toExist()
 
-    board.press("K")
+    board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
 
@@ -269,15 +269,15 @@ describe("J/K block navigation", () => {
     board.expect("#L1[data-cursor]").toExist()
 
     // J drills into first child of L1
-    board.press("J")
+    board.command("block_nav_down")
     board.expect("#child-a[data-cursor]").toExist()
 
     // J on leaf hits boundary
-    board.press("J")
+    board.command("block_nav_down")
     expect(board.bell).toBe(true)
 
     // K drills back to L1
-    board.press("K")
+    board.command("block_nav_up")
     board.expect("#L1[data-cursor]").toExist()
   })
 })
@@ -297,7 +297,7 @@ describe("Filter dialog", () => {
     expect(board.screenshot()).not.toContain("View Settings")
 
     // Open filter panel
-    board.press("V")
+    board.command("filter")
     const screen = board.screenshot()
     expect(screen).toContain("View Settings")
     expect(screen).toContain("Status")
@@ -307,24 +307,24 @@ describe("Filter dialog", () => {
   test("j/k navigates between filter rows", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
 
     // Status is row 0 (first row) — cursor starts there
     expect(board.screenshot()).toContain("Status")
 
     // Navigate down to Priority
-    board.press("j")
+    board.command("cursor_down")
     expect(board.screenshot()).toContain("Priority")
 
     // Navigate further down to Due
-    board.press("j")
+    board.command("cursor_down")
     expect(board.screenshot()).toContain("Due")
 
     // Navigate back up
-    board.press("k")
+    board.command("cursor_up")
     expect(board.screenshot()).toContain("Priority")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(board.screenshot()).toContain("Status")
   })
 
@@ -334,32 +334,32 @@ describe("Filter dialog", () => {
       rows: 24,
     })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
 
     // Toggle todo on
-    board.press(" ")
+    board.command("select_toggle")
     expect(board.screenshot()).toContain("✓ todo")
 
     // Toggle todo off
-    board.press(" ")
+    board.command("select_toggle")
     expect(board.screenshot()).toContain("□ todo")
   })
 
   test("h/l navigates between values within a filter row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
 
     // Move right to wip
-    board.press("l")
-    board.press(" ") // toggle wip on
+    board.command("cursor_right")
+    board.command("select_toggle") // toggle wip on
     expect(board.screenshot()).toContain("✓ wip")
 
     // Move left back to todo
-    board.press("h")
-    board.press(" ") // toggle todo on
+    board.command("cursor_left")
+    board.command("select_toggle") // toggle todo on
     const screen = board.screenshot()
     expect(screen).toContain("✓ todo")
     expect(screen).toContain("✓ wip")
@@ -368,18 +368,18 @@ describe("Filter dialog", () => {
   test("X clears all active filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
 
     // Toggle a couple filters on
-    board.press(" ") // todo on
-    board.press("l")
-    board.press(" ") // wip on
+    board.command("select_toggle") // todo on
+    board.command("cursor_right")
+    board.command("select_toggle") // wip on
     expect(board.screenshot()).toContain("✓ todo")
     expect(board.screenshot()).toContain("✓ wip")
 
     // Clear all
-    board.press("X")
+    board.command("cycle_task_status")
     const screen = board.screenshot()
     expect(screen).toContain("□ todo")
     expect(screen).toContain("□ wip")
@@ -392,8 +392,8 @@ describe("Filter dialog", () => {
     })
 
     // Open filter — Status is row 0, toggle todo
-    board.press("V")
-    board.press(" ") // toggle todo on
+    board.command("filter")
+    board.command("select_toggle") // toggle todo on
     expect(board.screenshot()).toContain("✓ todo")
 
     // Close with Escape
@@ -410,18 +410,18 @@ describe("Filter dialog", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open
-    board.press("V")
+    board.command("filter")
     expect(board.screenshot()).toContain("View Settings")
 
     // Close with V again
-    board.press("V")
+    board.command("filter")
     expect(board.screenshot()).not.toContain("View Settings")
   })
 
   test("Enter toggles filter value (same as Space)", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
 
     // Enter toggles the current value
@@ -443,7 +443,7 @@ describe("Help overlay", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Open help
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // Help content should be visible on screen
@@ -455,7 +455,7 @@ describe("Help overlay", () => {
   test("Escape closes help overlay", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     board.press("Escape")
@@ -465,22 +465,22 @@ describe("Help overlay", () => {
   test("q closes help overlay", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
-    board.press("q")
+    board.command("quit")
     expect(store.getState().ui.showHelp).toBe(false)
   })
 
   test("j scrolls help content down", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
     const initialOffset = store.getState().ui.helpScrollOffset ?? 0
 
     // j should scroll down
-    board.press("j")
+    board.command("cursor_down")
     const afterOffset = store.getState().ui.helpScrollOffset ?? 0
     expect(afterOffset).toBeGreaterThan(initialOffset)
   })
@@ -488,15 +488,15 @@ describe("Help overlay", () => {
   test("k scrolls help content up", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    board.press("?")
+    board.command("show_help")
     // Scroll down first
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     const midOffset = store.getState().ui.helpScrollOffset ?? 0
     expect(midOffset).toBeGreaterThan(0)
 
     // k should scroll back up
-    board.press("k")
+    board.command("cursor_up")
     const afterOffset = store.getState().ui.helpScrollOffset ?? 0
     expect(afterOffset).toBeLessThan(midOffset)
   })
@@ -506,11 +506,11 @@ describe("Help overlay", () => {
 
     board.expect("#task1[data-cursor]").toExist()
 
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // j/k should scroll help, not navigate the board
-    board.press("j")
+    board.command("cursor_down")
     // Cursor should still be on task1 (help intercepted the key)
     board.press("Escape")
     expect(store.getState().ui.showHelp).toBe(false)
@@ -521,11 +521,11 @@ describe("Help overlay", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Open
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // Close with ? again
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(false)
   })
 })
@@ -582,14 +582,14 @@ describe("Inline edit lifecycle", () => {
     board.press("Escape")
 
     // Move to task2 and edit
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task2[data-cursor]").toExist()
     board.press("i")
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task2")
     board.press("Escape")
 
     // Move to task3 and edit
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task3[data-cursor]").toExist()
     board.press("i")
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task3")
@@ -615,7 +615,7 @@ describe("Inline edit lifecycle", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Move to column header
-    board.press("k")
+    board.command("cursor_up")
 
     // Try to enter inline edit on column header
     board.press("i")
@@ -640,15 +640,15 @@ describe("Visual mode + clipboard integration", () => {
     )
 
     // Enter visual mode on A, extend to B
-    board.press("v").press("v").press(" ")
-    board.press("j")
+    board.command("visual_mode_enter").command("select_toggle")
+    board.command("cursor_down")
 
     // Copy
     board.press("y")
 
     // Move to D and paste
-    board.press("j") // C
-    board.press("j") // D
+    board.command("cursor_down") // C
+    board.command("cursor_down") // D
     board.press("p")
 
     // Should have A, B, C, D, copy-of-A, copy-of-B
@@ -665,8 +665,8 @@ describe("Visual mode + clipboard integration", () => {
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C", "D"])
 
     // Enter visual mode on A, extend to B
-    board.press("v").press("v").press(" ")
-    board.press("j")
+    board.command("visual_mode_enter").command("select_toggle")
+    board.command("cursor_down")
 
     // Cut stages A and B to clipboard
     board.press("d")
@@ -679,8 +679,8 @@ describe("Visual mode + clipboard integration", () => {
 
     // Exit visual mode, navigate to D and paste
     board.press("Escape")
-    board.press("j") // move down
-    board.press("j") // move to D
+    board.command("cursor_down") // move down
+    board.command("cursor_down") // move to D
     board.press("p")
 
     // A and B should have been moved (paste from cut)
@@ -701,12 +701,12 @@ describe("Escape priority layering", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Open detail pane (auto-focuses detail), return to board
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("h") // return to board
+    board.command("cursor_left") // return to board
 
     // Enter visual mode via v+space chord
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // First Escape: exits visual mode (detail pane stays)
@@ -738,7 +738,7 @@ describe("Escape priority layering", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Open help
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // Escape closes help
@@ -762,11 +762,11 @@ describe("J/K block navigation edge cases", () => {
     )
 
     // Fold Parent
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-a")
 
     // J auto-unfolds and enters
-    board.press("J")
+    board.command("block_nav_down")
     expect(board.screenshot()).toContain("child-a")
     board.expect("#child-a[data-cursor]").toExist()
   })
@@ -778,11 +778,11 @@ describe("J/K block navigation edge cases", () => {
     )
 
     // J drills into first child
-    board.press("J")
+    board.command("block_nav_down")
     board.expect("#child-x[data-cursor]").toExist()
 
     // K drills back out to Parent
-    board.press("K")
+    board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
 
@@ -794,17 +794,17 @@ describe("J/K block navigation edge cases", () => {
     )
 
     // Navigate around with J and K
-    board.press("J") // A -> a1
+    board.command("block_nav_down") // A -> a1
     board.expectCursorVisible()
 
-    board.press("K") // a1 -> A
+    board.command("block_nav_up") // a1 -> A
     board.expectCursorVisible()
 
-    board.press("j") // A -> B
-    board.press("J") // B -> b1
+    board.command("cursor_down") // A -> B
+    board.command("block_nav_down") // B -> b1
     board.expectCursorVisible()
 
-    board.press("K") // b1 -> B
+    board.command("block_nav_up") // b1 -> B
     board.expectCursorVisible()
   })
 })
@@ -823,11 +823,11 @@ describe("Filter + navigation interaction", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Open filter
-    board.press("V")
+    board.command("filter")
 
     // j/k/h/l should control filter, not board
-    board.press("j") // moves filter cursor, not board cursor
-    board.press("k") // moves filter cursor back
+    board.command("cursor_down") // moves filter cursor, not board cursor
+    board.command("cursor_up") // moves filter cursor back
 
     // Close filter
     board.press("Escape")
@@ -840,15 +840,15 @@ describe("Filter + navigation interaction", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open filter — Status is row 0, toggle todo
-    board.press("V")
-    board.press(" ") // toggle todo on
+    board.command("filter")
+    board.command("select_toggle") // toggle todo on
     expect(board.screenshot()).toContain("✓ todo")
 
     // Close
     board.press("Escape")
 
     // Reopen and verify state persisted
-    board.press("V")
+    board.command("filter")
     expect(board.screenshot()).toContain("✓ todo")
 
     board.press("Escape")

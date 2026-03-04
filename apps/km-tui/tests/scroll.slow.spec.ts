@@ -34,7 +34,7 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 2: Navigate down past visible area
     for (let i = 0; i < 8; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
 
     // Step 3: Cursor should be visible on task-8
@@ -43,7 +43,7 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 4: Continue to the last task
     for (let i = 8; i < 11; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
     board.expect("#task-11[data-cursor]").toExist()
     board.expectScreen("task-11")
@@ -58,14 +58,14 @@ describe("Vertical Scroll Journeys", () => {
 
     // Step 1: Navigate to bottom
     for (let i = 0; i < 9; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
     board.expect("#item-9[data-cursor]").toExist()
     board.expectScreen("item-9")
 
     // Step 2: Navigate back to top
     for (let i = 0; i < 9; i++) {
-      board.press("k")
+      board.command("cursor_up")
     }
     board.expect("#item-0[data-cursor]").toExist()
     board.expectScreen("item-0")
@@ -81,7 +81,7 @@ describe("Vertical Scroll Journeys", () => {
     board.expect("#first[data-cursor]").toExist()
 
     // Step 2: Press k — should not crash or move off-screen
-    board.press("k")
+    board.command("cursor_up")
 
     // Cursor should move to column header (standard nav behavior), not crash
     // Verify the screen is still rendering correctly
@@ -96,12 +96,12 @@ describe("Vertical Scroll Journeys", () => {
     })
 
     // Step 1: Navigate to last card
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     board.expect("#gamma[data-cursor]").toExist()
 
     // Step 2: j on last card — should stay on last card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#gamma[data-cursor]").toExist()
     board.expectScreen("gamma")
   })
@@ -125,20 +125,20 @@ describe("Horizontal Scroll Journeys", () => {
     board.expect("#a1[data-cursor]").toExist()
 
     // Step 2: Navigate right to col4 (triggers horizontal scroll)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#b1[data-cursor]").toExist()
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#c1[data-cursor]").toExist()
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#d1[data-cursor]").toExist()
 
     // Step 3: col4 should be visible
     board.expectScreen("d1")
 
     // Step 4: Navigate all the way back to col1
-    board.press("h")
-    board.press("h")
-    board.press("h")
+    board.command("cursor_left")
+    board.command("cursor_left")
+    board.command("cursor_left")
     board.expect("#a1[data-cursor]").toExist()
 
     // Step 5: col1 should be visible again
@@ -165,7 +165,7 @@ describe("Horizontal Scroll Journeys", () => {
     expect(screen).toContain("\u25B8") // right arrow
 
     // Step 2: Navigate to rightmost column
-    board.press("l").press("l").press("l").press("l")
+    board.command("cursor_right").command("cursor_right").command("cursor_right").command("cursor_right")
     board.expect("#t5[data-cursor]").toExist()
 
     // Step 3: Should see left arrow (more columns to the left)
@@ -182,19 +182,19 @@ describe("Horizontal Scroll Journeys", () => {
     )
 
     // Step 1: Navigate right to col3
-    board.press("l")
-    board.press("l")
+    board.command("cursor_right")
+    board.command("cursor_right")
     board.expect("#deep-0[data-cursor]").toExist()
 
     // Step 2: Navigate down past viewport in col3
     for (let i = 0; i < 8; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
     board.expect("#deep-8[data-cursor]").toExist()
     board.expectScreen("deep-8")
 
     // Step 3: Navigate back left — should scroll horizontally
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#b1[data-cursor]").toExist()
     board.expectScreen("b1")
   })
@@ -212,7 +212,7 @@ describe("Scroll + View Mode Journeys", () => {
     // Step 1: Navigate down past visible area in columns view
     // (columns view uses single-row items, so more fit)
     for (let i = 0; i < 11; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
     board.expect("#row-11[data-cursor]").toExist()
 
@@ -230,7 +230,7 @@ describe("Scroll + View Mode Journeys", () => {
 
     // Step 1: Navigate down to trigger scroll
     for (let i = 0; i < 12; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
 
     // Step 2: The scrolled item should be visible

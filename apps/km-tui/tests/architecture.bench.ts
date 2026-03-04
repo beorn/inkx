@@ -57,7 +57,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
         columns: 200,
         rows: 60,
       })
-      for (let i = 0; i < 10; i++) board.press("j")
+      for (let i = 0; i < 10; i++) board.command("cursor_down")
     },
     BENCH_OPTIONS,
   )
@@ -70,7 +70,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
         rows: 60,
         viewMode: "list",
       })
-      for (let i = 0; i < 10; i++) board.press("j")
+      for (let i = 0; i < 10; i++) board.command("cursor_down")
     },
     BENCH_OPTIONS,
   )
@@ -83,7 +83,7 @@ describe("Architecture: j-press by view mode (1440 nodes)", () => {
         rows: 60,
         viewMode: "columns",
       })
-      for (let i = 0; i < 10; i++) board.press("j")
+      for (let i = 0; i < 10; i++) board.command("cursor_down")
     },
     BENCH_OPTIONS,
   )
@@ -97,8 +97,8 @@ describe("Architecture: h/l navigation (1440 nodes)", () => {
         columns: 200,
         rows: 60,
       })
-      for (let i = 0; i < 5; i++) board.press("j")
-      for (let i = 0; i < 7; i++) board.press("l")
+      for (let i = 0; i < 5; i++) board.command("cursor_down")
+      for (let i = 0; i < 7; i++) board.command("cursor_right")
     },
     BENCH_OPTIONS,
   )
@@ -110,9 +110,9 @@ describe("Architecture: h/l navigation (1440 nodes)", () => {
         columns: 200,
         rows: 60,
       })
-      for (let i = 0; i < 5; i++) board.press("j")
-      for (let i = 0; i < 7; i++) board.press("l")
-      for (let i = 0; i < 7; i++) board.press("h")
+      for (let i = 0; i < 5; i++) board.command("cursor_down")
+      for (let i = 0; i < 7; i++) board.command("cursor_right")
+      for (let i = 0; i < 7; i++) board.command("cursor_left")
     },
     BENCH_OPTIONS,
   )
@@ -126,8 +126,8 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
         columns: 200,
         rows: 60,
       })
-      for (let i = 0; i < 5; i++) board.press("j")
-      for (let i = 0; i < 3; i++) board.press(">")
+      for (let i = 0; i < 5; i++) board.command("cursor_down")
+      for (let i = 0; i < 3; i++) board.command("unfold_all")
     },
     BENCH_OPTIONS,
   )
@@ -139,10 +139,10 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
         columns: 200,
         rows: 60,
       })
-      for (let i = 0; i < 5; i++) board.press("j")
-      for (let i = 0; i < 3; i++) board.press(">")
-      for (let i = 0; i < 3; i++) board.press("j")
-      for (let i = 0; i < 3; i++) board.press("<")
+      for (let i = 0; i < 5; i++) board.command("cursor_down")
+      for (let i = 0; i < 3; i++) board.command("unfold_all")
+      for (let i = 0; i < 3; i++) board.command("cursor_down")
+      for (let i = 0; i < 3; i++) board.command("fold_all")
     },
     BENCH_OPTIONS,
   )

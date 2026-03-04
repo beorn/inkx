@@ -304,7 +304,7 @@ describe("Search dialog bugs", () => {
       )
 
       openSearchDialog(store, board)
-      board.press("T")
+      board.command("task_dialog")
       board.press("a")
 
       const output = board.screenshot()
@@ -354,7 +354,7 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
 
     // Open search, type a query
     openSearchDialog(store, board)
-    board.press("a").press("l")
+    board.press("a").command("cursor_right")
     expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
 
     // Press Escape to close
@@ -372,7 +372,7 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
     board.press("Escape")
 
     // Should be able to navigate normally
-    board.press("j")
+    board.command("cursor_down")
     const text = board.screenshot()
     // Board content should be visible, not a dialog
     expect(text).not.toContain("Type to search")
@@ -420,13 +420,13 @@ describe("Search scope: UI toggle", () => {
     expect(text).toContain("All")
 
     // Tab switches to scoped — prompt shows "in <node name> > "
-    board.press("Tab")
+    board.command("indent_node")
     text = scopeDialogText(board)
     expect(text).toContain("in ")
     expect(text).toContain("search all") // Footer: "Tab search all"
 
     // Tab switches back to "All > "
-    board.press("Tab")
+    board.command("indent_node")
     text = scopeDialogText(board)
     expect(text).toContain("All")
     expect(text).toContain("narrow") // Footer: "Tab narrow ..."
@@ -441,7 +441,7 @@ describe("Search scope: result filtering", () => {
     // Type a query that matches items in both columns
     // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
     // Only leaf nodes (tasks) are searchable.
-    board.press("p").press("r").press("o").press("j")
+    board.press("p").press("r").command("insert_below").command("cursor_down")
     const text = scopeDialogText(board)
 
     // Should find leaf items from both columns
@@ -456,10 +456,10 @@ describe("Search scope: result filtering", () => {
     // Cursor starts on first card ("Alpha project" which has children)
     // Open search, switch to Subtree scope
     openSearchDialog(store, board)
-    board.press("Tab") // Switch to "Subtree" scope
+    board.command("indent_node") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
-    board.press("s").press("u").press("b")
+    board.press("s").command("undo").press("b")
     const text = scopeDialogText(board)
     expect(text).toContain("Alpha subtask one")
     expect(text).toContain("Alpha subtask two")
@@ -475,10 +475,10 @@ describe("Search scope: result filtering", () => {
 
     // Cursor starts on "Alpha project"
     openSearchDialog(store, board)
-    board.press("Tab") // Subtree scope
+    board.command("indent_node") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
-    board.press("D").press("e").press("l")
+    board.command("toggle_detail_pane").press("e").command("cursor_right")
     const text = scopeDialogText(board)
     expect(text).toContain("No matching items")
   })
@@ -488,7 +488,7 @@ describe("Search scope: result filtering", () => {
     openSearchDialog(store, board)
 
     // Type query matching items across the board
-    board.press("p").press("r").press("o").press("j")
+    board.press("p").press("r").command("insert_below").command("cursor_down")
 
     // In All scope, should see results from both columns
     let text = scopeDialogText(board)
@@ -499,7 +499,7 @@ describe("Search scope: result filtering", () => {
     // Switch to Subtree scope (cursor is on Alpha project)
     // Alpha project descendants include Alpha subtask one/two but they don't match "proj"
     // Alpha project itself is a folder (skipped). So only Alpha's leaf descendants matching "proj" would show.
-    board.press("Tab")
+    board.command("indent_node")
     text = scopeDialogText(board)
 
     // Gamma/Delta are not descendants of Alpha, should not appear in dialog results
@@ -513,14 +513,14 @@ describe("Search scope: scope node capture", () => {
     const { board, store } = makeScopeBoard()
 
     // Move cursor to second card (Beta project)
-    board.press("j")
+    board.command("cursor_down")
 
     // Open search with Subtree scope
     openSearchDialog(store, board)
-    board.press("Tab")
+    board.command("indent_node")
 
     // Search for "project" — only Beta should match (it has no descendants with "project")
-    board.press("p").press("r").press("o").press("j")
+    board.press("p").press("r").command("insert_below").command("cursor_down")
     const text = scopeDialogText(board)
     expect(text).toContain("Beta")
     // Alpha is not a descendant of Beta — should not appear in dialog results
@@ -739,13 +739,13 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task1")
 
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task2")
 
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task3")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task2")
   })
 
@@ -779,13 +779,13 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
     board.expect("#task1[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task2[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task3[data-cursor]").toExist()
 
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#task2[data-cursor]").toExist()
   })
 })
@@ -829,13 +829,13 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
 
     // With the fix in findZoomTarget, cursorNodeId should be walked up to task1
     // (or the navigation layer handles it). Either way, j should move to task2.
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task2")
 
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task3")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task2")
   })
 })
@@ -865,13 +865,13 @@ describe("paragraph-only board: cursor + navigation", () => {
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("setup")
     expect(derivedState(store).selectionLevel).toBe("card")
 
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("usage")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("setup")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("intro")
   })
 })
@@ -914,10 +914,10 @@ describe("full search flow integration", () => {
 
     board.expect("#taskA2[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA3")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA2")
   })
 
@@ -960,7 +960,7 @@ describe("scroll to selection after zoom", () => {
 
     // Press j to trigger a render cycle (dispatchAndFlush doesn't run doRender).
     // j moves cursor to task13, which should also be in the scrolled view.
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task13")
 
     // After navigating from task12 to task13, both should be in the scrolled view
@@ -987,7 +987,7 @@ describe("scroll to selection after zoom", () => {
     })
 
     // Press j to trigger render and move cursor
-    board.press("j")
+    board.command("cursor_down")
 
     // deep15 or its neighbor should be visible
     board.expectScreen("deep16")
@@ -1006,7 +1006,7 @@ describe("scroll to selection after zoom", () => {
     dispatchAndFlush(store, { type: "SELECT", nodeId: "card15" })
 
     // Press j to trigger render and move cursor
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card16")
 
     board.expectScreen("card16")
@@ -1032,7 +1032,7 @@ describe("scroll to selection after zoom", () => {
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("ctask25")
 
     // Press j to trigger render and move cursor
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("ctask26")
 
     board.expectScreen("ctask26")
@@ -1307,7 +1307,7 @@ describe("search flow via key presses", () => {
 
     // The cursor should be navigable with j/k
     const cursorBefore = getActiveBoardPane(store.getState())!.cursorNodeId
-    board.press("j")
+    board.command("cursor_down")
     // If j works, cursor moved (or hit boundary). Either way, it didn't break.
     // The key assertion is that selectionLevel stayed at "card".
     expect(derivedState(store).selectionLevel).toBe("card")
@@ -1472,13 +1472,13 @@ describe("search flow via key presses", () => {
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA2")
 
     // j/k should work from the search result position
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA3")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA2")
 
-    board.press("k")
+    board.command("cursor_up")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("taskA1")
   })
 
@@ -1577,7 +1577,7 @@ describe("Search & Replace", () => {
     const { board, store } = searchBoard()
     expect(getActiveBoardPane(store.getState())!.searchReplace).toBeNull()
 
-    board.press("F")
+    board.command("search_replace")
 
     const sr = getActiveBoardPane(store.getState())!.searchReplace
     expect(sr).not.toBeNull()
@@ -1590,7 +1590,7 @@ describe("Search & Replace", () => {
   test("Escape closes the search/replace dialog", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
     expect(getActiveBoardPane(store.getState())!.searchReplace).not.toBeNull()
 
     board.press("Escape")
@@ -1600,9 +1600,9 @@ describe("Search & Replace", () => {
   test("typing updates the search query and shows matches", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
     // Type "Buy" into the search field
-    board.press("B").press("u").press("y")
+    board.press("B").command("undo").press("y")
 
     const sr = getActiveBoardPane(store.getState())!.searchReplace
     expect(sr).not.toBeNull()
@@ -1614,21 +1614,21 @@ describe("Search & Replace", () => {
   test("Tab switches between search and replace fields", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
     expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
 
-    board.press("Tab")
+    board.command("indent_node")
     expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("replace")
 
-    board.press("Tab")
+    board.command("indent_node")
     expect(getActiveBoardPane(store.getState())!.searchReplace!.focusedField).toBe("search")
   })
 
   test("Enter navigates to next match", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
-    board.press("B").press("u").press("y")
+    board.command("search_replace")
+    board.press("B").command("undo").press("y")
 
     const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchIndex).toBe(0)
@@ -1651,8 +1651,8 @@ describe("Search & Replace", () => {
   test("match count displays correctly with no matches", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
-    board.press("z").press("z").press("z")
+    board.command("search_replace")
+    board.command("zoom_inwards").command("zoom_inwards").command("zoom_inwards")
 
     const sr = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr.matchCount).toBe(0)
@@ -1662,16 +1662,16 @@ describe("Search & Replace", () => {
   test("Ctrl+R replaces the current match", () => {
     const { board, store, repo } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
     // Search for "Buy"
-    board.press("B").press("u").press("y")
+    board.press("B").command("undo").press("y")
 
     const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchCount).toBe(3)
 
     // Switch to replace field and type replacement
-    board.press("Tab")
-    board.press("G").press("e").press("t")
+    board.command("indent_node")
+    board.command("cursor_last").press("e").press("t")
 
     // Replace current match (first one: "Buy milk" -> "Get milk")
     board.press("ctrl+r")
@@ -1693,16 +1693,16 @@ describe("Search & Replace", () => {
   test("replace all matches via command dispatch", () => {
     const { board, store, repo } = searchBoard()
 
-    board.press("F")
-    board.press("B").press("u").press("y")
+    board.command("search_replace")
+    board.press("B").command("undo").press("y")
 
     const sr1 = getActiveBoardPane(store.getState())!.searchReplace!
     expect(sr1.matchCount).toBe(3)
     const matchIds = [...sr1.matchNodeIds]
 
     // Switch to replace field and type replacement
-    board.press("Tab")
-    board.press("G").press("e").press("t")
+    board.command("indent_node")
+    board.command("cursor_last").press("e").press("t")
 
     // Replace all -- use dispatchCommandById since ctrl+shift+r
     // can't be represented in standard ANSI terminal encoding
@@ -1725,7 +1725,7 @@ describe("Search & Replace", () => {
   test("Ctrl+X toggles regex mode", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
     expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(false)
 
     board.press("ctrl+x")
@@ -1738,15 +1738,15 @@ describe("Search & Replace", () => {
   test("regex search matches correctly", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
 
     // Enable regex
     board.press("ctrl+x")
     expect(getActiveBoardPane(store.getState())!.searchReplace!.useRegex).toBe(true)
 
     // Search for "Buy.*k" (matches "Buy milk" -- k in milk)
-    board.press("B").press("u").press("y")
-    board.press(".").press("*").press("k")
+    board.press("B").command("undo").press("y")
+    board.command("increase_content_lines").press("*").command("cursor_up")
 
     const sr = getActiveBoardPane(store.getState())!.searchReplace!
     // "Buy milk" matches Buy.*k (the k in milk)
@@ -1756,7 +1756,7 @@ describe("Search & Replace", () => {
   test("dialog renders in the board output", () => {
     const { board } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
 
     const output = board.screenshot()
     expect(output).toContain("[F]ind & Replace")
@@ -1767,7 +1767,7 @@ describe("Search & Replace", () => {
   test("invalid regex shows no matches instead of crashing", () => {
     const { board, store } = searchBoard()
 
-    board.press("F")
+    board.command("search_replace")
 
     // Enable regex
     board.press("ctrl+x")

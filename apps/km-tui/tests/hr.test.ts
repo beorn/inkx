@@ -127,7 +127,7 @@ describe("HR content-based detection", () => {
         rows: 20,
       })
       board.expectScreen("─")
-      board.press("j")
+      board.command("cursor_down")
       // After moving cursor away, HR is unselected — uses padding, no border
       board.expectNodeNoBorder("hr-node")
     })
@@ -139,7 +139,7 @@ describe("HR content-based detection", () => {
       rows: 20,
     })
     board.expectScreen("─")
-    board.press("j")
+    board.command("cursor_down")
     // After moving cursor away, HR is unselected — uses padding, no border
     board.expectNodeNoBorder("my-hr")
   })
@@ -227,7 +227,7 @@ describe("HR display", () => {
     )
 
     // Move cursor down to the HR node
-    board.press("j")
+    board.command("cursor_down")
 
     // The cursor should be on the HR node
     board.expect("#hr-node[data-cursor]").toExist()
@@ -291,7 +291,7 @@ describe("HR display", () => {
     )
 
     // Move to HR
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#my-hr[data-cursor]").toExist()
 
     // Enter edit mode
@@ -396,7 +396,7 @@ describe("HR editing", () => {
     board.expect("#my-hr[data-cursor]").toExist()
 
     // j should navigate to the next card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-below[data-cursor]").toExist()
   })
 
@@ -407,11 +407,11 @@ describe("HR editing", () => {
     })
 
     // Move cursor away — unselected HR uses padding, no border
-    board.press("j")
+    board.command("cursor_down")
     board.expectNodeNoBorder("my-hr")
 
     // Move back and enter edit mode
-    board.press("k")
+    board.command("cursor_up")
     board.press("Enter")
 
     // During edit: HR should show as bordered card (round border)

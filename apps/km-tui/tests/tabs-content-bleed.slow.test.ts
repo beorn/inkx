@@ -30,7 +30,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     )
 
     // Switch to TABS view
-    board.press("v").press("m").press("v").press("m")
+    board.command("cycle_view_mode").command("cycle_view_mode")
 
     // Alpha tab should be active, breadcrumb should show Alpha
     let screen = board.screenshot()
@@ -43,14 +43,14 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     expect(line0).not.toContain("Gamma")
 
     // Switch to Beta tab
-    board.press("l")
+    board.command("cursor_right")
     screen = board.screenshot()
     const line0After = screen.split("\n")[0]!
     // Breadcrumb should now show "Beta" path, NOT fragments from "Alpha"
     expect(line0After, `Top bar after switching to Beta: "${line0After}"`).not.toContain("Alpha")
 
     // Switch to Gamma tab
-    board.press("l")
+    board.command("cursor_right")
     screen = board.screenshot()
     const line0Gamma = screen.split("\n")[0]!
     expect(line0Gamma, `Top bar after switching to Gamma: "${line0Gamma}"`).not.toContain("Alpha")
@@ -69,7 +69,7 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("m").press("v").press("m")
+    board.command("cycle_view_mode").command("cycle_view_mode")
 
     const screen = board.screenshot()
     expect(screen).toContain("Alpha task one")
@@ -100,14 +100,14 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("m").press("v").press("m")
+    board.command("cycle_view_mode").command("cycle_view_mode")
 
     // First tab (TaskNotes) should show its content
     let screen = board.screenshot()
     expect(screen).toContain("HDHP enrollment")
 
     // Switch to ref tab (much shorter content)
-    board.press("l")
+    board.command("cursor_right")
     screen = board.screenshot()
     expect(screen).toContain("Reference doc")
 
@@ -129,12 +129,12 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("m").press("v").press("m")
+    board.command("cycle_view_mode").command("cycle_view_mode")
 
     let screen = board.screenshot()
     expect(screen).toContain("First-unique-content-AAA")
 
-    board.press("l")
+    board.command("cursor_right")
     screen = board.screenshot()
     expect(screen).toContain("Second-unique-content-BBB")
 
@@ -158,10 +158,10 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
       { columns: 120, rows: 25 },
     )
 
-    board.press("v").press("m").press("v").press("m")
+    board.command("cycle_view_mode").command("cycle_view_mode")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
-    board.press("l").press("l").press("h").press("h").press("l")
+    board.command("cursor_right").command("cursor_right").command("cursor_left").command("cursor_left").command("cursor_right")
 
     const screen = board.screenshot()
     expect(screen).toContain("Beta-unique-222")

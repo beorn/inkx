@@ -20,8 +20,8 @@ describe("Toast rendering", () => {
     const message = `Test ${level} message`
 
     toastQueue[level](message)
-    board.press("l") // Trigger a re-render
-    board.press("h")
+    board.command("cursor_right") // Trigger a re-render
+    board.command("cursor_left")
 
     const toastEl = board.q("#toast")
     expect(toastEl.count()).toBe(1)
@@ -36,8 +36,8 @@ describe("Toast rendering", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
 
     toastQueue.info("Test message")
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     // Toast should exist
     expect(board.q("#toast").count()).toBe(1)
@@ -55,8 +55,8 @@ describe("Toast rendering", () => {
     toastQueue.error("Failed to save", {
       description: "Network connection lost",
     })
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     const toastEl = board.q("#toast")
     const text = toastEl.textContent()
@@ -72,8 +72,8 @@ describe("Toast rendering", () => {
     toastQueue.info("File deleted", {
       action: { label: "Undo", trigger: "z" },
     })
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     const toastEl = board.q("#toast")
     const text = toastEl.textContent()
@@ -91,8 +91,8 @@ describe("Toast rendering", () => {
     toastQueue.info("item archived", { batchKey: "archive" })
     toastQueue.info("item archived", { batchKey: "archive" })
 
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     const toastEl = board.q("#toast")
     const text = toastEl.textContent()
@@ -108,8 +108,8 @@ describe("Toast rendering", () => {
     toastQueue.info("Second message")
     toastQueue.info("Third message")
 
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     // ToastStack shows up to 5 toasts stacked (shadcn/ui behavior)
     // Each toast gets its own #toast element
@@ -122,8 +122,8 @@ describe("Toast rendering", () => {
     const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"))), { rows, incremental: false })
 
     toastQueue.info("Hello world")
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     // Toast should exist
     const toastEl = board.q("#toast")
@@ -162,8 +162,8 @@ describe("Toast rendering", () => {
 
     // Trigger re-render via boundary hit (l on single-column board sets bellState,
     // which triggers WorkspaceChrome re-render, picking up the toast)
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     // Toast should be visible
     expect(board.q("#toast").count()).toBe(1)
@@ -184,8 +184,8 @@ describe("Toast rendering", () => {
       items: ["file1.md", "file2.md"],
       itemThreshold: 3,
     })
-    board.press("l")
-    board.press("h")
+    board.command("cursor_right")
+    board.command("cursor_left")
 
     const toastEl = board.q("#toast")
     expect(toastEl.count()).toBe(1)

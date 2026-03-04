@@ -505,11 +505,11 @@ describe("pane focus scopes — cursor movement in single-pane mode", () => {
     board.expect("#task-1[data-cursor]").toExist()
 
     // Press j to move down
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-2[data-cursor]").toExist()
 
     // Press j again
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-3[data-cursor]").toExist()
   })
 
@@ -519,10 +519,10 @@ describe("pane focus scopes — cursor movement in single-pane mode", () => {
       rows: 24,
     })
 
-    board.press("j").press("j") // Move to task-3
+    board.command("cursor_down").command("cursor_down") // Move to task-3
     board.expect("#task-3[data-cursor]").toExist()
 
-    board.press("k") // Move up to task-2
+    board.command("cursor_up") // Move up to task-2
     board.expect("#task-2[data-cursor]").toExist()
   })
 })
@@ -534,7 +534,7 @@ describe("pane focus scopes — detail pane toggle and focus", () => {
       rows: 24,
     })
 
-    board.press("D") // Toggle detail pane open — auto-focuses detail
+    board.command("toggle_detail_pane") // Toggle detail pane open — auto-focuses detail
 
     // Detail pane should be focused
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -547,7 +547,7 @@ describe("pane focus scopes — detail pane toggle and focus", () => {
       rows: 24,
     })
 
-    board.press("D") // Open detail pane — auto-focuses detail
+    board.command("toggle_detail_pane") // Open detail pane — auto-focuses detail
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     board.press("n") // Cycle focus to board
@@ -560,7 +560,7 @@ describe("pane focus scopes — detail pane toggle and focus", () => {
       rows: 24,
     })
 
-    board.press("D") // Open detail pane — auto-focuses detail
+    board.command("toggle_detail_pane") // Open detail pane — auto-focuses detail
     board.press("n") // Cycle to board
     expect(store.getState().workspace.focusedPaneId).toBe("main")
 
@@ -576,12 +576,12 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open + auto-focus detail pane
-    board.press("h") // Return to board
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
+    board.command("cursor_left") // Return to board
 
     // j should move the board cursor
     board.expect("#task-1[data-cursor]").toExist()
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-2[data-cursor]").toExist()
   })
 
@@ -592,7 +592,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open + auto-focus detail pane
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
 
     // Detail pane should be focused
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -605,7 +605,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     const beforeJ = board.screen.ansi
 
     // j moves detail cursor to second child
-    board.press("j")
+    board.command("cursor_down")
     const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
     expect(detailPaneAfter.cursorNodeId).toBe("sub-b")
 
@@ -625,13 +625,13 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     )
 
     // Move cursor to task-2
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-2[data-cursor]").toExist()
 
-    board.press("D") // Open + auto-focus detail pane
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
 
     // Do some navigation in detail pane
-    board.press("j")
+    board.command("cursor_down")
 
     // Switch back to board
     board.press("n")
@@ -646,20 +646,20 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
       rows: 24,
     })
 
-    board.press("D") // Open + auto-focus detail pane
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
-    board.press("h") // Left should return to board
+    board.command("cursor_left") // Left should return to board
     expect(store.getState().workspace.focusedPaneId).toBe("main")
   })
 
   test("l navigates from board into detail pane (right navigation)", () => {
     const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"))), { columns: 120, rows: 24 })
 
-    board.press("D") // Open detail pane
+    board.command("toggle_detail_pane") // Open detail pane
 
     // l from rightmost column should enter detail pane
-    board.press("l")
+    board.command("cursor_right")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
   })
 })
@@ -671,7 +671,7 @@ describe("pane focus scopes — Escape layering with scope-aware commands", () =
       rows: 24,
     })
 
-    board.press("D") // Open + auto-focus detail pane
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     board.press("Escape") // Should return focus to board
@@ -686,7 +686,7 @@ describe("pane focus scopes — Escape layering with scope-aware commands", () =
       rows: 24,
     })
 
-    board.press("D") // Open + auto-focus detail pane
+    board.command("toggle_detail_pane") // Open + auto-focus detail pane
     board.press("Escape") // Return to board
     board.press("Escape") // Close detail pane
 
@@ -781,7 +781,7 @@ describe("detail pane cursor styling", () => {
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
+    board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
     // Verify state: cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")!
@@ -800,7 +800,7 @@ describe("detail pane cursor styling", () => {
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
+    board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
     // Cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")!
@@ -818,7 +818,7 @@ describe("detail pane cursor styling", () => {
       { columns: 120, rows: 24 },
     )
 
-    board.press("D") // Open detail pane (auto-focuses detail, cursor on sub-a)
+    board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail, cursor on sub-a)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Board should still show cursor card (task-1 has $selected border)
@@ -830,7 +830,7 @@ describe("detail pane cursor styling", () => {
     expect(focusedSubColors!.bg, "cursored detail item should have gold bg when focused").toBe(TC.$selected)
 
     // Move cursor to sub-b — detail pane should update
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#sub-b[data-cursor]").toExist()
     const focusedSubBColors = findTextColors(board, "sub-b", "rightmost")
     expect(focusedSubBColors).not.toBeNull()
@@ -859,7 +859,7 @@ describe("detail pane cursor styling", () => {
     // While focused, cursor card should have gold ($selected) bg
     board.expectNodeColor("task-1", { bg: TC.$selected })
 
-    board.press("D") // Open detail pane (auto-focuses detail)
+    board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Board pane is now unfocused — dimColor preserves hue

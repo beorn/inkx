@@ -128,7 +128,7 @@ describe("mouse click targeting", () => {
     )
 
     // Navigate to second card
-    board.press("j")
+    board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).not.toBe(getActiveBoardPane(store.getState())!.rootId)
 
     // Find the first column's header area

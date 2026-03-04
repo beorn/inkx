@@ -40,7 +40,7 @@ describe("breadcrumb ANSI replay on h/l navigation", () => {
     expect(initialBuffer).toBeTruthy()
 
     // Press l to move to next column
-    board.press("l")
+    board.command("cursor_right")
 
     const afterBuffer = app.lastBuffer()!
     expect(afterBuffer).toBeTruthy()
@@ -92,11 +92,11 @@ describe("breadcrumb ANSI replay on h/l navigation", () => {
     const app = board._result
 
     // Move to col-b first
-    board.press("l")
+    board.command("cursor_right")
     const midBuffer = app.lastBuffer()!
 
     // Press h to go back
-    board.press("h")
+    board.command("cursor_left")
     const afterBuffer = app.lastBuffer()!
 
     const ansiDiff = outputPhase(midBuffer, afterBuffer)
@@ -248,22 +248,22 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     expect(initialTopBar).toContain("board")
 
     // Navigate right into columns and back
-    board.press("l") // move to Beta Column
+    board.command("cursor_right") // move to Beta Column
     const topBarAtBeta = board.q("#top-bar").textContent()
     expect(topBarAtBeta).toContain("Beta Column")
     expect(topBarAtBeta).not.toContain("ABeta")
 
-    board.press("l") // move to Gamma Column
+    board.command("cursor_right") // move to Gamma Column
     const topBarAtGamma = board.q("#top-bar").textContent()
     expect(topBarAtGamma).toContain("Gamma Column")
     expect(topBarAtGamma).not.toContain("BGamma")
 
-    board.press("h") // back to Beta Column
+    board.command("cursor_left") // back to Beta Column
     const topBarAfterBack1 = board.q("#top-bar").textContent()
     expect(topBarAfterBack1).toContain("Beta Column")
     expect(topBarAfterBack1).not.toContain("GBeta")
 
-    board.press("h") // back to Alpha Column
+    board.command("cursor_left") // back to Alpha Column
     const topBarAfterBack2 = board.q("#top-bar").textContent()
     expect(topBarAfterBack2).toContain("Alpha Column")
     expect(topBarAfterBack2).not.toContain("BAlpha")
@@ -277,7 +277,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     })
 
     // Navigate to TaskNotes column then back
-    board.press("l") // to TaskNotes
+    board.command("cursor_right") // to TaskNotes
 
     // Capture screen at TaskNotes - top bar should show TaskNotes, not "PTaskNotes"
     const screenAtTask = board.screenshot()
@@ -285,7 +285,7 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     expect(topLineAtTask).toContain("TaskNotes")
     expect(topLineAtTask).not.toContain("PTaskNotes")
 
-    board.press("h") // back to Projects
+    board.command("cursor_left") // back to Projects
 
     // Check screen for ghost prefix: "TProjects" would indicate bleed
     const screenBack = board.screenshot()
@@ -303,12 +303,12 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     )
 
     // Navigate to the long-named column
-    board.press("l") // to VeryLongColumnNameThatTakesSpace
+    board.command("cursor_right") // to VeryLongColumnNameThatTakesSpace
     const topBarLong = board.q("#top-bar").textContent()
     expect(topBarLong).toContain("VeryLongColumnNameThatTakesSpace")
 
     // Navigate back to the short-named column
-    board.press("h") // to Short
+    board.command("cursor_left") // to Short
     const topBarShort = board.q("#top-bar").textContent()
     expect(topBarShort).toContain("Short")
 
@@ -333,31 +333,31 @@ describe("P2: Breadcrumb ghost prefix after navigation", () => {
     )
 
     // Rapid navigation: Calendar -> inbox -> TaskNotes -> inbox -> Calendar
-    board.press("l") // to inbox
+    board.command("cursor_right") // to inbox
     let topLine = board.screenshot().split("\n")[0] ?? ""
     expect(topLine).toContain("inbox")
     expect(topLine).not.toContain("Cinbox")
     expect(topLine).not.toContain("ainbox")
 
-    board.press("l") // to TaskNotes
+    board.command("cursor_right") // to TaskNotes
     topLine = board.screenshot().split("\n")[0] ?? ""
     expect(topLine).toContain("TaskNotes")
     expect(topLine).not.toContain("iTaskNotes")
     expect(topLine).not.toContain("CTaskNotes")
 
-    board.press("h") // back to inbox
+    board.command("cursor_left") // back to inbox
     topLine = board.screenshot().split("\n")[0] ?? ""
     expect(topLine).toContain("inbox")
     expect(topLine).not.toContain("Tinbox")
     expect(topLine).not.toContain("ainbox")
 
-    board.press("h") // back to Calendar
+    board.command("cursor_left") // back to Calendar
     topLine = board.screenshot().split("\n")[0] ?? ""
     expect(topLine).toContain("Calendar")
     expect(topLine).not.toContain("iCalendar")
 
     // Second round: rapid back-and-forth
-    board.press("l").press("l").press("h").press("h")
+    board.command("cursor_right").command("cursor_right").command("cursor_left").command("cursor_left")
     topLine = board.screenshot().split("\n")[0] ?? ""
     expect(topLine).toContain("Calendar")
     expect(topLine).not.toContain("iCalendar")
@@ -385,7 +385,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     expect(initialTopBar).toContain("board")
 
     // Zoom into "section" (e on card with children)
-    board.press("z")
+    board.command("zoom_inwards")
     // Now section is the root, subsection should be a column
     board.expect("#subsection").toExist()
 
@@ -408,11 +408,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom into Frontend
-    board.press("z")
+    board.command("zoom_inwards")
     board.expect("#React").toExist()
 
     // Zoom into React
-    board.press("z")
+    board.command("zoom_inwards")
     board.expect("#hooks").toExist()
 
     const topBar = board.q("#top-bar").textContent()
@@ -437,8 +437,8 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom deep
-    board.press("z") // into VeryLongSectionNameHere
-    board.press("z") // into VeryLongSubsectionName
+    board.command("zoom_inwards") // into VeryLongSectionNameHere
+    board.command("zoom_inwards") // into VeryLongSubsectionName
 
     const topBar = board.q("#top-bar").textContent()
     // Path should be truncated with ellipsis when it doesn't fit
@@ -454,7 +454,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom into parent
-    board.press("z")
+    board.command("zoom_inwards")
     board.expect("#child").toExist()
 
     // The top bar should contain all ancestors
@@ -469,13 +469,13 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom in twice
-    board.press("z") // into level1
-    board.press("z") // into level2
+    board.command("zoom_inwards") // into level1
+    board.command("zoom_inwards") // into level2
     let topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
     // Zoom out
-    board.press("Z")
+    board.command("zoom_outwards")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
     // level2 should still be visible as it's now a column
@@ -491,7 +491,7 @@ describe("Breadcrumb path when zoomed deep", () => {
     })
 
     // Navigate into column to see card-level path
-    board.press("j") // select card
+    board.command("cursor_down") // select card
     const topBar = board.q("#top-bar").textContent()
     // Path should show board > col > card with > separators for within-board segments
     expect(topBar).toContain("board")
@@ -518,11 +518,11 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Zoom to Work level (simulating what search does)
-    board.press("z") // zoom into Work
+    board.command("zoom_inwards") // zoom into Work
     board.expect("#Immigration").toExist()
 
     // Zoom into Immigration
-    board.press("z")
+    board.command("zoom_inwards")
     board.expect("#form-i130").toExist()
 
     // Top bar should show the full path so user knows where they are
@@ -540,13 +540,13 @@ describe("Breadcrumb path when zoomed deep", () => {
     )
 
     // Navigate right to Beta column, then zoom into deep1 from Alpha
-    board.press("l") // to Beta
+    board.command("cursor_right") // to Beta
     const topBarBeta = board.screenshot().split("\n")[0] ?? ""
     expect(topBarBeta).toContain("Beta")
 
-    board.press("h") // back to Alpha
-    board.press("j") // to deep1 card
-    board.press("z") // zoom into deep1
+    board.command("cursor_left") // back to Alpha
+    board.command("cursor_down") // to deep1 card
+    board.command("zoom_inwards") // zoom into deep1
 
     const topBarZoomed = board.screenshot().split("\n")[0] ?? ""
     // Should contain "deep1" and NOT have ghost chars from "Beta"

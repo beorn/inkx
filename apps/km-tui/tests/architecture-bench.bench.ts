@@ -42,11 +42,11 @@ describe("Architecture Correctness", { timeout: 30000 }, () => {
     })
 
     // Navigate: down 10, right 4, down 5, left 2, up 3
-    for (let i = 0; i < 10; i++) board.press("j")
-    for (let i = 0; i < 4; i++) board.press("l")
-    for (let i = 0; i < 5; i++) board.press("j")
-    for (let i = 0; i < 2; i++) board.press("h")
-    for (let i = 0; i < 3; i++) board.press("k")
+    for (let i = 0; i < 10; i++) board.command("cursor_down")
+    for (let i = 0; i < 4; i++) board.command("cursor_right")
+    for (let i = 0; i < 5; i++) board.command("cursor_down")
+    for (let i = 0; i < 2; i++) board.command("cursor_left")
+    for (let i = 0; i < 3; i++) board.command("cursor_up")
 
     // Verify cursor is positioned on a valid node
     const cursor = board.q("[data-cursor]")
@@ -76,9 +76,9 @@ describe("Architecture Correctness", { timeout: 30000 }, () => {
       rows: 60,
     })
 
-    board.press("j")
+    board.command("cursor_down")
     const before = board.screenshot()
-    board.press("j")
+    board.command("cursor_down")
     const after = board.screenshot()
 
     const beforeLines = before.split("\n")

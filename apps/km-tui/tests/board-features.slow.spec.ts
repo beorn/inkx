@@ -126,7 +126,7 @@ describe("Folding", () => {
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
     board.expect("#child1").toExist()
-    board.press("<")
+    board.command("fold_all")
     board.expect("#child1").not.toExist()
     // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
@@ -134,7 +134,7 @@ describe("Folding", () => {
   test("folded card hides children", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     board.expect("#sub1").toExist()
-    board.press("<")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
   })
 })
@@ -234,7 +234,7 @@ describe("Terminal Sizes", () => {
     )
 
     // Navigate to a card
-    board.press("l") // Move to col2's first card
+    board.command("cursor_right") // Move to col2's first card
     const cursorEl = board.q("[data-cursor]")
     const cursorNodeId = cursorEl.getAttribute("id")
 
@@ -272,7 +272,7 @@ describe("Search and Filter", () => {
     )
     openSearchDialog(store, board)
     // Type query to trigger results (min 2 chars required)
-    board.press("T")
+    board.command("task_dialog")
     board.press("a")
     const output = board.screenshot()
     // Results should all appear in the output
@@ -297,9 +297,9 @@ describe("Search and Filter", () => {
     // Type "/" followed immediately by a query - all characters should be captured
     openSearchDialog(store, board)
     board.press("a")
-    board.press("l")
+    board.command("cursor_right")
     board.press("p")
-    board.press("h")
+    board.command("cursor_left")
     board.press("a")
 
     const output = board.screenshot()
@@ -343,7 +343,7 @@ describe("Search and Filter", () => {
     )
     openSearchDialog(store, board)
     // Type query to trigger results (min 2 chars required)
-    board.press("T")
+    board.command("task_dialog")
     board.press("a")
 
     // Get initial state - first few tasks should be visible
@@ -402,7 +402,7 @@ describe("Search and Filter", () => {
     )
 
     // Board shows columns at top level - zoom out first to test
-    board.press("Z") // Zoom out
+    board.command("zoom_outwards") // Zoom out
     let output = board.screenshot()
 
     // Open search and select a deeply nested item
@@ -425,7 +425,7 @@ describe("Search and Filter", () => {
     )
 
     // Zoom out to vault level first
-    board.press("Z")
+    board.command("zoom_outwards")
     let output = board.screenshot()
 
     // Search for a deeply nested section
@@ -600,12 +600,12 @@ describe("Virtual body card", () => {
     const output = board.screenshot()
     expect(output).toContain("intro text")
 
-    board.press("j") // second paragraph
+    board.command("cursor_down") // second paragraph
     const output2 = board.screenshot()
     expect(output2).toContain("more text")
 
     // After last body item, boundary
-    board.press("j")
+    board.command("cursor_down")
     expect(board.bell).toBe(true)
   })
 
@@ -614,9 +614,9 @@ describe("Virtual body card", () => {
     const { board } = testEnv(() => item("board", item("col1", item("taska"), item("taskb"), item("taskc"))))
     // Cursor starts on first card in Cards view
     board.expect("#taska[data-cursor]").toExist()
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#taskb[data-cursor]").toExist()
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#taskc[data-cursor]").toExist()
   })
 })
@@ -624,7 +624,7 @@ describe("Virtual body card", () => {
 describe("Help and Keyboard Shortcuts", () => {
   test("? shows keyboard shortcuts", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
-    board.press("?")
+    board.command("show_help")
     const output = board.screenshot()
     expect(output).toMatch(/help|shortcuts|keys/i)
   })
@@ -649,7 +649,7 @@ describe("Content Lines (+/-)", () => {
     expect(before).toContain("c3")
     expect(before).not.toContain("c4")
 
-    board.press("=")
+    board.command("increase_content_lines")
     const after = board.screenshot()
     // After =, maxContentLines=4: should now show c4
     expect(after).toContain("c4")
@@ -666,7 +666,7 @@ describe("Content Lines (+/-)", () => {
     const before = board.screenshot()
     expect(before).toContain("c3")
 
-    board.press("-")
+    board.command("decrease_content_lines")
     const after = board.screenshot()
     // After -, maxContentLines=2: c3 should be hidden
     expect(after).not.toContain("c3")
@@ -684,15 +684,15 @@ describe("Content Lines (+/-)", () => {
     // Start: maxContentLines=3 (c1, c2, c3 visible)
     expect(board.screenshot()).not.toContain("c4")
 
-    board.press("=") // maxContentLines=4
+    board.command("increase_content_lines") // maxContentLines=4
     expect(board.screenshot()).toContain("c4")
     expect(board.screenshot()).not.toContain("c5")
 
-    board.press("=") // maxContentLines=5
+    board.command("increase_content_lines") // maxContentLines=5
     expect(board.screenshot()).toContain("c5")
     expect(board.screenshot()).not.toContain("c6")
 
-    board.press("=") // maxContentLines=6
+    board.command("increase_content_lines") // maxContentLines=6
     expect(board.screenshot()).toContain("c6")
   })
 
@@ -700,7 +700,7 @@ describe("Content Lines (+/-)", () => {
     const { board } = testEnv(() =>
       item("board", item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4")))),
     )
-    board.press("=")
+    board.command("increase_content_lines")
     const status = board.getStatus()
     expect(status).not.toBeNull()
     expect(status!.message).toContain("Content lines: 4")
@@ -712,15 +712,15 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"), item("card3"))))
 
     // Open detail pane with Space
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Navigate down with j — detail pane should stay open
-    board.press("j")
+    board.command("cursor_down")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Navigate up with k — detail pane should stay open
-    board.press("k")
+    board.command("cursor_up")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
   })
 
@@ -728,14 +728,14 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane with Space on card1
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Detail pane should contain card1 content
     const screen1 = board.screenshot()
     expect(screen1).toContain("card1")
 
     // Navigate down to card2 — detail pane should update
-    board.press("j")
+    board.command("cursor_down")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     const screen2 = board.screenshot()
     expect(screen2).toContain("card2")
@@ -745,11 +745,11 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // Open detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Space again should close it
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -757,7 +757,7 @@ describe("Detail Pane Navigation", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // D opens + auto-focuses detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
@@ -783,16 +783,16 @@ describe("Detail Pane Navigation", () => {
       })
 
       // D opens + auto-focuses detail pane, h returns to board
-      board.press("D")
+      board.command("toggle_detail_pane")
       expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-      board.press("h") // return to board
+      board.command("cursor_left") // return to board
 
       // h/l should navigate columns — detail pane stays open
-      board.press("l")
+      board.command("cursor_right")
       expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
       board.expect("#card2[data-cursor]").toExist()
 
-      board.press("h")
+      board.command("cursor_left")
       expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
       board.expect("#card1[data-cursor]").toExist()
     } finally {

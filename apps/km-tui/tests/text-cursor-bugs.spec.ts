@@ -48,7 +48,7 @@ describe("text-cursor-bugs", () => {
       )
 
       // Navigate to card-b and enter edit
-      board.press("j") // move to card-b
+      board.command("cursor_down") // move to card-b
       board.expect("#card-b[data-cursor]").toExist()
       board.press("Enter")
 
@@ -314,7 +314,7 @@ describe("text-cursor-bugs", () => {
       )
 
       // Navigate to the second card and enter edit at start
-      board.press("j")
+      board.command("cursor_down")
       board.press("Enter")
 
       // Move cursor to start with Ctrl+A (Home is not bound in keybindings)

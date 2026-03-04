@@ -108,7 +108,7 @@ describe("Date Badge Display Journeys", () => {
     expect(board.screenshot()).not.toContain("Today")
 
     // Step 2: Open date prompt with td
-    board.press("t").press("d")
+    board.command("set_due_date")
     expect(board.screenshot()).toContain("Set Due Date")
 
     // Step 3: Type "tomorrow" and confirm
@@ -138,7 +138,7 @@ describe("Date Badge Display Journeys", () => {
     expect(screenshot).toContain("Urgent task")
 
     // Step 2: Navigate to next card to verify cursor is on it
-    board.press("j")
+    board.command("cursor_down")
     const cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("Normal task")
     // Normal task should not have a priority set
@@ -150,7 +150,7 @@ describe("Date Badge Display Journeys", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item.task("My task"))))
 
     // Step 1: Open date dialog
-    board.press("t").press("d")
+    board.command("set_due_date")
     expect(board.screenshot()).toContain("Set Due Date")
 
     // Step 2: Type some text
@@ -171,7 +171,7 @@ describe("Date Badge Display Journeys", () => {
     const { board } = testEnv(() => item("board", item("col1", item.task("Recurring task"))))
 
     // Step 1: Open start date dialog
-    board.press("t").press("s")
+    board.command("cycle_task_status")
     expect(board.screenshot()).toContain("Set Start Date")
 
     // Step 2: Cancel
@@ -179,7 +179,7 @@ describe("Date Badge Display Journeys", () => {
     expect(board.screenshot()).not.toContain("Set Start Date")
 
     // Step 3: Open recurrence dialog
-    board.press("t").press("r")
+    board.command("set_recurring")
     expect(board.screenshot()).toContain("Set Recurrence")
 
     // Step 4: Cancel
@@ -204,13 +204,13 @@ describe("Date Badge Display Journeys", () => {
     act(() => {
       repo.updateNode(taskA.id, { due_at: "2026-03-15" })
     })
-    board.press("j") // flush render
+    board.command("cursor_down") // flush render
 
     // Step 3: Date badge should appear
     expect(board.screenshot()).toContain("Mar 15")
 
     // Step 4: Navigate and come back — badge persists
-    board.press("k")
+    board.command("cursor_up")
     expect(board.screenshot()).toContain("Mar 15")
   })
 })

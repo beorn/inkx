@@ -16,7 +16,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
@@ -26,7 +26,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Navigate down into the column — should enter col1's cards, not col2's
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -35,8 +35,8 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
-    board.press("l")
-    board.press("k")
+    board.command("cursor_right")
+    board.command("cursor_up")
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
@@ -46,7 +46,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Navigate down into the column — should enter col2's cards
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#2a[data-cursor]").toExist()
   })
 
@@ -55,7 +55,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right (col1 is now at position 1, between col2 and col3)
@@ -63,7 +63,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Press l to move to next column — should go to col3 (which is now at position 2)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#col3[data-cursor]").toExist()
   })
 
@@ -72,7 +72,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
     )
     // Navigate to col3 header
-    board.press("l").press("l").press("k")
+    board.command("cursor_right").command("cursor_right").command("cursor_up")
     board.expect("#col3[data-cursor]").toExist()
 
     // Shift col3 left (col3 is now at position 1, between col1 and col2)
@@ -80,7 +80,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col3[data-cursor]").toExist()
 
     // Press h to move to previous column — should go to col1 (at position 0)
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#col1[data-cursor]").toExist()
   })
 
@@ -94,7 +94,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       ),
     )
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
@@ -102,11 +102,11 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col1[data-cursor]").toExist()
 
     // Navigate down — should enter col1's first card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1a[data-cursor]").toExist()
 
     // Navigate further down — should see col1's second card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -115,7 +115,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to col2 header
-    board.press("l").press("k")
+    board.command("cursor_right").command("cursor_up")
     board.expect("#col2[data-cursor]").toExist()
 
     // Shift col2 left
@@ -123,11 +123,11 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     board.expect("#col2[data-cursor]").toExist()
 
     // Navigate down — should enter col2's first card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#2a[data-cursor]").toExist()
 
     // Navigate further down — should see col2's second card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#2b[data-cursor]").toExist()
   })
 
@@ -138,7 +138,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       { columns: 120, rows: 24 },
     )
     // Navigate to col1 header and shift right
-    board.press("k")
+    board.command("cursor_up")
     board.press("opt+l")
 
     // After shift: visual order should be col2, col1, col3
@@ -159,7 +159,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       { columns: 120, rows: 24 },
     )
     // Navigate to col2 header and shift left
-    board.press("l").press("k")
+    board.command("cursor_right").command("cursor_up")
     board.press("opt+h")
 
     // After shift: visual order should be col2, col1, col3
@@ -187,7 +187,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       { columns: 160, rows: 24 },
     )
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right three times (col1 moves: pos 0 -> 1 -> 2 -> 3)
@@ -213,7 +213,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
     expect(col4Box!.x).toBeLessThan(col1Box!.x)
 
     // Navigate down — should enter col1's card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -222,7 +222,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 160, rows: 24 },
     )
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     const c1Before = board.q("#col1").boundingBox()!.x
@@ -245,7 +245,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { columns: 160, rows: 24 },
     )
-    board.press("k")
+    board.command("cursor_up")
 
     board.press("opt+l") // col1: pos 0 → 1
     board.press("opt+l") // col1: pos 1 → 2
@@ -270,7 +270,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
       { columns: 80, rows: 24 },
     )
     // Navigate to col1 header
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     // Shift col1 right
@@ -325,7 +325,7 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     board.press("shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
 
     // Toggle status on selection
-    board.press("x")
+    board.command("toggle_task_done")
 
     // Both A and B should have their status toggled (not just B)
     const statusA = repo.getNode("A")?.task_status

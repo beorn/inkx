@@ -75,6 +75,113 @@ import {
 } from "../fixtures/board-fixtures.ts"
 
 // =============================================================================
+// Command → Key reverse lookup (for command() semantic alias)
+// =============================================================================
+
+/** Maps command IDs to their key sequence(s). Used by board.command() to
+ *  dispatch via the full key handler path while keeping tests readable. */
+const COMMAND_TO_KEYS: Record<string, string[]> = {
+  // Navigation
+  cursor_down: ["j"],
+  cursor_up: ["k"],
+  cursor_left: ["h"],
+  cursor_right: ["l"],
+  cursor_first: ["g", "g"],
+  cursor_last: ["G"],
+  block_nav_down: ["J"],
+  block_nav_up: ["K"],
+
+  // Fold
+  fold_node: ["H"],
+  unfold_node: ["L"],
+  fold_all: ["<"],
+  unfold_all: [">"],
+
+  // Zoom
+  zoom_inwards: ["z"],
+  zoom_outwards: ["Z"],
+
+  // Edit
+  enter_inline_edit: ["i"],
+  enter_body_edit: ["I"],
+  insert_below: ["o"],
+  insert_above: ["O"],
+  undo: ["u"],
+  redo: ["U"],
+  indent_node: ["Tab"],
+
+  // Task
+  toggle_task_done: ["x"],
+  cycle_task_status: ["X"],
+
+  // Selection
+  select_toggle: [" "],
+
+  // View
+  filter: ["V"],
+  show_help: ["?"],
+  increase_content_lines: ["."],
+  decrease_content_lines: [","],
+  local_find: ["/"],
+  command_palette: [":"],
+  quit: ["q"],
+
+  // Detail
+  toggle_detail_pane: ["D"],
+
+  // Dialogs
+  task_dialog: ["T"],
+  manage_favorites: ["M"],
+  search_replace: ["F"],
+
+  // v-prefix chords
+  toggle_collapse: ["v", "c"],
+  toggle_hide_done: ["v", "d"],
+  cycle_view_mode: ["v", "m"],
+  cycle_icon_style: ["v", "i"],
+  visual_mode_enter: ["v", "v"],
+  ignore_node: ["v", "x"],
+  toggle_show_ignored: ["v", "X"],
+  clear_filters: ["v", "-"],
+  pane_split_vertical: ["v", "s"],
+  pane_focus_left: ["v", "h"],
+  pane_focus_down: ["v", "j"],
+  pane_focus_up: ["v", "k"],
+  pane_focus_right: ["v", "l"],
+  pane_resize_grow: ["v", ">"],
+  pane_resize_shrink: ["v", "<"],
+  pane_equalize: ["v", "="],
+  pane_close: ["v", "w"],
+  pane_only: ["v", "o"],
+  pane_zoom: ["v", "z"],
+  pane_focus_next: ["v", "n"],
+  pane_focus_prev: ["v", "N"],
+  pane_focus_previous: ["v", "p"],
+
+  // g-prefix chords
+  open_in_system: ["g", "o"],
+  open_in_terminal: ["g", "O"],
+
+  // m-prefix chords
+  enter_move_mode: ["m", "m"],
+  archive: ["m", "a"],
+
+  // t-prefix chords
+  clear_task: ["t", "-"],
+  set_assignee: ["t", "o"],
+  set_due_date: ["t", "d"],
+  set_priority: ["t", "!"],
+  set_priority_0: ["t", "0"],
+  set_priority_1: ["t", "1"],
+  set_priority_2: ["t", "2"],
+  set_priority_3: ["t", "3"],
+  set_priority_4: ["t", "4"],
+  cycle_task_status_t: ["t", "s"],
+  set_recurring: ["t", "r"],
+  set_label: ["t", "l"],
+}
+
+// =============================================================================
 // Cursor Initialization Helper
 // =============================================================================
 
@@ -486,8 +593,19 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     void originalPress("") // triggers doRender without actual key processing
   }
 
+  // Dispatch a command by name — reverse-looks up the key(s) and calls pressKey().
+  // This is a semantic alias: tests express intent (command name) instead of mechanism (key).
+  // The full key handler path is exercised, including focus, visual mode, dialogs, etc.
+  const dispatchCommand = (commandId: string) => {
+    const keys = COMMAND_TO_KEYS[commandId]
+    if (!keys) throw new Error(`command("${commandId}"): no key mapping found. Add it to COMMAND_TO_KEYS.`)
+    for (const key of keys) {
+      pressKey(key)
+    }
+  }
+
   // Build the full fluent board API with all assertion methods
-  const board = createFluentBoardApi({ result, columns, rows, pressKey, sendMouseEvent })
+  const board = createFluentBoardApi({ result, columns, rows, pressKey, sendMouseEvent, dispatchCommand })
 
   return { board, registry, toastQueue, store, focusManager, result }
 }
@@ -506,8 +624,9 @@ function createFluentBoardApi(ctx: {
   rows: number
   pressKey: (key: string) => void
   sendMouseEvent: (mouse: ParsedMouse) => void
+  dispatchCommand?: (commandId: string) => void
 }) {
-  const { result, columns, rows, pressKey, sendMouseEvent } = ctx
+  const { result, columns, rows, pressKey, sendMouseEvent, dispatchCommand } = ctx
 
   // Create fluent API using App's auto-refreshing locators
   const board = {
@@ -517,6 +636,12 @@ function createFluentBoardApi(ctx: {
     },
     press: (key: string) => {
       pressKey(key)
+      return board
+    },
+    /** Dispatch a command by name — semantic alias for press(). Chainable. */
+    command: (commandId: string) => {
+      if (!dispatchCommand) throw new Error("command() requires testEnv() — not available in renderBoard()")
+      dispatchCommand(commandId)
       return board
     },
     /** Simulate a left mouse click at screen coordinates (x, y). Chainable. */

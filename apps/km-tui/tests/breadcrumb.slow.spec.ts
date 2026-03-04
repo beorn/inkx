@@ -38,7 +38,7 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(initialTopBar).toContain("board")
 
     // Step 2: Zoom into Frontend (cursor starts on first card)
-    board.press("z")
+    board.command("zoom_inwards")
     board.expect("#react-app").toExist()
 
     // Step 3: Breadcrumb should show the ancestor path
@@ -65,17 +65,17 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(topBar).toContain("Inbox")
 
     // Step 2: Move to Projects column
-    board.press("l")
+    board.command("cursor_right")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
 
     // Step 3: Move to Archive column
-    board.press("l")
+    board.command("cursor_right")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Archive")
 
     // Step 4: Move back to Projects
-    board.press("h")
+    board.command("cursor_left")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
     // Should not contain ghost chars from Archive
@@ -89,20 +89,20 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Zoom in twice
-    board.press("z") // into level1
-    board.press("z") // into level2
+    board.command("zoom_inwards") // into level1
+    board.command("zoom_inwards") // into level2
     board.expect("#deep-a").toExist()
 
     let topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
     // Step 2: Zoom out once
-    board.press("Z")
+    board.command("zoom_outwards")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
 
     // Step 3: Zoom out again — back to root board
-    board.press("Z")
+    board.command("zoom_outwards")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("board")
     board.expect("#col").toExist()
@@ -122,8 +122,8 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Zoom deep so the full path is longer than 60 chars
-    board.press("z") // into VeryLongSectionName
-    board.press("z") // into VeryLongSubsection
+    board.command("zoom_inwards") // into VeryLongSectionName
+    board.command("zoom_inwards") // into VeryLongSubsection
 
     // Step 2: Breadcrumb should truncate with ellipsis
     const topBar = board.q("#top-bar").textContent()
@@ -140,7 +140,7 @@ describe("Breadcrumb Navigation Journeys", () => {
     })
 
     // Step 1: Navigate to card level
-    board.press("j")
+    board.command("cursor_down")
     const topBar = board.q("#top-bar").textContent()
 
     // Step 2: Path segments should be separated by >
@@ -162,25 +162,25 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Zoom into Work
-    board.press("k") // to column header
-    board.press("z")
+    board.command("cursor_up") // to column header
+    board.command("zoom_inwards")
     board.expect("#Sprint-1").toExist()
 
     let topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Work")
 
     // Step 2: Navigate to Sprint-2 column
-    board.press("l")
+    board.command("cursor_right")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-2")
 
     // Step 3: Navigate back to Sprint-1
-    board.press("h")
+    board.command("cursor_left")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-1")
 
     // Step 4: Zoom out back to root
-    board.press("Z")
+    board.command("zoom_outwards")
     topBar = board.q("#top-bar").textContent()
     expect(topBar).toContain("board")
     board.expect("#Work").toExist()
@@ -195,12 +195,12 @@ describe("Breadcrumb Navigation Journeys", () => {
     )
 
     // Step 1: Rapid h/l navigation
-    board.press("l") // inbox
-    board.press("l") // TaskNotes
-    board.press("h") // inbox
-    board.press("h") // Calendar
-    board.press("l") // inbox
-    board.press("l") // TaskNotes
+    board.command("cursor_right") // inbox
+    board.command("cursor_right") // TaskNotes
+    board.command("cursor_left") // inbox
+    board.command("cursor_left") // Calendar
+    board.command("cursor_right") // inbox
+    board.command("cursor_right") // TaskNotes
 
     // Step 2: Top bar should cleanly show TaskNotes without ghost chars
     const topLine = board.screenshot().split("\n")[0] ?? ""
@@ -209,7 +209,7 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(topLine).not.toContain("CTaskNotes")
 
     // Step 3: Navigate back and verify no ghost prefix
-    board.press("h")
+    board.command("cursor_left")
     const topLine2 = board.screenshot().split("\n")[0] ?? ""
     expect(topLine2).toContain("inbox")
     expect(topLine2).not.toContain("Tinbox")

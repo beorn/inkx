@@ -45,7 +45,7 @@ describe("col-scroll-indicator", () => {
       viewMode: "columns",
     })
 
-    for (let i = 0; i < 15; i++) board.press("j")
+    for (let i = 0; i < 15; i++) board.command("cursor_down")
 
     const text = board.screenshot()
     expect(text).toContain("\u25b2")
@@ -70,7 +70,7 @@ describe("col-scroll-indicator", () => {
     const { board } = testEnv(() => item("board", ...cols), { rows: 20, columns: 80, viewMode: "columns" })
 
     // Move right to next column to trigger horizontal scroll
-    board.press("l").press("l")
+    board.command("cursor_right").command("cursor_right")
 
     const text = board.screenshot()
     // Left indicator (◂) should show since columns before are off-screen
@@ -93,7 +93,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     board.expect('[id="task1"][data-cursor]').toExist()
 
     // Press k to go up from first card to column header
-    board.press("k")
+    board.command("cursor_up")
 
     // Now cursor should be at column level
     board.expect('[data-cursor][data-card-index="-1"]').toExist()
@@ -126,7 +126,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     )
 
     // Go to column level
-    board.press("k")
+    board.command("cursor_up")
 
     // Find col1's column element
     const colLoc = board.q('[id="col1"][data-view="column"]')
@@ -159,7 +159,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     )
 
     // Go to column level
-    board.press("k")
+    board.command("cursor_up")
 
     // Find col1's column element
     const colLoc = board.q('[id="col1"][data-view="column"]')
@@ -199,7 +199,7 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     })
 
     // Go to column level on col1
-    board.press("k")
+    board.command("cursor_up")
 
     // Find col2's column element
     const col2Loc = board.q('[id="col2"][data-view="column"]')
@@ -225,11 +225,11 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     )
 
     // Go to column level
-    board.press("k")
+    board.command("cursor_up")
     board.expect('[data-cursor][data-card-index="-1"]').toExist()
 
     // Go back to card level
-    board.press("j")
+    board.command("cursor_down")
     board.expect('[id="task1"][data-cursor]').toExist()
 
     // Find col1's column element

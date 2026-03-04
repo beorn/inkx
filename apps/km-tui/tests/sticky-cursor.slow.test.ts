@@ -69,10 +69,10 @@ describe("stickyY reliability", () => {
     )
 
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
-    board.press("l")
+    board.command("cursor_right")
     const cursor = board.q("[data-cursor]").textContent()
     expect(cursor).not.toContain("B1")
     expect(cursor).toMatch(/B[34]/)
@@ -94,14 +94,14 @@ describe("stickyY reliability", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
 
     // Navigate to A4
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
     // Simulate race condition: unregister A4's position so getItemMidY returns 0
     registry.unregister(0, 3)
 
     // Press l — lazy capture skips (midY=0), falls back to first card in target column
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("B1")
   })
 
@@ -121,14 +121,14 @@ describe("stickyY reliability", () => {
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
 
     // Navigate to A4
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
     // Simulate: completely remove A4 from registry
     registry.unregister(0, 3)
 
     // Press l — lazy capture can't find card → falls back to first card in target column
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("B1")
   })
 
@@ -144,10 +144,10 @@ describe("stickyY reliability", () => {
     )
 
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
-    board.press("j")
+    board.command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A2")
 
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("B2")
   })
 })
@@ -172,17 +172,17 @@ describe("sticky out-of-bounds behavior", () => {
     )
 
     // Navigate to card 1e (deep in col1)
-    board.press("j").press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down").command("cursor_down")
     board.expect("#1e[data-cursor]").toExist()
 
     // Press 'l' — should go to col2's only card (clamped from deep Y)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
     // stickyY should be set from the deep card position
     expect(registry.stickyY).not.toBeNull()
 
     // Press 'h' — should go back to col1 at card 1e (stickyY preserved)
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#1e[data-cursor]").toExist()
   })
 
@@ -196,20 +196,20 @@ describe("sticky out-of-bounds behavior", () => {
     )
 
     // Navigate to card 1e (deep in col1)
-    board.press("j").press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down").command("cursor_down")
     board.expect("#1e[data-cursor]").toExist()
 
     // Press 'l' — should go to col2 (stickyY captures from 1e)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2b[data-cursor]").toExist()
 
     // Navigate UP within col2 (j/k clears stickyY)
-    board.press("k")
+    board.command("cursor_up")
     board.expect("#2a[data-cursor]").toExist()
     expect(registry.stickyY).toBeNull() // cleared by vertical nav
 
     // Press 'h' — no stickyY, should land on first card in col1
-    board.press("h")
+    board.command("cursor_left")
     // With stickyY cleared, lazy capture fires from current position (2a)
     // This captures stickyY from 2a's Y, then navigates to the matching card in col1
     const cursorLoc = board.q("[data-cursor]")
@@ -222,16 +222,16 @@ describe("sticky out-of-bounds behavior", () => {
     )
 
     // Navigate to col2
-    board.press("j") // board -> col0
-    board.press("l").press("l") // col0 -> col1 -> col2
+    board.command("cursor_down") // board -> col0
+    board.command("cursor_right").command("cursor_right") // col0 -> col1 -> col2
 
-    board.press("j") // col2 -> c0
-    board.press("k") // c0 -> col2 header
-    board.press("k") // col2 header -> board (sets stickyX=2)
+    board.command("cursor_down") // col2 -> c0
+    board.command("cursor_up") // c0 -> col2 header
+    board.command("cursor_up") // col2 header -> board (sets stickyX=2)
     expect(registry.stickyX).toBe(2)
 
     // j from board should go to col2 (via stickyX)
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#col2[data-cursor]").toExist()
   })
 })
@@ -258,13 +258,13 @@ describe("stickyX reset", () => {
     )
 
     // Navigate to col1's card
-    board.press("j") // board → col0
-    board.press("l") // col0 → col1
-    board.press("j") // col1 header → b0
+    board.command("cursor_down") // board → col0
+    board.command("cursor_right") // col0 → col1
+    board.command("cursor_down") // col1 header → b0
 
     // Navigate up to board: k → col1 header (sets stickyX=1), k → board
-    board.press("k") // b0 → col1 header (sets stickyX=1)
-    board.press("k") // col1 header → board (stickyX=1 is set)
+    board.command("cursor_up") // b0 → col1 header (sets stickyX=1)
+    board.command("cursor_up") // col1 header → board (stickyX=1 is set)
     expect(registry.stickyX).toBe(1)
 
     // Now press l (horizontal nav) — should clear stickyX
@@ -273,24 +273,24 @@ describe("stickyX reset", () => {
     // Actually, at board level h/l is a boundary. Let's navigate down first.
 
     // Go down — stickyX=1 should take us to col1
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#col1[data-cursor]").toExist()
 
     // Go back up to board
-    board.press("k") // col1 → board (sets stickyX=1 again)
+    board.command("cursor_up") // col1 → board (sets stickyX=1 again)
     expect(registry.stickyX).toBe(1)
 
     // Navigate down to col1, then to a card, then press h (cross-column)
-    board.press("j") // board → col1 (via stickyX=1)
-    board.press("j") // col1 → b0
-    board.press("h") // b0 → a0 (cross-column, should clear stickyX)
+    board.command("cursor_down") // board → col1 (via stickyX=1)
+    board.command("cursor_down") // col1 → b0
+    board.command("cursor_left") // b0 → a0 (cross-column, should clear stickyX)
     expect(registry.stickyX).toBeNull()
 
     // Now navigate up to board and back down — should go to col0 (default), not col1
-    board.press("k") // a0 → col0 header (sets stickyX=0)
-    board.press("k") // col0 → board (stickyX=0)
+    board.command("cursor_up") // a0 → col0 header (sets stickyX=0)
+    board.command("cursor_up") // col0 → board (stickyX=0)
     expect(registry.stickyX).toBe(0)
-    board.press("j") // board → col0 (stickyX=0)
+    board.command("cursor_down") // board → col0 (stickyX=0)
     board.expect("#col0[data-cursor]").toExist()
   })
 
@@ -300,18 +300,18 @@ describe("stickyX reset", () => {
     )
 
     // Navigate to col1
-    board.press("j") // board → col0
-    board.press("l") // col0 → col1
-    board.press("j") // col1 → b0
-    board.press("k") // b0 → col1 header
-    board.press("k") // col1 → board (sets stickyX=1)
+    board.command("cursor_down") // board → col0
+    board.command("cursor_right") // col0 → col1
+    board.command("cursor_down") // col1 → b0
+    board.command("cursor_up") // b0 → col1 header
+    board.command("cursor_up") // col1 → board (sets stickyX=1)
     expect(registry.stickyX).toBe(1)
 
     // j/k navigation should clear stickyX (same as stickyY is cleared on j/k)
     // Actually, reviewing the stickyY pattern: stickyY IS cleared on j/k.
     // So stickyX should also be cleared on h/l. But j/k should NOT clear stickyX
     // because stickyX IS the j/k navigation aid (like stickyY is the h/l aid).
-    board.press("j") // board → col1 (uses stickyX=1)
+    board.command("cursor_down") // board → col1 (uses stickyX=1)
     // After this j, stickyX is consumed but the value only changes when
     // you go back up (k from column sets it again)
   })
@@ -544,13 +544,13 @@ describe("curswantY sticky navigation", () => {
     expect(cursorText).toContain("A1")
 
     // Navigate down to A3
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     cursorText = board.q("[data-cursor]").textContent()
     expect(cursorText).toContain("A3")
 
     // Navigate right - should land on B3 (or closest card at same Y)
-    board.press("l")
+    board.command("cursor_right")
     cursorText = board.q("[data-cursor]").textContent()
 
     // Should NOT be on column header
@@ -560,7 +560,7 @@ describe("curswantY sticky navigation", () => {
     expect(cursorText).toMatch(/B[23]/)
 
     // Navigate right again - should preserve Y
-    board.press("l")
+    board.command("cursor_right")
     const cursorText2 = board.q("[data-cursor]").textContent()
 
     // Should be on C2 or C3 (closest to Y position)
@@ -610,14 +610,14 @@ describe("curswantY sticky navigation", () => {
 
     // Navigate down many times to scroll column A
     for (let i = 0; i < 10; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
 
     const cursorText = board.q("[data-cursor]").textContent()
     expect(cursorText).toContain("A11")
 
     // Navigate right - this is where the bug manifests
-    board.press("l")
+    board.command("cursor_right")
     const afterL = board.q("[data-cursor]").textContent()
 
     // The cursor should be on a card near the bottom of B, NOT B1
@@ -643,21 +643,21 @@ describe("curswantY sticky navigation", () => {
     )
 
     // Start at A1, navigate down to A3
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A3")
 
     // Move right — stickyY from A3, lands on B3 area
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
 
     // Move down within column B — j/k RESETS stickyY to new position
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toMatch(/B[45]/)
 
     // Move right again — stickyY was reset by j, so lands near B5's Y
-    board.press("l")
+    board.command("cursor_right")
     const afterSecondL = board.q("[data-cursor]").textContent()
     // Should land near bottom (C3 or C4), matching the j/k-updated position
     expect(afterSecondL).toMatch(/C[34]/)
@@ -677,16 +677,16 @@ describe("curswantY sticky navigation", () => {
     )
 
     // Navigate down to A3
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A3")
 
     // l → B3, l → C3, h → B3 — stickyY preserved throughout
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toMatch(/C[23]/)
-    board.press("h")
+    board.command("cursor_left")
     expect(board.q("[data-cursor]").textContent()).toMatch(/B[23]/)
   })
 
@@ -712,18 +712,18 @@ describe("curswantY sticky navigation", () => {
     expect(cursorText).toContain("A1")
 
     // Navigate down to A3 (bottom of column)
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     cursorText = board.q("[data-cursor]").textContent()
     expect(cursorText).toContain("A3")
 
     // Navigate right - lands on empty column header
-    board.press("l")
+    board.command("cursor_right")
     cursorText = board.q("[data-cursor]").textContent()
     expect(cursorText).toContain("ColB")
 
     // Navigate right again - should use stickyY to land on C3 (same Y as A3)
-    board.press("l")
+    board.command("cursor_right")
     cursorText = board.q("[data-cursor]").textContent()
 
     // Should be on C3 (same position as A3), NOT C1 or column header

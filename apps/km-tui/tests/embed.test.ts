@@ -37,7 +37,7 @@ describe("embed create depth", () => {
     })
 
     // Navigate to first embed, press o to create new node after it
-    board.press("o")
+    board.command("insert_below")
     board.press("Escape") // exit inline edit
 
     const items = board.q(colItems("col1"))
@@ -69,7 +69,7 @@ describe("embed create depth", () => {
     })
 
     // Navigate to sec-a, press o
-    board.press("o")
+    board.command("insert_below")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))
@@ -96,7 +96,7 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    board.press("o")
+    board.command("insert_below")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))
@@ -126,7 +126,7 @@ describe("embed create depth", () => {
     })
 
     // Press O to insert before current node
-    board.press("O")
+    board.command("insert_above")
     board.press("Escape")
 
     const items = board.q(colItems("col1"))
@@ -402,7 +402,7 @@ describe("embed display", () => {
       { columns: 80, rows: 24 },
     )
 
-    board.press("j")
+    board.command("cursor_down")
 
     const text = stripAnsi(board.screenshot())
     expect(text).not.toContain("![[")

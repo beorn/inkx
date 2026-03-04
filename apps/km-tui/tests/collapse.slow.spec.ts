@@ -34,7 +34,7 @@ describe("Column Collapse Journeys", () => {
     board.expect("#ship-v1").toExist()
 
     // Step 2: Collapse Todo column
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("[data-collapsed]").toExist()
 
     // Step 3: Cards inside collapsed column should not be visible on screen
@@ -65,25 +65,25 @@ describe("Column Collapse Journeys", () => {
     )
 
     // Step 1: Collapse Alpha column
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("[data-collapsed]").toExist()
 
     // Step 2: Navigate right to Beta — cursor should land on a Beta card
-    board.press("l")
+    board.command("cursor_right")
     let cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("b1")
 
     // Step 3: Navigate right to Gamma
-    board.press("l")
+    board.command("cursor_right")
     cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("c1")
 
     // Step 4: Navigate left back through Beta to collapsed Alpha
-    board.press("h")
+    board.command("cursor_left")
     cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("b1")
 
-    board.press("h")
+    board.command("cursor_left")
     // Should land on collapsed Alpha's column header
     cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -107,12 +107,12 @@ describe("Column Collapse Journeys", () => {
     board.expect("#cleanup").toExist()
 
     // Step 2: Collapse Projects column
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("[data-collapsed]").toExist()
     expect(board.screenshot()).not.toContain("redesign")
 
     // Step 3: Uncollapse Projects column
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(0)
 
     // Step 4: All cards should be visible again
@@ -139,15 +139,15 @@ describe("Column Collapse Journeys", () => {
     )
 
     // Step 1: Collapse col1
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(1)
 
     // Step 2: Navigate to col3 and collapse it
-    board.press("l") // col2
-    board.press("l") // col3
+    board.command("cursor_right") // col2
+    board.command("cursor_right") // col3
     let cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-c")
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(2)
 
     // Step 3: Verify col2 and col4 cards are still visible
@@ -182,22 +182,22 @@ describe("Column Collapse Journeys", () => {
     )
 
     // Step 1: Collapse Inbox
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("[data-collapsed]").toExist()
 
     // Step 2: Navigate to Review column
-    board.press("l") // Doing
-    board.press("l") // Review
+    board.command("cursor_right") // Doing
+    board.command("cursor_right") // Review
     let cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("pr-42")
 
     // Step 3: Navigate back to Doing
-    board.press("h")
+    board.command("cursor_left")
     cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("active-task")
 
     // Step 4: Navigate back to collapsed Inbox
-    board.press("h")
+    board.command("cursor_left")
     board.expect("[data-collapsed][data-cursor]").toExist()
 
     // Step 5: Inbox should still be collapsed
@@ -213,16 +213,16 @@ describe("Column Collapse Journeys", () => {
     )
 
     // Step 1: Collapse col1
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("[data-collapsed][data-cursor]").toExist()
 
     // Step 2: Press j — should NOT enter the collapsed column
-    board.press("j")
+    board.command("cursor_down")
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
 
     // Step 3: Press k — should also not drill into collapsed column
-    board.press("k")
+    board.command("cursor_up")
     expect(board.q("[data-cursor]").count()).toBe(1)
 
     // Step 4: Cards should remain hidden

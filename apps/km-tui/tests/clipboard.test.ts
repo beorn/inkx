@@ -63,8 +63,8 @@ describe("Clipboard operations", () => {
     board.press("d")
 
     // Navigate to C (now B is first, so j goes to C which is second)
-    board.press("j") // to B
-    board.press("j") // to C
+    board.command("cursor_down") // to B
+    board.command("cursor_down") // to C
 
     // Paste after C
     board.press("p")
@@ -102,7 +102,7 @@ describe("Clipboard operations", () => {
     board.press("d")
 
     // Navigate to B (now first after cut moved cursor)
-    board.press("j") // to B
+    board.command("cursor_down") // to B
 
     // Paste after B
     board.press("p")
@@ -132,7 +132,7 @@ describe("Clipboard operations", () => {
     board.press("y")
 
     // Navigate to C
-    board.press("j")
+    board.command("cursor_down")
 
     // Paste after C
     board.press("p")
@@ -154,7 +154,7 @@ describe("Clipboard operations", () => {
     board.press("y")
 
     // Navigate to col2
-    board.press("l")
+    board.command("cursor_right")
 
     // Paste after X
     board.press("p")
@@ -179,7 +179,7 @@ describe("Clipboard operations", () => {
     expect(repo.getChildren("col1")).toHaveLength(3)
 
     // Undo
-    board.press("u")
+    board.command("undo")
 
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
   })
@@ -189,15 +189,15 @@ describe("Clipboard operations", () => {
 
     // Cut A, navigate to C, paste
     board.press("d")
-    board.press("j") // to B
-    board.press("j") // to C
+    board.command("cursor_down") // to B
+    board.command("cursor_down") // to C
     board.press("p")
 
     // Now B, C, A
     expect(childContents(repo, "col1")).toEqual(["B", "C", "A"])
 
     // Undo — A should go back to original position
-    board.press("u")
+    board.command("undo")
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C"])
   })
 
@@ -205,7 +205,7 @@ describe("Clipboard operations", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
 
     // Navigate to col2 (empty column — cursor on column header)
-    board.press("l")
+    board.command("cursor_right")
 
     // Copy should fail — no card to copy
     board.press("y")

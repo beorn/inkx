@@ -459,7 +459,7 @@ describe("alignment: collapsed columns", () => {
       const env = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
       board = env.board
       // Collapse col1 via keypress (cursor starts on 1a in col1)
-      board.press("v").press("c")
+      board.command("toggle_collapse")
     })
 
     test("collapsed column has border characters on both sides", () => {
@@ -509,7 +509,7 @@ describe("alignment: collapsed columns", () => {
   test("collapsed column on the right is also adjacent", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), WIDE)
     // Navigate to col2 and collapse it
-    board.press("l").press("v").press("c")
+    board.command("cursor_right").command("toggle_collapse")
 
     const col1Box = board.screen.nodeBox("col1")
     const collapsed = board.q("[data-collapsed]")
@@ -536,11 +536,11 @@ describe("alignment: collapsed columns", () => {
       { columns: 160, rows: 30 },
     )
     // Collapse col2: navigate right to col2, then collapse
-    board.press("l").press("v").press("c")
+    board.command("cursor_right").command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(1)
 
     // Move to col3 and collapse it
-    board.press("l").press("v").press("c")
+    board.command("cursor_right").command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(2)
 
     // Verify col1 is visible
@@ -616,7 +616,7 @@ describe("visual invariant assertions", () => {
   test("expectCursorVisible confirms cursor is on screen", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expectCursorVisible()
-    board.press("j").expectCursorVisible()
+    board.command("cursor_down").expectCursorVisible()
   })
 
   test("expectNoGhostChars passes on clean render", () => {
@@ -636,6 +636,6 @@ describe("visual invariant assertions", () => {
 
   test("expectAdjacentBorders verifies neighboring borders after navigation", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
-    board.press("j").expectAdjacentBorders("1b")
+    board.command("cursor_down").expectAdjacentBorders("1b")
   })
 })

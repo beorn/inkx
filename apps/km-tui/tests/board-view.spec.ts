@@ -25,7 +25,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub2").toExist()
     board.expect("#sub3").toExist()
 
-    board.press("<")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist()
     board.expect("#sub3").not.toExist()
@@ -40,12 +40,12 @@ describe("Column Fold/Collapse", () => {
       ),
     )
     // Fold all first
-    board.press("<")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
     board.expect("#sub3").not.toExist()
 
     // Z unfolds all cards in current column
-    board.press(">")
+    board.command("unfold_all")
     board.expect("#sub1").toExist()
     board.expect("#sub2").toExist()
     board.expect("#sub3").toExist()
@@ -59,7 +59,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub2").toExist()
 
     // < folds all columns across the entire board
-    board.press("<")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist() // col2 also folded
   })
@@ -72,12 +72,12 @@ describe("Column Fold/Collapse", () => {
     board.expect("#1b").toExist()
 
     // c collapses current column — cards hidden, column shows first letter
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#1a").not.toExist()
     board.expect("#1b").not.toExist()
 
     // c again un-collapses
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#1a").toExist()
     board.expect("#1b").toExist()
   })
@@ -85,11 +85,11 @@ describe("Column Fold/Collapse", () => {
   test("c on different column collapses that column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Move to col2
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Collapse col2 — cards hidden
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#2a").not.toExist()
     board.expect("#2b").not.toExist()
 
@@ -105,7 +105,7 @@ describe("Column Fold/Collapse", () => {
     board.expect("#1a").toExist()
 
     // Collapse "Todo" column
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#1a").not.toExist()
 
     // The collapsed column should show "data-collapsed" attribute
@@ -115,7 +115,7 @@ describe("Column Fold/Collapse", () => {
   test("c persists collapsed state to node data", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
     // Collapse col1
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#1a").not.toExist()
 
     // Verify the collapsed state is persisted in node data
@@ -123,7 +123,7 @@ describe("Column Fold/Collapse", () => {
     expect((colNode.data as Record<string, unknown>).collapsed).toBe(true)
 
     // Uncollapse col1
-    board.press("v").press("c")
+    board.command("toggle_collapse")
     board.expect("#1a").toExist()
 
     // Verify the collapsed key is removed from node data
@@ -145,8 +145,8 @@ describe("Outline Depth and Content Lines", () => {
     board.expect("#sub1").toExist()
 
     // Decrease depth twice to reach 0 (from default 2)
-    board.press("<")
-    board.press("<")
+    board.command("fold_all")
+    board.command("fold_all")
 
     // At depth 0, children beyond immediate cards should be hidden
     board.expect("#sub1").not.toExist()
@@ -155,20 +155,20 @@ describe("Outline Depth and Content Lines", () => {
   test("> increases outline depth, showing deeper children", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1", item("deep1"))))))
     // Decrease to 0 first
-    board.press("<")
-    board.press("<")
+    board.command("fold_all")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
 
     // Increase back
-    board.press(">")
-    board.press(">")
+    board.command("unfold_all")
+    board.command("unfold_all")
     board.expect("#sub1").toExist()
   })
 
   test("< has minimum of 0", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1")))))
     // Press < many times - should not error
-    for (let i = 0; i < 5; i++) board.press("<")
+    for (let i = 0; i < 5; i++) board.command("fold_all")
 
     // Cards in column are always visible (depth 0 = card titles only)
     board.expect("#1a").toExist()
@@ -178,7 +178,7 @@ describe("Outline Depth and Content Lines", () => {
   test("> has maximum of 10", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1")))))
     // Press > many times - should not error
-    for (let i = 0; i < 15; i++) board.press(">")
+    for (let i = 0; i < 15; i++) board.command("unfold_all")
 
     board.expect("#1a").toExist()
     board.expect("#sub1").toExist()
@@ -192,20 +192,20 @@ describe("Outline Depth and Content Lines", () => {
 
   test("= also increases content lines (alias)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("=")
+    board.command("increase_content_lines")
     board.expect("#1a").toExist()
   })
 
   test("- decreases content lines", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    board.press("-")
+    board.command("decrease_content_lines")
     board.expect("#1a").toExist()
   })
 
   test("- has minimum of 1 content line", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
     // Press - many times past minimum
-    for (let i = 0; i < 10; i++) board.press("-")
+    for (let i = 0; i < 10; i++) board.command("decrease_content_lines")
     board.expect("#1a").toExist()
   })
 
@@ -228,11 +228,11 @@ describe("Task Status", () => {
     board.expect("#task[data-cursor]").toExist()
 
     // todo → wip (both show □, but different colors in ANSI)
-    board.press("X")
+    board.command("cycle_task_status")
     board.expect("#task[data-cursor]").toExist()
 
     // wip → blocked (shows ✗ U+2717)
-    board.press("X")
+    board.command("cycle_task_status")
     const output = board.screenshot()
     expect(output).toContain("\u2717") // ✗ blocked icon
   })
@@ -242,7 +242,7 @@ describe("Task Status", () => {
     board.expect("#task1[data-cursor]").toExist()
 
     // Pressing X cycles task1's status, task2 unchanged
-    board.press("X")
+    board.command("cycle_task_status")
     board.expect("#task1[data-cursor]").toExist()
     board.expect("#task2").toExist()
   })

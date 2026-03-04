@@ -40,7 +40,7 @@ describe("Filter/View Journeys", () => {
     expect(screen).toContain("doneB")
 
     // Step 2: vd hides done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).toContain("todoA")
     expect(screen).not.toContain("doneA")
@@ -51,7 +51,7 @@ describe("Filter/View Journeys", () => {
     board.expect("#todoA[data-cursor]").toExist()
 
     // Step 4: vd again restores done tasks — all should reappear
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).toContain("todoA")
     expect(screen).toContain("doneA")
@@ -72,11 +72,11 @@ describe("Filter/View Journeys", () => {
     expect(screen).toContain("Write docs")
 
     // Step 2: Open filter panel and toggle 'todo' status
-    board.press("V")
+    board.command("filter")
     screen = board.screenshot()
     expect(screen).toContain("View Settings")
 
-    board.press(" ") // toggle todo on (Status row, first value)
+    board.command("select_toggle") // toggle todo on (Status row, first value)
 
     // Step 3: Close filter panel
     board.press("Escape")
@@ -85,11 +85,11 @@ describe("Filter/View Journeys", () => {
     expect(screen).toContain("[F]")
 
     // Step 4: Navigate among filtered results
-    board.press("j")
+    board.command("cursor_down")
 
     // Step 5: Open panel again and clear filters
-    board.press("V")
-    board.press("X") // clear all
+    board.command("filter")
+    board.command("cycle_task_status") // clear all
     board.press("Escape")
 
     screen = board.screenshot()
@@ -112,11 +112,11 @@ describe("Filter/View Journeys", () => {
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Step 1: Navigate to my-task
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#my-task[data-cursor]").toExist()
 
     // Step 2: vd hides done tasks — cursor should stay on my-task
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     board.expect("#my-task[data-cursor]").toExist()
     const screen = board.screenshot()
     expect(screen).not.toContain("done-top")
@@ -140,17 +140,17 @@ describe("Filter/View Journeys", () => {
     const { board } = testEnv(() => nodes, { columns: 120, rows: 24 })
 
     // Step 1: Hide done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     let screen = board.screenshot()
     expect(screen).not.toContain("done-a")
     expect(screen).not.toContain("done-note")
 
     // Step 2: Navigate to second column
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#note-1[data-cursor]").toExist()
 
     // Step 3: Unfilter — done tasks should reappear in both columns
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).toContain("done-a")
     expect(screen).toContain("done-note")
@@ -177,12 +177,12 @@ describe("Filter/View Journeys", () => {
     expect(screen).not.toContain("hidden")
 
     // Step 2: vd hides 3 done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).toContain("+3 hidden")
 
     // Step 3: vd again shows all tasks — no hidden indicator
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).not.toContain("hidden")
   })

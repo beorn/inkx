@@ -25,7 +25,7 @@ describe("Escape Layering", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Enter visual mode with 'v v' chord + space to select
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
 
     // Escape exits visual mode
@@ -38,7 +38,7 @@ describe("Escape Layering", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Enter move mode with 'mm'
-    board.press("m").press("m")
+    board.command("enter_move_mode")
     expect(getActiveBoardPane(store.getState())!.moveMode).toBe(true)
 
     // Escape cancels move mode
@@ -73,7 +73,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("card1"), item("card2"))))
 
     // D opens + auto-focuses detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
@@ -99,7 +99,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
     // Open help with ?
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // Escape closes help
@@ -111,7 +111,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
     // Open local find with /
-    board.press("/")
+    board.command("local_find")
     expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
 
     // Escape closes find bar
@@ -171,7 +171,7 @@ describe("Escape Layering", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Enter visual mode (which also creates a selection)
-    board.press("v").press("v").press(" ")
+    board.command("visual_mode_enter").command("select_toggle")
     expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
@@ -188,7 +188,7 @@ describe("Escape Layering", () => {
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // D opens + auto-focuses detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
@@ -213,7 +213,7 @@ describe("Escape Layering", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task1"))))
 
     // Open help dialog (layer 3)
-    board.press("?")
+    board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
     // Escape 1: close help
@@ -233,7 +233,7 @@ describe("Escape Layering", () => {
     expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
 
     // D opens + auto-focuses detail pane
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Escape 1: unfocus detail → return to board
@@ -272,7 +272,7 @@ describe("Escape Layering", () => {
     board.press("Escape")
 
     // Verify we're back in normal mode by pressing j to navigate
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -280,7 +280,7 @@ describe("Escape Layering", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter")
-    board.press("x")
+    board.command("toggle_task_done")
     board.press("y")
 
     // Single Escape should save and exit
@@ -290,7 +290,7 @@ describe("Escape Layering", () => {
     expect(repo.getNode("1a")?.content).toBe("1axy")
 
     // Should be in normal mode — j navigates
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -298,7 +298,7 @@ describe("Escape Layering", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     // Do a local find (/) to set localSearch state
-    board.press("/") // open find bar
+    board.command("local_find") // open find bar
 
     // Type a search term and confirm to keep results visible
     board.press("a")
@@ -317,7 +317,7 @@ describe("Escape Layering", () => {
     expect(repo.getNode("alpha")?.content).toBe("alpha!")
 
     // Should be in normal mode — j navigates
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#beta[data-cursor]").toExist()
   })
 })
