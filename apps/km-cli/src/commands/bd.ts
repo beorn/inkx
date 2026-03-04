@@ -36,6 +36,11 @@ import { configCommand } from "./bd-config.ts"
 import { migrateCommand, exportCommand } from "./bd-migrate.ts"
 import { buildQueryString, type SharedQueryFlags } from "./shared-query.ts"
 
+/** Format scope/board context for display messages (e.g., " in path" or " on @board") */
+function formatScopeMessage(scopePath?: string, boardTag?: string): string {
+  return scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+}
+
 // Commander option interfaces
 interface ReadyOptions {
   type?: string
@@ -99,12 +104,11 @@ bdCommand
     }
 
     if (issues.length === 0) {
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-      console.log(term.yellow(`No ready issues found${scopeMsg}.`))
+      console.log(term.yellow(`No ready issues found${formatScopeMessage(scopePath, boardTag)}.`))
       return
     }
 
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+    const scopeMsg = formatScopeMessage(scopePath, boardTag)
     console.log(term.bold(`📋 Ready work (${issues.length} issues with no blockers${scopeMsg}):\n`))
     issues.forEach((issue, i) => {
       printReadyIssue(issue, i + 1)
@@ -156,12 +160,11 @@ bdCommand
       }
 
       if (issues.length === 0) {
-        const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
-        console.log(term.yellow(`No issues found${scopeMsg}.`))
+        console.log(term.yellow(`No issues found${formatScopeMessage(scopePath, boardTag)}.`))
         return
       }
 
-      const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+      const scopeMsg = formatScopeMessage(scopePath, boardTag)
       console.log(term.bold(`Issues (${issues.length}${scopeMsg}):\n`))
       for (const issue of issues) {
         printIssue(issue)
@@ -666,7 +669,7 @@ bdCommand
     }
 
     console.log()
-    const scopeMsg = scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
+    const scopeMsg = formatScopeMessage(scopePath, boardTag)
     console.log(term.bold(`Statistics${scopeMsg}`))
     console.log(`  Total: ${issues.length} issues`)
 

@@ -327,19 +327,9 @@ function buildPropCondition(propCond: QueryPropCondition, params: (string | numb
   return ""
 }
 
-/**
- * Build SQL for blocked:true/false special conditions.
- * blocked:true = has blocked-by property pointing to at least one non-done task
- * blocked:false = no blocked-by property OR all blockers are done
- */
-function buildBlockedCondition(special: QuerySpecial, outerTable: string): string {
-  if (special.type !== "blocked") return ""
-
-  if (special.value) {
-    // blocked:true - has blocked-by property with at least one unresolved blocker
-    return (
-      ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL` +
-      ` AND EXISTS (
+/** SQL subquery matching unresolved blockers for a given outer table alias */
+function unresolvedBlockerExists(outerTable: string): string {
+  return `EXISTS (
           SELECT 1 FROM nodes AS blocker
           WHERE (
             blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
@@ -349,23 +339,25 @@ function buildBlockedCondition(special: QuerySpecial, outerTable: string): strin
           )
           AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
         )`
-    )
+}
+
+/**
+ * Build SQL for blocked:true/false special conditions.
+ * blocked:true = has blocked-by property pointing to at least one non-done task
+ * blocked:false = no blocked-by property OR all blockers are done
+ */
+function buildBlockedCondition(special: QuerySpecial, outerTable: string): string {
+  if (special.type !== "blocked") return ""
+
+  const blockerSubquery = unresolvedBlockerExists(outerTable)
+
+  if (special.value) {
+    // blocked:true - has blocked-by property with at least one unresolved blocker
+    return ` AND json_extract(data, '$.props.blocked-by') IS NOT NULL AND ${blockerSubquery}`
   }
 
   // blocked:false - no blocked-by property OR all blockers are done
-  return ` AND (
-          json_extract(data, '$.props.blocked-by') IS NULL
-          OR NOT EXISTS (
-            SELECT 1 FROM nodes AS blocker
-            WHERE (
-              blocker.id = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-              OR blocker.name = json_extract(${outerTable}.data, '$.props.blocked-by.target')
-              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.id || '"%'
-              OR json_extract(${outerTable}.data, '$.props.blocked-by') LIKE '%"target":"' || blocker.name || '"%'
-            )
-            AND (blocker.task_status IS NULL OR blocker.task_status NOT IN ('done', 'dropped'))
-          )
-        )`
+  return ` AND (json_extract(data, '$.props.blocked-by') IS NULL OR NOT ${blockerSubquery})`
 }
 
 /** Build SQL for text search with negation support */
@@ -378,6 +370,65 @@ function buildTextCondition(term: string, params: (string | number)[]): string {
   return " AND content LIKE ?"
 }
 
+/** Normalize a path pattern by stripping leading ./ or / and trailing / */
+function normalizePathPattern(pattern: string): string {
+  let p = pattern
+  if (p.startsWith("./")) p = p.slice(2)
+  if (p.startsWith("/")) p = p.slice(1)
+  if (p.endsWith("/")) p = p.slice(0, -1)
+  return p
+}
+
+/** Build SQL for recursive path matching (folder contents, optionally including self) */
+function buildRecursivePathSQL(
+  normalizedPattern: string,
+  pathColumn: string,
+  negated: boolean,
+  includesSelf: boolean,
+  params: (string | number)[],
+): string {
+  params.push(
+    `${normalizedPattern}/%`, // relative: files inside folder
+    `%/${normalizedPattern}/%`, // nested: files inside folder
+  )
+
+  if (negated) {
+    let sql = ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?`
+    if (includesSelf) {
+      params.push(`${normalizedPattern}.md`, `%/${normalizedPattern}.md`, normalizedPattern)
+      sql += ` AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} != ?`
+    }
+    return sql + "))"
+  }
+
+  let sql = ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ?`
+  if (includesSelf) {
+    params.push(`${normalizedPattern}.md`, `%/${normalizedPattern}.md`, normalizedPattern)
+    sql += ` OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} = ?`
+  }
+  return sql + ")"
+}
+
+/** Build SQL for non-recursive path matching (direct children only) */
+function buildNonRecursivePathSQL(
+  normalizedPattern: string,
+  pathColumn: string,
+  negated: boolean,
+  params: (string | number)[],
+): string {
+  if (negated) {
+    params.push(`${normalizedPattern}/*[!/]*`, `*/${normalizedPattern}/*[!/]*`)
+    return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?))`
+  }
+  params.push(
+    `${normalizedPattern}/*`,
+    `*/${normalizedPattern}/*`,
+    `${normalizedPattern}/*/*`,
+    `*/${normalizedPattern}/*/*`,
+  )
+  return ` AND (${pathColumn} GLOB ? OR ${pathColumn} GLOB ?) AND ${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?`
+}
+
 /**
  * Build SQL for path pattern matching.
  * Path patterns match against effective_path (includes ancestor lookup for child nodes).
@@ -385,20 +436,7 @@ function buildTextCondition(term: string, params: (string | number)[]): string {
 function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (string | number)[]): string {
   const { pattern, recursive, negated } = pathFilter
 
-  // Normalize pattern:
-  // - Remove leading ./ for relative paths
-  // - Remove leading / for absolute paths
-  // - Remove trailing / if present
-  let normalizedPattern = pattern
-  if (normalizedPattern.startsWith("./")) {
-    normalizedPattern = normalizedPattern.slice(2)
-  }
-  if (normalizedPattern.startsWith("/")) {
-    normalizedPattern = normalizedPattern.slice(1)
-  }
-  if (normalizedPattern.endsWith("/")) {
-    normalizedPattern = normalizedPattern.slice(0, -1)
-  }
+  let normalizedPattern = normalizePathPattern(pattern)
 
   // Default to recursive matching (./folder matches all contents)
   // Use ./folder$ for non-recursive (direct children only)
@@ -409,59 +447,9 @@ function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (
   const effectiveRecursive = recursive || !isNonRecursive
 
   if (effectiveRecursive) {
-    // Recursive pattern (e.g., ./inbox/** or ./inbox)
-    // Always matches contents: /root/inbox/file.md, /root/inbox/sub/file.md
-    // Only matches the folder itself when NOT using explicit ** (bare ./inbox)
     const includesSelf = !recursive // bare ./inbox includes self, ./inbox/** does not
-    if (negated) {
-      params.push(
-        `${normalizedPattern}/%`, // relative: files inside folder
-        `%/${normalizedPattern}/%`, // nested: files inside folder
-      )
-      let sql = ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ?`
-      if (includesSelf) {
-        params.push(
-          `${normalizedPattern}.md`, // relative: the folder file itself
-          `%/${normalizedPattern}.md`, // nested: the folder file itself
-          normalizedPattern, // exact match (folder name)
-        )
-        sql += ` AND ${pathColumn} NOT LIKE ? AND ${pathColumn} NOT LIKE ? AND ${pathColumn} != ?`
-      }
-      sql += "))"
-      return sql
-    }
-    params.push(
-      `${normalizedPattern}/%`, // relative: files inside folder
-      `%/${normalizedPattern}/%`, // nested: files inside folder
-    )
-    let sql = ` AND (${pathColumn} LIKE ? OR ${pathColumn} LIKE ?`
-    if (includesSelf) {
-      params.push(
-        `${normalizedPattern}.md`, // relative: the folder file itself
-        `%/${normalizedPattern}.md`, // nested: the folder file itself
-        normalizedPattern, // exact match (folder name)
-      )
-      sql += ` OR ${pathColumn} LIKE ? OR ${pathColumn} LIKE ? OR ${pathColumn} = ?`
-    }
-    sql += ")"
-    return sql
+    return buildRecursivePathSQL(normalizedPattern, pathColumn, negated, includesSelf, params)
   }
 
-  // Non-recursive pattern (e.g., ./inbox$) - direct children only
-  // Only matches files directly in the folder, not subfolders
-  if (negated) {
-    params.push(
-      `${normalizedPattern}/*[!/]*`, // relative: direct children
-      `*/${normalizedPattern}/*[!/]*`, // nested: direct children
-    )
-    return ` AND (${pathColumn} IS NULL OR (${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?))`
-  }
-  // Match direct children: /folder/file.md but not /folder/sub/file.md
-  params.push(
-    `${normalizedPattern}/*`, // relative: children
-    `*/${normalizedPattern}/*`, // nested: children
-    `${normalizedPattern}/*/*`, // relative: grandchildren (to exclude)
-    `*/${normalizedPattern}/*/*`, // nested: grandchildren (to exclude)
-  )
-  return ` AND (${pathColumn} GLOB ? OR ${pathColumn} GLOB ?) AND ${pathColumn} NOT GLOB ? AND ${pathColumn} NOT GLOB ?`
+  return buildNonRecursivePathSQL(normalizedPattern, pathColumn, negated, params)
 }

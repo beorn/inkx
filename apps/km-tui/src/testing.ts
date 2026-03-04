@@ -44,6 +44,47 @@ import { CursorStoreProvider } from "./cursor-context.tsx"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./reactive.ts"
 
+/** No-op dialog handlers — constant to avoid per-render allocation */
+const NOOP_DIALOG_HANDLERS = {
+  handlePickerSelect: () => {},
+  handlePickerCancel: () => {},
+  handleTagSelect: () => {},
+  handleAssigneeSelect: () => {},
+  handleNewItemCreate: () => {},
+  handleNewItemCancel: () => {},
+  handleSearchSelect: () => {},
+  handleSearchCancel: () => {},
+} as const
+
+/**
+ * Create AutoLocator delegation methods that forward to `baseLocator`.
+ * The three "core query" methods (getByText, getByTestId, locator) are
+ * intentionally excluded — they need custom forwarding in the harness.
+ */
+function delegateLocatorMethods(
+  getBaseLocator: () => AutoLocator,
+): Omit<AutoLocator, "getByText" | "getByTestId" | "locator"> {
+  return {
+    first: () => getBaseLocator().first(),
+    last: () => getBaseLocator().last(),
+    nth: (index) => getBaseLocator().nth(index),
+    resolve: () => getBaseLocator().resolve(),
+    resolveAll: () => getBaseLocator().resolveAll(),
+    count: () => getBaseLocator().count(),
+    textContent: () => getBaseLocator().textContent(),
+    getAttribute: (name) => getBaseLocator().getAttribute(name),
+    boundingBox: () => getBaseLocator().boundingBox(),
+    isVisible: () => getBaseLocator().isVisible(),
+    filter: (optionsOrPredicate: FilterOptions | ((node: InkxNode) => boolean)) => {
+      const loc = getBaseLocator()
+      if (typeof optionsOrPredicate === "function") {
+        return loc.filter(optionsOrPredicate)
+      }
+      return loc.filter(optionsOrPredicate)
+    },
+  }
+}
+
 /**
  * Options for creating a board test harness
  */
@@ -177,16 +218,7 @@ export async function createBoardTest(
     dimensions: { columns: width, rows: height },
     navigator: createGridNavigator(),
     dispatch: () => {},
-    dialogHandlers: {
-      handlePickerSelect: () => {},
-      handlePickerCancel: () => {},
-      handleTagSelect: () => {},
-      handleAssigneeSelect: () => {},
-      handleNewItemCreate: () => {},
-      handleNewItemCancel: () => {},
-      handleSearchSelect: () => {},
-      handleSearchCancel: () => {},
-    },
+    dialogHandlers: NOOP_DIALOG_HANDLERS,
     collapsedNodes: new Set<string>(),
     moveMode: false,
     hasDetailPane: false,
@@ -217,54 +249,13 @@ export async function createBoardTest(
 
   // Build harness object that extends InkxLocator
   const harness: BoardTestHarness = {
-    // InkxLocator methods - delegate to app's auto-refreshing locators
-    getByText(text) {
-      return app.getByText(text)
-    },
-    getByTestId(id) {
-      return app.getByTestId(id)
-    },
-    locator(selector) {
-      return app.locator(selector)
-    },
-    first() {
-      return app.locator("*").first()
-    },
-    last() {
-      return app.locator("*").last()
-    },
-    nth(index) {
-      return app.locator("*").nth(index)
-    },
-    resolve() {
-      return app.locator("*").resolve()
-    },
-    resolveAll() {
-      return app.locator("*").resolveAll()
-    },
-    count() {
-      return app.locator("*").count()
-    },
-    textContent() {
-      return app.locator("*").textContent()
-    },
-    getAttribute(name) {
-      return app.locator("*").getAttribute(name)
-    },
-    boundingBox() {
-      return app.locator("*").boundingBox()
-    },
-    isVisible() {
-      return app.locator("*").isVisible()
-    },
-    filter(optionsOrPredicate: FilterOptions | ((node: InkxNode) => boolean)) {
-      const loc = app.locator("*")
-      // Use overload-compatible call: either FilterOptions or predicate
-      if (typeof optionsOrPredicate === "function") {
-        return loc.filter(optionsOrPredicate)
-      }
-      return loc.filter(optionsOrPredicate)
-    },
+    // AutoLocator: core query methods delegate to app directly
+    getByText: (text) => app.getByText(text),
+    getByTestId: (id) => app.getByTestId(id),
+    locator: (selector) => app.locator(selector),
+
+    // AutoLocator: narrowing/resolution/utility methods delegate to app.locator("*")
+    ...delegateLocatorMethods(() => app.locator("*")),
 
     // Visual capture
     screenshot() {

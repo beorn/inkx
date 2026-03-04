@@ -239,9 +239,6 @@ const Card = React.memo(
     const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface" : "$muted-fg"
 
     if (isHR && !isEditing) {
-      const innerWidth = width - 2 // border or padding L+R both consume 2
-      const padTotal = Math.max(0, innerWidth - hrContent.length)
-      const padLeft = Math.floor(padTotal / 2)
       // HR cards render borderless with padding (matching border width) for alignment.
       // Padding on all 4 sides matches border dimensions for layout stability.
       // When selected, they get a yellow border like other body blocks.
@@ -256,6 +253,7 @@ const Card = React.memo(
           <Box
             id={nodeId}
             data-view="item"
+            justifyContent="center"
             {...(isSelected && {
               "data-cursor": true,
               "data-col-index": colIndex,
@@ -267,7 +265,6 @@ const Card = React.memo(
               dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
-              {" ".repeat(padLeft)}
               {hrContent}
             </Text>
           </Box>

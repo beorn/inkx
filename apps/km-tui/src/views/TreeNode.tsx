@@ -21,10 +21,7 @@ import {
 } from "../state.ts"
 import { extractBody } from "@km/tree"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
-import {
-  isSigilName,
-  InlineText,
-} from "../text/index.ts"
+import { isSigilName, InlineText } from "../text/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import {
@@ -494,10 +491,11 @@ function TreeNodeImpl({
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
       {!isOneliner && isEmbedded && parentContext && (
-        <Text dimColor italic wrap="truncate">
-          {" ".repeat(prefix.length)}
-          {parentContext}
-        </Text>
+        <Box paddingLeft={prefix.length}>
+          <Text dimColor italic wrap="truncate">
+            {parentContext}
+          </Text>
+        </Box>
       )}
 
       {/* Main row: Box with paddingLeft for depth indentation */}

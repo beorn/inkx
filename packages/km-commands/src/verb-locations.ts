@@ -133,11 +133,13 @@ export const VERBS: Record<string, VerbDef> = {
   c: { prefix: "c", commandId: "create_in", fn: createIn, label: "Create in" },
 }
 
-/** Generate chord keybindings from verb x location cross-product */
-export function verbLocationGrid(): Keybinding[] {
+/** Generate chord keybindings from verb x location cross-product.
+ *  @param prefixes — if provided, only generate bindings for these verb prefixes (e.g., ["g", "m"]) */
+export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
   const bindings: Keybinding[] = []
 
   for (const [vKey, verb] of Object.entries(VERBS)) {
+    if (prefixes && !prefixes.includes(vKey)) continue
     // System locations
     for (const [lKey, loc] of Object.entries(SYSTEM_LOCS)) {
       // Skip combos that don't make sense
@@ -183,26 +185,25 @@ export function verbLocationGrid(): Keybinding[] {
   return bindings
 }
 
+/** Ctrl chord config: maps verb prefix → { ctrlKey, when? } */
+const CTRL_CHORDS: Record<string, { when?: WhenPredicate | ((ctx: KeybindingContext) => boolean) }> = {
+  g: {},
+  m: { when: hasKitty as WhenPredicate | ((ctx: KeybindingContext) => boolean) },
+}
+
 /** Generate Ctrl+prefix chord variants (alternative chord prefixes for Kitty terminals) */
 export function ctrlVerbLocationGrid(): Keybinding[] {
-  const grid = verbLocationGrid()
+  const prefixes = Object.keys(CTRL_CHORDS)
+  const grid = verbLocationGrid(prefixes)
   const ctrlBindings: Keybinding[] = []
 
   for (const b of grid) {
-    // All verbLocationGrid keys are "prefix suffix" — split on first space
     const spaceIdx = b.key.indexOf(" ")
     const chord = spaceIdx > 0 ? b.key.slice(0, spaceIdx) : ""
     const suffix = spaceIdx > 0 ? b.key.slice(spaceIdx + 1) : b.key
-    if (chord === "g") {
-      ctrlBindings.push({ ...b, key: `Ctrl+g ${suffix}` })
-    }
-    if (chord === "m") {
-      ctrlBindings.push({
-        ...b,
-        key: `Ctrl+m ${suffix}`,
-        when: hasKitty as WhenPredicate | ((ctx: KeybindingContext) => boolean),
-      })
-    }
+    const config = CTRL_CHORDS[chord]
+    if (!config) continue
+    ctrlBindings.push({ ...b, key: `Ctrl+${chord} ${suffix}`, ...config })
   }
 
   return ctrlBindings

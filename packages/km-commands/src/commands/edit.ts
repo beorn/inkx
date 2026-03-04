@@ -1,4 +1,5 @@
 import type { CommandAction, CommandDef } from "../types.ts"
+import { moveTo as moveToVerb, addTo as addToVerb } from "../verb-locations.ts"
 
 // Move mode commands return minimal actions (MoveAction types).
 // TUI handler in board-actions.ts augments with context before dispatching to board.
@@ -168,15 +169,7 @@ const move = {
   execute: (ctx): CommandAction | null => {
     const t = ctx.targetId
     if (!t) return null
-
-    if (t === "parent") return { type: "OUTDENT_NODE" }
-    if (t === "first") return { type: "SHIFT_TO_TOP" }
-    if (t === "last") return { type: "SHIFT_TO_BOTTOM" }
-    if (t.startsWith("fav:")) return { type: "MOVE_TO_FAVORITE", favoriteKey: t.slice(4) }
-    if (t.startsWith("pick:")) return { type: "REPARENT_PICKER" } // TODO: generic picker
-
-    // Real node ID — move there
-    return { type: "MOVE_TO_BOARD", boardId: t }
+    return moveToVerb(() => t)(ctx) as CommandAction | null
   },
 } satisfies CommandDef
 
@@ -191,17 +184,7 @@ const add = {
   execute: (ctx): CommandAction | null => {
     const t = ctx.targetId
     if (!t) return null
-
-    // Pickers — open picker dialog, then add link to result
-    if (t === "pick:#") return { type: "SET_LABEL" }
-    if (t === "pick:@") return { type: "SET_ASSIGNEE" }
-    if (t === "pick:+") return { type: "REPARENT_PICKER" }
-    if (t === "pick:[") return { type: "ADD_LINK" }
-
-    if (t.startsWith("fav:")) return { type: "ADD_LINK_TO_FAVORITE", favoriteKey: t.slice(4) }
-
-    // Real node ID — add link to that board
-    return { type: "ADD_LINK_TO_BOARD", boardId: t }
+    return addToVerb(() => t)(ctx) as CommandAction | null
   },
 } satisfies CommandDef
 

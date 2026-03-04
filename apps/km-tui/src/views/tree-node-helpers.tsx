@@ -2,7 +2,6 @@
  * Helper functions for TreeNode component
  *
  * Pure functions extracted from TreeNode for testability and clarity.
- * Includes both string-based formatters (ANSI) and React component equivalents.
  */
 
 import React from "react"
@@ -250,7 +249,6 @@ function formatScheduledDisplay(dateStr: string): string {
   return text
 }
 
-// Priority ANSI colors for known P-values: P0=red+bold, P1=red, P2=yellow, P3=bright yellow, P4=dim
 const PRIORITY_COLOR_MAP: Record<string, string> = {
   P0: "\x1b[1;31m", // bold red
   P1: "\x1b[31m", // red
@@ -260,10 +258,10 @@ const PRIORITY_COLOR_MAP: Record<string, string> = {
 }
 
 /**
- * Build a compact right-aligned date badge for a node.
+ * Build a compact right-aligned date badge for a node (ANSI string version).
  * Format: `P2 Mar 10 → Today ↻` (each part optional, space-separated)
  * Uses relative dates (Today, Tomorrow, day names) and urgency coloring on due dates.
- * Visible in both cards and columns view.
+ *
  */
 export function formatDateBadge(node: KNode): string {
   const parts: string[] = []

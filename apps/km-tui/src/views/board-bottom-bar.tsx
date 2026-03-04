@@ -3,75 +3,14 @@
  */
 /* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
 
-import React, { useState, useEffect } from "react"
+import React from "react"
 import { Box, Text, useFocusManager } from "inkx"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import type { ColumnView } from "../types.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
-
-// Spinner frames (from @beorn/inkx-ui, copied to avoid React version mismatch)
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-const SPINNER_INTERVAL = 80
-
-const FLASH_DURATION = 3000
-
-/** Hook for 3-second flash when a value changes */
-function useFlashOnChange(value: number): boolean {
-  const [flash, setFlash] = useState(false)
-  const prevRef = React.useRef(value)
-
-  useEffect(() => {
-    if (value === prevRef.current) return
-    prevRef.current = value
-    if (value === 0) return
-    setFlash(true)
-    // Skip timer during tests
-    // @ts-expect-error - React internal flag set by inkx test renderer
-    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
-    const timer = setTimeout(() => setFlash(false), FLASH_DURATION)
-    return () => clearTimeout(timer)
-  }, [value])
-
-  return flash
-}
-
-/** Hook to fire a one-time toast when first console log arrives */
-function useLogToast(total: number, toastQueue?: ToastQueue): void {
-  const firedRef = React.useRef(false)
-
-  useEffect(() => {
-    if (firedRef.current || total === 0 || !toastQueue) return
-    // @ts-expect-error - React internal flag set by inkx test renderer
-    if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
-    firedRef.current = true
-    toastQueue.info(`${total} log messages — press \` to see`)
-  }, [total, toastQueue])
-}
-
-/** Hook for animated spinner frame - uses React from inkx to avoid version mismatch */
-function useSpinnerFrame(enabled: boolean): string {
-  const [frameIndex, setFrameIndex] = useState(0)
-
-  useEffect(() => {
-    // Only run animation when spinner is actually displayed
-    if (!enabled) {
-      return
-    }
-    // Skip animation during tests to avoid act() warnings
-    // @ts-expect-error - React internal flag set by inkx test renderer
-    if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
-      return
-    }
-    const timer = setInterval(() => {
-      setFrameIndex((i) => (i + 1) % SPINNER_FRAMES.length)
-    }, SPINNER_INTERVAL)
-    return () => clearInterval(timer)
-  }, [enabled])
-
-  return SPINNER_FRAMES[frameIndex] ?? "⠋"
-}
+import { useFlashOnChange, useLogToast, useSpinnerFrame } from "../hooks/use-status-animations.ts"
 
 interface BottomBarProps {
   ui: PaneUI
@@ -143,7 +82,7 @@ export function BottomBar({
   let modeBold = false
   if (moveMode) {
     modeLabel = "MOVE"
-    modeColor = "magenta"
+    modeColor = "$secondary"
   } else if (ui.visualMode) {
     modeLabel = "VISUAL"
     modeColor = "$primary"

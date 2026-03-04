@@ -31,15 +31,15 @@ const MAX_RENDERED_ITEMS = 100
 type FlatItem =
   | {
       type: "header"
-      colIdx: number
-      cardIdx: -1
+      colIndex: number
+      cardIndex: -1
       column: ColumnView
       card?: undefined
     }
   | {
       type: "card"
-      colIdx: number
-      cardIdx: number
+      colIndex: number
+      cardIndex: number
       column: ColumnView
       card: KNode
     }
@@ -72,9 +72,9 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     const items: FlatItem[] = []
 
     columnsProp.forEach((column, cIdx) => {
-      items.push({ type: "header", colIdx: cIdx, cardIdx: -1, column })
+      items.push({ type: "header", colIndex: cIdx, cardIndex: -1, column })
       column.cardNodes.forEach((card, idx) => {
-        items.push({ type: "card", colIdx: cIdx, cardIdx: idx, column, card })
+        items.push({ type: "card", colIndex: cIdx, cardIndex: idx, column, card })
       })
     })
 
@@ -135,7 +135,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const renderItem = useCallback(
     (item: FlatItem, flatIndex: number) => {
       if (item.type === "header") {
-        const cIdx = item.colIdx
+        const cIdx = item.colIndex
         const colNodeId = item.column.node.id
         const isColSelected = selectionLevel === "column" && cursorColumnNodeId === colNodeId
         const isSelected = cursorColumnNodeId === colNodeId
@@ -155,8 +155,8 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
       }
 
       // Card item
-      const cIdx = item.colIdx
-      const cardIdx = item.cardIdx
+      const cIdx = item.colIndex
+      const cardIdx = item.cardIndex
       const cardNodeId = item.card.id
       const isCardSelected = selectionLevel === "card" && cursorCardNodeId === cardNodeId
 
