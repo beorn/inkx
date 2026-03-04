@@ -1,12 +1,10 @@
 # Theme System v2: Semantic Tokens + Progressive Enhancement
 
-> Design spec for km-tui.theme-system (P1)
-
-> **Note:** The core theme system (ThemePalette, Theme, deriveTheme, resolveThemeColor,
-> color utilities, built-in palettes) has been extracted to the `themex` package
-> (`vendor/beorn-themex/`, importable as `"themex"`). This doc retains the design rationale,
-> km-specific token usage, and migration plan. See `vendor/beorn-themex/CLAUDE.md` for
-> the package API reference.
+> **SUPERSEDED**: This design spec predates the themex redesign (2026-03).
+> The actual implementation uses ColorPalette (22 terminal colors) → Theme (33 shadcn-style tokens).
+> See `vendor/beorn-themex/CLAUDE.md` for the current architecture.
+> Token names below (`$text`, `$chromebg`, etc.) are outdated — current tokens use
+> `$fg`, `$inverse`, `$surface`, etc. See the CLAUDE.md semantic tokens table.
 
 ## Goals
 
