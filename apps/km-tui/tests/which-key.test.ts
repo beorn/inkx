@@ -188,7 +188,7 @@ describe("getChordSuffixes", () => {
     testEnv(() => item("board", item("col", item("task"))))
 
     const suffixes = getChordSuffixes("a")
-    expect(suffixes.length).toBe(18) // 4 pickers + 4 boards (h,i,j,a) + 10 favorites
+    expect(suffixes.length).toBe(8) // 4 pickers + 4 boards (h,i,j,a) + 0 favorites (empty by default)
 
     const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
     expect(suffixMap["#"]).toBe("add")
