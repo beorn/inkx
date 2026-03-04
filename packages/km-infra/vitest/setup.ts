@@ -125,7 +125,10 @@ beforeEach(() => {
   for (const method of CONSOLE_METHODS) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
       // Preserve act() warning filter (module-level patch gets overridden by spy)
-      if (method === "error" && typeof args[0] === "string" && args[0].includes("was not wrapped in act(")) {
+      if (method === "error" && typeof args[0] === "string" && (
+        args[0].includes("was not wrapped in act(") ||
+        args[0].includes("the `act` call was not awaited")
+      )) {
         return
       }
       consoleCalls.push({ method, args })
