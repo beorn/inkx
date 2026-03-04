@@ -597,7 +597,7 @@ describe("undo: TUI integration", () => {
     expect(childrenAfterDup.length).toBe(3)
 
     // u to undo (vim-style)
-    board.press("u")
+    board.command("undo")
 
     // Should be back to 2 cards
     const childrenAfterUndo = repo.getChildren("col1")
@@ -612,11 +612,11 @@ describe("undo: TUI integration", () => {
     expect(repo.getChildren("col1").length).toBe(3)
 
     // Undo
-    board.press("u")
+    board.command("undo")
     expect(repo.getChildren("col1").length).toBe(2)
 
     // Redo (U = redo)
-    board.press("U")
+    board.command("redo")
     expect(repo.getChildren("col1").length).toBe(3)
   })
 })
@@ -645,7 +645,7 @@ describe("Undo duplicate node", () => {
     expect(afterDup[3]).toBe("C")
 
     // Press u to undo
-    board.press("u")
+    board.command("undo")
 
     // The duplicate should be removed
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
@@ -657,7 +657,7 @@ describe("Undo duplicate node", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A"))))
 
     // u with empty undo stack should ring bell
-    board.press("u")
+    board.command("undo")
     expect(board.bell).toBe(true)
   })
 
@@ -671,17 +671,17 @@ describe("Undo duplicate node", () => {
     expect(childIds(repo, "col1")).toHaveLength(3)
 
     // Navigate to B (now at index 2) and duplicate it
-    board.press("j") // to dup of A
-    board.press("j") // to B
+    board.command("cursor_down") // to dup of A
+    board.command("cursor_down") // to B
     board.press("cmd+d")
     expect(childIds(repo, "col1")).toHaveLength(4)
 
     // Undo last duplicate (B's duplicate)
-    board.press("u")
+    board.command("undo")
     expect(childIds(repo, "col1")).toHaveLength(3)
 
     // Undo first duplicate (A's duplicate)
-    board.press("u")
+    board.command("undo")
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
   })
 })
@@ -695,7 +695,7 @@ describe("undo cursor restore", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
 
     // Cursor starts on task-a. Move to task-b.
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#task-b[data-cursor]").toExist()
 
     // Duplicate task-b (key: d)
@@ -705,7 +705,7 @@ describe("undo cursor restore", () => {
     board.expect("#task-b").toExist()
 
     // Undo
-    board.press("u")
+    board.command("undo")
 
     // After undo, cursor should be back on task-b (not at root or lost)
     board.expect("#task-b[data-cursor]").toExist()
@@ -721,7 +721,7 @@ describe("undo cursor restore", () => {
     board.press("cmd+d")
 
     // Undo
-    board.press("u")
+    board.command("undo")
 
     // Cursor should be back on first card
     board.expect("#first[data-cursor]").toExist()
@@ -744,11 +744,11 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
     expect(repo.getChildren("col1")).toHaveLength(3)
 
     // Undo -> back to 2
-    board.press("u")
+    board.command("undo")
     expect(repo.getChildren("col1")).toHaveLength(2)
 
     // Redo -> should be back to 3
-    board.press("U")
+    board.command("redo")
     expect(repo.getChildren("col1")).toHaveLength(3)
   })
 
@@ -756,10 +756,10 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
     board.press("cmd+d") // dup -> 3
-    board.press("u") // undo -> 2
-    board.press("U") // redo -> 3
-    board.press("u") // undo -> 2
-    board.press("U") // redo -> 3
+    board.command("undo") // undo -> 2
+    board.command("redo") // redo -> 3
+    board.command("undo") // undo -> 2
+    board.command("redo") // redo -> 3
 
     expect(repo.getChildren("col1")).toHaveLength(3)
   })
@@ -793,7 +793,7 @@ describe("Undo/Redo Journeys", () => {
     expect(orderAfterShift[1]).toBe("aa")
 
     // Step 2: Undo the shift
-    board.press("u")
+    board.command("undo")
 
     // Verify undo restored original order — BOTH screen and repo
     const aaBoxRestored = board.q("#aa").boundingBox()
@@ -820,7 +820,7 @@ describe("Undo/Redo Journeys", () => {
     board.expect("#taskB").toExist()
 
     // Step 2: Undo — duplicate should vanish from both screen and repo
-    board.press("u")
+    board.command("undo")
 
     expect(repo.getChildren("col1").length).toBe(2)
     expect(repo.getNode(dupId)).toBeNull()
@@ -830,7 +830,7 @@ describe("Undo/Redo Journeys", () => {
     board.expect("#taskB").toExist()
 
     // Step 3: Redo — duplicate should reappear
-    board.press("U")
+    board.command("redo")
 
     expect(repo.getChildren("col1").length).toBe(3)
     board.expect("#taskA").toExist()
@@ -841,7 +841,7 @@ describe("Undo/Redo Journeys", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))))
 
     // Navigate to beta
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#beta[data-cursor]").toExist()
 
     // Step 1: Delete beta
@@ -853,7 +853,7 @@ describe("Undo/Redo Journeys", () => {
     expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["alpha", "gamma"])
 
     // Step 2: Undo — beta should be restored
-    board.press("u")
+    board.command("undo")
 
     expect(repo.getNode("beta")).not.toBeNull()
     expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["alpha", "beta", "gamma"])
@@ -882,7 +882,7 @@ describe("Undo/Redo Journeys", () => {
     expect(repo.getNode("fix-bug")?.parent_id).toBe("done")
 
     // Step 2: Undo — fix-bug should return to todo
-    board.press("u")
+    board.command("undo")
 
     // Repo: parent should be todo again
     expect(repo.getNode("fix-bug")?.parent_id).toBe("todo")
@@ -898,11 +898,11 @@ describe("Undo/Redo Journeys", () => {
     const { board } = testEnv(() => item("board", item("col1", item("only"))))
 
     // Step 1: Undo with nothing to undo
-    board.press("u")
+    board.command("undo")
     expect(board.bell).toBe(true)
 
     // Step 2: Redo with nothing to redo
-    board.press("U")
+    board.command("redo")
     expect(board.bell).toBe(true)
 
     // Board should still render correctly
@@ -917,20 +917,20 @@ describe("Undo/Redo Journeys", () => {
     expect(repo.getChildren("col1").length).toBe(4)
 
     // Step 2: Navigate to t3 (now at index 3) and delete it
-    board.press("j") // dup of t1
-    board.press("j") // t2
-    board.press("j") // t3
+    board.command("cursor_down") // dup of t1
+    board.command("cursor_down") // t2
+    board.command("cursor_down") // t3
     board.expect("#t3[data-cursor]").toExist()
     board.press("Backspace")
     expect(repo.getNode("t3")).toBeNull()
 
     // Step 3: Undo delete — t3 should reappear
-    board.press("u")
+    board.command("undo")
     expect(repo.getNode("t3")).not.toBeNull()
     board.expect("#t3").toExist()
 
     // Step 4: Undo duplicate — duplicate should disappear
-    board.press("u")
+    board.command("undo")
     expect(repo.getChildren("col1").length).toBe(3)
     expect(repo.getChildren("col1").map((n) => n.id)).toEqual(["t1", "t2", "t3"])
 

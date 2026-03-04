@@ -34,11 +34,11 @@ describe(`Real vault cursor perf (300x120)`, () => {
         incremental: true,
       })
       // Move into a column first
-      board.press("l")
-      board.press("j")
+      board.command("cursor_right")
+      board.command("cursor_down")
       // Now time 10 cursor moves
       for (let i = 0; i < 10; i++) {
-        board.press("j")
+        board.command("cursor_down")
       }
     },
     { iterations: 3, warmupIterations: 1 },
@@ -55,10 +55,10 @@ describe(`Real vault cursor perf (200x60)`, () => {
         viewMode: "columns",
         incremental: true,
       })
-      board.press("l")
-      board.press("j")
+      board.command("cursor_right")
+      board.command("cursor_down")
       for (let i = 0; i < 10; i++) {
-        board.press("j")
+        board.command("cursor_down")
       }
     },
     { iterations: 3, warmupIterations: 1 },
@@ -75,10 +75,10 @@ describe(`Real vault cursor perf (80x24)`, () => {
         viewMode: "columns",
         incremental: true,
       })
-      board.press("l")
-      board.press("j")
+      board.command("cursor_right")
+      board.command("cursor_down")
       for (let i = 0; i < 10; i++) {
-        board.press("j")
+        board.command("cursor_down")
       }
     },
     { iterations: 3, warmupIterations: 1 },

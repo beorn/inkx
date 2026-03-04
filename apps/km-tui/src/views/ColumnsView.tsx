@@ -21,7 +21,7 @@ import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useIsColumnSelectedByNode, useCursorColumnNodeId } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
@@ -66,9 +66,10 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   } = useTreeRenderContext()
 
   // Subscribe to column selection only (stable on j/k within same column)
-  const columnSelected = useIsColumnSelectedByNode(column.node.id)
-  const isSelected = columnSelected.isSelected
-  const selectionLevel = columnSelected.selectionLevel
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const isSelected = cursorColumnNodeId === column.node.id
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>(
@@ -182,7 +183,8 @@ interface ColumnsViewProps {
 const COLUMNS_VIEW_MAX_WIDTH = 50
 
 export function ColumnsView({ columns, width, height }: ColumnsViewProps): React.ReactElement {
-  const cursorColumnNodeId = useCursorColumnNodeId()
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
   const colIndex = useMemo(() => {
     if (!cursorColumnNodeId) return 0
     const idx = columns.findIndex((c) => c.node.id === cursorColumnNodeId)

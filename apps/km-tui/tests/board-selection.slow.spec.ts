@@ -42,7 +42,7 @@ describe("Selection", () => {
 
   test("J at bottom boundary does not extend past last card", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"))))
-    board.press("j") // Move to 1b normally
+    board.command("cursor_down") // Move to 1b normally
     board.expect("#1b[data-cursor]").toExist()
 
     board.press("shift+ArrowDown") // Init selection anchor at 1b
@@ -59,7 +59,7 @@ describe("Selection", () => {
 
   test("K extends selection up from last card", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
-    board.press("j").press("j") // Navigate to 1c
+    board.command("cursor_down").command("cursor_down") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
     board.press("shift+ArrowUp") // Shift+K = extend_select_up
@@ -69,7 +69,7 @@ describe("Selection", () => {
 
   test("K twice extends selection up through multiple cards", () => {
     const { board } = testEnv(() => item("board", item("col", item("1a"), item("1b"), item("1c"))))
-    board.press("j").press("j") // Navigate to 1c
+    board.command("cursor_down").command("cursor_down") // Navigate to 1c
     board.expect("#1c[data-cursor]").toExist()
 
     board.press("shift+ArrowUp")
@@ -109,7 +109,7 @@ describe("Selection", () => {
   test("H selects current column and previous column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to col2
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("shift+ArrowLeft") // Shift+H = extend_select_left
@@ -158,7 +158,7 @@ describe("Selection", () => {
   test("L at right boundary selects current column only", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b"))))
     // Navigate to last column
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("shift+ArrowRight") // At boundary — selects current column
@@ -265,7 +265,7 @@ describe("Selection", () => {
     expect(board.getStatus()?.message).toContain("selected")
 
     // Open help overlay
-    board.press("?")
+    board.command("show_help")
 
     // First Escape closes help, selection still active
     board.press("Escape")
@@ -287,13 +287,13 @@ describe("Selection", () => {
       item("board", item("col1", item("1a")), item("col2", item("2a"), item("2b")), item("col3", item("3a"))),
     )
     // Navigate to middle column so h doesn't hit boundary
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("shift+ArrowDown") // Create card selection in col2
     expect(board.getStatus()?.message).toContain("selected")
 
-    board.press("h") // Normal h — clears selection and navigates left
+    board.command("cursor_left") // Normal h — clears selection and navigates left
     // Status is cleared (status resets at keypress start, h doesn't set it)
     expect(board.getStatus()).toBeNull()
     board.expect("#1a[data-cursor]").toExist()
@@ -304,7 +304,7 @@ describe("Selection", () => {
     board.press("shift+ArrowDown") // Create card selection
     expect(board.getStatus()?.message).toContain("selected")
 
-    board.press("l") // Normal l — clears selection and navigates right
+    board.command("cursor_right") // Normal l — clears selection and navigates right
     expect(board.getStatus()).toBeNull()
     board.expect("#2a[data-cursor]").toExist()
   })
@@ -323,7 +323,7 @@ describe("Selection", () => {
 
   test("H moves cursor to target column", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
-    board.press("l") // Navigate to col2
+    board.command("cursor_right") // Navigate to col2
     board.expect("#2a[data-cursor]").toExist()
 
     board.press("shift+ArrowLeft")

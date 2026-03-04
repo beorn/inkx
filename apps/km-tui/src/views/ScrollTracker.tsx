@@ -1,16 +1,16 @@
 /**
- * ScrollTracker — thin wrapper that subscribes to CursorStore for scroll position.
+ * ScrollTracker — thin wrapper that subscribes to ReactiveNodeStore cursor for scroll position.
  *
- * Re-renders on j/k (via useCursorCardNodeId) and passes scrollTo to VirtualList.
+ * Re-renders on j/k (via cursorCardNodeId Reactive) and passes scrollTo to VirtualList.
  * This isolates cursor-driven re-renders: Column doesn't re-render, only this
- * wrapper + VirtualList. Cards self-subscribe via CursorStore.
+ * wrapper + VirtualList. Cards self-subscribe via ReactiveNodeStore.
  *
  * The wrapper approach avoids the cross-component effect timing issue where
  * setScrollOffset from a sibling's useEffect doesn't get flushed by act().
  */
 import React, { useMemo } from "react"
 import { VirtualList, type VirtualListProps } from "inkx"
-import { useCursorCardNodeId } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
 interface ScrollTrackingVirtualListProps<T> extends Omit<VirtualListProps<T>, "scrollTo"> {
@@ -31,7 +31,10 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
   scrollAnchor,
   ...virtualListProps
 }: ScrollTrackingVirtualListProps<T>): React.ReactElement {
-  const cursorCardNodeId = useCursorCardNodeId()
+  const nodeStore = useNodeStore()
+  const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const _selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorCardNodeId = _selectionLevel === "card" ? _cursorCardNodeId : null
 
   // Find the card index by looking up cursorCardNodeId in the items array
   const cardIndex = useMemo(() => {

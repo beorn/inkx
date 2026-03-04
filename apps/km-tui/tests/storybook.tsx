@@ -79,7 +79,7 @@ import { StoreContext } from "inkx/runtime"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
-import { createStore as createJotaiStore, Provider as JotaiProvider } from "jotai"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/reactive.ts"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
@@ -159,7 +159,7 @@ const defaultCursorStore = createCursorStore({
 })
 
 // Wrap children with all providers TreeNode needs
-const storybookJotaiStore = createJotaiStore()
+const storybookNodeStore = new ReactiveNodeStore()
 const noopUndoHandle = {
   startBatch: () => {},
   endBatch: () => {},
@@ -175,7 +175,7 @@ function StorybookProviders({ children }: { children: React.ReactNode }): React.
   const treeConfig = deriveTreeConfig(mockUIState.viewMode, mockUIState.maxContentLines, mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore}>
-      <JotaiProvider store={storybookJotaiStore}>
+      <ReactiveNodeStoreProvider value={storybookNodeStore}>
         <CursorStoreProvider store={defaultCursorStore}>
           <TreeRenderProvider
             treeConfig={treeConfig}
@@ -189,7 +189,7 @@ function StorybookProviders({ children }: { children: React.ReactNode }): React.
             {children}
           </TreeRenderProvider>
         </CursorStoreProvider>
-      </JotaiProvider>
+      </ReactiveNodeStoreProvider>
     </StoreContext.Provider>
   )
 }

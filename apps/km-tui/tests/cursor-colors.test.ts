@@ -325,7 +325,7 @@ describe("cursor color override", () => {
       { columns: 60, rows: 20 },
     )
 
-    board.press("j")
+    board.command("cursor_down")
 
     const ansi = board._result.ansi
     const content = findSelectedCardContent(ansi, "Has styled content")

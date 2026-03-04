@@ -23,14 +23,7 @@ import {
   type PatchedConsole,
 } from "inkx"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "inkx/runtime"
-import { createStore, Provider as JotaiProvider } from "jotai"
-import {
-  hydrateNodeAtoms,
-  syncCursorToAtoms,
-  syncFoldDepthsToAtoms,
-  syncMultiSelectedToAtoms,
-  syncEditToAtoms,
-} from "../node-atoms-hydrate.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -48,7 +41,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "@beorn/logger"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { CursorStoreProvider, useCursorNodePosition, useCursorStore } from "../cursor-context.tsx"
+// cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)
 import type { CursorStore } from "../cursor-store.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board-types.ts"
@@ -222,8 +215,10 @@ function BoardTopBar({
   maxContentLines,
 }: TopBarProps): React.ReactElement {
   const repo = useRepo()
-  const cursorPos = useCursorNodePosition()
-  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+  const nodeStore = useNodeStore()
+  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
   const paneLabel = usePaneLabel()
 
   const pathNodeId =
@@ -520,53 +515,53 @@ export function Board({ patchedConsole }: BoardProps) {
   const boardFocused = activeScopeId === null || activeScopeId === paneId
   const hasDetailPane = useAppStore<BoardAppStore, boolean>((s) => hasDetailPaneFor(s.workspace, paneId))
 
-  // Jotai store — per-pane scope, stable across re-renders
-  const jotaiStore = useMemo(() => createStore(), [])
+  // Reactive node store — per-pane scope, stable across re-renders
+  const nodeStore = useMemo(() => new ReactiveNodeStore(), [])
 
-  // Hydrate Jotai atoms on initial load and root change (zoom)
+  // Hydrate reactive node state on initial load and root change (zoom)
   const multiSelected = ui.multiSelected
   useEffect(() => {
-    hydrateNodeAtoms(jotaiStore, repo, rootId, foldDepths, multiSelected)
+    nodeStore.hydrate(repo, rootId, foldDepths, multiSelected)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
-  }, [jotaiStore, repo, rootId])
+  }, [nodeStore, repo, rootId])
 
-  // Incrementally sync fold depth changes to Jotai atoms
+  // Incrementally sync fold depth changes to reactive node state
   const prevFoldDepthsRef = useRef(foldDepths)
   useEffect(() => {
     const prev = prevFoldDepthsRef.current
     if (prev !== foldDepths) {
-      syncFoldDepthsToAtoms(jotaiStore, prev, foldDepths)
+      nodeStore.syncFoldDepths(prev, foldDepths)
       prevFoldDepthsRef.current = foldDepths
     }
-  }, [jotaiStore, foldDepths])
+  }, [nodeStore, foldDepths])
 
-  // Incrementally sync multi-selection changes to Jotai atoms
+  // Incrementally sync multi-selection changes to reactive node state
   const prevMultiSelectedRef = useRef(multiSelected)
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
     if (prev !== multiSelected) {
-      syncMultiSelectedToAtoms(jotaiStore, prev, multiSelected)
+      nodeStore.syncMultiSelected(prev, multiSelected)
       prevMultiSelectedRef.current = multiSelected
     }
-  }, [jotaiStore, multiSelected])
+  }, [nodeStore, multiSelected])
 
-  // Incrementally sync inline edit state to Jotai atoms
+  // Incrementally sync inline edit state to reactive node state
   const inlineEditBlock = ui.inlineEditBlock
   const prevInlineEditRef = useRef(inlineEditBlock)
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== inlineEditBlock) {
-      syncEditToAtoms(jotaiStore, prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
+      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
       prevInlineEditRef.current = inlineEditBlock
     }
-  }, [jotaiStore, inlineEditBlock])
+  }, [nodeStore, inlineEditBlock])
 
-  // Sync cursor state to Jotai atoms when CursorStore changes
+  // Sync cursor state from CursorStore to Reactive fields (for Board-internal components)
   useEffect(() => {
-    const sync = () => syncCursorToAtoms(jotaiStore, cursorStore.getState(), boardFocused)
+    const sync = () => nodeStore.syncCursor(cursorStore.getState())
     sync() // Initial sync
     return cursorStore.subscribe(sync)
-  }, [jotaiStore, cursorStore, boardFocused])
+  }, [nodeStore, cursorStore])
 
   // Layout is derived on demand — no store sync needed
 
@@ -884,34 +879,32 @@ export function Board({ patchedConsole }: BoardProps) {
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
 
   return (
-    <JotaiProvider store={jotaiStore}>
-      <CursorStoreProvider store={cursorStore}>
-        <TreeRenderProvider
-          treeConfig={treeConfig}
-          setUI={setUI}
-          rootBoardId={findBoardRootId(repo, rootId)}
-          searchMatchNodeIds={searchMatchNodeIds}
-          currentMatchNodeId={currentMatchNodeId}
-          searchQuery={ui.localSearch?.query ?? null}
-          jobRunner={jobRunner}
-          undoHandle={undoHandle}
-          taskStatusFilter={taskStatusFilter}
-          boardFocused={boardFocused}
-        >
-          <BoardCore
-            rootId={rootId}
-            columns={filteredColumns}
-            colIndex={visibleColIndex}
-            cardIndex={columnsLayout.cardIndex}
-            ui={ui}
-            derivedSelectionLevel={derivedSelectionLevel}
-            dimensions={ui.dimensions}
-            collapsedNodes={collapsedNodes}
-            hasDetailPane={hasDetailPane}
-          />
-        </TreeRenderProvider>
-      </CursorStoreProvider>
-    </JotaiProvider>
+    <ReactiveNodeStoreProvider value={nodeStore}>
+      <TreeRenderProvider
+        treeConfig={treeConfig}
+        setUI={setUI}
+        rootBoardId={findBoardRootId(repo, rootId)}
+        searchMatchNodeIds={searchMatchNodeIds}
+        currentMatchNodeId={currentMatchNodeId}
+        searchQuery={ui.localSearch?.query ?? null}
+        jobRunner={jobRunner}
+        undoHandle={undoHandle}
+        taskStatusFilter={taskStatusFilter}
+        boardFocused={boardFocused}
+      >
+        <BoardCore
+          rootId={rootId}
+          columns={filteredColumns}
+          colIndex={visibleColIndex}
+          cardIndex={columnsLayout.cardIndex}
+          ui={ui}
+          derivedSelectionLevel={derivedSelectionLevel}
+          dimensions={ui.dimensions}
+          collapsedNodes={collapsedNodes}
+          hasDetailPane={hasDetailPane}
+        />
+      </TreeRenderProvider>
+    </ReactiveNodeStoreProvider>
   )
 }
 

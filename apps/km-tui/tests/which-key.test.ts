@@ -13,7 +13,7 @@ describe("which-key popup", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
     // Move to a card first
-    board.press("j")
+    board.command("cursor_down")
 
     // Press 'g' (chord prefix)
     board.press("g")
@@ -25,7 +25,7 @@ describe("which-key popup", () => {
   test("pressing suffix key clears pendingChord", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
 
     // Start chord
     board.press("g")
@@ -39,7 +39,7 @@ describe("which-key popup", () => {
   test("Escape clears pendingChord", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
 
     // Start chord
     board.press("g")
@@ -53,7 +53,7 @@ describe("which-key popup", () => {
   test("m chord prefix sets pendingChord", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("m")
     expect(store.getState().ui.pendingChord).toBe("m")
   })
@@ -61,7 +61,7 @@ describe("which-key popup", () => {
   test("t chord prefix sets pendingChord", () => {
     const { board, store } = testEnv(() => item("board", item("col", item.task("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("t")
     expect(store.getState().ui.pendingChord).toBe("t")
   })
@@ -69,7 +69,7 @@ describe("which-key popup", () => {
   test("a chord prefix sets pendingChord", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("a")
     expect(store.getState().ui.pendingChord).toBe("a")
   })
@@ -79,7 +79,7 @@ describe("which-key popup rendering", () => {
   test("popup shows chord suffixes immediately when prefix is pending", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("g")
 
     // Popup should show chord suffix hints
@@ -92,7 +92,7 @@ describe("which-key popup rendering", () => {
   test("popup disappears when suffix key is pressed", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("g")
     expect(board.screenshot()).toContain("inbox")
 
@@ -105,7 +105,7 @@ describe("which-key popup rendering", () => {
   test("popup shows different suffixes for different prefixes", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("m")
 
     // m-prefix should show move-related suffixes (location labels)
@@ -117,7 +117,7 @@ describe("which-key popup rendering", () => {
   test("a-prefix popup shows add-related suffixes", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("a")
 
     // a-prefix should show add-related suffixes
@@ -132,7 +132,7 @@ describe("which-key popup minimum display duration", () => {
   test("popup stays visible after chord timeout fires", () => {
     const { board, store } = testEnv(() => item("board", item("col", item.task("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("t")
     expect(store.getState().ui.pendingChord).toBe("t")
 
@@ -149,12 +149,12 @@ describe("which-key popup minimum display duration", () => {
   test("popup stays visible when non-suffix key pressed within min display time", () => {
     const { board, store } = testEnv(() => item("board", item("col", item("task"))))
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("g")
     expect(store.getState().ui.pendingChord).toBe("g")
 
     // Press a random key (not a chord suffix) — popup should stay because min display time hasn't elapsed
-    board.press("x")
+    board.command("toggle_task_done")
     expect(store.getState().ui.pendingChord).toBe("g")
   })
 })

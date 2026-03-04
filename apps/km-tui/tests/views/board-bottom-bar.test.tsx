@@ -487,7 +487,7 @@ describe("Bottom bar VIEW indicator", () => {
       rows: 24,
       columns: 80,
     })
-    env.board.press("v").press("m") // Switch view mode (v m chord)
+    env.board.command("cycle_view_mode") // Switch view mode (v m chord)
     const text = env.board.screenshot()
     // Could be LIST, COLUMNS, or TABS
     expect(text).toMatch(/(LIST|COLUMNS|TABS) VIEW/)

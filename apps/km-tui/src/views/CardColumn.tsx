@@ -29,7 +29,7 @@ import { useNavigator } from "../layout-context.tsx"
 import { usePaneId } from "../pane-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
-import { useIsCursorAtNode, useIsColumnSelectedByNode } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
@@ -163,15 +163,18 @@ const Card = React.memo(
   }: CardProps): React.ReactElement {
     const nodeId = card.id
 
-    // Get selection state exclusively from CursorStore (self-subscription via nodeId).
+    // Get selection state from ReactiveNodeStore (self-subscription via nodeId).
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
-    const isSelected = useIsCursorAtNode(nodeId)
+    const nodeStore = useNodeStore()
+    const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+    const selLevel = useReactive(nodeStore.selectionLevel)
+    const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
     // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
-    const isPrevAtCursor = useIsCursorAtNode(prevCardNodeId ?? "")
+    const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useAppStore<BoardAppStore, boolean>(
@@ -542,9 +545,10 @@ export const Column = React.memo(function Column({
   // Subscribe to column selection only (stable on j/k within same column).
   // NODE MODEL V2: Self-select by nodeId instead of positional index.
   // ScrollTrackingVirtualList handles cardIndex subscription.
-  const columnSelected = useIsColumnSelectedByNode(nodeId)
-  const isSelected = columnSelected.isSelected
-  const selectionLevel = columnSelected.selectionLevel
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const isSelected = cursorColumnNodeId === nodeId
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useAppStore<BoardAppStore, boolean>(

@@ -23,7 +23,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
 
     // Navigate down through cards
     for (let i = 1; i < 15; i++) {
-      board.press("j")
+      board.command("cursor_down")
 
       // The current card should be visible in the text output
       const screenshot = board.screenshot()
@@ -40,7 +40,7 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     })
 
     // Jump to last card
-    board.press("g").press("G")
+    board.command("cursor_last")
 
     // Last card should be visible
     const screenshot = board.screenshot()
@@ -59,10 +59,10 @@ describe("km-tui-scroll-follow: Scroll follows cursor", () => {
     })
 
     // Jump to last, then navigate up
-    board.press("g").press("G")
-    board.press("k")
-    board.press("k")
-    board.press("k")
+    board.command("cursor_last")
+    board.command("cursor_up")
+    board.command("cursor_up")
+    board.command("cursor_up")
 
     // card16 should be visible (20-1-3 = 16)
     const screenshot = board.screenshot()
@@ -78,11 +78,11 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
     )
 
     // Navigate to last card in col1
-    board.press("j").press("j")
+    board.command("cursor_down").command("cursor_down")
     board.expect("#c[data-cursor]").toExist()
 
     // Press j at boundary
-    board.press("j")
+    board.command("cursor_down")
 
     // Should ring bell and stay on c, not jump to board or col2
     expect(board.bell).toBe(true)
@@ -103,17 +103,17 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
     // Navigate down through areas column
     board.expect("#Family[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#Health[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#Kinship[data-cursor]").toExist()
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#MamaMuse[data-cursor]").toExist()
 
     // At last card, should ring bell, not jump
-    board.press("j")
+    board.command("cursor_down")
     expect(board.bell).toBe(true)
     board.expect("#MamaMuse[data-cursor]").toExist()
 
@@ -128,11 +128,11 @@ describe("km-tui-cursor-jump: Cursor movement boundaries", () => {
     )
 
     // Navigate down to 1c (index 2)
-    board.press("j").press("j")
+    board.command("cursor_down").command("cursor_down")
     board.expect("#1c[data-cursor]").toExist()
 
     // Move right to col2 - should go to 2b (closest to row 2)
-    board.press("l")
+    board.command("cursor_right")
 
     // Should be at 2b (last card in col2), not jump to top
     board.expect("#2b[data-cursor]").toExist()
@@ -203,7 +203,7 @@ describe("km-tui-empty-cards: Card content rendering", () => {
 
     // Navigate to card near the edge
     for (let i = 0; i < 5; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
 
     const screenshot = board.screenshot()
@@ -225,7 +225,7 @@ describe("Scroll virtualization doesn't hide content", () => {
 
     // Rapidly navigate down
     for (let i = 0; i < 25; i++) {
-      board.press("j")
+      board.command("cursor_down")
     }
 
     const screenshot = board.screenshot()
@@ -249,7 +249,7 @@ describe("Scroll virtualization doesn't hide content", () => {
     // Scroll down through the list, checking for artifacts at milestones
     const checkpoints = [5, 10, 15]
     for (let i = 0; i < 15; i++) {
-      board.press("j")
+      board.command("cursor_down")
       if (checkpoints.includes(i + 1)) {
         const text = board.screenshot()
 
@@ -268,7 +268,7 @@ describe("Scroll virtualization doesn't hide content", () => {
 
     // Scroll back up and verify no artifacts at milestones
     for (let i = 0; i < 15; i++) {
-      board.press("k")
+      board.command("cursor_up")
       if (checkpoints.includes(i + 1)) {
         const text = board.screenshot()
         expect(text).not.toContain("[object Object]")

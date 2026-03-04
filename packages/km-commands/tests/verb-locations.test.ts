@@ -29,8 +29,26 @@ import {
 } from "../src/verb-locations.ts"
 import { REPO_LOCS } from "../src/locations.ts"
 import { initCommandSystem } from "../src/ink-adapter.ts"
-import { resolveChord, clearKeybindings, type KeybindingContext } from "../src/keybindings.ts"
+import { resolveChord, clearKeybindings, parseKeyString, type KeybindingContext, type Keybinding } from "../src/keybindings.ts"
 import type { CommandContext } from "../src/types.ts"
+
+/** Helper to match a binding by chord prefix and suffix key (parsed from the key string) */
+function findBinding(grid: Keybinding[], chord: string, suffix: string): Keybinding | undefined {
+  return grid.find((b) => {
+    const parsed = parseKeyString(b.key)
+    return parsed.chord === chord && parsed.key === suffix
+  })
+}
+
+/** Helper to filter bindings by chord prefix */
+function filterByChord(grid: Keybinding[], chord: string): Keybinding[] {
+  return grid.filter((b) => parseKeyString(b.key).chord === chord)
+}
+
+/** Helper to get the suffix key from a binding */
+function suffixKey(b: Keybinding): string {
+  return parseKeyString(b.key).key
+}
 
 const emptyCtx = {} as CommandContext
 
@@ -264,60 +282,66 @@ describe("verb-locations", () => {
 
     it("produces bindings with required fields", () => {
       for (const b of grid) {
-        expect(b).toHaveProperty("chord")
         expect(b).toHaveProperty("key")
         expect(b).toHaveProperty("commandId")
         expect(b).toHaveProperty("execute")
         expect(typeof b.execute).toBe("function")
+        // Key should be a chord (space-separated)
+        const parsed = parseKeyString(b.key)
+        expect(parsed.chord).toBeDefined()
       }
     })
 
     it("all bindings have a chord prefix from VERBS", () => {
       const verbPrefixes = Object.values(VERBS).map((v) => v.prefix)
       for (const b of grid) {
-        expect(verbPrefixes).toContain(b.chord)
+        const parsed = parseKeyString(b.key)
+        expect(verbPrefixes).toContain(parsed.chord)
       }
     })
 
     // --- Skip rules: nonsensical combinations ---
 
     it("does NOT produce a g (addTo first) binding", () => {
-      const match = grid.find((b) => b.chord === "a" && b.key === "g")
+      const match = findBinding(grid, "a", "g")
       expect(match).toBeUndefined()
     })
 
     it("does NOT produce a G (addTo last) binding", () => {
-      const match = grid.find((b) => b.chord === "a" && b.key === "G")
+      const match = findBinding(grid, "a", "G")
       expect(match).toBeUndefined()
     })
 
     it("does NOT produce a p (addTo parent) binding", () => {
-      const match = grid.find((b) => b.chord === "a" && b.key === "p")
+      const match = findBinding(grid, "a", "p")
       expect(match).toBeUndefined()
     })
 
     it("does NOT produce c + system locations except c i", () => {
-      const cSystemBindings = grid.filter((b) => b.chord === "c" && Object.keys(SYSTEM_LOCS).includes(b.key))
+      const cBindings = filterByChord(grid, "c")
+      const cSystemBindings = cBindings.filter((b) => Object.keys(SYSTEM_LOCS).includes(suffixKey(b)))
       // Only c i should exist
       expect(cSystemBindings).toHaveLength(1)
-      expect(cSystemBindings[0]!.key).toBe("i")
+      expect(suffixKey(cSystemBindings[0]!)).toBe("i")
     })
 
     it("does NOT produce c + favorite bindings", () => {
-      const cFavBindings = grid.filter((b) => b.chord === "c" && b.key.match(/^[0-9]$/))
+      const cBindings = filterByChord(grid, "c")
+      const cFavBindings = cBindings.filter((b) => suffixKey(b).match(/^[0-9]$/))
       expect(cFavBindings).toHaveLength(0)
     })
 
     it("does NOT produce c + picker locations except c #", () => {
-      const cPickerBindings = grid.filter((b) => b.chord === "c" && Object.keys(PICKER_LOCS).includes(b.key))
+      const cBindings = filterByChord(grid, "c")
+      const cPickerBindings = cBindings.filter((b) => Object.keys(PICKER_LOCS).includes(suffixKey(b)))
       expect(cPickerBindings).toHaveLength(1)
-      expect(cPickerBindings[0]!.key).toBe("#")
+      expect(suffixKey(cPickerBindings[0]!)).toBe("#")
     })
 
     // --- Positive: expected combinations exist ---
 
     it("produces g i (goTo inbox)", () => {
-      const b = grid.find((b) => b.chord === "g" && b.key === "i")
+      const b = findBinding(grid, "g", "i")
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("goto")
       const action = b!.execute!(emptyCtx)
@@ -325,7 +349,7 @@ describe("verb-locations", () => {
     })
 
     it("produces m j (moveTo journal)", () => {
-      const b = grid.find((b) => b.chord === "m" && b.key === "j")
+      const b = findBinding(grid, "m", "j")
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("move")
       const action = b!.execute!(emptyCtx)
@@ -333,49 +357,49 @@ describe("verb-locations", () => {
     })
 
     it("produces g p (goTo parent = ZOOM_OUTWARDS)", () => {
-      const b = grid.find((b) => b.chord === "g" && b.key === "p")
+      const b = findBinding(grid, "g", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "ZOOM_OUTWARDS" })
     })
 
     it("produces m p (moveTo parent = OUTDENT_NODE)", () => {
-      const b = grid.find((b) => b.chord === "m" && b.key === "p")
+      const b = findBinding(grid, "m", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "OUTDENT_NODE" })
     })
 
     it("produces m g (moveTo first = SHIFT_TO_TOP)", () => {
-      const b = grid.find((b) => b.chord === "m" && b.key === "g")
+      const b = findBinding(grid, "m", "g")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SHIFT_TO_TOP" })
     })
 
     it("produces m G (moveTo last = SHIFT_TO_BOTTOM)", () => {
-      const b = grid.find((b) => b.chord === "m" && b.key === "G")
+      const b = findBinding(grid, "m", "G")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SHIFT_TO_BOTTOM" })
     })
 
     it("produces a # (addTo pick # = SET_LABEL)", () => {
-      const b = grid.find((b) => b.chord === "a" && b.key === "#")
+      const b = findBinding(grid, "a", "#")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SET_LABEL" })
     })
 
     it("produces a @ (addTo pick @ = SET_ASSIGNEE)", () => {
-      const b = grid.find((b) => b.chord === "a" && b.key === "@")
+      const b = findBinding(grid, "a", "@")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SET_ASSIGNEE" })
     })
 
     it("produces a [ (addTo pick [ = ADD_LINK)", () => {
-      const b = grid.find((b) => b.chord === "a" && b.key === "[")
+      const b = findBinding(grid, "a", "[")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "ADD_LINK" })
@@ -383,7 +407,7 @@ describe("verb-locations", () => {
 
     it("produces g + favorites 0-9", () => {
       for (let n = 0; n <= 9; n++) {
-        const b = grid.find((b) => b.chord === "g" && b.key === String(n))
+        const b = findBinding(grid, "g", String(n))
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
@@ -393,7 +417,7 @@ describe("verb-locations", () => {
 
     it("produces m + favorites 0-9", () => {
       for (let n = 0; n <= 9; n++) {
-        const b = grid.find((b) => b.chord === "m" && b.key === String(n))
+        const b = findBinding(grid, "m", String(n))
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
@@ -403,7 +427,7 @@ describe("verb-locations", () => {
 
     it("produces a + favorites 0-9", () => {
       for (let n = 0; n <= 9; n++) {
-        const b = grid.find((b) => b.chord === "a" && b.key === String(n))
+        const b = findBinding(grid, "a", String(n))
         expect(b).toBeDefined()
         const action = b!.execute!(emptyCtx)
         expect(action).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: String(n) })
@@ -411,7 +435,7 @@ describe("verb-locations", () => {
     })
 
     it("produces c i (createIn inbox = CAPTURE_DIALOG)", () => {
-      const b = grid.find((b) => b.chord === "c" && b.key === "i")
+      const b = findBinding(grid, "c", "i")
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("create_in")
       const action = b!.execute!(emptyCtx)
@@ -441,20 +465,20 @@ describe("verb-locations", () => {
 
     it("produces Ctrl+g variants for all g-prefix bindings", () => {
       const baseGrid = verbLocationGrid()
-      const gBindings = baseGrid.filter((b) => b.chord === "g")
-      const ctrlGBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+g")
+      const gBindings = filterByChord(baseGrid, "g")
+      const ctrlGBindings = filterByChord(ctrlGrid, "Ctrl+g")
       expect(ctrlGBindings.length).toBe(gBindings.length)
     })
 
     it("produces Ctrl+m variants for all m-prefix bindings", () => {
       const baseGrid = verbLocationGrid()
-      const mBindings = baseGrid.filter((b) => b.chord === "m")
-      const ctrlMBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+m")
+      const mBindings = filterByChord(baseGrid, "m")
+      const ctrlMBindings = filterByChord(ctrlGrid, "Ctrl+m")
       expect(ctrlMBindings.length).toBe(mBindings.length)
     })
 
     it("Ctrl+m variants have when: hasKitty", () => {
-      const ctrlMBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+m")
+      const ctrlMBindings = filterByChord(ctrlGrid, "Ctrl+m")
       for (const b of ctrlMBindings) {
         expect(b.when).toBeDefined()
         // Verify the when predicate evaluates correctly
@@ -466,26 +490,27 @@ describe("verb-locations", () => {
     })
 
     it("Ctrl+g variants do NOT have a when predicate", () => {
-      const ctrlGBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+g")
+      const ctrlGBindings = filterByChord(ctrlGrid, "Ctrl+g")
       for (const b of ctrlGBindings) {
         expect(b.when).toBeUndefined()
       }
     })
 
     it("does NOT produce Ctrl+a or Ctrl+c variants", () => {
-      const ctrlABindings = ctrlGrid.filter((b) => b.chord === "Ctrl+a")
-      const ctrlCBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+c")
+      const ctrlABindings = filterByChord(ctrlGrid, "Ctrl+a")
+      const ctrlCBindings = filterByChord(ctrlGrid, "Ctrl+c")
       expect(ctrlABindings).toHaveLength(0)
       expect(ctrlCBindings).toHaveLength(0)
     })
 
-    it("preserves commandId and key from base grid", () => {
+    it("preserves commandId and suffix key from base grid", () => {
       const baseGrid = verbLocationGrid()
-      const gBindings = baseGrid.filter((b) => b.chord === "g")
-      const ctrlGBindings = ctrlGrid.filter((b) => b.chord === "Ctrl+g")
+      const gBindings = filterByChord(baseGrid, "g")
+      const ctrlGBindings = filterByChord(ctrlGrid, "Ctrl+g")
 
       for (const ctrlB of ctrlGBindings) {
-        const baseMatch = gBindings.find((b) => b.key === ctrlB.key)
+        const ctrlSuffix = suffixKey(ctrlB)
+        const baseMatch = gBindings.find((b) => suffixKey(b) === ctrlSuffix)
         expect(baseMatch).toBeDefined()
         expect(ctrlB.commandId).toBe(baseMatch!.commandId)
       }

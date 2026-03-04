@@ -33,7 +33,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
     expect(before).toContain("Task A")
 
     // Press gC to ignore node — should not throw
-    expect(() => board.press("v").press("H")).not.toThrow()
+    expect(() => board.press("v").command("fold_node")).not.toThrow()
 
     // Board should still be usable
     const after = board.screenshot()
@@ -45,7 +45,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
   test("pressing C shows error toast instead of crashing", () => {
     const { board } = makeBoard()
 
-    board.press("v").press("H")
+    board.press("v").command("fold_node")
 
     // Should show some kind of feedback (error toast or status), not crash
     // At minimum, the board should still render
@@ -63,19 +63,19 @@ describe("Open in System crash when repo.data is null (km-otgyy)", () => {
     const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
     // Navigate to first card
-    board.press("j")
+    board.command("cursor_down")
 
     // This should NOT throw — it should handle missing repo.data gracefully
-    expect(() => board.press("g").press("o")).not.toThrow()
+    expect(() => board.command("open_in_system")).not.toThrow()
   })
 
   test("pressing gO (open in terminal) does not crash when repo.data is null", () => {
     const { board } = testEnv(() => item("board", item("col", item("task-a"), item("task-b"))), FAST)
 
-    board.press("j")
+    board.command("cursor_down")
 
     // Same issue: handleOpenInTerminal also calls resolveNodeFsPath
-    expect(() => board.press("g").press("O")).not.toThrow()
+    expect(() => board.command("open_in_terminal")).not.toThrow()
   })
 })
 
@@ -100,20 +100,20 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Move right to col2
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Move right to col3
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#3a[data-cursor]").toExist()
 
     // Try to move right past boundary (should not crash)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#3a[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      board.press("l")
+      board.command("cursor_right")
       board.expect("#3a[data-cursor]").toExist()
     }
   })
@@ -134,12 +134,12 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Try to move left past boundary (should not crash)
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
-      board.press("h")
+      board.command("cursor_left")
       board.expect("#1a[data-cursor]").toExist()
     }
   })
@@ -221,7 +221,7 @@ describe("stale-cursor-after-delete-all", () => {
     board.press("Backspace")
 
     // Navigate to col2 — should NOT produce console.error about stale cursor
-    board.press("l")
+    board.command("cursor_right")
 
     // C should be visible and cursor should be on it
     const text = board.screenshot()

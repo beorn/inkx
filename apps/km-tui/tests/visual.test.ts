@@ -101,7 +101,7 @@ describe("visual toolbelt: assertions", () => {
   test("chaining works — all visual assertions return board", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
     // All assertions should be chainable
-    board.expectScreen("task1").expectScreen("task2").expectScreenNot("nonexistent").press("j").expectScreen("task2")
+    board.expectScreen("task1").expectScreen("task2").expectScreenNot("nonexistent").command("cursor_down").expectScreen("task2")
   })
 })
 
@@ -297,7 +297,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Use Tab to expand the card outline so children are visible
-    board.press("Tab")
+    board.command("indent_node")
 
     const shot = board.screenshot()
     expect(shot, "screenshot should contain child1").toContain("child1")
@@ -323,7 +323,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
-    board.press("Tab")
+    board.command("indent_node")
 
     const childBox = board.screen.nodeBox("child1")
     expect(childBox, "child1 should be visible").not.toBeNull()
@@ -342,7 +342,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
-    board.press("Tab")
+    board.command("indent_node")
 
     const childBox = board.screen.nodeBox("child1")
     expect(childBox, "child1 should be visible").not.toBeNull()
@@ -366,7 +366,7 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // Move cursor to otherTask so doneParent is not selected
-    board.press("j")
+    board.command("cursor_down")
 
     const nodeBox = board.screen.nodeBox("doneParent")
     expect(nodeBox, "doneParent should be visible").not.toBeNull()

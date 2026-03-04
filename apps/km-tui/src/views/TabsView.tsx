@@ -16,7 +16,7 @@ import { useRepo } from "../repo-context.tsx"
 import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
-import { useCursorNodePosition } from "../cursor-context.tsx"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { useApp as useAppStore } from "inkx/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
@@ -33,8 +33,10 @@ interface TabsViewProps {
 export function TabsView({ columns: columnsProp, width, height }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
 
-  const cursorPos = useCursorNodePosition()
-  const { cursorCardNodeId, cursorColumnNodeId, selectionLevel } = cursorPos
+  const nodeStore = useNodeStore()
+  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const selectionLevel = useReactive(nodeStore.selectionLevel)
 
   // Derive colIndex from cursorColumnNodeId for tab highlighting and column lookup
   const colIndex = useMemo(() => {

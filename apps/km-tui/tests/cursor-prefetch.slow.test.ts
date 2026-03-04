@@ -35,11 +35,11 @@ describe("cursor prefetch on horizontal navigation", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Navigate right rapidly through all columns
-    board.press("l").press("l").press("l").press("l")
+    board.command("cursor_right").command("cursor_right").command("cursor_right").command("cursor_right")
     board.expect("#5a[data-cursor]").toExist()
 
     // Navigate back left rapidly
-    board.press("h").press("h").press("h").press("h")
+    board.command("cursor_left").command("cursor_left").command("cursor_left").command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
   })
 
@@ -56,23 +56,23 @@ describe("cursor prefetch on horizontal navigation", () => {
     )
 
     // Move down in col1
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Move right to col2 — stickyY should position near 1b
-    board.press("l")
+    board.command("cursor_right")
     // Should land on a card in col2
     const screenshot = board.screenshot()
     expect(screenshot).toContain("2a")
     expect(screenshot).toContain("2b")
 
     // Move right again to col3
-    board.press("l")
+    board.command("cursor_right")
     // Should still be rendering correctly
     expect(board.screenshot()).toContain("3a")
 
     // Move back left twice
-    board.press("h").press("h")
+    board.command("cursor_left").command("cursor_left")
     // Should be back in col1
     const finalScreenshot = board.screenshot()
     expect(finalScreenshot).toContain("1a")
@@ -89,12 +89,12 @@ describe("cursor prefetch on horizontal navigation", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Rapid back-and-forth
-    board.press("l") // -> col2
-    board.press("l") // -> col3
-    board.press("h") // -> col2
-    board.press("l") // -> col3
-    board.press("h") // -> col2
-    board.press("h") // -> col1
+    board.command("cursor_right") // -> col2
+    board.command("cursor_right") // -> col3
+    board.command("cursor_left") // -> col2
+    board.command("cursor_right") // -> col3
+    board.command("cursor_left") // -> col2
+    board.command("cursor_left") // -> col1
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -122,19 +122,19 @@ describe("cursor prefetch on horizontal navigation", () => {
     )
 
     // Navigate right — triggers prefetch of col1 and col3
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Subsequent vertical navigation should work — depends on column data
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#2b[data-cursor]").toExist()
 
     // Navigate to col3 — if prefetch corrupted col3 data, this would fail
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#3b[data-cursor]").toExist()
 
     // Navigate back to col1
-    board.press("h").press("h")
+    board.command("cursor_left").command("cursor_left")
     // Cursor should land on a card in col1
     const screenshot = board.screenshot()
     expect(screenshot).toContain("1a")
@@ -147,19 +147,19 @@ describe("cursor prefetch on horizontal navigation", () => {
     })
 
     // Navigate to right boundary
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Try to go further right — should hit boundary, no crash
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Navigate to left boundary
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
 
     // Try to go further left — should hit boundary, no crash
-    board.press("h")
+    board.command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
   })
 })
@@ -206,7 +206,7 @@ describe("rapid repo.touch() coalescing", () => {
     board.expect("#1a[data-cursor]").toExist()
 
     // Navigate down
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Simulate background mutation
@@ -219,7 +219,7 @@ describe("rapid repo.touch() coalescing", () => {
     board.expect("#1b[data-cursor]").toExist()
 
     // Navigate right to col2
-    board.press("l")
+    board.command("cursor_right")
 
     // Simulate another background mutation
     act(() => {
@@ -265,7 +265,7 @@ describe("rapid repo.touch() coalescing", () => {
     )
 
     // Navigate right
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
     // Simulate rapid background mutations during navigation
@@ -276,7 +276,7 @@ describe("rapid repo.touch() coalescing", () => {
     })
 
     // Navigate right again
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#3a[data-cursor]").toExist()
 
     // Cursor is on col3 — col2 and col3 should be visible

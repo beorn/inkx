@@ -363,13 +363,13 @@ describe("Structural invariants", () => {
     }
 
     checkCursor()
-    board.press("j")
+    board.command("cursor_down")
     checkCursor()
-    board.press("l")
+    board.command("cursor_right")
     checkCursor()
-    board.press("k") // up level
+    board.command("cursor_up") // up level
     checkCursor()
-    board.press("j") // down level
+    board.command("cursor_down") // down level
     checkCursor()
   })
 
@@ -383,7 +383,7 @@ describe("Structural invariants", () => {
 
     // Navigate down and check cursor stays in viewport
     for (let i = 0; i < 15; i++) {
-      board.press("j")
+      board.command("cursor_down")
       const cursor = app.locator("[data-cursor]").boundingBox()
       if (cursor) {
         expect(cursor.y).toBeGreaterThanOrEqual(0)
@@ -405,11 +405,11 @@ describe("Structural invariants", () => {
     }
 
     checkNoObjectObject()
-    board.press("j")
+    board.command("cursor_down")
     checkNoObjectObject()
-    board.press("l")
+    board.command("cursor_right")
     checkNoObjectObject()
-    board.press("k")
+    board.command("cursor_up")
     checkNoObjectObject()
   })
 

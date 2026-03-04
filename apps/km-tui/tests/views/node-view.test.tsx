@@ -122,7 +122,7 @@ describe("ColumnHeader (columns view)", () => {
     const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"))), { columns: 60, rows: 20 })
 
     // Switch to columns view (v m = cycle view mode)
-    board.press("v").press("m")
+    board.command("cycle_view_mode")
 
     const output = board.screenshot()
     expect(output).toContain("col")

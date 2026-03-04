@@ -30,7 +30,7 @@ describe("vd (toggle_hide_done)", () => {
     expect(screen).toContain("doneTask")
 
     // Press vd to hide done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
 
     screen = board.screenshot()
     expect(screen).toContain("todoTask")
@@ -161,7 +161,7 @@ describe("vd (toggle_hide_done)", () => {
     expect(screen).toContain("Todo source task")
     expect(screen).toContain("Done source task")
 
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
 
     screen = board.screenshot()
     expect(screen).toContain("Todo source task")
@@ -311,7 +311,7 @@ describe("vd (toggle_hide_done)", () => {
     expect(screen).toContain("Todo child task")
     expect(screen).toContain("Done child task")
 
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
 
     screen = board.screenshot()
     // Todo embed child should remain
@@ -328,11 +328,11 @@ describe("vd (toggle_hide_done)", () => {
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     let screen = board.screenshot()
     expect(screen).not.toContain("doneTask")
 
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
     screen = board.screenshot()
     expect(screen).toContain("todoTask")
     expect(screen).toContain("doneTask")

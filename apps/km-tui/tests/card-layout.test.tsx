@@ -239,19 +239,19 @@ describe("card text truncation", () => {
       assertCardBordersClean(board.screenshot(), `${cols}-col initial`)
 
       // Move right to col2
-      board.press("l")
+      board.command("cursor_right")
       assertCardBordersClean(board.screenshot(), `${cols}-col after right to col2`)
 
       // Move right to col3
-      board.press("l")
+      board.command("cursor_right")
       assertCardBordersClean(board.screenshot(), `${cols}-col after right to col3`)
 
       // Move back left to col2
-      board.press("h")
+      board.command("cursor_left")
       assertCardBordersClean(board.screenshot(), `${cols}-col after left to col2`)
 
       // Move back left to col1
-      board.press("h")
+      board.command("cursor_left")
       assertCardBordersClean(board.screenshot(), `${cols}-col after left back to col1`)
     }
   })
@@ -329,7 +329,7 @@ describe("body indicator (···)", () => {
     )
 
     // Fold the card's children with zh chord (fold_node)
-    board.press("H")
+    board.command("fold_node")
 
     // Now ··· should show because body children are hidden (folded)
     const screen = board.screenshot()
@@ -572,7 +572,7 @@ describe("truncate-lines: card title truncation avoids partial lines", () => {
         }
       }
 
-      if (i < titles.length - 1) board.press("j")
+      if (i < titles.length - 1) board.command("cursor_down")
     }
   })
 })

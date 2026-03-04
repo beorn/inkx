@@ -33,7 +33,7 @@ describe("incremental rendering", () => {
     expect(cell1.bg).toBe(TC.$selected)
 
     // Move cursor down to "1b"
-    board.press("j")
+    board.command("cursor_down")
 
     // Cursor should now be on "1b"
     const cursor2 = app.locator("[data-cursor]")
@@ -65,7 +65,7 @@ describe("incremental rendering", () => {
 
     // Move down 3 times, recording each position
     for (let i = 0; i < 3; i++) {
-      board.press("j")
+      board.command("cursor_down")
       const box = app.locator("[data-cursor]").boundingBox()!
       positions.push({ x: box.x, y: box.y })
     }
@@ -93,7 +93,7 @@ describe("incremental rendering", () => {
     expect(app.term.cell(box1.x, box1.y).bg).toBe(TC.$selected)
 
     // Move right to col2
-    board.press("l")
+    board.command("cursor_right")
     const box2 = app.locator("[data-cursor]").boundingBox()!
 
     // col2 cursor highlighted, col1 old position cleared
@@ -117,7 +117,7 @@ describe("incremental rendering", () => {
     for (let i = 0; i < 7; i++) {
       const cursorText = app.locator("[data-cursor]").textContent()
 
-      board.press("j")
+      board.command("cursor_down")
 
       const afterCursorText = app.locator("[data-cursor]").textContent()
       const afterBox = app.locator("[data-cursor]").boundingBox()!
@@ -156,7 +156,7 @@ describe("incremental rendering", () => {
     const app = board._result
 
     for (let i = 0; i < 4; i++) {
-      board.press("j")
+      board.command("cursor_down")
 
       const afterBox = app.locator("[data-cursor]").boundingBox()!
 
@@ -188,7 +188,7 @@ describe("incremental rendering", () => {
     const box1 = app.locator("[data-cursor]").boundingBox()!
 
     // Move down
-    board.press("j")
+    board.command("cursor_down")
     const box2 = app.locator("[data-cursor]").boundingBox()!
 
     // 1b is now selected (data-cursor on 1b)
@@ -197,7 +197,7 @@ describe("incremental rendering", () => {
     expect(app.term.cell(box1.x, box1.y).bg).not.toBe(TC.$selected)
 
     // Move back up
-    board.press("k")
+    board.command("cursor_up")
 
     // 1a is now selected again (data-cursor on 1a)
     expect(app.locator("[data-cursor]").textContent()).toContain("1a")

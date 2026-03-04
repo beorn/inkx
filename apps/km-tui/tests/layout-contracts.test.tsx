@@ -214,11 +214,11 @@ describe("Sticky Y behavior (curswantY)", () => {
     expect(registry.stickyY).toBeNull()
 
     // Move down to card[1] — j/k clears stickyY (lazy capture semantics)
-    board.press("j")
+    board.command("cursor_down")
     expect(registry.stickyY).toBeNull()
 
     // Move right — h/l captures stickyY from current card, then uses it
-    board.press("l")
+    board.command("cursor_right")
     expect(registry.stickyY).not.toBeNull()
   })
 
@@ -233,20 +233,20 @@ describe("Sticky Y behavior (curswantY)", () => {
     )
 
     // Navigate down then right
-    board.press("j")
-    board.press("l")
+    board.command("cursor_down")
+    board.command("cursor_right")
 
     const firstStickyY = registry.stickyY
     expect(firstStickyY).not.toBeNull()
 
     // Move right again
-    board.press("l")
+    board.command("cursor_right")
 
     // stickyY should be preserved
     expect(registry.stickyY).toBe(firstStickyY)
 
     // Move left
-    board.press("h")
+    board.command("cursor_left")
 
     // Still preserved
     expect(registry.stickyY).toBe(firstStickyY)
@@ -258,12 +258,12 @@ describe("Sticky Y behavior (curswantY)", () => {
     )
 
     // Set up stickyY via h/l
-    board.press("j")
-    board.press("l")
+    board.command("cursor_down")
+    board.command("cursor_right")
     expect(registry.stickyY).not.toBeNull()
 
     // Move down — stickyY should be cleared (lazy capture: j/k always clears)
-    board.press("j")
+    board.command("cursor_down")
     expect(registry.stickyY).toBeNull()
   })
 
@@ -279,13 +279,13 @@ describe("Sticky Y behavior (curswantY)", () => {
     )
 
     // Navigate to card[2] (third card) in column 0
-    board.press("j").press("j")
+    board.command("cursor_down").command("cursor_down")
 
     // Get curswantY from card[2] in column 0
     const expectedY = registry.getItemMidY(0, 2)
 
     // Navigate right
-    board.press("l")
+    board.command("cursor_right")
 
     // Check that stickyY matches source card's title midpoint
     expect(registry.stickyY).toBe(expectedY)

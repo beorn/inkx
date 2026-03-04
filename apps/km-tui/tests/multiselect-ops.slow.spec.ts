@@ -35,7 +35,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     )
 
     // Step 1: Navigate to del-A
-    board.press("j") // -> del-A
+    board.command("cursor_down") // -> del-A
     board.expect("#del-A[data-cursor]").toExist()
 
     // Step 2: Extend selection down to cover del-A, del-B, del-C
@@ -76,7 +76,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     board.press("shift+ArrowDown") // range task-1..task-3, cursor->task-3
 
     // Step 2: Toggle status (todo -> wip)
-    board.press("X")
+    board.command("cycle_task_status")
 
     // Step 3: Verify persistence — first 3 tasks should be wip, task-4 unchanged
     expect(repo.getNode("task-1")?.task_status).toBe("wip")
@@ -85,7 +85,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     expect(repo.getNode("task-4")?.task_status).toBe("todo")
 
     // Step 4: Toggle again (wip -> blocked)
-    board.press("X")
+    board.command("cycle_task_status")
     expect(repo.getNode("task-1")?.task_status).toBe("blocked")
     expect(repo.getNode("task-2")?.task_status).toBe("blocked")
     expect(repo.getNode("task-3")?.task_status).toBe("blocked")
@@ -126,7 +126,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     )
 
     // Step 1: Navigate to D
-    board.press("j").press("j").press("j") // -> D
+    board.command("cursor_down").command("cursor_down").command("cursor_down") // -> D
     board.expect("#D[data-cursor]").toExist()
 
     // Step 2: Select upward to cover B, C, D
@@ -182,7 +182,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     )
 
     // Step 1: Navigate to go-1
-    board.press("j").press("j") // -> go-1
+    board.command("cursor_down").command("cursor_down") // -> go-1
     board.expect("#go-1[data-cursor]").toExist()
 
     // Step 2: Select go-1, go-2, go-3

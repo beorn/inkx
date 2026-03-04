@@ -33,7 +33,7 @@ describe("Inline Editing", () => {
   test("Enter on column header enters inline edit", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
-    board.press("k") // card → column
+    board.command("cursor_up") // card → column
     board.expect("#col1[data-cursor]").toExist()
     board.press("Enter")
 
@@ -48,10 +48,10 @@ describe("Inline Editing", () => {
     board.press("Enter")
 
     // These keys would navigate/quit in normal mode
-    board.press("j")
-    board.press("k")
-    board.press("q")
-    board.press("l")
+    board.command("cursor_down")
+    board.command("cursor_up")
+    board.command("quit")
+    board.command("cursor_right")
 
     // Board should still be intact (didn't quit or navigate)
     const output = board.screenshot()
@@ -66,9 +66,9 @@ describe("Inline Editing", () => {
     board.press("Enter")
 
     // Type some characters
-    board.press("x")
+    board.command("toggle_task_done")
     board.press("y")
-    board.press("z")
+    board.command("zoom_inwards")
 
     // Escape saves and exits edit mode
     board.press("Escape")
@@ -81,7 +81,7 @@ describe("Inline Editing", () => {
     expect(output).toContain("1axyz")
 
     // Board should be back in normal mode — j should navigate
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -107,7 +107,7 @@ describe("Inline Editing", () => {
     board.press("Escape")
 
     // Navigate past the new sibling to reach 1b
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -119,14 +119,14 @@ describe("Inline Editing", () => {
     board.press("Escape")
 
     // Should be able to navigate normally
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Edit second card then cancel
     board.press("Enter")
     board.press("Escape")
 
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1c[data-cursor]").toExist()
   })
 
@@ -158,7 +158,7 @@ describe("Inline Edit — Readline Integration", () => {
     board.press("Enter")
     // ab| → ArrowLeft → a|b → insert X → aXb
     board.press("ArrowLeft")
-    board.press("X")
+    board.command("cycle_task_status")
     board.press("Enter")
 
     expect(repo.getNode("ab")?.content).toBe("aXb")
@@ -262,7 +262,7 @@ describe("Inline Edit — Navigate Away Saves", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to second card
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
 
     // Edit second card
@@ -357,13 +357,13 @@ describe("Inline Edit — Edge Cases", () => {
 
     // Edit in col1
     board.press("Enter")
-    board.press("X")
+    board.command("cycle_task_status")
     board.press("Enter") // save c1X + create sibling in edit mode
     expect(repo.getNode("c1")?.content).toBe("c1X")
 
     // Exit new sibling's edit, then navigate to col2
     board.press("Escape")
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#c2[data-cursor]").toExist()
 
     // Edit in col2
@@ -409,7 +409,7 @@ describe("Inline Edit — Edge Cases", () => {
 
     // Navigate back to orig: exit new sibling edit, go up
     board.press("Escape")
-    board.press("k")
+    board.command("cursor_up")
 
     // Second edit should start with "orig1" (not stale "orig")
     board.press("Enter")
@@ -432,7 +432,7 @@ describe("Outliner Enter — save + new sibling", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     board.press("Enter") // enter edit mode on 1a
-    board.press("X") // type "X" → content should be "1aX"
+    board.command("cycle_task_status") // type "X" → content should be "1aX"
     board.press("Enter") // save + create new sibling
 
     // DOM: 3 items in column (was 2)
@@ -476,7 +476,7 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("Enter") // save + create sibling in edit mode
 
     // User is now editing the new sibling — typing goes there
-    board.press("H")
+    board.command("fold_node")
     board.press("i")
     board.press("Escape") // save and exit (Escape saves now)
 
@@ -492,7 +492,7 @@ describe("Outliner Enter — save + new sibling", () => {
     board.expect(colItems("col1")).toHaveCount(2)
 
     board.press("Enter") // edit 1a
-    board.press("X") // type
+    board.command("cycle_task_status") // type
     board.press("Escape") // save and exit
 
     // DOM: no new items (Escape doesn't create siblings)
@@ -502,7 +502,7 @@ describe("Outliner Enter — save + new sibling", () => {
     expect(repo.getNode("1a")?.content).toBe("1aX")
 
     // DOM: cursor navigates normally (back in normal mode)
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
   })
 
@@ -546,7 +546,7 @@ describe("Outliner Enter — save + new sibling", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Navigate to last card (1b)
-    board.press("j")
+    board.command("cursor_down")
     board.press("Enter") // edit 1b
     board.press("Enter") // save + new sibling after 1b
     board.press("Escape")
@@ -563,7 +563,7 @@ describe("Outliner Enter — save + new sibling", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
 
     // Navigate to middle card (1b)
-    board.press("j")
+    board.command("cursor_down")
     board.press("Enter") // edit 1b
     board.press("Enter") // save + new sibling after 1b
     board.press("Escape")
@@ -697,7 +697,7 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
     board.press("Escape") // exit edit
 
     // Should be able to navigate normally after
-    board.press("j") // move down
+    board.command("cursor_down") // move down
     board.expect("[data-cursor]").toExist()
   })
 })
@@ -805,7 +805,7 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     board.press("Escape") // exit edit
 
     // Should be able to navigate normally after
-    board.press("j") // move down
+    board.command("cursor_down") // move down
     board.expect("[data-cursor]").toExist()
   })
 })
@@ -930,7 +930,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
 
     // Type characters — these go through the full pipeline:
     // press → handleKey → command system → insertChar → forceRender → doRender
-    board.press("x")
+    board.command("toggle_task_done")
 
     // The typed text MUST appear on screen (not just in repo)
     const screenshot1 = board.screenshot()
@@ -938,7 +938,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
 
     // Type more characters
     board.press("y")
-    board.press("z")
+    board.command("zoom_inwards")
 
     const screenshot2 = board.screenshot()
     expect(screenshot2).toContain("See instructions.xyz")

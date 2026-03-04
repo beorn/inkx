@@ -30,7 +30,7 @@ describe("fold-all-corruption", () => {
     expect(board.screenshot()).toContain("child-1")
 
     // zM chord → fold_all (FOLD_LEVEL depth:1)
-    board.press("<")
+    board.command("fold_all")
 
     expect(board.screenshot()).not.toContain("child-1")
     expect(board.screenshot()).not.toContain("child-2")
@@ -44,13 +44,13 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold via H
-    board.press("H")
+    board.command("fold_node")
 
     // Children should be hidden
     expect(board.screenshot()).not.toContain("child-1")
 
     // Z (unfold all) should restore children
-    board.press(">")
+    board.command("unfold_all")
 
     expect(board.screenshot()).toContain("child-1")
     expect(board.screenshot()).toContain("child-2")
@@ -64,7 +64,7 @@ describe("fold-all-corruption", () => {
     expect(board.screenshot()).toContain("child-1")
 
     // H → fold_node
-    board.press("H")
+    board.command("fold_node")
 
     const folded = board.screenshot()
     expect(folded).not.toContain("child-1")
@@ -78,11 +78,11 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold with H
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-1")
 
     // Unfold with L
-    board.press("L")
+    board.command("unfold_node")
 
     const unfolded = board.screenshot()
     expect(unfolded).toContain("child-1")
@@ -98,15 +98,15 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold both cards individually with H
-    board.press("H") // fold Processing
-    board.press("j") // move to Review
-    board.press("H") // fold Review
+    board.command("fold_node") // fold Processing
+    board.command("cursor_down") // move to Review
+    board.command("fold_node") // fold Review
 
     expect(board.screenshot()).not.toContain("sub-a")
     expect(board.screenshot()).not.toContain("sub-c")
 
     // Z should unfold all
-    board.press(">")
+    board.command("unfold_all")
 
     const after = board.screenshot()
     expect(after).toContain("sub-a")
@@ -177,12 +177,12 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     checkBorderIntegrity(before, "before fold")
 
     // Decrease to depth 1 (children at depth 1 still visible: 0 < 1)
-    board.press("<")
+    board.command("fold_all")
     const mid = board.screenshot()
     checkBorderIntegrity(mid, "after first <")
 
     // Decrease to depth 0 (no children visible: 0 < 0 = false)
-    board.press("<")
+    board.command("fold_all")
     const after = board.screenshot()
     expect(after).not.toContain("a-child1")
     checkBorderIntegrity(after, "after second <")
@@ -192,8 +192,8 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const { board } = nestedBoard()
 
     // Decrease then increase
-    board.press("<").press("<") // depth 2 → 0
-    board.press(">").press(">") // depth 0 → 2
+    board.command("fold_all").command("fold_all") // depth 2 → 0
+    board.command("unfold_all").command("unfold_all") // depth 0 → 2
 
     const text = board.screenshot()
     expect(text).toContain("a-child1")
@@ -204,7 +204,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const { board } = nestedBoard()
 
     // < = fold_all: folds all cards in column
-    board.press("<")
+    board.command("fold_all")
 
     const text = board.screenshot()
     checkBorderIntegrity(text, "after fold all")
@@ -214,7 +214,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const { board } = nestedBoard()
 
     // gc = toggle_collapse on current card (card-a)
-    board.press("v").press("c")
+    board.command("toggle_collapse")
 
     const text = board.screenshot()
     checkBorderIntegrity(text, "after toggle fold")
@@ -229,7 +229,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const cardATopRow = beforeRows.findIndex((r) => r.includes("card-a"))
 
     // Decrease depth to hide children
-    board.press("<").press("<")
+    board.command("fold_all").command("fold_all")
     const after = board.screenshot()
     const afterRows = after.split("\n")
 
@@ -303,13 +303,13 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
     // Capture buffer before first <
     const prevBuf1 = board._result.lastBuffer()!.clone()
-    board.press("<")
+    board.command("fold_all")
     const afterBuf1 = board._result.lastBuffer()!
     verifyDiffReplay(prevBuf1, afterBuf1, "after first <")
 
     // Capture buffer before second <
     const prevBuf2 = afterBuf1.clone()
-    board.press("<")
+    board.command("fold_all")
     const afterBuf2 = board._result.lastBuffer()!
     verifyDiffReplay(prevBuf2, afterBuf2, "after second <")
   })
@@ -323,7 +323,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     vterm.applyAnsi(outputPhase(null, buf0))
 
     // First < press
-    board.press("<")
+    board.command("fold_all")
     const buf1 = board._result.lastBuffer()!
     const diff1 = outputPhase(buf0, buf1)
     vterm.applyAnsi(diff1)
@@ -338,7 +338,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
     // Second < press
     const buf1Clone = buf1.clone()
-    board.press("<")
+    board.command("fold_all")
     const buf2 = board._result.lastBuffer()!
     const diff2 = outputPhase(buf1Clone, buf2)
     vterm.applyAnsi(diff2)
@@ -388,7 +388,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
         ),
       { columns: 50, rows: 30, incremental: true },
     )
-    incBoard.press("<").press("<")
+    incBoard.command("fold_all").command("fold_all")
     const incText = incBoard.screenshot()
 
     // Run with incremental=false
@@ -405,7 +405,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
         ),
       { columns: 50, rows: 30, incremental: false },
     )
-    freshBoard.press("<").press("<")
+    freshBoard.command("fold_all").command("fold_all")
     const freshText = freshBoard.screenshot()
 
     // Compare line by line — collect all differences
@@ -427,13 +427,13 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
     // Decrease content lines (- key) instead of outline depth
     const prevBuf1 = board._result.lastBuffer()!.clone()
-    board.press("-")
+    board.command("decrease_content_lines")
     const afterBuf1 = board._result.lastBuffer()!
     verifyDiffReplay(prevBuf1, afterBuf1, "after first -")
     checkBorderIntegrity(board.screenshot(), "buffer after first -")
 
     const prevBuf2 = afterBuf1.clone()
-    board.press("-")
+    board.command("decrease_content_lines")
     const afterBuf2 = board._result.lastBuffer()!
     verifyDiffReplay(prevBuf2, afterBuf2, "after second -")
     checkBorderIntegrity(board.screenshot(), "buffer after second -")
@@ -578,7 +578,7 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Decrease outline depth twice: hides all children
-    board.press("<").press("<")
+    board.command("fold_all").command("fold_all")
 
     // After folding: all cards should have intact bottom borders
     expectBottomBorderIntact(board, "Parent-A")
@@ -591,12 +591,12 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Fold once
-    board.press("<")
+    board.command("fold_all")
     expectBottomBorderIntact(board, "Parent-A")
     expectTopBorderIntact(board, "Parent-B")
 
     // Fold again
-    board.press("<")
+    board.command("fold_all")
     expectBottomBorderIntact(board, "Parent-A")
     expectTopBorderIntact(board, "Parent-B")
     expectBottomBorderIntact(board, "Leaf-C")
@@ -608,7 +608,7 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Fold Parent-A via H
-    board.press("H")
+    board.command("fold_node")
 
     // Parent-A bottom border should be intact
     expectBottomBorderIntact(board, "Parent-A")
@@ -622,8 +622,8 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Navigate to Parent-B then fold it
-    board.press("j")
-    board.press("H")
+    board.command("cursor_down")
+    board.command("fold_node")
 
     // Parent-B bottom border should be intact
     expectBottomBorderIntact(board, "Parent-B")
@@ -640,8 +640,8 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Fold Parent-A, then unfold it — individual card fold round-trip
-    board.press("H") // fold Parent-A
-    board.press("L") // unfold Parent-A
+    board.command("fold_node") // fold Parent-A
+    board.command("unfold_node") // unfold Parent-A
 
     // All cards should have intact borders after round-trip
     expectBottomBorderIntact(board, "Parent-A")
@@ -674,7 +674,7 @@ describe("fold border blank — buffer-level assertions", () => {
     )
 
     // Fold twice to hide nested children
-    board.press("<").press("<")
+    board.command("fold_all").command("fold_all")
 
     const text = board.screenshot()
     // Every bottom border line should have continuous dashes (no blanks)
@@ -702,34 +702,34 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Step 1: fold Parent-A
-    board.press("H")
+    board.command("fold_node")
     expectBottomBorderIntact(board, "Parent-A")
 
     // Step 2: move down to Parent-B, fold it
-    board.press("j")
-    board.press("H")
+    board.command("cursor_down")
+    board.command("fold_node")
     expectBottomBorderIntact(board, "Parent-B")
 
     // Step 3: move down to Leaf-C — its borders should be intact
-    board.press("j")
+    board.command("cursor_down")
     expectTopBorderIntact(board, "Leaf-C")
     expectBottomBorderIntact(board, "Leaf-C")
 
     // Step 4: move down to Parent-D, fold it
-    board.press("j")
-    board.press("H")
+    board.command("cursor_down")
+    board.command("fold_node")
     expectBottomBorderIntact(board, "Parent-D")
 
     // Step 5: unfold each card individually via zl, verify borders restored
     // Cursor is on Parent-D after step 4
-    board.press("L") // unfold Parent-D
+    board.command("unfold_node") // unfold Parent-D
     expectBottomBorderIntact(board, "Parent-D")
-    board.press("k") // move up to Leaf-C
-    board.press("k") // move up to Parent-B
-    board.press("L") // unfold Parent-B
+    board.command("cursor_up") // move up to Leaf-C
+    board.command("cursor_up") // move up to Parent-B
+    board.command("unfold_node") // unfold Parent-B
     expectBottomBorderIntact(board, "Parent-B")
-    board.press("k") // move up to Parent-A
-    board.press("L") // unfold Parent-A
+    board.command("cursor_up") // move up to Parent-A
+    board.command("unfold_node") // unfold Parent-A
     expectBottomBorderIntact(board, "Parent-A")
     // No stale between cards
     expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
@@ -741,7 +741,7 @@ describe("fold border blank — buffer-level assertions", () => {
     const { board } = multiCardBoard()
 
     // Fold via < <
-    board.press("<").press("<")
+    board.command("fold_all").command("fold_all")
 
     // Find each card's bottom border row and check cell-by-cell
     for (const nodeText of ["Parent-A", "Parent-B", "Leaf-C", "Parent-D"]) {
@@ -802,7 +802,7 @@ describe("Fold border regression", () => {
 
     // At every fold level, top borders must equal bottom borders
     for (let press = 0; press < 4; press++) {
-      if (press > 0) board.press("<")
+      if (press > 0) board.command("fold_all")
       const text = board.screenshot()
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
@@ -811,7 +811,7 @@ describe("Fold border regression", () => {
     }
 
     for (let press = 0; press < 4; press++) {
-      board.press(">")
+      board.command("unfold_all")
       const text = board.screenshot()
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
@@ -839,8 +839,8 @@ describe("Fold border regression", () => {
       { columns: 60, rows: 20 },
     )
 
-    board.press("j").press("j").press("j").press("j")
-    board.press("<").press("<")
+    board.command("cursor_down").command("cursor_down").command("cursor_down").command("cursor_down")
+    board.command("fold_all").command("fold_all")
 
     const text = board.screenshot()
     const top = countTopBorders(text)
@@ -880,7 +880,7 @@ describe("fold overflow transition border integrity", () => {
     expect(before, "should show overflow indicator").toContain("+")
 
     // Fold BigCard via H
-    board.press("H")
+    board.command("fold_node")
 
     // After fold, the +N indicator should be gone and borders should be intact
     const after = board.screenshot()
@@ -952,8 +952,8 @@ describe("fold overflow transition border integrity", () => {
     )
 
     // Fold then unfold — should restore overflow indicator with intact borders
-    board.press("H") // fold
-    board.press("L") // unfold
+    board.command("fold_node") // fold
+    board.command("unfold_node") // unfold
 
     const after = board.screenshot()
     expect(after, "should show overflow indicator after unfold").toContain("+")
@@ -1002,7 +1002,7 @@ describe("fold overflow transition border integrity", () => {
     )
 
     // Decrease outline depth — should change overflow counts
-    board.press("<")
+    board.command("fold_all")
 
     // Check every visible card's bottom border row
     for (const nodeText of ["CardA", "CardB", "CardC"]) {
@@ -1109,7 +1109,7 @@ describe("fold count color", () => {
 
       // Fold parent-card with H — this hides Essential Commands' children
       // because fold_node hides all children of the folded card
-      board.press("H")
+      board.command("fold_node")
 
       // parent-card should still be visible (it's the card itself)
       const pcRow = board.screen.findRow("parent-card")
@@ -1160,7 +1160,7 @@ describe("fold count color", () => {
       const { board } = createColorBoard()
 
       // Move cursor to col-other so col-colored is unselected
-      board.press("l")
+      board.command("cursor_right")
 
       // Find the header row containing "col-colored"
       const headerRow = board.screen.findRow("col-colored")
@@ -1233,11 +1233,11 @@ describe("progressive fold/unfold", () => {
 
     // First L: increases Project foldOverride from inherited 1 → 2 (same as default remainingDepth)
     // No visible change since resolved depth was already 2
-    board.press("L")
+    board.command("unfold_node")
     expect(board.screenshot()).not.toContain("subtask-x")
 
     // Second L: increases Project foldOverride to 3, Task A gets depth 1, subtask-x visible
-    board.press("L")
+    board.command("unfold_node")
     expect(board.screenshot()).toContain("subtask-x")
   })
 
@@ -1246,23 +1246,23 @@ describe("progressive fold/unfold", () => {
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded. Unfold both levels first.
-    board.press("L") // unfold Phase 1/2, auto-fold Task A
-    board.press("L") // unfold Task A
+    board.command("unfold_node") // unfold Phase 1/2, auto-fold Task A
+    board.command("unfold_node") // unfold Task A
     expect(board.screenshot()).toContain("subtask-x")
 
     // H folds deepest unfolded foldable level (Task A at depth 2)
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("subtask-x")
     expect(board.screenshot()).toContain("Task A") // still visible, just folded
 
     // Another H folds Phase 1/2 (depth 1)
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("Task A")
     expect(board.screenshot()).not.toContain("Task B")
     expect(board.screenshot()).toContain("Phase 1") // still shows as folded header
 
     // Another H folds Project itself (depth 0)
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("Phase 1")
     expect(board.screenshot()).toContain("Project") // card title always visible
   })
@@ -1272,13 +1272,13 @@ describe("progressive fold/unfold", () => {
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
     // Fold Project completely (3 H presses: depth 2 -> depth 1 -> depth 0)
-    board.press("H") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
-    board.press("H") // fold Project (depth 0)
+    board.command("fold_node") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
+    board.command("fold_node") // fold Project (depth 0)
     expect(board.screenshot()).not.toContain("Phase 1")
     expect(board.screenshot()).toContain("Project")
 
     // First L: unfold Project — should reveal Phase 1/2 but NOT their children
-    board.press("L")
+    board.command("unfold_node")
     const afterFirstL = board.screenshot()
     expect(afterFirstL).toContain("Phase 1")
     expect(afterFirstL).toContain("Phase 2")
@@ -1288,7 +1288,7 @@ describe("progressive fold/unfold", () => {
     expect(afterFirstL).not.toContain("Task C")
 
     // Second L: unfold Phase 1/2 — should reveal Task A/B/C but NOT subtask-x
-    board.press("L")
+    board.command("unfold_node")
     const afterSecondL = board.screenshot()
     expect(afterSecondL).toContain("Task A")
     expect(afterSecondL).toContain("Task B")
@@ -1297,7 +1297,7 @@ describe("progressive fold/unfold", () => {
     expect(afterSecondL).not.toContain("subtask-x")
 
     // Third L: unfold Task A — reveals subtask-x
-    board.press("L")
+    board.command("unfold_node")
     expect(board.screenshot()).toContain("subtask-x")
   })
 
@@ -1309,11 +1309,11 @@ describe("progressive fold/unfold", () => {
     )
 
     // Fold FlatParent
-    board.press("H")
+    board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-a")
 
     // Unfold — all children should be visible (they're all leaves)
-    board.press("L")
+    board.command("unfold_node")
     const after = board.screenshot()
     expect(after).toContain("child-a")
     expect(after).toContain("child-b")
@@ -1325,18 +1325,18 @@ describe("progressive fold/unfold", () => {
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded at depth 1. Unfold first.
-    board.press("L") // unfold Phase 1/2, auto-fold Task A
+    board.command("unfold_node") // unfold Phase 1/2, auto-fold Task A
     expect(board.screenshot()).toContain("Task A")
 
     // H folds the deepest unfolded level (Phase 1/2 at depth 1, since Task A is auto-folded)
-    board.press("H")
+    board.command("fold_node")
     const folded = board.screenshot()
     expect(folded).not.toContain("Task A")
     expect(folded).toContain("Phase 1") // visible but folded
 
     // L unfolds the shallowest fold — Phase 1/2 at depth 1
     // With progressive disclosure, children-with-children (Task A) get auto-folded
-    board.press("L")
+    board.command("unfold_node")
     const restored = board.screenshot()
     expect(restored).toContain("Phase 1")
     expect(restored).toContain("Task A") // visible but folded (auto-folded by progressive disclosure)
@@ -1356,10 +1356,10 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     )
 
     // Fold to depth 0
-    board.press("H") // fold once
+    board.command("fold_node") // fold once
 
     // Try to fold again — should hit boundary
-    board.press("H")
+    board.command("fold_node")
     expect(board.bell).toBe(true)
     expect(board.hasStatus).toBe(true)
     const status = board.getStatus()
@@ -1374,12 +1374,12 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     expect(board.screenshot()).toContain("child-1")
 
     // Fold all — sets all cards to depth 0
-    board.press("<")
+    board.command("fold_all")
     expect(board.screenshot()).not.toContain("child-1")
     expect(board.screenshot()).toContain("Parent") // card title always visible
 
     // Pressing < again is idempotent (FOLD_LEVEL always succeeds, no bell)
-    board.press("<")
+    board.command("fold_all")
     expect(board.screenshot()).not.toContain("child-1")
   })
 
@@ -1387,12 +1387,12 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Hit fold boundary
-    board.press("H")
-    board.press("H")
+    board.command("fold_node")
+    board.command("fold_node")
     expect(board.bell).toBe(true)
 
     // Unfold — should clear bell/status and succeed
-    board.press("L")
+    board.command("unfold_node")
     expect(board.bell).toBe(false)
     expect(board.hasStatus).toBe(false)
     expect(board.screenshot()).toContain("child-1")
@@ -1402,15 +1402,15 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Fold first, then unfold all
-    board.press("<") // fold all cards to depth 0
+    board.command("fold_all") // fold all cards to depth 0
     expect(board.screenshot()).not.toContain("child-1")
 
     // Unfold all — removes per-card overrides, cards inherit board depth
-    board.press(">")
+    board.command("unfold_all")
     expect(board.screenshot()).toContain("child-1")
 
     // Pressing > again is idempotent (UNFOLD_LEVEL always succeeds, no bell)
-    board.press(">")
+    board.command("unfold_all")
     expect(board.screenshot()).toContain("child-1")
   })
 
@@ -1419,7 +1419,7 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
 
     // Unfold many times on the same card to reach the cap
     for (let i = 0; i < 25; i++) {
-      board.press("L")
+      board.command("unfold_node")
     }
 
     expect(board.bell).toBe(true)
@@ -1434,14 +1434,14 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
 
     // Press H many times — should bottom out at 0, never go negative
     for (let i = 0; i < 10; i++) {
-      board.press("H")
+      board.command("fold_node")
     }
 
     // Should ring bell (at boundary)
     expect(board.bell).toBe(true)
 
     // Unfold once — should work (depth goes from 0 to 1)
-    board.press("L")
+    board.command("unfold_node")
     expect(board.screenshot()).toContain("child-1")
   })
 })

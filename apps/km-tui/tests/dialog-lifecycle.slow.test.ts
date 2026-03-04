@@ -41,8 +41,8 @@ describe("DatePromptDialog lifecycle", () => {
   test("td opens dialog — store.datePrompt is set and screenshot shows title", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
-    board.press("j") // move to card level
-    board.press("t").press("d")
+    board.command("cursor_down") // move to card level
+    board.command("set_due_date")
 
     // Store state
     expect(store.getState().ui.datePrompt).toBeTruthy()
@@ -54,8 +54,8 @@ describe("DatePromptDialog lifecycle", () => {
   test("td -> type date -> Enter confirms and closes dialog", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
-    board.press("t").press("d")
+    board.command("cursor_down")
+    board.command("set_due_date")
     expect(board.screenshot()).toContain("Set Due Date")
 
     // Type a date
@@ -77,8 +77,8 @@ describe("DatePromptDialog lifecycle", () => {
   test("td -> Escape cancels without setting date", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
-    board.press("t").press("d")
+    board.command("cursor_down")
+    board.command("set_due_date")
     expect(store.getState().ui.datePrompt).toBeTruthy()
     expect(board.screenshot()).toContain("Set Due Date")
 
@@ -99,8 +99,8 @@ describe("DatePromptDialog lifecycle", () => {
   test("td -> type date -> Escape cancels without applying typed date", () => {
     const { board, store, repo } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
-    board.press("t").press("d")
+    board.command("cursor_down")
+    board.command("set_due_date")
 
     // Type a date but then cancel
     for (const ch of "friday") board.press(ch)
@@ -119,8 +119,8 @@ describe("DatePromptDialog lifecycle", () => {
   test("ts opens start date dialog and Escape cancels", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
-    board.press("t").press("s")
+    board.command("cursor_down")
+    board.command("cycle_task_status")
 
     expect(store.getState().ui.datePrompt).toBeTruthy()
     expect(board.screenshot()).toContain("Set Start Date")
@@ -203,7 +203,7 @@ describe("NewItemDialog lifecycle", () => {
   test("cmd+shift+Enter opens new item dialog — store flag is set and screenshot shows title", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"), item.task("Task2"))))
 
-    board.press("j") // move to card level
+    board.command("cursor_down") // move to card level
     board.press("cmd+shift+Enter")
 
     expect(store.getState().ui.showNewItemDialog).toBe(true)
@@ -216,7 +216,7 @@ describe("NewItemDialog lifecycle", () => {
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("cmd+shift+Enter")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 
@@ -237,7 +237,7 @@ describe("NewItemDialog lifecycle", () => {
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("cmd+shift+Enter")
 
     // Type a name but then cancel
@@ -258,7 +258,7 @@ describe("NewItemDialog lifecycle", () => {
     const col = repo.getChildren("board")[0]!
     const nodesBefore = repo.getChildren(col.id).length
 
-    board.press("j")
+    board.command("cursor_down")
     board.press("cmd+shift+Enter")
     expect(store.getState().ui.showNewItemDialog).toBe(true)
 
@@ -291,8 +291,8 @@ describe("dialog state isolation", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     // Open date dialog
-    board.press("j")
-    board.press("t").press("d")
+    board.command("cursor_down")
+    board.command("set_due_date")
     expect(store.getState().ui.datePrompt).toBeTruthy()
     expect(store.getState().ui.showSearchDialog).toBe(false)
     expect(store.getState().ui.showNewItemDialog).toBe(false)
@@ -324,10 +324,10 @@ describe("dialog state isolation", () => {
   test("sequential open/cancel cycles leave store clean", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
+    board.command("cursor_down")
 
     // Cycle 1: date dialog
-    board.press("t").press("d")
+    board.command("set_due_date")
     board.press("Escape")
 
     // Cycle 2: search dialog
@@ -348,10 +348,10 @@ describe("dialog state isolation", () => {
   test("confirm in one dialog, then open another — no interference", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
-    board.press("j")
+    board.command("cursor_down")
 
     // Confirm a date
-    board.press("t").press("d")
+    board.command("set_due_date")
     for (const ch of "tomorrow") board.press(ch)
     board.press("Enter")
     expect(store.getState().ui.datePrompt).toBeNull()

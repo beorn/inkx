@@ -26,15 +26,16 @@ import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
 import { getAllFavorites } from "./favorites.ts"
 
 export interface Keybinding {
+  /**
+   * Key string encoding modifiers and chords:
+   * - Simple: "j", "Enter", "Escape"
+   * - Modifiers: "ctrl-t", "cmd-shift-z", "opt-ArrowUp"
+   * - Chord: "v c", "g g", "t d" (space-separated: prefix then suffix)
+   * - Chord + modifiers: "Ctrl+v c", "Ctrl+g ctrl-f"
+   */
   key: string
   /** If true, matches any key (key field is ignored for matching) */
   wildcard?: boolean
-  ctrl?: boolean
-  opt?: boolean
-  shift?: boolean
-  cmd?: boolean
-  /** Chord prefix — if set, this binding requires the prefix key first (e.g., chord: "z" + key: "a" = "za") */
-  chord?: string
   commandId: string
   /** Destination target for location-aware commands (e.g., "i" for inbox) */
   targetId?: string
@@ -42,6 +43,66 @@ export interface Keybinding {
   execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
   modes?: CommandMode[]
   when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
+}
+
+// =============================================================================
+// Key String Parsing
+// =============================================================================
+
+/** Parsed representation of a key string — used internally for fast matching */
+export interface ParsedKey {
+  /** The actual key character/name (e.g., "t", "ArrowUp", "Enter") */
+  key: string
+  ctrl: boolean
+  opt: boolean
+  shift: boolean
+  cmd: boolean
+  /** Chord prefix — if the key string is space-separated (e.g., "v c" → chord: "v") */
+  chord?: string
+}
+
+/**
+ * Parse a compact key string into its components.
+ *
+ * Examples:
+ * - "j" → { key: "j", ctrl: false, ... }
+ * - "ctrl-t" → { key: "t", ctrl: true, ... }
+ * - "cmd-shift-z" → { key: "z", cmd: true, shift: true, ... }
+ * - "v c" → { chord: "v", key: "c", ... }
+ * - "Ctrl+g o" → { chord: "Ctrl+g", key: "o", ... }
+ * - "v shift-Tab" → { chord: "v", key: "Tab", shift: true, ... }
+ */
+export function parseKeyString(keyStr: string): ParsedKey {
+  // Handle chord: "v c" → { chord: "v", key: "c", ... }
+  // Chord prefix is everything before the first space
+  const spaceIdx = keyStr.indexOf(" ")
+  if (spaceIdx > 0) {
+    const prefix = keyStr.slice(0, spaceIdx)
+    const suffix = keyStr.slice(spaceIdx + 1)
+    // Parse suffix for modifiers (e.g., "v shift-Tab")
+    const parsed = parseKeyString(suffix)
+    return { ...parsed, chord: prefix }
+  }
+
+  // Handle modifier prefixes: "ctrl-t", "cmd-shift-k"
+  // Special case: bare "-" is a literal hyphen key, not a separator
+  if (keyStr === "-") {
+    return { key: "-", ctrl: false, opt: false, shift: false, cmd: false }
+  }
+
+  const parts = keyStr.split("-")
+  const result: ParsedKey = { key: "", ctrl: false, opt: false, shift: false, cmd: false }
+
+  for (const part of parts) {
+    const lower = part.toLowerCase()
+    if (lower === "ctrl") result.ctrl = true
+    else if (lower === "opt" || lower === "alt") result.opt = true
+    else if (lower === "shift") result.shift = true
+    else if (lower === "cmd" || lower === "meta") result.cmd = true
+    else result.key = part // Last non-modifier part is the key
+  }
+
+  return result
 }
 
 export interface KeybindingContext {
@@ -81,8 +142,8 @@ export interface KeybindingContext {
   inputType?: "field" | "textarea"
 }
 
-// Internal binding with registration order for priority interleaving
-type OrderedBinding = Keybinding & { _order: number }
+// Internal binding with registration order and pre-parsed key data for fast matching
+type OrderedBinding = Keybinding & { _order: number; _parsed: ParsedKey }
 
 // Key-indexed storage for fast lookup
 const keyMap = new Map<string, OrderedBinding[]>()
@@ -93,27 +154,29 @@ const chordPrefixes = new Set<string>()
 let nextOrder = 0
 
 export function registerKeybinding(binding: Keybinding): void {
+  const parsed = parseKeyString(binding.key)
   const ordered: OrderedBinding = Object.assign({}, binding, {
     _order: nextOrder++,
+    _parsed: parsed,
   })
-  if (binding.chord) {
+  if (parsed.chord) {
     // Chord binding: route to chordMap with key "prefix:secondKey"
-    const chordKey = `${binding.chord}:${binding.key}`
+    const chordKey = `${parsed.chord}:${parsed.key}`
     const bucket = chordMap.get(chordKey)
     if (bucket) {
       bucket.push(ordered)
     } else {
       chordMap.set(chordKey, [ordered])
     }
-    chordPrefixes.add(binding.chord)
+    chordPrefixes.add(parsed.chord)
   } else if (binding.wildcard) {
     wildcardBindings.push(ordered)
   } else {
-    const bucket = keyMap.get(binding.key)
+    const bucket = keyMap.get(parsed.key)
     if (bucket) {
       bucket.push(ordered)
     } else {
-      keyMap.set(binding.key, [ordered])
+      keyMap.set(parsed.key, [ordered])
     }
   }
 }
@@ -142,13 +205,13 @@ export function getAllKeybindings(): Keybinding[] {
     result.push(...bucket)
   }
   result.sort((a, b) => a._order - b._order)
-  // Strip internal _order field from returned bindings
-  return result.map(({ _order, ...binding }) => binding)
+  // Strip internal fields from returned bindings
+  return result.map(({ _order, _parsed, ...binding }) => binding)
 }
 
 /** Check if a single binding matches the given key, modifiers, and context */
 function matchBinding(
-  binding: Keybinding,
+  binding: OrderedBinding,
   key: string,
   modifiers: {
     ctrl?: boolean
@@ -158,15 +221,16 @@ function matchBinding(
   },
   ctx: KeybindingContext,
 ): boolean {
+  const parsed = binding._parsed
   // Wildcards skip modifier checks — they absorb all keys regardless of modifiers
   if (!binding.wildcard) {
-    if (!!binding.ctrl !== !!modifiers.ctrl) return false
-    if (!!binding.opt !== !!modifiers.opt) return false
-    if (!!binding.cmd !== !!modifiers.cmd) return false
+    if (!!parsed.ctrl !== !!modifiers.ctrl) return false
+    if (!!parsed.opt !== !!modifiers.opt) return false
+    if (!!parsed.cmd !== !!modifiers.cmd) return false
     // For single uppercase letters (A-Z), the shift key is implicit in the character
     // Don't require explicit shift: true in the binding for capital letters
-    const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !binding.shift
-    if (!isUppercaseLetter && !!binding.shift !== !!modifiers.shift) {
+    const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !parsed.shift
+    if (!isUppercaseLetter && !!parsed.shift !== !!modifiers.shift) {
       return false
     }
   }
@@ -303,13 +367,14 @@ export function getChordSuffixes(prefix: string): { key: string; commandId: stri
 
 /** Format a keybinding as a human-readable hint string (e.g., "⌘z", "⌃k") */
 export function formatKeybinding(binding: Keybinding): string {
+  const parsed = parseKeyString(binding.key)
   const parts: string[] = []
-  if (binding.chord) parts.push(binding.chord)
-  if (binding.cmd) parts.push("⌘")
-  if (binding.ctrl) parts.push("⌃")
-  if (binding.opt) parts.push("⌥")
-  if (binding.shift) parts.push("⇧")
-  parts.push(binding.key)
+  if (parsed.chord) parts.push(parsed.chord)
+  if (parsed.cmd) parts.push("⌘")
+  if (parsed.ctrl) parts.push("⌃")
+  if (parsed.opt) parts.push("⌥")
+  if (parsed.shift) parts.push("⇧")
+  parts.push(parsed.key)
   return parts.join("")
 }
 
@@ -385,9 +450,9 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "global",
     bindings: [
       { key: "`", commandId: "console.toggle" },
-      { key: "t", ctrl: true, commandId: "task_dialog" },
-      { key: "k", ctrl: true, commandId: "command_palette", when: not(textInputFocused) },
-      { key: "k", cmd: true, commandId: "command_palette" },
+      { key: "ctrl-t", commandId: "task_dialog" },
+      { key: "ctrl-k", commandId: "command_palette", when: not(textInputFocused) },
+      { key: "cmd-k", commandId: "command_palette" },
     ],
   },
 
@@ -396,7 +461,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "filter-dialog",
     bindings: [
       { key: "Escape", commandId: "dialog.cancel", when: filterDialogOpen },
-      { key: "/", ctrl: true, commandId: "dialog.cancel", when: filterDialogOpen },
+      { key: "ctrl-/", commandId: "dialog.cancel", when: filterDialogOpen },
       // ⌃g is now a goto chord prefix — no longer cancels filter dialog
       { key: "j", commandId: "dialog.nav_down", when: filterDialogOpen },
       { key: "k", commandId: "dialog.nav_up", when: filterDialogOpen },
@@ -435,13 +500,13 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "Escape", commandId: "search_replace.close", when: searchReplaceOpen },
       { key: "Enter", commandId: "search_replace.next", when: searchReplaceOpen },
-      { key: "Enter", shift: true, commandId: "search_replace.prev", when: searchReplaceOpen },
-      { key: "r", ctrl: true, commandId: "search_replace.replace", when: searchReplaceOpen },
-      { key: "r", cmd: true, commandId: "search_replace.replace", when: searchReplaceOpen },
-      { key: "r", ctrl: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
-      { key: "r", cmd: true, shift: true, commandId: "search_replace.replace_all", when: searchReplaceOpen },
-      { key: "x", ctrl: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
-      { key: "x", cmd: true, commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+      { key: "shift-Enter", commandId: "search_replace.prev", when: searchReplaceOpen },
+      { key: "ctrl-r", commandId: "search_replace.replace", when: searchReplaceOpen },
+      { key: "cmd-r", commandId: "search_replace.replace", when: searchReplaceOpen },
+      { key: "ctrl-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
+      { key: "cmd-shift-r", commandId: "search_replace.replace_all", when: searchReplaceOpen },
+      { key: "ctrl-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
+      { key: "cmd-x", commandId: "search_replace.toggle_regex", when: searchReplaceOpen },
     ],
   },
 
@@ -455,8 +520,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
       { key: "Escape", commandId: "find_close", when: and(localFindActive, textInputFocused, not(isInlineEditing)) },
       { key: "Enter", commandId: "find_confirm", when: and(localFindActive, textInputFocused) },
-      { key: "n", ctrl: true, commandId: "find_next", when: and(localFindActive, textInputFocused) },
-      { key: "p", ctrl: true, commandId: "find_prev", when: and(localFindActive, textInputFocused) },
+      { key: "ctrl-n", commandId: "find_next", when: and(localFindActive, textInputFocused) },
+      { key: "ctrl-p", commandId: "find_prev", when: and(localFindActive, textInputFocused) },
       // Find bar closed but matches remain: n/N navigate, Escape clears
       // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
       { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
@@ -476,7 +541,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "input-type-tab",
     bindings: [
       { key: "Tab", commandId: "focus_next", when: and(inputTypeField, not(searchDialogOpen)) },
-      { key: "Tab", shift: true, commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
+      { key: "shift-Tab", commandId: "focus_prev", when: and(inputTypeField, not(searchDialogOpen)) },
     ],
   },
 
@@ -488,8 +553,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Enter", commandId: "dialog.confirm", when: anyDialogOpen },
       { key: "ArrowUp", commandId: "dialog.nav_up", when: anyDialogOpen },
       { key: "ArrowDown", commandId: "dialog.nav_down", when: anyDialogOpen },
-      { key: "p", ctrl: true, commandId: "dialog.nav_up", when: anyDialogOpen },
-      { key: "n", ctrl: true, commandId: "dialog.nav_down", when: anyDialogOpen },
+      { key: "ctrl-p", commandId: "dialog.nav_up", when: anyDialogOpen },
+      { key: "ctrl-n", commandId: "dialog.nav_down", when: anyDialogOpen },
       { key: "Tab", commandId: "dialog.toggle_search_scope", when: searchDialogOpen },
     ],
   },
@@ -512,15 +577,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "Delete", commandId: "text.delete_forward", when: textInputFocused },
       { key: "ArrowLeft", commandId: "text.cursor_left", when: textInputFocused },
       { key: "ArrowRight", commandId: "text.cursor_right", when: textInputFocused },
-      { key: "a", ctrl: true, commandId: "text.cursor_start", when: textInputFocused },
-      { key: "e", ctrl: true, commandId: "text.cursor_end", when: textInputFocused },
-      { key: "b", ctrl: true, commandId: "text.cursor_left", when: textInputFocused },
-      { key: "f", ctrl: true, commandId: "text.cursor_right", when: and(textInputFocused, hasKitty) },
-      { key: "f", ctrl: true, commandId: "local_find", when: and(textInputFocused, not(hasKitty)) },
-      { key: "w", ctrl: true, commandId: "text.delete_word", when: textInputFocused },
-      { key: "u", ctrl: true, commandId: "text.delete_to_start", when: textInputFocused },
-      { key: "k", ctrl: true, commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
-      { key: "k", ctrl: true, commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
+      { key: "ctrl-a", commandId: "text.cursor_start", when: textInputFocused },
+      { key: "ctrl-e", commandId: "text.cursor_end", when: textInputFocused },
+      { key: "ctrl-b", commandId: "text.cursor_left", when: textInputFocused },
+      { key: "ctrl-f", commandId: "text.cursor_right", when: and(textInputFocused, hasKitty) },
+      { key: "ctrl-f", commandId: "local_find", when: and(textInputFocused, not(hasKitty)) },
+      { key: "ctrl-w", commandId: "text.delete_word", when: textInputFocused },
+      { key: "ctrl-u", commandId: "text.delete_to_start", when: textInputFocused },
+      { key: "ctrl-k", commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
+      { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
       // Enter during text input → confirm (save+exit for inline edit, submit for search)
       { key: "Enter", commandId: "text.confirm", when: textInputFocused },
       { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
@@ -536,14 +601,14 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "inline-edit-barrier",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo", when: and(isInlineEditing, not(hasKitty)) },
-      { key: "z", cmd: true, commandId: "undo", when: isInlineEditing },
-      { key: "z", ctrl: true, shift: true, commandId: "redo", when: and(isInlineEditing, not(hasKitty)) },
-      { key: "z", cmd: true, shift: true, commandId: "redo", when: isInlineEditing },
-      { key: "y", ctrl: true, commandId: "text.yank", when: isInlineEditing },
+      { key: "ctrl-z", commandId: "undo", when: and(isInlineEditing, not(hasKitty)) },
+      { key: "cmd-z", commandId: "undo", when: isInlineEditing },
+      { key: "ctrl-shift-z", commandId: "redo", when: and(isInlineEditing, not(hasKitty)) },
+      { key: "cmd-shift-z", commandId: "redo", when: isInlineEditing },
+      { key: "ctrl-y", commandId: "text.yank", when: isInlineEditing },
       // Text formatting (Cmd+b/i — kitty protocol, text edit only)
-      { key: "b", cmd: true, commandId: "text.bold", when: isInlineEditing },
-      { key: "i", cmd: true, commandId: "text.italic", when: isInlineEditing },
+      { key: "cmd-b", commandId: "text.bold", when: isInlineEditing },
+      { key: "cmd-i", commandId: "text.italic", when: isInlineEditing },
       { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
     ],
   },
@@ -600,22 +665,22 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "ArrowRight", commandId: "cursor_right" },
 
       // Emacs-style Ctrl+N/P (normal mode only — dialogs take priority above)
-      { key: "n", ctrl: true, commandId: "cursor_down", when: not(anyDialogOpen) },
-      { key: "p", ctrl: true, commandId: "cursor_up", when: not(anyDialogOpen) },
+      { key: "ctrl-n", commandId: "cursor_down", when: not(anyDialogOpen) },
+      { key: "ctrl-p", commandId: "cursor_up", when: not(anyDialogOpen) },
 
       // History navigation: {/} = history back/forward (v2 spec)
       { key: "{", commandId: "nav_back" },
       { key: "}", commandId: "nav_forward" },
 
       // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
-      { key: "d", ctrl: true, commandId: "page_down" },
-      { key: "u", ctrl: true, commandId: "page_up" },
+      { key: "ctrl-d", commandId: "page_down" },
+      { key: "ctrl-u", commandId: "page_up" },
       { key: "PageDown", commandId: "page_down" },
       { key: "PageUp", commandId: "page_up" },
 
       // Sibling board navigation
-      { key: "j", ctrl: true, commandId: "sibling_board_next" },
-      { key: "k", ctrl: true, commandId: "sibling_board_prev" },
+      { key: "ctrl-j", commandId: "sibling_board_next" },
+      { key: "ctrl-k", commandId: "sibling_board_prev" },
 
       // Edit entry: i = edit title at start, Enter = edit title at end
       { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
@@ -628,27 +693,27 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
       { key: "D", commandId: "toggle_detail_pane" },
       // Cmd+W: always close detail pane regardless of focus state
-      { key: "w", cmd: true, commandId: "close_detail_pane" },
-      { key: "Enter", ctrl: true, commandId: "follow_link" },
-      { key: "i", ctrl: true, commandId: "toggle_detail_pane" },
+      { key: "cmd-w", commandId: "close_detail_pane" },
+      { key: "ctrl-Enter", commandId: "follow_link" },
+      { key: "ctrl-i", commandId: "toggle_detail_pane" },
 
       // Ctrl equivalents for chord prefixes and pickers
-      { key: "l", ctrl: true, commandId: "add_link", when: not(textInputFocused) },
+      { key: "ctrl-l", commandId: "add_link", when: not(textInputFocused) },
       // ⌃r freed up (was reparent_picker — now use ⌃m prefix + p/[/+ with Kitty)
-      { key: "o", ctrl: true, commandId: "open_in_system", when: not(textInputFocused) },
+      { key: "ctrl-o", commandId: "open_in_system", when: not(textInputFocused) },
 
       // Cmd shortcuts (kitty protocol — macOS native feel)
       // Cmd+i: toggle detail pane (when not inline editing — Cmd+i is italic there)
-      { key: "i", cmd: true, commandId: "toggle_detail_pane", when: not(isInlineEditing) },
+      { key: "cmd-i", commandId: "toggle_detail_pane", when: not(isInlineEditing) },
       // Focus switching: Cmd+h = board, Cmd+l = detail pane
-      { key: "h", cmd: true, commandId: "focus_board" },
-      { key: "l", cmd: true, commandId: "focus_detail" },
+      { key: "cmd-h", commandId: "focus_board" },
+      { key: "cmd-l", commandId: "focus_detail" },
       // History: Cmd+[/] = back/forward
-      { key: "[", cmd: true, commandId: "nav_back" },
-      { key: "]", cmd: true, commandId: "nav_forward" },
+      { key: "cmd-[", commandId: "nav_back" },
+      { key: "cmd-]", commandId: "nav_forward" },
       // Smart open: Cmd+o = system open, Cmd+Shift+o = terminal/editor open
-      { key: "o", cmd: true, commandId: "open_in_system" },
-      { key: "o", cmd: true, shift: true, commandId: "open_in_terminal" },
+      { key: "cmd-o", commandId: "open_in_system" },
+      { key: "cmd-shift-o", commandId: "open_in_terminal" },
     ],
   },
 
@@ -661,15 +726,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // Progressive select all with Shift+A
       // A reserved for Agent Dialog
       // Ctrl+A selects all in normal mode (textInputFocused → text.cursor_start is above)
-      { key: "a", ctrl: true, commandId: "select_all", when: not(textInputFocused) },
+      { key: "ctrl-a", commandId: "select_all", when: not(textInputFocused) },
       // Cmd+A selects all (kitty protocol)
-      { key: "a", cmd: true, commandId: "select_all" },
+      { key: "cmd-a", commandId: "select_all" },
 
       // Extend selection with Shift+arrows (xterm modified arrow sequences)
-      { key: "ArrowUp", shift: true, commandId: "extend_select_up" },
-      { key: "ArrowDown", shift: true, commandId: "extend_select_down" },
-      { key: "ArrowLeft", shift: true, commandId: "extend_select_left" },
-      { key: "ArrowRight", shift: true, commandId: "extend_select_right" },
+      { key: "shift-ArrowUp", commandId: "extend_select_up" },
+      { key: "shift-ArrowDown", commandId: "extend_select_down" },
+      { key: "shift-ArrowLeft", commandId: "extend_select_left" },
+      { key: "shift-ArrowRight", commandId: "extend_select_right" },
     ],
   },
 
@@ -683,11 +748,11 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // I = enter body edit at start, Shift+Enter = enter body edit at end
       { key: "I", commandId: "enter_body_edit" },
-      { key: "Enter", shift: true, commandId: "enter_body_edit" },
+      { key: "shift-Enter", commandId: "enter_body_edit" },
 
       // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
       { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
-      { key: "Backspace", shift: true, commandId: "clipboard_cut" },
+      { key: "shift-Backspace", commandId: "clipboard_cut" },
       { key: "Backspace", commandId: "delete_node" },
       { key: "Delete", commandId: "delete_node" },
 
@@ -698,8 +763,8 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       // o/O = new item below/above (outliner-style)
       { key: "o", commandId: "insert_below" },
       { key: "O", commandId: "insert_above" },
-      { key: "Enter", cmd: true, commandId: "insert_below" },
-      { key: "Enter", cmd: true, shift: true, commandId: "new_item" },
+      { key: "cmd-Enter", commandId: "insert_below" },
+      { key: "cmd-shift-Enter", commandId: "new_item" },
 
       // u/U = undo/redo (vim-style)
       { key: "u", commandId: "undo" },
@@ -707,38 +772,38 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
 
       // Shifting (Cmd/Super+direction) — move nodes in tree
       // Also bound to Alt/Meta for terminals without Kitty protocol
-      { key: "ArrowUp", cmd: true, commandId: "shift_up" },
-      { key: "ArrowDown", cmd: true, commandId: "shift_down" },
-      { key: "ArrowLeft", cmd: true, commandId: "shift_left" },
-      { key: "ArrowRight", cmd: true, commandId: "shift_right" },
-      { key: "k", cmd: true, commandId: "shift_up" },
-      { key: "j", cmd: true, commandId: "shift_down" },
+      { key: "cmd-ArrowUp", commandId: "shift_up" },
+      { key: "cmd-ArrowDown", commandId: "shift_down" },
+      { key: "cmd-ArrowLeft", commandId: "shift_left" },
+      { key: "cmd-ArrowRight", commandId: "shift_right" },
+      { key: "cmd-k", commandId: "shift_up" },
+      { key: "cmd-j", commandId: "shift_down" },
       // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
       // Use Alt/Meta+h/l for shifting instead
-      { key: "ArrowUp", opt: true, commandId: "shift_up" },
-      { key: "ArrowDown", opt: true, commandId: "shift_down" },
-      { key: "ArrowLeft", opt: true, commandId: "shift_left" },
-      { key: "ArrowRight", opt: true, commandId: "shift_right" },
-      { key: "k", opt: true, commandId: "shift_up" },
-      { key: "j", opt: true, commandId: "shift_down" },
-      { key: "h", opt: true, commandId: "shift_left" },
-      { key: "l", opt: true, commandId: "shift_right" },
+      { key: "opt-ArrowUp", commandId: "shift_up" },
+      { key: "opt-ArrowDown", commandId: "shift_down" },
+      { key: "opt-ArrowLeft", commandId: "shift_left" },
+      { key: "opt-ArrowRight", commandId: "shift_right" },
+      { key: "opt-k", commandId: "shift_up" },
+      { key: "opt-j", commandId: "shift_down" },
+      { key: "opt-h", commandId: "shift_left" },
+      { key: "opt-l", commandId: "shift_right" },
 
       // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
       { key: "Tab", commandId: "indent_node" },
-      { key: "Tab", shift: true, commandId: "outdent" },
+      { key: "shift-Tab", commandId: "outdent" },
 
       // Clipboard (Cmd — macOS; Ctrl fallbacks when Kitty unavailable)
-      { key: "c", ctrl: true, commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "x", ctrl: true, commandId: "clipboard_cut", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "v", ctrl: true, commandId: "clipboard_paste", when: and(not(textInputFocused), not(hasKitty)) },
-      { key: "c", cmd: true, commandId: "clipboard_copy", when: not(textInputFocused) },
-      { key: "x", cmd: true, commandId: "clipboard_cut", when: not(textInputFocused) },
-      { key: "v", cmd: true, commandId: "clipboard_paste", when: not(textInputFocused) },
+      { key: "ctrl-c", commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "ctrl-x", commandId: "clipboard_cut", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "ctrl-v", commandId: "clipboard_paste", when: and(not(textInputFocused), not(hasKitty)) },
+      { key: "cmd-c", commandId: "clipboard_copy", when: not(textInputFocused) },
+      { key: "cmd-x", commandId: "clipboard_cut", when: not(textInputFocused) },
+      { key: "cmd-v", commandId: "clipboard_paste", when: not(textInputFocused) },
       // Cmd+d = duplicate (kitty)
-      { key: "d", cmd: true, commandId: "duplicate_node" },
+      { key: "cmd-d", commandId: "duplicate_node" },
       // Cmd+n = capture dialog (kitty) — per help spec
-      { key: "n", cmd: true, commandId: "capture_dialog" },
+      { key: "cmd-n", commandId: "capture_dialog" },
     ],
   },
 
@@ -783,74 +848,74 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "c", commandId: "capture_inbox" },
 
       // g-prefix chords (go-to — non-location entries)
-      { chord: "g", key: "g", commandId: "cursor_first" },
-      { chord: "g", key: "G", commandId: "cursor_last" },
-      { chord: "g", key: "o", commandId: "open_in_system" },
-      { chord: "g", key: "O", commandId: "open_in_terminal" },
+      { key: "g g", commandId: "cursor_first" },
+      { key: "g G", commandId: "cursor_last" },
+      { key: "g o", commandId: "open_in_system" },
+      { key: "g O", commandId: "open_in_terminal" },
 
       // v-prefix chords — VIEW operations
-      { chord: "v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { chord: "v", key: "m", commandId: "cycle_view_mode" },
-      { chord: "v", key: "i", commandId: "cycle_icon_style" },
-      { chord: "v", key: "c", commandId: "toggle_collapse" },
-      { chord: "v", key: "X", commandId: "toggle_show_ignored" },
-      { chord: "v", key: "d", commandId: "toggle_hide_done" },
-      { chord: "v", key: "x", commandId: "ignore_node" },
-      { chord: "v", key: "-", commandId: "clear_filters" },
-      { chord: "v", key: ",", commandId: "filter" },
+      { key: "v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      { key: "v m", commandId: "cycle_view_mode" },
+      { key: "v i", commandId: "cycle_icon_style" },
+      { key: "v c", commandId: "toggle_collapse" },
+      { key: "v X", commandId: "toggle_show_ignored" },
+      { key: "v d", commandId: "toggle_hide_done" },
+      { key: "v x", commandId: "ignore_node" },
+      { key: "v -", commandId: "clear_filters" },
+      { key: "v ,", commandId: "filter" },
 
       // v-prefix chords — PANE operations
-      { chord: "v", key: "s", commandId: "pane_split_vertical" },
-      { chord: "v", key: "h", commandId: "pane_focus_left" },
-      { chord: "v", key: "j", commandId: "pane_focus_down" },
-      { chord: "v", key: "k", commandId: "pane_focus_up" },
-      { chord: "v", key: "l", commandId: "pane_focus_right" },
-      { chord: "v", key: ">", commandId: "pane_resize_grow" },
-      { chord: "v", key: "<", commandId: "pane_resize_shrink" },
-      { chord: "v", key: "=", commandId: "pane_equalize" },
-      { chord: "v", key: "H", commandId: "pane_swap_left" },
-      { chord: "v", key: "J", commandId: "pane_swap_down" },
-      { chord: "v", key: "K", commandId: "pane_swap_up" },
-      { chord: "v", key: "L", commandId: "pane_swap_right" },
-      { chord: "v", key: "n", commandId: "pane_focus_next" },
-      { chord: "v", key: "N", commandId: "pane_focus_prev" },
-      { chord: "v", key: "p", commandId: "pane_focus_previous" },
-      { chord: "v", key: "Tab", commandId: "pane_focus_next" },
-      { chord: "v", key: "Tab", shift: true, commandId: "pane_focus_prev" },
-      { chord: "v", key: "w", commandId: "pane_close" },
-      { chord: "v", key: "o", commandId: "pane_only" },
-      { chord: "v", key: "z", commandId: "pane_zoom" },
+      { key: "v s", commandId: "pane_split_vertical" },
+      { key: "v h", commandId: "pane_focus_left" },
+      { key: "v j", commandId: "pane_focus_down" },
+      { key: "v k", commandId: "pane_focus_up" },
+      { key: "v l", commandId: "pane_focus_right" },
+      { key: "v >", commandId: "pane_resize_grow" },
+      { key: "v <", commandId: "pane_resize_shrink" },
+      { key: "v =", commandId: "pane_equalize" },
+      { key: "v H", commandId: "pane_swap_left" },
+      { key: "v J", commandId: "pane_swap_down" },
+      { key: "v K", commandId: "pane_swap_up" },
+      { key: "v L", commandId: "pane_swap_right" },
+      { key: "v n", commandId: "pane_focus_next" },
+      { key: "v N", commandId: "pane_focus_prev" },
+      { key: "v p", commandId: "pane_focus_previous" },
+      { key: "v Tab", commandId: "pane_focus_next" },
+      { key: "v shift-Tab", commandId: "pane_focus_prev" },
+      { key: "v w", commandId: "pane_close" },
+      { key: "v o", commandId: "pane_only" },
+      { key: "v z", commandId: "pane_zoom" },
 
       // m-prefix chords (move — non-location entries)
-      { chord: "m", key: "m", commandId: "enter_move_mode" },
-      { chord: "m", key: "a", commandId: "archive" },
+      { key: "m m", commandId: "enter_move_mode" },
+      { key: "m a", commandId: "archive" },
 
       // t-prefix chords (task properties — v2 spec)
-      { chord: "t", key: "t", commandId: "task_dialog" },
-      { chord: "t", key: "-", commandId: "clear_task" },
-      { chord: "t", key: "o", commandId: "set_assignee" },
-      { chord: "t", key: "d", commandId: "set_due_date" },
-      { chord: "t", key: "!", commandId: "set_priority" },
-      { chord: "t", key: "0", commandId: "set_priority_0" },
-      { chord: "t", key: "1", commandId: "set_priority_1" },
-      { chord: "t", key: "2", commandId: "set_priority_2" },
-      { chord: "t", key: "3", commandId: "set_priority_3" },
-      { chord: "t", key: "4", commandId: "set_priority_4" },
-      { chord: "t", key: "s", commandId: "cycle_task_status" },
-      { chord: "t", key: "r", commandId: "set_recurring" },
+      { key: "t t", commandId: "task_dialog" },
+      { key: "t -", commandId: "clear_task" },
+      { key: "t o", commandId: "set_assignee" },
+      { key: "t d", commandId: "set_due_date" },
+      { key: "t !", commandId: "set_priority" },
+      { key: "t 0", commandId: "set_priority_0" },
+      { key: "t 1", commandId: "set_priority_1" },
+      { key: "t 2", commandId: "set_priority_2" },
+      { key: "t 3", commandId: "set_priority_3" },
+      { key: "t 4", commandId: "set_priority_4" },
+      { key: "t s", commandId: "cycle_task_status" },
+      { key: "t r", commandId: "set_recurring" },
       // toggle_hide_done moved to v d (view prefix)
-      { chord: "t", key: "l", commandId: "set_label" },
+      { key: "t l", commandId: "set_label" },
 
       // Verb x location grid (composable chords: g/m/a/c x locations)
       ...verbLocationGrid(),
 
       // Ctrl+g/Ctrl+m non-location entries
-      { chord: "Ctrl+g", key: "g", commandId: "cursor_first" },
-      { chord: "Ctrl+g", key: "G", commandId: "cursor_last" },
-      { chord: "Ctrl+g", key: "o", commandId: "open_in_system" },
-      { chord: "Ctrl+g", key: "O", commandId: "open_in_terminal" },
-      { chord: "Ctrl+m", key: "m", commandId: "enter_move_mode", when: hasKitty },
-      { chord: "Ctrl+m", key: "a", commandId: "archive", when: hasKitty },
+      { key: "Ctrl+g g", commandId: "cursor_first" },
+      { key: "Ctrl+g G", commandId: "cursor_last" },
+      { key: "Ctrl+g o", commandId: "open_in_system" },
+      { key: "Ctrl+g O", commandId: "open_in_terminal" },
+      { key: "Ctrl+m m", commandId: "enter_move_mode", when: hasKitty },
+      { key: "Ctrl+m a", commandId: "archive", when: hasKitty },
 
       // Ctrl+prefix verb x location grid (Kitty terminal alternatives)
       ...ctrlVerbLocationGrid(),
@@ -871,7 +936,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
       { key: "-", commandId: "decrease_content_lines" },
 
       // Filter and command palette
-      { key: "/", ctrl: true, commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
+      { key: "ctrl-/", commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
       { key: ":", commandId: "command_palette" },
     ],
   },
@@ -880,12 +945,12 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   {
     name: "history",
     bindings: [
-      { key: "z", ctrl: true, commandId: "undo", when: not(hasKitty) },
-      { key: "z", cmd: true, commandId: "undo" },
-      { key: "z", ctrl: true, shift: true, commandId: "redo", when: not(hasKitty) },
-      { key: "z", cmd: true, shift: true, commandId: "redo" },
+      { key: "ctrl-z", commandId: "undo", when: not(hasKitty) },
+      { key: "cmd-z", commandId: "undo" },
+      { key: "ctrl-shift-z", commandId: "redo", when: not(hasKitty) },
+      { key: "cmd-shift-z", commandId: "redo" },
       // Ctrl+Y → text.yank in text input, redo otherwise
-      { key: "y", ctrl: true, commandId: "text.yank", when: textInputFocused },
+      { key: "ctrl-y", commandId: "text.yank", when: textInputFocused },
     ],
   },
 
@@ -894,35 +959,35 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     name: "ctrl-v",
     bindings: [
       // View operations (mirrors v-prefix)
-      { chord: "Ctrl+v", key: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-      { chord: "Ctrl+v", key: "m", commandId: "cycle_view_mode" },
-      { chord: "Ctrl+v", key: "i", commandId: "cycle_icon_style" },
-      { chord: "Ctrl+v", key: "c", commandId: "toggle_collapse" },
-      { chord: "Ctrl+v", key: "X", commandId: "toggle_show_ignored" },
-      { chord: "Ctrl+v", key: "d", commandId: "toggle_hide_done" },
-      { chord: "Ctrl+v", key: "x", commandId: "ignore_node" },
-      { chord: "Ctrl+v", key: "-", commandId: "clear_filters" },
-      { chord: "Ctrl+v", key: ",", commandId: "filter" },
+      { key: "Ctrl+v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+      { key: "Ctrl+v m", commandId: "cycle_view_mode" },
+      { key: "Ctrl+v i", commandId: "cycle_icon_style" },
+      { key: "Ctrl+v c", commandId: "toggle_collapse" },
+      { key: "Ctrl+v X", commandId: "toggle_show_ignored" },
+      { key: "Ctrl+v d", commandId: "toggle_hide_done" },
+      { key: "Ctrl+v x", commandId: "ignore_node" },
+      { key: "Ctrl+v -", commandId: "clear_filters" },
+      { key: "Ctrl+v ,", commandId: "filter" },
       // Pane operations (mirrors v-prefix)
-      { chord: "Ctrl+v", key: "s", commandId: "pane_split_vertical" },
-      { chord: "Ctrl+v", key: "h", commandId: "pane_focus_left" },
-      { chord: "Ctrl+v", key: "j", commandId: "pane_focus_down" },
-      { chord: "Ctrl+v", key: "k", commandId: "pane_focus_up" },
-      { chord: "Ctrl+v", key: "l", commandId: "pane_focus_right" },
-      { chord: "Ctrl+v", key: ">", commandId: "pane_resize_grow" },
-      { chord: "Ctrl+v", key: "<", commandId: "pane_resize_shrink" },
-      { chord: "Ctrl+v", key: "=", commandId: "pane_equalize" },
-      { chord: "Ctrl+v", key: "H", commandId: "pane_swap_left" },
-      { chord: "Ctrl+v", key: "J", commandId: "pane_swap_down" },
-      { chord: "Ctrl+v", key: "K", commandId: "pane_swap_up" },
-      { chord: "Ctrl+v", key: "L", commandId: "pane_swap_right" },
-      { chord: "Ctrl+v", key: "n", commandId: "pane_focus_next" },
-      { chord: "Ctrl+v", key: "N", commandId: "pane_focus_prev" },
-      { chord: "Ctrl+v", key: "p", commandId: "pane_focus_previous" },
-      { chord: "Ctrl+v", key: "Tab", commandId: "pane_focus_next" },
-      { chord: "Ctrl+v", key: "w", commandId: "pane_close" },
-      { chord: "Ctrl+v", key: "o", commandId: "pane_only" },
-      { chord: "Ctrl+v", key: "z", commandId: "pane_zoom" },
+      { key: "Ctrl+v s", commandId: "pane_split_vertical" },
+      { key: "Ctrl+v h", commandId: "pane_focus_left" },
+      { key: "Ctrl+v j", commandId: "pane_focus_down" },
+      { key: "Ctrl+v k", commandId: "pane_focus_up" },
+      { key: "Ctrl+v l", commandId: "pane_focus_right" },
+      { key: "Ctrl+v >", commandId: "pane_resize_grow" },
+      { key: "Ctrl+v <", commandId: "pane_resize_shrink" },
+      { key: "Ctrl+v =", commandId: "pane_equalize" },
+      { key: "Ctrl+v H", commandId: "pane_swap_left" },
+      { key: "Ctrl+v J", commandId: "pane_swap_down" },
+      { key: "Ctrl+v K", commandId: "pane_swap_up" },
+      { key: "Ctrl+v L", commandId: "pane_swap_right" },
+      { key: "Ctrl+v n", commandId: "pane_focus_next" },
+      { key: "Ctrl+v N", commandId: "pane_focus_prev" },
+      { key: "Ctrl+v p", commandId: "pane_focus_previous" },
+      { key: "Ctrl+v Tab", commandId: "pane_focus_next" },
+      { key: "Ctrl+v w", commandId: "pane_close" },
+      { key: "Ctrl+v o", commandId: "pane_only" },
+      { key: "Ctrl+v z", commandId: "pane_zoom" },
 
       // Bare n/N for pane cycling (when find is not active)
       { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
@@ -936,15 +1001,15 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
     bindings: [
       { key: "q", commandId: "quit" },
       { key: "/", commandId: "local_find" },
-      { key: "f", cmd: true, commandId: "local_find" },
-      { key: "f", cmd: true, shift: true, commandId: "search_replace" },
+      { key: "cmd-f", commandId: "local_find" },
+      { key: "cmd-shift-f", commandId: "search_replace" },
       // S and F moved to navigation layer (G = filter, F = find & replace)
 
       // Cmd shortcuts (kitty protocol — macOS native dialogs & views)
-      { key: "t", cmd: true, commandId: "task_dialog" },
-      { key: "g", cmd: true, commandId: "filter" },
-      { key: "p", cmd: true, commandId: "toggle_detail_pane" },
-      { key: ",", cmd: true, commandId: "settings" },
+      { key: "cmd-t", commandId: "task_dialog" },
+      { key: "cmd-g", commandId: "filter" },
+      { key: "cmd-p", commandId: "toggle_detail_pane" },
+      { key: "cmd-,", commandId: "settings" },
 
       // Favorites — dynamic bindings from favorites registry
       ...Array.from(getAllFavorites().keys()).map((key) => ({

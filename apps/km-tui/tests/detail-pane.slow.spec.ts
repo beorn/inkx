@@ -26,13 +26,13 @@ describe("Detail Pane Journeys", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     // Step 1: Open detail pane with D — auto-focuses detail
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     board.expectScreen("Buy milk")
 
     // Step 2: Close detail pane with D (from detail pane)
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
   })
 
@@ -43,17 +43,17 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane — auto-focuses detail, shows task1
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task1")
 
     // Step 2: Return to board, navigate down to task2 — detail should follow
-    board.press("h")
-    board.press("j")
+    board.command("cursor_left")
+    board.command("cursor_down")
     board.expectScreen("task2")
 
     // Step 3: Navigate down to task3 — detail should follow
-    board.press("j")
+    board.command("cursor_down")
     board.expectScreen("task3")
   })
 
@@ -64,13 +64,13 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane for folder card — auto-focuses detail, cursor on first child
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("subtask-a")
 
     // Step 2: Navigate down to second child
-    board.press("j")
+    board.command("cursor_down")
     const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane2?.cursorNodeId).toBe("subtask-b")
   })
@@ -82,16 +82,16 @@ describe("Detail Pane Journeys", () => {
     })
 
     // Step 1: Open detail pane, return to board
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("h") // return focus to board
+    board.command("cursor_left") // return focus to board
 
     // Step 2: l at rightmost column should focus detail pane
-    board.press("l")
+    board.command("cursor_right")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Step 3: h should return focus to board
-    board.press("h")
+    board.command("cursor_left")
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
     // Pane should still be open
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
@@ -109,24 +109,24 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane with D — auto-focuses detail
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Step 2: Navigate within detail pane
-    board.press("j")
+    board.command("cursor_down")
 
     // Step 3: Return to board
-    board.press("h")
+    board.command("cursor_left")
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
 
     // Step 4: Navigate to col2 then back to col1
-    board.press("l") // col1 -> col2
-    board.press("h") // col2 -> col1
+    board.command("cursor_right") // col1 -> col2
+    board.command("cursor_left") // col2 -> col1
 
     // Step 5: Board navigation still works
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
     board.expect("#task3[data-cursor]").toExist()
   })
 
@@ -137,17 +137,17 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail — cursor starts on first child
-    board.press("D")
+    board.command("toggle_detail_pane")
     const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(pane1?.cursorNodeId).toBe("child-a")
 
     // Step 2: j moves to next child
-    board.press("j")
+    board.command("cursor_down")
     const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(pane2?.cursorNodeId).toBe("child-b")
 
     // Step 3: k moves back
-    board.press("k")
+    board.command("cursor_up")
     const pane3 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(pane3?.cursorNodeId).toBe("child-a")
   })
@@ -159,7 +159,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane — cursor starts on first child (child-a)
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
@@ -194,7 +194,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Open detail (cursor starts on child-a), start editing
-    board.press("D")
+    board.command("toggle_detail_pane")
     board.press("Enter")
     expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
 
@@ -216,7 +216,7 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Open detail (cursor starts on child-a)
-    board.press("D")
+    board.command("toggle_detail_pane")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
     expect(detailPane?.cursorNodeId).toBe("child-a")
 
@@ -238,22 +238,22 @@ describe("Detail Pane Journeys", () => {
     )
 
     // Step 1: Open detail pane, return focus to board
-    board.press("D")
+    board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("h") // return to board
+    board.command("cursor_left") // return to board
 
     // Step 2: Navigate right to col2
-    board.press("l")
+    board.command("cursor_right")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task-b")
 
     // Step 3: Navigate right to col3
-    board.press("l")
+    board.command("cursor_right")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task-c")
 
     // Step 4: Navigate left back to col2
-    board.press("h")
+    board.command("cursor_left")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task-b")
   })

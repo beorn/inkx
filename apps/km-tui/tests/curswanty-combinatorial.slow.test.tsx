@@ -387,8 +387,8 @@ describe("curswantY boundaries", () => {
       columns: 80,
     })
 
-    board.press("j").press("j") // go to A03
-    board.press("h") // already at leftmost
+    board.command("cursor_down").command("cursor_down") // go to A03
+    board.command("cursor_left") // already at leftmost
     const cursor = cursorCardNum(board)
     expect(cursor.prefix).toBe("A")
     expect(cursor.num).toBe(3)
@@ -400,9 +400,9 @@ describe("curswantY boundaries", () => {
       columns: 80,
     })
 
-    board.press("j").press("j") // go to A03
-    board.press("l") // go to ColB
-    board.press("l") // already at rightmost
+    board.command("cursor_down").command("cursor_down") // go to A03
+    board.command("cursor_right") // go to ColB
+    board.command("cursor_right") // already at rightmost
     const cursor = cursorCardNum(board)
     expect(cursor.prefix).toBe("B")
   })
@@ -414,16 +414,16 @@ describe("curswantY boundaries", () => {
     })
 
     // Go up to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     const boardCursor = board.q("[data-cursor]")
     expect(boardCursor.textContent()).toContain("board")
 
     // l at board level → cursor stays on board
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("board")
 
     // h at board level → cursor stays on board
-    board.press("h")
+    board.command("cursor_left")
     expect(board.q("[data-cursor]").textContent()).toContain("board")
   })
 
@@ -433,10 +433,10 @@ describe("curswantY boundaries", () => {
       { rows: 24, columns: 120 },
     )
 
-    board.press("j").press("j") // A03
-    board.press("l") // → Empty column header
+    board.command("cursor_down").command("cursor_down") // A03
+    board.command("cursor_right") // → Empty column header
     expect(cursorText(board)).toContain("Empty")
-    board.press("l") // → ColC, should use stickyY from A03
+    board.command("cursor_right") // → ColC, should use stickyY from A03
     const cursor = cursorText(board)
     expect(cursor).not.toContain("Empty")
     expect(cursor).not.toContain("ColC")
@@ -451,11 +451,11 @@ describe("curswantY boundaries", () => {
     })
 
     // Navigate to A08 (near bottom of long column)
-    for (let i = 0; i < 7; i++) board.press("j")
+    for (let i = 0; i < 7; i++) board.command("cursor_down")
     expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 8 })
 
     // l → ColB which only has 3 cards — should clamp to last card
-    board.press("l")
+    board.command("cursor_right")
     const cursor = cursorCardNum(board)
     expect(cursor.prefix).toBe("B")
     expect(cursor.num).toBeLessThanOrEqual(3)
@@ -474,14 +474,14 @@ describe("curswantY with mutations", () => {
     )
 
     // Navigate to A03
-    board.press("j").press("j")
+    board.command("cursor_down").command("cursor_down")
     expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 3 })
 
     // Insert a card in ColB via repo API
     repo.addNode("ColB", { type: "li", content: "B-new" })
 
     // l should still work — no crash
-    board.press("l")
+    board.command("cursor_right")
     const text = cursorText(board)
     expect(text).toBeTruthy()
   })
@@ -493,17 +493,17 @@ describe("curswantY with mutations", () => {
     )
 
     // Navigate to A03
-    board.press("j").press("j")
+    board.command("cursor_down").command("cursor_down")
     expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 3 })
 
     // Move right
-    board.press("l")
+    board.command("cursor_right")
 
     // Delete a card from source column (not the one we came from)
     repo.deleteNode("A05")
 
     // Navigate back — should not crash
-    board.press("h")
+    board.command("cursor_left")
     const text = cursorText(board)
     expect(text).toBeTruthy()
   })

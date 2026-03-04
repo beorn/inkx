@@ -8,46 +8,25 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useApp as useAppStore } from "inkx/runtime"
-import type { BoardAppStore } from "../board-app-store.ts"
-import { useAtomValue } from "jotai"
-import { nodeMultiSelectedAtom, nodeEditAtom, nodeFoldOverrideAtom, nodeExcludedSigilsAtom } from "../node-atoms.ts"
+import { useNodeStore, useReactive } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Text, useScreenRectCallback } from "inkx"
 import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { isTask, getStatusForMarker } from "@km/core"
+import { useRepo } from "../repo-context.tsx"
 import {
-  extractTitleTaskMarker,
-  isTask,
-  stringifyTaskMetadata,
-  parseTaskMetadataFromText,
-  getStatusForMarker,
-} from "@km/core"
-import { useRepo, type Repo } from "../repo-context.tsx"
-import {
-  getNodeDisplayName,
   isNodeUntitled,
   getParentContext as getParentContextFromState,
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
-import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
+import { extractBody } from "@km/tree"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
 import {
-  getTypeBullet,
-  getCircleBullet,
-  getFoldMarker,
   isSigilName,
   InlineText,
-  computeSearchDecorationsFromSource,
-  type InlineRenderContext,
-  type TextDecoration,
-  type StatusIcon,
 } from "../text/index.ts"
 import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
-import { useCursorNodePosition } from "../cursor-context.tsx"
-import { InlineEditField } from "./InlineEditField.tsx"
-import { BodyEditField } from "./BodyEditField.tsx"
 import {
   getNodeStyle,
   buildPrefix,
@@ -63,102 +42,9 @@ import {
 } from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { stripKnownMentions } from "./detail-pane-helpers.ts"
-import { resolveEmbed, getDisplayContent, cleanContentForDisplay, EMBED_EXTRACT_RE } from "./embed-display.ts"
-
-/** Compute the bullet icon based on icon style, task status, and fold state. */
-function computeBulletIcon(
-  displayNode: KNode,
-  nodeIsTask: boolean,
-  taskStatusIcon: StatusIcon | null,
-  hasChildren: boolean,
-  isFolded: boolean,
-  ownColor: string | undefined,
-  iconStyle: string,
-): StatusIcon {
-  if (nodeIsTask && taskStatusIcon) return taskStatusIcon
-  if (iconStyle === "workflowy") {
-    const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
-    return ownColor ? { ...bullet, color: ownColor } : bullet
-  }
-  if (iconStyle === "nerdfont") {
-    const bullet = getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, ownColor)
-    return ownColor ? { ...bullet, color: ownColor } : bullet
-  }
-  // "regular" style — existing fold markers
-  return getFoldMarker(hasChildren, isFolded, ownColor)
-}
-
-/** Hook: build InlineRenderContext with wikilink/blockref resolution and sigil exclusion. */
-function useTreeInlineContext(
-  repo: Repo,
-  rootBoardId: string | null | undefined,
-  extraExcludedSigils: string[] | undefined,
-  sigilColors: Map<string, string> | undefined,
-  resolveSigilColor: ((sigil: string) => string | undefined) | undefined,
-  excludedSigilsOverride?: string[],
-): InlineRenderContext {
-  // Excluded sigils: use override if provided, otherwise derive from rootBoardId
-  const excludedSigils = useMemo(() => {
-    if (excludedSigilsOverride && excludedSigilsOverride.length > 0) return excludedSigilsOverride
-    const rootSigils = deriveExcludedSigils(repo, rootBoardId ?? null)
-    if (!extraExcludedSigils?.length) return rootSigils
-    return [...rootSigils, ...extraExcludedSigils]
-  }, [excludedSigilsOverride, repo, rootBoardId, extraExcludedSigils])
-
-  return useMemo(() => {
-    const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
-    const wikiLinkCache = new Map<string, string | null>()
-    const resolveWikiLink = (target: string): string | null => {
-      if (!target?.trim()) return null
-      const cached = wikiLinkCache.get(target)
-      if (cached !== undefined) return cached
-      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-      let result: string | null = null
-      if (resolved) {
-        result = getNodeDisplayName(repo, resolved)
-      } else if (target.startsWith("^")) {
-        const byId = repo.getNode(target.slice(1))
-        if (byId) result = getNodeDisplayName(repo, byId)
-      }
-      wikiLinkCache.set(target, result)
-      return result
-    }
-    const resolveBlockRef = (id: string): string | null => {
-      if (!id?.trim()) return null
-      const cacheKey = `^${id}`
-      const cached = wikiLinkCache.get(cacheKey)
-      if (cached !== undefined) return cached
-      const resolved = repo.getNode(id)
-      const result = resolved ? getNodeDisplayName(repo, resolved) : null
-      wikiLinkCache.set(cacheKey, result)
-      return result
-    }
-    return {
-      excludeSigils: excludeSet,
-      sigilColors,
-      resolveSigilColor,
-      resolveWikiLink,
-      resolveBlockRef,
-      hideFields: true,
-    }
-  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
-}
-
-/** Hook: compute search decorations for a content string. */
-function useSearchDecorations(
-  content: string,
-  searchHighlight: boolean,
-  searchQuery: string | null | undefined,
-  isCurrentMatch: boolean,
-): TextDecoration[] | undefined {
-  return useMemo(
-    () =>
-      searchHighlight && searchQuery
-        ? computeSearchDecorationsFromSource(content, searchQuery, isCurrentMatch)
-        : undefined,
-    [searchHighlight, content, searchQuery, isCurrentMatch],
-  )
-}
+import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
+import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
+import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 
 // ============================================================================
 
@@ -309,10 +195,11 @@ function TreeNodeImpl({
   } = useTreeRenderContext()
   const { maxContentLines, variant, iconStyle } = treeConfig
 
-  // Per-node state via Jotai atoms — only this node re-renders when its state changes
-  const isMultiSelected = useAtomValue(nodeMultiSelectedAtom(makeSelectionKey(node.id)))
-  const editState = useAtomValue(nodeEditAtom(node.id))
-  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+  // Per-node state via reactive signals — only this node re-renders when its state changes
+  const nodeStore = useNodeStore()
+  const isMultiSelected = useReactive(nodeStore.getOrCreate(makeSelectionKey(node.id)).multiSelected)
+  const editState = useReactive(nodeStore.getOrCreate(node.id).edit)
+  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
   const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
   const isFolded = resolvedDepth <= 0
@@ -322,16 +209,16 @@ function TreeNodeImpl({
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
   const repo = useRepo()
-  // Excluded sigils: use Jotai-derived ancestry if available, fallback for compatibility
-  const jotaiExcludedSigils = useAtomValue(nodeExcludedSigilsAtom(node.id))
+  // Excluded sigils: use reactive store if hydrated, fallback for compatibility
+  const reactiveExcludedSigils = useReactive(nodeStore.getOrCreate(node.id).excludedSigils)
   const excludedSigils = useMemo(() => {
-    // If Jotai ancestry is hydrated, use it directly
-    if (jotaiExcludedSigils.length > 0) return jotaiExcludedSigils
+    // If reactive store is hydrated, use it directly
+    if (reactiveExcludedSigils.length > 0) return reactiveExcludedSigils
     // Fallback: derive from rootBoardId + extraExcludedSigils
     const rootSigils = deriveExcludedSigils(repo, rootBoardId)
     if (!extraExcludedSigils?.length) return rootSigils
     return [...rootSigils, ...extraExcludedSigils]
-  }, [jotaiExcludedSigils, repo, rootBoardId, extraExcludedSigils])
+  }, [reactiveExcludedSigils, repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
@@ -438,155 +325,14 @@ function TreeNodeImpl({
     return name
   }, [displayNode.name, cleanContent, excludedSigils])
 
-  // For inline editing, compose raw content with field-only metadata appended
-  // (due dates, priority, recurrence, @assigned_to) so they're visible when editing.
-  // HR nodes with no content default to "---" (their canonical representation).
-  const rawEditContent = displayNode.type === "hr" && !displayNode.content ? "---" : composeRawEditContent(displayNode)
-  const editContent = nodeIsTask ? stripTaskMark(rawEditContent) : rawEditContent
-
-  // Compute body/structural split when editing (for per-block navigation)
-  const { bodyChildren, structuralChildren } = useMemo(() => {
-    if (!isInlineEditing) {
-      return { bodyChildren: [] as TNode[], structuralChildren: [] as TNode[] }
-    }
+  // Compute body/structural split for children display when editing.
+  // The BodyBlockEditor internally computes bodyChildren; this just provides
+  // structuralChildren for NodeChildren when isInlineEditing is true.
+  const structuralChildren = useMemo(() => {
+    if (!isInlineEditing) return children
     const allChildren = resolvedGetChildren(childrenSourceId)
-    const { body, items } = extractBody(allChildren)
-    return { bodyChildren: body, structuralChildren: items }
-  }, [isInlineEditing, childrenSourceId, resolvedGetChildren])
-
-  // Title save callback (persists without exiting edit mode)
-  // Strips inline metadata (due:, start:, p:, recur:) from edited text and
-  // restores them as structured fields on the node.
-  const handleTitleSave = useCallback(
-    (newValue: string) => {
-      const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
-      const { marker } = extractTitleTaskMarker(originalContent)
-      const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
-      // No-op: value didn't change and no metadata to update
-      if (newContent === originalContent && Object.keys(metaFields).length === 0) return
-      undoHandle.setCursor(displayNode.id)
-      repo.updateNode(displayNode.id, { content: newContent, ...metaFields })
-    },
-    [displayNode.id, displayNode.content, repo, undoHandle],
-  )
-
-  // Inline edit callbacks — uses renameNode for backlink-safe renames.
-  // Strips inline metadata (due:, start:, p:, recur:) from edited text and
-  // restores them as structured fields on the node.
-  const handleInlineEditConfirm = useCallback(
-    (newValue: string) => {
-      const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
-      const { marker } = extractTitleTaskMarker(originalContent)
-      const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
-      const hasMetaUpdates = Object.keys(metaFields).length > 0
-
-      // No-op: value didn't change and no metadata to update
-      if (newContent === originalContent && !hasMetaUpdates) {
-        setUI({ inlineEditBlock: null })
-        return
-      }
-
-      // Update metadata fields if any were parsed from the edited text
-      if (hasMetaUpdates) {
-        repo.updateNode(displayNode.id, metaFields)
-      }
-
-      // Only do a full rename if name was already in sync with content (or unset).
-      // e.g., "@next" (name) vs "Next Actions" (title) → different → just update content.
-      // e.g., "My Task" (name) vs "My Task" (content) → same → rename keeps them in sync.
-      // e.g., no name set → always rename (name gets derived from content).
-      const node = repo.getNode(displayNode.id)
-      const oldName = node?.name ?? ""
-      const oldContentName = originalContent.replace(/^- \[.\]\s*/, "")
-      const nameMatchedContent = !oldName || oldName === oldContentName
-
-      if (newContent !== originalContent && nameMatchedContent) {
-        const impact = repo.getRenameImpact(displayNode.id)
-        const s = impact.backlinks.length === 1 ? "" : "s"
-
-        jobRunner.submit({
-          description: `Renaming '${oldName}' → '${cleanContent}'`,
-          impact: impact.backlinks.length > 0 ? `${impact.backlinks.length} backlink${s} will be updated` : "",
-          countdownMs: impact.backlinks.length > 0 ? 5000 : 0,
-          execute: (onProgress) => {
-            undoHandle.setCursor(displayNode.id)
-            undoHandle.startBatch("Rename")
-            repo.renameNode(displayNode.id, newContent, (info) => onProgress(info.updated, info.total))
-            undoHandle.endBatch()
-          },
-        })
-      } else if (newContent !== originalContent) {
-        // Name and content diverged — just update content, don't rename
-        undoHandle.setCursor(displayNode.id)
-        repo.updateNode(displayNode.id, { content: newContent })
-      }
-
-      // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
-      const hrMatch = isHRContent(newContent)
-      const currentType = displayNode.type
-      if (hrMatch && (currentType === "p" || currentType === "li") && !isOutline(currentType, displayNode.item)) {
-        repo.updateNode(displayNode.id, { type: "hr" })
-      } else if (!hrMatch && currentType === "hr") {
-        repo.updateNode(displayNode.id, { type: "p" })
-      }
-
-      setUI({ inlineEditBlock: null })
-    },
-    [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],
-  )
-
-  const handleInlineEditCancel = useCallback(() => {
-    setUI({ inlineEditBlock: null })
-  }, [setUI])
-
-  // Body block save callback (persists content for a body child)
-  const handleBlockSave = useCallback(
-    (childId: string, newValue: string) => {
-      undoHandle.setCursor(displayNode.id)
-      repo.updateNode(childId, { content: newValue })
-    },
-    [repo, undoHandle, displayNode.id],
-  )
-
-  // Split at boundary: Enter in title creates a new sibling node
-  const handleSplitAtBoundary = useCallback(
-    (offset: number) => {
-      try {
-        undoHandle.setCursor(displayNode.id)
-        undoHandle.startBatch("Split node")
-        const result = splitNode(repo, displayNode.id, offset)
-        undoHandle.endBatch()
-        // Focus the new node (text after cursor) in edit mode
-        setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
-      } catch {
-        undoHandle.endBatch()
-        // Split failed (e.g., root node) — visual bell
-        setUI({ bellState: "split-failed" })
-      }
-    },
-    [displayNode.id, repo, setUI, undoHandle],
-  )
-
-  // Merge backward: Backspace at start of title merges with previous sibling
-  const handleMergeBackward = useCallback(() => {
-    try {
-      undoHandle.setCursor(displayNode.id)
-      undoHandle.startBatch("Merge nodes")
-      const result = mergeWithPrevious(repo, displayNode.id)
-      undoHandle.endBatch()
-      if (result) {
-        // Focus the survivor with cursor at the merge point
-        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
-        // TODO: set cursor offset to result.cursorOffset via activeEditTargetRef after render
-      }
-    } catch {
-      undoHandle.endBatch()
-      // Merge failed — visual bell
-      setUI({ bellState: "merge-failed" })
-    }
-  }, [displayNode.id, repo, setUI, undoHandle])
+    return extractBody(allChildren).items
+  }, [isInlineEditing, childrenSourceId, resolvedGetChildren, children])
 
   // When selected (yellow bg), strip ANSI color codes from styled content
   // so all text renders as black-on-yellow for readability.
@@ -794,15 +540,14 @@ function TreeNodeImpl({
           >
             {editingTitle ? (
               <Text color={tc} wrap={isOneliner || isCardChild ? "truncate" : "wrap"}>
-                <InlineEditField
-                  initialValue={editContent}
-                  onConfirm={handleInlineEditConfirm}
-                  onCancel={handleInlineEditCancel}
-                  onSave={handleTitleSave}
-                  onSplitAtBoundary={handleSplitAtBoundary}
-                  onMergeBackward={handleMergeBackward}
-                  initialCursorPos={editState?.initialCursorPos}
-                  stickyX={editState?.stickyX}
+                <TitleEditor
+                  displayNode={displayNode}
+                  editState={editState!}
+                  nodeIsTask={nodeIsTask}
+                  repo={repo}
+                  setUI={setUI}
+                  jobRunner={jobRunner}
+                  undoHandle={undoHandle}
                 />
               </Text>
             ) : isHR ? (
@@ -886,72 +631,18 @@ function TreeNodeImpl({
       </HeadRow>
 
       {/* Body block editing: when editing this node, show body children as editable blocks */}
-      {isInlineEditing &&
-        bodyChildren.length > 0 &&
-        bodyChildren.map((child, i) => {
-          const blockIndex = i + 1 // 0 is title
-          const isActiveBlock = editBlockIndex === blockIndex
-          return (
-            <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color={"$focusborder"}>
-                {"  "}
-              </Text>
-              {isActiveBlock ? (
-                <BodyEditField
-                  initialValue={child.content ?? ""}
-                  onConfirm={(v) => {
-                    handleBlockSave(child.id, v)
-                    setUI({ inlineEditBlock: null })
-                  }}
-                  onCancel={handleInlineEditCancel}
-                  onSave={(v) => handleBlockSave(child.id, v)}
-                  initialCursorPos={editState?.initialCursorPos}
-                  stickyX={editState?.stickyX}
-                  onSplitAtBoundary={(offset) => {
-                    try {
-                      undoHandle.setCursor(displayNode.id)
-                      undoHandle.startBatch("Split block")
-                      const result = splitNode(repo, child.id, offset)
-                      undoHandle.endBatch()
-                      setUI({
-                        inlineEditBlock: {
-                          nodeId: result.afterId,
-                          blockIndex: 0,
-                        },
-                      })
-                    } catch {
-                      undoHandle.endBatch()
-                      setUI({ bellState: "split-failed" })
-                    }
-                  }}
-                  onMergeBackward={() => {
-                    try {
-                      undoHandle.setCursor(displayNode.id)
-                      undoHandle.startBatch("Merge blocks")
-                      const result = mergeWithPrevious(repo, child.id)
-                      undoHandle.endBatch()
-                      if (result) {
-                        setUI({
-                          inlineEditBlock: {
-                            nodeId: result.survivorId,
-                            blockIndex: 0,
-                          },
-                        })
-                      }
-                    } catch {
-                      undoHandle.endBatch()
-                      setUI({ bellState: "merge-failed" })
-                    }
-                  }}
-                />
-              ) : (
-                <Text color={"$focusborder"} dimColor>
-                  <InlineText text={child.content ?? ""} />
-                </Text>
-              )}
-            </Box>
-          )
-        })}
+      {isInlineEditing && (
+        <BodyBlockEditor
+          displayNode={displayNode}
+          editState={editState!}
+          childrenSourceId={childrenSourceId}
+          resolvedGetChildren={resolvedGetChildren}
+          depth={depth}
+          repo={repo}
+          setUI={setUI}
+          undoHandle={undoHandle}
+        />
+      )}
 
       {/* Children: during editing show only structural (body is rendered as editable blocks above) */}
       {childrenVisible && (
@@ -1015,29 +706,11 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 }
 
 // =============================================================================
-// composeRawEditContent — append field-only metadata for editing visibility
-// =============================================================================
-
-/**
- * When editing, show raw markdown content with metadata from node fields
- * that aren't already in the text (due dates, priority, recurrence, assigned_to).
- * Uses shared stringifyTaskMetadata from @km/core for DRY consistency
- * with the markdown serializer.
- * On save, the parser re-extracts these back to fields — round-trip safe.
- */
-function composeRawEditContent(node: KNode): string {
-  // Use content if available, falling back to data.name for folder-type nodes
-  // (oi nodes store their title in data.name, not content).
-  const baseContent = node.content ?? (node.data?.name as string) ?? ""
-  return stringifyTaskMetadata(baseContent, node, { includeAssignedTo: true })
-}
-
-// =============================================================================
 // FoldAwareChild — Per-node fold override check (avoids global foldDepths subscription)
 // =============================================================================
 
 /**
- * Reads per-node fold override via Jotai atom instead of subscribing to the
+ * Reads per-node fold override via reactive signal instead of subscribing to the
  * entire foldDepths Map from Zustand. When any fold changes, only the affected
  * node's FoldAwareChild re-renders — not every NodeChildren in the tree.
  */
@@ -1068,7 +741,8 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   extraExcludedSigils?: string[]
   childCount: number
 }): React.ReactElement {
-  const foldOverride = useAtomValue(nodeFoldOverrideAtom(node.id))
+  const nodeStore = useNodeStore()
+  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
@@ -1299,8 +973,9 @@ function NodeChildren({
     [allFolded, repo, orderedChildren],
   )
 
-  // Get cursor position from CursorStore to determine which child is selected.
-  const { cursorNodeId } = useCursorNodePosition()
+  // Get cursor position from ReactiveNodeStore to determine which child is selected.
+  const nodeStore = useNodeStore()
+  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children

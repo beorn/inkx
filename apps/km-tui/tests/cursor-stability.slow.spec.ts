@@ -103,11 +103,11 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate to tB (col1, card index 1)
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority
-    board.press("t").press("!")
+    board.command("set_priority")
 
     // Cursor should still be on tB
     board.expect("#tB[data-cursor]").toExist()
@@ -124,12 +124,12 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate past virtual body column to Todo column, then to tB
-    board.press("l") // Move to Todo column
-    board.press("j") // Move to tB (second card in Todo)
+    board.command("cursor_right") // Move to Todo column
+    board.command("cursor_down") // Move to tB (second card in Todo)
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority — triggers SELECT to re-resolve cursor position
-    board.press("t").press("!")
+    board.command("set_priority")
 
     // Cursor must still be on tB — NOT jumped to a different card
     board.expect("#tB[data-cursor]").toExist()
@@ -141,11 +141,11 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate to second column, first card (tC)
-    board.press("l")
+    board.command("cursor_right")
     board.expect("#tC[data-cursor]").toExist()
 
     // Toggle task status
-    board.press("x")
+    board.command("toggle_task_done")
 
     // Cursor should still be on tC
     board.expect("#tC[data-cursor]").toExist()
@@ -162,12 +162,12 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate to Active column (past body), then to tB
-    board.press("l") // Past body column to Active
-    board.press("j") // tB
+    board.command("cursor_right") // Past body column to Active
+    board.command("cursor_down") // tB
     board.expect("#tB[data-cursor]").toExist()
 
     // Toggle task status
-    board.press("x")
+    board.command("toggle_task_done")
 
     // Cursor must still be on tB
     board.expect("#tB[data-cursor]").toExist()
@@ -180,11 +180,11 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     )
 
     // Navigate to tB
-    board.press("j")
+    board.command("cursor_down")
     board.expect("#tB[data-cursor]").toExist()
 
     // Set priority (creates undo entry)
-    board.press("t").press("!")
+    board.command("set_priority")
     board.expect("#tB[data-cursor]").toExist()
 
     // Undo (Ctrl-z)
@@ -270,25 +270,25 @@ describe("card borders after cursor navigation (synthetic)", () => {
       assertCardBordersClean(board.screenshot(), `${cols} initial`)
 
       // Navigate between columns
-      board.press("l")
+      board.command("cursor_right")
       assertCardBordersClean(board.screenshot(), `${cols} right(1)`)
 
-      board.press("l")
+      board.command("cursor_right")
       assertCardBordersClean(board.screenshot(), `${cols} right(2)`)
 
-      board.press("h")
+      board.command("cursor_left")
       assertCardBordersClean(board.screenshot(), `${cols} left(1)`)
 
-      board.press("h")
+      board.command("cursor_left")
       assertCardBordersClean(board.screenshot(), `${cols} left(2)`)
 
       // Down then right (different scroll positions)
-      board.press("j")
-      board.press("l")
+      board.command("cursor_down")
+      board.command("cursor_right")
       assertCardBordersClean(board.screenshot(), `${cols} down+right`)
 
-      board.press("j")
-      board.press("h")
+      board.command("cursor_down")
+      board.command("cursor_left")
       assertCardBordersClean(board.screenshot(), `${cols} down+left`)
     })
   }
@@ -333,13 +333,13 @@ describe("card borders after cursor navigation (synthetic)", () => {
     assertCardBordersClean(board.screenshot(), "deep initial")
 
     // Move right — this is where the bug manifests
-    board.press("l")
+    board.command("cursor_right")
     assertCardBordersClean(board.screenshot(), "deep right(1)")
 
-    board.press("l")
+    board.command("cursor_right")
     assertCardBordersClean(board.screenshot(), "deep right(2)")
 
-    board.press("l")
+    board.command("cursor_right")
     assertCardBordersClean(board.screenshot(), "deep right(3)")
   })
 })
@@ -417,11 +417,11 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     // Board -> first column header
-    board.press("j")
+    board.command("cursor_down")
     // Column header -> first card
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -434,11 +434,11 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     const { board } = testEnv(() => item.root("board", item("col-with-files", item.file("file1"), item.file("file2"))))
 
     // Navigate up to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     // Board -> column header
-    board.press("j")
+    board.command("cursor_down")
     // Column header -> first card (should be file1)
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -456,13 +456,13 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate up to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     // Board -> first column header (col-folders)
-    board.press("j")
+    board.command("cursor_down")
     // Move right to second column header (col-files)
-    board.press("l")
+    board.command("cursor_right")
     // Column header -> first card (should be file1)
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -473,11 +473,11 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     const { board } = testEnv(() => item.root("board", item("col-mixed", item.file("file-a"), item.folder("folder-b"))))
 
     // Navigate to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     // j -> column header
-    board.press("j")
+    board.command("cursor_down")
     // j -> first card (should be file-a)
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -492,11 +492,11 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate up to board level
-    board.press("k").press("k")
+    board.command("cursor_up").command("cursor_up")
     // Board -> column header
-    board.press("j")
+    board.command("cursor_down")
     // Column header -> first card (should be para-1)
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -517,16 +517,16 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate up to board level (k from body card goes directly to board)
-    board.press("k")
+    board.command("cursor_up")
     // Board -> first body card in virtual Description column
-    board.press("j")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     expect(cursor.textContent()).toContain("intro text")
 
     // l moves to the first structural column
-    board.press("l")
+    board.command("cursor_right")
     const cursor2 = board.q("[data-cursor]")
     expect(cursor2.textContent()).toContain("file1")
   })
@@ -535,8 +535,8 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     const { board } = testEnv(() => item.root("board", item.code("some code"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
-    board.press("k")
-    board.press("j")
+    board.command("cursor_up")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -548,8 +548,8 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     const { board } = testEnv(() => item.root("board", item.quote("a quote"), item("col1", item("task1"))))
 
     // k from body card goes directly to board level
-    board.press("k")
-    board.press("j")
+    board.command("cursor_up")
+    board.command("cursor_down")
 
     const cursor = board.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
@@ -562,17 +562,17 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     )
 
     // Navigate down through col1
-    board.press("j") // f1 -> f2 (next card)
+    board.command("cursor_down") // f1 -> f2 (next card)
     expect(board.q("[data-cursor]").textContent()).toContain("f2")
 
     // Navigate up: f2 -> f1 -> col header -> board (3 presses of k)
-    board.press("k") // f2 -> f1 (prev sibling)
-    board.press("k") // f1 -> column header (first card -> parent)
-    board.press("k") // column header -> board
+    board.command("cursor_up") // f2 -> f1 (prev sibling)
+    board.command("cursor_up") // f1 -> column header (first card -> parent)
+    board.command("cursor_up") // column header -> board
 
     // Navigate down: board -> column header -> first card
-    board.press("j") // board -> column header
-    board.press("j") // column header -> first card
+    board.command("cursor_down") // board -> column header
+    board.command("cursor_down") // column header -> first card
     // Should be on f1 (first card in col1)
     expect(board.q("[data-cursor]").textContent()).toContain("f1")
   })

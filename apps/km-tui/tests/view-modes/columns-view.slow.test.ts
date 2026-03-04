@@ -98,15 +98,15 @@ describe("Columns View", () => {
       board.expect("#1a[data-cursor]").toExist()
 
       // j down through cards
-      board.press("j")
+      board.command("cursor_down")
       board.expect("#1b[data-cursor]").toExist()
-      board.press("j")
+      board.command("cursor_down")
       board.expect("#1c[data-cursor]").toExist()
 
       // k up through cards
-      board.press("k")
+      board.command("cursor_up")
       board.expect("#1b[data-cursor]").toExist()
-      board.press("k")
+      board.command("cursor_up")
       board.expect("#1a[data-cursor]").toExist()
     })
 
@@ -118,27 +118,27 @@ describe("Columns View", () => {
       board.expect("#1a[data-cursor]").toExist()
 
       // l right through columns
-      board.press("l")
+      board.command("cursor_right")
       board.expect("#2a[data-cursor]").toExist()
-      board.press("l")
+      board.command("cursor_right")
       board.expect("#3a[data-cursor]").toExist()
 
       // h left through columns
-      board.press("h")
+      board.command("cursor_left")
       board.expect("#2a[data-cursor]").toExist()
-      board.press("h")
+      board.command("cursor_left")
       board.expect("#1a[data-cursor]").toExist()
     })
 
     test("g/G: jump to first/last card in column", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
-      board.press("j")
+      board.command("cursor_down")
       board.expect("#1b[data-cursor]").toExist()
 
-      board.press("g").press("G")
+      board.command("cursor_last")
       board.expect("#1c[data-cursor]").toExist()
 
-      board.press("g").press("g")
+      board.command("cursor_first")
       board.expect("#1a[data-cursor]").toExist()
     })
 
@@ -146,10 +146,10 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"))))
       board.expect("#1a[data-cursor]").toExist()
 
-      board.press("k")
+      board.command("cursor_up")
       board.expect("#col1[data-cursor]").toExist()
 
-      board.press("k")
+      board.command("cursor_up")
       board.expect("#board[data-cursor]").toExist()
     })
   })
@@ -186,7 +186,7 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         columns: 120,
       })
-      board.press("l")
+      board.command("cursor_right")
       board.expect("#2a[data-cursor]").toExist()
       assertBoundary(board, "l", "2a")
     })
@@ -205,7 +205,7 @@ describe("Columns View", () => {
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
-      board.press("<")
+      board.command("fold_all")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
       expect(board.screenshot()).toContain(" 2")
@@ -223,11 +223,11 @@ describe("Columns View", () => {
           ),
         { columns: 120 },
       )
-      board.press("j")
+      board.command("cursor_down")
       board.expect("#1b[data-cursor]").toExist()
       const card1bBox = board.q("#1b").boundingBox()
 
-      board.press("l")
+      board.command("cursor_right")
       const card2Box = board.q("[data-cursor]").boundingBox()
 
       expect(Math.abs(card2Box!.y - card1bBox!.y)).toBeLessThanOrEqual(15)
@@ -238,12 +238,12 @@ describe("Columns View", () => {
         () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
         { columns: 120 },
       )
-      board.press("l")
-      board.press("l")
+      board.command("cursor_right")
+      board.command("cursor_right")
       const col3Box = board.q("#3a").boundingBox()
 
-      board.press("k")
-      board.press("j")
+      board.command("cursor_up")
+      board.command("cursor_down")
 
       board.expect("#3a[data-cursor]").toExist()
       const returnedBox = board.q("#3a[data-cursor]").boundingBox()
@@ -264,9 +264,9 @@ describe("Columns View", () => {
       const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
       board.expect("#card0[data-cursor]").toExist()
-      board.press("g").press("G")
+      board.command("cursor_last")
       board.expect("#card99[data-cursor]").toExist()
-      board.press("g").press("g")
+      board.command("cursor_first")
       board.expect("#card0[data-cursor]").toExist()
     })
 
@@ -274,10 +274,10 @@ describe("Columns View", () => {
       const cards = Array.from({ length: 50 }, (_, i) => item(`card${i}`))
       const { board } = columnsBoard(() => item("board", item("col1", ...cards)), { rows: 24 })
 
-      for (let i = 0; i < 3; i++) board.press("j")
+      for (let i = 0; i < 3; i++) board.command("cursor_down")
       board.expect("#card3[data-cursor]").toExist()
 
-      for (let i = 0; i < 10; i++) board.press("j")
+      for (let i = 0; i < 10; i++) board.command("cursor_down")
       board.expect("#card13[data-cursor]").toExist()
     })
   })
@@ -328,7 +328,7 @@ describe("Columns View", () => {
     test("e zooms into card with children", () => {
       const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
       board.expect("#card[data-cursor]").toExist()
-      board.press("z")
+      board.command("zoom_inwards")
       board.expect("#subcard").toExist()
     })
 
@@ -337,9 +337,9 @@ describe("Columns View", () => {
         () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("taskA"), item("taskB"))),
         { columns: 120 },
       )
-      board.press("k")
+      board.command("cursor_up")
       board.expect("#col1[data-cursor]").toExist()
-      board.press("z")
+      board.command("zoom_inwards")
 
       board.expect("#task1").toExist()
       board.expect("#task2").toExist()
@@ -348,7 +348,7 @@ describe("Columns View", () => {
 
     test("nav back after zoom returns to parent", () => {
       const { board } = columnsBoard(() => item("board", item("col", item("card", item("subcard")))))
-      board.press("z")
+      board.command("zoom_inwards")
       board.expect("#subcard").toExist()
       board.press("{") // nav_back restores cursor to pre-zoom position
       board.expect("#card[data-cursor]").toExist()

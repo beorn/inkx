@@ -1,0 +1,116 @@
+/**
+ * Shared utilities for TreeNode components (TreeNodeImpl and FoldedChildRow).
+ *
+ * Extracted from TreeNode.tsx to reduce per-module size and enable reuse
+ * without circular imports.
+ */
+
+import { useMemo } from "react"
+import type { KNode } from "@km/core"
+import { useRepo, type Repo } from "../repo-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { deriveExcludedSigils } from "../ui-context.tsx"
+import {
+  getTypeBullet,
+  getCircleBullet,
+  getFoldMarker,
+  computeSearchDecorationsFromSource,
+  type InlineRenderContext,
+  type TextDecoration,
+  type StatusIcon,
+} from "../text/index.ts"
+
+/** Compute the bullet icon based on icon style, task status, and fold state. */
+export function computeBulletIcon(
+  displayNode: KNode,
+  nodeIsTask: boolean,
+  taskStatusIcon: StatusIcon | null,
+  hasChildren: boolean,
+  isFolded: boolean,
+  ownColor: string | undefined,
+  iconStyle: string,
+): StatusIcon {
+  if (nodeIsTask && taskStatusIcon) return taskStatusIcon
+  if (iconStyle === "workflowy") {
+    const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
+    return ownColor ? { ...bullet, color: ownColor } : bullet
+  }
+  if (iconStyle === "nerdfont") {
+    const bullet = getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, ownColor)
+    return ownColor ? { ...bullet, color: ownColor } : bullet
+  }
+  // "regular" style — existing fold markers
+  return getFoldMarker(hasChildren, isFolded, ownColor)
+}
+
+/** Hook: build InlineRenderContext with wikilink/blockref resolution and sigil exclusion. */
+export function useTreeInlineContext(
+  repo: Repo,
+  rootBoardId: string | null | undefined,
+  extraExcludedSigils: string[] | undefined,
+  sigilColors: Map<string, string> | undefined,
+  resolveSigilColor: ((sigil: string) => string | undefined) | undefined,
+  excludedSigilsOverride?: string[],
+): InlineRenderContext {
+  // Excluded sigils: use override if provided, otherwise derive from rootBoardId
+  const excludedSigils = useMemo(() => {
+    if (excludedSigilsOverride && excludedSigilsOverride.length > 0) return excludedSigilsOverride
+    const rootSigils = deriveExcludedSigils(repo, rootBoardId ?? null)
+    if (!extraExcludedSigils?.length) return rootSigils
+    return [...rootSigils, ...extraExcludedSigils]
+  }, [excludedSigilsOverride, repo, rootBoardId, extraExcludedSigils])
+
+  return useMemo(() => {
+    const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
+    const wikiLinkCache = new Map<string, string | null>()
+    const resolveWikiLink = (target: string): string | null => {
+      if (!target?.trim()) return null
+      const cached = wikiLinkCache.get(target)
+      if (cached !== undefined) return cached
+      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+      let result: string | null = null
+      if (resolved) {
+        result = getNodeDisplayName(repo, resolved)
+      } else if (target.startsWith("^")) {
+        const byId = repo.getNode(target.slice(1))
+        if (byId) result = getNodeDisplayName(repo, byId)
+      }
+      wikiLinkCache.set(target, result)
+      return result
+    }
+    const resolveBlockRef = (id: string): string | null => {
+      if (!id?.trim()) return null
+      const cacheKey = `^${id}`
+      const cached = wikiLinkCache.get(cacheKey)
+      if (cached !== undefined) return cached
+      const resolved = repo.getNode(id)
+      const result = resolved ? getNodeDisplayName(repo, resolved) : null
+      wikiLinkCache.set(cacheKey, result)
+      return result
+    }
+    return {
+      excludeSigils: excludeSet,
+      sigilColors,
+      resolveSigilColor,
+      resolveWikiLink,
+      resolveBlockRef,
+      hideFields: true,
+    }
+  }, [excludedSigils, sigilColors, resolveSigilColor, repo])
+}
+
+/** Hook: compute search decorations for a content string. */
+export function useSearchDecorations(
+  content: string,
+  searchHighlight: boolean,
+  searchQuery: string | null | undefined,
+  isCurrentMatch: boolean,
+): TextDecoration[] | undefined {
+  return useMemo(
+    () =>
+      searchHighlight && searchQuery
+        ? computeSearchDecorationsFromSource(content, searchQuery, isCurrentMatch)
+        : undefined,
+    [searchHighlight, content, searchQuery, isCurrentMatch],
+  )
+}

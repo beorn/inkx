@@ -38,7 +38,7 @@ describe("P2: Filter feature", () => {
     expect(screen).not.toContain("View Settings")
 
     // Open filter panel with V
-    board.press("V")
+    board.command("filter")
     screen = board.screenshot()
     expect(screen).toContain("View Settings")
     expect(screen).toContain("Status")
@@ -52,7 +52,7 @@ describe("P2: Filter feature", () => {
       rows: 24,
     })
 
-    board.press("V")
+    board.command("filter")
     let screen = board.screenshot()
     expect(screen).toContain("View Settings")
 
@@ -64,24 +64,24 @@ describe("P2: Filter feature", () => {
   test("j/k navigates between filter rows", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is now row 0 (first row) — cursor starts there
     let screen = board.screenshot()
     // Status row should be active (first row)
     expect(screen).toContain("Status")
 
     // Move down to Priority
-    board.press("j")
+    board.command("cursor_down")
     screen = board.screenshot()
     expect(screen).toContain("Priority")
 
     // Move down to Due
-    board.press("j")
+    board.command("cursor_down")
     screen = board.screenshot()
     expect(screen).toContain("Due")
 
     // Move back up
-    board.press("k")
+    board.command("cursor_up")
     screen = board.screenshot()
     expect(screen).toContain("Priority")
   })
@@ -92,15 +92,15 @@ describe("P2: Filter feature", () => {
       rows: 24,
     })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle 'todo' on
-    board.press(" ")
+    board.command("select_toggle")
     let screen = board.screenshot()
     expect(screen).toContain("✓ todo")
 
     // Toggle it off
-    board.press(" ")
+    board.command("select_toggle")
     screen = board.screenshot()
     expect(screen).toContain("□ todo")
   })
@@ -108,17 +108,17 @@ describe("P2: Filter feature", () => {
   test("h/l navigates between values in a row", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
     // Move right to second value (wip)
-    board.press("l")
-    board.press(" ") // toggle wip on
+    board.command("cursor_right")
+    board.command("select_toggle") // toggle wip on
     let screen = board.screenshot()
     expect(screen).toContain("✓ wip")
 
     // Move left back to first value (todo)
-    board.press("h")
-    board.press(" ") // toggle todo on
+    board.command("cursor_left")
+    board.command("select_toggle") // toggle todo on
     screen = board.screenshot()
     expect(screen).toContain("✓ todo")
     expect(screen).toContain("✓ wip")
@@ -127,19 +127,19 @@ describe("P2: Filter feature", () => {
   test("X clears all filters", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
-    board.press("V")
+    board.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle some filters on
-    board.press(" ") // todo on
-    board.press("l")
-    board.press(" ") // wip on
+    board.command("select_toggle") // todo on
+    board.command("cursor_right")
+    board.command("select_toggle") // wip on
 
     let screen = board.screenshot()
     expect(screen).toContain("✓ todo")
     expect(screen).toContain("✓ wip")
 
     // Clear all
-    board.press("X")
+    board.command("cycle_task_status")
     screen = board.screenshot()
     expect(screen).toContain("□ todo")
     expect(screen).toContain("□ wip")
@@ -153,8 +153,8 @@ describe("P2: Filter feature", () => {
     expect(screen).not.toContain("[F]")
 
     // Open filter — Status is row 0, toggle todo
-    board.press("V")
-    board.press(" ") // toggle todo on
+    board.command("filter")
+    board.command("select_toggle") // toggle todo on
 
     // Close filter panel
     board.press("Escape")
@@ -190,7 +190,7 @@ describe("P2: Filter feature", () => {
     // Set filter text programmatically (text search via SET_FILTER action)
     store.getState().setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.press("V")
+    board.command("filter")
     board.press("Escape")
 
     screen = board.screenshot()
@@ -217,7 +217,7 @@ describe("P2: Filter feature", () => {
     // Apply text filter "Fix" programmatically
     store.getState().setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.press("V")
+    board.command("filter")
     board.press("Escape")
 
     // In cards view, only Fix items visible (skip breadcrumb in top bar)
@@ -227,7 +227,7 @@ describe("P2: Filter feature", () => {
     expect(cardArea).not.toContain("Buy groceries")
 
     // Switch to columns view — filter should persist
-    board.press("v").press("m")
+    board.command("cycle_view_mode")
     screen = board.screenshot()
     cardArea = screen.split("\n").slice(2).join("\n")
     expect(cardArea).toContain("Fix bug")
@@ -238,12 +238,12 @@ describe("P2: Filter feature", () => {
     const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
 
     // Open
-    board.press("V")
+    board.command("filter")
     let screen = board.screenshot()
     expect(screen).toContain("View Settings")
 
     // Close via V again
-    board.press("V")
+    board.command("filter")
     screen = board.screenshot()
     expect(screen).not.toContain("Status")
   })
@@ -414,8 +414,8 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     expect(screen).toContain("Normal task")
 
     // Apply 'todo' status filter — Status is row 0
-    board.press("V") // open filter
-    board.press(" ") // toggle todo (Status row, first value)
+    board.command("filter") // open filter
+    board.command("select_toggle") // toggle todo (Status row, first value)
     board.press("Escape") // close filter
 
     screen = board.screenshot()
@@ -435,11 +435,11 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     })
 
     // Apply 'done' status filter — Status is row 0
-    board.press("V") // open filter
+    board.command("filter") // open filter
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
-    board.press("l").press("l").press("l") // move to 'done'
-    board.press(" ") // toggle done
+    board.command("cursor_right").command("cursor_right").command("cursor_right") // move to 'done'
+    board.command("select_toggle") // toggle done
     board.press("Escape") // close filter
 
     const screen = board.screenshot()
@@ -673,7 +673,7 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
     // then press a key to flush the React render tree
     store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
-    board.press("l") // navigate right to trigger re-render
+    board.command("cursor_right") // navigate right to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden after ignoring.
     const after = board.screenshot()
@@ -710,7 +710,7 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
     // then press a key to flush the React render tree
     store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
-    board.press("l") // navigate to trigger re-render
+    board.command("cursor_right") // navigate to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden
     const after = board.screenshot()
@@ -735,7 +735,7 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
 
 /** Open and close filter dialog to flush Zustand → React render cycle */
 function flushFilter(board: { press: (key: string) => void }) {
-  board.press("V")
+  board.command("filter")
   board.press("Escape")
 }
 
@@ -843,7 +843,7 @@ describe("filter hidden count indicator", () => {
     expect(screen).toContain("doneTask")
 
     // Press vd to hide done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
 
     screen = board.screenshot()
     expect(screen).toContain("todo1")
@@ -874,7 +874,7 @@ describe("filter hidden count indicator", () => {
     expect(board.screenshot()).not.toContain("hidden")
 
     // Press vd to hide done tasks
-    board.press("v").press("d")
+    board.command("toggle_hide_done")
 
     const screen = board.screenshot()
     // The done child should be hidden, so we should see +1 hidden

@@ -47,11 +47,11 @@ describe("overflow-top-spurious", () => {
     const { board } = testEnv(() => item("board", item("col1", ...children)), { rows: 24, columns: 80 })
 
     // Scroll down — ▼ should be visible (items below viewport)
-    for (let i = 0; i < 10; i++) board.press("j")
+    for (let i = 0; i < 10; i++) board.command("cursor_down")
     expect(board.screenshot()).toContain("\u25bc")
 
     // Scroll back to top — ▼ should still be visible (still items below)
-    for (let i = 0; i < 10; i++) board.press("k")
+    for (let i = 0; i < 10; i++) board.command("cursor_up")
     // At top, no ▲ should show
     expect(board.screenshot()).not.toContain("\u25b2")
   })
@@ -236,8 +236,8 @@ describe("overflow indicator on cards", () => {
     )
 
     // Zoom inwards toward zoomTarget: first z → root=col1, second z → root=zoomTarget
-    board.press("z")
-    board.press("z")
+    board.command("zoom_inwards")
+    board.command("zoom_inwards")
 
     const screenshot = board.screenshot()
     // After zoom into zoomTarget: sectionA is column, card1 is a card

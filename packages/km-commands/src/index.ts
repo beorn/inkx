@@ -76,7 +76,7 @@ export {
 export { executeCommand, buildContext } from "./executor.ts"
 
 // Keybindings
-export type { Keybinding, KeybindingContext, KeybindingLayer } from "./keybindings.ts"
+export type { Keybinding, KeybindingContext, KeybindingLayer, ParsedKey } from "./keybindings.ts"
 export {
   registerKeybinding,
   registerKeybindings,
@@ -88,6 +88,7 @@ export {
   getChordSuffixes,
   formatKeybinding,
   getBindingsForCommand,
+  parseKeyString,
   defaultKeybindings,
   defaultKeybindingLayers,
   initDefaultKeybindings,

@@ -92,7 +92,7 @@ describe("Full pipeline: j-press on large column (200x60)", () => {
           columns: 200,
           rows: 60,
         })
-        for (let i = 0; i < 20; i++) board.press("j")
+        for (let i = 0; i < 20; i++) board.command("cursor_down")
       },
       { iterations: 5, warmupIterations: 2 },
     )
@@ -108,7 +108,7 @@ describe("Full pipeline: j-press on large column (400x200)", () => {
           columns: 400,
           rows: 200,
         })
-        for (let i = 0; i < 20; i++) board.press("j")
+        for (let i = 0; i < 20; i++) board.command("cursor_down")
       },
       { iterations: 5, warmupIterations: 2 },
     )
@@ -124,8 +124,8 @@ describe("Full pipeline: h/l on multi-column (3 cols × 1000)", () => {
         rows: 60,
       })
       // Move down into cards then across columns
-      for (let i = 0; i < 5; i++) board.press("j")
-      for (let i = 0; i < 2; i++) board.press("l")
+      for (let i = 0; i < 5; i++) board.command("cursor_down")
+      for (let i = 0; i < 2; i++) board.command("cursor_right")
     },
     { iterations: 5, warmupIterations: 2 },
   )

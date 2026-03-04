@@ -72,11 +72,11 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
     // Verify stickyY is set from A4's position
-    board.press("l")
+    board.command("cursor_right")
     expect(registry.stickyY).not.toBeNull()
 
     const cursor = board.q("[data-cursor]").textContent()
@@ -97,13 +97,13 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate from body to ColA
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("A1")
 
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
-    board.press("l")
+    board.command("cursor_right")
     const cursor = board.q("[data-cursor]").textContent()
     // With real positions, should land on exactly B4
     expect(cursor).toContain("B4")
@@ -122,11 +122,11 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate to B3 (last card in ColB)
-    board.press("l") // -> B1
-    board.press("j").press("j") // -> B3
+    board.command("cursor_right") // -> B1
+    board.command("cursor_down").command("cursor_down") // -> B3
     expect(board.q("[data-cursor]").textContent()).toContain("B3")
 
-    board.press("l")
+    board.command("cursor_right")
     const cursor = board.q("[data-cursor]").textContent()
     // Should match Y position of B3 -> C3
     expect(cursor).toContain("C3")
@@ -145,18 +145,18 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate to A4
-    board.press("j").press("j").press("j")
+    board.command("cursor_down").command("cursor_down").command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A4")
 
     // l to ColB -> B4, then l to ColC -> C4
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("B4")
 
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("C4")
 
     // h back should preserve stickyY -> B4
-    board.press("h")
+    board.command("cursor_left")
     expect(board.q("[data-cursor]").textContent()).toContain("B4")
 
     // stickyY should still be set
@@ -175,10 +175,10 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Navigate to A8 (last card in long column)
-    for (let i = 0; i < 7; i++) board.press("j")
+    for (let i = 0; i < 7; i++) board.command("cursor_down")
     expect(board.q("[data-cursor]").textContent()).toContain("A8")
 
-    board.press("l")
+    board.command("cursor_right")
     const cursor = board.q("[data-cursor]").textContent()
     // A8 is at the bottom, ColB only has 3 cards -> should land on B3 (closest)
     expect(cursor).toContain("B3")
@@ -196,12 +196,12 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Move down to A3 and then right -> sets stickyY
-    board.press("j").press("j")
-    board.press("l")
+    board.command("cursor_down").command("cursor_down")
+    board.command("cursor_right")
     expect(registry.stickyY).not.toBeNull()
 
     // Move up (vertical nav) -> should clear stickyY
-    board.press("k")
+    board.command("cursor_up")
     expect(registry.stickyY).toBeNull()
   })
 
@@ -212,15 +212,15 @@ describe("spatial navigation: Y-position matching", () => {
     })
 
     // h from first column -> bell
-    board.press("h")
+    board.command("cursor_left")
     expect(board.bell).toBe(true)
 
     // Navigate to last column
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").textContent()).toContain("B1")
 
     // l from last column -> bell
-    board.press("l")
+    board.command("cursor_right")
     expect(board.bell).toBe(true)
   })
 })
@@ -246,12 +246,12 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     board.expect("#body-1[data-cursor]").toExist()
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").getAttribute("id")).toMatch(/^task-/)
-    board.press("j")
-    board.press("j")
+    board.command("cursor_down")
+    board.command("cursor_down")
 
-    board.press("h")
+    board.command("cursor_left")
     const bodyTarget = board.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^body-/)
     expect(bodyTarget).not.toBe("body-5")
@@ -272,12 +272,12 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     board.expect("#intro[data-cursor]").toExist()
-    board.press("l")
-    board.press("j")
-    board.press("j")
+    board.command("cursor_right")
+    board.command("cursor_down")
+    board.command("cursor_down")
     board.expect("#t3[data-cursor]").toExist()
 
-    board.press("h")
+    board.command("cursor_left")
     const target = board.q("[data-cursor]").getAttribute("id")
     expect(target).toMatch(/^(intro|detail|notes)$/)
   })
@@ -295,14 +295,14 @@ describe("vbody-nav: left into virtual body column", () => {
       { rows: 40 },
     )
 
-    board.press("j") // -> b2
-    board.press("j") // -> b3
+    board.command("cursor_down") // -> b2
+    board.command("cursor_down") // -> b3
     board.expect("#b3[data-cursor]").toExist()
 
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").getAttribute("id")).toMatch(/^t/)
 
-    board.press("h")
+    board.command("cursor_left")
     const backTarget = board.q("[data-cursor]").getAttribute("id")
     expect(backTarget).toMatch(/^b/)
     expect(backTarget).not.toBe("b1")
@@ -318,12 +318,12 @@ describe("vbody-nav: left into virtual body column", () => {
     })
 
     board.expect("#body-1[data-cursor]").toExist()
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").getAttribute("id")).toMatch(/^task-/)
 
-    for (let i = 0; i < 8; i++) board.press("j")
+    for (let i = 0; i < 8; i++) board.command("cursor_down")
 
-    board.press("h")
+    board.command("cursor_left")
     const bodyTarget = board.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^body-/)
     const bodyIdx = parseInt(bodyTarget!.replace("body-", ""))
@@ -346,17 +346,17 @@ describe("vbody-nav: left into virtual body column", () => {
     )
 
     board.expect("#bp1[data-cursor]").toExist()
-    board.press("l") // -> Col1 first card
-    board.press("l") // -> Col2 first card
-    board.press("j") // -> b2
-    board.press("j") // -> b3
+    board.command("cursor_right") // -> Col1 first card
+    board.command("cursor_right") // -> Col2 first card
+    board.command("cursor_down") // -> b2
+    board.command("cursor_down") // -> b3
     board.expect("#b3[data-cursor]").toExist()
 
-    board.press("h")
+    board.command("cursor_left")
     const col1Target = board.q("[data-cursor]").getAttribute("id")
     expect(col1Target).toMatch(/^a/)
 
-    board.press("h")
+    board.command("cursor_left")
     const bodyTarget = board.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp/)
   })
@@ -382,18 +382,18 @@ describe("vbody-nav: left into virtual body column", () => {
     board.expect("#bp-1[data-cursor]").toExist()
 
     // Navigate to structural column
-    board.press("l")
+    board.command("cursor_right")
     expect(board.q("[data-cursor]").getAttribute("id")).toBe("t-1")
 
     // Navigate down to t-5 (structural column scrolls)
-    board.press("j") // t-2
-    board.press("j") // t-3
-    board.press("j") // t-4
-    board.press("j") // t-5
+    board.command("cursor_down") // t-2
+    board.command("cursor_down") // t-3
+    board.command("cursor_down") // t-4
+    board.command("cursor_down") // t-5
     board.expect("#t-5[data-cursor]").toExist()
 
     // h to body column -- should land near bp-5, not bp-1 or bp-2
-    board.press("h")
+    board.command("cursor_left")
     const bodyTarget = board.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp-/)
     const bodyIdx = parseInt(bodyTarget!.replace("bp-", ""))
@@ -420,14 +420,14 @@ describe("vbody-nav: left into virtual body column", () => {
     board.expect("#bp-1[data-cursor]").toExist()
 
     // Navigate to structural column and scroll down deep
-    board.press("l")
-    for (let i = 0; i < 10; i++) board.press("j")
+    board.command("cursor_right")
+    for (let i = 0; i < 10; i++) board.command("cursor_down")
     const structId = board.q("[data-cursor]").getAttribute("id")
     expect(structId).toMatch(/^t-/)
 
     // h to body -- stickyY is from a card well below the body column's visible area
     // Should land on a body card (clamped to last body card is acceptable)
-    board.press("h")
+    board.command("cursor_left")
     const bodyTarget = board.q("[data-cursor]").getAttribute("id")
     expect(bodyTarget).toMatch(/^bp-/)
 
