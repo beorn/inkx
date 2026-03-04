@@ -84,6 +84,7 @@ import {
   handleNavForward,
   handleNavSiblingBoard,
   handlePageJump,
+  navStateFrom,
 } from "./board-actions-nav.ts"
 import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./board-actions-selection.ts"
 import {
@@ -1055,18 +1056,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "TEXT_CURSOR_RIGHT":
       activeEditTargetRef.current?.cursorRight()
       return ok()
-    case "TEXT_CURSOR_UP":
-      // Try text cursor up within the block first; if at boundary, navigate to previous block
-      if (!activeEditTargetRef.current?.cursorUp()) {
-        return handleEditBlockNavigate(ctx, "up")
-      }
+    case "TEXT_CURSOR_UP": {
+      const moved = activeEditTargetRef.current?.cursorUp() ?? false
+      if (!moved) return handleEditNodeNavigate(ctx, "up")
       return ok()
-    case "TEXT_CURSOR_DOWN":
-      // Try text cursor down within the block first; if at boundary, navigate to next block
-      if (!activeEditTargetRef.current?.cursorDown()) {
-        return handleEditBlockNavigate(ctx, "down")
-      }
+    }
+    case "TEXT_CURSOR_DOWN": {
+      const moved = activeEditTargetRef.current?.cursorDown() ?? false
+      if (!moved) return handleEditNodeNavigate(ctx, "down")
       return ok()
+    }
     case "TEXT_CURSOR_START":
       activeEditTargetRef.current?.cursorStart()
       return ok()
@@ -1372,6 +1371,39 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // =============================================================================
 // Helper Functions (local to this file)
 // =============================================================================
+
+/** Navigate to adjacent node while staying in edit mode (ctrl-n/p, arrows at boundary). */
+function handleEditNodeNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
+  const edit = ctx.ui.inlineEditBlock
+  if (!edit) return ok()
+
+  // Capture stickyX before saving/unmounting
+  const editCtx = activeEditContextRef.current
+  const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : edit.stickyX
+
+  // Save current edit before navigating
+  activeEditTargetRef.current?.save()
+
+  // Use the same navigation logic as j/k
+  if (!ctx.cursorNodeId) return ok()
+  const targetId = ctx.viewNavigation.navigate(direction, navStateFrom(ctx), ctx.repo, ctx.navigator)
+  if (!targetId) {
+    // At boundary — stay in edit mode on current node
+    return ok()
+  }
+
+  // Navigate and re-enter edit mode on the target node
+  ctx.dispatchBoard({ type: "SELECT", nodeId: targetId })
+  ctx.setUI({
+    inlineEditBlock: {
+      nodeId: targetId,
+      blockIndex: 0,
+      initialCursorPos: direction === "down" ? "start" : "end",
+      stickyX,
+    },
+  })
+  return ok()
+}
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx

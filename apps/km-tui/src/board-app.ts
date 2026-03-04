@@ -8,6 +8,7 @@
 
 import { createApp, type EventHandlerContext } from "inkx/runtime"
 import type { Key, ParsedMouse, FocusManager, InkxNode } from "inkx"
+import { activeEditTargetRef } from "inkx"
 import { createLogger, type SpanLogger } from "@beorn/logger"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -760,6 +761,37 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
       if (!mouse.ctrl && actionCtx.ui.multiSelected.size > 0) {
         clearSelection(actionCtx)
+      }
+
+      // When in inline edit mode, handle clicks differently:
+      // - Inside same card → save + re-enter edit on clicked node
+      // - Outside card → exit edit mode, proceed with normal click
+      const edit = actionCtx.ui.inlineEditBlock
+      if (edit && nodeId && !isColumnNode) {
+        const editCardId = actionCtx.card?.id
+        // Check if clicked node is inside the same card
+        let inSameCard = nodeId === editCardId
+        if (!inSameCard && editCardId) {
+          let walkId: string | null = nodeId
+          while (walkId && walkId !== editCardId) {
+            const n = actionCtx.repo.getNode(walkId)
+            walkId = n?.parent_id ?? null
+          }
+          inSameCard = walkId === editCardId
+        }
+        if (inSameCard) {
+          // Same card → navigate edit to clicked node
+          activeEditTargetRef.current?.save()
+          actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+          actionCtx.setUI({
+            inlineEditBlock: { nodeId, blockIndex: 0, initialCursorPos: "start" },
+          })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        // Different card → exit edit mode, fall through to normal click
+        activeEditTargetRef.current?.save()
+        actionCtx.setUI({ inlineEditBlock: null })
       }
 
       if (!nodeId || isColumnNode) {

@@ -312,7 +312,7 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
 }
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
-function navStateFrom(ctx: ActionCtx): NavState {
+export function navStateFrom(ctx: ActionCtx): NavState {
   if (!ctx.cursorNodeId) {
     throw new Error("[nav] navStateFrom: cursorNodeId is null")
   }

@@ -234,6 +234,33 @@ describe("mouse click targeting", () => {
     expect(editBlock!.nodeId).toBe("child-2")
   })
 
+  test("arrow up/down in edit mode navigates to adjacent node and stays in edit mode", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("task-1"), item("task-2"), item("task-3"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Enter edit mode on task-1
+    board.command("enter_inline_edit")
+    const pane = () => getActiveBoardPane(store.getState())!
+    expect(pane().inlineEditBlock?.nodeId).toBe("task-1")
+
+    // Arrow down → task-2, still in edit mode
+    board.press("ArrowDown")
+    expect(pane().cursorNodeId).toBe("task-2")
+    expect(pane().inlineEditBlock?.nodeId).toBe("task-2")
+
+    // Arrow down → task-3, still in edit mode
+    board.press("ArrowDown")
+    expect(pane().cursorNodeId).toBe("task-3")
+    expect(pane().inlineEditBlock?.nodeId).toBe("task-3")
+
+    // Arrow up → task-2, still in edit mode
+    board.press("ArrowUp")
+    expect(pane().cursorNodeId).toBe("task-2")
+    expect(pane().inlineEditBlock?.nodeId).toBe("task-2")
+  })
+
   test("clicking column header deselects card in same column", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
