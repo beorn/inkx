@@ -5,7 +5,7 @@
  * target resolvers, verb constructors, grid generators, and integration.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import {
   inbox,
   journal,
@@ -31,6 +31,7 @@ import { REPO_LOCS } from "../src/locations.ts"
 import { initCommandSystem } from "../src/ink-adapter.ts"
 import { resolveChord, clearKeybindings, parseKeyString, type KeybindingContext, type Keybinding } from "../src/keybindings.ts"
 import type { CommandContext } from "../src/types.ts"
+import { setFavorite, clearFavorite } from "../src/favorites.ts"
 
 /** Helper to match a binding by chord prefix and suffix key (parsed from the key string) */
 function findBinding(grid: Keybinding[], chord: string, suffix: string): Keybinding | undefined {
@@ -277,7 +278,13 @@ describe("verb-locations", () => {
     let grid: ReturnType<typeof verbLocationGrid>
 
     beforeEach(() => {
+      // Set up digit favorites so grid tests work (favorites start empty by default)
+      for (let n = 0; n <= 9; n++) setFavorite(String(n), `@fav${n}`)
       grid = verbLocationGrid()
+    })
+
+    afterEach(() => {
+      for (let n = 0; n <= 9; n++) clearFavorite(String(n))
     })
 
     it("produces bindings with required fields", () => {
@@ -523,7 +530,12 @@ describe("verb-locations", () => {
 
   describe("integration with command system", () => {
     beforeEach(() => {
+      for (let n = 0; n <= 9; n++) setFavorite(String(n), `@fav${n}`)
       initCommandSystem()
+    })
+
+    afterEach(() => {
+      for (let n = 0; n <= 9; n++) clearFavorite(String(n))
     })
 
     it("g i chord resolves to goto with @inbox target", () => {

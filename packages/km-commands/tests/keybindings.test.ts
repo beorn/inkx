@@ -4,7 +4,7 @@
  * Tests for keybinding registration, resolution, and mode-aware dispatch.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import {
   registerKeybinding,
   registerKeybindings,
@@ -21,6 +21,7 @@ import {
   type KeybindingContext,
 } from "../src/keybindings.ts"
 import type { TNode } from "../src/types.ts"
+import { setFavorite, clearFavorite } from "../src/favorites.ts"
 
 // --- Test Helpers ---
 
@@ -738,8 +739,14 @@ describe("defaultKeybindings", () => {
 
 describe("chord keybindings", () => {
   beforeEach(() => {
+    // Set up digit favorites so chord tests work (favorites start empty by default)
+    for (let n = 0; n <= 9; n++) setFavorite(String(n), `@fav${n}`)
     clearKeybindings()
     initDefaultKeybindings()
+  })
+
+  afterEach(() => {
+    for (let n = 0; n <= 9; n++) clearFavorite(String(n))
   })
 
   it("registers chord prefixes from default keybindings", () => {
