@@ -370,12 +370,14 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
       ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+      if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
       return ok()
     }
     case "HISTORY_REDO": {
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
-      ctx.undoHandle.redo()
+      const result = ctx.undoHandle.redo()
       ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+      if (result.label) ctx.setUI({ status: { level: "info", message: `Redo: ${result.label}` } })
       return ok()
     }
 

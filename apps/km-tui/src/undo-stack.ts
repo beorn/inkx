@@ -34,6 +34,8 @@ export interface UndoResult {
   ok: boolean
   /** Cursor node to restore (null = no cursor preference) */
   cursorNodeId?: string | null
+  /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
+  label?: string
 }
 
 export interface UndoStack {
@@ -83,7 +85,7 @@ export function createUndoStack(maxSize = 100): UndoStack {
 
       log.info?.(`undo: "${entry.label}"`)
       entry.undo()
-      return { ok: true, cursorNodeId: entry.cursorNodeId }
+      return { ok: true, cursorNodeId: entry.cursorNodeId, label: entry.label }
     },
 
     redo(): UndoResult {
@@ -94,7 +96,7 @@ export function createUndoStack(maxSize = 100): UndoStack {
       log.info?.(`redo: "${entry.label}"`)
       entry.redo()
       cursor++
-      return { ok: true }
+      return { ok: true, label: entry.label }
     },
 
     canUndo(): boolean {

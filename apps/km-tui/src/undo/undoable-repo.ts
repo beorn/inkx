@@ -25,6 +25,17 @@ import { type Operation, type HistoryEntry, invertOperations } from "./operation
 
 const log = createLogger("km:tui:undo:repo")
 
+const OP_LABELS: Record<string, string> = {
+  add_node: "Add",
+  remove_node: "Remove",
+  move_node: "Move",
+  update_node: "Edit",
+}
+
+function readableOpLabel(opType: string): string {
+  return OP_LABELS[opType] ?? opType
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -101,7 +112,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
     }
 
     undoStack.push({
-      label: entry.label ?? op.type,
+      label: entry.label ?? readableOpLabel(op.type),
       cursorNodeId: entry.cursorBefore,
       undo: () => applyOps(entry.inverseOperations),
       redo: () => applyOps(entry.operations),

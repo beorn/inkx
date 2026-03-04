@@ -619,6 +619,38 @@ describe("undo: TUI integration", () => {
     board.command("redo")
     expect(repo.getChildren("col1").length).toBe(3)
   })
+
+  test("undo shows operation label in status bar", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
+
+    // Duplicate to create an undoable operation
+    board.press("cmd+d")
+
+    // Undo — status bar should show what was undone
+    board.command("undo")
+    expect(board.screenshot()).toContain("Undo: Add")
+  })
+
+  test("redo shows operation label in status bar", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"))))
+
+    board.press("cmd+d")
+    board.command("undo")
+
+    // Redo — status bar should show what was redone
+    board.command("redo")
+    expect(board.screenshot()).toContain("Redo: Add")
+  })
+
+  test("undo shows batch label for multi-mutation operations", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+
+    // Delete is a batched operation with label "Delete"
+    board.press("Backspace")
+
+    board.command("undo")
+    expect(board.screenshot()).toContain("Undo: Delete")
+  })
 })
 
 // =============================================================================
