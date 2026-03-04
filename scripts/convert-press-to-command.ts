@@ -77,7 +77,7 @@ const CHORD_MAP: [string, string, string][] = [
   ["v", "c", "toggle_collapse"],
   ["v", "d", "toggle_hide_done"],
   ["v", "m", "cycle_view_mode"],
-  ["v", "i", "cycle_icon_style"],
+
   ["v", "v", "visual_mode_enter"],
   ["v", "x", "ignore_node"],
   ["v", "X", "toggle_show_ignored"],

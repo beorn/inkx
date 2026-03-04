@@ -780,7 +780,7 @@ describe("chord keybindings", () => {
       ["v", "m", "cycle_view_mode"],
       ["v", "d", "toggle_hide_done"],
       ["v", "x", "ignore_node"],
-      ["v", "i", "cycle_icon_style"],
+
       ["v", "-", "clear_filters"],
       ["v", ",", "filter"],
       // v-prefix chords (pane operations)
@@ -876,7 +876,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
-    expect(chordBindings.length).toBe(186) // 25 g + 29 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v
+    expect(chordBindings.length).toBe(184) // 25 g + 28 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -944,7 +944,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    // View: - , X c d i m v x | Pane: < = > H J K L N Tab h j k l n o p s w z
+    // View: - , X c d m v x | Pane: < = > H J K L N Tab h j k l n o p s w z
     expect(keys).toEqual([
       ",",
       "-",
@@ -961,7 +961,6 @@ describe("chord keybindings", () => {
       "c",
       "d",
       "h",
-      "i",
       "j",
       "k",
       "l",
@@ -996,7 +995,6 @@ describe("chord keybindings", () => {
       "c",
       "d",
       "h",
-      "i",
       "j",
       "k",
       "l",
@@ -1058,8 +1056,6 @@ describe("chord keybindings", () => {
     expect(resolveKeybinding(":", {}, ctx)).toEqual({ commandId: "command_palette" })
     expect(resolveKeybinding(",", {}, ctx)).toEqual({ commandId: "decrease_content_lines" })
     expect(resolveKeybinding(".", {}, ctx)).toEqual({ commandId: "increase_content_lines" })
-    // Ctrl+/ → filter
-    expect(resolveKeybinding("/", { ctrl: true }, ctx)).toEqual({ commandId: "filter" })
   })
 
   it("Smart-D: D key maps to toggle_detail_pane", () => {

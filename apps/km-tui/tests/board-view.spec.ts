@@ -323,6 +323,3 @@ describe("Untitled Columns", () => {
     expect(text).toContain("(stale")
   })
 })
-
-// Note: Icon style cycling (cycle_icon_style) is still available via omnibox
-// but no longer has a keybinding (removed from v V chord)

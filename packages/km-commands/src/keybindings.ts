@@ -865,7 +865,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // v-prefix chords — VIEW operations
         { key: "v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
         { key: "v m", commandId: "cycle_view_mode" },
-        { key: "v i", commandId: "cycle_icon_style" },
+
         { key: "v c", commandId: "toggle_collapse" },
         { key: "v X", commandId: "toggle_show_ignored" },
         { key: "v d", commandId: "toggle_hide_done" },
@@ -945,7 +945,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "-", commandId: "decrease_content_lines" },
 
         // Filter and command palette
-        { key: "ctrl-/", commandId: "filter" }, // Replaced by G/Cmd+G in v2 spec — candidate for removal
+
         { key: ":", commandId: "command_palette" },
       ],
     },
@@ -970,7 +970,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // View operations (mirrors v-prefix)
         { key: "Ctrl+v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
         { key: "Ctrl+v m", commandId: "cycle_view_mode" },
-        { key: "Ctrl+v i", commandId: "cycle_icon_style" },
+
         { key: "Ctrl+v c", commandId: "toggle_collapse" },
         { key: "Ctrl+v X", commandId: "toggle_show_ignored" },
         { key: "Ctrl+v d", commandId: "toggle_hide_done" },

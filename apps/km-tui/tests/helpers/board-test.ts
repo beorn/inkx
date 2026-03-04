@@ -138,7 +138,7 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   toggle_collapse: ["v", "c"],
   toggle_hide_done: ["v", "d"],
   cycle_view_mode: ["v", "m"],
-  cycle_icon_style: ["v", "i"],
+
   visual_mode_enter: ["v", "v"],
   ignore_node: ["v", "x"],
   toggle_show_ignored: ["v", "X"],

@@ -150,16 +150,6 @@ export const tuiCommands: CommandDef[] = [
     execute: (): CommandAction => ({ type: "CONSOLE_TOGGLE" }),
   },
 
-  // Sync Pane
-  // ORPHAN: no keybinding — sync_pane.toggle is not wired in keybindings.ts
-  {
-    id: "sync_pane.toggle",
-    name: "Toggle Sync Pane",
-    description: "Toggle sync activity pane",
-    category: "View",
-    execute: (): CommandAction => ({ type: "SYNC_PANE_TOGGLE" }),
-  },
-
   // Toggle hide done/dropped tasks
   {
     id: "toggle_hide_done",
