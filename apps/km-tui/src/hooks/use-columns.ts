@@ -158,7 +158,12 @@ export function deriveCursorIndices(
  * @param foldDepths - Map of node ID → depth budget (0 = folded, no entry = inherit)
  * @returns ColumnView[] for rendering
  */
-export function useColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, viewMode?: string): ColumnView[] {
+export function useColumns(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+  viewMode?: string,
+): ColumnView[] {
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
@@ -339,11 +344,7 @@ export function deriveColumnsFromRepo(
  * this puts ALL children into a single virtual column (displayed as cards).
  * This gives standard j/k navigation through all children.
  */
-export function deriveDetailColumns(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-): ColumnView[] {
+export function deriveDetailColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>): ColumnView[] {
   const allChildren = repo.getChildren(rootId)
   if (allChildren.length === 0) return []
 
@@ -352,13 +353,15 @@ export function deriveDetailColumns(
     virtualCardIds.add(n.id)
   }
 
-  return [{
-    node: createVirtualBodyNode(rootId),
-    cardNodes: allChildren,
-    virtualCardIds,
-    isVirtual: true,
-    descendantIndex: mapDescendantsForColumn(allChildren, 0, foldDepths, repo),
-  }]
+  return [
+    {
+      node: createVirtualBodyNode(rootId),
+      cardNodes: allChildren,
+      virtualCardIds,
+      isVirtual: true,
+      descendantIndex: mapDescendantsForColumn(allChildren, 0, foldDepths, repo),
+    },
+  ]
 }
 
 /** Build descendant index for a virtual column's cards */

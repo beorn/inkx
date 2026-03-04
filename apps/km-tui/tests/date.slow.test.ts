@@ -377,58 +377,55 @@ describe("date badge display", () => {
     }
   })
 
-  it.each([40, 50, 60, 70, 80, 100, 120])(
-    "card border intact at %d cols with date badge",
-    (cols) => {
-      const nodes = item(
-        "board",
-        item("col1", item.task("After Delei gets ring - change to d@delei.org")),
-        item("col2", item.task("Another task with content")),
-      )
-      const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
-      taskNode.due_at = "2025-09-30"
+  it.each([40, 50, 60, 70, 80, 100, 120])("card border intact at %d cols with date badge", (cols) => {
+    const nodes = item(
+      "board",
+      item("col1", item.task("After Delei gets ring - change to d@delei.org")),
+      item("col2", item.task("Another task with content")),
+    )
+    const taskNode = nodes.find((n) => n.content?.includes("Delei"))!
+    taskNode.due_at = "2025-09-30"
 
-      const { board } = testEnv(() => nodes, { columns: cols, rows: 24 })
-      const screen = board.screenshot()
+    const { board } = testEnv(() => nodes, { columns: cols, rows: 24 })
+    const screen = board.screenshot()
 
-      // Verify Sep 30 appears (unless too narrow to fit)
-      if (cols >= 80) {
-        expect(screen, `cols=${cols}: date badge should appear`).toContain("Sep")
-      }
+    // Verify Sep 30 appears (unless too narrow to fit)
+    if (cols >= 80) {
+      expect(screen, `cols=${cols}: date badge should appear`).toContain("Sep")
+    }
 
-      // Check all card borders
-      const lines = screen.split("\n")
-      for (let y = 0; y < lines.length; y++) {
-        const line = lines[y]!
-        for (let x = 0; x < line.length; x++) {
-          if (line[x] === "╭") {
-            let cardWidth = -1
-            for (let xx = x + 1; xx < line.length; xx++) {
-              if (line[xx] === "╮") {
-                cardWidth = xx - x + 1
-                break
-              }
+    // Check all card borders
+    const lines = screen.split("\n")
+    for (let y = 0; y < lines.length; y++) {
+      const line = lines[y]!
+      for (let x = 0; x < line.length; x++) {
+        if (line[x] === "╭") {
+          let cardWidth = -1
+          for (let xx = x + 1; xx < line.length; xx++) {
+            if (line[xx] === "╮") {
+              cardWidth = xx - x + 1
+              break
             }
-            if (cardWidth > 0) {
-              const rightBorderCol = x + cardWidth - 1
-              for (let yy = y + 1; yy < lines.length; yy++) {
-                const rowLine = lines[yy]!
-                const leftChar = rowLine[x]
-                if (leftChar === "╰") break
-                if (leftChar !== "│") break
+          }
+          if (cardWidth > 0) {
+            const rightBorderCol = x + cardWidth - 1
+            for (let yy = y + 1; yy < lines.length; yy++) {
+              const rowLine = lines[yy]!
+              const leftChar = rowLine[x]
+              if (leftChar === "╰") break
+              if (leftChar !== "│") break
 
-                const rightChar = rowLine[rightBorderCol]
-                expect(
-                  rightChar,
-                  `cols=${cols}: Card at (${x},${y}), row ${yy}: right border at col ${rightBorderCol} is "${rightChar}" instead of "│". Row: "${rowLine}"`,
-                ).toBe("│")
-              }
+              const rightChar = rowLine[rightBorderCol]
+              expect(
+                rightChar,
+                `cols=${cols}: Card at (${x},${y}), row ${yy}: right border at col ${rightBorderCol} is "${rightChar}" instead of "│". Row: "${rowLine}"`,
+              ).toBe("│")
             }
           }
         }
       }
-    },
-  )
+    }
+  })
 
   it("card border intact after navigation with date badge", () => {
     // Test that incremental rendering after cursor movement preserves borders

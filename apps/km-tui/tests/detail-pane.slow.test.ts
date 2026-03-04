@@ -152,7 +152,7 @@ describe("formatDate", () => {
 
 describe("getStatusDisplay", () => {
   test.each([
-    [undefined, "todo", "$ring"],
+    [undefined, "todo", "$focusborder"],
     ["done", "done", "$success"],
     ["wip", "wip", "$warning"],
     ["blocked", "blocked", "$error"],

@@ -84,11 +84,7 @@ describe("Breadcrumb Navigation Journeys", () => {
 
   test("zoom out with Z, breadcrumb reflects parent level", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("level1", item("level2", item("deep-a"), item("deep-b")))),
-        ),
+      () => item("board", item("col", item("level1", item("level2", item("deep-a"), item("deep-b"))))),
       { columns: 120, rows: 24 },
     )
 
@@ -138,14 +134,10 @@ describe("Breadcrumb Navigation Journeys", () => {
   })
 
   test("breadcrumb path uses > separator for hierarchy within board", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("card", item("sub1"), item("sub2"))),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // Step 1: Navigate to card level
     board.press("j")
@@ -163,11 +155,7 @@ describe("Breadcrumb Navigation Journeys", () => {
       () =>
         item(
           "board",
-          item(
-            "Work",
-            item("Sprint-1", item("feat-a"), item("feat-b")),
-            item("Sprint-2", item("feat-c")),
-          ),
+          item("Work", item("Sprint-1", item("feat-a"), item("feat-b")), item("Sprint-2", item("feat-c"))),
           item("Personal", item("hobby")),
         ),
       { columns: 120, rows: 24 },
@@ -202,12 +190,7 @@ describe("Breadcrumb Navigation Journeys", () => {
   test("breadcrumb has no ghost characters after rapid navigation", () => {
     const { board } = testEnv(
       () =>
-        item(
-          "board",
-          item("Calendar", item("event1")),
-          item("inbox", item("item1")),
-          item("TaskNotes", item("note1")),
-        ),
+        item("board", item("Calendar", item("event1")), item("inbox", item("item1")), item("TaskNotes", item("note1"))),
       { columns: 100, rows: 24 },
     )
 

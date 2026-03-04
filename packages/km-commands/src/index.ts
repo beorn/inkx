@@ -162,7 +162,14 @@ export {
 } from "./when.ts"
 
 // Favorites
-export { getFavorite, setFavorite, clearFavorite, getAllFavorites, RESERVED_KEYS, getReservedKeyLabel } from "./favorites.ts"
+export {
+  getFavorite,
+  setFavorite,
+  clearFavorite,
+  getAllFavorites,
+  RESERVED_KEYS,
+  getReservedKeyLabel,
+} from "./favorites.ts"
 
 // Locations (composable command targets)
 export { REPO_LOCS, locationLabel } from "./locations.ts"

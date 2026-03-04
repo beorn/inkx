@@ -28,7 +28,9 @@ Each client test file uses `setupMockFetch()` / `restoreFetch()` in `beforeEach`
 import { parseICalendar, formatICalendar } from "../src/icalendar.ts"
 
 test("parses basic VEVENT", () => {
-  const event = parseICalendar(`BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:test-123\nSUMMARY:Meeting\nEND:VEVENT\nEND:VCALENDAR`)
+  const event = parseICalendar(
+    `BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:test-123\nSUMMARY:Meeting\nEND:VEVENT\nEND:VCALENDAR`,
+  )
   expect(event!.uid).toBe("test-123")
   expect(event!.summary).toBe("Meeting")
 })

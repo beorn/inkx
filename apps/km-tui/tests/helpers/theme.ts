@@ -39,10 +39,10 @@ export const TC = {
   $primary: 3,
   /** Hyperlinks, references — blueBright (12) */
   $link: 12,
-  /** Focus ring outline — blueBright (12) */
-  $ring: 12,
+  /** Focus border — blueBright (12) */
+  $focusborder: 12,
   /** Interactive control borders — blueBright (12) */
-  $input: 12,
+  $inputborder: 12,
   /** Elevated surfaces — black (0) */
   $surface: 0,
 

@@ -838,9 +838,7 @@ describe("Undo/Redo Journeys", () => {
   })
 
   test("delete card, undo restores it on screen and in repo", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("alpha"), item("beta"), item("gamma"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))))
 
     // Navigate to beta
     board.press("j")
@@ -912,9 +910,7 @@ describe("Undo/Redo Journeys", () => {
   })
 
   test("multiple edits then multiple undos restore in reverse order", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("t1"), item("t2"), item("t3"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("t1"), item("t2"), item("t3"))))
 
     // Step 1: Duplicate t1
     board.press("cmd+d")

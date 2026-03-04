@@ -712,7 +712,7 @@ export function deriveColumnHeaderProps(
 
   const headerStyle = opts.isInlineEditing
     ? {
-        color: "$ring",
+        color: "$focusborder",
         backgroundColor: undefined as string | undefined,
         dimColor: false,
       }

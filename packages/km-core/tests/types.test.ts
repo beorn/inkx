@@ -2,11 +2,7 @@
  * Tests for @km/core type utilities
  */
 import { describe, test, expect } from "vitest"
-import {
-  getStatusForMarker,
-  extractTitleTaskMarker,
-  validateNode,
-} from "../src/types.ts"
+import { getStatusForMarker, extractTitleTaskMarker, validateNode } from "../src/types.ts"
 
 describe("getStatusForMarker", () => {
   test("returns undefined for undefined", () => {

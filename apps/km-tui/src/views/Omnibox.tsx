@@ -272,7 +272,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
         <Text dimColor>{result.description}</Text>
       </Text>
       {result.shortcutHint && (
-        <Text color={isSelected ? "$selection-fg" : "$input"} backgroundColor={bg}>
+        <Text color={isSelected ? "$selection-fg" : "$inputborder"} backgroundColor={bg}>
           {"  "}
           {result.shortcutHint}
         </Text>

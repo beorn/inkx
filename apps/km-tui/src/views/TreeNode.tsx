@@ -893,7 +893,7 @@ function TreeNodeImpl({
           const isActiveBlock = editBlockIndex === blockIndex
           return (
             <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
-              <Text dimColor={!isActiveBlock} color={"$ring"}>
+              <Text dimColor={!isActiveBlock} color={"$focusborder"}>
                 {"  "}
               </Text>
               {isActiveBlock ? (
@@ -945,7 +945,7 @@ function TreeNodeImpl({
                   }}
                 />
               ) : (
-                <Text color={"$ring"} dimColor>
+                <Text color={"$focusborder"} dimColor>
                   <InlineText text={child.content ?? ""} />
                 </Text>
               )}

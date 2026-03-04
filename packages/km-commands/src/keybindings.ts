@@ -554,9 +554,7 @@ export const defaultKeybindingLayers: KeybindingLayer[] = [
   // Enter = edit (same as board), not zoom — detail pane shows properties inline.
   {
     name: "detail-pane",
-    bindings: [
-      { key: "Enter", commandId: "enter_inline_edit", when: isInDetailPane },
-    ],
+    bindings: [{ key: "Enter", commandId: "enter_inline_edit", when: isInDetailPane }],
   },
 
   // --- Layer 6b: Visual mode (vim-style range selection) ---

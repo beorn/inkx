@@ -211,7 +211,7 @@
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
-3 vendor/beorn-themex/src/cli.ts
+1 vendor/beorn-themex/screenshot.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts
 3 vendor/beorn-tools/tools/lib/history/recall.ts
 12 vendor/beorn-tools/tools/lib/llm/gemini-deep.ts

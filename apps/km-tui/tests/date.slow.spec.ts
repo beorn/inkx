@@ -100,7 +100,9 @@ describe("Date Badge Display Journeys", () => {
   })
 
   test("set due date via td chord, verify badge appears and persists", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))))
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))),
+    )
 
     // Step 1: No date badge initially
     expect(board.screenshot()).not.toContain("Today")

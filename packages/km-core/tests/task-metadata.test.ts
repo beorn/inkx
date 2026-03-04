@@ -130,7 +130,9 @@ describe("stringifyTaskMetadata", () => {
 
     test("recur:value is not recognized — rewrites with recur::", () => {
       const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=WEEKLY" })
-      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY recur:: FREQ=WEEKLY")
+      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe(
+        "Review recur:FREQ=WEEKLY recur:: FREQ=WEEKLY",
+      )
     })
 
     test("preserves emoji 🔁 format when values match", () => {
@@ -140,7 +142,9 @@ describe("stringifyTaskMetadata", () => {
 
     test("rewrites to key:: value when rrule changes", () => {
       const node = makeNode({ content: "Review recur:FREQ=WEEKLY", rrule: "FREQ=DAILY" })
-      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe("Review recur:FREQ=WEEKLY recur:: FREQ=DAILY")
+      expect(stringifyTaskMetadata("Review recur:FREQ=WEEKLY", node)).toBe(
+        "Review recur:FREQ=WEEKLY recur:: FREQ=DAILY",
+      )
     })
   })
 

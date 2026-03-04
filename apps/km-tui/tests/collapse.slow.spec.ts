@@ -24,12 +24,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 describe("Column Collapse Journeys", () => {
   test("collapse a column with v c, verify it shrinks and hides cards", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Todo", item("buy-milk"), item("write-tests")),
-          item("Done", item("ship-v1")),
-        ),
+      () => item("board", item("Todo", item("buy-milk"), item("write-tests")), item("Done", item("ship-v1"))),
       { columns: 80, rows: 24 },
     )
 
@@ -213,12 +208,7 @@ describe("Column Collapse Journeys", () => {
 
   test("collapsed column cursor is on header, j/k does not enter column", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b"), item("task-c")),
-          item("col2", item("other")),
-        ),
+      () => item("board", item("col1", item("task-a"), item("task-b"), item("task-c")), item("col2", item("other"))),
       { columns: 80, rows: 24 },
     )
 

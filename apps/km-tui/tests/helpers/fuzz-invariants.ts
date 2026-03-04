@@ -138,9 +138,7 @@ export const invariants = {
    * Note: help can overlay other dialogs, so we exclude it
    */
   mutuallyExclusiveDialogs(state: FuzzState, action: string): void {
-    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.itemPicker].filter(
-      Boolean,
-    ).length
+    const mainDialogs = [state.dialogs.search, state.dialogs.newItem, state.dialogs.itemPicker].filter(Boolean).length
 
     expect(mainDialogs, `Multiple main dialogs open after ${action}`).toBeLessThanOrEqual(1)
   },

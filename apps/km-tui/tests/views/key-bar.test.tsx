@@ -44,7 +44,13 @@ function makeUI(overrides: Partial<PaneUI> = {}): PaneUI {
     searchReplace: null,
     showFilterDialog: false,
     filterText: "",
-    filterProperties: { taskStatus: new Set(), priority: new Set(), dueDate: new Set(), assignedTo: new Set(), nodeType: new Set() },
+    filterProperties: {
+      taskStatus: new Set(),
+      priority: new Set(),
+      dueDate: new Set(),
+      assignedTo: new Set(),
+      nodeType: new Set(),
+    },
     filterCursorRow: 0,
     filterCursorVal: 0,
     showIgnored: false,
@@ -157,9 +163,7 @@ describe("KeyBar", () => {
   })
 
   it("VISUAL mode takes priority over PANE", () => {
-    const app = render(
-      <KeyBar ui={makeUI({ visualMode: true, visualAnchor: "n1" })} termWidth={80} />,
-    )
+    const app = render(<KeyBar ui={makeUI({ visualMode: true, visualAnchor: "n1" })} termWidth={80} />)
     expect(app.text).toContain("VISUAL")
     expect(app.text).not.toContain("PANE")
   })

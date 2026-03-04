@@ -197,13 +197,7 @@ export function extractTitleTaskMarker(text: string): {
 export function hasTaskProperties(
   node: Pick<KNode, "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
 ): boolean {
-  return !!(
-    node.due_at ||
-    node.priority ||
-    node.start_at ||
-    node.assigned_to ||
-    node.rrule
-  )
+  return !!(node.due_at || node.priority || node.start_at || node.assigned_to || node.rrule)
 }
 
 /**

@@ -94,10 +94,7 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
 
   test("select cards with children, delete requires confirmation", () => {
     const { board, repo } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("simple"), item("parent", item("child-a"), item("child-b")), item("after")),
-      ),
+      item("board", item("col1", item("simple"), item("parent", item("child-a"), item("child-b")), item("after"))),
     )
 
     // Step 1: Select simple and parent (which has children)

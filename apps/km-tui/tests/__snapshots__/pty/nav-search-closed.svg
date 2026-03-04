@@ -1,0 +1,506 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3360" height="2700">
+<rect width="100%" height="100%" fill="#1e1e1e"/>
+<rect x="16.8" y="72" width="3318" height="18" fill="#ebcb8b"/>
+<rect x="8.4" y="2646" width="336" height="18" fill="#3b3f47"/>
+<rect x="8.4" y="2664" width="336" height="18" fill="#3b3f47"/>
+<rect x="8.4" y="2682" width="336" height="18" fill="#3b3f47"/>
+<text x="0" y="14" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">  </tspan>
+<tspan x="16.8" font-weight="bold"></tspan>
+<tspan x="25.200000000000003" fill="#ebcb8b" font-weight="bold"> Board</tspan>
+<tspan x="75.60000000000001">                                                                                                                                                                                                                                                                                                                                                                                                       </tspan>
+</text>
+<text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#707070">──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────��──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</tspan>
+<tspan x="3351.6000000000004"> </tspan>
+</text>
+<text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="86" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8" fill="#1a1a1a"> </tspan>
+<tspan x="33.6" fill="#1a1a1a" font-weight="bold">Todo</tspan>
+<tspan x="67.2">                                                                                                                                                                                                                                                                                                                                                                                                     </tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="104" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Fix bug                                                                                                                                                                                                                                                                                                                                                                                                  </tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="122" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Buy milk                                                                                                                                                                                                                                                                                                                                                                                                 </tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="140" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Project A                                                                                                                                                                                                                                                                                                                                                                                              </tspan>
+<tspan x="3318" fill="#707070"> 2</tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="158" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8">  Subtask 1                                                                                                                                                                                                                                                                                                                                                                                               </tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="176" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8">  Subtask 2                                                                                                                                                                                                                                                                                                                                                                                               </tspan>
+<tspan x="3334.8" fill="#ebcb8b">│</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<text x="0" y="194" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────��──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</tspan>
+<tspan x="3351.6000000000004"> </tspan>
+</text>
+<text x="0" y="212" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="230" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="248" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="266" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="284" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="302" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="320" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="338" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="356" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="374" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="392" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="410" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="428" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="446" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="464" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="482" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="500" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="518" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="536" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="554" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="572" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="590" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="608" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="626" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="644" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="662" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="680" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="698" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="716" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="734" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="752" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="770" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="788" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="806" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="824" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="842" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="860" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="878" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="896" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="914" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="932" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="950" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="968" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="986" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1004" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1022" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1040" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1058" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1076" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1094" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1112" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1130" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1148" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1166" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1184" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1202" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1220" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1238" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1256" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1274" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1292" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1310" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1328" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1346" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1364" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1382" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1400" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1418" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1436" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1454" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1472" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1490" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1508" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1526" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1544" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1562" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1580" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1598" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1616" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1634" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1652" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1670" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1688" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1706" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1724" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1742" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1760" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1778" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1796" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1814" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1832" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1850" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1868" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1886" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1904" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1922" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1940" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1958" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1976" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="1994" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2012" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2030" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2048" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2066" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2084" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2102" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2120" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2138" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2156" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2174" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2192" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2210" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2228" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2246" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2264" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2282" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2300" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2318" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2336" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2354" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2372" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2390" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2408" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2426" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2444" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2462" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2480" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2498" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2516" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2534" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2552" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2570" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2588" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2606" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2624" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2642" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                                                                                                                                                                                                                                                                                                                </tspan>
+</text>
+<text x="0" y="2660" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#a0a0a0">╭──────────────────────────────────────╮</tspan>
+<tspan x="344.40000000000003">                                                                                                                                                                                                                                                                                                                                                                       </tspan>
+</text>
+<text x="0" y="2678" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#a0a0a0">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" font-weight="bold">Can&apos;t move down</tspan>
+<tspan x="151.20000000000002">                      </tspan>
+<tspan x="336" fill="#a0a0a0">│</tspan>
+<tspan x="344.40000000000003">                                                                                                                                                                                                                                                                                                                                                                       </tspan>
+</text>
+<text x="0" y="2696" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#a0a0a0">╰──────────────────────────────────────╯</tspan>
+<tspan x="344.40000000000003">                                                                                                                                                                                                                                                                                                                                           </tspan>
+<tspan x="3124.8" opacity="0.5">MEM /private/tmp/vt 📋8t📄08</tspan>
+<tspan x="3343.2000000000003">  </tspan>
+</text>
+<rect x="3334.8" y="2682" width="8.4" height="18" fill="#aeafad" opacity="0.5"/>
+</svg>

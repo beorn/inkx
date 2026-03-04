@@ -143,7 +143,7 @@ export function NewItemDialog({
       footer="Enter create  Esc cancel"
     >
       {/* Input field */}
-      <Box borderStyle="round" borderColor={"$ring"} flexShrink={0}>
+      <Box borderStyle="round" borderColor={"$focusborder"} flexShrink={0}>
         <Text>
           <Text color={"$success"}>{isTask ? "[ ] " : "• "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />

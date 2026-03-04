@@ -56,7 +56,6 @@ interface ListOptions {
   json?: boolean
 }
 
-
 export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
   .addHelpText(

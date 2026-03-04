@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="720">
+<rect width="100%" height="100%" fill="#1e1e1e"/>
+<rect x="16.8" y="90" width="966" height="18" fill="#ebcb8b"/>
+<text x="0" y="14" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">  </tspan>
+<tspan x="16.8" font-weight="bold"></tspan>
+<tspan x="25.200000000000003" fill="#ebcb8b" font-weight="bold"> Board</tspan>
+<tspan x="75.60000000000001">                                                                                                               </tspan>
+</text>
+<text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#707070">─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">╭────────────────────────────────���──────────────────────────────────────────────────────────────────────────────────╮</tspan>
+</text>
+<text x="0" y="86" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="104" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8" fill="#1a1a1a"> </tspan>
+<tspan x="33.6" fill="#1a1a1a" font-weight="bold">Todo</tspan>
+<tspan x="67.2">                                                                                                             </tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="122" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Fix bug                                                                                                          </tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="140" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Buy milk                                                                                                         </tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="158" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8"> Project A                                                                                                      </tspan>
+<tspan x="966" fill="#707070"> 2</tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="176" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8">  Subtask 1                                                                                                       </tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="194" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">│</tspan>
+<tspan x="16.8">  Subtask 2                                                                                                       </tspan>
+<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="212" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0"> </tspan>
+<tspan x="8.4" fill="#ebcb8b">╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="230" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="248" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="266" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="284" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="302" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="320" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="338" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="356" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="374" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="392" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="410" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="428" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="446" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="464" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="482" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="500" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="518" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="536" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="554" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="572" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="590" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="608" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="626" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="644" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="662" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="680" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="698" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="716" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                </tspan>
+<tspan x="806.4000000000001" opacity="0.5">MEM /private/tmp/vt 📋8</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<rect x="999.6" y="702" width="8.4" height="18" fill="#aeafad" opacity="0.5"/>
+</svg>

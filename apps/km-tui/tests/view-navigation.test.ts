@@ -12,11 +12,7 @@
 import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
-import {
-  createCardsViewNavigation,
-  createDetailViewNavigation,
-  type NavState,
-} from "../src/view-navigation.ts"
+import { createCardsViewNavigation, createDetailViewNavigation, type NavState } from "../src/view-navigation.ts"
 import { createGridNavigator } from "@km/board"
 
 function makeState(cursorNodeId: string, rootId: string | null = "board"): NavState {

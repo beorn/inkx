@@ -42,7 +42,12 @@
       "mcp__tty__list",
       "mcp__tty__stop",
       "mcp__tty__type",
-      "mcp__tty__text"
+      "mcp__tty__text",
+      "mcp__termless__start",
+      "mcp__termless__screenshot",
+      "mcp__termless__press",
+      "mcp__termless__stop",
+      "mcp__termless__wait"
     ],
     "deny": [],
     "ask": []

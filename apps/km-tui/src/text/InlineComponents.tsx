@@ -224,12 +224,12 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
   const ctx = useInlineRenderContext()
   if (decorations?.length) {
     return (
-      <Text color={resolveColor(ctx, "$input")}>
+      <Text color={resolveColor(ctx, "$inputborder")}>
         <DecoratedText text={node.code} decorations={decorations} offset={offset ?? 0} />
       </Text>
     )
   }
-  return <Text color={resolveColor(ctx, "$input")}>{node.code}</Text>
+  return <Text color={resolveColor(ctx, "$inputborder")}>{node.code}</Text>
 }
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
@@ -303,7 +303,7 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
   const styledValue = hasColorOverride ? <Text>{node.value.trim()}</Text> : colorFieldValue(node.value.trim())
   return (
     <Text>
-      <Text dim color={resolveColor(ctx, "$input")}>
+      <Text dim color={resolveColor(ctx, "$inputborder")}>
         {node.key}
       </Text>
       <Text dim>{":: "}</Text>

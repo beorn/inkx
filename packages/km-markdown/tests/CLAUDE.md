@@ -18,12 +18,12 @@
 
 Located in `helpers/test-utils.ts`:
 
-| Helper | Purpose |
-|--------|---------|
-| `parse(md)` | Parse markdown string to KNode array |
-| `roundtrip(md)` | Parse then serialize — output should match input |
-| `makeTestNode(overrides)` | Create a KNode with sensible defaults |
-| `normalizeMarkdown(md)` | Whitespace normalization for assertions |
+| Helper                    | Purpose                                          |
+| ------------------------- | ------------------------------------------------ |
+| `parse(md)`               | Parse markdown string to KNode array             |
+| `roundtrip(md)`           | Parse then serialize — output should match input |
+| `makeTestNode(overrides)` | Create a KNode with sensible defaults            |
+| `normalizeMarkdown(md)`   | Whitespace normalization for assertions          |
 
 ## Patterns
 
@@ -62,13 +62,14 @@ bun run test:changed                               # Only changed files
 ```
 
 For quick parse verification without a test file:
+
 ```typescript
 import { parse, roundtrip } from "./helpers/test-utils"
 
 test("quick check: my edge case", () => {
   const md = "your markdown here\n"
   const nodes = parse(md)
-  console.dir(nodes, { depth: 5 })  // Remove before committing
+  console.dir(nodes, { depth: 5 }) // Remove before committing
   expect(roundtrip(md)).toBe(md)
 })
 ```
@@ -82,9 +83,9 @@ import { gen, take } from "@beorn/vitestx"
 import { roundtrip } from "./helpers/test-utils"
 
 const mdGen = gen.oneOf(
-  gen.map(gen.string(), s => `# ${s}\n`),
-  gen.map(gen.string(), s => `- [ ] ${s}\n`),
-  gen.map(gen.string(), s => `> ${s}\n`),
+  gen.map(gen.string(), (s) => `# ${s}\n`),
+  gen.map(gen.string(), (s) => `- [ ] ${s}\n`),
+  gen.map(gen.string(), (s) => `> ${s}\n`),
 )
 
 test.fuzz("markdown roundtrip preserves structure", () => {
@@ -95,6 +96,7 @@ test.fuzz("markdown roundtrip preserves structure", () => {
 ```
 
 Good candidates for property-based tests:
+
 - Frontmatter preservation across parse/serialize
 - List nesting depth (arbitrary depth should roundtrip)
 - Inline formatting combinations (bold + italic + code)

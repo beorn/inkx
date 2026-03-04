@@ -71,12 +71,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
   const entries = Array.from(getAllFavorites().entries()).sort((a, b) => a[0].localeCompare(b[0]))
 
   return (
-    <ModalDialog
-      title="Favorites"
-      titleAlign="flex-start"
-      width={width}
-      footer="press a key to edit  esc close"
-    >
+    <ModalDialog title="Favorites" titleAlign="flex-start" width={width} footer="press a key to edit  esc close">
       <Box flexDirection="column">
         {entries.length === 0 ? (
           <Text dimColor>No favorites — press any key to assign</Text>
@@ -88,11 +83,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
               <Box key={key} flexDirection="row" height={1}>
                 <Text bold>{` ${key} `}</Text>
                 <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                  {node ? (
-                    <NodeLine node={node} title={title} />
-                  ) : (
-                    <Text dimColor>{nodeId}</Text>
-                  )}
+                  {node ? <NodeLine node={node} title={title} /> : <Text dimColor>{nodeId}</Text>}
                 </Box>
               </Box>
             )

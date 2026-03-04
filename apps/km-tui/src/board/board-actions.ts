@@ -39,7 +39,15 @@ import {
 } from "@km/tree"
 import { type KNode, isOutline, isListItem } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { getFavorite, setFavorite, clearFavorite, getAllFavorites, RESERVED_KEYS, getReservedKeyLabel, initDefaultKeybindings } from "@km/commands"
+import {
+  getFavorite,
+  setFavorite,
+  clearFavorite,
+  getAllFavorites,
+  RESERVED_KEYS,
+  getReservedKeyLabel,
+  initDefaultKeybindings,
+} from "@km/commands"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
@@ -1846,7 +1854,8 @@ function handleSetPriority(ctx: ActionCtx, value?: string): ActionResult {
     const firstNode = ctx.repo.getNode(firstNodeId)
     const current = firstNode?.priority
     const idx = current ? PRIORITY_CYCLE.indexOf(current as (typeof PRIORITY_CYCLE)[number]) : -1
-    next = idx >= 0 && idx < PRIORITY_CYCLE.length - 1 ? PRIORITY_CYCLE[idx + 1] : idx === -1 ? PRIORITY_CYCLE[0] : undefined
+    next =
+      idx >= 0 && idx < PRIORITY_CYCLE.length - 1 ? PRIORITY_CYCLE[idx + 1] : idx === -1 ? PRIORITY_CYCLE[0] : undefined
   }
 
   // Auto-recorded by undoable repo — batch multiple updates into one undo entry
@@ -2103,5 +2112,3 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 // =============================================================================
 // Detail pane cursor helpers — resolve detail node and cursor from nodeId-based state
 // =============================================================================
-
-

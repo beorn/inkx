@@ -21,30 +21,30 @@
 
 ### `query-test-helpers.ts`
 
-| Helper | Purpose |
-|--------|---------|
-| `createTestDatabase()` | In-memory SQLite with full schema |
-| `seedTestData(db, nodes)` | Bulk insert nodes for query tests |
-| `formatDate(d)` | Date formatting for assertions |
-| `today()`, `offsetDate(days)` | Date factory helpers |
+| Helper                        | Purpose                           |
+| ----------------------------- | --------------------------------- |
+| `createTestDatabase()`        | In-memory SQLite with full schema |
+| `seedTestData(db, nodes)`     | Bulk insert nodes for query tests |
+| `formatDate(d)`               | Date formatting for assertions    |
+| `today()`, `offsetDate(days)` | Date factory helpers              |
 
 ### `watch/sync-test-helpers.ts`
 
-| Helper | Purpose |
-|--------|---------|
+| Helper                                       | Purpose                                           |
+| -------------------------------------------- | ------------------------------------------------- |
 | `createTestSyncManager(db, path, overrides)` | SyncManager with fast debounces, no worker thread |
-| `setupSyncManager(stack, manager, emitter)` | Lifecycle with AsyncDisposableStack cleanup |
-| `waitForReady(manager)` | Wait for watcher initialization |
-| `waitForStateChange(events)` | Wait for specific sync events |
+| `setupSyncManager(stack, manager, emitter)`  | Lifecycle with AsyncDisposableStack cleanup       |
+| `waitForReady(manager)`                      | Wait for watcher initialization                   |
+| `waitForStateChange(events)`                 | Wait for specific sync events                     |
 
 ### `sync/chaos/` (fuzz testing)
 
-| File | Purpose |
-|------|---------|
-| `fake-fs.ts` | Mock filesystem for reproducible chaos |
-| `event-picker.ts` | Random event generation from state |
-| `transformers.ts` | Event sequence mutations |
-| `verifier.ts` | Invariant checking (concurrent safety, data integrity) |
+| File              | Purpose                                                |
+| ----------------- | ------------------------------------------------------ |
+| `fake-fs.ts`      | Mock filesystem for reproducible chaos                 |
+| `event-picker.ts` | Random event generation from state                     |
+| `transformers.ts` | Event sequence mutations                               |
+| `verifier.ts`     | Invariant checking (concurrent safety, data integrity) |
 
 ## Patterns
 
@@ -94,6 +94,7 @@ bun vitest related packages/km-storage/src/watch/sync.ts
 ```
 
 For quick ad-hoc verification of sync behavior without writing a test file:
+
 ```typescript
 // In a scratch test (delete before committing)
 import { withMemoryStore } from "./testing/memory-store"
@@ -114,11 +115,11 @@ test("quick check: my scenario", async () => {
 
 ## Related Test Types
 
-| Type | Location | When |
-|------|----------|------|
+| Type           | Location               | When                                                                |
+| -------------- | ---------------------- | ------------------------------------------------------------------- |
 | **Chaos/fuzz** | `sync/chaos/*.fuzz.ts` | Randomized concurrent edit sequences. Run with `bun run test:fuzz`. |
-| **Benchmarks** | `*.bench.ts` | Sync pipeline performance. Run with `bun run bench`. |
-| **E2E** | `e2e/` | Full app lifecycle (slow). |
+| **Benchmarks** | `*.bench.ts`           | Sync pipeline performance. Run with `bun run bench`.                |
+| **E2E**        | `e2e/`                 | Full app lifecycle (slow).                                          |
 
 ## See Also
 

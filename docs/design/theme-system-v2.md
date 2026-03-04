@@ -97,7 +97,7 @@ properties and React context examples.
 | `$control` | Keyboard shortcut badges, input borders, chord hint keys |
 | `$selected` | Cursor row background, selected card bg, picker selected row |
 | `$selectedfg` | Text on cursor row, text on selected items |
-| `$focusring` | Focused pane border, editing card border, active input outline |
+| `$focusborder` | Focused pane border, editing card border, active input outline |
 | `$text` | Node titles, body text, fold markers, column headers |
 | `$text2` | Node descriptions, metadata labels, unfocused column headers |
 | `$text3` | Child counts, timestamps, dot leaders, chord separators, footer hints |
@@ -145,8 +145,8 @@ properties and React context examples.
 | `km.selectionBg`        | `$selected`  | Promoted to theme token                |
 | `km.selectionFg`        | `$selectedfg`| Promoted to theme token                |
 | `km.selectionDim`       | `$selected` + opacity | Unfocused = parent opacity   |
-| `km.inputFocusRing`     | `$focusring` | Promoted to theme token                |
-| `km.cardBorderEditing`  | `$focusring` | Same as focus ring (editing = focused) |
+| `km.inputFocusRing`     | `$focusborder` | Promoted to theme token                |
+| `km.cardBorderEditing`  | `$focusborder` | Same as focus ring (editing = focused) |
 | `km.cardBorderSelected` | `$selected`  | Selected card border = selection color |
 | `km.textPrimary`        | `$text`      | Direct mapping                         |
 | `km.textLink`           | `$link`      | Promoted to theme token                |
@@ -162,7 +162,7 @@ properties and React context examples.
 | `km.dialogDim`          | `$text2`     | Secondary dialog text                  |
 | `km.dialogSelectedBg`   | `$selected`  | Same selection token everywhere        |
 | `km.dialogSelectedFg`   | `$selectedfg`| Same selection fg everywhere           |
-| `km.dialogInputBorder`  | `$focusring` | Input border = focus ring              |
+| `km.dialogInputBorder`  | `$focusborder` | Input border = focus ring              |
 | `km.dialogShortcut`     | `$control`   | Shortcut hints = interactive chrome    |
 | `km.helpSectionHeading` | `$primary`   | Help headings = brand color (bold)     |
 | `km.helpKey`            | `$control`   | Help keys = interactive chrome         |

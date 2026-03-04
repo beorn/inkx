@@ -273,7 +273,7 @@ const Card = React.memo(
     }
 
     if (isVirtualColumn || isVirtualCard) {
-      const bodyBorderColor = isEditing ? "$ring" : "$selection"
+      const bodyBorderColor = isEditing ? "$focusborder" : "$selection"
       return (
         <Box
           flexDirection="column"
@@ -347,7 +347,7 @@ const Card = React.memo(
     const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted-fg" : treeConfig.borderMode === "black" ? "$surface" : "$border"
     const borderColor = isEditing
-      ? "$ring"
+      ? "$focusborder"
       : isSelected || isMultiSelected || isColSelected
         ? "$selection"
         : defaultBorder

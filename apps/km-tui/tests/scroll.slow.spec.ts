@@ -72,10 +72,10 @@ describe("Vertical Scroll Journeys", () => {
   })
 
   test("scroll at top boundary: k on first card stays put", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("first"), item("second"), item("third"))),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("first"), item("second"), item("third"))), {
+      rows: 24,
+      columns: 80,
+    })
 
     // Step 1: Cursor starts on first card
     board.expect("#first[data-cursor]").toExist()
@@ -90,10 +90,10 @@ describe("Vertical Scroll Journeys", () => {
   })
 
   test("scroll at bottom boundary: j on last card stays put", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))),
-      { rows: 24, columns: 80 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))), {
+      rows: 24,
+      columns: 80,
+    })
 
     // Step 1: Navigate to last card
     board.press("j")
@@ -177,13 +177,7 @@ describe("Horizontal Scroll Journeys", () => {
     // Tall col3 with many items, navigate right then down
     const tasks = Array.from({ length: 10 }, (_, i) => item(`deep-${i}`))
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("a1")),
-          item("col2", item("b1")),
-          item("col3", ...tasks),
-        ),
+      () => item("board", item("col1", item("a1")), item("col2", item("b1")), item("col3", ...tasks)),
       { columns: 80, rows: 24 },
     )
 

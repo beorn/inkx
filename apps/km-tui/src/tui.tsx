@@ -57,7 +57,9 @@ async function queryTerminalBg(): Promise<string | null> {
 
   try {
     return await queryBackgroundColor(
-      (data) => { process.stdout.write(data) },
+      (data) => {
+        process.stdout.write(data)
+      },
       (timeoutMs) =>
         new Promise<string | null>((resolve) => {
           const timer = setTimeout(() => {
@@ -303,8 +305,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     }
 
     // Query actual terminal background via OSC 11 for theme derivation
-    const detectedBg =
-      isInteractive && caps.colorLevel === "truecolor" ? await queryTerminalBg() : null
+    const detectedBg = isInteractive && caps.colorLevel === "truecolor" ? await queryTerminalBg() : null
     if (detectedBg) log.debug?.(`Detected terminal background: ${detectedBg}`)
 
     // Select theme and icon style based on terminal capabilities
@@ -317,10 +318,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       navigator: createGridNavigator(),
       cursorStore: createCursorStoreFromRepo(options.repo, state.rootId, initialCursorNodeId),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
-      initialUIState: createInitialUIState(
-        { columns: cols, rows },
-        defaultIconStyle,
-      ),
+      initialUIState: createInitialUIState({ columns: cols, rows }, defaultIconStyle),
       initialViewMode: viewMode,
       dimensions: { columns: cols, rows },
       savedWorkspace,

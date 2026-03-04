@@ -24,7 +24,10 @@ import { andThen, Err, Ok } from "@km/core/result"
 
 test("andThen short-circuits on first error", () => {
   let called = false
-  andThen(Err("fail"), () => { called = true; return Ok(1) })
+  andThen(Err("fail"), () => {
+    called = true
+    return Ok(1)
+  })
   expect(called).toBe(false)
 })
 ```

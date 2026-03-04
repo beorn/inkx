@@ -35,9 +35,7 @@ function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
 
 /** Get all file-level nodes (mdfile type) */
 function getFileNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter(
-    (n) => n.type === "h" && n.item === true && n.fstype === "mdfile",
-  )
+  return getAllNodes(db).filter((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
 }
 
 /** Get all task nodes */
@@ -47,9 +45,7 @@ function getTaskNodes(db: import("bun:sqlite").Database): KNode[] {
 
 /** Get all section nodes */
 function getSectionNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter(
-    (n) => n.type === "h" && n.item === true && n.fstype === "mdsection",
-  )
+  return getAllNodes(db).filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
 }
 
 // =============================================================================
@@ -103,9 +99,7 @@ describe("file -> sync -> DB", () => {
 
       // Each file should have exactly one task
       for (const fileNode of fileNodes) {
-        const children = getAllNodes(data.database).filter(
-          (n) => n.parent_id === fileNode.id && n.task_status != null,
-        )
+        const children = getAllNodes(data.database).filter((n) => n.parent_id === fileNode.id && n.task_status != null)
         expect(children).toHaveLength(1)
       }
     }))
@@ -282,10 +276,7 @@ describe("concurrent fs + DB edits", () => {
   test("DB edit persisted to file, then external file addition, both survive", () =>
     withTestEnv(async ({ repoDir, data }) => {
       const filePath = join(repoDir, "concurrent.md")
-      writeFileSync(
-        filePath,
-        "# Concurrent\n\n- [ ] Task Alpha\n- [ ] Task Beta\n",
-      )
+      writeFileSync(filePath, "# Concurrent\n\n- [ ] Task Alpha\n- [ ] Task Beta\n")
 
       const manager = createSyncManager(data.database, repoDir)
       await manager.syncFromFs()
@@ -380,10 +371,7 @@ describe("concurrent fs + DB edits", () => {
       expect(tasks).toHaveLength(2)
 
       // External edit: restructure into sections
-      writeFileSync(
-        filePath,
-        "# Board\n\n## Active\n\n- [ ] Task A\n\n## Completed\n\n- [x] Task B\n",
-      )
+      writeFileSync(filePath, "# Board\n\n## Active\n\n- [ ] Task A\n\n## Completed\n\n- [x] Task B\n")
       await manager.syncFromFs()
 
       // After restructure, tasks should still exist with correct statuses

@@ -200,7 +200,6 @@ function buildPathCteSelect(): string {
       WHERE 1=1`
 }
 
-
 /** Handle date shortcut resolution and general field conditions */
 function buildFieldCondition(cond: QueryCondition, params: (string | number)[]): string {
   const { field, op, value } = cond

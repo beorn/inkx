@@ -55,9 +55,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("H then L round-trips: fold and unfold restores visibility", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("task1", item("subA"), item("subB")))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("task1", item("subA"), item("subB")))))
     board.expect("#task1[data-cursor]").toExist()
     board.expect("#subA").toExist()
     board.expect("#subB").toExist()
@@ -82,11 +80,7 @@ describe("Fold/Unfold Journeys", () => {
 
   test("fold all (<) hides children in all columns, unfold all (>) restores", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("nodeA", item("nodeA-ch"))),
-        item("col2", item("nodeB", item("nodeB-ch"))),
-      ),
+      item("board", item("col1", item("nodeA", item("nodeA-ch"))), item("col2", item("nodeB", item("nodeB-ch")))),
     )
     board.expect("#nodeA-ch").toExist()
     board.expect("#nodeB-ch").toExist()
@@ -108,12 +102,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold all then selectively unfold one card with L", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch"))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("p1", item("p1-ch")), item("p2", item("p2-ch")))))
     board.expect("#p1-ch").toExist()
     board.expect("#p2-ch").toExist()
 
@@ -132,12 +121,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold one card, navigate to another and fold it, both stay folded", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch"))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("a1", item("a1-ch")), item("b1", item("b1-ch")))))
     board.expect("#a1[data-cursor]").toExist()
     board.expect("#a1-ch").toExist()
     board.expect("#b1-ch").toExist()
@@ -161,12 +145,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("fold preserves cursor position, unfold keeps cursor on parent", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("par1", item("c1"), item("c2"), item("c3"))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("par1", item("c1"), item("c2"), item("c3")))))
     board.expect("#par1[data-cursor]").toExist()
 
     // Step 1: Fold — cursor stays on par1
@@ -184,12 +163,7 @@ describe("Fold/Unfold Journeys", () => {
   })
 
   test("progressive fold: H folds deepest level first, L unfolds one level at a time", () => {
-    const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("root1", item("mid1", item("deep1")))),
-      ),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("root1", item("mid1", item("deep1"))))))
     board.expect("#root1[data-cursor]").toExist()
     board.expect("#mid1").toExist()
     board.expect("#deep1").toExist()

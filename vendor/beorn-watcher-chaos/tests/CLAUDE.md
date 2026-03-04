@@ -23,7 +23,9 @@ import { createChaosWatcher } from "../src/index.ts"
 test("emits sync event with injected events", async () => {
   const watcher = createChaosWatcher()
   let syncData: { paths: string[] } | null = null
-  watcher.on("sync", (data) => { syncData = data })
+  watcher.on("sync", (data) => {
+    syncData = data
+  })
 
   watcher.start("/repo")
   watcher.inject({ type: "change", path: "/repo/test.md" })

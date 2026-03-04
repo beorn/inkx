@@ -20,8 +20,29 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, BoardPaneState, LayoutNode, NavHistoryEntry, PaneState, PerPaneUIFields, WorkspaceState } from "./board-types.ts"
-import { createBoardState, createPaneState, createEmptyPaneState, isBoardPane, isDetailViewPane, mergePaneUI, detailPaneIdFor, ownerPaneId, isDetailPaneId, getDetailPaneFor, hasDetailPaneFor } from "./board-types.ts"
+import type {
+  BoardAction,
+  BoardState,
+  BoardPaneState,
+  LayoutNode,
+  NavHistoryEntry,
+  PaneState,
+  PerPaneUIFields,
+  WorkspaceState,
+} from "./board-types.ts"
+import {
+  createBoardState,
+  createPaneState,
+  createEmptyPaneState,
+  isBoardPane,
+  isDetailViewPane,
+  mergePaneUI,
+  detailPaneIdFor,
+  ownerPaneId,
+  isDetailPaneId,
+  getDetailPaneFor,
+  hasDetailPaneFor,
+} from "./board-types.ts"
 import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
@@ -271,7 +292,7 @@ function restoreWorkspaceFromPersisted(
   const focusedPaneId =
     savedFocus && isBoardPane(savedFocus) && !isDetailViewPane(savedFocus)
       ? saved.focusedPaneId
-      : firstBoardPaneId ?? saved.focusedPaneId
+      : (firstBoardPaneId ?? saved.focusedPaneId)
 
   return {
     panes,
@@ -456,9 +477,8 @@ export function createBoardAppStoreState(
           }
           // Notify CursorStore subscribers (only cursor-aware components re-render).
           // Route to the focused pane's own cursor store (detail pane has its own).
-          const targetCursorStore = (focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore)
-            ? focusedPane.cursorStore
-            : s.cursorStore
+          const targetCursorStore =
+            focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore ? focusedPane.cursorStore : s.cursorStore
           targetCursorStore.setState({
             cursorNodeId: action.nodeId,
             ...ancestors,
@@ -635,7 +655,9 @@ export function createBoardAppStoreState(
         const board = getActiveBoardPane(s)
         if (board) {
           const getNode = (id: string) => s.repo.getNode(id)
-          const ancestors = deriveCursorAncestors(getNode, board.rootId, board.cursorNodeId, (pid) => s.repo.getChildren(pid))
+          const ancestors = deriveCursorAncestors(getNode, board.rootId, board.cursorNodeId, (pid) =>
+            s.repo.getChildren(pid),
+          )
           s.cursorStore.setState({
             cursorNodeId: board.cursorNodeId,
             ...ancestors,
@@ -651,9 +673,7 @@ export function createBoardAppStoreState(
           let resolved: Partial<PaneUI>
           if (typeof partial === "function") {
             const board = getActiveBoardPane(state)
-            const effective: PaneUI = board
-              ? mergePaneUI(state.ui, board)
-              : (state.ui as unknown as PaneUI) // Safe: function variant only used with active board pane
+            const effective: PaneUI = board ? mergePaneUI(state.ui, board) : (state.ui as unknown as PaneUI) // Safe: function variant only used with active board pane
             resolved = partial(effective)
           } else {
             resolved = partial
@@ -758,11 +778,10 @@ export function createBoardAppStoreState(
             cursorColumnNodeId: null,
             selectionLevel: firstChildId ? "card" : "board",
           })
-          const detailPane = createPaneState(
-            detailId,
-            createBoardState(detailRootId, null, firstChildId),
-            { viewMode: "detail", cursorStore: detailCursorStore },
-          )
+          const detailPane = createPaneState(detailId, createBoardState(detailRootId, null, firstChildId), {
+            viewMode: "detail",
+            cursorStore: detailCursorStore,
+          })
           detailPane.parentPaneId = focusedPaneId
 
           const newPanes = new Map(state.workspace.panes)

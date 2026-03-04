@@ -100,9 +100,7 @@ describe("State", () => {
 
 describe("Render", () => {
   test("Board renders columns and cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("Todo", item.task("Task 1")), item("Done")),
-    )
+    const { board } = testEnv(() => item("board", item("Todo", item.task("Task 1")), item("Done")))
     const text = board.screenshot()
     expect(text).toContain("Todo")
     expect(text).toContain("Done")
@@ -110,9 +108,7 @@ describe("Render", () => {
   })
 
   test("Board handles empty board", () => {
-    const { board } = testEnv(() =>
-      item("board"),
-    )
+    const { board } = testEnv(() => item("board"))
     const text = board.screenshot()
     expect(text).toContain("Empty board")
   })

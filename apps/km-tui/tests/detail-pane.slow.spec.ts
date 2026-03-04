@@ -17,10 +17,10 @@ import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Detail Pane Journeys", () => {
   test("D opens detail pane and focuses it, D again closes it", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("Buy milk"), item.task("Fix bug"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("Buy milk"), item.task("Fix bug"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Initially no detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
@@ -76,10 +76,10 @@ describe("Detail Pane Journeys", () => {
   })
 
   test("l at rightmost column focuses detail, h returns to board", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item.task("task1"))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item.task("task1"))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Step 1: Open detail pane, return to board
     board.press("D")

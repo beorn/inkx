@@ -13,19 +13,42 @@ export const DETAIL_META_PREFIX = "__meta__"
 /** Data keys handled explicitly by MetadataTable or shown elsewhere (breadcrumb, footer). */
 export const KNOWN_DATA_KEYS = new Set([
   // Parser-generated
-  "tags", "mentions", "projects", "projectMemberships", "short_id", "props", "propsRaw",
-  "block_id", "metadata", "name", "title", "rrule", "fstype", "rules", "tag", "item_count",
-  "is_repo_root", "embeddingTarget",
+  "tags",
+  "mentions",
+  "projects",
+  "projectMemberships",
+  "short_id",
+  "props",
+  "propsRaw",
+  "block_id",
+  "metadata",
+  "name",
+  "title",
+  "rrule",
+  "fstype",
+  "rules",
+  "tag",
+  "item_count",
+  "is_repo_root",
+  "embeddingTarget",
   // Internal aggregation (parser)
-  "_h1Title", "_allMentions", "_allTags", "_allProjects",
+  "_h1Title",
+  "_allMentions",
+  "_allTags",
+  "_allProjects",
   // Import provenance (shown in footer instead)
-  "imported_from", "imported_at", "asana_project_id",
+  "imported_from",
+  "imported_at",
+  "asana_project_id",
   // Containment tree (shown via breadcrumb)
-  "workspace", "team",
+  "workspace",
+  "team",
   // Timestamps (mapped to native fields)
-  "created_at", "modified_at",
+  "created_at",
+  "modified_at",
   // Dependencies (rendered in MetadataTable)
-  "deps", "blocks",
+  "deps",
+  "blocks",
 ])
 
 /**
@@ -77,7 +100,10 @@ export function computeMetadataKeys(node: KNode): string[] {
     for (const k of Object.keys(data.metadata as Record<string, unknown>)) {
       if (k === "created" || k === "completed") continue
       const key = capitalize(k)
-      if (!usedKeys.has(key)) { usedKeys.add(key); keys.push(key) }
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key)
+        keys.push(key)
+      }
     }
   }
 
@@ -85,7 +111,10 @@ export function computeMetadataKeys(node: KNode): string[] {
   if (data?.propsRaw && typeof data.propsRaw === "object") {
     for (const k of Object.keys(data.propsRaw as Record<string, unknown>)) {
       const key = capitalize(k)
-      if (!usedKeys.has(key)) { usedKeys.add(key); keys.push(key) }
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key)
+        keys.push(key)
+      }
     }
   }
 
@@ -94,7 +123,10 @@ export function computeMetadataKeys(node: KNode): string[] {
     for (const k of Object.keys(data)) {
       if (KNOWN_DATA_KEYS.has(k)) continue
       const key = capitalize(k)
-      if (!usedKeys.has(key)) { usedKeys.add(key); keys.push(key) }
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key)
+        keys.push(key)
+      }
     }
   }
 

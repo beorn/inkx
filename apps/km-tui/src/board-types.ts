@@ -12,7 +12,14 @@ import type { TPath } from "@km/tree"
 import type { CursorStore } from "./cursor-store.ts"
 import type { SelectionKey } from "./types.ts"
 import type { SelectionRange } from "./handlers/mouse-handler.ts"
-import { createEmptyFilterProperties, type FilterProperties, type LocalSearchState, type SearchReplaceState, type UIState, type PaneUI } from "./ui-reducer.ts"
+import {
+  createEmptyFilterProperties,
+  type FilterProperties,
+  type LocalSearchState,
+  type SearchReplaceState,
+  type UIState,
+  type PaneUI,
+} from "./ui-reducer.ts"
 
 // Re-export common types for convenience
 export type { TNode } from "@km/core"
@@ -221,30 +228,53 @@ export interface PerPaneUIFields {
 
 /** Field names in PerPaneUIFields — used for runtime routing in setUI() */
 export const PANE_UI_FIELD_NAMES: ReadonlySet<string> = new Set([
-  "viewMode", "maxContentLines",
-  "multiSelected", "selectionAnchor", "selectAllLevel", "visualMode", "visualAnchor",
-  "collapsedColumns", "columnScrollAnchor",
+  "viewMode",
+  "maxContentLines",
+  "multiSelected",
+  "selectionAnchor",
+  "selectAllLevel",
+  "visualMode",
+  "visualAnchor",
+  "collapsedColumns",
+  "columnScrollAnchor",
   "inlineEditBlock",
-  "localSearch", "searchReplace",
-  "showFilterDialog", "filterText", "filterProperties", "filterCursorRow", "filterCursorVal",
-  "showIgnored", "ignoreVersion",
-  "mouseSelection", "isMouseDragging",
+  "localSearch",
+  "searchReplace",
+  "showFilterDialog",
+  "filterText",
+  "filterProperties",
+  "filterCursorRow",
+  "filterCursorVal",
+  "showIgnored",
+  "ignoreVersion",
+  "mouseSelection",
+  "isMouseDragging",
 ])
 
 /** Merge global UIState with per-pane fields from a BoardPaneState into a single PaneUI. */
 export function mergePaneUI(ui: UIState, pane: BoardPaneState): PaneUI {
   return {
     ...ui,
-    viewMode: pane.viewMode, maxContentLines: pane.maxContentLines,
-    multiSelected: pane.multiSelected, selectionAnchor: pane.selectionAnchor,
-    selectAllLevel: pane.selectAllLevel, visualMode: pane.visualMode,
-    visualAnchor: pane.visualAnchor, collapsedColumns: pane.collapsedColumns,
-    columnScrollAnchor: pane.columnScrollAnchor, inlineEditBlock: pane.inlineEditBlock,
-    localSearch: pane.localSearch, searchReplace: pane.searchReplace,
-    showFilterDialog: pane.showFilterDialog, filterText: pane.filterText,
-    filterProperties: pane.filterProperties, filterCursorRow: pane.filterCursorRow,
-    filterCursorVal: pane.filterCursorVal, showIgnored: pane.showIgnored,
-    ignoreVersion: pane.ignoreVersion, mouseSelection: pane.mouseSelection,
+    viewMode: pane.viewMode,
+    maxContentLines: pane.maxContentLines,
+    multiSelected: pane.multiSelected,
+    selectionAnchor: pane.selectionAnchor,
+    selectAllLevel: pane.selectAllLevel,
+    visualMode: pane.visualMode,
+    visualAnchor: pane.visualAnchor,
+    collapsedColumns: pane.collapsedColumns,
+    columnScrollAnchor: pane.columnScrollAnchor,
+    inlineEditBlock: pane.inlineEditBlock,
+    localSearch: pane.localSearch,
+    searchReplace: pane.searchReplace,
+    showFilterDialog: pane.showFilterDialog,
+    filterText: pane.filterText,
+    filterProperties: pane.filterProperties,
+    filterCursorRow: pane.filterCursorRow,
+    filterCursorVal: pane.filterCursorVal,
+    showIgnored: pane.showIgnored,
+    ignoreVersion: pane.ignoreVersion,
+    mouseSelection: pane.mouseSelection,
     isMouseDragging: pane.isMouseDragging,
   } as PaneUI
 }
@@ -474,10 +504,7 @@ export function createPaneState(
 /**
  * Create an EmptyPaneState placeholder.
  */
-export function createEmptyPaneState(
-  id: string,
-  cursorStore: CursorStore,
-): EmptyPaneState {
+export function createEmptyPaneState(id: string, cursorStore: CursorStore): EmptyPaneState {
   return {
     id,
     viewType: "empty",

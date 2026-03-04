@@ -64,15 +64,15 @@ All tree rendering uses TreeNode with variants:
 
 These are managed inside `Board.tsx`:
 
-| State            | Purpose                               |
-| ---------------- | ------------------------------------- |
-| `state`          | BoardState (columns, cursor, etc.)    |
-| `foldDepths`     | Map of node IDs to fold depth budget  |
-| `multiSelected`  | Set of selected item keys             |
-| `viewMode`       | "cards" / "columns" / "list" / "tabs" / "detail" |
-| `showHelp`       | Help overlay visibility               |
-| `inOutlineMode`  | Whether navigating within card        |
-| `subIndex`       | Position within card outline          |
+| State           | Purpose                                          |
+| --------------- | ------------------------------------------------ |
+| `state`         | BoardState (columns, cursor, etc.)               |
+| `foldDepths`    | Map of node IDs to fold depth budget             |
+| `multiSelected` | Set of selected item keys                        |
+| `viewMode`      | "cards" / "columns" / "list" / "tabs" / "detail" |
+| `showHelp`      | Help overlay visibility                          |
+| `inOutlineMode` | Whether navigating within card                   |
+| `subIndex`      | Position within card outline                     |
 
 ### Persistent State (Storage Layer)
 
@@ -96,17 +96,17 @@ Key principle: **AST before rendering** — parse to structured nodes, then rend
 
 ## Key Files
 
-| File                        | Purpose                                   |
-| --------------------------- | ----------------------------------------- |
-| `tui.ts`                    | Entry point, sync manager lifecycle       |
-| `views/Board.tsx`           | Main container, state, keyboard handling  |
-| `views/TreeNode.tsx`        | Unified tree node rendering               |
-| `views/detail-pane-items.ts`| Detail metadata key computation           |
-| `text/inline-parser.ts`     | Markdown → InlineNode[] AST parser        |
-| `text/InlineComponents.tsx` | InlineNode[] → React JSX rendering        |
-| `text/rich.ts`              | ANSI utilities (displayLength, stripAnsi) |
-| `state.ts`                  | BoardState building and manipulation      |
-| `types.ts`                  | Type definitions for all TUI components   |
+| File                         | Purpose                                   |
+| ---------------------------- | ----------------------------------------- |
+| `tui.ts`                     | Entry point, sync manager lifecycle       |
+| `views/Board.tsx`            | Main container, state, keyboard handling  |
+| `views/TreeNode.tsx`         | Unified tree node rendering               |
+| `views/detail-pane-items.ts` | Detail metadata key computation           |
+| `text/inline-parser.ts`      | Markdown → InlineNode[] AST parser        |
+| `text/InlineComponents.tsx`  | InlineNode[] → React JSX rendering        |
+| `text/rich.ts`               | ANSI utilities (displayLength, stripAnsi) |
+| `state.ts`                   | BoardState building and manipulation      |
+| `types.ts`                   | Type definitions for all TUI components   |
 
 ## Automatic Sync
 

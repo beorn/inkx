@@ -106,10 +106,10 @@ describe("Detail pane toggle", () => {
   })
 
   test("detail cursor resets on each transition", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("card1", item("sub-a"), item("sub-b")))),
-      { checkIncremental: false, incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("card1", item("sub-a"), item("sub-b")))), {
+      checkIncremental: false,
+      incremental: false,
+    })
 
     // Open pane — cursor starts on first child
     board.press("D")

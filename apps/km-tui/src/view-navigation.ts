@@ -76,7 +76,10 @@ export function createCardsViewNavigation(): ViewNavigation {
     },
     classifyCursor(nodeId, rootId, repo) {
       return deriveCursorAncestors(
-        (id) => repo.getNode(id), rootId, nodeId, (pid) => repo.getChildren(pid),
+        (id) => repo.getNode(id),
+        rootId,
+        nodeId,
+        (pid) => repo.getChildren(pid),
       )
     },
   }

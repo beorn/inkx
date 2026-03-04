@@ -18,7 +18,12 @@ import { createStore, type StoreApi } from "zustand"
 import { createRenderer } from "inkx/testing"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
 import { StoreContext } from "inkx/runtime"
-import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
+import {
+  createBoardAppStoreState,
+  getActiveBoardPane,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "../src/board-app-store.ts"
 import { createBoardState, createPaneState, isBoardPane, isDetailPaneId } from "../src/board-types.ts"
 import type { PersistedWorkspace } from "../src/workspace-persist.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
@@ -509,10 +514,10 @@ describe("pane focus scopes — cursor movement in single-pane mode", () => {
   })
 
   test("k moves cursor up in single-pane board", () => {
-    const { board } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"), item("task-3"))), {
+      columns: 80,
+      rows: 24,
+    })
 
     board.press("j").press("j") // Move to task-3
     board.expect("#task-3[data-cursor]").toExist()
@@ -524,10 +529,10 @@ describe("pane focus scopes — cursor movement in single-pane mode", () => {
 
 describe("pane focus scopes — detail pane toggle and focus", () => {
   test("D opens detail pane and auto-focuses it", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Toggle detail pane open — auto-focuses detail
 
@@ -537,10 +542,10 @@ describe("pane focus scopes — detail pane toggle and focus", () => {
   })
 
   test("n cycles focus from detail to board", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Open detail pane — auto-focuses detail
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -550,10 +555,10 @@ describe("pane focus scopes — detail pane toggle and focus", () => {
   })
 
   test("n cycles focus back from board to detail", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Open detail pane — auto-focuses detail
     board.press("n") // Cycle to board
@@ -636,10 +641,10 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
   })
 
   test("h returns focus from detail pane to board (left navigation)", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -649,14 +654,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
   })
 
   test("l navigates from board into detail pane (right navigation)", () => {
-    const { board, store } = testEnv(
-      () =>
-        item.root(
-          "board",
-          item("col1", item("task-1")),
-        ),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"))), { columns: 120, rows: 24 })
 
     board.press("D") // Open detail pane
 
@@ -668,10 +666,10 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
 
 describe("pane focus scopes — Escape layering with scope-aware commands", () => {
   test("Escape in detail pane returns focus to board, pane stays open", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
@@ -683,10 +681,10 @@ describe("pane focus scopes — Escape layering with scope-aware commands", () =
   })
 
   test("second Escape closes detail pane when board is already focused", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("D") // Open + auto-focus detail pane
     board.press("Escape") // Return to board
@@ -748,7 +746,11 @@ describe("detail pane cursor styling", () => {
   /** Helper: find the first cell of a text string in the screen and return its color info */
   /** Find text on screen and return its cell colors.
    * occurrence: "first" = leftmost/topmost, "rightmost" = highest column (detail pane). */
-  function findTextColors(board: ReturnType<typeof testEnv>["board"], text: string, occurrence: "first" | "rightmost" = "first") {
+  function findTextColors(
+    board: ReturnType<typeof testEnv>["board"],
+    text: string,
+    occurrence: "first" | "rightmost" = "first",
+  ) {
     const screenRows = board.screen.text.split("\n")
     let foundRow = -1
     let foundCol = -1
@@ -757,8 +759,14 @@ describe("detail pane cursor styling", () => {
       while (true) {
         const idx = screenRows[r]!.indexOf(text, col)
         if (idx === -1) break
-        if (occurrence === "first" && foundRow === -1) { foundRow = r; foundCol = idx }
-        if (occurrence === "rightmost" && idx > foundCol) { foundRow = r; foundCol = idx }
+        if (occurrence === "first" && foundRow === -1) {
+          foundRow = r
+          foundCol = idx
+        }
+        if (occurrence === "rightmost" && idx > foundCol) {
+          foundRow = r
+          foundCol = idx
+        }
         col = idx + 1
       }
     }
@@ -843,10 +851,10 @@ describe("detail pane cursor styling", () => {
   })
 
   test("unfocused board pane uses dimmed selection via per-pane theme", () => {
-    const { board, store } = testEnv(
-      () => item.root("board", item("col1", item("task-1"), item("task-2"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board, store } = testEnv(() => item.root("board", item("col1", item("task-1"), item("task-2"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     // While focused, cursor card should have gold ($selected) bg
     board.expectNodeColor("task-1", { bg: TC.$selected })

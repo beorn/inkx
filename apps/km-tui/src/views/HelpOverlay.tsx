@@ -87,7 +87,7 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text> </Text>}
-          <KeyBinding keys={k} color={"$input"} />
+          <KeyBinding keys={k} color={"$warning"} />
         </React.Fragment>
       ))}
       <Text> </Text>
@@ -198,7 +198,7 @@ const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
   if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
-  return <KeyBinding keys={value} color={"$input"} />
+  return <KeyBinding keys={value} color={"$warning"} />
 }
 
 function buildVerbGridLines(): React.ReactElement[] {
@@ -239,21 +239,21 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$input"}>{"g"}</Text>
+        <Text color={"$warning"}>{"g"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$input"}>{"⌃g"}</Text>
+        <Text color={"$warning"}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$input"}>{"m"}</Text>
+        <Text color={"$warning"}>{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$input"}>{"⌃m"}</Text>
+        <Text color={"$warning"}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$input"}>{"a"}</Text>
+        <Text color={"$warning"}>{"a"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$input"}>{"⌃l"}</Text>
+        <Text color={"$warning"}>{"⌃l"}</Text>
       </Box>
-      <Text color={"$input"}>{"c"}</Text>
+      <Text color={"$warning"}>{"c"}</Text>
     </Box>,
   )
 
@@ -268,7 +268,7 @@ function buildVerbGridLines(): React.ReactElement[] {
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Box width={VG_LOC_W} flexDirection="row">
-          <Text color={"$input"}>{row.key}</Text>
+          <Text color={"$warning"}>{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
         <Box width={VG_COL_W} flexDirection="row">
@@ -342,7 +342,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color={"$input"}>{scrollHint}</Text>
+          <Text color={"$warning"}>{scrollHint}</Text>
         </>
       )}
     </Box>

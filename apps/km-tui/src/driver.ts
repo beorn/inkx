@@ -67,7 +67,12 @@ import { createGridNavigator, type GridNavigator } from "@km/board"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
-import { createBoardAppStoreState, getActiveBoardPane, type BoardAppStore, type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import {
+  createBoardAppStoreState,
+  getActiveBoardPane,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { handleKey } from "./board-app.ts"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"

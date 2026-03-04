@@ -21,48 +21,46 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ### `helpers/board-test.ts` — Core testing API
 
-| Helper | Purpose |
-|--------|---------|
-| `item(title, ...children)` | Fluent tree builder for test fixtures |
-| `testEnv(builder)` | Create virtual board with fake repo + inkx buffer |
-| `testEnvWithRepo(builder)` | testEnv with repo access for persistence checks |
-| `renderBoard(nodes, opts)` | Static render without interaction |
-| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context |
+| Helper                                     | Purpose                                           |
+| ------------------------------------------ | ------------------------------------------------- |
+| `item(title, ...children)`                 | Fluent tree builder for test fixtures             |
+| `testEnv(builder)`                         | Create virtual board with fake repo + inkx buffer |
+| `testEnvWithRepo(builder)`                 | testEnv with repo access for persistence checks   |
+| `renderBoard(nodes, opts)`                 | Static render without interaction                 |
+| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                  |
 
 ```typescript
-const { board, repo } = testEnv(() =>
-  item("board", item("Todo", item("Buy milk")), item("Done"))
-)
-board.press("Enter")          // interact
-board.expect("#Buy milk").toExist()  // verify screen
-expect(repo.getNode("Buy milk")).toBeDefined()  // verify persistence
+const { board, repo } = testEnv(() => item("board", item("Todo", item("Buy milk")), item("Done")))
+board.press("Enter") // interact
+board.expect("#Buy milk").toExist() // verify screen
+expect(repo.getNode("Buy milk")).toBeDefined() // verify persistence
 ```
 
 ### `helpers/board-app.ts` — Driver pattern (for AI/exploration)
 
-| Helper | Purpose |
-|--------|---------|
-| `board.app(dsl)` | Create board from string DSL |
-| `board.load(vaultPath)` | Load from real vault |
-| `board.fixture(name)` | Named fixtures: kanban, nested, empty, etc. |
-| `defaultInvariants` | Auto-checked: rendering, cursor, selection |
-| `allInvariants` | + parent links, node links, layout |
+| Helper                  | Purpose                                     |
+| ----------------------- | ------------------------------------------- |
+| `board.app(dsl)`        | Create board from string DSL                |
+| `board.load(vaultPath)` | Load from real vault                        |
+| `board.fixture(name)`   | Named fixtures: kanban, nested, empty, etc. |
+| `defaultInvariants`     | Auto-checked: rendering, cursor, selection  |
+| `allInvariants`         | + parent links, node links, layout          |
 
 ```typescript
 const app = board.app(["Inbox > Task 1", "Projects > Alpha"])
-app.press("j")               // invariants auto-checked
-app.columns()                 // spatial query: what's on screen
-app.cards()                   // all visible cards with positions
+app.press("j") // invariants auto-checked
+app.columns() // spatial query: what's on screen
+app.cards() // all visible cards with positions
 ```
 
 ### Other Helpers
 
-| File | Purpose |
-|------|---------|
-| `fixtures/board-fixtures.ts` | Pure data factories |
-| `helpers/real-board.ts` | Load real vaults (async, for .slow. tests) |
-| `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos |
-| `helpers/matchers.ts` | Custom vitest matchers |
+| File                         | Purpose                                    |
+| ---------------------------- | ------------------------------------------ |
+| `fixtures/board-fixtures.ts` | Pure data factories                        |
+| `helpers/real-board.ts`      | Load real vaults (async, for .slow. tests) |
+| `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos          |
+| `helpers/matchers.ts`        | Custom vitest matchers                     |
 
 ## Test File Organization
 
@@ -86,13 +84,13 @@ Journey tests are the primary guard against bugs at layer boundaries (board↔st
 
 ## File Suffixes
 
-| Suffix | When | Example |
-|--------|------|---------|
-| `.spec.ts` | Keys in, screen out — user-level journeys | `board-edit.slow.spec.ts` |
-| `.test.ts` | Internal API, component rendering | `card-layout.test.tsx` |
-| `.slow.test.ts` / `.slow.spec.ts` | Takes >5s (heavy TUI setup) | `fold.slow.test.ts` |
-| `.bench.ts` | Performance measurement | `scroll-perf.bench.ts` |
-| `.fuzz.ts` | Chaos/randomized testing | `monkey.fuzz.ts` |
+| Suffix                            | When                                      | Example                   |
+| --------------------------------- | ----------------------------------------- | ------------------------- |
+| `.spec.ts`                        | Keys in, screen out — user-level journeys | `board-edit.slow.spec.ts` |
+| `.test.ts`                        | Internal API, component rendering         | `card-layout.test.tsx`    |
+| `.slow.test.ts` / `.slow.spec.ts` | Takes >5s (heavy TUI setup)               | `fold.slow.test.ts`       |
+| `.bench.ts`                       | Performance measurement                   | `scroll-perf.bench.ts`    |
+| `.fuzz.ts`                        | Chaos/randomized testing                  | `monkey.fuzz.ts`          |
 
 ## Journey Test Pattern
 
@@ -100,20 +98,18 @@ Journey tests are the primary guard against bugs at layer boundaries (board↔st
 
 ```typescript
 test("edit card, move column, undo restores both", () => {
-  const { board, repo } = testEnv(() =>
-    item("board", item("Todo", item("Buy milk")), item("Done"))
-  )
-  board.press("Enter")           // edit mode
-  board.type(" (organic)")       // modify
-  board.press("Escape")          // save
-  board.press("opt+l")           // move to Done
+  const { board, repo } = testEnv(() => item("board", item("Todo", item("Buy milk")), item("Done")))
+  board.press("Enter") // edit mode
+  board.type(" (organic)") // modify
+  board.press("Escape") // save
+  board.press("opt+l") // move to Done
 
   // Verify BOTH screen and persistence
   expect(repo.getNode("Buy milk")?.content).toBe("Buy milk (organic)")
   board.expect("#Buy milk").toExist()
 
-  board.press("Control+z")       // undo move
-  board.press("Control+z")       // undo edit
+  board.press("Control+z") // undo move
+  board.press("Control+z") // undo edit
   expect(repo.getNode("Buy milk")?.content).toBe("Buy milk")
 })
 ```
@@ -127,16 +123,14 @@ For broad visual regression coverage, use **golden file snapshots** — capture 
 ```typescript
 // Capture full screen as golden file
 test("kanban board renders correctly", () => {
-  const { board } = testEnv(() =>
-    item("board", item("Todo", item("Task 1"), item("Task 2")), item("Done"))
-  )
+  const { board } = testEnv(() => item("board", item("Todo", item("Task 1"), item("Task 2")), item("Done")))
   expect(board.screen.toString()).toMatchSnapshot()
 })
 
 // After navigation — verify layout didn't break
 test("zoom into column preserves layout", () => {
   const { board } = testEnv(() => kanbanFixture())
-  board.press("z")  // zoom in
+  board.press("z") // zoom in
   expect(board.screen.toString()).toMatchSnapshot()
 })
 ```
@@ -179,6 +173,7 @@ bun vitest related apps/km-tui/src/board/Board.tsx
 ```
 
 For interactive visual verification, use TTY MCP tools:
+
 ```
 mcp__tty__start(command: ["bun", "km", "view", "/path/to/vault"])
 mcp__tty__press(key: "j")       # navigate
@@ -220,7 +215,7 @@ import "@termless/test/matchers"
 test("board renders correct colors through real terminal", () => {
   // Render a board, capture ANSI output from inkx
   const { board } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
-  const ansiOutput = board.ansi  // raw ANSI from inkx output phase
+  const ansiOutput = board.ansi // raw ANSI from inkx output phase
 
   // Feed to real terminal emulator
   const term = createTerminal({ backend: createXtermBackend({ cols: 80, rows: 24 }) })
@@ -238,12 +233,12 @@ test("board renders correct colors through real terminal", () => {
 
 **@termless/test matchers** (auto-registered via `import "@termless/test/matchers"`):
 
-| Category | Matchers |
-|----------|----------|
-| Text (RegionView) | `toContainText()`, `toHaveText()`, `toMatchLines()` |
-| Cell style | `toBeBold()`, `toBeItalic()`, `toHaveFg()`, `toHaveBg()`, `toHaveUnderline()`, `toBeWide()` |
-| Terminal | `toHaveCursorAt()`, `toHaveCursorVisible()`, `toBeInMode()`, `toHaveTitle()` |
-| Snapshot | `toMatchTerminalSnapshot()`, `toMatchSvgSnapshot()` |
+| Category          | Matchers                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| Text (RegionView) | `toContainText()`, `toHaveText()`, `toMatchLines()`                                         |
+| Cell style        | `toBeBold()`, `toBeItalic()`, `toHaveFg()`, `toHaveBg()`, `toHaveUnderline()`, `toBeWide()` |
+| Terminal          | `toHaveCursorAt()`, `toHaveCursorVisible()`, `toBeInMode()`, `toHaveTitle()`                |
+| Snapshot          | `toMatchTerminalSnapshot()`, `toMatchSvgSnapshot()`                                         |
 
 **Region selectors**: `term.screen`, `term.scrollback`, `term.row(n)`, `term.cell(r, c)`, `term.range(r1, c1, r2, c2)`.
 
@@ -251,13 +246,13 @@ test("board renders correct colors through real terminal", () => {
 
 ## Related Test Types
 
-| Type | Location | When |
-|------|----------|------|
-| **Termless** | `*.termless.test.ts` | ANSI output verification through real terminal emulator (CI-friendly). |
-| **Fuzz/chaos** | `*.fuzz.ts` | Randomized keypresses, monkey testing. Run with `bun run test:fuzz`. |
-| **Benchmarks** | `*.bench.ts` | Rendering, scroll, navigation perf. Run with `bun run bench`. |
-| **GUI/TTY** | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI). |
-| **Storybook** | `bun storybook` | Interactive component catalog for visual inspection. |
+| Type           | Location                | When                                                                   |
+| -------------- | ----------------------- | ---------------------------------------------------------------------- |
+| **Termless**   | `*.termless.test.ts`    | ANSI output verification through real terminal emulator (CI-friendly). |
+| **Fuzz/chaos** | `*.fuzz.ts`             | Randomized keypresses, monkey testing. Run with `bun run test:fuzz`.   |
+| **Benchmarks** | `*.bench.ts`            | Rendering, scroll, navigation perf. Run with `bun run bench`.          |
+| **GUI/TTY**    | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI).                |
+| **Storybook**  | `bun storybook`         | Interactive component catalog for visual inspection.                   |
 
 ## See Also
 

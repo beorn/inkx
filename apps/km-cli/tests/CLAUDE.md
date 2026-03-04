@@ -37,12 +37,12 @@ test("parseArgs handles --format flag", () => {
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `km-repl.ts` | REPL harness for interactive testing |
-| `mdtest-plugin.ts` | km command executor (bunShell) |
-| `mdtest-sh-plugin.ts` | Shell fallback plugin |
-| `import/fake-asana.ts` | Mock Asana API for import tests |
+| File                   | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `km-repl.ts`           | REPL harness for interactive testing |
+| `mdtest-plugin.ts`     | km command executor (bunShell)       |
+| `mdtest-sh-plugin.ts`  | Shell fallback plugin                |
+| `import/fake-asana.ts` | Mock Asana API for import tests      |
 
 ## Ad-Hoc Testing
 
@@ -52,6 +52,7 @@ bun vitest run apps/km-cli/tests/ -t "import"  # By test name
 ```
 
 For quick CLI command verification, use the REPL harness or run directly:
+
 ```bash
 bun km list --format=json          # Test command output directly
 bun km import --help               # Check argument parsing

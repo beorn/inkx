@@ -63,7 +63,13 @@ describe("CommandBox", () => {
     // Filter state (per-pane)
     showFilterDialog: false,
     filterText: "",
-    filterProperties: { taskStatus: new Set(), priority: new Set(), dueDate: new Set(), assignedTo: new Set(), nodeType: new Set() },
+    filterProperties: {
+      taskStatus: new Set(),
+      priority: new Set(),
+      dueDate: new Set(),
+      assignedTo: new Set(),
+      nodeType: new Set(),
+    },
     filterCursorRow: 0,
     filterCursorVal: 0,
     showIgnored: false,

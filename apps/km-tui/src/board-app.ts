@@ -207,12 +207,7 @@ export interface BoardAppHandlers {
   ) => void | "exit" | "flush"
   handleMouse: (mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>) => void
   buildActionCtx: (get: () => BoardAppStore, exit: () => void) => ActionCtx
-  dispatchCommandById: (
-    commandId: string,
-    get: () => BoardAppStore,
-    exitApp?: () => void,
-    targetId?: string,
-  ) => void
+  dispatchCommandById: (commandId: string, get: () => BoardAppStore, exitApp?: () => void, targetId?: string) => void
   triggerChordTimeout: (get: () => BoardAppStore, exitApp?: () => void) => void
 }
 
@@ -221,636 +216,632 @@ export interface BoardAppHandlers {
  * Each createBoardApp() call gets its own locals, eliminating module-level mutable state.
  */
 export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers {
+  /**
+   * Build an ActionCtx from store state.
+   * Called on each key event to get fresh state.
+   * Caches columns/nodeIndex between calls when state is unchanged.
+   */
+  function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
+    const s = get()
+    const board = getActiveBoardPane(s)
+    const rootId = board?.rootId ?? null
+    const cursorNodeId = board?.cursorNodeId ?? null
+    const foldDepths = board?.foldDepths ?? new Map<string, number>()
+    const repoVersion = s.repo.getSnapshot()
 
-/**
- * Build an ActionCtx from store state.
- * Called on each key event to get fresh state.
- * Caches columns/nodeIndex between calls when state is unchanged.
- */
-function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
-  const s = get()
-  const board = getActiveBoardPane(s)
-  const rootId = board?.rootId ?? null
-  const cursorNodeId = board?.cursorNodeId ?? null
-  const foldDepths = board?.foldDepths ?? new Map<string, number>()
-  const repoVersion = s.repo.getSnapshot()
+    // Reuse cached layout if state inputs haven't changed
+    // foldDepths uses reference equality — each fold/unfold creates a new Map
+    let columns: ColumnView[]
+    let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+    if (
+      locals.layoutCache &&
+      locals.layoutCache.rootId === rootId &&
+      locals.layoutCache.foldDepths === foldDepths &&
+      locals.layoutCache.repoVersion === repoVersion
+    ) {
+      columns = locals.layoutCache.columns
+      nodeIndex = locals.layoutCache.nodeIndex
+    } else {
+      // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
+      const topChildren = s.repo.getChildren(rootId)
+      s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
+      const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
+      columns = derive(s.repo, rootId, foldDepths)
+      nodeIndex = buildNodeIndex(columns)
+      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
+    }
+    const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
+    const column = columns[cursor.colIndex]
+    const card = column?.cardNodes[cursor.cardIndex]
+    const selectedNode = card ?? column?.node ?? null
 
-  // Reuse cached layout if state inputs haven't changed
-  // foldDepths uses reference equality — each fold/unfold creates a new Map
-  let columns: ColumnView[]
-  let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
-  if (
-    locals.layoutCache &&
-    locals.layoutCache.rootId === rootId &&
-    locals.layoutCache.foldDepths === foldDepths &&
-    locals.layoutCache.repoVersion === repoVersion
-  ) {
-    columns = locals.layoutCache.columns
-    nodeIndex = locals.layoutCache.nodeIndex
-  } else {
-    // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
-    const topChildren = s.repo.getChildren(rootId)
-    s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
-    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
-    columns = derive(s.repo, rootId, foldDepths)
-    nodeIndex = buildNodeIndex(columns)
-    locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
+    // Merge per-pane UI fields into effective UI state for action handlers
+    const effectiveUI: PaneUI = board ? mergePaneUI(s.ui, board) : (s.ui as PaneUI)
+
+    return {
+      repo: s.repo,
+      rootId,
+      rootPath: board?.rootPath ?? null,
+      cursorNodeId,
+      selectedNodes: board?.selectedNodes ?? new Set(),
+      foldDepths,
+      collapsedNodes: board?.collapsedNodes ?? new Set(),
+      moveMode: board?.moveMode ?? false,
+      moveSourceNodes: board?.moveSourceNodes ?? [],
+      moveSourceCursorNodeId: board?.moveSourceCursorNodeId ?? null,
+      ui: effectiveUI,
+      columns,
+      colIndex: cursor.colIndex,
+      cardIndex: cursor.cardIndex,
+      isAtCardLevel: cursor.isAtCardLevel,
+      nodeIndex,
+      navigator: s.navigator,
+      viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
+      toastQueue: s.toastQueue,
+      undoStack: s.undoStack,
+      undoHandle: s.undoHandle,
+      selectedNode,
+      column,
+      card,
+      dispatchBoard: (action) => s.dispatchBoard(action),
+      setUI: (partial) => s.setUI(partial),
+      setFoldDepths: (depths) => s.setFoldDepths(depths),
+      getDetailCursorId: () => s.getDetailCursorId(),
+      setDetailCursor: (id) => s.setDetailCursor(id),
+      openDetailPane: () => s.openDetailPane(),
+      closeDetailPane: () => s.closeDetailPane(),
+      toggleDetailPane: () => s.toggleDetailPane(),
+      splitFocusedPane: (direction) => s.splitFocusedPane(direction),
+      closeFocusedPane: () => s.closeFocusedPane(),
+      focusPaneInDirection: (direction) => s.focusPaneInDirection(direction),
+      focusPreviousPane: () => s.focusPreviousPane(),
+      cyclePaneFocus: (direction) => s.cyclePaneFocus(direction),
+      focusPaneByNumber: (number) => s.focusPaneByNumber(number),
+      focusPaneById: (paneId) => s.focusPaneById(paneId),
+      resizeFocusedPane: (delta, axis) => s.resizeFocusedPane(delta, axis),
+      equalizePanes: () => s.equalizePanes(),
+      zoomFocusedPane: () => s.zoomFocusedPane(),
+      closeAllButFocused: () => s.closeAllButFocused(),
+      swapPaneInDirection: (direction) => s.swapPaneInDirection(direction),
+      activateEmptyPane: () => s.activateEmptyPane(),
+      focusedPaneViewType: () => {
+        const ws = get().workspace
+        const pane = ws.panes.get(ws.focusedPaneId)
+        if (!pane) return "board"
+        if (pane.viewType === "empty") return "empty"
+        if (isDetailViewPane(pane)) return "detail"
+        return "board"
+      },
+      focusedPaneId: () => get().workspace.focusedPaneId,
+      getParentPaneId: () => {
+        const ws = get().workspace
+        const pane = ws.panes.get(ws.focusedPaneId)
+        if (pane && isBoardPane(pane) && isDetailViewPane(pane) && pane.parentPaneId) {
+          return pane.parentPaneId
+        }
+        return null
+      },
+      exit,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
+      focusManager: locals.cachedFocusManager!,
+      focus: locals.cachedFocus ?? (() => {}),
+      activateScope: locals.cachedActivateScope ?? (() => {}),
+      syncFocusScope: () => {
+        const paneId = get().workspace.focusedPaneId
+        if (locals.cachedActivateScope) {
+          locals.cachedActivateScope(paneId)
+        }
+      },
+      hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
+      countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
+        countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
+      getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
+        getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, rootId),
+    }
   }
-  const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
-  const column = columns[cursor.colIndex]
-  const card = column?.cardNodes[cursor.cardIndex]
-  const selectedNode = card ?? column?.node ?? null
 
-  // Merge per-pane UI fields into effective UI state for action handlers
-  const effectiveUI: PaneUI = board
-    ? mergePaneUI(s.ui, board)
-    : (s.ui as PaneUI)
+  const CHORD_TIMEOUT_MS = 500
 
-  return {
-    repo: s.repo,
-    rootId,
-    rootPath: board?.rootPath ?? null,
-    cursorNodeId,
-    selectedNodes: board?.selectedNodes ?? new Set(),
-    foldDepths,
-    collapsedNodes: board?.collapsedNodes ?? new Set(),
-    moveMode: board?.moveMode ?? false,
-    moveSourceNodes: board?.moveSourceNodes ?? [],
-    moveSourceCursorNodeId: board?.moveSourceCursorNodeId ?? null,
-    ui: effectiveUI,
-    columns,
-    colIndex: cursor.colIndex,
-    cardIndex: cursor.cardIndex,
-    isAtCardLevel: cursor.isAtCardLevel,
-    nodeIndex,
-    navigator: s.navigator,
-    viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
-    toastQueue: s.toastQueue,
-    undoStack: s.undoStack,
-    undoHandle: s.undoHandle,
-    selectedNode,
-    column,
-    card,
-    dispatchBoard: (action) => s.dispatchBoard(action),
-    setUI: (partial) => s.setUI(partial),
-    setFoldDepths: (depths) => s.setFoldDepths(depths),
-    getDetailCursorId: () => s.getDetailCursorId(),
-    setDetailCursor: (id) => s.setDetailCursor(id),
-    openDetailPane: () => s.openDetailPane(),
-    closeDetailPane: () => s.closeDetailPane(),
-    toggleDetailPane: () => s.toggleDetailPane(),
-    splitFocusedPane: (direction) => s.splitFocusedPane(direction),
-    closeFocusedPane: () => s.closeFocusedPane(),
-    focusPaneInDirection: (direction) => s.focusPaneInDirection(direction),
-    focusPreviousPane: () => s.focusPreviousPane(),
-    cyclePaneFocus: (direction) => s.cyclePaneFocus(direction),
-    focusPaneByNumber: (number) => s.focusPaneByNumber(number),
-    focusPaneById: (paneId) => s.focusPaneById(paneId),
-    resizeFocusedPane: (delta, axis) => s.resizeFocusedPane(delta, axis),
-    equalizePanes: () => s.equalizePanes(),
-    zoomFocusedPane: () => s.zoomFocusedPane(),
-    closeAllButFocused: () => s.closeAllButFocused(),
-    swapPaneInDirection: (direction) => s.swapPaneInDirection(direction),
-    activateEmptyPane: () => s.activateEmptyPane(),
-    focusedPaneViewType: () => {
-      const ws = get().workspace
-      const pane = ws.panes.get(ws.focusedPaneId)
-      if (!pane) return "board"
-      if (pane.viewType === "empty") return "empty"
-      if (isDetailViewPane(pane)) return "detail"
-      return "board"
-    },
-    focusedPaneId: () => get().workspace.focusedPaneId,
-    getParentPaneId: () => {
-      const ws = get().workspace
-      const pane = ws.panes.get(ws.focusedPaneId)
-      if (pane && isBoardPane(pane) && isDetailViewPane(pane) && pane.parentPaneId) {
-        return pane.parentPaneId
-      }
-      return null
-    },
-    exit,
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
-    focusManager: locals.cachedFocusManager!,
-    focus: locals.cachedFocus ?? (() => {}),
-    activateScope: locals.cachedActivateScope ?? (() => {}),
-    syncFocusScope: () => {
+  // After chord timeout fires, hints stay visible (dimmed) for this long before auto-dismissing.
+  const CHORD_DIMMED_DISPLAY_MS = 1200
+
+  // Minimum display duration for the which-key popup (ms).
+  // The popup stays visible for at least this long after appearing, even after
+  // the chord timeout fires the standalone command. Only dismissed by:
+  // (1) valid suffix key, (2) Escape, (3) any key after min duration elapsed.
+  const WHICH_KEY_MIN_DISPLAY_MS = CHORD_TIMEOUT_MS + CHORD_DIMMED_DISPLAY_MS
+
+  const CHORD_TIMEOUT_GRACE_MS = 150
+
+  /**
+   * Handle term:key event — the single entry point for all keyboard input.
+   * All modals (help, deleteConfirm, console, toast) are routed through the
+   * command system via keybindings with when predicates and wildcard catch-alls.
+   *
+   * Span-instrumented: each keypress produces a km:perf:key span with sub-spans
+   * for dispatch (keybinding resolution) and action (state mutation). Enable with
+   * TRACE=km:perf or TRACE=1.
+   */
+  function handleKey(
+    data: { input: string; key: Key },
+    ctx: EventHandlerContext<BoardAppStore>,
+    exitApp: () => void,
+  ): void | "exit" | "flush" {
+    const { input, key } = data
+    const { get } = ctx
+
+    // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
+    ;(globalThis as any).__km_last_key = key.escape
+      ? "Escape"
+      : key.return
+        ? "Enter"
+        : key.backspace
+          ? "Backspace"
+          : key.tab
+            ? "Tab"
+            : key.upArrow
+              ? "Up"
+              : key.downArrow
+                ? "Down"
+                : key.leftArrow
+                  ? "Left"
+                  : key.rightArrow
+                    ? "Right"
+                    : input || "?"
+
+    // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
+    if (locals.cachedFocusManager !== ctx.focusManager) {
+      locals.cachedFocusManager = ctx.focusManager
+      locals.cachedFocus = ctx.focus.bind(ctx)
+      locals.cachedActivateScope = ctx.activateScope.bind(ctx)
+    }
+
+    // Activate the initial focus scope on first key event (before any command processing)
+    if (ctx.focusManager.activeScopeId === null) {
       const paneId = get().workspace.focusedPaneId
-      if (locals.cachedActivateScope) {
-        locals.cachedActivateScope(paneId)
+      ctx.activateScope(paneId)
+    }
+
+    // Track inter-event gap
+    const now = performance.now()
+    const gap = locals.lastKeyTime > 0 ? now - locals.lastKeyTime : 0
+    locals.lastKeyTime = now
+
+    using keySpan = perfLog.span("key", { input, gap: Math.round(gap) })
+
+    ensureCommandSystemInitialized()
+
+    const ui = get().ui
+
+    // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
+    // pendingChord is NOT cleared here — it has its own lifecycle (see which-key popup logic below).
+    if (ui.bellState !== null || ui.status !== null) {
+      get().setUI({ bellState: null, status: null })
+    }
+
+    // Which-key popup dismissal logic:
+    // The popup stays visible for at least WHICH_KEY_MIN_DISPLAY_MS. After that,
+    // any keypress dismisses it. Before that, only valid suffix or Escape dismisses.
+    if (ui.pendingChord !== null) {
+      const elapsed = now - locals.pendingChordShownAt
+      if (key.escape || elapsed >= WHICH_KEY_MIN_DISPLAY_MS) {
+        // Dismiss: Escape cancels, or min display time elapsed + any key
+        if (locals.chordDismissTimer !== null) {
+          clearTimeout(locals.chordDismissTimer)
+          locals.chordDismissTimer = null
+        }
+        get().setUI({ pendingChord: null, chordTimedOut: false })
       }
-    },
-    hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
-    countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
-      countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
-    getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
-      getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, rootId),
-  }
-}
-
-const CHORD_TIMEOUT_MS = 500
-
-// After chord timeout fires, hints stay visible (dimmed) for this long before auto-dismissing.
-const CHORD_DIMMED_DISPLAY_MS = 1200
-
-// Minimum display duration for the which-key popup (ms).
-// The popup stays visible for at least this long after appearing, even after
-// the chord timeout fires the standalone command. Only dismissed by:
-// (1) valid suffix key, (2) Escape, (3) any key after min duration elapsed.
-const WHICH_KEY_MIN_DISPLAY_MS = CHORD_TIMEOUT_MS + CHORD_DIMMED_DISPLAY_MS
-
-const CHORD_TIMEOUT_GRACE_MS = 150
-
-/**
- * Handle term:key event — the single entry point for all keyboard input.
- * All modals (help, deleteConfirm, console, toast) are routed through the
- * command system via keybindings with when predicates and wildcard catch-alls.
- *
- * Span-instrumented: each keypress produces a km:perf:key span with sub-spans
- * for dispatch (keybinding resolution) and action (state mutation). Enable with
- * TRACE=km:perf or TRACE=1.
- */
-function handleKey(
-  data: { input: string; key: Key },
-  ctx: EventHandlerContext<BoardAppStore>,
-  exitApp: () => void,
-): void | "exit" | "flush" {
-  const { input, key } = data
-  const { get } = ctx
-
-  // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-  ;(globalThis as any).__km_last_key = key.escape
-    ? "Escape"
-    : key.return
-      ? "Enter"
-      : key.backspace
-        ? "Backspace"
-        : key.tab
-          ? "Tab"
-          : key.upArrow
-            ? "Up"
-            : key.downArrow
-              ? "Down"
-              : key.leftArrow
-                ? "Left"
-                : key.rightArrow
-                  ? "Right"
-                  : input || "?"
-
-  // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
-  if (locals.cachedFocusManager !== ctx.focusManager) {
-    locals.cachedFocusManager = ctx.focusManager
-    locals.cachedFocus = ctx.focus.bind(ctx)
-    locals.cachedActivateScope = ctx.activateScope.bind(ctx)
-  }
-
-  // Activate the initial focus scope on first key event (before any command processing)
-  if (ctx.focusManager.activeScopeId === null) {
-    const paneId = get().workspace.focusedPaneId
-    ctx.activateScope(paneId)
-  }
-
-  // Track inter-event gap
-  const now = performance.now()
-  const gap = locals.lastKeyTime > 0 ? now - locals.lastKeyTime : 0
-  locals.lastKeyTime = now
-
-  using keySpan = perfLog.span("key", { input, gap: Math.round(gap) })
-
-  ensureCommandSystemInitialized()
-
-  const ui = get().ui
-
-  // Clear bell and status at start of each keypress (only if set, to avoid unnecessary re-renders).
-  // pendingChord is NOT cleared here — it has its own lifecycle (see which-key popup logic below).
-  if (ui.bellState !== null || ui.status !== null) {
-    get().setUI({ bellState: null, status: null })
-  }
-
-  // Which-key popup dismissal logic:
-  // The popup stays visible for at least WHICH_KEY_MIN_DISPLAY_MS. After that,
-  // any keypress dismisses it. Before that, only valid suffix or Escape dismisses.
-  if (ui.pendingChord !== null) {
-    const elapsed = now - locals.pendingChordShownAt
-    if (key.escape || elapsed >= WHICH_KEY_MIN_DISPLAY_MS) {
-      // Dismiss: Escape cancels, or min display time elapsed + any key
-      if (locals.chordDismissTimer !== null) {
-        clearTimeout(locals.chordDismissTimer)
-        locals.chordDismissTimer = null
-      }
-      get().setUI({ pendingChord: null, chordTimedOut: false })
+      // If within min display time: pendingChord stays set.
+      // The chord state machine still processes the key (suffix → resolve, which clears pendingChord below).
     }
-    // If within min display time: pendingChord stays set.
-    // The chord state machine still processes the key (suffix → resolve, which clears pendingChord below).
-  }
 
-  // Clear any pending chord timeout (we got a new key)
-  if (locals.chordTimer !== null) {
-    clearTimeout(locals.chordTimer)
-    locals.chordTimer = null
-  }
-
-  // Suppress keystrokes that arrive shortly after a chord timeout fired.
-  // When 't' starts a chord and times out (300ms), the standalone command
-  // executes (e.g., set_due_date opens dialog). If the user's 'd' arrives
-  // just after, it would leak into the dialog's text input. Swallow it.
-  if (locals.chordTimeoutFiredAt > 0) {
-    const elapsed = now - locals.chordTimeoutFiredAt
-    locals.chordTimeoutFiredAt = 0
-    if (elapsed < CHORD_TIMEOUT_GRACE_MS && input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
-      return
-    }
-  }
-
-  routeThroughCommandSystem(keySpan, input, key, get, exitApp)
-  if (needsRenderFlush()) return "flush"
-}
-
-/** Fire the chord timeout: resolve the pending prefix as its standalone command. */
-function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
-  locals.chordTimeoutFiredAt = performance.now()
-  const freshCtx = buildActionCtx(get, exitApp)
-  const timeoutResult = processChordTimeout(freshCtx)
-  if (timeoutResult?.actions) {
-    const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
-    for (const action of actionList) {
-      const actionResult = handleCommandAction(freshCtx, action)
-      if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        freshCtx.setUI({
-          bellState: actionResult.error.direction,
-          status: {
-            level: "warning",
-            message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
-          },
-        })
-        process.stdout.write("\x07")
-      }
-    }
-  }
-  // Mark chord as timed out (hints go dimmed), but keep pendingChord for visual display.
-  freshCtx.setUI({ status: null, chordTimedOut: true })
-  // Auto-dismiss after the dimmed display period (no keypress needed)
-  locals.chordDismissTimer = setTimeout(() => {
-    locals.chordDismissTimer = null
-    get().setUI({ pendingChord: null, chordTimedOut: false })
-  }, CHORD_DIMMED_DISPLAY_MS)
-}
-
-/**
- * Execute a command by ID — used by omnibox/command palette.
- *
- * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
- * Call from React callbacks (e.g., omnibox onSelect) that have store access.
- */
-function dispatchCommandById(
-  commandId: string,
-  get: () => BoardAppStore,
-  exitApp: () => void = () => {},
-  targetId?: string,
-): void {
-  ensureCommandSystemInitialized()
-  const ctx = buildActionCtx(get, exitApp)
-
-  // Build command context for the executor
-  const cmdCtx = {
-    currentNode: ctx.selectedNode
-      ? ({
-          ...ctx.selectedNode,
-          isTask: ctx.selectedNode.task_status != null,
-          children: [],
-          depth: 0,
-          childCount: 0,
-          childrenLoaded: true,
-        } as import("@km/commands").TNode)
-      : null,
-    currentNodeId: ctx.selectedNode?.id ?? null,
-    selectedNodes: Array.from(ctx.selectedNodes),
-    viewMode: ctx.ui.viewMode,
-    siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
-    siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
-    columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
-    columnCount: ctx.columns.length,
-    moveMode: ctx.moveMode,
-    foldDepths: ctx.foldDepths,
-  }
-
-  const actions = executeCommand(commandId, cmdCtx, targetId)
-  if (!actions) return
-
-  const actionList = Array.isArray(actions) ? actions : [actions]
-  for (const action of actionList) {
-    const actionResult = handleCommandAction(ctx, action)
-    if (isErr(actionResult) && actionResult.error.type === "boundary") {
-      ctx.setUI({
-        bellState: actionResult.error.direction,
-        status: {
-          level: "warning",
-          message: actionResult.error.message ?? `Can't: ${commandId}`,
-        },
-      })
-      process.stdout.write("\x07")
-    }
-  }
-}
-
-/**
- * Test helper: manually trigger the chord timeout (bypasses real setTimeout).
- * Call after pressing a chord prefix key to simulate the timeout firing.
- */
-function triggerChordTimeout(get: () => BoardAppStore, exitApp: () => void = () => {}): void {
-  if (locals.chordTimer !== null) {
-    clearTimeout(locals.chordTimer)
-    locals.chordTimer = null
-  }
-  fireChordTimeout(get, exitApp)
-}
-
-/**
- * Route key through the command system and handle resulting actions.
- * When a dialog is open, only dialog.* and text.* commands are processed.
- */
-// oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
-function routeThroughCommandSystem(
-  parentSpan: SpanLogger,
-  input: string,
-  key: Key,
-  get: () => BoardAppStore,
-  exitApp: () => void,
-): void {
-  const ctx = buildActionCtx(get, exitApp)
-
-  // Phase 1: Dispatch — resolve keybinding to command
-  let result: ReturnType<typeof processKeyWithContext>
-  {
-    using _dispatch = parentSpan.span("dispatch")
-    result = processKeyWithContext(input, key, ctx)
-    if (result.commandId) {
-      parentSpan.spanData.command = result.commandId
-      // Update last key label to include command (for heartbeat diagnostics)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-      ;(globalThis as any).__km_last_key += ` → ${result.commandId}`
-    }
-  }
-
-  // When a dialog is open, unhandled keys are expected (limited key set).
-  // Uses the mode stack instead of checking individual UI booleans.
-  const dialogOpen = getModeStack().isDialog()
-  // Chord pending: show status indicator and start timeout
-  if (result.pending) {
-    parentSpan.spanData.outcome = "chord"
-    locals.pendingChordShownAt = performance.now()
-    if (locals.chordDismissTimer !== null) {
-      clearTimeout(locals.chordDismissTimer)
-      locals.chordDismissTimer = null
-    }
-    ctx.setUI({
-      status: { level: "info", message: `${result.pending}-` },
-      pendingChord: result.pending,
-      chordTimedOut: false,
-    })
-    locals.chordTimer = setTimeout(() => {
+    // Clear any pending chord timeout (we got a new key)
+    if (locals.chordTimer !== null) {
+      clearTimeout(locals.chordTimer)
       locals.chordTimer = null
-      fireChordTimeout(get, exitApp)
-    }, CHORD_TIMEOUT_MS)
-    return
-  }
-
-  // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
-  if (result.chordResolved && get().ui.pendingChord !== null) {
-    if (locals.chordDismissTimer !== null) {
-      clearTimeout(locals.chordDismissTimer)
-      locals.chordDismissTimer = null
     }
-    ctx.setUI({ pendingChord: null, chordTimedOut: false })
-  }
 
-  // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
-  if (result.chordCancelled) {
-    parentSpan.spanData.outcome = "chord-cancelled"
-    if (locals.chordDismissTimer !== null) {
-      clearTimeout(locals.chordDismissTimer)
-      locals.chordDismissTimer = null
-    }
-    ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
-    process.stdout.write("\x07")
-    return
-  }
-
-  if (!result.handled) {
-    parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
-    // Visual bell for unhandled keys (only outside dialogs)
-    if (!dialogOpen) {
-      ctx.setUI({
-        bellState: "unhandled",
-        status: { level: "warning", message: `Unmapped key: ${describeKey(input, key)}` },
-      })
-      process.stdout.write("\x07")
-    }
-    return
-  }
-
-  if (result.actions) {
-    const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
-
-    // When a dialog is open, only process dialog, filter, and text commands
-    if (dialogOpen && result.commandId) {
-      const isDialogOrTextCommand =
-        result.commandId.startsWith("dialog.") ||
-        result.commandId.startsWith("text.") ||
-        result.commandId === "filter" ||
-        result.commandId.startsWith("filter.") ||
-        result.commandId.startsWith("favorites.")
-      if (!isDialogOrTextCommand) {
-        parentSpan.spanData.outcome = "dialog-filtered"
+    // Suppress keystrokes that arrive shortly after a chord timeout fired.
+    // When 't' starts a chord and times out (300ms), the standalone command
+    // executes (e.g., set_due_date opens dialog). If the user's 'd' arrives
+    // just after, it would leak into the dialog's text input. Swallow it.
+    if (locals.chordTimeoutFiredAt > 0) {
+      const elapsed = now - locals.chordTimeoutFiredAt
+      locals.chordTimeoutFiredAt = 0
+      if (elapsed < CHORD_TIMEOUT_GRACE_MS && input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
         return
       }
     }
 
-    // Inject pressed key into FAVORITES_SELECT_KEY (wildcard catches key, command doesn't have it)
-    for (const action of actionList) {
-      if (action.type === "FAVORITES_SELECT_KEY" && !(action as { key?: string }).key) {
-        ;(action as { key: string }).key = input
+    routeThroughCommandSystem(keySpan, input, key, get, exitApp)
+    if (needsRenderFlush()) return "flush"
+  }
+
+  /** Fire the chord timeout: resolve the pending prefix as its standalone command. */
+  function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
+    locals.chordTimeoutFiredAt = performance.now()
+    const freshCtx = buildActionCtx(get, exitApp)
+    const timeoutResult = processChordTimeout(freshCtx)
+    if (timeoutResult?.actions) {
+      const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
+      for (const action of actionList) {
+        const actionResult = handleCommandAction(freshCtx, action)
+        if (isErr(actionResult) && actionResult.error.type === "boundary") {
+          freshCtx.setUI({
+            bellState: actionResult.error.direction,
+            status: {
+              level: "warning",
+              message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+            },
+          })
+          process.stdout.write("\x07")
+        }
       }
     }
+    // Mark chord as timed out (hints go dimmed), but keep pendingChord for visual display.
+    freshCtx.setUI({ status: null, chordTimedOut: true })
+    // Auto-dismiss after the dimmed display period (no keypress needed)
+    locals.chordDismissTimer = setTimeout(() => {
+      locals.chordDismissTimer = null
+      get().setUI({ pendingChord: null, chordTimedOut: false })
+    }, CHORD_DIMMED_DISPLAY_MS)
+  }
 
-    // Phase 2: Actions — execute state mutations
+  /**
+   * Execute a command by ID — used by omnibox/command palette.
+   *
+   * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
+   * Call from React callbacks (e.g., omnibox onSelect) that have store access.
+   */
+  function dispatchCommandById(
+    commandId: string,
+    get: () => BoardAppStore,
+    exitApp: () => void = () => {},
+    targetId?: string,
+  ): void {
+    ensureCommandSystemInitialized()
+    const ctx = buildActionCtx(get, exitApp)
+
+    // Build command context for the executor
+    const cmdCtx = {
+      currentNode: ctx.selectedNode
+        ? ({
+            ...ctx.selectedNode,
+            isTask: ctx.selectedNode.task_status != null,
+            children: [],
+            depth: 0,
+            childCount: 0,
+            childrenLoaded: true,
+          } as import("@km/commands").TNode)
+        : null,
+      currentNodeId: ctx.selectedNode?.id ?? null,
+      selectedNodes: Array.from(ctx.selectedNodes),
+      viewMode: ctx.ui.viewMode,
+      siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
+      siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
+      columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
+      columnCount: ctx.columns.length,
+      moveMode: ctx.moveMode,
+      foldDepths: ctx.foldDepths,
+    }
+
+    const actions = executeCommand(commandId, cmdCtx, targetId)
+    if (!actions) return
+
+    const actionList = Array.isArray(actions) ? actions : [actions]
     for (const action of actionList) {
-      using actionSpan = parentSpan.span("action", { type: action.type })
       const actionResult = handleCommandAction(ctx, action)
-
-      // Check for boundary errors - ring bell and show status message
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
-        actionSpan.spanData.boundary = actionResult.error.direction
         ctx.setUI({
           bellState: actionResult.error.direction,
           status: {
             level: "warning",
-            message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+            message: actionResult.error.message ?? `Can't: ${commandId}`,
           },
         })
         process.stdout.write("\x07")
       }
     }
-    parentSpan.spanData.outcome = "handled"
-    parentSpan.spanData.actions = actionList.length
-  }
-}
-
-/**
- * Handle term:mouse event — entry point for all mouse input.
- * - Scroll wheel: moves cursor by SCROLL_STEP items (feels like column scrolling)
- * - Left click on card title: select the card (clears multi-selection)
- * - Left click on card sub-block: select card + enter outline mode at that block
- * - Left click on column header or empty space: select the column
- * - Ctrl-click: move cursor to card and toggle it in multi-selection
- * - Double-click on card/sub-block: enter inline edit on the clicked block
- */
-// oxlint-disable-next-line complexity/complexity -- mouse handler with necessary branching
-function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
-  const { get } = ctx
-
-  // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
-  if (locals.cachedFocusManager !== ctx.focusManager) {
-    locals.cachedFocusManager = ctx.focusManager
-    locals.cachedFocus = ctx.focus.bind(ctx)
-    locals.cachedActivateScope = ctx.activateScope.bind(ctx)
   }
 
-  // Activate the initial focus scope on first mouse event (before any processing)
-  if (ctx.focusManager.activeScopeId === null) {
-    const paneId = get().workspace.focusedPaneId
-    ctx.activateScope(paneId)
+  /**
+   * Test helper: manually trigger the chord timeout (bypasses real setTimeout).
+   * Call after pressing a chord prefix key to simulate the timeout firing.
+   */
+  function triggerChordTimeout(get: () => BoardAppStore, exitApp: () => void = () => {}): void {
+    if (locals.chordTimer !== null) {
+      clearTimeout(locals.chordTimer)
+      locals.chordTimer = null
+    }
+    fireChordTimeout(get, exitApp)
   }
 
-  // --- Border drag resize (Phase 7: mouse support) ---
-  if (locals.dragState) {
-    if (mouse.action === "move") {
-      const { splitNode, containerStart, containerSize } = locals.dragState
-      const pos = splitNode.direction === "h" ? mouse.x : mouse.y
-      const newRatio = (pos - containerStart) / containerSize
-      get().setSplitRatio(splitNode, newRatio)
+  /**
+   * Route key through the command system and handle resulting actions.
+   * When a dialog is open, only dialog.* and text.* commands are processed.
+   */
+  // oxlint-disable-next-line complexity/complexity -- Sequential key routing with dialog/boundary state guards
+  function routeThroughCommandSystem(
+    parentSpan: SpanLogger,
+    input: string,
+    key: Key,
+    get: () => BoardAppStore,
+    exitApp: () => void,
+  ): void {
+    const ctx = buildActionCtx(get, exitApp)
+
+    // Phase 1: Dispatch — resolve keybinding to command
+    let result: ReturnType<typeof processKeyWithContext>
+    {
+      using _dispatch = parentSpan.span("dispatch")
+      result = processKeyWithContext(input, key, ctx)
+      if (result.commandId) {
+        parentSpan.spanData.command = result.commandId
+        // Update last key label to include command (for heartbeat diagnostics)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
+        ;(globalThis as any).__km_last_key += ` → ${result.commandId}`
+      }
+    }
+
+    // When a dialog is open, unhandled keys are expected (limited key set).
+    // Uses the mode stack instead of checking individual UI booleans.
+    const dialogOpen = getModeStack().isDialog()
+    // Chord pending: show status indicator and start timeout
+    if (result.pending) {
+      parentSpan.spanData.outcome = "chord"
+      locals.pendingChordShownAt = performance.now()
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({
+        status: { level: "info", message: `${result.pending}-` },
+        pendingChord: result.pending,
+        chordTimedOut: false,
+      })
+      locals.chordTimer = setTimeout(() => {
+        locals.chordTimer = null
+        fireChordTimeout(get, exitApp)
+      }, CHORD_TIMEOUT_MS)
       return
     }
-    if (mouse.action === "up") {
-      locals.dragState = null
+
+    // Chord resolved (valid suffix key pressed) — immediately clear the which-key popup
+    if (result.chordResolved && get().ui.pendingChord !== null) {
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({ pendingChord: null, chordTimedOut: false })
+    }
+
+    // Chord cancelled (invalid second key or Escape) — clear popup, ring bell
+    if (result.chordCancelled) {
+      parentSpan.spanData.outcome = "chord-cancelled"
+      if (locals.chordDismissTimer !== null) {
+        clearTimeout(locals.chordDismissTimer)
+        locals.chordDismissTimer = null
+      }
+      ctx.setUI({ pendingChord: null, chordTimedOut: false, bellState: "chord-cancelled" })
+      process.stdout.write("\x07")
       return
     }
-  }
 
-  // Check for border click to start drag, or click-to-focus another pane
-  if (mouse.action === "down" && mouse.button === 0) {
-    const state = get()
-    const { workspace } = state
-    if (workspace.panes.size > 1) {
-      const dims = state.ui.dimensions
-      const bounds = { x: 0, y: 0, width: dims.columns, height: dims.rows }
+    if (!result.handled) {
+      parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"
+      // Visual bell for unhandled keys (only outside dialogs)
+      if (!dialogOpen) {
+        ctx.setUI({
+          bellState: "unhandled",
+          status: { level: "warning", message: `Unmapped key: ${describeKey(input, key)}` },
+        })
+        process.stdout.write("\x07")
+      }
+      return
+    }
 
-      // Check split border hit first (drag resize)
-      const hit = hitTestSplitBorder(workspace.layout, mouse.x, mouse.y, bounds)
-      if (hit) {
-        locals.dragState = {
-          splitNode: hit.splitNode,
-          containerStart: hit.containerStart,
-          containerSize: hit.containerSize,
+    if (result.actions) {
+      const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
+
+      // When a dialog is open, only process dialog, filter, and text commands
+      if (dialogOpen && result.commandId) {
+        const isDialogOrTextCommand =
+          result.commandId.startsWith("dialog.") ||
+          result.commandId.startsWith("text.") ||
+          result.commandId === "filter" ||
+          result.commandId.startsWith("filter.") ||
+          result.commandId.startsWith("favorites.")
+        if (!isDialogOrTextCommand) {
+          parentSpan.spanData.outcome = "dialog-filtered"
+          return
         }
+      }
+
+      // Inject pressed key into FAVORITES_SELECT_KEY (wildcard catches key, command doesn't have it)
+      for (const action of actionList) {
+        if (action.type === "FAVORITES_SELECT_KEY" && !(action as { key?: string }).key) {
+          ;(action as { key: string }).key = input
+        }
+      }
+
+      // Phase 2: Actions — execute state mutations
+      for (const action of actionList) {
+        using actionSpan = parentSpan.span("action", { type: action.type })
+        const actionResult = handleCommandAction(ctx, action)
+
+        // Check for boundary errors - ring bell and show status message
+        if (isErr(actionResult) && actionResult.error.type === "boundary") {
+          actionSpan.spanData.boundary = actionResult.error.direction
+          ctx.setUI({
+            bellState: actionResult.error.direction,
+            status: {
+              level: "warning",
+              message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+            },
+          })
+          process.stdout.write("\x07")
+        }
+      }
+      parentSpan.spanData.outcome = "handled"
+      parentSpan.spanData.actions = actionList.length
+    }
+  }
+
+  /**
+   * Handle term:mouse event — entry point for all mouse input.
+   * - Scroll wheel: moves cursor by SCROLL_STEP items (feels like column scrolling)
+   * - Left click on card title: select the card (clears multi-selection)
+   * - Left click on card sub-block: select card + enter outline mode at that block
+   * - Left click on column header or empty space: select the column
+   * - Ctrl-click: move cursor to card and toggle it in multi-selection
+   * - Double-click on card/sub-block: enter inline edit on the clicked block
+   */
+  // oxlint-disable-next-line complexity/complexity -- mouse handler with necessary branching
+  function handleMouse(mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>): void {
+    const { get } = ctx
+
+    // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
+    if (locals.cachedFocusManager !== ctx.focusManager) {
+      locals.cachedFocusManager = ctx.focusManager
+      locals.cachedFocus = ctx.focus.bind(ctx)
+      locals.cachedActivateScope = ctx.activateScope.bind(ctx)
+    }
+
+    // Activate the initial focus scope on first mouse event (before any processing)
+    if (ctx.focusManager.activeScopeId === null) {
+      const paneId = get().workspace.focusedPaneId
+      ctx.activateScope(paneId)
+    }
+
+    // --- Border drag resize (Phase 7: mouse support) ---
+    if (locals.dragState) {
+      if (mouse.action === "move") {
+        const { splitNode, containerStart, containerSize } = locals.dragState
+        const pos = splitNode.direction === "h" ? mouse.x : mouse.y
+        const newRatio = (pos - containerStart) / containerSize
+        get().setSplitRatio(splitNode, newRatio)
+        return
+      }
+      if (mouse.action === "up") {
+        locals.dragState = null
+        return
+      }
+    }
+
+    // Check for border click to start drag, or click-to-focus another pane
+    if (mouse.action === "down" && mouse.button === 0) {
+      const state = get()
+      const { workspace } = state
+      if (workspace.panes.size > 1) {
+        const dims = state.ui.dimensions
+        const bounds = { x: 0, y: 0, width: dims.columns, height: dims.rows }
+
+        // Check split border hit first (drag resize)
+        const hit = hitTestSplitBorder(workspace.layout, mouse.x, mouse.y, bounds)
+        if (hit) {
+          locals.dragState = {
+            splitNode: hit.splitNode,
+            containerStart: hit.containerStart,
+            containerSize: hit.containerSize,
+          }
+          return
+        }
+
+        // Click-to-focus: if click lands in a non-focused pane, switch focus
+        const clickedPaneId = hitTestPaneId(workspace.layout, mouse.x, mouse.y, bounds)
+        if (clickedPaneId && clickedPaneId !== workspace.focusedPaneId) {
+          state.focusPaneById(clickedPaneId)
+          // Don't return — let the click also do card selection in the newly focused pane
+        }
+      }
+    }
+
+    if (mouse.action === "wheel") {
+      // Scroll wheel → scroll the column or detail pane under the mouse pointer
+      const actionCtx = buildActionCtx(get, () => {})
+      const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
+
+      if (colIdx < 0) {
+        // Not over a column — detail pane scrolling is handled by VirtualList internally
         return
       }
 
-      // Click-to-focus: if click lands in a non-focused pane, switch focus
-      const clickedPaneId = hitTestPaneId(workspace.layout, mouse.x, mouse.y, bounds)
-      if (clickedPaneId && clickedPaneId !== workspace.focusedPaneId) {
-        state.focusPaneById(clickedPaneId)
-        // Don't return — let the click also do card selection in the newly focused pane
+      const col = actionCtx.columns[colIdx]
+      if (!col || col.cardNodes.length === 0) return
+
+      const currentAnchor = actionCtx.ui.columnScrollAnchor
+      // If anchor exists for this column, continue from it; otherwise start from middle
+      const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(col.cardNodes.length / 2)
+      const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
+      const maxIndex = col.cardNodes.length - 1
+      const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
+
+      actionCtx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
+      return
+    }
+
+    if (mouse.action === "down" && mouse.button === 0) {
+      const actionCtx = buildActionCtx(get, () => {})
+      const target = resolveMouseTarget(actionCtx, mouse.x, mouse.y)
+      if (!target) return
+
+      const now = Date.now()
+      const dx = Math.abs(mouse.x - locals.lastClick.x)
+      const dy = Math.abs(mouse.y - locals.lastClick.y)
+      const isDoubleClick =
+        now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
+
+      // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
+      if (!mouse.ctrl && actionCtx.ui.multiSelected.size > 0) {
+        clearSelection(actionCtx)
       }
-    }
-  }
 
-  if (mouse.action === "wheel") {
-    // Scroll wheel → scroll the column or detail pane under the mouse pointer
-    const actionCtx = buildActionCtx(get, () => {})
-    const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
+      if (target.kind === "column") {
+        // Column background / empty space click → deselect all, cursor to board root
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        return
+      }
 
-    if (colIdx < 0) {
-      // Not over a column — detail pane scrolling is handled by VirtualList internally
-      return
-    }
+      // Card click (target.kind === "card")
+      const nodeId = target.cardNodeId
+      if (!nodeId) return
 
-    const col = actionCtx.columns[colIdx]
-    if (!col || col.cardNodes.length === 0) return
-
-    const currentAnchor = actionCtx.ui.columnScrollAnchor
-    // If anchor exists for this column, continue from it; otherwise start from middle
-    const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(col.cardNodes.length / 2)
-    const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
-    const maxIndex = col.cardNodes.length - 1
-    const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
-
-    actionCtx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
-    return
-  }
-
-  if (mouse.action === "down" && mouse.button === 0) {
-    const actionCtx = buildActionCtx(get, () => {})
-    const target = resolveMouseTarget(actionCtx, mouse.x, mouse.y)
-    if (!target) return
-
-    const now = Date.now()
-    const dx = Math.abs(mouse.x - locals.lastClick.x)
-    const dy = Math.abs(mouse.y - locals.lastClick.y)
-    const isDoubleClick =
-      now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
-
-    // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
-    if (!mouse.ctrl && actionCtx.ui.multiSelected.size > 0) {
-      clearSelection(actionCtx)
-    }
-
-    if (target.kind === "column") {
-      // Column background / empty space click → deselect all, cursor to board root
-      actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
-      locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
-      return
-    }
-
-    // Card click (target.kind === "card")
-    const nodeId = target.cardNodeId
-    if (!nodeId) return
-
-    if (isDoubleClick) {
-      // Double-click → enter inline edit on the clicked block
-      handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: target.blockIndex })
-      locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
-    } else if (mouse.ctrl) {
-      // Ctrl-click → move cursor to clicked card and toggle its selection
-      actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-      actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
-      locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
-    } else {
-      // Single click on card: select card and (if sub-block) navigate cursor to that child node
-      actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-      if (target.blockIndex > 0) {
-        // Clicked a sub-block within the card body — set cursor to that child's node ID
-        const descendantIds = getVisibleDescendantIds(
-          actionCtx.repo,
-          { id: nodeId },
-          Infinity,
-          actionCtx.foldDepths,
-          actionCtx.rootId,
-        )
-        const childId = descendantIds[target.blockIndex]
-        if (childId) {
-          actionCtx.dispatchBoard({ type: "SELECT", nodeId: childId })
+      if (isDoubleClick) {
+        // Double-click → enter inline edit on the clicked block
+        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: target.blockIndex })
+        locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
+      } else if (mouse.ctrl) {
+        // Ctrl-click → move cursor to clicked card and toggle its selection
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+        actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+      } else {
+        // Single click on card: select card and (if sub-block) navigate cursor to that child node
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+        if (target.blockIndex > 0) {
+          // Clicked a sub-block within the card body — set cursor to that child's node ID
+          const descendantIds = getVisibleDescendantIds(
+            actionCtx.repo,
+            { id: nodeId },
+            Infinity,
+            actionCtx.foldDepths,
+            actionCtx.rootId,
+          )
+          const childId = descendantIds[target.blockIndex]
+          if (childId) {
+            actionCtx.dispatchBoard({ type: "SELECT", nodeId: childId })
+          }
         }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       }
-      locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+      return
     }
-    return
   }
-}
 
-return { handleKey, handleMouse, buildActionCtx, dispatchCommandById, triggerChordTimeout }
-
+  return { handleKey, handleMouse, buildActionCtx, dispatchCommandById, triggerChordTimeout }
 } // end createBoardAppHandlers
 
 // =============================================================================

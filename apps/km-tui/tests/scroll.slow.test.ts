@@ -179,37 +179,34 @@ describe("km-qlib7: asymmetric horizontal scroll", () => {
 describe("km-tui.hscroll-partial: partial column visibility triggers scroll", () => {
   // Test at widths where maxCols >= 2 (columns narrower than viewport).
   // Widths 60, 65 have maxCols=1 and column width > viewport — a separate issue.
-  test.each([73, 75, 77, 85])(
-    "width=%d: cursor column is fully visible after navigating right",
-    (width) => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
-        { columns: width, rows: 20 },
-      )
+  test.each([73, 75, 77, 85])("width=%d: cursor column is fully visible after navigating right", (width) => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
+      { columns: width, rows: 20 },
+    )
 
-      // Start at col1's first card
-      board.expect("#A1[data-cursor]").toExist()
+    // Start at col1's first card
+    board.expect("#A1[data-cursor]").toExist()
 
-      // Navigate right to col2
-      board.press("l")
-      board.expect("#B1[data-cursor]").toExist()
+    // Navigate right to col2
+    board.press("l")
+    board.expect("#B1[data-cursor]").toExist()
 
-      // Navigate right to col3
-      board.press("l")
-      board.expect("#C1[data-cursor]").toExist()
+    // Navigate right to col3
+    board.press("l")
+    board.expect("#C1[data-cursor]").toExist()
 
-      // col3 must be fully visible — its bounding box right edge must be
-      // within the terminal viewport width
-      const col3Box = board.q("#col3").boundingBox()
-      expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
-      if (col3Box) {
-        expect(
-          col3Box.x + col3Box.width,
-          `col3 right edge (${col3Box.x + col3Box.width}) should be <= viewport width (${width}) at width=${width}`,
-        ).toBeLessThanOrEqual(width)
-      }
-    },
-  )
+    // col3 must be fully visible — its bounding box right edge must be
+    // within the terminal viewport width
+    const col3Box = board.q("#col3").boundingBox()
+    expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
+    if (col3Box) {
+      expect(
+        col3Box.x + col3Box.width,
+        `col3 right edge (${col3Box.x + col3Box.width}) should be <= viewport width (${width}) at width=${width}`,
+      ).toBeLessThanOrEqual(width)
+    }
+  })
 
   test("navigating to last column and back preserves full visibility", () => {
     // Use width=73 (a known failing width before the fix)
@@ -241,24 +238,21 @@ describe("km-tui.hscroll-partial: partial column visibility triggers scroll", ()
     }
   })
 
-  test.each([70, 80, 100, 120])(
-    "scroll ensures full visibility at width=%d",
-    (width) => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
-        { columns: width, rows: 20 },
-      )
+  test.each([70, 80, 100, 120])("scroll ensures full visibility at width=%d", (width) => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("A1")), item("col2", item("B1")), item("col3", item("C1"))),
+      { columns: width, rows: 20 },
+    )
 
-      board.press("l").press("l")
-      board.expect("#C1[data-cursor]").toExist()
+    board.press("l").press("l")
+    board.expect("#C1[data-cursor]").toExist()
 
-      const col3Box = board.q("#col3").boundingBox()
-      expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
-      if (col3Box) {
-        expect(col3Box.x + col3Box.width, `col3 right edge at width=${width}`).toBeLessThanOrEqual(width)
-      }
-    },
-  )
+    const col3Box = board.q("#col3").boundingBox()
+    expect(col3Box, `col3 should be rendered at width=${width}`).not.toBeNull()
+    if (col3Box) {
+      expect(col3Box.x + col3Box.width, `col3 right edge at width=${width}`).toBeLessThanOrEqual(width)
+    }
+  })
 })
 
 describe("Horizontal scroll indicators", () => {

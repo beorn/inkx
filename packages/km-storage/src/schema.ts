@@ -159,9 +159,7 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   const priorityCol = colInfo.find((c) => c.name === "priority")
   if (priorityCol) {
     // Convert numeric values (1-9) to P-strings ("P1"-"P9")
-    db.run(
-      "UPDATE nodes SET priority = 'P' || priority WHERE priority IS NOT NULL AND typeof(priority) = 'integer'",
-    )
+    db.run("UPDATE nodes SET priority = 'P' || priority WHERE priority IS NOT NULL AND typeof(priority) = 'integer'")
   }
 
   // Drop old single-column parent index (superseded by covering index)

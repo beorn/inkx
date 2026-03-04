@@ -150,9 +150,7 @@ function generateDocument(rng: SeededRandom, fragmentCount: number): string {
 
 /** Extract all text words from markdown (ignoring syntax characters) */
 function extractTextWords(md: string): string[] {
-  return md
-    .split(/[\s\n#>|`\-\[\](){}*_~=+!]+/)
-    .filter((w) => WORDS.includes(w))
+  return md.split(/[\s\n#>|`\-\[\](){}*_~=+!]+/).filter((w) => WORDS.includes(w))
 }
 
 // ---------------------------------------------------------------------------
@@ -207,11 +205,7 @@ describe("Roundtrip Fuzz: Content Preservation", () => {
   test.fuzz("wikilinks survive roundtrip", async () => {
     const docs = gen(({ random }) => {
       const target = random.pick(WORDS)
-      const lines = [
-        `# ${randomPhrase(random)}\n`,
-        `\n`,
-        `${randomPhrase(random)} [[${target}]]\n`,
-      ]
+      const lines = [`# ${randomPhrase(random)}\n`, `\n`, `${randomPhrase(random)} [[${target}]]\n`]
       return lines.join("")
     })
 

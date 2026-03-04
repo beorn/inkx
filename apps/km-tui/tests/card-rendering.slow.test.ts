@@ -1148,7 +1148,12 @@ describe("emoji content garble reproduction", () => {
         item("\u{1F538} Priority item"),
         item("\u{1F4F1} Mobile app"),
       ),
-      item("\u{1F1FA}\u{1F1F8} US Tasks", item("\u{1F4BC} Business meeting"), item("\u{1F4CA} Q4 Report"), item("\u{1F3AF} Sprint goal")),
+      item(
+        "\u{1F1FA}\u{1F1F8} US Tasks",
+        item("\u{1F4BC} Business meeting"),
+        item("\u{1F4CA} Q4 Report"),
+        item("\u{1F3AF} Sprint goal"),
+      ),
       item("Regular Column", item("Plain task A"), item("Plain task B")),
     )
     const { board } = testEnv(() => nodes, { cols: 120, rows: 30 })
@@ -1193,7 +1198,12 @@ describe("emoji content garble reproduction", () => {
         item("Fix bike \u{1F527}"),
         item("Water plants \u{1F331}"),
       ),
-      item("Goals", item("Learn Japanese \u{1F1EF}\u{1F1F5}"), item("Run marathon \u{1F3C3}"), item("Read 50 books \u{1F4DA}")),
+      item(
+        "Goals",
+        item("Learn Japanese \u{1F1EF}\u{1F1F5}"),
+        item("Run marathon \u{1F3C3}"),
+        item("Read 50 books \u{1F4DA}"),
+      ),
     )
     const { board } = testEnv(() => nodes, { cols: 80, rows: 20 })
 

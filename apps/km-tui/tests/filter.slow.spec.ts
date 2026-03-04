@@ -21,10 +21,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Filter/View Journeys", () => {
   test("vd hides done tasks, navigate among remaining, vd restores all", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("todoA"), item("doneA"), item("todoB"), item("doneB")),
-    )
+    const nodes = item("board", item("col1", item("todoA"), item("doneA"), item("todoB"), item("doneB")))
     // Mark some tasks as done
     for (const n of nodes) {
       if (n.id === "doneA" || n.id === "doneB") {
@@ -64,11 +61,7 @@ describe("Filter/View Journeys", () => {
 
   test("filter via V panel, navigate filtered results, close panel, unfilter", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs")),
-        ),
+      () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 120, rows: 24 },
     )
 
@@ -108,10 +101,7 @@ describe("Filter/View Journeys", () => {
   })
 
   test("vd preserves cursor on visible card when done card above is hidden", () => {
-    const nodes = item(
-      "board",
-      item("col1", item("done-top"), item("my-task"), item("done-bottom")),
-    )
+    const nodes = item("board", item("col1", item("done-top"), item("my-task"), item("done-bottom")))
     for (const n of nodes) {
       if (n.id === "done-top" || n.id === "done-bottom") {
         n.task_status = "done"

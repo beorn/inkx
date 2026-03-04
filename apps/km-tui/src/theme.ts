@@ -4,7 +4,7 @@
  * Uses inkx v2 theme tokens exclusively. No app-specific color constants.
  * Theme selection and primary color cycling managed via generateTheme().
  *
- * All components use $token strings (e.g., "$selected", "$focusring")
+ * All components use $token strings (e.g., "$selection", "$focusborder")
  * which inkx ThemeProvider resolves at render time.
  */
 import { ansi16DarkTheme, ansi16LightTheme, defaultDarkTheme, defaultLightTheme, generateTheme } from "inkx"
@@ -32,34 +32,33 @@ function adjustBrightness(hex: string, delta: number): string {
 }
 
 /** Select the appropriate theme based on terminal capabilities.
- * When detectedBg is provided (from OSC 11 query), derive surface and separator
+ * When detectedBg is provided (from OSC 11 query), derive surface and border
  * from the actual terminal background for a neutral, matching tint. */
 export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | null): Theme {
   if (caps.colorLevel === "truecolor") {
-    const dark = caps.darkBackground
-    const base = dark ? defaultDarkTheme : defaultLightTheme
+    const isDark = caps.darkBackground
+    const base = isDark ? defaultDarkTheme : defaultLightTheme
     // Derive surface colors from actual bg when detected, else use fallbacks
-    const surface = detectedBg ? adjustBrightness(detectedBg, dark ? 12 : -12) : "#3B3F47"
-    const separator = detectedBg ? adjustBrightness(detectedBg, dark ? 20 : -20) : "#4C5060"
+    const surface = detectedBg ? adjustBrightness(detectedBg, isDark ? 12 : -12) : "#3B3F47"
+    const border = detectedBg ? adjustBrightness(detectedBg, isDark ? 20 : -20) : "#4C5060"
     return {
       ...base,
       bg: "", // Use terminal's own background
       surface,
-      separator,
-      text: "#D4D4D4", // Neutral white
-      text2: "#A0A0A0", // Neutral light gray
-      text3: "#707070", // Neutral mid-gray (counts, chrome)
-      text4: "#505050", // Neutral dark gray (ghost text)
+      border,
+      fg: "#D4D4D4", // Neutral white
+      mutedfg: "#A0A0A0", // Neutral light gray
+      disabledfg: "#707070", // Neutral mid-gray
       // Chrome (title bars, status bars) — inverted from normal
-      chromebg: "#D4D4D4", // Light grey (text as background)
-      chromefg: "#1A1A1A", // Dark text on chrome
+      inverse: "#D4D4D4", // Light grey (text as background)
+      inversefg: "#1A1A1A", // Dark text on chrome
       // Warm accents
       primary: "#EBCB8B", // Gold
-      selected: "#EBCB8B", // Selected = primary
-      selectedfg: "#1A1A1A", // Dark on gold
-      control: "#B8A06E", // Muted gold
+      selection: "#EBCB8B", // Selected = primary
+      selectionfg: "#1A1A1A", // Dark on gold
+      inputborder: "#B8A06E", // Muted gold
       link: "#C0E8FF", // Light sky blue
-      focusring: "#4A9EFF", // Bright blue
+      focusborder: "#4A9EFF", // Bright blue
       // Status — warm tones
       error: "#E06C75", // Warm red
       warning: "#EBCB8B", // Gold
@@ -72,7 +71,7 @@ export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | nul
 
 /** Dim a single color value — same hue, reduced brightness.
  * Truecolor (#RRGGBB): multiply RGB by factor.
- * ANSI 16: map bright variants to normal (redBright→red). */
+ * ANSI 16: map bright variants to normal (redBright->red). */
 function dimColor(color: string, factor = 0.85): string {
   if (!color) return color
   if (color.startsWith("#") && color.length === 7) {
@@ -81,7 +80,7 @@ function dimColor(color: string, factor = 0.85): string {
     const b = Math.round(parseInt(color.slice(5, 7), 16) * factor)
     return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
   }
-  // ANSI 16: bright → normal is the closest we can get to "dimming"
+  // ANSI 16: bright -> normal is the closest we can get to "dimming"
   if (color.endsWith("Bright")) return color.slice(0, -"Bright".length)
   return color
 }
@@ -94,17 +93,16 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     name: `${theme.name}-unfocused`,
     primary: dimColor(theme.primary),
     link: dimColor(theme.link),
-    control: dimColor(theme.control),
-    selected: dimColor(theme.selected),
-    selectedfg: dimColor(theme.selectedfg),
-    focusring: dimColor(theme.focusring),
-    text: dimColor(theme.text),
-    text2: dimColor(theme.text2),
-    text3: dimColor(theme.text3),
-    text4: dimColor(theme.text4),
-    separator: dimColor(theme.separator),
-    chromebg: dimColor(theme.chromebg),
-    chromefg: dimColor(theme.chromefg),
+    inputborder: dimColor(theme.inputborder),
+    selection: dimColor(theme.selection),
+    selectionfg: dimColor(theme.selectionfg),
+    focusborder: dimColor(theme.focusborder),
+    fg: dimColor(theme.fg),
+    mutedfg: dimColor(theme.mutedfg),
+    disabledfg: dimColor(theme.disabledfg),
+    border: dimColor(theme.border),
+    inverse: dimColor(theme.inverse),
+    inversefg: dimColor(theme.inversefg),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
@@ -113,17 +111,17 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
 }
 
 /** Derive a theme for selected/cursor rows: all accent and status colors
- * become selectedfg so text is always readable on $selected background. */
+ * become selectionfg so text is always readable on $selection background. */
 export function deriveSelectedTheme(theme: Theme): Theme {
   return {
     ...theme,
     name: `${theme.name}-selected`,
-    primary: theme.selectedfg,
-    link: theme.selectedfg,
-    control: theme.selectedfg,
-    error: theme.selectedfg,
-    warning: theme.selectedfg,
-    success: theme.selectedfg,
+    primary: theme.selectionfg,
+    link: theme.selectionfg,
+    inputborder: theme.selectionfg,
+    error: theme.selectionfg,
+    warning: theme.selectionfg,
+    success: theme.selectionfg,
   }
 }
 

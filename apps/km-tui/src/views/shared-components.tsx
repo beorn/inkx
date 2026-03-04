@@ -94,7 +94,7 @@ export const MemoizedTreeCard = React.memo(
     // Show focus outline when editing — no layout shift (outline overlaps)
     if (isEditing) {
       return (
-        <Box outlineStyle="round" outlineColor={"$ring"}>
+        <Box outlineStyle="round" outlineColor={"$focusborder"}>
           {content}
         </Box>
       )
@@ -289,7 +289,7 @@ function isChord(segment: string): boolean {
  * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
  * Otherwise renders the segment as-is in yellow.
  */
-function KeySegment({ segment, color = "$input" }: { segment: string; color?: string }): React.ReactElement {
+function KeySegment({ segment, color = "$warning" }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
@@ -330,7 +330,7 @@ function KeySegment({ segment, color = "$input" }: { segment: string; color?: st
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
  */
-export function KeyBinding({ keys, color = "$input" }: { keys: string; color?: string }): React.ReactElement {
+export function KeyBinding({ keys, color = "$warning" }: { keys: string; color?: string }): React.ReactElement {
   // Double-space separator: "a #  #" → a·# (space) # (no slash)
   if (keys.includes("  ")) {
     const segments = keys.split("  ")
@@ -421,7 +421,7 @@ export function InputBox({
 
   if (focusRing) {
     return (
-      <Box borderStyle="round" borderColor={"$ring"}>
+      <Box borderStyle="round" borderColor={"$focusborder"}>
         {content}
       </Box>
     )

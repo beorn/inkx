@@ -302,7 +302,7 @@ export function CommandBox({
   if (!hasFeedback && !hasCommand) return null
 
   // Border color: focus ring when input-focused, text otherwise
-  const borderColor = isCommandInput ? "$ring" : "$fg"
+  const borderColor = isCommandInput ? "$focusborder" : "$fg"
 
   return (
     <Box

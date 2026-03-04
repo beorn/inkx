@@ -75,7 +75,8 @@ const enterBodyEdit = {
   name: "Edit Body",
   description: "Edit node body (first body block)",
   category: "Edit",
-  execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId, blockIndex: 1 } : null),
+  execute: (ctx) =>
+    ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId, blockIndex: 1 } : null,
 } satisfies CommandDef
 
 const renameNode = {
