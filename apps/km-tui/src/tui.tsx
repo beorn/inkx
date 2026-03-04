@@ -13,7 +13,7 @@ import {
   InputLayerProvider,
   ThemeProvider,
   detectTerminalCaps,
-  queryBackgroundColor,
+  ansi16DarkTheme,
 } from "inkx"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
@@ -24,7 +24,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
-import { selectThemeForCaps } from "./theme.ts"
+import { detectTerminalTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -44,44 +44,6 @@ tuiEvents.setMaxListeners(200)
 
 // restoreTerminal is imported from ./raw-signals.ts (emergency crash handler only;
 // Ctrl+C and Ctrl+Z are handled by inkx's terminal lifecycle system)
-
-/** Query the actual terminal background color via OSC 11.
- * Temporarily enables raw mode on stdin to read the response.
- * Returns #RRGGBB or null if unsupported/timeout. */
-async function queryTerminalBg(): Promise<string | null> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) return null
-
-  const wasRaw = process.stdin.isRaw
-  if (!wasRaw) process.stdin.setRawMode(true)
-  process.stdin.resume()
-
-  try {
-    return await queryBackgroundColor(
-      (data) => {
-        process.stdout.write(data)
-      },
-      (timeoutMs) =>
-        new Promise<string | null>((resolve) => {
-          const timer = setTimeout(() => {
-            process.stdin.removeListener("data", onData)
-            resolve(null)
-          }, timeoutMs)
-          function onData(chunk: Buffer) {
-            clearTimeout(timer)
-            process.stdin.removeListener("data", onData)
-            resolve(chunk.toString())
-          }
-          process.stdin.on("data", onData)
-        }),
-      200,
-    )
-  } finally {
-    if (!wasRaw) {
-      process.stdin.setRawMode(false)
-      process.stdin.pause()
-    }
-  }
-}
 
 /**
  * Compute initial cursor node from board data.
@@ -304,12 +266,9 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
     }
 
-    // Query actual terminal background via OSC 11 for theme derivation
-    const detectedBg = isInteractive && caps.colorLevel === "truecolor" ? await queryTerminalBg() : null
-    if (detectedBg) log.debug?.(`Detected terminal background: ${detectedBg}`)
-
-    // Select theme and icon style based on terminal capabilities
-    const theme = selectThemeForCaps(caps, detectedBg)
+    // Detect terminal theme from actual colors (OSC 4/10/11) with fallback
+    const theme = isInteractive ? await detectTerminalTheme(caps) : ansi16DarkTheme
+    log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
     const storeParams: CreateBoardAppStoreParams = {

@@ -704,12 +704,13 @@ export function createBoardAppStoreState(
             if (pane && isBoardPane(pane)) {
               let newPanes = updateBoardPane(state.workspace, targetPaneId, pane, paneUpdates)
               // Propagate filterProperties to detail pane (if open)
-              if (paneUpdates.filterProperties && !isDetailPaneId(targetPaneId)) {
+              const fp = paneUpdates.filterProperties as BoardPaneState["filterProperties"] | undefined
+              if (fp && !isDetailPaneId(targetPaneId)) {
                 const detailId = detailPaneIdFor(targetPaneId)
                 const detailPane = newPanes.get(detailId)
                 if (detailPane && isBoardPane(detailPane)) {
                   newPanes = updateBoardPane({ ...state.workspace, panes: newPanes }, detailId, detailPane, {
-                    filterProperties: paneUpdates.filterProperties,
+                    filterProperties: fp,
                   })
                 }
               }

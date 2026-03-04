@@ -1,72 +1,36 @@
 /**
  * km Theme Configuration
  *
- * Uses inkx v2 theme tokens exclusively. No app-specific color constants.
- * Theme selection and primary color cycling managed via generateTheme().
+ * Delegates fully to themex for theme derivation. At startup, km detects
+ * the terminal's actual colors via OSC queries and derives a matching theme.
+ * Falls back to built-in themes (Nord dark / Catppuccin Latte light) when
+ * detection fails.
  *
  * All components use $token strings (e.g., "$selection", "$focusborder")
  * which inkx ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, ansi16LightTheme, defaultDarkTheme, defaultLightTheme, generateTheme } from "inkx"
-import type { Theme, AnsiPrimary, TerminalCaps } from "inkx"
+import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "inkx"
+import type { Theme, TerminalCaps } from "inkx"
 
-/** Default theme for km (ANSI 16 dark, primary=yellow) */
+/** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme
 
-/** All ANSI 16 primary color options for cycling */
-export const primaryColors = ["yellow", "cyan", "magenta", "green", "red", "blue", "white"] as const
-export type PrimaryColor = (typeof primaryColors)[number]
-
-/** Generate km theme with specific primary color */
-export function kmTheme(primary: PrimaryColor, dark = true): Theme {
-  return generateTheme(primary as AnsiPrimary, dark)
-}
-
-/** Adjust brightness of a hex color by a fixed amount per channel.
- * Positive delta = lighter, negative = darker. Clamped to [0, 255]. */
-function adjustBrightness(hex: string, delta: number): string {
-  const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + delta))
-  const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + delta))
-  const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + delta))
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
-}
-
-/** Select the appropriate theme based on terminal capabilities.
- * When detectedBg is provided (from OSC 11 query), derive surface and border
- * from the actual terminal background for a neutral, matching tint. */
-export function selectThemeForCaps(caps: TerminalCaps, detectedBg?: string | null): Theme {
-  if (caps.colorLevel === "truecolor") {
-    const isDark = caps.darkBackground
-    const base = isDark ? defaultDarkTheme : defaultLightTheme
-    // Derive surface colors from actual bg when detected, else use fallbacks
-    const surface = detectedBg ? adjustBrightness(detectedBg, isDark ? 12 : -12) : "#3B3F47"
-    const border = detectedBg ? adjustBrightness(detectedBg, isDark ? 20 : -20) : "#4C5060"
-    return {
-      ...base,
-      bg: "", // Use terminal's own background
-      surface,
-      border,
-      fg: "#D4D4D4", // Neutral white
-      mutedfg: "#A0A0A0", // Neutral light gray
-      disabledfg: "#707070", // Neutral mid-gray
-      // Chrome (title bars, status bars) — inverted from normal
-      inverse: "#D4D4D4", // Light grey (text as background)
-      inversefg: "#1A1A1A", // Dark text on chrome
-      // Warm accents
-      primary: "#EBCB8B", // Gold
-      selection: "#EBCB8B", // Selected = primary
-      selectionfg: "#1A1A1A", // Dark on gold
-      inputborder: "#B8A06E", // Muted gold
-      link: "#C0E8FF", // Light sky blue
-      focusborder: "#4A9EFF", // Bright blue
-      // Status — warm tones
-      error: "#E06C75", // Warm red
-      warning: "#EBCB8B", // Gold
-      success: "#98C379", // Warm green
-    }
+/**
+ * Detect the terminal's theme from its actual colors.
+ *
+ * - Truecolor terminals: queries OSC 4/10/11 for the real palette,
+ *   fills gaps from Nord (dark) or Catppuccin Latte (light), derives
+ *   a full 33-token theme via themex.
+ * - ANSI 16 terminals: uses named ANSI colors that adapt to whatever
+ *   terminal theme the user has configured.
+ */
+export async function detectTerminalTheme(caps: TerminalCaps): Promise<Theme> {
+  if (caps.colorLevel !== "truecolor") {
+    // ANSI 16 — colors adapt to the terminal's palette automatically
+    return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
   }
-  // ANSI 16 fallback
-  return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
+  // Truecolor — detect actual terminal colors and derive theme
+  return detectTheme()
 }
 
 /** Dim a single color value — same hue, reduced brightness.
@@ -109,21 +73,3 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     surface: dimColor(theme.surface),
   }
 }
-
-/** Derive a theme for selected/cursor rows: all accent and status colors
- * become selectionfg so text is always readable on $selection background. */
-export function deriveSelectedTheme(theme: Theme): Theme {
-  return {
-    ...theme,
-    name: `${theme.name}-selected`,
-    primary: theme.selectionfg,
-    link: theme.selectionfg,
-    inputborder: theme.selectionfg,
-    error: theme.selectionfg,
-    warning: theme.selectionfg,
-    success: theme.selectionfg,
-  }
-}
-
-// Backward compat — remove after full migration
-export { ansi16DarkTheme as kmDarkTheme, ansi16LightTheme as kmLightTheme } from "inkx"
