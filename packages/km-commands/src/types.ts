@@ -28,6 +28,8 @@ export interface CommandContext {
   // Current node (passed by caller)
   currentNode: TNode | null
   currentNodeId: string | null
+  /** Exact cursor position — may be a sub-block within the card (currentNodeId). */
+  cursorNodeId?: string | null
 
   // Selection
   selectedNodes: string[]

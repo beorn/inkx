@@ -106,6 +106,7 @@ function buildCommandContexts(ctx: ActionCtx) {
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
+    cursorNodeId: ctx.cursorNodeId,
     selectedNodes: Array.from(ctx.selectedNodes),
     siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,

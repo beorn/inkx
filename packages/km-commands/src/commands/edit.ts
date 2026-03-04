@@ -68,7 +68,10 @@ const enterInlineEdit = {
   name: "Edit Inline",
   description: "Edit node title inline",
   category: "Edit",
-  execute: (ctx) => (ctx.currentNodeId ? { type: "ENTER_INLINE_EDIT", nodeId: ctx.currentNodeId } : null),
+  execute: (ctx) => {
+    const nodeId = ctx.cursorNodeId ?? ctx.currentNodeId
+    return nodeId ? { type: "ENTER_INLINE_EDIT", nodeId } : null
+  },
 } satisfies CommandDef
 
 const enterBodyEdit = {

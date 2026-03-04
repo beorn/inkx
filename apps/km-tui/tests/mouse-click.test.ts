@@ -162,6 +162,28 @@ describe("mouse click targeting", () => {
     }
   })
 
+  test("pressing Enter on a sub-block enters inline edit for that block", () => {
+    const { board, store } = testEnv(
+      () => item.root("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Click on child-2 to select it
+    const el = board.q("[id='child-2']")
+    expect(el.count()).toBeGreaterThan(0)
+    const box = el.boundingBox()!
+    board.click(box.x + 1, box.y)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+
+    // Press Enter to enter inline edit
+    board.command("enter_inline_edit")
+
+    // Should be editing child-2, not the parent card
+    const editBlock = getActiveBoardPane(store.getState())!.inlineEditBlock
+    expect(editBlock).not.toBeNull()
+    expect(editBlock!.nodeId).toBe("child-2")
+  })
+
   test("clicking column header deselects card in same column", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
