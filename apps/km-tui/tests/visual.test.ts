@@ -101,7 +101,12 @@ describe("visual toolbelt: assertions", () => {
   test("chaining works — all visual assertions return board", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
     // All assertions should be chainable
-    board.expectScreen("task1").expectScreen("task2").expectScreenNot("nonexistent").command("cursor_down").expectScreen("task2")
+    board
+      .expectScreen("task1")
+      .expectScreen("task2")
+      .expectScreenNot("nonexistent")
+      .command("cursor_down")
+      .expectScreen("task2")
   })
 })
 

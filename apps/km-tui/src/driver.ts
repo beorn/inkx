@@ -275,7 +275,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const handleAction = (_action: CommandAction): void => {}
 
   // Get keybindings for command metadata
-  const getKeybindings = (): Keybinding[] => defaultKeybindings
+  const getKeybindings = (): Keybinding[] => defaultKeybindings()
 
   // Apply withCommands plugin for introspection
   const appWithCmd = withCommands(baseApp, {

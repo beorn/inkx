@@ -161,7 +161,12 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     board.command("cycle_view_mode").command("cycle_view_mode")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
-    board.command("cursor_right").command("cursor_right").command("cursor_left").command("cursor_left").command("cursor_right")
+    board
+      .command("cursor_right")
+      .command("cursor_right")
+      .command("cursor_left")
+      .command("cursor_left")
+      .command("cursor_right")
 
     const screen = board.screenshot()
     expect(screen).toContain("Beta-unique-222")

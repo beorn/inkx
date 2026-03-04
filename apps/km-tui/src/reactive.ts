@@ -132,12 +132,7 @@ export class ReactiveNodeStore {
    * Sets parent links, own sigils, excluded sigils, fold depths, multi-selection.
    * Replaces hydrateNodeAtoms from node-atoms-hydrate.ts.
    */
-  hydrate(
-    repo: Repo,
-    rootId: string | null,
-    foldDepths: Map<string, number>,
-    multiSelected: Set<SelectionKey>,
-  ): void {
+  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, multiSelected: Set<SelectionKey>): void {
     // Clean up old nodes
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
@@ -171,9 +166,11 @@ export class ReactiveNodeStore {
       // Excluded sigils = parent's excluded + own
       const parentExcluded = rootState.excludedSigils.value
       colState.excludedSigils.value =
-        colSigils.length === 0 ? parentExcluded
-        : parentExcluded.length === 0 ? colSigils
-        : [...parentExcluded, ...colSigils]
+        colSigils.length === 0
+          ? parentExcluded
+          : parentExcluded.length === 0
+            ? colSigils
+            : [...parentExcluded, ...colSigils]
 
       const colFold = foldDepths.get(col.id)
       if (colFold !== undefined) {

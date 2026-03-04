@@ -52,7 +52,7 @@ import {
   renderParentPath,
   type PathSegment,
 } from "../src/layout/index.ts"
-import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
+import { DateBadge } from "../src/views/tree-node-helpers.tsx"
 import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
@@ -503,46 +503,46 @@ function DateBadgeDemo(): React.ReactElement {
     return `${y}-${m}-${dd}`
   }
 
-  const examples = [
+  const examples: { label: string; node: KNode }[] = [
     // Due date relative formatting + urgency coloring
-    { label: "Overdue (3 days ago)", badge: formatDateBadge({ due_at: d(-3) } as KNode) },
-    { label: "Overdue (yesterday)", badge: formatDateBadge({ due_at: d(-1) } as KNode) },
-    { label: "Due today", badge: formatDateBadge({ due_at: d(0) } as KNode) },
-    { label: "Due tomorrow", badge: formatDateBadge({ due_at: d(1) } as KNode) },
-    { label: "Due in 2 days", badge: formatDateBadge({ due_at: d(2) } as KNode) },
-    { label: "Due in 4 days", badge: formatDateBadge({ due_at: d(4) } as KNode) },
-    { label: "Due in 6 days", badge: formatDateBadge({ due_at: d(6) } as KNode) },
-    { label: "Due in 10 days", badge: formatDateBadge({ due_at: d(10) } as KNode) },
+    { label: "Overdue (3 days ago)", node: { due_at: d(-3) } as KNode },
+    { label: "Overdue (yesterday)", node: { due_at: d(-1) } as KNode },
+    { label: "Due today", node: { due_at: d(0) } as KNode },
+    { label: "Due tomorrow", node: { due_at: d(1) } as KNode },
+    { label: "Due in 2 days", node: { due_at: d(2) } as KNode },
+    { label: "Due in 4 days", node: { due_at: d(4) } as KNode },
+    { label: "Due in 6 days", node: { due_at: d(6) } as KNode },
+    { label: "Due in 10 days", node: { due_at: d(10) } as KNode },
 
     // With priority
-    { label: "P1 overdue", badge: formatDateBadge({ priority: "P1", due_at: d(-3) } as KNode) },
-    { label: "P2 due today", badge: formatDateBadge({ priority: "P2", due_at: d(0) } as KNode) },
+    { label: "P1 overdue", node: { priority: "P1", due_at: d(-3) } as KNode },
+    { label: "P2 due today", node: { priority: "P2", due_at: d(0) } as KNode },
 
     // With recurrence
-    { label: "Due tomorrow ↻", badge: formatDateBadge({ due_at: d(1), rrule: "weekly" } as KNode) },
-    { label: "Future ↻", badge: formatDateBadge({ due_at: d(14), rrule: "monthly" } as KNode) },
+    { label: "Due tomorrow ↻", node: { due_at: d(1), rrule: "weekly" } as KNode },
+    { label: "Future ↻", node: { due_at: d(14), rrule: "monthly" } as KNode },
 
     // Start date
-    { label: "Start only (future)", badge: formatDateBadge({ start_at: d(3) } as KNode) },
-    { label: "Start → due", badge: formatDateBadge({ start_at: d(2), due_at: d(7) } as KNode) },
+    { label: "Start only (future)", node: { start_at: d(3) } as KNode },
+    { label: "Start → due", node: { start_at: d(2), due_at: d(7) } as KNode },
     {
       label: "Start past, WIP (hidden)",
-      badge: formatDateBadge({ start_at: d(-5), due_at: d(3), task_status: "wip" } as KNode),
+      node: { start_at: d(-5), due_at: d(3), task_status: "wip" } as KNode,
     },
     {
       label: "Start past, todo (shown)",
-      badge: formatDateBadge({ start_at: d(-5), due_at: d(3), task_status: "todo" } as KNode),
+      node: { start_at: d(-5), due_at: d(3), task_status: "todo" } as KNode,
     },
 
     // Full combo
     {
       label: "P2 start → due ↻",
-      badge: formatDateBadge({ priority: "P2", start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode),
+      node: { priority: "P2", start_at: d(1), due_at: d(7), rrule: "monthly" } as KNode,
     },
 
     // Edge cases
-    { label: "P4 only (dim)", badge: formatDateBadge({ priority: "P4" } as KNode) },
-    { label: "No metadata", badge: formatDateBadge({} as KNode) },
+    { label: "P4 only (dim)", node: { priority: "P4" } as KNode },
+    { label: "No metadata", node: {} as KNode },
   ]
 
   return (
@@ -552,10 +552,11 @@ function DateBadgeDemo(): React.ReactElement {
         {" "}
         {"─".repeat(34)} {"─".repeat(30)}
       </Text>
-      {examples.map(({ label, badge }, i) => (
+      {examples.map(({ label, node }, i) => (
         <Text key={i}>
           {" "}
-          {label.padEnd(34)} {badge || <Text dimColor>(empty)</Text>}
+          {label.padEnd(34)} <DateBadge node={node} />{" "}
+          {!node.due_at && !node.start_at && !node.priority && !node.rrule && <Text dimColor>(empty)</Text>}
         </Text>
       ))}
     </>
