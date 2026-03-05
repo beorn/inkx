@@ -421,92 +421,213 @@ describe("Inline Edit — Edge Cases", () => {
 })
 
 describe("Inline Edit — Outliner Enter Behavior", () => {
-  // Enter behavior depends on cursor position (Decker-style outliner):
-  // - At end (no children): insert sibling after
-  // - At start: insert sibling before
-  // - In middle: split node at cursor
-  // All cases save current content, create new node, enter edit on new node.
+  // Enter behavior matrix:
+  //   cursor position × visible children → placement of new node
+  //
+  // | Cursor     | No children         | Visible children      |
+  // |------------|---------------------|-----------------------|
+  // | At end     | sibling after       | first child           |
+  // | At start   | sibling before      | sibling before        |
+  // | In middle  | split → sibling     | split → first child   |
+  //
+  // Shift+Enter: always insert child at end
+  // Empty text:  cursorAtEnd=true → same as "at end"
 
-  test("Enter at end of text creates sibling after", () => {
+  // ── No visible children ────────────────────────────────────
+
+  test("end, no children → sibling after + verify navigation", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 
-    board.expect("#alpha[data-cursor]").toExist()
-    board.press("Enter") // edit mode, cursor at end
+    board.press("Enter") // edit alpha, cursor at end
+    board.press("Enter") // → sibling after
 
-    // Cursor is at end → Enter creates sibling after
-    board.press("Enter")
-
-    // "alpha" saved unchanged
+    // alpha saved unchanged
     expect(repo.getNode("alpha")?.content).toContain("alpha")
 
-    // New empty node in edit mode — exit to verify structure
+    // Now in edit mode on new node — type and exit
+    for (const c of "new") board.press(c)
     board.press("Escape")
 
-    // Verify: alpha is still first card, new empty node after it, then beta
-    // Use repo's children to verify order (repo is the source of truth)
+    // Repo: alpha, new, beta
     const siblings = repo.getChildren("col1")
-    const alphaIdx = siblings.findIndex((n) => n.id === "alpha")
-    const betaIdx = siblings.findIndex((n) => n.id === "beta")
-    // New node should be between alpha and beta
-    expect(siblings.length).toBe(3) // alpha + new + beta
-    expect(alphaIdx).toBeLessThan(betaIdx)
-    expect(alphaIdx + 1).toBeLessThan(betaIdx) // new node sits between
+    expect(siblings.length).toBe(3)
+    expect(siblings[0]!.id).toBe("alpha")
+    expect(siblings[2]!.id).toBe("beta")
+
+    // Navigation works: cursor is on "new", j goes to beta
+    board.command("cursor_down")
+    board.expect("#beta[data-cursor]").toExist()
   })
 
-  test("Enter at start of text creates sibling before", () => {
+  test("start, no children → sibling before + verify navigation", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 
-    board.expect("#alpha[data-cursor]").toExist()
-    board.press("Enter") // edit mode, cursor at end
-    board.press("Control+a") // move cursor to start
+    board.press("Enter") // edit alpha, cursor at end
+    board.press("Control+a") // cursor to start
+    board.press("Enter") // → sibling before
 
-    // Cursor is at start → Enter creates sibling before
-    board.press("Enter")
-
-    // "alpha" saved unchanged
     expect(repo.getNode("alpha")?.content).toContain("alpha")
 
     // Exit new node's edit mode
     board.press("Escape")
 
-    // Verify: new node before alpha, then beta
+    // Repo: new node first, then alpha, then beta
     const siblings = repo.getChildren("col1")
-    const alphaIdx = siblings.findIndex((n) => n.id === "alpha")
-    const betaIdx = siblings.findIndex((n) => n.id === "beta")
-    // New node is at position 0, alpha pushed to 1
     expect(siblings.length).toBe(3)
-    expect(alphaIdx).toBeGreaterThan(0) // alpha no longer first
-    expect(alphaIdx).toBeLessThan(betaIdx)
+    expect(siblings[1]!.id).toBe("alpha")
+    expect(siblings[2]!.id).toBe("beta")
+
+    // Navigation: cursor is on new node, j goes to alpha
+    board.command("cursor_down")
+    board.expect("#alpha[data-cursor]").toExist()
   })
 
-  test("Enter in middle of text splits node", () => {
+  test("middle, no children → split as sibling + verify content", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("abcd"), item("zeta"))))
 
-    board.expect("#abcd[data-cursor]").toExist()
-    board.press("Enter") // edit mode, cursor at end of "abcd"
-
-    // Move cursor to middle: abcd| → ab|cd
+    board.press("Enter") // edit "abcd", cursor at end
+    board.press("ArrowLeft") // ab|cd → move 2 left
     board.press("ArrowLeft")
-    board.press("ArrowLeft")
+    board.press("Enter") // → split: "ab" stays, "cd" becomes sibling
 
-    // Enter in middle → split node at cursor
-    board.press("Enter")
-
-    // Original node should have first part (with task marker prefix)
+    // Original node has "ab" part (with task marker prefix)
     const origContent = repo.getNode("abcd")?.content ?? ""
     expect(origContent).toContain("ab")
     expect(origContent).not.toContain("cd")
 
-    // We're now in edit mode on the new "cd" node — exit it
+    // Now editing "cd" node — exit and verify
     board.press("Escape")
 
-    // Verify: both parts exist in sibling order, followed by zeta
+    // Repo: ab, cd, zeta (all siblings under col1)
     const siblings = repo.getChildren("col1")
+    const contents = siblings.map((n) => n.content ?? "")
+    expect(contents.some((c) => c.includes("ab"))).toBe(true)
+    expect(contents.some((c) => c.includes("cd"))).toBe(true)
     const abIdx = siblings.findIndex((n) => (n.content ?? "").includes("ab"))
     const cdIdx = siblings.findIndex((n) => (n.content ?? "").includes("cd"))
     const zetaIdx = siblings.findIndex((n) => n.id === "zeta")
     expect(abIdx).toBeLessThan(cdIdx)
     expect(cdIdx).toBeLessThan(zetaIdx)
+
+    // Navigation: cursor on "cd", j goes to zeta
+    board.command("cursor_down")
+    board.expect("#zeta[data-cursor]").toExist()
+  })
+
+  // ── With visible children ──────────────────────────────────
+
+  test("end, visible children → first child + verify navigation", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("sibling"))),
+    )
+
+    // Navigate to parent card (it's the first card in col1)
+    board.expect("#parent[data-cursor]").toExist()
+    board.press("Enter") // edit parent, cursor at end
+    board.press("Enter") // → first child (parent has visible children)
+
+    // Exit new node's edit mode
+    board.press("Escape")
+
+    // Repo: new node is first child of "parent", before child1
+    const children = repo.getChildren("parent")
+    const child1Idx = children.findIndex((n) => n.id === "child1")
+    expect(child1Idx).toBeGreaterThan(0) // child1 is no longer first
+    expect(children[0]!.id).not.toBe("child1") // new node is first
+
+    // "parent" still has its original children
+    expect(children.some((n) => n.id === "child1")).toBe(true)
+    expect(children.some((n) => n.id === "child2")).toBe(true)
+  })
+
+  test("start, visible children → sibling before (not child)", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1")), item("sibling"))),
+    )
+
+    board.press("Enter") // edit parent, cursor at end
+    board.press("Control+a") // cursor to start
+    board.press("Enter") // → sibling before (start always = sibling before)
+
+    board.press("Escape")
+
+    // New node is sibling of parent (under col1), not child of parent
+    const col1Children = repo.getChildren("col1")
+    const parentIdx = col1Children.findIndex((n) => n.id === "parent")
+    expect(col1Children.length).toBe(3) // new + parent + sibling
+    expect(parentIdx).toBeGreaterThan(0) // parent pushed down
+
+    // parent's children unchanged
+    const parentChildren = repo.getChildren("parent")
+    expect(parentChildren.length).toBe(1) // still just child1
+    expect(parentChildren[0]!.id).toBe("child1")
+  })
+
+  test("middle, visible children → split as first child + verify", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("abcd", item("existing")), item("sibling"))),
+    )
+
+    board.press("Enter") // edit "abcd", cursor at end
+    board.press("ArrowLeft") // move to ab|cd
+    board.press("ArrowLeft")
+    board.press("Enter") // → split: "ab" stays as parent, "cd" becomes first child
+
+    // Now editing the "cd" child node — exit
+    board.press("Escape")
+
+    // Parent node "abcd" has truncated content (just "ab" part)
+    const parentNode = repo.getNode("abcd")
+    expect(parentNode?.content).not.toContain("cd")
+
+    // "cd" is now a child of "abcd", before "existing"
+    const children = repo.getChildren("abcd")
+    const cdIdx = children.findIndex((n) => (n.content ?? "").includes("cd"))
+    const existingIdx = children.findIndex((n) => n.id === "existing")
+    expect(cdIdx).toBeLessThan(existingIdx) // cd is first child
+    expect(cdIdx).toBe(0)
+
+    // "existing" is still a child of abcd (not moved)
+    expect(children.some((n) => n.id === "existing")).toBe(true)
+  })
+
+  // ── Edge cases ─────────────────────────────────────────────
+
+  test("empty text → sibling after (cursorAtEnd wins)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"))))
+
+    board.press("Enter") // edit alpha (cursor at end of "alpha")
+    // Delete all text: cursor at end → ctrl+u deletes to start
+    board.press("Control+u")
+    board.press("Enter") // empty text, cursor at end → sibling after
+
+    // alpha now has empty content
+    const content = repo.getNode("alpha")?.content ?? ""
+    expect(content).toBe("")
+
+    // New sibling created
+    board.press("Escape")
+    const siblings = repo.getChildren("col1")
+    expect(siblings.length).toBe(2) // alpha + new
+  })
+
+  test("Shift+Enter always inserts child at end", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+
+    board.press("Enter") // edit alpha
+    // Note: shift+Enter is indistinguishable from Enter in ANSI (no Kitty protocol in tests).
+    // Use command() to directly invoke the text.child_block command.
+    board.command("text.child_block")
+
+    board.press("Escape") // exit new child's edit mode
+
+    // New node is child of alpha (not sibling)
+    const children = repo.getChildren("alpha")
+    expect(children.length).toBe(1)
+
+    // alpha's siblings unchanged
+    const siblings = repo.getChildren("col1")
+    expect(siblings.length).toBe(2) // alpha + beta (no new sibling)
   })
 })
 

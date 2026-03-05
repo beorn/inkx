@@ -1440,8 +1440,16 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
     nodeId = child.id
   }
 
-  const node = ctx.repo.getNode(nodeId)
+  let node = ctx.repo.getNode(nodeId)
   if (!node) return ok()
+
+  // Materialize content for folder nodes (title stored as data.name, not content field).
+  // Without this, splitNode/splitAsChild would operate on empty string.
+  if (node.content == null) {
+    const editText = editTarget.getContent()
+    ctx.repo.updateNode(nodeId, { content: editText })
+    node = ctx.repo.getNode(nodeId)!
+  }
 
   // Adjust offset for task markers (e.g., "[ ] " prefix hidden from edit field)
   const { marker } = extractTitleTaskMarker(node.content ?? "")
@@ -1456,10 +1464,12 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
     if (hasVisibleChildren) {
       const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
+      ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
       ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
     } else {
       const result = splitNode(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
+      ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
       ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
     }
   } catch {
@@ -1470,13 +1480,13 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   return ok()
 }
 
-/** Check if a node has visible item children (not folded, has items). */
+/** Check if a node has visible item children (not folded, has items).
+ *  Checks for any `item: true` children — not just `type: "h"` outline nodes —
+ *  because the board renders all `item` children as cards when no structural items exist. */
 function hasVisibleItemChildren(repo: ActionCtx["repo"], nodeId: string, foldDepths: Map<string, number>): boolean {
-  const children = repo.getChildren(nodeId)
-  const { items } = extractBody(children)
-  if (items.length === 0) return false
   if (foldDepths.get(nodeId) === 0) return false
-  return true
+  const children = repo.getChildren(nodeId)
+  return children.some((c) => c.item)
 }
 
 /** Split node at offset, placing the after-portion as the first child instead of sibling. */

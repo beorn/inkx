@@ -217,7 +217,6 @@
 1 vendor/beorn-logger/tests/tracing.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
-2 vendor/beorn-termless/packages/cli/src/session.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
 1 vendor/beorn-themex/screenshot.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts

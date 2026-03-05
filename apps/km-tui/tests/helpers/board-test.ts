@@ -109,6 +109,8 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   undo: ["u"],
   redo: ["U"],
   indent_node: ["Tab"],
+  // shift+Enter — Kitty CSI sequence (ANSI can't distinguish shift+Enter from Enter)
+  "text.child_block": ["\x1b[13;2u"],
 
   // Task
   toggle_task_done: ["x"],

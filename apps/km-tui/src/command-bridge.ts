@@ -17,7 +17,6 @@ import {
   type TNode,
 } from "@km/commands"
 import { detectTerminalCaps, activeEditTargetRef } from "inkx"
-import { extractBody } from "@km/tree"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
 import { getModeStack } from "./dialog-guard.ts"
@@ -110,11 +109,9 @@ function buildCommandContexts(ctx: ActionCtx) {
     },
     hasVisibleChildren() {
       if (!ui.inlineEditBlock) return false
-      const children = ctx.repo.getChildren(ui.inlineEditBlock.nodeId)
-      const { items } = extractBody(children)
-      if (items.length === 0) return false
       if (ctx.foldDepths.get(ui.inlineEditBlock.nodeId) === 0) return false
-      return true
+      const children = ctx.repo.getChildren(ui.inlineEditBlock.nodeId)
+      return children.some((c) => c.item)
     },
   })
 
