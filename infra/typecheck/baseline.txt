@@ -24,7 +24,7 @@
 2 apps/km-tui/src/board/board-actions-edit.ts
 4 apps/km-tui/src/board/board-actions-search-replace.ts
 4 apps/km-tui/src/board/board-actions-zoom.ts
-9 apps/km-tui/src/board/board-actions.ts
+13 apps/km-tui/src/board/board-actions.ts
 1 apps/km-tui/src/command-bridge.ts
 3 apps/km-tui/src/cursor-context.tsx
 1 apps/km-tui/src/cursor-store.ts
@@ -71,7 +71,7 @@
 2 apps/km-tui/tests/fold.slow.test.ts
 1 apps/km-tui/tests/help-slash-color.test.tsx
 4 apps/km-tui/tests/helpers/board-app.ts
-4 apps/km-tui/tests/helpers/board-test.ts
+3 apps/km-tui/tests/helpers/board-test.ts
 2 apps/km-tui/tests/helpers/fuzz-term.fuzz.ts
 3 apps/km-tui/tests/helpers/fuzz-term.ts
 1 apps/km-tui/tests/helpers/real-board.ts
@@ -211,6 +211,7 @@
 1 vendor/beorn-inkx/tests/wide-terminal-repro.test.tsx
 7 vendor/beorn-inkx/tests/with-commands.test.tsx
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
+1 vendor/beorn-logger/benchmarks/overhead.ts
 1 vendor/beorn-logger/tests/features.test.ts
 42 vendor/beorn-logger/tests/logger.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts

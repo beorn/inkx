@@ -159,7 +159,7 @@ describe("Inline Edit — Readline Integration", () => {
     // ab| → ArrowLeft → a|b → insert X → aXb
     board.press("ArrowLeft")
     board.command("cycle_task_status")
-    board.press("Enter")
+    board.press("Escape") // save+exit (Enter splits in outliner mode)
 
     expect(repo.getNode("ab")?.content).toBe("aXb")
     expect(board.screenshot()).toContain("aXb")
@@ -172,7 +172,7 @@ describe("Inline Edit — Readline Integration", () => {
     // ab| → Ctrl+A → |ab → Delete → |b
     board.press("Control+a")
     board.press("Delete")
-    board.press("Enter")
+    board.press("Escape") // save+exit (Enter splits in outliner mode)
 
     expect(repo.getNode("ab")?.content).toBe("b")
     expect(board.screenshot()).not.toContain("ab")
@@ -185,7 +185,7 @@ describe("Inline Edit — Readline Integration", () => {
     // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
     board.press("Control+a")
     board.press("0")
-    board.press("Enter")
+    board.press("Escape") // save+exit (Enter splits in outliner mode)
 
     expect(repo.getNode("xyz")?.content).toBe("0xyz")
     expect(board.screenshot()).toContain("0xyz")
@@ -417,6 +417,96 @@ describe("Inline Edit — Edge Cases", () => {
     board.press("Enter") // save orig12 + create another sibling
     expect(repo.getNode("orig")?.content).toBe("orig12")
     expect(board.screenshot()).toContain("orig12")
+  })
+})
+
+describe("Inline Edit — Outliner Enter Behavior", () => {
+  // Enter behavior depends on cursor position (Decker-style outliner):
+  // - At end (no children): insert sibling after
+  // - At start: insert sibling before
+  // - In middle: split node at cursor
+  // All cases save current content, create new node, enter edit on new node.
+
+  test("Enter at end of text creates sibling after", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+
+    board.expect("#alpha[data-cursor]").toExist()
+    board.press("Enter") // edit mode, cursor at end
+
+    // Cursor is at end → Enter creates sibling after
+    board.press("Enter")
+
+    // "alpha" saved unchanged
+    expect(repo.getNode("alpha")?.content).toContain("alpha")
+
+    // New empty node in edit mode — exit to verify structure
+    board.press("Escape")
+
+    // Verify: alpha is still first card, new empty node after it, then beta
+    // Use repo's children to verify order (repo is the source of truth)
+    const siblings = repo.getChildren("col1")
+    const alphaIdx = siblings.findIndex((n) => n.id === "alpha")
+    const betaIdx = siblings.findIndex((n) => n.id === "beta")
+    // New node should be between alpha and beta
+    expect(siblings.length).toBe(3) // alpha + new + beta
+    expect(alphaIdx).toBeLessThan(betaIdx)
+    expect(alphaIdx + 1).toBeLessThan(betaIdx) // new node sits between
+  })
+
+  test("Enter at start of text creates sibling before", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
+
+    board.expect("#alpha[data-cursor]").toExist()
+    board.press("Enter") // edit mode, cursor at end
+    board.press("Control+a") // move cursor to start
+
+    // Cursor is at start → Enter creates sibling before
+    board.press("Enter")
+
+    // "alpha" saved unchanged
+    expect(repo.getNode("alpha")?.content).toContain("alpha")
+
+    // Exit new node's edit mode
+    board.press("Escape")
+
+    // Verify: new node before alpha, then beta
+    const siblings = repo.getChildren("col1")
+    const alphaIdx = siblings.findIndex((n) => n.id === "alpha")
+    const betaIdx = siblings.findIndex((n) => n.id === "beta")
+    // New node is at position 0, alpha pushed to 1
+    expect(siblings.length).toBe(3)
+    expect(alphaIdx).toBeGreaterThan(0) // alpha no longer first
+    expect(alphaIdx).toBeLessThan(betaIdx)
+  })
+
+  test("Enter in middle of text splits node", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("abcd"), item("zeta"))))
+
+    board.expect("#abcd[data-cursor]").toExist()
+    board.press("Enter") // edit mode, cursor at end of "abcd"
+
+    // Move cursor to middle: abcd| → ab|cd
+    board.press("ArrowLeft")
+    board.press("ArrowLeft")
+
+    // Enter in middle → split node at cursor
+    board.press("Enter")
+
+    // Original node should have first part (with task marker prefix)
+    const origContent = repo.getNode("abcd")?.content ?? ""
+    expect(origContent).toContain("ab")
+    expect(origContent).not.toContain("cd")
+
+    // We're now in edit mode on the new "cd" node — exit it
+    board.press("Escape")
+
+    // Verify: both parts exist in sibling order, followed by zeta
+    const siblings = repo.getChildren("col1")
+    const abIdx = siblings.findIndex((n) => (n.content ?? "").includes("ab"))
+    const cdIdx = siblings.findIndex((n) => (n.content ?? "").includes("cd"))
+    const zetaIdx = siblings.findIndex((n) => n.id === "zeta")
+    expect(abIdx).toBeLessThan(cdIdx)
+    expect(cdIdx).toBeLessThan(zetaIdx)
   })
 })
 
@@ -1124,10 +1214,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
 
     test("mouse click in edit mode repositions within same card", () => {
-      const { board } = testEnv(
-        () => item("board", item("Column", item("card", item("child-1"), item("child-2")))),
-        { columns: 80, rows: 24 },
-      )
+      const { board } = testEnv(() => item("board", item("Column", item("card", item("child-1"), item("child-2")))), {
+        columns: 80,
+        rows: 24,
+      })
 
       // Click child-1 and enter edit mode
       const c1 = board.q("[id='child-1']")
@@ -1146,12 +1236,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     test("mouse click outside card exits edit mode", () => {
       const { board } = testEnv(
-        () =>
-          item.root(
-            "board",
-            item("Column", item("card-a", item("child-1"))),
-            item("Other", item("card-b")),
-          ),
+        () => item.root("board", item("Column", item("card-a", item("child-1"))), item("Other", item("card-b"))),
         { columns: 80, rows: 24 },
       )
 

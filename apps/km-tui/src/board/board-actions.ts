@@ -30,6 +30,7 @@ import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "inkx
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   extractBody,
+  splitNode,
   mergeWithNext,
   mergeWithPrevious,
   detectPrefixConversion,
@@ -38,7 +39,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { type KNode, isOutline, isListItem } from "@km/core"
+import { type KNode, isOutline, isListItem, extractTitleTaskMarker } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import {
   getFavorite,
@@ -1083,10 +1084,35 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       activeEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM": {
-      // Enter in edit mode: save and exit.
+      // Enter in detail pane or dialog: save and exit.
       const target = activeEditTargetRef.current
       if (target) target.save()
       if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
+      return ok()
+    }
+    case "TEXT_LINEBREAK_SPLIT":
+      return handleLinebreakSplit(ctx)
+    case "TEXT_LINEBREAK_BEFORE": {
+      activeEditTargetRef.current?.save()
+      handleLinebreakSibling(ctx, "before")
+      return ok()
+    }
+    case "TEXT_LINEBREAK_AFTER": {
+      activeEditTargetRef.current?.save()
+      handleLinebreakSibling(ctx, "after")
+      return ok()
+    }
+    case "TEXT_LINEBREAK_CHILD": {
+      // Enter at end of title with visible children → insert as FIRST child
+      // (right after the title, like outliner flow)
+      activeEditTargetRef.current?.save()
+      handleAddNodeChildFirst(ctx)
+      return ok()
+    }
+    case "TEXT_CHILD_BLOCK": {
+      // Shift+Enter → add child at end (same as normal "add child" command)
+      activeEditTargetRef.current?.save()
+      handleAddNodeChild(ctx)
       return ok()
     }
     case "TEXT_EXIT_EDIT": {
@@ -1347,6 +1373,114 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 // =============================================================================
 // Helper Functions (local to this file)
 // =============================================================================
+
+/** Enter at start/end of title → insert sibling before/after using the node's actual parent. */
+function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): void {
+  const { repo } = ctx
+  const edit = ctx.ui.inlineEditBlock
+  if (!edit) return
+
+  const nodeId = edit.nodeId
+  const node = repo.getNode(nodeId)
+  if (!node?.parent_id) return
+
+  const parentId = node.parent_id
+  const siblings = repo.getChildren(parentId)
+  const sibIdx = siblings.findIndex((s) => s.id === nodeId)
+  if (sibIdx === -1) return
+
+  const currentNode = siblings[sibIdx]!
+  const currentIdx = currentNode.parent_idx ?? 0
+  const adjacent = siblings[sibIdx + (position === "after" ? 1 : -1)]
+  const adjacentIdx = adjacent?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
+  const newSortOrder = (currentIdx + adjacentIdx) / 2
+
+  const isCurrentTask = currentNode.task_marker !== undefined
+  const newNode: Partial<KNode> = {
+    type: isCurrentTask ? "p" : "h",
+    item: true,
+    content: "",
+    parent_idx: newSortOrder,
+  }
+  if (isCurrentTask) {
+    newNode.task_status = "todo"
+    newNode.task_marker = "[ ]"
+    newNode.list_marker = currentNode.list_marker ?? "-"
+  } else {
+    newNode.fstype = "mdsection"
+  }
+
+  ctx.undoHandle.setCursor(nodeId)
+  const newId = repo.addNode(parentId, newNode)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+}
+
+/** Enter in inline edit — split node at cursor position, adjusting for task markers and body blocks. */
+function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
+  const edit = ctx.ui.inlineEditBlock
+  if (!edit) return ok()
+
+  const editTarget = activeEditTargetRef.current
+  if (!editTarget) return ok()
+
+  const editOffset = editTarget.getCursorOffset()
+  editTarget.save()
+
+  // Resolve to body child node if editing a body block
+  let nodeId: string = edit.nodeId
+  if (edit.blockIndex > 0) {
+    const body = extractBody(ctx.repo.getChildren(edit.nodeId)).body
+    const child = body[edit.blockIndex - 1]
+    if (!child) return ok()
+    nodeId = child.id
+  }
+
+  const node = ctx.repo.getNode(nodeId)
+  if (!node) return ok()
+
+  // Adjust offset for task markers (e.g., "[ ] " prefix hidden from edit field)
+  const { marker } = extractTitleTaskMarker(node.content ?? "")
+  const adjustedOffset = marker && edit.blockIndex === 0 ? editOffset + marker.length + 1 : editOffset
+
+  try {
+    ctx.undoHandle.setCursor(nodeId)
+    ctx.undoHandle.startBatch("Split node")
+    const result = splitNode(ctx.repo, nodeId, adjustedOffset)
+    ctx.undoHandle.endBatch()
+    ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+  } catch {
+    ctx.undoHandle.endBatch()
+    ctx.setUI({ bellState: "split-failed" })
+  }
+
+  return ok()
+}
+
+/** Enter at end of title with visible children → insert empty node as FIRST child. */
+function handleAddNodeChildFirst(ctx: ActionCtx): void {
+  const cursorId = ctx.cursorNodeId
+  if (!cursorId) return
+
+  const { repo } = ctx
+  const children = repo.getChildren(cursorId)
+  const firstChild = children[0]
+  // Sort order before existing first child (or 0 if none)
+  const newSortOrder = firstChild ? (firstChild.parent_idx ?? 0) - 1 : 0
+
+  const newNode: Partial<KNode> = {
+    type: "h",
+    item: true,
+    content: "",
+    parent_idx: newSortOrder,
+    data: {},
+  }
+
+  ctx.undoHandle.setCursor(cursorId)
+  const newId = repo.addNode(cursorId, newNode)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+}
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx

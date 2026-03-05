@@ -16,7 +16,8 @@ import {
   type InkCommandResult,
   type TNode,
 } from "@km/commands"
-import { detectTerminalCaps } from "inkx"
+import { detectTerminalCaps, activeEditTargetRef } from "inkx"
+import { extractBody } from "@km/tree"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
 import { getModeStack } from "./dialog-guard.ts"
@@ -98,6 +99,23 @@ function buildCommandContexts(ctx: ActionCtx) {
     favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
     inputType: ui.inlineEditBlock ? "textarea" : isDialogInput ? "field" : undefined,
+    editBlockIndex: ui.inlineEditBlock?.blockIndex,
+    cursorAtStart() {
+      const t = activeEditTargetRef.current
+      return t ? t.getCursorOffset() === 0 && t.getContent().length > 0 : false
+    },
+    cursorAtEnd() {
+      const t = activeEditTargetRef.current
+      return t ? t.getCursorOffset() >= t.getContent().length : true
+    },
+    hasVisibleChildren() {
+      if (!ui.inlineEditBlock) return false
+      const children = ctx.repo.getChildren(ui.inlineEditBlock.nodeId)
+      const { items } = extractBody(children)
+      if (items.length === 0) return false
+      if (ctx.foldDepths.get(ui.inlineEditBlock.nodeId) === 0) return false
+      return true
+    },
   })
 
   const { colIndex, cardIndex, columns } = ctx

@@ -78,6 +78,9 @@ function defaultKbCtx(): KeybindingContext {
     deleteConfirmOpen: false,
     consoleOpen: false,
     hasActiveToast: false,
+    cursorAtStart: () => false,
+    cursorAtEnd: () => true,
+    hasVisibleChildren: () => false,
   }
 }
 

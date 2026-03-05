@@ -283,6 +283,14 @@ export function buildKeybindingContext(options: {
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
   inputType?: "field" | "textarea"
+  /** Index of the block being edited (0 = title, 1+ = body) */
+  editBlockIndex?: number
+  /** True when cursor is at position 0 and content is non-empty */
+  cursorAtStart?: () => boolean
+  /** True when cursor is at or past end of content */
+  cursorAtEnd?: () => boolean
+  /** True when the edited node has visible (unfolded) structural children */
+  hasVisibleChildren?: () => boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -315,6 +323,10 @@ export function buildKeybindingContext(options: {
     favoritesKeySelected: options.favoritesKeySelected ?? false,
     hasKitty: options.hasKitty ?? false,
     inputType: options.inputType,
+    editBlockIndex: options.editBlockIndex,
+    cursorAtStart: options.cursorAtStart ?? (() => false),
+    cursorAtEnd: options.cursorAtEnd ?? (() => true),
+    hasVisibleChildren: options.hasVisibleChildren ?? (() => false),
   }
 }
 

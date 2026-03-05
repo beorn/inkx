@@ -132,6 +132,26 @@ export interface TextYankAction {
   type: "TEXT_YANK"
 }
 
+export interface TextLinebreakSplitAction {
+  type: "TEXT_LINEBREAK_SPLIT"
+}
+
+export interface TextLinebreakBeforeAction {
+  type: "TEXT_LINEBREAK_BEFORE"
+}
+
+export interface TextLinebreakChildAction {
+  type: "TEXT_LINEBREAK_CHILD"
+}
+
+export interface TextLinebreakAfterAction {
+  type: "TEXT_LINEBREAK_AFTER"
+}
+
+export interface TextChildBlockAction {
+  type: "TEXT_CHILD_BLOCK"
+}
+
 export type TextEditAction =
   | TextInsertAction
   | TextDeleteBackwardAction
@@ -148,6 +168,11 @@ export type TextEditAction =
   | TextConfirmAction
   | TextExitEditAction
   | TextYankAction
+  | TextLinebreakSplitAction
+  | TextLinebreakBeforeAction
+  | TextLinebreakChildAction
+  | TextLinebreakAfterAction
+  | TextChildBlockAction
 
 // Custom action types for commands that operate outside the board reducer
 export interface TaskSetStatusAction {

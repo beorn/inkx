@@ -148,6 +148,14 @@ export interface KeybindingContext {
   hasKitty?: boolean
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
   inputType?: "field" | "textarea"
+  /** Index of the block being edited (0 = title, 1+ = body) */
+  editBlockIndex?: number
+  /** True when cursor is at position 0 and content is non-empty */
+  cursorAtStart(): boolean
+  /** True when cursor is at or past end of content */
+  cursorAtEnd(): boolean
+  /** True when the edited node has visible (unfolded) structural children */
+  hasVisibleChildren(): boolean
 }
 
 // Internal binding with registration order and pre-parsed key data for fast matching
@@ -597,8 +605,49 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ctrl-u", commandId: "text.delete_to_start", when: textInputFocused },
         { key: "ctrl-k", commandId: "text.delete_to_end", when: and(textInputFocused, hasKitty) },
         { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
-        // Enter during text input → confirm (save+exit for inline edit, submit for search)
-        { key: "Enter", commandId: "text.confirm", when: textInputFocused },
+
+        // Enter — inline edit: cursor-position-aware behavior
+        // Title (blockIndex 0 or undefined): start → insert before, middle → split, end+children → child, end → sibling
+        {
+          key: "Enter",
+          commandId: "text.linebreak_before",
+          when: (ctx) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtStart(),
+        },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_split",
+          when: (ctx) =>
+            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && !ctx.cursorAtStart() && !ctx.cursorAtEnd(),
+        },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_child",
+          when: (ctx) =>
+            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtEnd() && ctx.hasVisibleChildren(),
+        },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_after",
+          when: (ctx) =>
+            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtEnd() && !ctx.hasVisibleChildren(),
+        },
+        // Body block → split paragraph
+        {
+          key: "Enter",
+          commandId: "text.linebreak_split",
+          when: (ctx) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) > 0,
+        },
+        // Detail pane → save and exit
+        {
+          key: "Enter",
+          commandId: "text.confirm",
+          when: (ctx) => ctx.isInlineEditing && ctx.isInDetailPane,
+        },
+        // Dialog/search text input → confirm
+        { key: "Enter", commandId: "text.confirm", when: (ctx) => ctx.textInputFocused && !ctx.isInlineEditing },
+        // Shift+Enter — always insert child
+        { key: "shift-Enter", commandId: "text.child_block", when: (ctx) => ctx.isInlineEditing },
+
         { key: "Escape", commandId: "text.exit_edit", when: textInputFocused },
       ],
     },

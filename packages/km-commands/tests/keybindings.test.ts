@@ -75,6 +75,9 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     deleteConfirmOpen: false,
     consoleOpen: false,
     hasActiveToast: false,
+    cursorAtStart: () => false,
+    cursorAtEnd: () => true,
+    hasVisibleChildren: () => false,
     ...overrides,
   }
 }
@@ -1191,8 +1194,8 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("Escape", {}, inlineCtx)).toEqual({ commandId: "text.exit_edit" })
     })
 
-    it("Enter → text.confirm", () => {
-      expect(resolveKeybinding("Enter", {}, inlineCtx)).toEqual({ commandId: "text.confirm" })
+    it("Enter → text.linebreak_after (cursor at end, no children)", () => {
+      expect(resolveKeybinding("Enter", {}, inlineCtx)).toEqual({ commandId: "text.linebreak_after" })
     })
 
     it("Backspace → text.delete_backward", () => {
