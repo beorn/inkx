@@ -1448,8 +1448,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   const adjustedOffset = marker && !isBodyBlock ? editOffset + marker.length + 1 : editOffset
 
   // Title split with visible children → after-portion becomes first child
-  const hasVisibleChildren =
-    !isBodyBlock && hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.foldDepths)
+  const hasVisibleChildren = !isBodyBlock && hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.foldDepths)
 
   try {
     ctx.undoHandle.setCursor(nodeId)
