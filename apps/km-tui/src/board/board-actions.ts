@@ -368,7 +368,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       const result = ctx.undoHandle.undo()
       // Restore cursor to saved position if available, otherwise keep current
       const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
-      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
       return ok()
@@ -1116,18 +1115,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       return ok()
     }
     case "TEXT_EXIT_EDIT": {
-      const _target = activeEditTargetRef.current
+      const target = activeEditTargetRef.current
       if (ctx.ui.inlineEditBlock) {
         // Escape saves and exits: save() persists content synchronously via
         // handleTitleSave (repo.updateNode), then we exit edit mode.
         // We use save() (not confirm()) because confirm → handleInlineEditConfirm
         // goes through the async jobRunner path for renames, which doesn't
         // complete before the React render cycle.
-        _target?.save()
+        target?.save()
         ctx.setUI({ inlineEditBlock: null })
       } else {
         // Dialog text input (date prompt, etc.): cancel the dialog
-        _target?.cancel()
+        target?.cancel()
       }
       return ok()
     }
@@ -1448,6 +1447,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   if (node.content == null) {
     const editText = editTarget.getContent()
     ctx.repo.updateNode(nodeId, { content: editText })
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- just updated the node, it exists
     node = ctx.repo.getNode(nodeId)!
   }
 
@@ -2003,8 +2003,8 @@ function getSelectedCardNodeIds(ctx: ActionCtx): string[] {
 function handleSetDatePrompt(ctx: ActionCtx, field: "due_at" | "start_at" | "rrule"): ActionResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary(field, "No card selected")
-  const firstNodeId = nodeIds[0]
-  if (!firstNodeId) return boundary(field, "No card selected")
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- length > 0 guarantees [0] exists
+  const firstNodeId = nodeIds[0]!
 
   const firstNode = ctx.repo.getNode(firstNodeId)
   const currentValue = firstNode?.[field] ?? ""
@@ -2285,11 +2285,3 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
 
   return ok()
 }
-
-// =============================================================================
-// Fold Helpers
-// =============================================================================
-
-// =============================================================================
-// Detail pane cursor helpers — resolve detail node and cursor from nodeId-based state
-// =============================================================================

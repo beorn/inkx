@@ -7,7 +7,7 @@
 
 import { useMemo } from "react"
 import type { KNode } from "@km/core"
-import { useRepo, type Repo } from "../repo-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { deriveExcludedSigils } from "../ui-context.tsx"
 import {

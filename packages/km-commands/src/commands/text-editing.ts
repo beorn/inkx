@@ -158,9 +158,3 @@ export const textEditingCommands: CommandDef[] = [
   },
 ]
 
-/**
- * Detail pane commands — kept for backward compat but now route through standard navigation.
- * j/k/h fall through to standard cursor_down/cursor_up/cursor_left.
- * Enter in detail pane is intercepted by the keybinding layer to zoom_inwards.
- */
-export const detailPaneCommands: CommandDef[] = []

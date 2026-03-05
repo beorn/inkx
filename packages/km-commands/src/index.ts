@@ -108,7 +108,6 @@ export {
   historyCommands,
   tuiCommands,
   textEditingCommands,
-  detailPaneCommands,
   allCommands,
   blockEditCommands,
   dialogCommands,

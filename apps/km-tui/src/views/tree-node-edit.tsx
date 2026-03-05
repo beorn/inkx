@@ -242,10 +242,9 @@ export function BodyBlockEditor({
   const editBlockIndex = editState.blockIndex
 
   // Compute body/structural split for per-block navigation
-  const { bodyChildren } = useMemo(() => {
+  const bodyChildren = useMemo(() => {
     const allChildren = resolvedGetChildren(childrenSourceId)
-    const { body, items } = extractBody(allChildren)
-    return { bodyChildren: body, structuralChildren: items }
+    return extractBody(allChildren).body
   }, [childrenSourceId, resolvedGetChildren])
 
   // Body block save callback (persists content for a body child)

@@ -73,6 +73,7 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showFilterDialog ||
       !!ui.datePrompt ||
       ui.showOmnibox ||
+      !!ui.localSearch?.isInputActive ||
       !!ui.searchReplace,
     hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
