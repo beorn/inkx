@@ -562,7 +562,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       ],
     },
 
-    // --- Layer 4: Dialog navigation (when any text-input dialog is open) ---
+    // --- Layer 4a: Dialog navigation (when any text-input dialog is open) ---
     {
       name: "dialog",
       bindings: [
@@ -576,7 +576,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       ],
     },
 
-    // --- Layer 4: Block editing (when isInlineEditing) ---
+    // --- Layer 4b: Block editing (when isInlineEditing) ---
     {
       name: "block-edit",
       bindings: [

@@ -62,6 +62,35 @@ const log = createLogger("km:tui:board-actions")
  */
 export const MAX_FOLD_DEPTH = 20
 
+/** Determine fold target node IDs from selection → card → column fallback. */
+function getFoldTargetRoots(ctx: ActionCtx, card: KNode | null | undefined): string[] {
+  const selected = getSelectedCards(ctx)
+  return selected.length > 0
+    ? selected.map((c) => c.id)
+    : card
+      ? [card.id]
+      : ctx.column
+        ? ctx.column.cardNodes.map((n) => n.id)
+        : []
+}
+
+/**
+ * Apply backspace degradation to a node, adjusting content based on type changes.
+ * When stripping task marker or converting outline/list to plain p, content is reformatted.
+ */
+function applyDegradation(node: KNode, degradation: Record<string, unknown>, content: string): void {
+  if (node.task_marker && degradation.task_marker === undefined) {
+    degradation.content = content
+  }
+  if (degradation.type === "p" && isOutline(node.type, node.item)) {
+    degradation.content = content
+    degradation.name = undefined
+  }
+  if (degradation.type === "p" && isListItem(node.type, node.item)) {
+    degradation.content = content
+  }
+}
+
 // Import handlers from specialized modules
 import {
   executeDelete,
@@ -556,15 +585,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
 
       // Per-card fold: determine fold targets
-      const selected = getSelectedCards(ctx)
-      const roots =
-        selected.length > 0
-          ? selected.map((c) => c.id)
-          : card
-            ? [card.id]
-            : ctx.column
-              ? ctx.column.cardNodes.map((n) => n.id)
-              : []
+      const roots = getFoldTargetRoots(ctx, card)
       if (roots.length === 0) return boundary("fold", "no card or column selected")
       let changed = false
       for (const nodeId of roots) {
@@ -600,15 +621,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
 
       // Per-card unfold: determine targets
-      const selected = getSelectedCards(ctx)
-      const roots =
-        selected.length > 0
-          ? selected.map((c) => c.id)
-          : card
-            ? [card.id]
-            : ctx.column
-              ? ctx.column.cardNodes.map((n) => n.id)
-              : []
+      const roots = getFoldTargetRoots(ctx, card)
       if (roots.length === 0) return boundary("fold", "no card or column selected")
       let changed = false
       for (const nodeId of roots) {
@@ -803,8 +816,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     // === UI stubs (future features) ===
     case "ARCHIVE_NODE":
     case "CAPTURE":
-    case "CAPTURE_INBOX":
-    case "CAPTURE_DIALOG":
     case "SETTINGS":
       return unimplemented("ui")
     case "MANAGE_FAVORITES":
@@ -962,19 +973,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           const degradation = backspaceDegradation(node)
           if (degradation) {
             ctx.undoHandle.setCursor(ctx.cursorNodeId)
-            // When stripping task marker, reformat content to plain text
-            if (node.task_marker && degradation.task_marker === undefined) {
-              degradation.content = content // content from edit field is already stripped
-            }
-            // When converting outline → p, move name to content
-            if (degradation.type === "p" && isOutline(node.type, node.item)) {
-              degradation.content = content
-              degradation.name = undefined
-            }
-            // When converting list item → p, ensure content is plain text
-            if (degradation.type === "p" && isListItem(node.type, node.item)) {
-              degradation.content = content
-            }
+            applyDegradation(node, degradation, content)
             ctx.repo.updateNode(nodeId, degradation)
             ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
             return ok()
@@ -1014,19 +1013,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             if (degradation) {
               // Strip next node's traits progressively (task → type → merge)
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
-              // When stripping task marker, reformat content to plain text
-              if (nextNode.task_marker && degradation.task_marker === undefined) {
-                degradation.content = getNodeText(nextNode)
-              }
-              // When converting outline → p, move name to content
-              if (degradation.type === "p" && isOutline(nextNode.type, nextNode.item)) {
-                degradation.content = getNodeText(nextNode)
-                degradation.name = undefined
-              }
-              // When converting list item → p, ensure content is plain text
-              if (degradation.type === "p" && isListItem(nextNode.type, nextNode.item)) {
-                degradation.content = getNodeText(nextNode)
-              }
+              applyDegradation(nextNode, degradation, getNodeText(nextNode))
               ctx.repo.updateNode(nextNode.id, degradation)
               ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
               return ok()

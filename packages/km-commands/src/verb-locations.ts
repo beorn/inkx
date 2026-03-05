@@ -94,7 +94,7 @@ export const createIn =
   (_target: TargetResolver): Execute =>
   (_ctx) => {
     // For now, capture dialog is the only create verb
-    return { type: "CAPTURE_DIALOG" }
+    return { type: "CAPTURE" }
   }
 
 // --- Location and Verb Registries ---

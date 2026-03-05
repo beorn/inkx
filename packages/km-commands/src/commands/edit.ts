@@ -230,7 +230,7 @@ const captureInbox = {
   shortLabel: "inbox",
   description: "Quick-add a new item to inbox",
   category: "Edit",
-  execute: () => ({ type: "CAPTURE_INBOX" }),
+  execute: () => ({ type: "CAPTURE", location: "inbox" }),
 } satisfies CommandDef
 
 // Capture with dialog — stub
@@ -240,7 +240,7 @@ const captureDialog = {
   shortLabel: "dialog",
   description: "Add a new item via capture dialog",
   category: "Edit",
-  execute: () => ({ type: "CAPTURE_DIALOG" }),
+  execute: () => ({ type: "CAPTURE" }),
 } satisfies CommandDef
 
 // Add child item

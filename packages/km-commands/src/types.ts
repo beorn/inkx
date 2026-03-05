@@ -639,16 +639,8 @@ interface ArchiveNodeAction {
 
 interface CaptureAction {
   type: "CAPTURE"
-  /** Preset location (e.g., "@inbox"). Undefined = open dialog with picker. */
+  /** Preset location (e.g., "inbox"). Undefined = open dialog with picker. */
   location?: string
-}
-
-interface CaptureInboxAction {
-  type: "CAPTURE_INBOX"
-}
-
-interface CaptureDialogAction {
-  type: "CAPTURE_DIALOG"
 }
 
 interface SettingsAction {
@@ -912,8 +904,6 @@ export type TUIAction =
   | ShiftToBottomAction
   | ArchiveNodeAction
   | CaptureAction
-  | CaptureInboxAction
-  | CaptureDialogAction
   | SettingsAction
   | PaneSplitAction
   | PaneCloseAction

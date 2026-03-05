@@ -242,15 +242,15 @@ describe("verb-locations", () => {
     })
 
     describe("createIn", () => {
-      it("returns CAPTURE_DIALOG for any target", () => {
-        expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
-        expect(createIn(journal)(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
-        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
+      it("returns CAPTURE for any target", () => {
+        expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CAPTURE" })
+        expect(createIn(journal)(emptyCtx)).toEqual({ type: "CAPTURE" })
+        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CAPTURE" })
       })
 
-      it("returns CAPTURE_DIALOG even with null target resolver", () => {
+      it("returns CAPTURE even with null target resolver", () => {
         const nullTarget: TargetResolver = () => null
-        expect(createIn(nullTarget)(emptyCtx)).toEqual({ type: "CAPTURE_DIALOG" })
+        expect(createIn(nullTarget)(emptyCtx)).toEqual({ type: "CAPTURE" })
       })
     })
   })
@@ -450,12 +450,12 @@ describe("verb-locations", () => {
       }
     })
 
-    it("produces c i (createIn inbox = CAPTURE_DIALOG)", () => {
+    it("produces c i (createIn inbox = CAPTURE)", () => {
       const b = findBinding(grid, "c", "i")
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("create_in")
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "CAPTURE_DIALOG" })
+      expect(action).toEqual({ type: "CAPTURE" })
     })
 
     it("has a reasonable total count", () => {
