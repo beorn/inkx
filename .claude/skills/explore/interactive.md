@@ -353,7 +353,8 @@ These keys only work during inline editing or when a text input field is active.
 | `Ctrl+W` | `Control+w` | text.delete_word | Delete word backwards |
 | `Ctrl+U` | `Control+u` | text.delete_to_start | Delete from cursor to start of line |
 | `Ctrl+K` | `Control+k` | text.delete_to_end | Delete from cursor to end of line |
-| `Enter` | `Enter` | text.confirm | Confirm text input (save and exit) |
+| `Enter` | `Enter` | text.linebreak_* | Outliner split/insert (cursor-aware); confirm in dialogs |
+| `Shift+Enter` | `shift+Enter` | text.child_block | Insert child node (inline edit only) |
 | `Escape` | `Escape` | text.exit_edit | Save and exit text editing mode |
 | `Ctrl+Z` / `Cmd+Z` | `Control+z` / `Meta+z` | undo | Undo (during inline edit) |
 | `Ctrl+Shift+Z` / `Cmd+Shift+Z` | `Control+Shift+z` / `Meta+Shift+z` | redo | Redo (during inline edit) |
