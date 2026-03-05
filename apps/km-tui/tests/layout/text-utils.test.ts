@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { wrapText, truncateText, padText, constrainText, displayWidth as displayLength } from "inkx"
+import { wrapText, truncateText, padText, constrainText, displayWidth as displayLength } from "@hightea/term"
 
 // =============================================================================
 // wrapText

@@ -7,8 +7,8 @@
 
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createRenderer } from "inkx/testing"
-import { Box, Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text } from "@hightea/term"
 
 // Import matchers to register them with Vitest
 import "./matchers.ts"

@@ -9,8 +9,8 @@
  * All components use $token strings (e.g., "$selection", "$focusborder")
  * which inkx ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "inkx"
-import type { Theme, TerminalCaps } from "inkx"
+import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@hightea/term"
+import type { Theme, TerminalCaps } from "@hightea/term"
 
 /** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme

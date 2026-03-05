@@ -4,7 +4,7 @@
 /* oxlint-disable complexity/complexity -- React component — status bar with many indicator conditionals */
 
 import React from "react"
-import { Box, Text, useFocusManager } from "inkx"
+import { Box, Text, useFocusManager } from "@hightea/term"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"

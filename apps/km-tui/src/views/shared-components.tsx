@@ -5,9 +5,9 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "inkx"
-import { useApp as useAppStore } from "inkx/runtime"
-import { createLogger } from "@beorn/logger"
+import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "@hightea/term"
+import { useApp as useAppStore } from "@hightea/term/runtime"
+import { createLogger } from "decant"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"

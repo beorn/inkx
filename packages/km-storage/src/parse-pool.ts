@@ -6,7 +6,7 @@
  * km-disposable.3: Wrapped with Service factory pattern
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { cpus } from "os"
 import type { ServiceStatus } from "./watcher.ts"
 import type { ParseRequest, WorkerMessage, WorkerResponse } from "./parse-worker.ts"

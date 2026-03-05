@@ -16,7 +16,7 @@ import {
   type InkCommandResult,
   type TNode,
 } from "@km/commands"
-import { detectTerminalCaps, activeEditTargetRef } from "inkx"
+import { detectTerminalCaps, activeEditTargetRef } from "@hightea/term"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
 import { getModeStack } from "./dialog-guard.ts"

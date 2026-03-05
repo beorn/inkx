@@ -10,7 +10,7 @@
  * to avoid O(n) database queries during render.
  */
 import React, { useMemo, useCallback } from "react"
-import { Box, Text, VirtualList } from "inkx"
+import { Box, Text, VirtualList } from "@hightea/term"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
@@ -20,7 +20,7 @@ import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore } from "@hightea/term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants

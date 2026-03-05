@@ -4,7 +4,7 @@
  * Manages the km daemon - a background process for sync and automation
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { createServer, connect } from "net"
 import type { Socket } from "net"
 
@@ -12,7 +12,7 @@ const log = createLogger("km:cli:daemon")
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"

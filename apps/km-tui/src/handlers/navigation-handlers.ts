@@ -11,7 +11,7 @@
  * See plan hazy-forging-crayon.md for design rationale.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { Repo } from "@km/storage"
 import { indexOfChild } from "../sibling-index.ts"
 

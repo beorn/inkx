@@ -7,8 +7,8 @@
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { renderStatic, ThemeProvider } from "inkx"
-import { createRenderer } from "inkx/testing"
+import { renderStatic, ThemeProvider } from "@hightea/term"
+import { createRenderer } from "@hightea/term/testing"
 import { HelpOverlay } from "../src/views/HelpOverlay.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
 

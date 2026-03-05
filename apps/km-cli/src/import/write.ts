@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs"
 import { join, dirname } from "path"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 

@@ -20,7 +20,7 @@ import {
   JUSTIFY_SPACE_BETWEEN,
   ALIGN_CENTER,
   GUTTER_ALL,
-} from "@beorn/flexx"
+} from "flexture"
 
 // ============================================================================
 // Test Case Generators (Yoga-compatible structures)

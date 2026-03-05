@@ -12,7 +12,7 @@
  * km add myboard TASKID        # Link only (no sigil — not a sigil target)
  */
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { realpathSync } from "fs"

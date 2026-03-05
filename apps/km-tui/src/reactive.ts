@@ -12,7 +12,7 @@ import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.t
 import { getNodeDisplayName } from "./state.ts"
 import type { SelectionKey } from "./types.ts"
 import { makeSelectionKey } from "./types.ts"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 
 const log = createLogger("km:tui:hydrate")
 

@@ -1,6 +1,6 @@
 import React from "react"
-import { renderString } from "inkx"
-import { Box, Text } from "inkx"
+import { renderString } from "@hightea/term"
+import { Box, Text } from "@hightea/term"
 import type { AccountConfig, QuotaInfo, QuotaWindow } from "./types.ts"
 
 // ── Helpers ─────────────────────────────────────────────────────────────

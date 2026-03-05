@@ -4,7 +4,7 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"

@@ -12,7 +12,7 @@
  *   emitter.close()
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"

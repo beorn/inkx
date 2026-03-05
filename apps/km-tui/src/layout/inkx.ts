@@ -2,7 +2,7 @@
  * Layout components bound to inkx
  */
 
-import { Box, Text, useStdout } from "inkx"
+import { Box, Text, useStdout } from "@hightea/term"
 import { createLayoutComponents } from "./factory.tsx"
 
 // Re-export everything from factory (types, pure utilities, hooks)

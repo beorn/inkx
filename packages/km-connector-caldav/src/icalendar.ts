@@ -5,7 +5,7 @@
  * Implements RFC 5545 (iCalendar).
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { CalendarEvent, Attendee } from "./types.ts"
 import { parseEventStatus, parseAttendeeStatus } from "./constants.ts"
 

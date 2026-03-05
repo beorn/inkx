@@ -10,7 +10,7 @@
 
 import type { Repo } from "@km/storage"
 import { isOutline } from "@km/core"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { extractBody } from "@km/tree"
 import type { GridNavigator } from "@km/board"
 import type { ViewMode } from "./types.ts"

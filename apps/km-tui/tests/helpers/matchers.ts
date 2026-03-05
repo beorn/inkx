@@ -16,7 +16,7 @@
  */
 
 import { expect } from "vitest"
-import type { AutoLocator, Rect } from "inkx/testing"
+import type { AutoLocator, Rect } from "@hightea/term/testing"
 
 // =============================================================================
 // Type Guard

@@ -15,8 +15,8 @@ import { buildBoardState } from "../src/state.ts"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
-import { compareBuffers, formatMismatch } from "inkx/toolbelt"
-import { bufferToText } from "inkx/testing"
+import { compareBuffers, formatMismatch } from "@hightea/term/toolbelt"
+import { bufferToText } from "@hightea/term/testing"
 import { existsSync } from "fs"
 
 describe("Layout", () => {

@@ -8,8 +8,8 @@
  */
 
 import React, { useCallback, useMemo } from "react"
-import { Box, Text } from "inkx"
-import { useApp as useAppStore, StoreContext } from "inkx/runtime"
+import { Box, Text } from "@hightea/term"
+import { useApp as useAppStore, StoreContext } from "@hightea/term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { usePaneUI } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"

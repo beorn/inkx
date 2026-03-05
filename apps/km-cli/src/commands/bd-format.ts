@@ -4,7 +4,7 @@
  * Pure functions for formatting issue data for CLI output.
  */
 
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import type { Issue } from "@km/beads"

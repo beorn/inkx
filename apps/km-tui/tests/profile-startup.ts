@@ -13,10 +13,10 @@ import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createToastQueue } from "@km/core"
 import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import React from "react"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
-import { InputLayerProvider } from "inkx"
+import { InputLayerProvider } from "@hightea/term"
 
 const repoPath = process.env.VAULT ?? "/Users/beorn/Code/pim/km/imports/asana"
 

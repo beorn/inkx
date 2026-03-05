@@ -5,7 +5,7 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, ErrorBoundary, ModalDialog } from "inkx"
+import { Box, Text, ErrorBoundary, ModalDialog } from "@hightea/term"
 import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"

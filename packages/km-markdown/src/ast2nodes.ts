@@ -20,7 +20,7 @@
  * For the reverse operation (KNodes → markdown), see nodes2md.ts.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { ulid } from "ulid"
 
 const log = createLogger("km:markdown:ast2nodes")

@@ -8,11 +8,11 @@
  * No CardState wrapper — cards are plain KNode objects.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore } from "@hightea/term/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
-import { Box, Text, useScreenRectCallback } from "inkx"
+import { Box, Text, useScreenRectCallback } from "@hightea/term"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"

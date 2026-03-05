@@ -5,9 +5,9 @@
  * Replaces the old rebuild command with a structured set of subcommands.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 

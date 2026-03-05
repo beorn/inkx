@@ -6,7 +6,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { join } from "path"
 
 import type { DataStore, HasDatabase } from "./data-store.ts"

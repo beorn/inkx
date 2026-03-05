@@ -5,7 +5,7 @@
  * This component exists for storybook demonstrations.
  */
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 import { renderTopBarContent } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/index.ts"
 

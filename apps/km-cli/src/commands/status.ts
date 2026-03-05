@@ -10,7 +10,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { resolvePathArg, getNextOccurrence, naturalToRRule } from "@km/storage"

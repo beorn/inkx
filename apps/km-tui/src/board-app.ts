@@ -6,10 +6,10 @@
  * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
-import { createApp, type EventHandlerContext } from "inkx/runtime"
-import type { Key, ParsedMouse, FocusManager, InkxNode } from "inkx"
-import { activeEditTargetRef } from "inkx"
-import { createLogger, type SpanLogger } from "@beorn/logger"
+import { createApp, type EventHandlerContext } from "@hightea/term/runtime"
+import type { Key, ParsedMouse, FocusManager, InkxNode } from "@hightea/term"
+import { activeEditTargetRef } from "@hightea/term"
+import { createLogger, type SpanLogger } from "decant"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"

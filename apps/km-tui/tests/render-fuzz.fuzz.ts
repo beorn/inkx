@@ -10,8 +10,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { bufferToText } from "inkx/testing"
-import { compareBuffers, formatMismatch } from "inkx/testing"
+import { bufferToText } from "@hightea/term/testing"
+import { compareBuffers, formatMismatch } from "@hightea/term/testing"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { parseRepeats, deriveSeeds } from "vitestx/fuzz"
 

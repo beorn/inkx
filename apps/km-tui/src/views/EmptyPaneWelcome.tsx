@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 
 export function EmptyPaneWelcome(): React.ReactElement {
   return (

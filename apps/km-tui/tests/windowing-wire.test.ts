@@ -15,9 +15,9 @@
 import { describe, test, expect } from "vitest"
 import React from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer } from "inkx/testing"
-import { createFocusManager, FocusManagerContext, ThemeProvider } from "inkx"
-import { StoreContext } from "inkx/runtime"
+import { createRenderer } from "@hightea/term/testing"
+import { createFocusManager, FocusManagerContext, ThemeProvider } from "@hightea/term"
+import { StoreContext } from "@hightea/term/runtime"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,

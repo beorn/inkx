@@ -8,9 +8,9 @@
 
 import { describe, it, test, expect } from "vitest"
 import React, { act } from "react"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { testEnv, item } from "../helpers/board-test.ts"
-import { createFocusManager, FocusManagerContext } from "inkx"
+import { createFocusManager, FocusManagerContext } from "@hightea/term"
 import { CommandBox, StatusCounters } from "../../src/views/CommandBox.tsx"
 import type { UIState, PaneUI } from "../../src/ui-reducer.ts"
 

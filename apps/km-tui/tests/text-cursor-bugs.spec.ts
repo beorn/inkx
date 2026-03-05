@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { wrapText, getWrappedLines, cursorToRowCol } from "inkx"
+import { wrapText, getWrappedLines, cursorToRowCol } from "@hightea/term"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
 

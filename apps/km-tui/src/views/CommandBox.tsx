@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, CursorLine, useFocusManager, useEditContext } from "inkx"
+import { Box, Text, CursorLine, useFocusManager, useEditContext } from "@hightea/term"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"

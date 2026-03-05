@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { VirtualTerminal, outputPhase } from "inkx/toolbelt"
+import { VirtualTerminal, outputPhase } from "@hightea/term/toolbelt"
 
 // =============================================================================
 // Fold all / unfold all commands
@@ -272,8 +272,8 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
   /** Verify ANSI diff replay produces correct terminal output */
   function verifyDiffReplay(
-    prevBuffer: ReturnType<ReturnType<typeof import("inkx/testing").createRenderer>["lastBuffer"]>,
-    nextBuffer: ReturnType<ReturnType<typeof import("inkx/testing").createRenderer>["lastBuffer"]>,
+    prevBuffer: ReturnType<ReturnType<typeof import("@hightea/term/testing").createRenderer>["lastBuffer"]>,
+    nextBuffer: ReturnType<ReturnType<typeof import("@hightea/term/testing").createRenderer>["lastBuffer"]>,
     label: string,
   ) {
     if (!prevBuffer || !nextBuffer) throw new Error(`${label}: No buffer`)

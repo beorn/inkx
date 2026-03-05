@@ -14,7 +14,7 @@
  * Default max 100 entries. Oldest entries are dropped when exceeded.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 
 const log = createLogger("km:tui:undo")
 

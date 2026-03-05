@@ -7,7 +7,7 @@
  */
 
 import React from "react"
-import { Box, Text, CursorLine, useEditContext } from "inkx"
+import { Box, Text, CursorLine, useEditContext } from "@hightea/term"
 import type { LocalSearchState } from "../ui-reducer.ts"
 
 interface FindBarProps {

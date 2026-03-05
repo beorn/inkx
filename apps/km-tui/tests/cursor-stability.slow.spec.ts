@@ -9,11 +9,11 @@
 import { test, expect, describe } from "vitest"
 import { createTestBoard, check } from "@km/tui/test"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { stripAnsi } from "inkx/testing"
+import { stripAnsi } from "@hightea/term/testing"
 import { existsSync } from "fs"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { createBoardDriver } from "../src/driver.ts"
 
 /**

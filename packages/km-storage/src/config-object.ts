@@ -5,7 +5,7 @@
  * Created via loadConfigObject() factory function.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import {
   loadConfigWithPath,
   clearConfigCache,

@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { bufferToText, compareBuffers, formatMismatch } from "inkx/testing"
+import { bufferToText, compareBuffers, formatMismatch } from "@hightea/term/testing"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 // Same PRNG as render-fuzz.fuzz.ts

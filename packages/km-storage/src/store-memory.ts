@@ -17,7 +17,7 @@ import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import { ensureRepoRootNode } from "./repo-loader.ts"
 import { findChildByContent, findFileByName } from "./db-queries/wikilink-resolver.ts"
 import { getNode } from "./db-queries/index.ts"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { BaseStore } from "./store-base.ts"
 
 const log = createLogger("km:storage:store")

@@ -31,7 +31,7 @@
  */
 
 import React, { useState } from "react"
-import { render as inkxRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "inkx"
+import { render as inkxRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@hightea/term"
 
 import {
   InlineText,
@@ -75,7 +75,7 @@ interface TUIBoardState {
   helpMode: boolean
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
-import { StoreContext } from "inkx/runtime"
+import { StoreContext } from "@hightea/term/runtime"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"

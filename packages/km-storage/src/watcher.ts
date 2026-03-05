@@ -5,7 +5,7 @@
  * Created via createWatcher() or repo.watch().
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { Database } from "bun:sqlite"
 import { SyncManager, type SyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"

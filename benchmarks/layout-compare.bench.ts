@@ -9,7 +9,7 @@
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import * as Flexx from "@beorn/flexx"
+import * as Flexx from "flexture"
 import initYoga, { type Yoga } from "yoga-wasm-web"
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"

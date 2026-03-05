@@ -8,7 +8,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")

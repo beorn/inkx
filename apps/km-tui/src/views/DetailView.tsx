@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "inkx"
+import { Box, Text } from "@hightea/term"
 import type { KNode } from "@km/core"
 import { isTask, decomposeDatetime } from "@km/core"
 import { useRepo } from "../repo-context.tsx"

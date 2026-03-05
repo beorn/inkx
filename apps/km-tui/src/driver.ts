@@ -42,11 +42,11 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, keyToAnsi, type App } from "inkx/testing"
-import { withCommands, createFocusManager, FocusManagerContext } from "inkx"
-import type { AppWithCommands, AppState } from "inkx"
-import { StoreContext } from "inkx/runtime"
-import { parseKey } from "inkx/runtime"
+import { createRenderer, keyToAnsi, type App } from "@hightea/term/testing"
+import { withCommands, createFocusManager, FocusManagerContext } from "@hightea/term"
+import type { AppWithCommands, AppState } from "@hightea/term"
+import { StoreContext } from "@hightea/term/runtime"
+import { parseKey } from "@hightea/term/runtime"
 import {
   createCommandRegistry,
   allCommands,

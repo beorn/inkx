@@ -1,4 +1,4 @@
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 

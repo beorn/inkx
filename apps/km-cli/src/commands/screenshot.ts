@@ -6,7 +6,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { setDebugRepoRoot } from "../debug-log.ts"
 
 const log = createLogger("km:cli:screenshot")
@@ -38,7 +38,7 @@ export const screenshotCommand = new Command("screenshot")
       import("@km/core"),
       import("../program.ts"),
       import("@km/tui"),
-      import("inkx"),
+      import("@hightea/term"),
     ])
 
     // Resolve path and load repo

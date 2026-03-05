@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, renderStatic } from "inkx"
+import { Box, Text, renderStatic } from "@hightea/term"
 import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status

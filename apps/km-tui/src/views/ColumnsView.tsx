@@ -9,14 +9,14 @@
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Text, HorizontalVirtualList } from "inkx"
-import { createLogger } from "@beorn/logger"
+import { Box, Text, HorizontalVirtualList } from "@hightea/term"
+import { createLogger } from "decant"
 
 const log = createLogger("km:tui:columns")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore } from "@hightea/term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"

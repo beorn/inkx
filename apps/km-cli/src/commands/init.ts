@@ -15,7 +15,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"

@@ -14,7 +14,7 @@ import {
   ThemeProvider,
   detectTerminalCaps,
   ansi16DarkTheme,
-} from "inkx"
+} from "@hightea/term"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { restoreTerminal } from "./raw-signals.ts"

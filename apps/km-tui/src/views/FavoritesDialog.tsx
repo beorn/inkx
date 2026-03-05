@@ -16,7 +16,7 @@
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog } from "inkx"
+import { Box, Text, ModalDialog } from "@hightea/term"
 import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"

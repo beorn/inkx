@@ -16,7 +16,7 @@
  * - color: Board/section color
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"

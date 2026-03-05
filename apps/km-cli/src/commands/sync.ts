@@ -4,9 +4,9 @@
  * One-time sync between filesystem and database, or continuous watch mode
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { steps } from "@beorn/inkx-ui/progress"

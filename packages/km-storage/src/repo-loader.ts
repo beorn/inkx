@@ -13,7 +13,7 @@
  * - materialize: Evaluate add= rules
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"

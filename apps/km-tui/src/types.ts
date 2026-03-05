@@ -126,5 +126,5 @@ export interface TuiOptions {
    * When provided, runBoard uses this instead of creating its own.
    * Set up early (before loadRepo) to capture startup warnings.
    */
-  patchedConsole?: import("inkx").PatchedConsole
+  patchedConsole?: import("@hightea/term").PatchedConsole
 }

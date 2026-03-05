@@ -30,9 +30,9 @@
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
 import React from "react"
-import { createRenderer, bufferToStyledText } from "inkx/testing"
-import type { AutoLocator, FilterOptions } from "inkx/testing"
-import type { InkxNode } from "inkx"
+import { createRenderer, bufferToStyledText } from "@hightea/term/testing"
+import type { AutoLocator, FilterOptions } from "@hightea/term/testing"
+import type { InkxNode } from "@hightea/term"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"

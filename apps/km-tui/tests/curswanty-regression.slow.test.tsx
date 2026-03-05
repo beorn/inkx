@@ -9,7 +9,7 @@
  * @see docs/ref/ui.md#curswanty-cross-column-navigation-hl
  */
 import { test, expect, describe } from "vitest"
-import { createRenderer } from "inkx/testing"
+import { createRenderer } from "@hightea/term/testing"
 import { createGridNavigator } from "@km/board"
 import { createFakeRepo } from "@km/storage"
 import { item, renderBoardWithStore } from "./helpers/board-test.ts"

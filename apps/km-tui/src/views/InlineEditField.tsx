@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { CursorLine, useContentRect, useEditContext } from "inkx"
+import { CursorLine, useContentRect, useEditContext } from "@hightea/term"
 
 interface InlineEditFieldProps {
   initialValue: string

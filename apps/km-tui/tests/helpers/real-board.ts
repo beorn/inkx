@@ -24,9 +24,9 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, keyToAnsi, type App } from "inkx/testing"
-import { StoreContext, parseKey } from "inkx/runtime"
-import { createFocusManager, FocusManagerContext } from "inkx"
+import { createRenderer, keyToAnsi, type App } from "@hightea/term/testing"
+import { StoreContext, parseKey } from "@hightea/term/runtime"
+import { createFocusManager, FocusManagerContext } from "@hightea/term"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"

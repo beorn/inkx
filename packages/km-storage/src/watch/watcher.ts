@@ -4,7 +4,7 @@
  * Watches for filesystem changes and triggers reconciliation
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { watch, type FSWatcher } from "chokidar"
 
 const log = createLogger("km:storage:watch:watcher")

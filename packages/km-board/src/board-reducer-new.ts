@@ -8,7 +8,7 @@
  * See hazy-forging-crayon.md plan for design rationale.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { BoardState, BoardAction } from "./board-types.ts"
 
 const log = createLogger("km:board:reducer")

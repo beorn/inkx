@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 import { createGridNavigator } from "../src/grid-navigator.ts"
-import type { ScreenRect } from "inkx"
+import type { ScreenRect } from "@hightea/term"
 
 function rect(y: number, height: number, x = 0, width = 100): ScreenRect {
   return { x, y, width, height }

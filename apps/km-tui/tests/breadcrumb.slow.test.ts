@@ -9,10 +9,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { outputPhase, VirtualTerminal } from "inkx/toolbelt"
+import { outputPhase, VirtualTerminal } from "@hightea/term/toolbelt"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 

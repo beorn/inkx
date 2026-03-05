@@ -13,13 +13,16 @@
     "apps/*",
     "apps/km-tui/packages/*",
     "vendor/*",
-    "vendor/beorn-termless/packages/*"
+    "vendor/beorn-termless/packages/*",
+    "vendor/beorn-inkx/packages/*"
   ],
   "overrides": {
-    "chalkx": "$chalkx",
-    "@beorn/flexx": "$@beorn/flexx",
-    "@beorn/logger": "$@beorn/logger",
-    "themex": "$themex",
+    "@hightea/chalk": "$@hightea/chalk",
+    "@hightea/core": "$@hightea/core",
+    "@hightea/term": "$@hightea/term",
+    "flexture": "$flexture",
+    "decant": "$decant",
+    "swatch": "$swatch",
     "@termless/core": "$@termless/core",
     "zod": "^4.3.6"
   },
@@ -78,9 +81,11 @@
     "test:flexx:yoga": "cd vendor/beorn-flexx && bun test:yoga"
   },
   "devDependencies": {
-    "@beorn/flexx": "workspace:*",
+    "flexture": "workspace:*",
+    "@hightea/core": "workspace:*",
     "@beorn/inkx-ui": "workspace:*",
-    "@beorn/logger": "workspace:*",
+    "decant": "workspace:*",
+    "swatch": "workspace:*",
     "@beorn/mdtest": "workspace:*",
     "@beorn/tap": "workspace:*",
     "@beorn/watcher-chaos": "workspace:*",
@@ -110,8 +115,8 @@
     "@types/react": "^19.2.13",
     "@types/sinonjs__fake-timers": "^15.0.1",
     "@vitest/ui": "^4.0.18",
-    "chalkx": "workspace:*",
-    "inkx": "workspace:*",
+    "@hightea/chalk": "workspace:*",
+    "@hightea/term": "workspace:*",
     "knip": "^5.83.1",
     "oxfmt": "^0.28.0",
     "oxlint": "^1.43.0",

@@ -19,7 +19,7 @@
  *   const resolved = toResolvedLinks(file, resolver)   // syncing path
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { Event, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
 import { hashContent } from "./cas.ts"

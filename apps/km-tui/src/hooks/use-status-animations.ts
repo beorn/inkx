@@ -5,7 +5,7 @@
  * log toast notifications, and spinner frame animation.
  */
 import React, { useState, useEffect } from "react"
-import { useInterval } from "inkx"
+import { useInterval } from "@hightea/term"
 import type { ToastQueue } from "@km/core"
 
 // Spinner frames (braille unicode dots animation)

@@ -10,7 +10,7 @@
  * log.debug?.("render %s children=%d", sid(node.id), children.length)
  * log.trace?.("layout col=%d card=%d", colIndex, cardIndex)
  */
-import { createLogger, type ConditionalLogger } from "@beorn/logger"
+import { createLogger, type ConditionalLogger } from "decant"
 
 // ============================================================
 // Short ID helper

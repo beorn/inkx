@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "../helpers/board-test.ts"
-import { renderString } from "inkx"
+import { renderString } from "@hightea/term"
 import React from "react"
 import { NodeLineView, NodeCardView, NodeColumnView, NodeTabView, NodeDetailView } from "../../src/views/NodeView.tsx"
 import type { KNode } from "@km/core"

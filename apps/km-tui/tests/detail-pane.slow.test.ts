@@ -10,7 +10,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "react"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import {
   extractReferences,
   formatDate,

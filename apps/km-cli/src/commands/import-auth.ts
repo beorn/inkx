@@ -2,7 +2,7 @@
  * Import Auth — Asana token setup and config reset helpers
  */
 
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 

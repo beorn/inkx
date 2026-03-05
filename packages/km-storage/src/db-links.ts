@@ -9,7 +9,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { createDbOps } from "./db-ops.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 

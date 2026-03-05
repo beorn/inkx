@@ -12,7 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 

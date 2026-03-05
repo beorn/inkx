@@ -17,12 +17,12 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { stripAnsi } from "inkx/testing"
-import { displayWidth, graphemeWidth } from "inkx"
+import { stripAnsi } from "@hightea/term/testing"
+import { displayWidth, graphemeWidth } from "@hightea/term"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
 

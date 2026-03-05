@@ -54,7 +54,7 @@ export const viewCommand = new Command("view")
 
     // Patch console early so startup warnings (stale events, etc.) are captured
     // in the TUI console panel instead of being lost to stderr before alt screen.
-    const { patchConsole } = await import("inkx")
+    const { patchConsole } = await import("@hightea/term")
     const patchedConsole =
       interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 

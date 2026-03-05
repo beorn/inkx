@@ -14,10 +14,10 @@
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "chalkx": "workspace:*",
-    "inkx": "workspace:*",
+    "@hightea/chalk": "workspace:*",
+    "@hightea/term": "workspace:*",
     "react": "catalog:",
-    "themex": "workspace:*",
+    "swatch": "workspace:*",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

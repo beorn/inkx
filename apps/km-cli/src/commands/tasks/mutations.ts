@@ -4,7 +4,7 @@
  * Functions for modifying tasks: create, claim, release, assign, markDone.
  */
 
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { resolvePathArg, parseTaskMetadata, extractTags } from "@km/storage"

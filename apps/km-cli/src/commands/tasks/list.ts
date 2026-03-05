@@ -4,7 +4,7 @@
  * Lists tasks with optional filtering by path, status, or query.
  */
 
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"

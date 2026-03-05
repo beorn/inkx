@@ -38,7 +38,7 @@ export {
 export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } from "./format.ts"
 
 // Term primitives (re-exported from inkx)
-export { createTerm, term, type Term, type StyleChain } from "inkx"
+export { createTerm, term, type Term, type StyleChain } from "@hightea/term"
 
 // Extended ANSI features (chalkx - not re-exported by inkx)
 export {
@@ -51,7 +51,7 @@ export {
   hyperlink,
   detectExtendedUnderline,
   type UnderlineStyle,
-} from "chalkx"
+} from "@hightea/chalk"
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"

@@ -10,9 +10,9 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Box, Text, withCommands, withKeybindings } from "inkx"
-import type { CommandRegistryLike, WithCommandsOptions } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Box, Text, withCommands, withKeybindings } from "@hightea/term"
+import type { CommandRegistryLike, WithCommandsOptions } from "@hightea/term"
 import {
   createCommandRegistry,
   allCommands,

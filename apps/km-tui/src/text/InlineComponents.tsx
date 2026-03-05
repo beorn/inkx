@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Link, Text } from "inkx"
+import { Link, Text } from "@hightea/term"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"

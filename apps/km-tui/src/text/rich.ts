@@ -8,7 +8,7 @@
  * - `stripAnsi(text)` - remove all ANSI escape codes
  */
 
-import { stripAnsi } from "inkx"
+import { stripAnsi } from "@hightea/term"
 import stringWidth from "string-width"
 
 // Re-export ANSI utilities from inkx (canonical implementation)

@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@beorn/logger": "workspace:*",
+    "decant": "workspace:*",
     "nanoevents": "^9.1.0"
   }
 }

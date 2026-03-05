@@ -1,4 +1,4 @@
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 import { ASANA_BASE } from "./asana-types.ts"
 import type { RecordedCall } from "./asana-types.ts"
 

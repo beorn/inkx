@@ -7,8 +7,8 @@
 
 import React, { act } from "react"
 import { describe, it, expect } from "vitest"
-import { createRenderer } from "inkx/testing"
-import { Text } from "inkx"
+import { createRenderer } from "@hightea/term/testing"
+import { Text } from "@hightea/term"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
 import { useChildren } from "../src/hooks/use-children.ts"

@@ -10,7 +10,7 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, ModalDialog } from "inkx"
+import { Box, Text, ModalDialog } from "@hightea/term"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {

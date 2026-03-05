@@ -12,7 +12,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
-import { activeEditTargetRef } from "inkx"
+import { activeEditTargetRef } from "@hightea/term"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"

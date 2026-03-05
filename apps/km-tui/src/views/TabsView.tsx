@@ -7,7 +7,7 @@
  * Uses inkx VirtualList for React-level virtualization.
  */
 import React, { useMemo } from "react"
-import { Box, Text, VirtualList } from "inkx"
+import { Box, Text, VirtualList } from "@hightea/term"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -17,7 +17,7 @@ import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { useApp as useAppStore } from "inkx/runtime"
+import { useApp as useAppStore } from "@hightea/term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants

@@ -95,7 +95,7 @@ export type { Result } from "./result.ts"
 export { Ok, Err, OkVoid, isOk, isErr, map, andThen, all, tryCatch } from "./result.ts"
 
 // Logger (re-export from @beorn/logger)
-export { createLogger, setLogLevel, getLogLevel, type Logger, type LogLevel } from "@beorn/logger"
+export { createLogger, setLogLevel, getLogLevel, type Logger, type LogLevel } from "decant"
 
 // Event system
 export { kmEvents, DisposableStore } from "./events.ts"

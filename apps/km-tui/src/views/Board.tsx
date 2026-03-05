@@ -21,8 +21,8 @@ import {
   setWindowTitle,
   useFocusManager,
   type PatchedConsole,
-} from "inkx"
-import { useApp as useAppStore, useAppShallow, StoreContext } from "inkx/runtime"
+} from "@hightea/term"
+import { useApp as useAppStore, useAppShallow, StoreContext } from "@hightea/term/runtime"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -39,7 +39,7 @@ import type { GridNavigator } from "@km/board"
 import type { PaneUI, FilterProperties } from "../ui-reducer.ts"
 import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 // cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)

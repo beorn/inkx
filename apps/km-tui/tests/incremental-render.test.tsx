@@ -8,8 +8,8 @@
  */
 import { describe, expect, test } from "vitest"
 import React, { useState } from "react"
-import { Box, Text, useInput, type Key } from "inkx"
-import { createRenderer } from "inkx/testing"
+import { Box, Text, useInput, type Key } from "@hightea/term"
+import { createRenderer } from "@hightea/term/testing"
 import { item, testEnv } from "./helpers/board-test"
 import { TC } from "./helpers/theme"
 

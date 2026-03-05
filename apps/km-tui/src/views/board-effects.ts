@@ -6,7 +6,7 @@ import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"
 import { kmEvents, type ToastQueue } from "@km/core"
-import { notify } from "inkx"
+import { notify } from "@hightea/term"
 
 type SetUI = (partial: Partial<UIState> | ((prev: UIState) => Partial<UIState>)) => void
 

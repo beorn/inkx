@@ -8,7 +8,7 @@
  * - Names (bare, no '/') → search by name field, may be ambiguous
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { resolve } from "path"

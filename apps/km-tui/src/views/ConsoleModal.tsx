@@ -5,7 +5,7 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "inkx"
+import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "@hightea/term"
 
 const MAX_LINES = 100
 

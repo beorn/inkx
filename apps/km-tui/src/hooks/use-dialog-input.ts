@@ -13,7 +13,7 @@
  * bugs when dialogs close.
  */
 import React from "react"
-import { useEditContext, type UseEditContextResult } from "inkx"
+import { useEditContext, type UseEditContextResult } from "@hightea/term"
 import { dialogTargetRef } from "../dialog-target.ts"
 
 export interface UseDialogInputOptions {

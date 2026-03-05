@@ -13,7 +13,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, copyFileSync } from "fs"
 import { basename, join, resolve } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 

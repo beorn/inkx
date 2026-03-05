@@ -13,11 +13,11 @@ import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { VirtualTerminal, Box, Text, useInput } from "inkx"
-import { createRenderer } from "inkx/testing"
-import { outputPhase } from "inkx/toolbelt"
+import { VirtualTerminal, Box, Text, useInput } from "@hightea/term"
+import { createRenderer } from "@hightea/term/testing"
+import { outputPhase } from "@hightea/term/toolbelt"
 import { item } from "./helpers/board-test.ts"
-import type { TerminalBuffer } from "inkx/src/buffer.js"
+import type { TerminalBuffer } from "@hightea/term/src/buffer.js"
 
 // =============================================================================
 // Running Terminal — simulates what a real terminal accumulates

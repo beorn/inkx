@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 import { join } from "path"
 
 const term = createTerm(process)

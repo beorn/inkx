@@ -10,6 +10,6 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/tree": "workspace:*",
-    "inkx": "workspace:*"
+    "@hightea/term": "workspace:*"
   }
 }

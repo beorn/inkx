@@ -11,7 +11,7 @@
 
 import { readFileSync } from "node:fs"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "inkx"
+import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 

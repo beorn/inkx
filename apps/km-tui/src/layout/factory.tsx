@@ -15,7 +15,7 @@ import React, {
   type ReactNode,
   type ReactElement,
 } from "react"
-import { constrainText, displayWidth, wrapText, truncateText, padText } from "inkx"
+import { constrainText, displayWidth, wrapText, truncateText, padText } from "@hightea/term"
 
 // =============================================================================
 // Text Utilities (re-export from inkx with aliases)

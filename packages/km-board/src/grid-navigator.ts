@@ -1,6 +1,6 @@
-import type { PositionRegistry, ScreenRect } from "inkx"
-import { createPositionRegistry } from "inkx"
-import { createLogger } from "@beorn/logger"
+import type { PositionRegistry, ScreenRect } from "@hightea/term"
+import { createPositionRegistry } from "@hightea/term"
+import { createLogger } from "decant"
 
 const log = createLogger("km:grid-navigator")
 

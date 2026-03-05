@@ -4,7 +4,7 @@
  * Shared functionality for CalDAV and CardDAV clients.
  */
 
-import { createLogger } from "@beorn/logger"
+import { createLogger } from "decant"
 
 const log = createLogger("km:webdav:base")
 

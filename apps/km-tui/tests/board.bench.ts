@@ -14,7 +14,7 @@
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import { createFlexxEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "inkx"
+import { createFlexxEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@hightea/term"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
