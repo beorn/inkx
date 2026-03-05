@@ -1389,7 +1389,8 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   const sibIdx = siblings.findIndex((s) => s.id === nodeId)
   if (sibIdx === -1) return
 
-  const currentNode = siblings[sibIdx]!
+  const currentNode = siblings[sibIdx]
+  if (!currentNode) return
   const currentIdx = currentNode.parent_idx ?? 0
   const adjacent = siblings[sibIdx + (position === "after" ? 1 : -1)]
   const adjacentIdx = adjacent?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
@@ -1416,7 +1417,9 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
 }
 
-/** Enter in inline edit — split node at cursor position, adjusting for task markers and body blocks. */
+/** Enter in inline edit — split node at cursor position, adjusting for task markers and body blocks.
+ *  Title split with visible children: after-portion becomes first child (not sibling).
+ *  Title split without children / body block split: after-portion becomes sibling after. */
 function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   const edit = ctx.ui.inlineEditBlock
   if (!edit) return ok()
@@ -1429,7 +1432,8 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 
   // Resolve to body child node if editing a body block
   let nodeId: string = edit.nodeId
-  if (edit.blockIndex > 0) {
+  const isBodyBlock = edit.blockIndex > 0
+  if (isBodyBlock) {
     const body = extractBody(ctx.repo.getChildren(edit.nodeId)).body
     const child = body[edit.blockIndex - 1]
     if (!child) return ok()
@@ -1441,20 +1445,73 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 
   // Adjust offset for task markers (e.g., "[ ] " prefix hidden from edit field)
   const { marker } = extractTitleTaskMarker(node.content ?? "")
-  const adjustedOffset = marker && edit.blockIndex === 0 ? editOffset + marker.length + 1 : editOffset
+  const adjustedOffset = marker && !isBodyBlock ? editOffset + marker.length + 1 : editOffset
+
+  // Title split with visible children → after-portion becomes first child
+  const hasVisibleChildren =
+    !isBodyBlock && hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.foldDepths)
 
   try {
     ctx.undoHandle.setCursor(nodeId)
     ctx.undoHandle.startBatch("Split node")
-    const result = splitNode(ctx.repo, nodeId, adjustedOffset)
-    ctx.undoHandle.endBatch()
-    ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+    if (hasVisibleChildren) {
+      const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
+      ctx.undoHandle.endBatch()
+      ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+    } else {
+      const result = splitNode(ctx.repo, nodeId, adjustedOffset)
+      ctx.undoHandle.endBatch()
+      ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+    }
   } catch {
     ctx.undoHandle.endBatch()
     ctx.setUI({ bellState: "split-failed" })
   }
 
   return ok()
+}
+
+/** Check if a node has visible item children (not folded, has items). */
+function hasVisibleItemChildren(repo: ActionCtx["repo"], nodeId: string, foldDepths: Map<string, number>): boolean {
+  const children = repo.getChildren(nodeId)
+  const { items } = extractBody(children)
+  if (items.length === 0) return false
+  if (foldDepths.get(nodeId) === 0) return false
+  return true
+}
+
+/** Split node at offset, placing the after-portion as the first child instead of sibling. */
+function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): { beforeId: string; afterId: string } {
+  const node = repo.getNode(nodeId)
+  if (!node) throw new Error(`splitAsChild: node not found: ${nodeId}`)
+
+  const text = node.content ?? ""
+  const clamped = Math.max(0, Math.min(offset, text.length))
+  const beforeText = text.slice(0, clamped)
+  const afterText = text.slice(clamped)
+
+  // Find sort order before existing first child
+  const children = repo.getChildren(nodeId)
+  const firstChild = children[0]
+  const newSortOrder = firstChild ? (firstChild.parent_idx ?? 0) - 1 : 0
+
+  const isTask = node.task_marker !== undefined
+  const newChild: Partial<KNode> = {
+    type: isTask ? "p" : "h",
+    item: true,
+    content: afterText,
+    parent_idx: newSortOrder,
+  }
+  if (isTask) {
+    newChild.task_status = node.task_status ?? "todo"
+    newChild.task_marker = node.task_marker ?? "[ ]"
+    newChild.list_marker = node.list_marker ?? "-"
+  }
+
+  const afterId = repo.addNode(nodeId, newChild)
+  repo.updateNode(nodeId, { content: beforeText })
+
+  return { beforeId: nodeId, afterId }
 }
 
 /** Enter at end of title with visible children → insert empty node as FIRST child. */
