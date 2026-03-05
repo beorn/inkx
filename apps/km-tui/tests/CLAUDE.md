@@ -21,13 +21,13 @@ This is the largest test directory (~112 files). Tests here verify what the user
 
 ### `helpers/board-test.ts` — Core testing API
 
-| Helper                                     | Purpose                                           |
-| ------------------------------------------ | ------------------------------------------------- |
-| `item(title, ...children)`                 | Fluent tree builder for test fixtures             |
+| Helper                                     | Purpose                                              |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `item(title, ...children)`                 | Fluent tree builder for test fixtures                |
 | `testEnv(builder)`                         | Create virtual board with fake repo + hightea buffer |
-| `testEnvWithRepo(builder)`                 | testEnv with repo access for persistence checks   |
-| `renderBoard(nodes, opts)`                 | Static render without interaction                 |
-| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                  |
+| `testEnvWithRepo(builder)`                 | testEnv with repo access for persistence checks      |
+| `renderBoard(nodes, opts)`                 | Static render without interaction                    |
+| `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                     |
 
 ```typescript
 const { board, repo } = testEnv(() => item("board", item("Todo", item("Buy milk")), item("Done")))

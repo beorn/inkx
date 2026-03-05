@@ -655,12 +655,21 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // Enter — inline edit: cursor-position-aware behavior
         // Title: start → insert before, middle → split, end+children → child, end → sibling
         { key: "Enter", commandId: "text.linebreak_before", when: (ctx) => editingTitle(ctx) && ctx.cursorAtStart() },
-        { key: "Enter", commandId: "text.linebreak_split",
-          when: (ctx) => editingTitle(ctx) && !ctx.cursorAtStart() && !ctx.cursorAtEnd() },
-        { key: "Enter", commandId: "text.linebreak_child",
-          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && ctx.hasVisibleChildren() },
-        { key: "Enter", commandId: "text.linebreak_after",
-          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren() },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_split",
+          when: (ctx) => editingTitle(ctx) && !ctx.cursorAtStart() && !ctx.cursorAtEnd(),
+        },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_child",
+          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && ctx.hasVisibleChildren(),
+        },
+        {
+          key: "Enter",
+          commandId: "text.linebreak_after",
+          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren(),
+        },
         // Body block → split paragraph
         { key: "Enter", commandId: "text.linebreak_split", when: editingBody },
         // Detail pane → save and exit
