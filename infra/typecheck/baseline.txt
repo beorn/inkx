@@ -93,7 +93,7 @@
 1 packages/km-commands/src/commands/tui.ts
 4 packages/km-commands/src/commands/view.ts
 1 packages/km-commands/src/executor.ts
-32 packages/km-commands/src/index.ts
+20 packages/km-commands/src/index.ts
 3 packages/km-commands/tests/commands.test.ts
 1 packages/km-commands/tests/keybindings.test.ts
 1 packages/km-connector-caldav/src/webdav-base.ts

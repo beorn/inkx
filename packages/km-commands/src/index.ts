@@ -44,18 +44,6 @@ export type {
   TaskStatus,
   // Text editing action types
   TextEditAction,
-  TextInsertAction,
-  TextDeleteBackwardAction,
-  TextDeleteForwardAction,
-  TextCursorLeftAction,
-  TextCursorRightAction,
-  TextCursorStartAction,
-  TextCursorEndAction,
-  TextDeleteWordAction,
-  TextDeleteToStartAction,
-  TextDeleteToEndAction,
-  TextConfirmAction,
-  TextExitEditAction,
 } from "./types.ts"
 
 // Registry
