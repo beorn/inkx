@@ -21,8 +21,8 @@ sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/beorn-inkx | `beorn-inkx-` |
-| vendor/beorn-chalkx | `beorn-chalkx-` |
+| vendor/hightea | `hightea-` |
+| vendor/hightea/packages/ansi | `hightea/packages/ansi-` |
 | Other vendor packages | `beorn-<name>-` |
 
 **Never assume `km-`** — always verify for the current working directory. The `bd` command will reject mismatched prefixes.
@@ -131,8 +131,8 @@ km-<4-5 char random>
 
 | Scenario              | Pattern         | Example                                    | Notes                           |
 | --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
-| Package-specific bug  | 1: Scoped       | `km-storage-15`, `beorn-inkx-render-3`     | Check prefix first, find next N |
-| Feature in a package  | 1: Scoped       | `km-tui-8`, `beorn-chalkx-color-2`         | Clear scope                     |
+| Package-specific bug  | 1: Scoped       | `km-storage-15`, `hightea-render-3`     | Check prefix first, find next N |
+| Feature in a package  | 1: Scoped       | `km-tui-8`, `hightea/packages/ansi-color-2`         | Clear scope                     |
 | Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-inkx.bg-bleed`       | Dot notation works with any prefix |
 | Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
@@ -163,9 +163,9 @@ km-<4-5 char random>
 | Scope      | Covers                                           |
 | ---------- | ------------------------------------------------ |
 | `term`     | vendor/beorn-term, beorn-tui, inkx/chalkx absorb |
-| `termless` | vendor/beorn-termless (headless terminal testing) |
-| `flexx`    | vendor/beorn-flexx                               |
-| `logger`   | vendor/beorn-logger                              |
+| `termless` | vendor/termless (headless terminal testing) |
+| `flexx`    | vendor/flexture                               |
+| `logger`   | vendor/decant                              |
 
 ### Infrastructure & Cross-Cutting
 

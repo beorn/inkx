@@ -32,12 +32,12 @@ I see a layout issue
 Always start here. 1200+ tests using differential oracle — catches any caching/fingerprint bug.
 
 ```bash
-bun vitest run vendor/beorn-flexx/tests/relayout-consistency.test.ts
+bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
 ```
 
 If a seed fails, isolate it:
 ```bash
-bun vitest run vendor/beorn-flexx/tests/relayout-consistency.test.ts -t "seed=42"
+bun vitest run vendor/flexture/tests/relayout-consistency.test.ts -t "seed=42"
 ```
 
 The differential oracle: build tree → layout → mark dirty → re-layout → compare against fresh layout. Fresh layout is trivially correct (no caching). Any difference is a bug.
@@ -103,7 +103,7 @@ if ((overflow === OVERFLOW_HIDDEN || overflow === OVERFLOW_SCROLL) && flex.flexS
 }
 ```
 
-Test: `vendor/beorn-flexx/tests/yoga-overflow-compare.test.ts`
+Test: `vendor/flexture/tests/yoga-overflow-compare.test.ts`
 
 ### Step 5: Check Edge-Based Rounding
 
@@ -124,18 +124,18 @@ If gaps appear, check that rounding uses absolute coordinates, not relative.
 top -l 1 -n 5 -stats command,cpu | head -10
 
 # 2. Save baseline
-cd vendor/beorn-flexx && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-before.txt
+cd vendor/flexture && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-before.txt
 
 # 3. Make changes...
 
 # 4. Rebuild if source changed
-cd vendor/beorn-flexx && bun run build
+cd vendor/flexture && bun run build
 
 # 5. Check CPU load again
 top -l 1 -n 5 -stats command,cpu | head -10
 
 # 6. Save after
-cd vendor/beorn-flexx && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-after.txt
+cd vendor/flexture && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-after.txt
 
 # 7. Compare
 diff /tmp/bench-before.txt /tmp/bench-after.txt
@@ -195,9 +195,9 @@ Agent 4: Check mutation test coverage
 
 ## After Fixing
 
-1. **Rebuild** — `cd vendor/beorn-flexx && bun run build`
+1. **Rebuild** — `cd vendor/flexture && bun run build`
 2. **Benchmark** — Verify no performance regression
-3. **Run inkx tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/beorn-inkx/tests/`
+3. **Run inkx tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/hightea/tests/`
 4. **Update docs** — Add to `src/CLAUDE.md` lessons if new pattern discovered
 
 ## Key Files
@@ -215,8 +215,8 @@ Agent 4: Check mutation test coverage
 
 ## Cross-References
 
-- `vendor/beorn-flexx/src/CLAUDE.md` — Algorithm phases, zero-allocation design, caching, lessons learned
-- `vendor/beorn-flexx/docs/testing.md` — Test methodology
-- `vendor/beorn-flexx/docs/incremental-layout-bugs.md` — Bug taxonomy, industry context
+- `vendor/flexture/src/CLAUDE.md` — Algorithm phases, zero-allocation design, caching, lessons learned
+- `vendor/flexture/docs/testing.md` — Test methodology
+- `vendor/flexture/docs/incremental-layout-bugs.md` — Bug taxonomy, industry context
 - `.claude/skills/tui/fix.md` — "Layout Bugs" section for TUI-level diagnosis
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson

@@ -13,11 +13,11 @@
     "apps/*",
     "apps/km-tui/packages/*",
     "vendor/*",
-    "vendor/beorn-termless/packages/*",
-    "vendor/beorn-inkx/packages/*"
+    "vendor/termless/packages/*",
+    "vendor/hightea/packages/*"
   ],
   "overrides": {
-    "@hightea/ansi": "$@hightea/chalk",
+    "@hightea/ansi": "$@hightea/ansi",
     "@hightea/core": "$@hightea/core",
     "@hightea/term": "$@hightea/term",
     "flexture": "$flexture",
@@ -35,12 +35,12 @@
     "km": "bun run ./apps/km-cli/src/index.ts",
     "km:strict": "INKX_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
-    "worktree": "bun vendor/beorn-tools/tools/worktree.ts",
-    "accountly": "bun vendor/beorn-accountly/src/cli.ts",
-    "recall": "bun vendor/beorn-tools/tools/recall.ts",
-    "llm": "bun vendor/beorn-tools/tools/llm.ts",
-    "refactor": "bun vendor/beorn-tools/tools/refactor.ts",
-    "tap": "bun ./vendor/beorn-tap/src/cli/runner.ts",
+    "worktree": "bun vendor/tools/tools/worktree.ts",
+    "accountly": "bun vendor/accountly/src/cli.ts",
+    "recall": "bun vendor/tools/tools/recall.ts",
+    "llm": "bun vendor/tools/tools/llm.ts",
+    "refactor": "bun vendor/tools/tools/refactor.ts",
+    "tap": "bun ./vendor/tap/src/cli/runner.ts",
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "lint": "find apps packages infra vendor -path '*/node_modules' -prune -o -path '*/dist' -prune -o \\( -name '*.ts' -o -name '*.tsx' \\) -print | xargs oxlint -c packages/km-infra/oxlint/config.json --type-aware",
     "lint:errors": "find apps packages infra vendor -path '*/node_modules' -prune -o -path '*/dist' -prune -o \\( -name '*.ts' -o -name '*.tsx' \\) -print | xargs oxlint -c packages/km-infra/oxlint/config.json --type-aware --quiet",
@@ -78,12 +78,11 @@
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
     "release": "release-it",
-    "test:flexx:yoga": "cd vendor/beorn-flexx && bun test:yoga"
+    "test:flexx:yoga": "cd vendor/flexture && bun test:yoga"
   },
   "devDependencies": {
     "flexture": "workspace:*",
     "@hightea/core": "workspace:*",
-    "@beorn/inkx-ui": "workspace:*",
     "decant": "workspace:*",
     "swatch": "workspace:*",
     "@beorn/mdtest": "workspace:*",

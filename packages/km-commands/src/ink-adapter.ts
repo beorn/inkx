@@ -29,6 +29,18 @@ function resolveActions(
   return executeCommand(resolved.commandId, ctx, resolved.targetId)
 }
 
+/** Flatten multiple nullable action results into a single array */
+function flattenActions(...results: (CommandAction | CommandAction[] | null)[]): CommandAction[] {
+  const out: CommandAction[] = []
+  for (const r of results) {
+    if (r) {
+      if (Array.isArray(r)) out.push(...r)
+      else out.push(r)
+    }
+  }
+  return out
+}
+
 /** Ink's Key event structure */
 export interface InkKeyEvent {
   escape?: boolean
@@ -171,22 +183,11 @@ export function processInkKey(
         return { commandId: chordResult.commandId, actions, handled: true, chordResolved: true }
       }
       case "replay": {
-        // Execute the standalone command
+        // Execute the standalone command, then resolve the replayed key normally
         const standaloneActions = executeCommand(chordResult.standaloneId, ctx, chordResult.standaloneTargetId)
-        // Then resolve the replayed key normally
         const resolved = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
         if (resolved) {
-          const replayActions = resolveActions(resolved, ctx)
-          // Return both actions combined
-          const allActions: CommandAction[] = []
-          if (standaloneActions) {
-            if (Array.isArray(standaloneActions)) allActions.push(...standaloneActions)
-            else allActions.push(standaloneActions)
-          }
-          if (replayActions) {
-            if (Array.isArray(replayActions)) allActions.push(...replayActions)
-            else allActions.push(replayActions)
-          }
+          const allActions = flattenActions(standaloneActions, resolveActions(resolved, ctx))
           return {
             commandId: chordResult.standaloneId,
             actions: allActions.length > 0 ? allActions : null,

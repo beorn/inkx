@@ -655,4 +655,4 @@ This ensures tests are:
 - [Test Performance Guide](../testing/test-performance.md) - Optimizing test suite speed
 - [Benchmarking Guide](../testing/benchmarking.md) - Writing and running benchmarks
 - [Vitest Configuration](../testing/vitest-ci-integration.md) - CI integration details
-- [Markdown Tests](../../vendor/beorn-mdtest/README.md) - Writing executable markdown tests
+- [Markdown Tests](../../vendor/mdtest/README.md) - Writing executable markdown tests

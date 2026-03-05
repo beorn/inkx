@@ -901,7 +901,7 @@ Shipped in inkx, export path `inkx/tea`. PlainText already uses it internally. N
 ## See Also
 
 - [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
-- [focus-routing.md](../../vendor/beorn-inkx/docs/deep-dives/focus-routing.md) — Command-system input routing
+- [focus-routing.md](../../vendor/hightea/docs/deep-dives/focus-routing.md) — Command-system input routing
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects
 

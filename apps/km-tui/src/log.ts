@@ -2,7 +2,7 @@
  * Conditional logging for km-tui
  *
  * Uses optional chaining pattern: log.debug?.() skips argument evaluation
- * when debug logging is disabled. See vendor/beorn-logger/docs/conditional-logging-research.md
+ * when debug logging is disabled. See vendor/decant/docs/conditional-logging-research.md
  *
  * @example
  * import { log, sid } from "../log"

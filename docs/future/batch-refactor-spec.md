@@ -55,20 +55,20 @@ A smart batch refactoring tool that:
 | ast-grep                | ✅ Installed  | `nix profile`                             |
 | cclsp                   | ✅ Installed  | `bun global`                              |
 | mcp-refactor-typescript | ✅ Configured | `.mcp.json`                               |
-| /batch command          | ✅ Plugin     | `batch@beorn-tools`                |
+| /batch command          | ✅ Plugin     | `batch@tools`                |
 | pattern.migrate         | ✅ Complete   | LLM-powered API migration                 |
 | Confidence scoring      | 📝 Documented | In command instructions                   |
-| Plugin packaging        | ✅ Complete   | `vendor/beorn-tools/plugins/batch` |
-| Marketplace             | ✅ Configured | `beorn-tools`                      |
+| Plugin packaging        | ✅ Complete   | `vendor/tools/plugins/batch` |
+| Marketplace             | ✅ Configured | `tools`                      |
 
 ### Installation
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add /path/to/vendor/beorn-tools
+claude plugin marketplace add /path/to/vendor/tools
 
 # Install plugin
-claude plugin install batch@beorn-tools
+claude plugin install batch@tools
 ```
 
 ## Architecture Options
@@ -192,7 +192,7 @@ Verification: PASSED
 ## Plugin Structure (Current)
 
 ```
-vendor/beorn-tools/
+vendor/tools/
 ├── .claude-plugin/
 │   └── marketplace.json       # Marketplace manifest
 └── plugins/
@@ -208,10 +208,10 @@ vendor/beorn-tools/
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add github:beorn/beorn-tools
+claude plugin marketplace add github:beorn/tools
 
 # Install plugin
-claude plugin install batch@beorn-tools
+claude plugin install batch@tools
 ```
 
 ## Data Structures & Export Formats
@@ -352,5 +352,5 @@ interface RefactorPlan {
 - [ast-grep docs](https://ast-grep.github.io/)
 - [Claude Code plugins](https://code.claude.com/docs/en/plugins.md)
 - [mcp-refactor-typescript](https://github.com/stefan-nitu/mcp-refactor-typescript)
-- Plugin repo: [beorn/beorn-tools](https://github.com/beorn/beorn-tools)
-- Plugin command: `vendor/beorn-tools/plugins/batch/commands/batch.md`
+- Plugin repo: [beorn/tools](https://github.com/beorn/tools)
+- Plugin command: `vendor/tools/plugins/batch/commands/batch.md`

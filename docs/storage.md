@@ -608,7 +608,7 @@ import { loadRepo, runGenerator } from "@km/storage"
 const result = runGenerator(loadRepo("/path/to/repo"))
 
 // With progress reporting
-import { withProgress } from "@beorn/inkx-ui/wrappers"
+import { withProgress } from "@hightea/ui/wrappers"
 const result = await withProgress(loadRepo("/path/to/repo"), {
   phases: PHASES,
 })

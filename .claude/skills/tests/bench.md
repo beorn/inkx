@@ -75,7 +75,7 @@ bun bench/quick-compare.ts 1500 3
 bun run bench
 ```
 
-**Flexx example** (`vendor/beorn-flexx/bench/quick-compare.ts`):
+**Flexx example** (`vendor/flexture/bench/quick-compare.ts`):
 ```typescript
 const iterations = parseInt(process.argv[3] || "3", 10)
 // ... run minimal iterations for fast feedback

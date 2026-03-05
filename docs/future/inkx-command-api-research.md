@@ -162,11 +162,11 @@ function useInputLayer(id: string, handler: InputHandler) {
 **Completed in km-inkx.driver.1**
 
 Files created:
-- `vendor/beorn-inkx/src/contexts/InputLayerContext.tsx` - Context and provider
-- `vendor/beorn-inkx/src/hooks/useInputLayer.ts` - Hook re-exports
-- `vendor/beorn-inkx/tests/input-layer.test.tsx` - Tests (14 passing)
+- `vendor/hightea/src/contexts/InputLayerContext.tsx` - Context and provider
+- `vendor/hightea/src/hooks/useInputLayer.ts` - Hook re-exports
+- `vendor/hightea/tests/input-layer.test.tsx` - Tests (14 passing)
 
-Exports added to `vendor/beorn-inkx/src/index.ts`:
+Exports added to `vendor/hightea/src/index.ts`:
 - `InputLayerProvider` - Wrap your app to enable the layer stack
 - `useInputLayer` - Register a layer with a handler
 - `useInputLayerContext` - Access dispatch and layer management

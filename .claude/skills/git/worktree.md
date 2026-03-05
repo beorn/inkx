@@ -20,7 +20,7 @@ Bare `git worktree add` doesn't handle:
 - **Direnv** - needs `direnv allow` per worktree
 - **Validation** - uncommitted changes would be missing from new worktree; unpushed submodule commits would fail to clone
 
-**Tool location**: `vendor/beorn-tools/tools/worktree.ts` (also available as `bun worktree`)
+**Tool location**: `vendor/tools/tools/worktree.ts` (also available as `bun worktree`)
 
 ## Quick Reference
 
@@ -179,7 +179,7 @@ bun worktree create my-feature --allow-dirty
 Push your submodule changes first:
 
 ```bash
-cd vendor/beorn-inkx
+cd vendor/hightea
 git push
 cd ../..
 bun worktree create my-feature

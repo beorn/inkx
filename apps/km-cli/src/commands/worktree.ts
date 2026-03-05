@@ -1,7 +1,7 @@
 /**
  * Worktree Command
  *
- * Thin wrapper around beorn-tools/tools/worktree.ts for km-cli integration.
+ * Thin wrapper around tools/tools/worktree.ts for km-cli integration.
  * The actual implementation lives in the shared library.
  *
  * km worktree create <name> [branch]  # Create worktree at ../km-<name>

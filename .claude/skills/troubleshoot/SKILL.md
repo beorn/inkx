@@ -88,7 +88,7 @@ bun worktree create bisect-<name>
 cd <worktree>
 
 # For submodule bisect (e.g., inkx)
-cd vendor/beorn-inkx
+cd vendor/hightea
 git bisect start
 git bisect bad HEAD
 git bisect good <known-good-commit>

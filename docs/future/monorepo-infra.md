@@ -46,7 +46,7 @@ packages/km-infra/
 │   ├── config.ts       # createVitestConfig() factory
 │   ├── setup.ts        # test quality enforcement
 │   └── plugins/
-│       └── mdtest.ts   # .test.md support (or re-export from beorn-mdtest)
+│       └── mdtest.ts   # .test.md support (or re-export from mdtest)
 ├── eslint/
 │   └── config.ts       # flat config preset
 ├── typescript/
@@ -299,7 +299,7 @@ infra/                     # All shared config
 
 ## Related
 
-- `vendor/beorn-mdtest` - Markdown test framework
+- `vendor/mdtest` - Markdown test framework
 - `tests/vitest-setup.ts` - Current vitest quality enforcement
 - `tests/fail-on-console.ts` - Current bun:test quality enforcement
 

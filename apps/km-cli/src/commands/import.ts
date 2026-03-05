@@ -17,8 +17,8 @@ import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 
-import { steps, step } from "@beorn/inkx-ui/progress"
-import { CURSOR_SHOW, write } from "@beorn/inkx-ui/cli"
+import { steps, step } from "@hightea/ui/progress"
+import { CURSOR_SHOW, write } from "@hightea/ui/cli"
 import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
 import { convertBatch, slugify } from "../import/convert.ts"

@@ -42,7 +42,7 @@ A 5-minute exploration of `@km/commands` would have revealed all of this. The pl
 
 The architecture wasn't documented where agents would see it. Added:
 - `.claude/skills/tui/design.md` — Input Architecture section with the rule
-- `vendor/beorn-inkx/CLAUDE.md` — Architecture Note clarifying `useInputLayer` purpose
+- `vendor/hightea/CLAUDE.md` — Architecture Note clarifying `useInputLayer` purpose
 - This document
 
 The deeper fix: **if an architectural invariant isn't written where agents read it (CLAUDE.md, skills), the invariant doesn't exist for agents.** Document design decisions in the files that get loaded into context, not just in code comments that may never be read.

@@ -2,7 +2,7 @@
  * Emergency terminal restore for uncaughtException / unhandledRejection.
  *
  * Ctrl+C and Ctrl+Z are now handled by inkx's terminal lifecycle system
- * (see vendor/beorn-inkx/src/runtime/terminal-lifecycle.ts). This module
+ * (see vendor/hightea/src/runtime/terminal-lifecycle.ts). This module
  * only provides the emergency fallback for crash handlers.
  */
 

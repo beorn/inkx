@@ -34,7 +34,7 @@ export const viewCommand = new Command("view")
     })
 
     // Clear the "Loading..." line from bootstrap.ts
-    const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@beorn/inkx-ui/cli")
+    const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@hightea/ui/cli")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
     // Import modules
@@ -59,7 +59,7 @@ export const viewCommand = new Command("view")
       interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 
     // Load repo + build state with unified progress display
-    const { steps } = await import("@beorn/inkx-ui/progress")
+    const { steps } = await import("@hightea/ui/progress")
     const { createRepo } = storageModule
 
     let createdRepo: import("@km/storage").Repo | undefined

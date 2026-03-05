@@ -53,7 +53,7 @@ echo "Slow integration: $(find packages apps -name '*.slow.test.ts' 2>/dev/null 
 echo "Slow mdtest: $(find packages apps tests -name '*.slow.test.md' 2>/dev/null | wc -l)"
 echo "Playwright: $(find packages apps -name '*.playwright.ts' 2>/dev/null | wc -l)"
 echo "Chaos: $(find packages -path '*/chaos/*.test.ts' 2>/dev/null | wc -l)"
-echo "Yoga (vendor): $(find vendor/beorn-flexx/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
+echo "Yoga (vendor): $(find vendor/flexture/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
 
 # Tests per package
 echo -e "\n=== Tests by Package ==="
@@ -198,7 +198,7 @@ This phase checks that the test infrastructure itself (CLAUDE.md files, layering
 ```bash
 # Every tests/ directory should have a CLAUDE.md
 echo "=== Test Directories Without CLAUDE.md ==="
-for dir in packages/*/tests apps/*/tests vendor/beorn-*/tests; do
+for dir in packages/*/tests apps/*/tests vendor/*/tests; do
   [ -d "$dir" ] && [ ! -f "$dir/CLAUDE.md" ] && echo "  MISSING: $dir"
 done
 ```
@@ -213,7 +213,7 @@ done
 ```bash
 # Verify all test CLAUDE.md files reference test-layers.md
 echo "=== CLAUDE.md files not referencing test-layers.md ==="
-for f in packages/*/tests/CLAUDE.md apps/*/tests/CLAUDE.md vendor/beorn-*/tests/CLAUDE.md; do
+for f in packages/*/tests/CLAUDE.md apps/*/tests/CLAUDE.md vendor/*/tests/CLAUDE.md; do
   [ -f "$f" ] && ! grep -q "test-layers" "$f" && echo "  $f"
 done
 ```
@@ -297,10 +297,10 @@ If a specific import seems expensive, trace its transitive dependencies:
 
 ```bash
 # Find what a test entry point imports transitively
-grep -h "^import\|^export.*from" vendor/beorn-inkx/src/testing/index.tsx | head -20
+grep -h "^import\|^export.*from" vendor/hightea/src/testing/index.tsx | head -20
 
 # Check if it pulls in the main barrel (bad) vs direct imports (good)
-grep "from ['\"]\.\.\/index" vendor/beorn-inkx/src/testing/index.tsx
+grep "from ['\"]\.\.\/index" vendor/hightea/src/testing/index.tsx
 ```
 
 **Known finding (2026-03)**: `inkx/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
@@ -808,12 +808,12 @@ time bun run test:fast 2>&1 | tail -5
 
 ### Check for stale vendor test fixtures
 
-The Yoga layout tests in `vendor/beorn-flexx/tests/yoga/` are generated from Facebook's Yoga project.
+The Yoga layout tests in `vendor/flexture/tests/yoga/` are generated from Facebook's Yoga project.
 These should be refreshed periodically to catch new test cases or Yoga behavior changes.
 
 ```bash
 # Check when Yoga tests were last generated
-ls -la vendor/beorn-flexx/tests/yoga/*.test.ts | head -5
+ls -la vendor/flexture/tests/yoga/*.test.ts | head -5
 
 # Check latest Yoga release (compare against last import)
 curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_name
@@ -828,7 +828,7 @@ curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_na
 **How to re-import:**
 
 ```bash
-cd vendor/beorn-flexx
+cd vendor/flexture
 bun scripts/import-yoga-tests.ts
 bun test tests/yoga/  # Verify tests pass
 ```

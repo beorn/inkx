@@ -22,7 +22,7 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 
 | Component              | Status      | Location                                 |
 | ---------------------- | ----------- | ---------------------------------------- |
-| `@beorn/watcher-chaos` | ✅ Complete | `vendor/beorn-watcher-chaos/`            |
+| `@beorn/watcher-chaos` | ✅ Complete | `vendor/watcher-chaos/`            |
 | WatcherInterface DI    | ✅ Complete | `packages/km-storage/src/watch/types.ts` |
 | SyncManager injection  | ✅ Complete | `config.watcher` option                  |
 | 25+ chaos tests        | ✅ Passing  | `packages/km-storage/tests/sync/chaos/`  |
@@ -634,9 +634,9 @@ This document is part of the **Exploration Testing** family. See [testing.md#dyn
 
 **Related exploration tests:**
 - [`/explore`](../../.claude/skills/explore/SKILL.md) — TUI monkey testing (keyboard surface)
-- [vendor/beorn-flexx/](../../vendor/beorn-flexx/) — Layout engine with Yoga differential fuzz
+- [vendor/flexture/](../../vendor/flexture/) — Layout engine with Yoga differential fuzz
 
 **Implementation:**
 - [testing.md](testing.md) — General testing guide
-- [vendor/beorn-watcher-chaos/](../../vendor/beorn-watcher-chaos/) — Watcher chaos package
+- [vendor/watcher-chaos/](../../vendor/watcher-chaos/) — Watcher chaos package
 - [packages/km-storage/tests/sync/chaos/](../../packages/km-storage/tests/sync/chaos/) — Chaos test suite

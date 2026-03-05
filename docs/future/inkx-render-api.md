@@ -431,7 +431,7 @@ Add to inkx as wrapper (avoid chalkx churn).
 
 ### Phase 2: renderSync()
 
-New `vendor/beorn-inkx/src/render-gen.ts`:
+New `vendor/hightea/src/render-gen.ts`:
 
 ```tsx
 export function* renderSync(element, options): Generator<...>

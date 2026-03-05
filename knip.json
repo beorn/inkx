@@ -1,72 +1,47 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignore": [".claude/**", "archive/**"],
-  "ignoreDependencies": [
-    "@beorn/inkx-ui",
-    "@beorn/watcher-chaos",
-    "@km/agent",
-    "@km/beads",
-    "@km/board",
-    "@km/cli-app",
-    "@km/commands",
-    "@km/connector-caldav",
-    "@km/markdown",
-    "@km/repl",
-    "@km/tree",
-    "@km/infra",
-    "@km/tui",
-    "@release-it/conventional-changelog",
-    "chalkx",
-    "oxlint",
-    "oxlint-plugin-complexity",
-    "oxlint-tsgolint",
-    "yaml"
+  "ignore": [
+    ".claude/**",
+    "archive/**"
   ],
-  "ignoreBinaries": ["nix", "which", "direnv", "eslint", "prettier"],
   "bun": true,
   "workspaces": {
     ".": {
       "entry": [
-        "scripts/*.ts",
-        "release-it.config.js",
-        "benchmarks/*.bench.ts",
-        "website/script.js"
-      ],
-      "project": [
-        "scripts/**/*.ts",
-        "benchmarks/**/*.ts",
-        "infra/**/*.ts",
-        "infra/**/*.tsx",
-        "website/**/*.js"
+        "scripts/*.ts"
       ]
     },
     "apps/km-cli": {
       "entry": [
-        "src/execute.ts",
+        "src/index.ts",
         "tests/**/*.test.ts",
-        "tests/**/*.slow.test.ts",
-        "tests/km-repl.ts",
-        "tests/mdtest-sh-plugin.ts"
+        "tests/**/*.slow.test.ts"
       ],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "apps/km-repl": {
-      "entry": ["tests/**/*.test.ts"],
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
-        "src/**/*.tsx"
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
       ]
     },
     "apps/km-tui": {
       "entry": [
+        "src/index.ts",
         "tests/**/*.test.ts",
+        "tests/**/*.slow.test.ts",
         "tests/**/*.test.tsx",
-        "tests/**/*.bench.ts",
-        "tests/storybook.tsx",
-        "tests/explore-*.ts",
-        "tests/profile-*.ts",
-        "tests/perf-*.tsx"
+        "tests/storybook.tsx"
       ],
       "project": [
         "src/**/*.ts",
@@ -76,54 +51,102 @@
       ]
     },
     "packages/km-agent": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-beads": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-board": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-commands": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-connector-caldav": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-core": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-markdown": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-storage": {
       "entry": [
+        "src/index.ts",
         "tests/**/*.test.ts",
         "tests/**/*.slow.test.ts"
       ],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
     "packages/km-tree": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
-    "vendor/beorn-chalkx": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
-    },
-    "vendor/beorn-flexx": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
-    },
-    "vendor/beorn-inkx": {
-      "entry": ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+    "vendor/accountly": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
@@ -131,42 +154,227 @@
         "tests/**/*.tsx"
       ]
     },
-    "vendor/beorn-inkx-ui": {
-      "entry": ["tests/**/*.test.ts"],
+    "vendor/decant": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/flexture": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/hightea": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts",
-        "src/**/*.tsx"
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
       ]
     },
-    "vendor/beorn-logger": {
-      "project": ["src/**/*.ts"]
-    },
-    "vendor/beorn-mdtest": {
+    "vendor/hightea/packages/ansi": {
       "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/hightea/packages/core": {
+      "entry": [
+        "src/index.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "vendor/hightea/packages/ui": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
+    "vendor/mdtest": {
+      "entry": [
+        "src/index.ts",
         "tests/**/*.test.ts",
         "tests/**/*.slow.test.ts"
       ],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
-    "vendor/beorn-tap": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
-    },
-    "vendor/beorn-tools": {
+    "vendor/swatch": {
       "entry": [
-        "tools/*.ts",
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
+    "vendor/tap": {
+      "entry": [
+        "src/index.ts",
         "tests/**/*.test.ts"
       ],
-      "project": ["tools/**/*.ts", "tests/**/*.ts"]
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
-    "vendor/beorn-vitestx": {
-      "entry": ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
-      "project": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
+    "vendor/termless": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.slow.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     },
-    "vendor/beorn-watcher-chaos": {
-      "entry": ["tests/**/*.test.ts"],
-      "project": ["src/**/*.ts", "tests/**/*.ts"]
+    "vendor/termless/packages/alacritty": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/cli": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.slow.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/core": {
+      "entry": [
+        "src/index.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/ghostty": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/peekaboo": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.slow.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/viterm": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/vt100": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/wezterm": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/termless/packages/xtermjs": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
+    "vendor/vitestx": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts",
+        "tests/**/*.test.tsx"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "src/**/*.tsx",
+        "tests/**/*.tsx"
+      ]
+    },
+    "vendor/watcher-chaos": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
     }
   }
 }

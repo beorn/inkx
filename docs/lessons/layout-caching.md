@@ -48,14 +48,14 @@ Bug 1 was found by a targeted test. Bugs 2 and 3 were found by fuzz testing — 
 
 ## What We Built
 
-- `vendor/beorn-flexx/tests/relayout-consistency.test.ts` — 1100+ tests across 9 groups
-- `vendor/beorn-flexx/docs/testing.md` — test methodology
-- `vendor/beorn-flexx/docs/incremental-layout-bugs.md` — bug taxonomy with Chrome/Yoga/PanGui industry context
-- `vendor/beorn-inkx/tests/layout-snapshots.test.tsx` — 7 rendered output snapshot tests
+- `vendor/flexture/tests/relayout-consistency.test.ts` — 1100+ tests across 9 groups
+- `vendor/flexture/docs/testing.md` — test methodology
+- `vendor/flexture/docs/incremental-layout-bugs.md` — bug taxonomy with Chrome/Yoga/PanGui industry context
+- `vendor/hightea/tests/layout-snapshots.test.tsx` — 7 rendered output snapshot tests
 
 ## Cross-References
 
-- `vendor/beorn-flexx/docs/incremental-layout-bugs.md` — full bug taxonomy and industry history
-- `vendor/beorn-flexx/docs/testing.md` — test infrastructure reference
+- `vendor/flexture/docs/incremental-layout-bugs.md` — full bug taxonomy and industry history
+- `vendor/flexture/docs/testing.md` — test infrastructure reference
 - `docs/lessons/debugging-rendering.md` — complementary lesson on inkx rendering bugs
 - `docs/lessons/incremental-rendering.md` — inkx incremental rendering (distinct from layout caching)

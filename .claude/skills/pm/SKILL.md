@@ -14,7 +14,7 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 **Directory**: Always run `bd` commands from the km root (`/Users/beorn/Code/pim/km`). If in a subdirectory (e.g., `vendor/*`), prefix commands with `cd /Users/beorn/Code/pim/km &&`.
 
-**Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `beorn-inkx-*`). Always check with `bd list --limit 1` before creating.
+**Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `hightea-*`). Always check with `bd list --limit 1` before creating.
 
 ## Current State
 
@@ -88,7 +88,7 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | `km-vitestx` | Test framework package | `km-vitestx.mdtest` |
 | `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
 | `km-storage` | Storage layer | `km-storage.split-query` |
-| `km-tools` | Claude Code skills & tooling (beorn-tools) | `km-tools.history` |
+| `km-tools` | Claude Code skills & tooling (tools) | `km-tools.history` |
 | `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
 | `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
 

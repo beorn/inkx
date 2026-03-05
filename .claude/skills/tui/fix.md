@@ -279,7 +279,7 @@ If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a
 
 ```bash
 # Run the Flexx re-layout fuzz suite (1100+ tests, differential oracle)
-bun vitest run vendor/beorn-flexx/tests/relayout-consistency.test.ts
+bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
 
 # If all pass, the caching logic is correct for known patterns.
 # Create a targeted test mirroring the real component structure.
@@ -290,13 +290,13 @@ bun vitest run vendor/beorn-flexx/tests/relayout-consistency.test.ts
 2. **Sentinel collisions** — NaN used as both "invalidated" and "unconstrained"
 3. **Fingerprint incompleteness** — parent override not captured in cache key
 
-See `vendor/beorn-flexx/docs/incremental-layout-bugs.md` for full details, industry context, and debugging methodology.
+See `vendor/flexture/docs/incremental-layout-bugs.md` for full details, industry context, and debugging methodology.
 
 ## See Also
 
 - [explore/random.md](../explore/random.md) — Fuzz testing
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson
-- `vendor/beorn-flexx/docs/testing.md` — Flexx test infrastructure
+- `vendor/flexture/docs/testing.md` — Flexx test infrastructure
 
 ## TUI Test Accuracy
 

@@ -541,9 +541,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("start, visible children → sibling before (not child)", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("parent", item("child1")), item("sibling"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("sibling"))))
 
     board.press("Enter") // edit parent, cursor at end
     board.press("Control+a") // cursor to start
@@ -564,9 +562,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
   })
 
   test("middle, visible children → split as first child + verify", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("abcd", item("existing")), item("sibling"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("abcd", item("existing")), item("sibling"))))
 
     board.press("Enter") // edit "abcd", cursor at end
     board.press("ArrowLeft") // move to ab|cd

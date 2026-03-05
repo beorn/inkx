@@ -2,7 +2,7 @@
   "mcpServers": {
     "tty": {
       "command": "bun",
-      "args": ["vendor/beorn-termless/packages/cli/src/cli.ts", "mcp"]
+      "args": ["vendor/termless/packages/cli/src/cli.ts", "mcp"]
     }
   }
 }

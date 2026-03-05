@@ -300,7 +300,7 @@ This makes `press()` appear synchronous even though the underlying system is asy
 | File | Description |
 |------|-------------|
 | `apps/km-tui/tests/helpers/test-board.ts` | Main testBoard() function |
-| `vendor/beorn-inkx/src/testing/flush.ts` | Expose flush() on App |
+| `vendor/hightea/src/testing/flush.ts` | Expose flush() on App |
 | `.claude/skills/tests/adhoc.md` | Documentation for Claude |
 
 ## How /explore Uses This

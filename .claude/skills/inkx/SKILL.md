@@ -54,7 +54,7 @@ Run with INKX_STRICT to catch incremental vs fresh render divergence at the runt
 INKX_STRICT=1 bun km view /path/to/vault
 
 # In tests (testEnv checks incremental by default since 2026-02-17)
-bun vitest run vendor/beorn-inkx/tests/
+bun vitest run vendor/hightea/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
@@ -152,7 +152,7 @@ Merge findings: typically one agent's test fails, confirming that hypothesis.
 top -l 1 -n 5 -stats command,cpu | head -10
 
 # Run inkx benchmarks (if they exist for the area you're changing)
-bun vitest run vendor/beorn-inkx/tests/
+bun vitest run vendor/hightea/tests/
 
 # Run the full app to verify no visual regression
 INKX_STRICT=1 bun km view /path
@@ -160,7 +160,7 @@ INKX_STRICT=1 bun km view /path
 
 ## After Fixing
 
-1. **Promote regression test** — Move from `/tmp/` to `vendor/beorn-inkx/tests/` or `apps/km-tui/tests/`
+1. **Promote regression test** — Move from `/tmp/` to `vendor/hightea/tests/` or `apps/km-tui/tests/`
 2. **Update docs** — Add to pipeline `CLAUDE.md` lessons if new pattern discovered
 3. **Create prevention bead** — If structural change needed to prevent this class of bug
 
@@ -179,7 +179,7 @@ INKX_STRICT=1 bun km view /path
 
 ## Cross-References
 
-- `vendor/beorn-inkx/src/pipeline/CLAUDE.md` — Dirty flags, cascade, scroll tiers, lessons learned
+- `vendor/hightea/src/pipeline/CLAUDE.md` — Dirty flags, cascade, scroll tiers, lessons learned
 - `.claude/skills/tui/fix.md` — TUI-level debugging (board driver, diagnostics)
 - `.claude/skills/explore/random.md` — Fuzz testing workflow
 - `docs/lessons/debugging-rendering.md` — Anti-patterns when debugging rendering

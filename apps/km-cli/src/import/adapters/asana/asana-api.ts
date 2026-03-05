@@ -11,7 +11,7 @@ import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
 
-import { ProgressBar } from "@beorn/inkx-ui/cli"
+import { ProgressBar } from "@hightea/ui/cli"
 import { AsanaClient } from "./asana-client.ts"
 import { TASK_FIELDS } from "./asana-types.ts"
 import type { AsanaApiTask, FetchOptions, FetchResult } from "./asana-types.ts"

@@ -16,7 +16,7 @@ To use native resolution (no paths, no plugins), add workspace packages to root 
 
 ### 1. Bun Runtime
 
-**How it resolves**: Bun has internal knowledge of workspace packages. When you run `bun run file.ts`, it resolves `@beorn/chalkx` directly to `vendor/beorn-chalkx` without needing symlinks.
+**How it resolves**: Bun has internal knowledge of workspace packages. When you run `bun run file.ts`, it resolves `@beorn/chalkx` directly to `vendor/hightea/packages/ansi` without needing symlinks.
 
 ```bash
 # Works - Bun knows about workspaces internally
@@ -36,7 +36,7 @@ Example: `apps/km-cli/package.json` has:
 }
 ```
 
-So `apps/km-cli/node_modules/inkx` exists as a symlink to `vendor/beorn-inkx`.
+So `apps/km-cli/node_modules/inkx` exists as a symlink to `vendor/hightea`.
 
 But root `node_modules/@beorn/chalkx` does NOT exist because the root `package.json` doesn't depend on it.
 
@@ -50,8 +50,8 @@ But root `node_modules/@beorn/chalkx` does NOT exist because the root `package.j
 {
   "compilerOptions": {
     "paths": {
-      "@beorn/chalkx": ["vendor/beorn-chalkx/src/index.ts"],
-      "inkx": ["vendor/beorn-inkx/src/index.ts"]
+      "@beorn/chalkx": ["vendor/hightea/packages/ansi/src/index.ts"],
+      "inkx": ["vendor/hightea/src/index.ts"]
     }
   }
 }
@@ -112,8 +112,8 @@ Add workspace packages as devDependencies in root `package.json`:
 
 Then `bun install` creates symlinks:
 
-- `node_modules/@beorn/chalkx` → `vendor/beorn-chalkx`
-- `node_modules/inkx` → `vendor/beorn-inkx`
+- `node_modules/@beorn/chalkx` → `vendor/hightea/packages/ansi`
+- `node_modules/inkx` → `vendor/hightea`
 
 TypeScript and Vite then resolve via standard node_modules lookup.
 
@@ -127,9 +127,9 @@ Create symlinks manually in a postinstall script. More complex, less idiomatic.
 
 | Folder                 | Package Name     | Import As        |
 | ---------------------- | ---------------- | ---------------- |
-| `vendor/beorn-chalkx`  | `@beorn/chalkx`  | `@beorn/chalkx`  |
-| `vendor/beorn-inkx`    | `inkx`           | `inkx`           |
-| `vendor/beorn-inkx-ui` | `@beorn/inkx-ui` | `@beorn/inkx-ui` |
+| `vendor/hightea/packages/ansi`  | `@beorn/chalkx`  | `@beorn/chalkx`  |
+| `vendor/hightea`    | `inkx`           | `inkx`           |
+| `vendor/hightea/packages/ui` | `@hightea/ui` | `@hightea/ui` |
 | `packages/km-core`     | `@km/core`       | `@km/core`       |
 
 Note: Folder name doesn't have to match package name. The `name` field in `package.json` is what matters.
@@ -160,7 +160,7 @@ echo 'import "@beorn/chalkx"' > /tmp/test.ts && bun tsc --noEmit /tmp/test.ts
 
 ```typescript
 // BAD - hardcoded path
-import { foo } from "../../../vendor/beorn-mdtest/src/types.js"
+import { foo } from "../../../vendor/mdtest/src/types.js"
 
 // GOOD - package name
 import { foo } from "@beorn/mdtest"

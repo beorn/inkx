@@ -71,108 +71,27 @@ export interface CommandDef {
 }
 
 // Text editing action types (dispatched to TextEditTarget)
-export interface TextInsertAction {
-  type: "TEXT_INSERT"
-  char: string
-}
-
-export interface TextDeleteBackwardAction {
-  type: "TEXT_DELETE_BACKWARD"
-}
-
-export interface TextDeleteForwardAction {
-  type: "TEXT_DELETE_FORWARD"
-}
-
-export interface TextCursorLeftAction {
-  type: "TEXT_CURSOR_LEFT"
-}
-
-export interface TextCursorRightAction {
-  type: "TEXT_CURSOR_RIGHT"
-}
-
-export interface TextCursorUpAction {
-  type: "TEXT_CURSOR_UP"
-}
-
-export interface TextCursorDownAction {
-  type: "TEXT_CURSOR_DOWN"
-}
-
-export interface TextCursorStartAction {
-  type: "TEXT_CURSOR_START"
-}
-
-export interface TextCursorEndAction {
-  type: "TEXT_CURSOR_END"
-}
-
-export interface TextDeleteWordAction {
-  type: "TEXT_DELETE_WORD"
-}
-
-export interface TextDeleteToStartAction {
-  type: "TEXT_DELETE_TO_START"
-}
-
-export interface TextDeleteToEndAction {
-  type: "TEXT_DELETE_TO_END"
-}
-
-export interface TextConfirmAction {
-  type: "TEXT_CONFIRM"
-}
-
-export interface TextExitEditAction {
-  type: "TEXT_EXIT_EDIT"
-}
-
-export interface TextYankAction {
-  type: "TEXT_YANK"
-}
-
-export interface TextLinebreakSplitAction {
-  type: "TEXT_LINEBREAK_SPLIT"
-}
-
-export interface TextLinebreakBeforeAction {
-  type: "TEXT_LINEBREAK_BEFORE"
-}
-
-export interface TextLinebreakChildAction {
-  type: "TEXT_LINEBREAK_CHILD"
-}
-
-export interface TextLinebreakAfterAction {
-  type: "TEXT_LINEBREAK_AFTER"
-}
-
-export interface TextChildBlockAction {
-  type: "TEXT_CHILD_BLOCK"
-}
-
 export type TextEditAction =
-  | TextInsertAction
-  | TextDeleteBackwardAction
-  | TextDeleteForwardAction
-  | TextCursorLeftAction
-  | TextCursorRightAction
-  | TextCursorUpAction
-  | TextCursorDownAction
-  | TextCursorStartAction
-  | TextCursorEndAction
-  | TextDeleteWordAction
-  | TextDeleteToStartAction
-  | TextDeleteToEndAction
-  | TextConfirmAction
-  | TextExitEditAction
-  | TextYankAction
-  | TextLinebreakSplitAction
-  | TextLinebreakBeforeAction
-  | TextLinebreakChildAction
-  | TextLinebreakAfterAction
-  | TextChildBlockAction
+  | { type: "TEXT_INSERT"; char: string }
+  | { type: "TEXT_DELETE_BACKWARD" }
+  | { type: "TEXT_DELETE_FORWARD" }
+  | { type: "TEXT_CURSOR_LEFT" }
+  | { type: "TEXT_CURSOR_RIGHT" }
+  | { type: "TEXT_CURSOR_UP" }
+  | { type: "TEXT_CURSOR_DOWN" }
+  | { type: "TEXT_CURSOR_START" }
+  | { type: "TEXT_CURSOR_END" }
+  | { type: "TEXT_DELETE_WORD" }
+  | { type: "TEXT_DELETE_TO_START" }
+  | { type: "TEXT_DELETE_TO_END" }
+  | { type: "TEXT_CONFIRM" }
+  | { type: "TEXT_EXIT_EDIT" }
+  | { type: "TEXT_YANK" }
+  | { type: "TEXT_LINEBREAK_SPLIT" }
+  | { type: "TEXT_LINEBREAK_BEFORE" }
+  | { type: "TEXT_LINEBREAK_CHILD" }
+  | { type: "TEXT_LINEBREAK_AFTER" }
+  | { type: "TEXT_CHILD_BLOCK" }
 
 // Custom action types for commands that operate outside the board reducer
 export interface TaskSetStatusAction {

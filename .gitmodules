@@ -1,30 +1,24 @@
-[submodule "vendor/beorn-mdtest"]
-	path = vendor/beorn-mdtest
+[submodule "vendor/hightea"]
+	path = vendor/hightea
+	url = git@github.com:beorn/hightea.git
+[submodule "vendor/flexture"]
+	path = vendor/flexture
+	url = git@github.com:beorn/flexture.git
+[submodule "vendor/swatch"]
+	path = vendor/swatch
+	url = git@github.com:beorn/swatch.git
+[submodule "vendor/decant"]
+	path = vendor/decant
+	url = git@github.com:beorn/decant.git
+[submodule "vendor/vitestx"]
+	path = vendor/vitestx
+	url = git@github.com:beorn/vitestx.git
+[submodule "vendor/mdtest"]
+	path = vendor/mdtest
 	url = git@github.com:beorn/mdtest.git
-[submodule "vendor/beorn-inkx"]
-	path = vendor/beorn-inkx
-	url = git@github.com:beorn/inkx.git
-[submodule "vendor/beorn-chalkx"]
-	path = vendor/beorn-chalkx
-	url = git@github.com:beorn/chalkx.git
-[submodule "vendor/beorn-flexx"]
-	path = vendor/beorn-flexx
-	url = git@github.com:beorn/flexx.git
-[submodule "vendor/beorn-inkx-ui"]
-	path = vendor/beorn-inkx-ui
-	url = git@github.com:beorn/inkx-ui.git
-[submodule "vendor/beorn-logger"]
-	path = vendor/beorn-logger
-	url = git@github.com:beorn/logger.git
-[submodule "vendor/beorn-vitestx"]
-	path = vendor/beorn-vitestx
-	url = git@github.com:beorn/beorn-vitestx.git
-[submodule "vendor/beorn-tools"]
-	path = vendor/beorn-tools
-	url = git@github.com:beorn/tools.git
-[submodule "vendor/beorn-termless"]
-	path = vendor/beorn-termless
+[submodule "vendor/termless"]
+	path = vendor/termless
 	url = git@github.com:beorn/termless.git
-[submodule "vendor/beorn-themex"]
-	path = vendor/beorn-themex
-	url = git@github.com:beorn/themex.git
+[submodule "vendor/tools"]
+	path = vendor/tools
+	url = git@github.com:beorn/tools.git

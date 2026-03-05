@@ -424,6 +424,52 @@ export interface KeybindingLayer {
   bindings: Keybinding[]
 }
 
+/** v/Ctrl+v chord suffixes — shared between v-prefix and Ctrl+v layers */
+const V_CHORD_SUFFIXES: Array<{ suffix: string; commandId: string; when?: WhenPredicate }> = [
+  { suffix: "v", commandId: "visual_mode_enter", when: not(inVisualMode) },
+  { suffix: "m", commandId: "cycle_view_mode" },
+  // View operations
+  { suffix: "c", commandId: "toggle_collapse" },
+  { suffix: "X", commandId: "toggle_show_ignored" },
+  { suffix: "d", commandId: "toggle_hide_done" },
+  { suffix: "x", commandId: "ignore_node" },
+  { suffix: "-", commandId: "clear_filters" },
+  { suffix: ",", commandId: "filter" },
+  // Pane operations
+  { suffix: "s", commandId: "pane_split_vertical" },
+  { suffix: "h", commandId: "pane_focus_left" },
+  { suffix: "j", commandId: "pane_focus_down" },
+  { suffix: "k", commandId: "pane_focus_up" },
+  { suffix: "l", commandId: "pane_focus_right" },
+  { suffix: ">", commandId: "pane_resize_grow" },
+  { suffix: "<", commandId: "pane_resize_shrink" },
+  { suffix: "=", commandId: "pane_equalize" },
+  { suffix: "H", commandId: "pane_swap_left" },
+  { suffix: "J", commandId: "pane_swap_down" },
+  { suffix: "K", commandId: "pane_swap_up" },
+  { suffix: "L", commandId: "pane_swap_right" },
+  { suffix: "n", commandId: "pane_focus_next" },
+  { suffix: "N", commandId: "pane_focus_prev" },
+  { suffix: "p", commandId: "pane_focus_previous" },
+  { suffix: "Tab", commandId: "pane_focus_next" },
+  { suffix: "w", commandId: "pane_close" },
+  { suffix: "o", commandId: "pane_only" },
+  { suffix: "z", commandId: "pane_zoom" },
+]
+
+/** Generate keybindings from shared chord suffix definitions with a key prefix */
+function prefixChords(prefix: string, suffixes: typeof V_CHORD_SUFFIXES): Keybinding[] {
+  return suffixes.map(({ suffix, commandId, when }) => ({
+    key: `${prefix} ${suffix}`,
+    commandId,
+    ...(when && { when }),
+  }))
+}
+
+/** Inline editing Enter predicates */
+const editingTitle = (ctx: KeybindingContext) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0
+const editingBody = (ctx: KeybindingContext) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) > 0
+
 /**
  * Default keybinding layers, ordered by priority (highest first).
  * Layers are flattened into a single registration sequence — earlier layers
@@ -607,42 +653,18 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
 
         // Enter — inline edit: cursor-position-aware behavior
-        // Title (blockIndex 0 or undefined): start → insert before, middle → split, end+children → child, end → sibling
-        {
-          key: "Enter",
-          commandId: "text.linebreak_before",
-          when: (ctx) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtStart(),
-        },
-        {
-          key: "Enter",
-          commandId: "text.linebreak_split",
-          when: (ctx) =>
-            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && !ctx.cursorAtStart() && !ctx.cursorAtEnd(),
-        },
-        {
-          key: "Enter",
-          commandId: "text.linebreak_child",
-          when: (ctx) =>
-            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtEnd() && ctx.hasVisibleChildren(),
-        },
-        {
-          key: "Enter",
-          commandId: "text.linebreak_after",
-          when: (ctx) =>
-            ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) === 0 && ctx.cursorAtEnd() && !ctx.hasVisibleChildren(),
-        },
+        // Title: start → insert before, middle → split, end+children → child, end → sibling
+        { key: "Enter", commandId: "text.linebreak_before", when: (ctx) => editingTitle(ctx) && ctx.cursorAtStart() },
+        { key: "Enter", commandId: "text.linebreak_split",
+          when: (ctx) => editingTitle(ctx) && !ctx.cursorAtStart() && !ctx.cursorAtEnd() },
+        { key: "Enter", commandId: "text.linebreak_child",
+          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && ctx.hasVisibleChildren() },
+        { key: "Enter", commandId: "text.linebreak_after",
+          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren() },
         // Body block → split paragraph
-        {
-          key: "Enter",
-          commandId: "text.linebreak_split",
-          when: (ctx) => ctx.isInlineEditing && (ctx.editBlockIndex ?? 0) > 0,
-        },
+        { key: "Enter", commandId: "text.linebreak_split", when: editingBody },
         // Detail pane → save and exit
-        {
-          key: "Enter",
-          commandId: "text.confirm",
-          when: (ctx) => ctx.isInlineEditing && ctx.isInDetailPane,
-        },
+        { key: "Enter", commandId: "text.confirm", when: (ctx) => ctx.isInlineEditing && ctx.isInDetailPane },
         // Dialog/search text input → confirm
         { key: "Enter", commandId: "text.confirm", when: (ctx) => ctx.textInputFocused && !ctx.isInlineEditing },
         // Shift+Enter — always insert child
@@ -913,38 +935,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "g o", commandId: "open_in_system" },
         { key: "g O", commandId: "open_in_terminal" },
 
-        // v-prefix chords — VIEW operations
-        { key: "v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-        { key: "v m", commandId: "cycle_view_mode" },
-
-        { key: "v c", commandId: "toggle_collapse" },
-        { key: "v X", commandId: "toggle_show_ignored" },
-        { key: "v d", commandId: "toggle_hide_done" },
-        { key: "v x", commandId: "ignore_node" },
-        { key: "v -", commandId: "clear_filters" },
-        { key: "v ,", commandId: "filter" },
-
-        // v-prefix chords — PANE operations
-        { key: "v s", commandId: "pane_split_vertical" },
-        { key: "v h", commandId: "pane_focus_left" },
-        { key: "v j", commandId: "pane_focus_down" },
-        { key: "v k", commandId: "pane_focus_up" },
-        { key: "v l", commandId: "pane_focus_right" },
-        { key: "v >", commandId: "pane_resize_grow" },
-        { key: "v <", commandId: "pane_resize_shrink" },
-        { key: "v =", commandId: "pane_equalize" },
-        { key: "v H", commandId: "pane_swap_left" },
-        { key: "v J", commandId: "pane_swap_down" },
-        { key: "v K", commandId: "pane_swap_up" },
-        { key: "v L", commandId: "pane_swap_right" },
-        { key: "v n", commandId: "pane_focus_next" },
-        { key: "v N", commandId: "pane_focus_prev" },
-        { key: "v p", commandId: "pane_focus_previous" },
-        { key: "v Tab", commandId: "pane_focus_next" },
+        // v-prefix chords — VIEW + PANE operations (generated from shared V_CHORD_SUFFIXES)
+        ...prefixChords("v", V_CHORD_SUFFIXES),
         { key: "v shift-Tab", commandId: "pane_focus_prev" },
-        { key: "v w", commandId: "pane_close" },
-        { key: "v o", commandId: "pane_only" },
-        { key: "v z", commandId: "pane_zoom" },
 
         // m-prefix chords (move — non-location entries)
         { key: "m m", commandId: "enter_move_mode" },
@@ -1018,37 +1011,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "ctrl-v",
       bindings: [
-        // View operations (mirrors v-prefix)
-        { key: "Ctrl+v v", commandId: "visual_mode_enter", when: not(inVisualMode) },
-        { key: "Ctrl+v m", commandId: "cycle_view_mode" },
-
-        { key: "Ctrl+v c", commandId: "toggle_collapse" },
-        { key: "Ctrl+v X", commandId: "toggle_show_ignored" },
-        { key: "Ctrl+v d", commandId: "toggle_hide_done" },
-        { key: "Ctrl+v x", commandId: "ignore_node" },
-        { key: "Ctrl+v -", commandId: "clear_filters" },
-        { key: "Ctrl+v ,", commandId: "filter" },
-        // Pane operations (mirrors v-prefix)
-        { key: "Ctrl+v s", commandId: "pane_split_vertical" },
-        { key: "Ctrl+v h", commandId: "pane_focus_left" },
-        { key: "Ctrl+v j", commandId: "pane_focus_down" },
-        { key: "Ctrl+v k", commandId: "pane_focus_up" },
-        { key: "Ctrl+v l", commandId: "pane_focus_right" },
-        { key: "Ctrl+v >", commandId: "pane_resize_grow" },
-        { key: "Ctrl+v <", commandId: "pane_resize_shrink" },
-        { key: "Ctrl+v =", commandId: "pane_equalize" },
-        { key: "Ctrl+v H", commandId: "pane_swap_left" },
-        { key: "Ctrl+v J", commandId: "pane_swap_down" },
-        { key: "Ctrl+v K", commandId: "pane_swap_up" },
-        { key: "Ctrl+v L", commandId: "pane_swap_right" },
-        { key: "Ctrl+v n", commandId: "pane_focus_next" },
-        { key: "Ctrl+v N", commandId: "pane_focus_prev" },
-        { key: "Ctrl+v p", commandId: "pane_focus_previous" },
-        { key: "Ctrl+v Tab", commandId: "pane_focus_next" },
-        { key: "Ctrl+v w", commandId: "pane_close" },
-        { key: "Ctrl+v o", commandId: "pane_only" },
-        { key: "Ctrl+v z", commandId: "pane_zoom" },
-
+        // Mirrors v-prefix (generated from shared V_CHORD_SUFFIXES)
+        ...prefixChords("Ctrl+v", V_CHORD_SUFFIXES),
         // Bare n/N for pane cycling (when find is not active)
         { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
         { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },

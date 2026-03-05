@@ -198,5 +198,5 @@ Is this a programming error or data integrity risk?
 
 ## Full Documentation
 
-See `vendor/beorn-logger/CLAUDE.md` for complete API reference.
-See `vendor/beorn-logger/docs/conditional-logging-research.md` for performance research.
+See `vendor/decant/CLAUDE.md` for complete API reference.
+See `vendor/decant/docs/conditional-logging-research.md` for performance research.

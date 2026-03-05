@@ -8,10 +8,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@hightea/term": "workspace:*",
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
-    "@hightea/term": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

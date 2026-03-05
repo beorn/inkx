@@ -94,4 +94,4 @@ mdtest asserts semantic output, not formatting or layout. Don't assert spacing, 
 
 ## See Also
 
-- [mdtest README](../../vendor/beorn-mdtest/README.md)
+- [mdtest README](../../vendor/mdtest/README.md)

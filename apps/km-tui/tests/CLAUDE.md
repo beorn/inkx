@@ -229,7 +229,7 @@ test("board renders correct colors through real terminal", () => {
 })
 ```
 
-**Canonical examples**: `vendor/beorn-inkx/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
+**Canonical examples**: `vendor/hightea/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
 
 **@termless/test matchers** (auto-registered via `import "@termless/test/matchers"`):
 

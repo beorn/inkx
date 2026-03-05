@@ -164,8 +164,8 @@ DEBUG=inkx:pipeline:output DEBUG_LOG=/tmp/inkx.log bun km view --repo <path> <bo
 ```
 
 **Key files**:
-- `vendor/beorn-inkx/src/pipeline/output-phase.ts` — ANSI diff generation, cursor tracking
-- `vendor/beorn-inkx/src/scheduler.ts` — frame scheduling, synchronized update wrapping
+- `vendor/hightea/src/pipeline/output-phase.ts` — ANSI diff generation, cursor tracking
+- `vendor/hightea/src/scheduler.ts` — frame scheduling, synchronized update wrapping
 
 **Common issues**:
 - textSizing (OSC 66) causing width tracking mismatch — disable with `textSizing: false`

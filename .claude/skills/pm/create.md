@@ -151,8 +151,8 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
    | Location | Prefix |
    |----------|--------|
    | km (main project) | `km-` |
-   | vendor/beorn-inkx | `beorn-inkx-` |
-   | vendor/beorn-chalkx | `beorn-chalkx-` |
+   | vendor/hightea | `hightea-` |
+   | vendor/hightea/packages/ansi | `hightea/packages/ansi-` |
 
 2. **Find next sequence number:**
 

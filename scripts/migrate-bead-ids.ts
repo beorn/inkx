@@ -56,8 +56,8 @@ function inferScope(bead: Bead): string {
   }
   if (
     text.includes("flexx") ||
-    text.includes("layout") ||
-    text.includes("beorn-flexx")
+    text.includes("flexture") ||
+    text.includes("layout")
   ) {
     return "flexx"
   }

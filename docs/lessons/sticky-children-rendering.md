@@ -60,7 +60,7 @@ This means:
 
 ## Cross-References
 
-- `vendor/beorn-inkx/src/pipeline/CLAUDE.md` — Scroll container three-tier strategy, sticky children two-pass rendering
-- `vendor/beorn-inkx/src/pipeline/content-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
+- `vendor/hightea/src/pipeline/CLAUDE.md` — Scroll container three-tier strategy, sticky children two-pass rendering
+- `vendor/hightea/src/pipeline/content-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
 - `docs/lessons/debugging-rendering.md` — General inkx debugging methodology
 - `docs/lessons/incremental-rendering.md` — Fast-path logic and common bug patterns

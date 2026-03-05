@@ -18,7 +18,7 @@ import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "@hightea/term"
 
 const term = createTerm(process)
-import { steps } from "@beorn/inkx-ui/progress"
+import { steps } from "@hightea/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { SyncManager } from "@km/storage"

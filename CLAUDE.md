@@ -41,7 +41,7 @@ bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 **When iterating on a specific package**, run vitest directly:
 
 ```bash
-bun vitest run vendor/beorn-inkx/tests/
+bun vitest run vendor/hightea/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
@@ -119,4 +119,4 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [perf/](.claude/skills/perf/)                                       | Performance diagnostics and profiling (all layers)                    |
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Systematic troubleshooting (reproduce, instrument, bisect, escalate)  |
-| [batch-refactor](vendor/beorn-tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
+| [batch-refactor](vendor/tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

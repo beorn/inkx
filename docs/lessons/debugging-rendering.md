@@ -65,5 +65,5 @@ The project has `withDiagnostics`, `checkReplay`, `checkIncremental`,
 ## Cross-References
 
 - `.claude/skills/tui/fix.md` — "Rendering Bugs" section
-- `vendor/beorn-inkx/src/with-diagnostics.ts` — diagnostic plugin implementation
+- `vendor/hightea/src/with-diagnostics.ts` — diagnostic plugin implementation
 - `apps/km-tui/src/driver.ts` — `createBoardDriver` for real app testing

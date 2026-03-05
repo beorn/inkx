@@ -380,7 +380,7 @@ Trace through with the question: "Why is this node skipped?"
 When fixing incremental bugs:
 
 - [ ] Create a fixture test that reproduces the bug
-- [ ] Run tests (INKX_STRICT is on by default): `bun vitest run vendor/beorn-inkx/tests/`
+- [ ] Run tests (INKX_STRICT is on by default): `bun vitest run vendor/hightea/tests/`
 - [ ] Check all inkx tests still pass
 - [ ] Check km-tui tests: `bun vitest run apps/km-tui/tests/`
 - [ ] Run the actual app: `bun km view /path/to/vault`
@@ -399,7 +399,7 @@ Goal: Skip as many nodes as possible while maintaining correctness.
 
 ## Related Files
 
-- `vendor/beorn-inkx/src/pipeline/content-phase.ts` - Fast-path logic
-- `vendor/beorn-inkx/src/debug-mismatch.ts` - Error formatting
-- `vendor/beorn-inkx/src/scheduler.ts` - INKX_STRICT check
+- `vendor/hightea/src/pipeline/content-phase.ts` - Fast-path logic
+- `vendor/hightea/src/debug-mismatch.ts` - Error formatting
+- `vendor/hightea/src/scheduler.ts` - INKX_STRICT check
 - `apps/km-tui/tests/helpers/board-test.ts` - Test fixtures

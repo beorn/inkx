@@ -117,7 +117,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │  - Board: state machine  │  - Tree: queries, formatting     │
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
-│  VENDOR (git submodules) │  (tests in vendor/beorn-*/,      │
+│  VENDOR (git submodules) │  (tests in vendor/*/,            │
 │  - inkx, flexx, logger   │   included in test:fast)         │
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
@@ -467,9 +467,9 @@ Per-layer tests for pure logic (no database, no I/O):
 
 ### 2.4 Vendor Tests
 
-Vendor packages (`vendor/beorn-*`) are git submodules - part of km's test suite.
+Vendor packages (`vendor/*`) are git submodules - part of km's test suite.
 
-**Test location:** Tests live in each vendor package (e.g., `vendor/beorn-inkx/tests/`).
+**Test location:** Tests live in each vendor package (e.g., `vendor/hightea/tests/`).
 
 **Included automatically:** `test:fast` and `test:all` discover and run vendor tests.
 
@@ -624,7 +624,7 @@ Dynamic Testing
 
 - [chaos-testing.md](chaos-testing.md) — Filesystem sync chaos testing
 - [.claude/skills/explore/](../../.claude/skills/explore/) — TUI exploration skill
-- [vendor/beorn-flexx/](../../vendor/beorn-flexx/) — Layout engine with Yoga differential tests
+- [vendor/flexture/](../../vendor/flexture/) — Layout engine with Yoga differential tests
 
 ---
 
@@ -956,7 +956,7 @@ const term = createFuzzTerm({ keys: ['j', 'k', 'Enter'], count: 100, seed: 42 })
 const term = createReplayTerm(['j', 'j', 'k', 'Enter'])
 ```
 
-See `apps/km-tui/tests/helpers/fuzz-term.ts` and `vendor/beorn-vitestx/CLAUDE.md` for full API reference.
+See `apps/km-tui/tests/helpers/fuzz-term.ts` and `vendor/vitestx/CLAUDE.md` for full API reference.
 
 ---
 

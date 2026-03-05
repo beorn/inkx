@@ -326,9 +326,9 @@ Option 2 is simpler and doesn't require inkx changes.
 
 | File | Change |
 |------|--------|
-| `vendor/beorn-inkx/src/components/HorizontalVirtualList.tsx` | New component |
-| `vendor/beorn-inkx/src/index.ts` | Export HorizontalVirtualList |
-| `vendor/beorn-inkx/CLAUDE.md` | Document HorizontalVirtualList |
+| `vendor/hightea/src/components/HorizontalVirtualList.tsx` | New component |
+| `vendor/hightea/src/index.ts` | Export HorizontalVirtualList |
+| `vendor/hightea/CLAUDE.md` | Document HorizontalVirtualList |
 | `apps/km-tui/src/views/Board.tsx` | Migrate to HorizontalVirtualList |
 | `apps/km-tui/src/views/CardsView.tsx` | Migrate if applicable |
 

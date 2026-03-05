@@ -140,8 +140,8 @@ bd list --limit 1
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/beorn-inkx | `beorn-inkx-` |
-| vendor/beorn-chalkx | `beorn-chalkx-` |
+| vendor/hightea | `hightea-` |
+| vendor/hightea/packages/ansi | `hightea/packages/ansi-` |
 | Other vendor packages | `beorn-<name>-` |
 
 **Never assume `km-`** — always verify for the current working directory.

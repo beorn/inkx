@@ -13,9 +13,10 @@
     "./mdtest": "./tests/mdtest-plugin.ts"
   },
   "dependencies": {
-    "@beorn/inkx-ui": "workspace:*",
     "@beorn/tools": "workspace:*",
     "@commander-js/extra-typings": "^14.0.0",
+    "@hightea/term": "workspace:*",
+    "@hightea/ui": "workspace:*",
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/core": "workspace:*",
@@ -24,7 +25,6 @@
     "@km/tree": "workspace:*",
     "@km/tui": "workspace:*",
     "commander": "^13.1.0",
-    "@hightea/term": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

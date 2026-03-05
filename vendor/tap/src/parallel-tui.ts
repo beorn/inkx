@@ -7,7 +7,7 @@
  * - Updates in place using cursor positioning
  *
  * Unlike the inkx version, this renders inline starting from current cursor position,
- * similar to MultiProgress in @beorn/inkx-ui.
+ * similar to MultiProgress in @hightea/ui.
  */
 
 import { spawn } from "bun"

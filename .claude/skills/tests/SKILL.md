@@ -71,7 +71,7 @@ Dot reporter is the default (configured in vitest.config.ts) — one dot per tes
 
 **When iterating on a package**, run vitest directly on that directory:
 ```bash
-bun vitest run vendor/beorn-inkx/tests/
+bun vitest run vendor/hightea/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
@@ -123,7 +123,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **TUI Tests** | Term buffer (inkx) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
-| **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/beorn-vitestx/CLAUDE.md) |
+| **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/vitestx/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |

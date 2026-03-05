@@ -238,11 +238,11 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 37 test files in vendor packages. These are owned by the vendor submodules:
 
-- beorn-chalkx (5 files)
-- beorn-flexx (1 file)
-- beorn-inkx (12 files)
-- beorn-inkx-ui (11 files)
-- beorn-logger (2 files)
+- hightea/packages/ansi (5 files)
+- flexture (1 file)
+- hightea (12 files)
+- hightea/packages/ui (11 files)
+- decant (2 files)
 - Others (6 files)
 
 Disposition: **keep** (owned by vendor, not part of km test review)
