@@ -1,6 +1,6 @@
 {
   "name": "@beorn/watcher-chaos",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Drop-in replacement file watcher for chaos testing - simulates edge cases like dropped events, reordering, and coalescing",
   "keywords": [
     "chaos",
