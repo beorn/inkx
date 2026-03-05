@@ -51,7 +51,7 @@ export {
   hyperlink,
   detectExtendedUnderline,
   type UnderlineStyle,
-} from "@hightea/chalk"
+} from "@hightea/ansi"
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"

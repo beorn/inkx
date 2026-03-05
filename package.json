@@ -17,7 +17,7 @@
     "vendor/beorn-inkx/packages/*"
   ],
   "overrides": {
-    "@hightea/chalk": "$@hightea/chalk",
+    "@hightea/ansi": "$@hightea/chalk",
     "@hightea/core": "$@hightea/core",
     "@hightea/term": "$@hightea/term",
     "flexture": "$flexture",
@@ -115,7 +115,7 @@
     "@types/react": "^19.2.13",
     "@types/sinonjs__fake-timers": "^15.0.1",
     "@vitest/ui": "^4.0.18",
-    "@hightea/chalk": "workspace:*",
+    "@hightea/ansi": "workspace:*",
     "@hightea/term": "workspace:*",
     "knip": "^5.83.1",
     "oxfmt": "^0.28.0",

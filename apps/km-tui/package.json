@@ -14,7 +14,7 @@
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@hightea/chalk": "workspace:*",
+    "@hightea/ansi": "workspace:*",
     "@hightea/term": "workspace:*",
     "react": "catalog:",
     "swatch": "workspace:*",

@@ -43,7 +43,7 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
-import { styledUnderline } from "@hightea/chalk"
+import { styledUnderline } from "@hightea/ansi"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 
