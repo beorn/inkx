@@ -5,7 +5,7 @@
  * These are routed via when predicates that check dialog state.
  */
 
-import type { CommandDef, CommandAction, FilterCategory } from "../types.ts"
+import type { CommandDef, CommandAction } from "../types.ts"
 
 export const dialogCommands: CommandDef[] = [
   {

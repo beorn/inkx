@@ -214,8 +214,6 @@ export function isTask(
 // Node Validation (kmast v2 constraints)
 // =============================================================================
 
-/** Block types that can be items */
-const ITEM_ALLOWED_BLOCK_TYPES = new Set(["h", "p", "quote", "code"])
 /** Block types that can never be items */
 const ITEM_FORBIDDEN_BLOCK_TYPES = new Set(["table", "hr", "html", "math", "embed"])
 

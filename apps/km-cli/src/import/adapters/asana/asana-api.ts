@@ -564,7 +564,7 @@ export async function fetchFromAsana(
         taskList = await client.get<{ gid: string }>(`/users/${user.gid}/user_task_list`, {
           workspace: workspace.gid,
         })
-      } catch (_err) {
+      } catch {
         console.log(term.dim(`  @${userSlug}: skipped (task list not accessible)`))
         continue
       }

@@ -996,8 +996,8 @@ function NodeChildren({
             depth={depth + 1}
             colIndex={colIndex}
             cardIndex={cardIndex}
-            dim={parentDim || item.isBody}
-            dimInactiveChildren={dimInactiveChildren || item.isBody}
+            dim={parentDim}
+            dimInactiveChildren={dimInactiveChildren}
             getChildren={getChildren}
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}
@@ -1019,8 +1019,7 @@ function NodeChildren({
   return (
     <Box flexDirection="column">
       {orderedChildren.map((item, i) => {
-        // Body items are never selected in outline mode; structural items match by node ID
-        const childSelected = !item.isBody && cursorNodeId === item.node.id
+        const childSelected = cursorNodeId === item.node.id
 
         return (
           <TreeNode
@@ -1031,7 +1030,7 @@ function NodeChildren({
             colIndex={colIndex}
             cardIndex={cardIndex}
             dim={parentDim}
-            dimInactiveChildren={dimInactiveChildren || item.isBody}
+            dimInactiveChildren={dimInactiveChildren}
             getChildren={getChildren}
             getParentContext={getParentContext}
             getBoardPills={getBoardPills}

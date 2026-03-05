@@ -211,11 +211,13 @@
 1 vendor/beorn-inkx/tests/wide-terminal-repro.test.tsx
 7 vendor/beorn-inkx/tests/with-commands.test.tsx
 2 vendor/beorn-inkx/tests/with-diagnostics.test.tsx
-1 vendor/beorn-logger/benchmarks/overhead.ts
+3 vendor/beorn-logger/benchmarks/overhead.ts
 1 vendor/beorn-logger/tests/features.test.ts
 42 vendor/beorn-logger/tests/logger.test.ts
+1 vendor/beorn-logger/tests/tracing.test.ts
 1 vendor/beorn-tap/src/parallel-tui.ts
 8 vendor/beorn-termless/packages/cli/src/mcp.ts
+2 vendor/beorn-termless/packages/cli/src/session.ts
 1 vendor/beorn-termless/tests/cross-backend.test.ts
 1 vendor/beorn-themex/screenshot.ts
 1 vendor/beorn-tools/tools/lib/history/indexer.ts

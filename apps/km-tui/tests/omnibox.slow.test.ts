@@ -165,6 +165,32 @@ describe("omnibox", () => {
     expect(screenshot).toContain("gj")
   })
 
+  it("command result shortcut hint is visible despite long description", () => {
+    // With a narrow terminal, command labels + descriptions can overflow.
+    // The shortcut hint (e.g., "gi") must remain visible — the description truncates instead.
+    const { board } = testEnv(() => [...item("board", item("col1", item("task1")))], { rows: 40, columns: 60 })
+    board.command("command_palette")
+    const screenshot = board.screenshot()
+    // Go to Inbox has shortcut "gi" — it must be visible even at 60 columns
+    expect(screenshot).toContain("gi")
+    // The label itself must also be visible
+    expect(screenshot).toContain("Go to Inbox")
+  })
+
+  it("command result items are single-line (no wrapping)", () => {
+    // At narrow widths, command items must truncate rather than wrap to multiple lines.
+    // Without height=1 + overflow="hidden" + wrap="truncate", text wraps and breaks layout.
+    const { board } = testEnv(() => [...item("board", item("col1", item("task1")))], { rows: 40, columns: 50 })
+    board.command("command_palette")
+    const screenshot = board.screenshot()
+    // "Go to Inbox" and "Go to Journal" should both be visible on separate lines.
+    // If items wrapped, they would consume 2 rows each and fewer items would be visible.
+    expect(screenshot).toContain("Go to Inbox")
+    expect(screenshot).toContain("Go to Journal")
+    expect(screenshot).toContain("Go to Home")
+    expect(screenshot).toContain("Go to Archive")
+  })
+
   it("search result parent context is not truncated by long title", () => {
     // Use a board with a long task title and a recognizable column (parent) name.
     // The task title is long enough to push parentContext off-screen if not laid out properly.

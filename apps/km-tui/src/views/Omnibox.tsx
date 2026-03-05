@@ -264,18 +264,24 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
   const fg = isSelected ? "$selection-fg" : undefined
 
   return (
-    <Box>
-      <Text color={fg} backgroundColor={bg} bold={isSelected}>
-        <Text dimColor={!isSelected}>{typeIcon}</Text>
-        <Text>{result.label}</Text>
-        {"  "}
-        <Text dimColor>{result.description}</Text>
-      </Text>
-      {result.shortcutHint && (
-        <Text color={isSelected ? "$selection-fg" : "$inputborder"} backgroundColor={bg}>
+    <Box height={1} backgroundColor={bg} flexDirection="row">
+      {/* Label + description: fills remaining space, truncates on overflow */}
+      <Box flexGrow={1} flexShrink={1} overflow="hidden">
+        <Text color={fg} bold={isSelected} wrap="truncate">
+          <Text dimColor={!isSelected}>{typeIcon}</Text>
+          <Text>{result.label}</Text>
           {"  "}
-          {result.shortcutHint}
+          <Text dimColor>{result.description}</Text>
         </Text>
+      </Box>
+      {/* Shortcut hint: fixed width, never squeezed */}
+      {result.shortcutHint && (
+        <Box flexGrow={0} flexShrink={0}>
+          <Text color={isSelected ? "$selection-fg" : "$inputborder"} backgroundColor={bg}>
+            {"  "}
+            {result.shortcutHint}
+          </Text>
+        </Box>
       )}
     </Box>
   )

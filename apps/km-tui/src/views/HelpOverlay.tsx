@@ -43,7 +43,7 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text bold color={"$primary"}>
+      <Text bold color={"$accent"}>
         {title.toUpperCase()}
       </Text>
       {hint && (
@@ -71,7 +71,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$border"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}
@@ -212,21 +212,21 @@ function buildVerbGridLines(): React.ReactElement[] {
     <Box key="vg-col-hdr" flexDirection="row">
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
-        <Text bold color={"$primary"}>
+        <Text bold color={"$accent"}>
           {"go to"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={"$primary"}>
+        <Text bold color={"$accent"}>
           {"move"}
         </Text>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={"$primary"}>
+        <Text bold color={"$accent"}>
           {"add/link"}
         </Text>
       </Box>
-      <Text bold color={"$primary"}>
+      <Text bold color={"$accent"}>
         {"create"}
       </Text>
     </Box>,
@@ -342,7 +342,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
       {scrollHint && (
         <>
           <Text dimColor>{"  "}</Text>
-          <Text color={"$warning"}>{scrollHint}</Text>
+          <Text color={"$info"}>{scrollHint}</Text>
         </>
       )}
     </Box>
@@ -355,7 +355,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         height={boxHeight}
         title="Keyboard Shortcuts"
         hotkey="?"
-        titleColor={"$primary"}
+        titleColor={"$fg"}
         footer={footer}
       >
         {visibleContent}
