@@ -11,7 +11,7 @@
 import { stripAnsi } from "@hightea/term"
 import stringWidth from "string-width"
 
-// Re-export ANSI utilities from inkx (canonical implementation)
+// Re-export ANSI utilities from hightea (canonical implementation)
 export { stripAnsi }
 
 /**

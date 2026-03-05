@@ -28,7 +28,7 @@ import {
   type TargetResolver,
 } from "../src/verb-locations.ts"
 import { REPO_LOCS } from "../src/locations.ts"
-import { initCommandSystem } from "../src/ink-adapter.ts"
+import { initCommandSystem } from "../src/key-adapter.ts"
 import {
   resolveChord,
   clearKeybindings,

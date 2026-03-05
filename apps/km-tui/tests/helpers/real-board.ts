@@ -74,7 +74,7 @@ export interface TestBoardResult {
   readonly hasStatus: boolean
   /** Get current status message if visible */
   getStatus: () => { level: string; message: string } | null
-  /** Access to underlying inkx App for advanced use */
+  /** Access to underlying hightea App for advanced use */
   _result: App
   /** Access to underlying Repo for advanced use */
   _repo: Repo

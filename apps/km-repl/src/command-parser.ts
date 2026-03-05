@@ -25,7 +25,7 @@ export type ParseResult =
 export type ShellCommand =
   | { type: "STATE" } // Dump current state
   | { type: "VIEW" } // Render current view as ASCII
-  | { type: "RENDER"; width?: number; height?: number; ansi?: boolean } // Render TUI-style view using inkx
+  | { type: "RENDER"; width?: number; height?: number; ansi?: boolean } // Render TUI-style view using hightea
   | { type: "HELP"; topic?: string } // Show help
   | { type: "LOG"; count?: number } // Dump last n actions (default: all)
   | { type: "QUIT" } // Exit shell
@@ -296,7 +296,7 @@ export function getCommandHelp(topic?: string): string {
       key: "key <keyspec> - Send raw key (e.g., key j, key <Enter>)",
       state: "Dump current BoardState as JSON",
       view: "Render current view as ASCII",
-      render: "render [--width N] [--height N] [--ansi] - Render TUI-style view using inkx",
+      render: "render [--width N] [--height N] [--ansi] - Render TUI-style view using hightea",
       help: "help [command] - Show help",
       quit: "Exit the shell",
       // Filesystem-like commands

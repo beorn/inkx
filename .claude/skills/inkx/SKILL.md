@@ -1,9 +1,9 @@
 ---
-description: Debug and fix inkx rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when inkx renders incorrectly or has visual artifacts.
+description: Debug and fix hightea rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when hightea renders incorrectly or has visual artifacts.
 argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven workflow)
 ---
 
-# inkx Diagnostic Workflow
+# hightea Diagnostic Workflow
 
 **Issue**: $ARGUMENTS
 
@@ -12,9 +12,9 @@ argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven 
 ```
 I see a visual glitch
 ├── Content correct on initial render, wrong after navigation?
-│   └── Incremental rendering bug → Step 1: INKX_STRICT
+│   └── Incremental rendering bug → Step 1: HIGHTEA_STRICT
 ├── Wrong sizes or positions (not wrong pixels)?
-│   └── Possibly a Flexx layout bug → See .claude/skills/flexx/SKILL.md
+│   └── Possibly a Flexture layout bug → See .claude/skills/flexx/SKILL.md
 ├── Scroll content jumps or disappears?
 │   └── Scroll tier issue → Step 5: Check tier selection
 ├── Sticky header shows wrong bg or corrupts items?
@@ -22,7 +22,7 @@ I see a visual glitch
 ├── Border artifacts after color change?
 │   └── paintDirty cascading → Step 5: Check contentAreaAffected
 └── Ghost characters or stale pixels?
-    └── Output phase or region clearing → Step 1: INKX_STRICT
+    └── Output phase or region clearing → Step 1: HIGHTEA_STRICT
 ```
 
 ## Diagnostic Steps
@@ -45,22 +45,22 @@ For non-testEnv tests, use `withDiagnostics({ checkIncremental: true })` on the 
 
 If a test exercises dialog open/close, toast show/hide, or any component mount/unmount and does NOT have incremental checking, **add it before investigating**.
 
-### Step 1: INKX_STRICT
+### Step 1: HIGHTEA_STRICT
 
-Run with INKX_STRICT to catch incremental vs fresh render divergence at the runtime level.
+Run with HIGHTEA_STRICT to catch incremental vs fresh render divergence at the runtime level.
 
 ```bash
 # In the app (catches production createApp path issues)
-INKX_STRICT=1 bun km view /path/to/vault
+HIGHTEA_STRICT=1 bun km view /path/to/vault
 
 # In tests (testEnv checks incremental by default since 2026-02-17)
 bun vitest run vendor/hightea/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
-**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `INKX_STRICT=1` with the real app for those.
+**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `HIGHTEA_STRICT=1` with the real app for those.
 
-If INKX_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
+If HIGHTEA_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
 - **Cell values** (incremental vs fresh) — shows exactly what diverged
 - **Node path** — which component owns the mismatched cell
 - **Dirty flags** — whether the node was clean when it shouldn't have been
@@ -69,17 +69,17 @@ If INKX_STRICT throws `IncrementalRenderMismatchError`, the error output include
 
 ### Step 2: Write a Failing Test
 
-Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For inkx bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
+Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For hightea bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
 
-### Step 3: INKX_INSTRUMENT
+### Step 3: HIGHTEA_INSTRUMENT
 
 Enable performance instrumentation to see skip/render counts:
 
 ```bash
-INKX_INSTRUMENT=1 bun km view /path
+HIGHTEA_INSTRUMENT=1 bun km view /path
 ```
 
-Exposed on `globalThis.__inkx_content_detail` (per-frame) and `globalThis.__inkx_content_all` (array):
+Exposed on `globalThis.__hightea_content_detail` (per-frame) and `globalThis.__hightea_content_all` (array):
 - `nodesVisited`, `nodesRendered`, `nodesSkipped` — too many renders = over-invalidation
 - `clearOps` — how many region clears happened
 - `cascadeMinDepth`, `cascadeNodes` — cascade analysis
@@ -90,7 +90,7 @@ Exposed on `globalThis.__inkx_content_detail` (per-frame) and `globalThis.__inkx
 For node-level diagnostics when you have a specific mismatch position:
 
 ```typescript
-import { findNodeAtPosition, getNodeDebugInfo, buildMismatchContext } from "inkx/debug-mismatch"
+import { findNodeAtPosition, getNodeDebugInfo, buildMismatchContext } from "@hightea/term/debug-mismatch"
 
 const ctx = buildMismatchContext(root, mismatch, incrementalBuffer, freshBuffer)
 console.log(formatMismatchContext(ctx))
@@ -131,7 +131,7 @@ When multiple hypotheses exist, test them concurrently:
 
 ```
 Agent 1: Test "dirty flag propagation" hypothesis
-  → Write test targeting flag cascade, check with INKX_STRICT
+  → Write test targeting flag cascade, check with HIGHTEA_STRICT
 
 Agent 2: Test "scroll tier selection" hypothesis
   → Write test with scroll container, vary scroll offset, check tier
@@ -151,11 +151,11 @@ Merge findings: typically one agent's test fails, confirming that hypothesis.
 # Pre-flight: check CPU load
 top -l 1 -n 5 -stats command,cpu | head -10
 
-# Run inkx benchmarks (if they exist for the area you're changing)
+# Run hightea benchmarks (if they exist for the area you're changing)
 bun vitest run vendor/hightea/tests/
 
 # Run the full app to verify no visual regression
-INKX_STRICT=1 bun km view /path
+HIGHTEA_STRICT=1 bun km view /path
 ```
 
 ## After Fixing

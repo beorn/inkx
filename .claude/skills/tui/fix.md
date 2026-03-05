@@ -26,7 +26,7 @@ Follow the [test-first protocol](../tests/test-first-protocol.md). No code analy
 // /tmp/diag-rendering.test.ts
 import { createBoardDriver } from "@km/tui/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "inkx"
+import { withDiagnostics } from "@hightea/term"
 import { item } from "@km/tui/tests/helpers/board-test.ts"
 
 const nodes = item.root("board",
@@ -273,12 +273,12 @@ check.all(board)          // All of the above (synthetic only)
 
 ## Layout Bugs (Wrong Dimensions, Text Overflow, Card Sizing)
 
-If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexx layout caching bug** rather than an inkx rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
+If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexture layout caching bug** rather than a hightea rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
 
 **Quick check**: Does the bug only appear after navigation (re-layout), not on initial render? → Likely a layout caching bug.
 
 ```bash
-# Run the Flexx re-layout fuzz suite (1100+ tests, differential oracle)
+# Run the Flexture re-layout fuzz suite (1100+ tests, differential oracle)
 bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
 
 # If all pass, the caching logic is correct for known patterns.
@@ -296,14 +296,14 @@ See `vendor/flexture/docs/incremental-layout-bugs.md` for full details, industry
 
 - [explore/random.md](../explore/random.md) — Fuzz testing
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson
-- `vendor/flexture/docs/testing.md` — Flexx test infrastructure
+- `vendor/flexture/docs/testing.md` — Flexture test infrastructure
 
 ## TUI Test Accuracy
 
 TUI tests check DOM content and computed colors (Phase 3), but bugs often live in Phase 4 (ANSI diff) and Phase 5 (terminal rendering). Two mechanisms make tests catch what users see:
 
 - `withDiagnostics(..., { checkReplay: true })` — replays ANSI output through a virtual terminal and compares to buffer. Catches diff algorithm bugs.
-- `INKX_STRICT=1` / `checkIncremental: true` — runs BOTH incremental and fresh renders, compares cell-by-cell. Catches stale-pixel bugs.
+- `HIGHTEA_STRICT=1` / `checkIncremental: true` — runs BOTH incremental and fresh renders, compares cell-by-cell. Catches stale-pixel bugs.
 
 ### Guidelines for Visual Bug Tests
 

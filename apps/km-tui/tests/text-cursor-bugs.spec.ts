@@ -4,7 +4,7 @@
  * Three bugs:
  * 1. Exits edit mode when cursor crosses to another node (should seamlessly enter edit on next block)
  * 2. Ghost cursor (two cursors shown — stale inverse attribute not cleared)
- * 3. Line positions wrong (manual wrapSegment doesn't match inkx visual wrapping)
+ * 3. Line positions wrong (manual wrapSegment doesn't match hightea visual wrapping)
  *
  * Each test is written to FAIL with the current bugs, then pass after fixes.
  */

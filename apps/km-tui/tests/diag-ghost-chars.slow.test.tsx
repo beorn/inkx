@@ -1,5 +1,5 @@
 /**
- * Ghost Character Diagnostic Test (km-inkx.1)
+ * Ghost Character Diagnostic Test (km-hightea.1)
  *
  * Key insight: a real terminal accumulates ALL ANSI diffs from startup.
  * Pairwise replay (prev→next) might pass while cumulative replay diverges.

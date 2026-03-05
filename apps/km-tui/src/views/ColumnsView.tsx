@@ -4,7 +4,7 @@
  * Tree/outline view within each column - combines the columnar structure
  * with hierarchical display of cards and their children.
  *
- * Uses inkx HorizontalVirtualList for horizontal column windowing and
+ * Uses hightea HorizontalVirtualList for horizontal column windowing and
  * VirtualList for React-level virtualization of large card lists.
  */
 import React, { useCallback, useMemo } from "react"

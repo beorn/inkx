@@ -7,13 +7,13 @@
 
 import {
   initCommandSystem,
-  processInkKey,
+  processKey,
   buildKeybindingContext,
   buildContext,
   getChordState,
   handleChordTimeout,
-  type InkKeyEvent,
-  type InkCommandResult,
+  type KeyEvent,
+  type KeyCommandResult,
   type TNode,
 } from "@km/commands"
 import { detectTerminalCaps, activeEditTargetRef } from "@hightea/term"
@@ -135,14 +135,14 @@ function buildCommandContexts(ctx: ActionCtx) {
   return { cmdCtx, kbCtx }
 }
 
-export function processKeyWithContext(input: string, key: InkKeyEvent, ctx: ActionCtx): InkCommandResult {
+export function processKeyWithContext(input: string, key: KeyEvent, ctx: ActionCtx): KeyCommandResult {
   ensureCommandSystemInitialized()
   const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
-  return processInkKey(input, key, cmdCtx, kbCtx)
+  return processKey(input, key, cmdCtx, kbCtx)
 }
 
 /** Handle chord timeout — resolves the pending prefix as its standalone command */
-export function processChordTimeout(ctx: ActionCtx): InkCommandResult | null {
+export function processChordTimeout(ctx: ActionCtx): KeyCommandResult | null {
   ensureCommandSystemInitialized()
   const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
   return handleChordTimeout(cmdCtx, kbCtx)

@@ -155,17 +155,17 @@ test("should display cards view", async ({ page }) => {
 })
 ```
 
-**Status**: Deprecated - migrate to inkx `createRenderer()`.
+**Status**: Deprecated - migrate to hightea `createRenderer()`.
 
 **When reviewing Playwright tests**:
 
-- Consider migrating to inkx (faster, more reliable)
-- Keep only if testing pixel-perfect terminal rendering that inkx can't cover
-- For keyboard navigation, use inkx + `stdin.write()` instead
+- Consider migrating to hightea (faster, more reliable)
+- Keep only if testing pixel-perfect terminal rendering that hightea can't cover
+- For keyboard navigation, use hightea + `stdin.write()` instead
 
 **Preferred alternatives**:
 
-- `inkx/testing` with `createRenderer()` for visual assertions
+- `@hightea/term/testing` with `createRenderer()` for visual assertions
 - `km sh` + mdtest for scripted TUI testing
 
 ### mdtest / `km sh` Tests (`apps/km-cli/tests/sh/*.test.md`)

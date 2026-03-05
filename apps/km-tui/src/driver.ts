@@ -132,7 +132,7 @@ export interface TUIDriverState extends AppState {
 export interface BoardDriver extends AppWithCommands {
   /** Get rich state for AI decision-making */
   getState(): TUIDriverState
-  /** The underlying inkx App */
+  /** The underlying hightea App */
   readonly app: App
   /** Layout registry for position tracking */
   readonly navigator: GridNavigator

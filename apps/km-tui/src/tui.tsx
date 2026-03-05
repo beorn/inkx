@@ -43,7 +43,7 @@ export const tuiEvents = new EventEmitter()
 tuiEvents.setMaxListeners(200)
 
 // restoreTerminal is imported from ./raw-signals.ts (emergency crash handler only;
-// Ctrl+C and Ctrl+Z are handled by inkx's terminal lifecycle system)
+// Ctrl+C and Ctrl+Z are handled by hightea's terminal lifecycle system)
 
 /**
  * Compute initial cursor node from board data.
@@ -172,11 +172,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
         // Per-phase pipeline timing from last render
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        const pipeline = (globalThis as any).__inkx_last_pipeline as
+        const pipeline = (globalThis as any).__hightea_last_pipeline as
           | { measure: number; layout: number; content: number; output: number; total: number }
           | undefined
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        const renderCount = ((globalThis as any).__inkx_render_count as number) ?? 0
+        const renderCount = ((globalThis as any).__hightea_render_count as number) ?? 0
         const rendersSinceLastCheck = renderCount - lastRenderCount
         lastRenderCount = renderCount
 
@@ -207,11 +207,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   const handleError = (error: Error) => {
     restoreTerminal()
     if (error instanceof IncrementalRenderMismatchError) {
-      // INKX_CHECK_INCREMENTAL detected a bug - show message and exit
-      process.stderr.write("\n\n[inkx] Incremental render mismatch detected!\n")
+      // HIGHTEA_CHECK_INCREMENTAL detected a bug - show message and exit
+      process.stderr.write("\n\n[hightea] Incremental render mismatch detected!\n")
       process.stderr.write(error.message + "\n")
       process.stderr.write("\nThis indicates a bug in incremental rendering. File an issue or run\n")
-      process.stderr.write("without INKX_STRICT to continue using the TUI (with visual glitches).\n")
+      process.stderr.write("without HIGHTEA_STRICT to continue using the TUI (with visual glitches).\n")
       process.exit(1)
     }
     process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)
@@ -220,7 +220,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   }
 
   // SIGTERM still needs a handler since it comes from the OS, not stdin.
-  // Ctrl+C (SIGINT) and Ctrl+Z (SIGTSTP) are handled by inkx's terminal
+  // Ctrl+C (SIGINT) and Ctrl+Z (SIGTSTP) are handled by hightea's terminal
   // lifecycle system — they intercept the raw bytes in the event loop.
   const handleSigterm = () => {
     restoreTerminal()

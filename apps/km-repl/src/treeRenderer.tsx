@@ -1,7 +1,7 @@
 /**
  * Tree Renderer for km-sh
  *
- * Renders a BoardState tree using inkx for TUI-style output.
+ * Renders a BoardState tree using hightea for TUI-style output.
  * Used by the `render` command to provide visual debugging.
  */
 
@@ -170,7 +170,7 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
 }
 
 /**
- * Render a BoardState to text using inkx renderStatic
+ * Render a BoardState to text using hightea renderStatic
  */
 export async function renderTree(
   state: BoardState,

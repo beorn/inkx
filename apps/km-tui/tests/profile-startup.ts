@@ -108,8 +108,8 @@ async function profile() {
   const { createWriteStream } = await import("fs")
   const devNull = createWriteStream("/dev/null")
 
-  // Enable inkx instrumentation
-  ;(globalThis as any).INKX_INSTRUMENT = true
+  // Enable hightea instrumentation
+  ;(globalThis as any).HIGHTEA_INSTRUMENT = true
 
   const t7 = timer("boardApp.run() — React mount + first render + layout + output")
   const handle = await boardApp.run(
@@ -122,37 +122,37 @@ async function profile() {
   )
   t7.end()
 
-  // Read inkx timing data
-  const pipeline = (globalThis as any).__inkx_last_pipeline
-  const timing = (globalThis as any).__inkx_last_timing
-  const contentDetail = (globalThis as any).__inkx_content_detail
-  const contentAll = (globalThis as any).__inkx_content_all
+  // Read hightea timing data
+  const pipeline = (globalThis as any).__hightea_last_pipeline
+  const timing = (globalThis as any).__hightea_last_timing
+  const contentDetail = (globalThis as any).__hightea_content_detail
+  const contentAll = (globalThis as any).__hightea_content_all
 
   if (pipeline) {
-    out("\n--- inkx pipeline breakdown ---")
+    out("\n--- hightea pipeline breakdown ---")
     for (const [key, val] of Object.entries(pipeline)) {
       out(`  ${key}: ${typeof val === "number" ? (val as number).toFixed(1) + "ms" : val}`)
     }
   } else {
-    out("\n  (no pipeline timing data — __inkx_last_pipeline not set)")
+    out("\n  (no pipeline timing data — __hightea_last_pipeline not set)")
   }
 
   if (timing) {
-    out("\n--- inkx renderer timing ---")
+    out("\n--- hightea renderer timing ---")
     for (const [key, val] of Object.entries(timing)) {
       out(`  ${key}: ${typeof val === "number" ? (val as number).toFixed(1) + "ms" : val}`)
     }
   }
 
   if (contentDetail) {
-    out("\n--- inkx content detail ---")
+    out("\n--- hightea content detail ---")
     for (const [key, val] of Object.entries(contentDetail)) {
       out(`  ${key}: ${typeof val === "number" ? (val as number).toFixed(1) + (key.startsWith("_") ? "" : "ms") : val}`)
     }
   }
 
   if (contentAll) {
-    out(`\n--- inkx all render passes: ${(contentAll as any[]).length} ---`)
+    out(`\n--- hightea all render passes: ${(contentAll as any[]).length} ---`)
     for (let i = 0; i < Math.min((contentAll as any[]).length, 5); i++) {
       const pass = (contentAll as any[])[i]
       out(`  Pass ${i}: ${JSON.stringify(pass)}`)
@@ -164,13 +164,13 @@ async function profile() {
 
   async function measureNav(label: string, action: () => void) {
     // Clear pipeline timing
-    ;(globalThis as any).__inkx_last_pipeline = null
+    ;(globalThis as any).__hightea_last_pipeline = null
     const start = performance.now()
     action()
     // Wait for React to process and re-render (React batches within microtask)
     await new Promise<void>((r) => setTimeout(r, 16))
     const ms = (performance.now() - start).toFixed(1)
-    const lastPipeline = (globalThis as any).__inkx_last_pipeline
+    const lastPipeline = (globalThis as any).__hightea_last_pipeline
     const pipelineTotal = lastPipeline?.total?.toFixed(1) ?? "no render"
     const layoutMs = lastPipeline?.layout?.toFixed(1) ?? "-"
     const contentMs = lastPipeline?.content?.toFixed(1) ?? "-"
@@ -350,7 +350,7 @@ async function profile() {
   out("  2. createBoardApp() — store + state init")
   out("  3. boardApp.run() — React mount → first render")
   out("     This includes: useState initializer (deriveColumnsFromRepo),")
-  out("     buildNodeIndex, React component tree, inkx layout + content + output")
+  out("     buildNodeIndex, React component tree, hightea layout + content + output")
 
   repo[Symbol.dispose]()
 }

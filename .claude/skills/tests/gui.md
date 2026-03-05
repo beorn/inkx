@@ -75,7 +75,7 @@ Control+c, Control+d, Shift+Tab (modifiers)
 ```typescript
 {
   command: string[]              // Required: ["bun", "km", "view", "/path"]
-  env?: Record<string, string>   // Optional: { DEBUG: "inkx:*" }
+  env?: Record<string, string>   // Optional: { DEBUG: "hightea:*" }
   cols?: number                  // Terminal columns (default: 120)
   rows?: number                  // Terminal rows (default: 40)
   cwd?: string                   // Working directory
@@ -88,7 +88,7 @@ Control+c, Control+d, Shift+Tab (modifiers)
 
 ## In-Process Screenshots (Preferred)
 
-For most cases, prefer in-process `app.screenshot()` over TTY MCP. The inkx App now supports direct screenshot capture:
+For most cases, prefer in-process `app.screenshot()` over TTY MCP. The hightea App now supports direct screenshot capture:
 
 ```typescript
 const driver = createBoardDriver(repo, rootId)
@@ -107,7 +107,7 @@ const driver = withDiagnostics(createBoardDriver(repo, rootId), {
   checkIncremental: true,
   checkStability: true,
   captureOnFailure: true,              // Capture screenshot on failure
-  screenshotDir: "/tmp/inkx-diagnostics", // Default directory
+  screenshotDir: "/tmp/hightea-diagnostics", // Default directory
 })
 ```
 
@@ -144,7 +144,7 @@ bun tools/tty.ts capture --command "bun km view /path" --wait-for "BOARD" --text
 
 | Need | Use |
 |------|-----|
-| Automated TUI tests | [TUI tests (inkx)](tui.md) |
+| Automated TUI tests | [TUI tests (hightea)](tui.md) |
 | In-process screenshots | `app.screenshot()` / `withDiagnostics({ captureOnFailure })` |
 | Pixel-level verification | TTY MCP `mcp__tty__screenshot` |
 | Debug visual issue | TTY MCP |

@@ -37,9 +37,9 @@ process.env.LOG_LEVEL = "warn"
 
 // Suppress React act() warnings from useSyncExternalStore:
 // When vitest runs multiple test files in the same thread, IS_REACT_ACT_ENVIRONMENT
-// (set to true by inkx/testing) bleeds across files. This causes non-deterministic
+// (set to true by hightea/testing) bleeds across files. This causes non-deterministic
 // "not wrapped in act(...)" warnings when useSyncExternalStore subscriptions fire
-// between act() boundaries. The warnings are harmless — inkx's sendInput() properly
+// between act() boundaries. The warnings are harmless — hightea's sendInput() properly
 // wraps mutations in act(). We patch console.error permanently (not via vi.spyOn)
 // to catch warnings that fire between beforeEach/afterEach lifecycle boundaries.
 const _originalConsoleError = console.error
@@ -50,39 +50,39 @@ console.error = function (...args: unknown[]) {
   _originalConsoleError.apply(console, args)
 }
 
-// Also set IS_REACT_ACT_ENVIRONMENT to false as a baseline, though inkx/testing
+// Also set IS_REACT_ACT_ENVIRONMENT to false as a baseline, though hightea/testing
 // will override it to true when imported.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false
 
-// INKX_STRICT: Compare incremental vs fresh render on every frame.
+// HIGHTEA_STRICT: Compare incremental vs fresh render on every frame.
 // DO NOT DISABLE THIS. If tests fail with IncrementalRenderMismatchError,
-// the bug is in inkx's incremental rendering — fix the renderer, not this flag.
+// the bug is in hightea's incremental rendering — fix the renderer, not this flag.
 // Disabling this hides real production bugs where incremental rendering diverges.
-process.env.INKX_STRICT = "1"
+process.env.HIGHTEA_STRICT = "1"
 
-// INKX_STRICT_OUTPUT: Per-frame ANSI output verification (virtual terminal replay).
+// HIGHTEA_STRICT_OUTPUT: Per-frame ANSI output verification (virtual terminal replay).
 // Replays incremental ANSI through a virtual terminal and compares with fresh render.
-// Catches output-phase bugs that INKX_STRICT misses (cursor drift from wide chars,
+// Catches output-phase bugs that HIGHTEA_STRICT misses (cursor drift from wide chars,
 // true-color diffs, etc.). NOTE: isStrictOutput() in output-phase.ts falls back to
-// INKX_STRICT when INKX_STRICT_OUTPUT is unset, so output verification is ALREADY
-// ENABLED implicitly via INKX_STRICT=1 above (tracked as km-inkx.strict-style-verify).
-// process.env.INKX_STRICT_OUTPUT = "1"
+// HIGHTEA_STRICT when HIGHTEA_STRICT_OUTPUT is unset, so output verification is ALREADY
+// ENABLED implicitly via HIGHTEA_STRICT=1 above (tracked as km-hightea.strict-style-verify).
+// process.env.HIGHTEA_STRICT_OUTPUT = "1"
 
 // Catch IncrementalRenderMismatchError as warnings instead of test-killing errors.
-// These are thrown asynchronously from INKX_STRICT's render comparison, and vitest
+// These are thrown asynchronously from HIGHTEA_STRICT's render comparison, and vitest
 // counts them as "unhandled errors" even when all tests pass. The bg-bleed issue
-// (km-inkx.bg-bleed) is tracked — we want it visible but not blocking CI.
+// (km-hightea.bg-bleed) is tracked — we want it visible but not blocking CI.
 let _mismatchCount = 0
 process.on("unhandledRejection", (reason: unknown) => {
   if (reason instanceof Error && reason.name === "IncrementalRenderMismatchError") {
     _mismatchCount++
-    return // suppress — tracked as km-inkx.bg-bleed
+    return // suppress — tracked as km-hightea.bg-bleed
   }
 })
 afterEach(() => {
   if (_mismatchCount > 0) {
     _originalConsoleError(
-      `[INKX_STRICT] ${_mismatchCount} IncrementalRenderMismatchError(s) suppressed (km-inkx.bg-bleed)`,
+      `[HIGHTEA_STRICT] ${_mismatchCount} IncrementalRenderMismatchError(s) suppressed (km-hightea.bg-bleed)`,
     )
     _mismatchCount = 0
   }

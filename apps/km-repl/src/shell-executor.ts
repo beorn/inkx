@@ -10,7 +10,7 @@ import type { TaskStatus } from "@km/core"
 import { boardReducer, getNodeAtPath } from "./board-reducer.ts"
 import { parseCommand, getCommandHelp } from "./command-parser.ts"
 import type { ShellCommand } from "./command-parser.ts"
-// Note: renderTree is imported lazily to avoid loading inkx/testing
+// Note: renderTree is imported lazily to avoid loading hightea/testing
 // (which sets IS_REACT_ACT_ENVIRONMENT=true) when km-repl is imported
 
 /**
@@ -625,7 +625,7 @@ export async function executeShellCommand(command: ShellCommand, ctx: ShellConte
       return { quit: false }
 
     case "RENDER": {
-      // Lazy import to avoid loading inkx at module load time
+      // Lazy import to avoid loading hightea at module load time
       const { renderTree } = await import("./treeRenderer.tsx")
       const view = await renderTree(ctx.state, {
         width: command.width,

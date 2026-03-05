@@ -10,7 +10,7 @@ Generated: 2026-01-23
 | Sync (slow)         | 13    | ~140   | ~3k   | keep                   |
 | Chaos/fuzzer        | 10    | ~160   | ~3k   | keep                   |
 | Acceptance (mdtest) | 13    | ~200   | ~2k   | keep                   |
-| Playwright          | 2     | 14     | 400   | **migrate to inkx**    |
+| Playwright          | 2     | 14     | 400   | **migrate to hightea**    |
 | Vendor              | 37    | ~500   | ~10k  | keep (owned by vendor) |
 
 ## Action Items
@@ -19,8 +19,8 @@ Generated: 2026-01-23
 
 | File                                                                       | Tests | Reason                                             |
 | -------------------------------------------------------------------------- | ----- | -------------------------------------------------- |
-| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use inkx `createRenderer()` instead of browser |
-| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use inkx `createRenderer()` instead of browser |
+| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use hightea `createRenderer()` instead of browser |
+| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use hightea `createRenderer()` instead of browser |
 
 ### Navigation Tests - No Overlap (Verified)
 
@@ -151,8 +151,8 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 | File                       | Tests | Lines | Type       | Speed | Disposition         |
 | -------------------------- | ----- | ----- | ---------- | ----- | ------------------- |
-| tui.playwright.ts          | 8     | 230   | acceptance | slow  | **migrate to inkx** |
-| body-content.playwright.ts | 6     | 169   | acceptance | slow  | **migrate to inkx** |
+| tui.playwright.ts          | 8     | 230   | acceptance | slow  | **migrate to hightea** |
+| body-content.playwright.ts | 6     | 169   | acceptance | slow  | **migrate to hightea** |
 
 ## CLI Layer (apps/km-cli)
 
@@ -203,7 +203,7 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 | ------------------- | ----- | ----- | ---- | ----- | ----------- |
 | commands.test.ts    | 54    | 718   | core | fast  | keep        |
 | executor.test.ts    | 25    | 367   | core | fast  | keep        |
-| ink-adapter.test.ts | 34    | 399   | core | fast  | keep        |
+| key-adapter.test.ts | 34    | 399   | core | fast  | keep        |
 | keybindings.test.ts | 40    | 640   | core | fast  | keep        |
 | registry.test.ts    | 31    | 305   | core | fast  | keep        |
 

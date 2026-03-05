@@ -228,7 +228,7 @@ function BoardTopBar({
       : selectionLevel === "column" || !cursorCardNodeId
         ? cursorColumnNodeId
         : cursorCardNodeId
-  // Let inkx's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
+  // Let hightea's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
   const filterIndicator = formatFilterIndicator(filterProperties, filterText)
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
   const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, rootId), termWidth - 4 - reservedWidth)
@@ -517,7 +517,7 @@ export function Board({ patchedConsole }: BoardProps) {
   )
   const taskStatusFilter = ui.filterProperties.taskStatus
 
-  // Board focus state — derived from inkx focus scope system.
+  // Board focus state — derived from hightea focus scope system.
   // activeScopeId is set by syncFocusScope() when pane focus changes.
   // null means no scope activated yet (first render) — treat as focused.
   const { activeScopeId } = useFocusManager()
@@ -746,7 +746,7 @@ export function Board({ patchedConsole }: BoardProps) {
           },
         })
       }
-      // @ts-expect-error - React internal flag set by inkx test renderer
+      // @ts-expect-error - React internal flag set by hightea test renderer
       if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
         computeMatches()
       } else {
@@ -782,7 +782,7 @@ export function Board({ patchedConsole }: BoardProps) {
           },
         })
       }
-      // @ts-expect-error - React internal flag set by inkx test renderer
+      // @ts-expect-error - React internal flag set by hightea test renderer
       if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
         computeMatches()
       } else {

@@ -1,9 +1,9 @@
 /**
- * Tests for inkx text utilities: wrap, truncate, pad, constrain (Layer 2)
+ * Tests for hightea text utilities: wrap, truncate, pad, constrain (Layer 2)
  *
  * Consolidated from truncate.test.ts, constrain.test.ts, wrap.test.ts.
  *
- * Note: inkx's wrapText behavior:
+ * Note: hightea's wrapText behavior:
  * - Returns [''] for empty input (preserves the input as a single line)
  * - Preserves trailing spaces on wrapped lines
  * - Uses graphemer for grapheme segmentation (ANSI sequences may not be
@@ -19,7 +19,7 @@ import { wrapText, truncateText, padText, constrainText, displayWidth as display
 
 describe("wrapText", () => {
   it("returns single empty line for empty input", () => {
-    // inkx returns [''] to represent an empty line (consistent behavior)
+    // hightea returns [''] to represent an empty line (consistent behavior)
     expect(wrapText("", 10)).toEqual([""])
   })
 
@@ -29,13 +29,13 @@ describe("wrapText", () => {
 
   it("wraps at word boundaries", () => {
     const result = wrapText("hello world", 6)
-    // inkx preserves the trailing space on wrapped lines
+    // hightea preserves the trailing space on wrapped lines
     expect(result).toEqual(["hello ", "world"])
   })
 
   it("wraps multiple words", () => {
     const result = wrapText("one two three four", 10)
-    // inkx preserves trailing spaces
+    // hightea preserves trailing spaces
     expect(result).toEqual(["one two ", "three four"])
   })
 
@@ -70,7 +70,7 @@ describe("wrapText", () => {
     expect(result30).toEqual(["Edge Cases (wiki links + text)"])
 
     // At width 25, wraps at last space before limit
-    // inkx preserves the trailing space
+    // hightea preserves the trailing space
     const result25 = wrapText(text, 25)
     expect(result25.length).toBe(2)
     expect(result25[0]).toBe("Edge Cases (wiki links + ")
@@ -162,7 +162,7 @@ describe("constrainText", () => {
 
   it("wraps text to width", () => {
     const result = constrainText("hello world", 6, 5)
-    // inkx preserves trailing spaces
+    // hightea preserves trailing spaces
     expect(result.lines).toEqual(["hello ", "world"])
     expect(result.truncated).toBe(false)
   })
@@ -198,7 +198,7 @@ describe("constrainText", () => {
 
   it("handles empty input", () => {
     const result = constrainText("", 10, 2)
-    // inkx returns [''] for empty input (represents an empty line)
+    // hightea returns [''] for empty input (represents an empty line)
     expect(result.lines).toEqual([""])
     expect(result.truncated).toBe(false)
   })

@@ -168,10 +168,10 @@ properties and React context examples.
 After migration, `km` constants reduce from ~25 to **0** -- all colors come from
 theme tokens. The `km` object and `theme.ts` in km-tui are deleted.
 
-### inkx Default: Box borderColor = $separator
+### hightea Default: Box borderColor = $separator
 
 When `borderStyle` or `outlineStyle` is set but no explicit `borderColor`/`outlineColor`
-is provided, inkx resolves the color to `$separator` from the active theme. This
+is provided, hightea resolves the color to `$separator` from the active theme. This
 eliminates the need to specify `borderColor` on every bordered element.
 
 ```tsx
@@ -191,7 +191,7 @@ Extracted to `themex` package (`vendor/swatch/src/color.ts`).
 ### Phase 1: ThemePalette + deriveTheme() -- DONE (vendor/swatch)
 
 Extracted to the `themex` package. ThemePalette and deriveTheme now live in `themex`.
-inkx imports from `"themex"`. Built-in palettes (45 total across 15 theme families).
+hightea imports from `"themex"`. Built-in palettes (45 total across 15 theme families).
 
 ### Phase 2: km-tui Migration (apps/km-tui)
 

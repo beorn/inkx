@@ -159,7 +159,7 @@ function useInputLayer(id: string, handler: InputHandler) {
 
 ### Implementation
 
-**Completed in km-inkx.driver.1**
+**Completed in km-hightea.driver.1**
 
 Files created:
 - `vendor/hightea/src/contexts/InputLayerContext.tsx` - Context and provider
@@ -213,7 +213,7 @@ The driver (`apps/km-tui/src/driver.ts`) uses `onStateCaptureREPLACE_WITH_CREATE
 
 ### Target State
 
-Migrate driver to use `createApp()` from inkx/runtime:
+Migrate driver to use `createApp()` from @hightea/term/runtime:
 1. Define board state + key handlers via `createApp()`
 2. Board component uses `useApp(selector)` for state
 3. Driver accesses state via `app.store.getState()` directly

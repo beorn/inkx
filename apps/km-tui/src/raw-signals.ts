@@ -1,7 +1,7 @@
 /**
  * Emergency terminal restore for uncaughtException / unhandledRejection.
  *
- * Ctrl+C and Ctrl+Z are now handled by inkx's terminal lifecycle system
+ * Ctrl+C and Ctrl+Z are now handled by hightea's terminal lifecycle system
  * (see vendor/hightea/src/runtime/terminal-lifecycle.ts). This module
  * only provides the emergency fallback for crash handlers.
  */
@@ -24,7 +24,7 @@ const RESTORE_SEQUENCES = [
  * exits alternate screen.
  *
  * This is an emergency fallback — normal exit/suspend cleanup is handled
- * by inkx's terminal lifecycle system.
+ * by hightea's terminal lifecycle system.
  */
 export function restoreTerminal(): void {
   if (process.stdin.isTTY && process.stdin.isRaw) {

@@ -1,5 +1,5 @@
 /**
- * Tests for inkx command driver plugins
+ * Tests for hightea command driver plugins
  *
  * Verifies withCommands and withKeybindings work correctly for:
  * - Direct command invocation via app.cmd.down()
@@ -702,7 +702,7 @@ describe("createBoardDriver", () => {
 
 describe("emoji rendering via driver", () => {
   test("flag emoji navigation does not garble", async () => {
-    process.env.INKX_STRICT = "1"
+    process.env.HIGHTEA_STRICT = "1"
     try {
       const nodes = item.root(
         "board",
@@ -723,18 +723,18 @@ describe("emoji rendering via driver", () => {
         incremental: true,
       })
 
-      // Navigate — INKX_STRICT checks buffer + output on each press
+      // Navigate — HIGHTEA_STRICT checks buffer + output on each press
       for (const key of ["l", "l", "j", "j", "h", "j", "k", "l", "h", "h"]) {
         await driver.press(key)
       }
       expect(true).toBe(true)
     } finally {
-      delete process.env.INKX_STRICT
+      delete process.env.HIGHTEA_STRICT
     }
   })
 
   test("mixed emoji and ASCII", async () => {
-    process.env.INKX_STRICT = "1"
+    process.env.HIGHTEA_STRICT = "1"
     try {
       const nodes = item.root(
         "board",
@@ -753,7 +753,7 @@ describe("emoji rendering via driver", () => {
       }
       expect(true).toBe(true)
     } finally {
-      delete process.env.INKX_STRICT
+      delete process.env.HIGHTEA_STRICT
     }
   })
 })

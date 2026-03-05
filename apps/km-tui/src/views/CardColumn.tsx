@@ -1,7 +1,7 @@
 /**
  * Card and Column components for the Board view
  *
- * Uses inkx VirtualList for React-level virtualization of large card lists.
+ * Uses hightea VirtualList for React-level virtualization of large card lists.
  *
  * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
  * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.

@@ -6,9 +6,9 @@
  *
  * Regression: text was observed overflowing onto the right border character
  * when card content had long words/URLs that filled the content area.
- * Root cause: inkx text measure function ignored height constraints from
+ * Root cause: hightea text measure function ignored height constraints from
  * the layout engine, allowing text lines to overflow into border rows.
- * Fixed in inkx reconciler/nodes.ts (height clamping in measure function).
+ * Fixed in hightea reconciler/nodes.ts (height clamping in measure function).
  */
 import { describe, expect, test } from "vitest"
 import { writeFileSync } from "fs"

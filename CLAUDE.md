@@ -56,11 +56,11 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 
 ## Vendor Packages (Git Submodules)
 
-Packages in `vendor/` (inkx, chalkx, mdtest, flexx, etc.) are **git submodules** that are part of km.
+Packages in `vendor/` (hightea, ansi, mdtest, flexture, etc.) are **git submodules** that are part of km.
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
-**inkx is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all inkx features when available, and when a feature is missing, implement it in inkx (not as a km workaround). inkx should be independently excellent; km proves it.
+**hightea is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all hightea features when available, and when a feature is missing, implement it in hightea (not as a km workaround). hightea should be independently excellent; km proves it.
 
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
@@ -110,8 +110,8 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
-| [inkx/](.claude/skills/inkx/)                                       | inkx rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
-| [flexx/](.claude/skills/flexx/)                                     | Flexx layout bugs (caching, fingerprinting, benchmarking)             |
+| [hightea/](.claude/skills/hightea/)                                       | hightea rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [flexture/](.claude/skills/flexture/)                                     | Flexture layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |

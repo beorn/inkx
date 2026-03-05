@@ -186,7 +186,7 @@ export function ItemPicker({
   const pickerTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
   React.useEffect(() => {
     clearTimeout(pickerTimerRef.current)
-    // @ts-expect-error - React internal flag set by inkx test renderer
+    // @ts-expect-error - React internal flag set by hightea test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
       setDeferredQuery(editCtx.value)
     } else {

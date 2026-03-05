@@ -7,9 +7,9 @@ The command system (`@km/commands`) provides a registry of command definitions a
 ### Architecture
 
 ```
-Key press (Ink useInput)
+Key press
         |
-inkKeyToString() + inkKeyToModifiers()
+keyToString() + keyToModifiers()
         |
 resolveKeybinding(key, modifiers, KeybindingContext)
         |
@@ -34,7 +34,7 @@ packages/km-commands/src/
   registry.ts       -- CommandRegistry factory + module-level default registry
   executor.ts       -- executeCommand(), buildContext()
   keybindings.ts    -- Keybinding type, resolveKeybinding(), defaultKeybindings[]
-  ink-adapter.ts    -- processInkKey(), initCommandSystem(), Ink bridge
+  key-adapter.ts    -- processKey(), initCommandSystem(), key bridge
   errors.ts         -- ActionError, ActionResult, helper constructors
   commands/
     index.ts        -- allCommands aggregate export
@@ -153,16 +153,16 @@ resolveKeybinding(key: string, modifiers, ctx: KeybindingContext): string | null
 
 ---
 
-## Ink Adapter
+## Key Adapter
 
-The `ink-adapter.ts` module bridges Ink's `useInput` key events to the command system:
+The `key-adapter.ts` module bridges key events to the command system:
 
 ```typescript
 // Initialize registry + keybindings (call once at startup)
 initCommandSystem()
 
 // Process a key event through the command system
-processInkKey(input, key, commandCtx, keybindingCtx): InkCommandResult
+processKey(input, key, commandCtx, keybindingCtx): KeyCommandResult
 
 // Check if a key would be handled (for fallback logic)
 wouldHandleKey(input, key, keybindingCtx): boolean

@@ -70,7 +70,7 @@ Classify by system or feature area within packages.
 | `query`    | Query system/data access       |
 | `commands` | Command/keybinding system      |
 | `mouse`    | Mouse interaction              |
-| `layout`   | Layout/rendering (Flexx)       |
+| `layout`   | Layout/rendering (Flexture)       |
 | `nav`      | Navigation/cursor movement     |
 | `undo`     | Undo/redo functionality        |
 | `perf`     | Performance/optimization       |

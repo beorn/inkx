@@ -37,10 +37,10 @@ export {
 // Node formatting
 export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } from "./format.ts"
 
-// Term primitives (re-exported from inkx)
+// Term primitives (re-exported from hightea)
 export { createTerm, term, type Term, type StyleChain } from "@hightea/term"
 
-// Extended ANSI features (chalkx - not re-exported by inkx)
+// Extended ANSI features (chalkx - not re-exported by hightea)
 export {
   curlyUnderline,
   dottedUnderline,

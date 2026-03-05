@@ -1,8 +1,8 @@
 # Debugging Incremental Rendering Bugs
 
-**Keywords**: inkx, rendering, incremental, stale pixels, fast-path, dirty flags, INKX_STRICT
+**Keywords**: hightea, rendering, incremental, stale pixels, fast-path, dirty flags, HIGHTEA_STRICT
 
-This document captures lessons learned from fixing incremental rendering bugs in inkx. Use these patterns when you're stuck debugging visual glitches.
+This document captures lessons learned from fixing incremental rendering bugs in hightea. Use these patterns when you're stuck debugging visual glitches.
 
 ## The Meta-Lesson: When Stuck, Build Better Tools
 
@@ -20,7 +20,7 @@ When debugging is hard, **stop and build better tooling**. The investment pays o
 1. **Enhanced error messages** - Include ALL context needed to diagnose
 2. **Fixture tests** - Convert production bugs to reproducible test cases
 3. **State snapshots** - Capture before/after state at key points
-4. **Invariant checks** - INKX_STRICT catches mismatches automatically
+4. **Invariant checks** - HIGHTEA_STRICT catches mismatches automatically
 
 Example: We added `FAST-PATH ANALYSIS` to error output that explains WHY a node was skipped:
 ```
@@ -48,7 +48,7 @@ CELL VALUES:
 
 INNERMOST NODE:
   path: root > #board > [0] > #card-1
-  type: inkx-box
+  type: hightea-box
   backgroundColor: undefined
 
 DIRTY FLAGS:
@@ -103,13 +103,13 @@ Every error message should answer:
 
 Incremental rendering bugs are hard because they're **silent** — wrong pixels render without errors. The solution: add invariants that catch mismatches immediately.
 
-### The INKX_STRICT Pattern
+### The HIGHTEA_STRICT Pattern
 
 Compare fast-path (incremental) vs slow-path (fresh) on every render:
 
 ```typescript
 // In scheduler.ts
-if (process.env.INKX_STRICT && this.stats.renderCount > 0) {
+if (process.env.HIGHTEA_STRICT && this.stats.renderCount > 0) {
   const freshBuffer = contentPhase(root, null)  // Force fresh render
   const mismatches = compareBuffers(incrementalBuffer, freshBuffer)
 
@@ -144,7 +144,7 @@ if (child.screenRect && parent.screenRect) {
   }
 }
 
-// System: Render invariants (INKX_STRICT)
+// System: Render invariants (HIGHTEA_STRICT)
 const fresh = renderFresh(root)
 const incremental = renderIncremental(root, prevBuffer)
 assertEqual(fresh, incremental, "Incremental render mismatch")
@@ -156,8 +156,8 @@ Don't require opt-in for safety checks:
 
 ```typescript
 // vitest/setup.ts
-if (!process.env.INKX_STRICT) {
-  process.env.INKX_STRICT = "1"  // On by default for tests
+if (!process.env.HIGHTEA_STRICT) {
+  process.env.HIGHTEA_STRICT = "1"  // On by default for tests
 }
 ```
 
@@ -175,7 +175,7 @@ const childHasPrev = parentRegionCleared ? false : hasPrevBuffer
 const childHasPrev = hasPrevBuffer  // Bug: ignores parentRegionCleared
 ```
 
-The INKX_STRICT check catches this immediately in tests.
+The HIGHTEA_STRICT check catches this immediately in tests.
 
 ### When Invariants Fail: Fix the Bug, Not the Invariant
 
@@ -206,7 +206,7 @@ bun llm --deep -y --context "$(cat << 'EOF'
 # Bug: Incremental render shows blank regions after navigation
 
 ## Problem
-Children disappear after parent clears its region. INKX_STRICT catches
+Children disappear after parent clears its region. HIGHTEA_STRICT catches
 mismatch but I can't find the root cause.
 
 ## Full Source Code
@@ -296,14 +296,14 @@ const childHasPrev = childrenDirty || childPositionChanged || needsViewportClear
 
 ## Debugging Workflow
 
-### 1. Enable INKX_STRICT (Default in Tests)
+### 1. Enable HIGHTEA_STRICT (Default in Tests)
 
 ```bash
 # Enabled by default for storeMode testing
 bun vitest run apps/km-tui/tests/
 
 # Or explicitly enable for CLI debugging
-INKX_STRICT=1 bun km view /path/to/vault
+HIGHTEA_STRICT=1 bun km view /path/to/vault
 ```
 
 This compares incremental vs fresh render on EVERY render and throws on mismatch.
@@ -380,8 +380,8 @@ Trace through with the question: "Why is this node skipped?"
 When fixing incremental bugs:
 
 - [ ] Create a fixture test that reproduces the bug
-- [ ] Run tests (INKX_STRICT is on by default): `bun vitest run vendor/hightea/tests/`
-- [ ] Check all inkx tests still pass
+- [ ] Run tests (HIGHTEA_STRICT is on by default): `bun vitest run vendor/hightea/tests/`
+- [ ] Check all hightea tests still pass
 - [ ] Check km-tui tests: `bun vitest run apps/km-tui/tests/`
 - [ ] Run the actual app: `bun km view /path/to/vault`
 
@@ -401,5 +401,5 @@ Goal: Skip as many nodes as possible while maintaining correctness.
 
 - `vendor/hightea/src/pipeline/content-phase.ts` - Fast-path logic
 - `vendor/hightea/src/debug-mismatch.ts` - Error formatting
-- `vendor/hightea/src/scheduler.ts` - INKX_STRICT check
+- `vendor/hightea/src/scheduler.ts` - HIGHTEA_STRICT check
 - `apps/km-tui/tests/helpers/board-test.ts` - Test fixtures

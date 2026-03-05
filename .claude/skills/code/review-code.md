@@ -40,7 +40,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 **Code Layout:**
 
 - ESM imports only (`import`/`export`, never `require`)
-- Package names (`inkx`), never relative `../vendor/...`
+- Package names (`@hightea/term`), never relative `../vendor/...`
 - Helpers after `return` or end of file
 
 **Avoid:**
@@ -86,13 +86,13 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
-| Old inkx render    | `createRenderer` inside function body (wasteful recreation each call)   |
-| Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer inkx APIs      |
-| Deprecated inkx    | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter` |
-| Deprecated chalkx  | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
+| Old hightea render | `createRenderer` inside function body (wasteful recreation each call)   |
+| Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer hightea APIs   |
+| Deprecated hightea | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter` |
+| Deprecated ansi    | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
 | Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
-| Manual layout calc | `displayWidth()` in app code for layout - should rely on inkx/flexx         |
-| Inkx string comp   | `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
+| Manual layout calc | `displayWidth()` in app code for layout - should rely on hightea/flexx      |
+| hightea string comp| `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | Hardcoded color    | `color="red"` instead of `color="$error"` — bypasses theme system           |
 | Hex color literal  | `"#5599dd"` in TSX — won't work on limited terminals (Terminal.app)         |
@@ -192,12 +192,12 @@ The script detects:
 **Test/TUI issues (6 patterns)**:
 
 - Pattern 22: createRenderer inside function (`createRenderer` called inside test body = wasteful recreation; module-level is correct)
-- Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer inkx APIs)
+- Pattern 23: Old lastFrame capture (`lastFrame()` instead of `app.text` or newer hightea APIs)
 - Pattern 24: stdin.write() for keyboard input (should use `app.press()`)
 - Pattern 25: createRenderer in production code (tests only)
 - Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
-- Pattern 36: Inkx string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
+- Pattern 36: hightea string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
 
 **Theme/protocol issues (3 patterns)**:
 
@@ -205,15 +205,15 @@ The script detects:
 - Pattern 38: Hex color literals in TSX (`"#5599dd"` — won't render on terminals without truecolor support)
 - Pattern 39: Hardcoded protocol flags (`kitty: true` without `detectTerminalCaps()` — breaks on Terminal.app, etc.)
 
-**Deprecated APIs (3 patterns)** - see km-inkx.deprecations bead:
+**Deprecated APIs (3 patterns)** - see km-hightea.deprecations bead:
 
-- Pattern 28: Deprecated inkx APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter`)
-- Pattern 29: Deprecated chalkx APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
+- Pattern 28: Deprecated hightea APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter`)
+- Pattern 29: Deprecated ansi APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
 - Pattern 30: Deprecated km-storage functions (`getBeadsConfig`, `getTuiConfig`, `getConfigPath`, `loadRepo`, `createMockWatcher`)
 
 **Other issues (1 pattern)**:
 
-- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on inkx/flexx)
+- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on hightea/flexx)
 
 **Alignment/guidelines issues (4 patterns)** - from docs/principles.md Quick Reference:
 
@@ -381,20 +381,20 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Old inkx render     | Medium           | createRenderer inside function body (should be at module level) |
-| Old lastFrame       | Medium           | Should use app.text or other newer inkx APIs      |
-| Manual layout calc  | Low              | High if workaround for inkx bug (see km-inkx-flexgrow) |
-| Inkx string comp    | Medium           | High if in shared components; defeats inkx layout model |
+| Old hightea render  | Medium           | createRenderer inside function body (should be at module level) |
+| Old lastFrame       | Medium           | Should use app.text or other newer hightea APIs   |
+| Manual layout calc  | Low              | High if workaround for hightea bug                |
+| hightea string comp | Medium           | High if in shared components; defeats hightea layout model |
 | Hardcoded color     | Medium           | High if in shared components; Low if in test fixtures   |
 | Hex color literal   | High             | Breaks on Terminal.app, tmux without truecolor          |
 | Hardcoded protocol  | High             | Low if behind detectTerminalCaps() check                |
 
-**Deprecated API findings** (see km-inkx.deprecations bead):
+**Deprecated API findings** (see km-hightea.deprecations bead):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Deprecated inkx     | High             | app.html→app.ansi, useLayout→useContentRect, etc  |
-| Deprecated chalkx   | Medium           | Old default/chalk exports, old detection functions |
+| Deprecated hightea  | High             | app.html→app.ansi, useLayout→useContentRect, etc  |
+| Deprecated ansi     | Medium           | Old default/chalk exports, old detection functions |
 | Deprecated storage  | Medium           | High if singleton-related (getDb, emit functions)  |
 
 **Complexity findings:**

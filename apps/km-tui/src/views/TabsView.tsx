@@ -4,7 +4,7 @@
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
  *
- * Uses inkx VirtualList for React-level virtualization.
+ * Uses hightea VirtualList for React-level virtualization.
  */
 import React, { useMemo } from "react"
 import { Box, Text, VirtualList } from "@hightea/term"

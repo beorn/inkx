@@ -5,18 +5,18 @@
 
 ## Architecture
 
-**Key constraint:** NO cross-dependencies between term/tui and inkx/chalkx.
+**Key constraint:** NO cross-dependencies between term/tui and @hightea/term/@hightea/ansi.
 
-| Package     | Purpose                                   | Dependencies          |
-| ----------- | ----------------------------------------- | --------------------- |
-| @beorn/term | Terminal detection, styling, patchConsole | Standalone            |
-| @beorn/tui  | React TUI rendering                       | Standalone (own impl) |
-| inkx        | React TUI (existing)                      | Separate package      |
-| chalkx      | ANSI utilities (existing)                 | Separate package      |
+| Package        | Purpose                                   | Dependencies          |
+| -------------- | ----------------------------------------- | --------------------- |
+| @beorn/term    | Terminal detection, styling, patchConsole | Standalone            |
+| @beorn/tui     | React TUI rendering                       | Standalone (own impl) |
+| @hightea/term  | React TUI (existing)                      | Separate package      |
+| @hightea/ansi  | ANSI utilities (existing)                 | Separate package      |
 
 ## Phase 1: term Package (Standalone)
 
-### chalkx Features to Migrate
+### @hightea/ansi Features to Migrate
 
 | Feature                                             | File         | Status   | Notes                                   |
 | --------------------------------------------------- | ------------ | -------- | --------------------------------------- |
@@ -27,24 +27,24 @@
 | Extended underline detection                        | detection.ts | **DONE** | In term/detection.ts                    |
 | setExtendedUnderlineSupport                         | detection.ts | TODO     | Export from term (for testing)          |
 | resetDetectionCache                                 | detection.ts | TODO     | Export from term (for testing)          |
-| bgOverride, BG_OVERRIDE_CODE                        | index.ts     | TODO     | Move to tui (inkx-specific)             |
+| bgOverride, BG_OVERRIDE_CODE                        | index.ts     | TODO     | Move to tui (hightea-specific)          |
 | UNDERLINE_CODES constants                           | constants.ts | SKIP     | Internal in term (not exported)         |
 | chalkX convenience object                           | index.ts     | SKIP     | Not needed - term has flattened styling |
 | storybook.ts                                        | storybook.ts | TODO     | Port to term (useful for demos)         |
 
-### chalkx Consumers in km
+### @hightea/ansi Consumers in km
 
 ```
-grep -r "from.*chalkx\|from.*@beorn/chalkx" --include="*.ts" --include="*.tsx"
+grep -r "from.*@hightea/ansi" --include="*.ts" --include="*.tsx"
 ```
 
 ## Phase 2: tui Package (Standalone)
 
-**IMPORTANT:** tui must NOT depend on inkx. It needs its own implementation.
+**IMPORTANT:** tui must NOT depend on @hightea/term. It needs its own implementation.
 
 ### Current Problem (km-term-2.5)
 
-tui currently wraps inkx, causing module resolution issues (km-infra-tui-inkx-module).
+tui currently wraps @hightea/term, causing module resolution issues (km-infra-tui-hightea-module).
 
 ### tui Should Have (Own Implementation)
 
@@ -57,15 +57,15 @@ tui currently wraps inkx, causing module resolution issues (km-infra-tui-inkx-mo
 | Console component     | HAS    | Render captured output |
 | Box, Text components  | TODO   | Basic components       |
 
-### inkx Stays Separate
+### @hightea/term Stays Separate
 
-inkx remains as-is for apps/km-tui. No migration needed - km-tui continues using inkx directly.
+@hightea/term remains as-is for apps/km-tui. No migration needed - km-tui continues using @hightea/term directly.
 
 ## Phase 3: Usage Patterns
 
 ### km-tui App
 
-**Uses inkx directly** - no migration needed. inkx is the React TUI framework for the app.
+**Uses @hightea/term directly** - no migration needed. @hightea/term is the React TUI framework for the app.
 
 ### vitest-reporter
 
@@ -73,12 +73,12 @@ inkx remains as-is for apps/km-tui. No migration needed - km-tui continues using
 
 Currently also uses @beorn/tui for components (Box, Text, useTerm), but this creates the module resolution issue. Options:
 
-1. Use inkx directly for components
+1. Use @hightea/term directly for components
 2. Wait for tui to have own implementation (km-term-2.5)
 
-### chalkx Usage
+### @hightea/ansi Usage
 
-A few files use chalkx for extended underlines:
+A few files use @hightea/ansi for extended underlines:
 
 - apps/km-tui/src/text/rich.ts (displayLength, stripAnsi only)
 - apps/km-tui/src/text/index.ts
@@ -92,8 +92,8 @@ These could migrate to @beorn/term which has the same features.
 
 If we decide to reduce the number of packages:
 
-- chalkx features are mostly in term already
-- inkx could be deprecated if tui gets full implementation
+- @hightea/ansi features are mostly in term already
+- @hightea/term could be deprecated if tui gets full implementation
 
 ### Naming
 
@@ -101,14 +101,14 @@ Current names are fine:
 
 - @beorn/term - terminal primitives
 - @beorn/tui - React TUI (lightweight)
-- inkx - full React TUI framework
-- chalkx - ANSI utilities
+- @hightea/term - full React TUI framework
+- @hightea/ansi - ANSI utilities
 
 ## Checklist
 
 - [x] Create GitHub repos for term and tui
 - [x] Set up as git submodules in km
 - [x] Create epic bead (km-term-2)
-- [ ] **km-term-2.5**: Remove tui's dependency on inkx (P1)
+- [ ] **km-term-2.5**: Remove tui's dependency on @hightea/term (P1)
 - [ ] km-term-2.1: Export detection override functions from term
 - [ ] km-term-2.2: Port storybook demo to term

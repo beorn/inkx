@@ -1,4 +1,4 @@
-# Lesson: Layout Caching Bugs in Flexx
+# Lesson: Layout Caching Bugs in Flexture
 
 **Date**: 2026-02-10
 **Bugs**: km-10mat, km-frod5 (3 bugs total)
@@ -6,9 +6,9 @@
 
 ## What Happened
 
-All 524 Flexx tests passed. The TUI showed visual corruption (text bleeding past card borders) that only appeared when navigating between views — i.e., during **re-layout of partially-dirty trees**.
+All 524 Flexture tests passed. The TUI showed visual corruption (text bleeding past card borders) that only appeared when navigating between views — i.e., during **re-layout of partially-dirty trees**.
 
-The key insight: zero tests exercised `calculateLayout()` twice on the same tree. Every test built a fresh tree, laid it out once, and checked results. This gave zero coverage of the caching logic that makes Flexx fast.
+The key insight: zero tests exercised `calculateLayout()` twice on the same tree. Every test built a fresh tree, laid it out once, and checked results. This gave zero coverage of the caching logic that makes Flexture fast.
 
 ## The Three Bugs
 
@@ -28,7 +28,7 @@ Bug 1 was found by a targeted test mirroring the real TUI card structure. Bugs 2
 
 ### 1. Single-pass tests give false confidence in caching code
 
-524 passing tests and zero coverage of the code that makes Flexx fast (caching, fingerprints, dirty propagation). The "happy path" of caching is when it returns the right value; the bugs are when it returns the *wrong* value — and you need re-layout tests to exercise that.
+524 passing tests and zero coverage of the code that makes Flexture fast (caching, fingerprints, dirty propagation). The "happy path" of caching is when it returns the right value; the bugs are when it returns the *wrong* value — and you need re-layout tests to exercise that.
 
 ### 2. NaN is treacherous as a sentinel
 
@@ -57,5 +57,5 @@ Bug 1 was found by a targeted test. Bugs 2 and 3 were found by fuzz testing — 
 
 - `vendor/flexture/docs/incremental-layout-bugs.md` — full bug taxonomy and industry history
 - `vendor/flexture/docs/testing.md` — test infrastructure reference
-- `docs/lessons/debugging-rendering.md` — complementary lesson on inkx rendering bugs
-- `docs/lessons/incremental-rendering.md` — inkx incremental rendering (distinct from layout caching)
+- `docs/lessons/debugging-rendering.md` — complementary lesson on hightea rendering bugs
+- `docs/lessons/incremental-rendering.md` — hightea incremental rendering (distinct from layout caching)

@@ -164,7 +164,7 @@ This prevents accidental duplicates when sessions crash mid-creation or multiple
 
 3. **Construct ID:**
    - `<prefix><scope>-<N+1>`
-   - Example: `km-storage-15` or `km-inkx.bg-bleed`
+   - Example: `km-storage-15` or `km-hightea.bg-bleed`
 
 **Note**: Type/priority/labels go in metadata fields, not the ID. See [beads-ids.md](beads-ids.md).
 
@@ -200,7 +200,7 @@ Every new bead **must** be a sub-bead of its tracking epic (see [SKILL.md Scope 
 
 ```bash
 # ID format: km-<scope>.<suffix>
-# Example: km-inkx.bg-bleed, km-tui.emptybody, km-infra.ci-fuzz
+# Example: km-hightea.bg-bleed, km-tui.emptybody, km-infra.ci-fuzz
 
 # Step 1: Create
 bd create --id km-tui.emptybody --type bug --title "Empty body rendering" --priority 2

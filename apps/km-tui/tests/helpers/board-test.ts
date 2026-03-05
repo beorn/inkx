@@ -1,7 +1,7 @@
 /**
  * Board Test Helper - Fluent API for Visual Board Testing
  *
- * Wraps inkx createRenderer with a concise, documentation-like API
+ * Wraps hightea createRenderer with a concise, documentation-like API
  * for testing TUI board rendering.
  *
  * ## Architecture (3-layer pattern)
@@ -1548,7 +1548,7 @@ function createFluentBoardApi(ctx: {
      * For each mismatch, reports position, incremental cell, and fresh cell.
      *
      * Only meaningful when `incremental: true` was passed to testEnv (which is
-     * the default). Delegates to inkx's `compareBuffers` + `formatMismatch`.
+     * the default). Delegates to hightea's `compareBuffers` + `formatMismatch`.
      *
      * @example
      * ```typescript

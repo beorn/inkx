@@ -365,7 +365,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   const omniTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
   React.useEffect(() => {
     clearTimeout(omniTimerRef.current)
-    // @ts-expect-error - React internal flag set by inkx test renderer
+    // @ts-expect-error - React internal flag set by hightea test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
       setDeferredQuery(query)
     } else {

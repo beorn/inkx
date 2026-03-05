@@ -33,7 +33,7 @@
   "scripts": {
     "setup": "bun run scripts/setup.ts",
     "km": "bun run ./apps/km-cli/src/index.ts",
-    "km:strict": "INKX_STRICT=true bun run ./apps/km-cli/src/index.ts",
+    "km:strict": "HIGHTEA_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
     "worktree": "bun vendor/tools/tools/worktree.ts",
     "accountly": "bun vendor/accountly/src/cli.ts",
@@ -62,7 +62,7 @@
     "test:slow": "bun vitest run --project slow",
     "test:all": "bun vitest run --project default --project slow --project vendor",
     "test:vendor": "bun vitest run --project vendor",
-    "test:strict": "INKX_STRICT=1 bun vitest run --project default --project slow --project vendor",
+    "test:strict": "HIGHTEA_STRICT=1 bun vitest run --project default --project slow --project vendor",
     "test:fuzz": "FUZZ=1 bun vitest run",
     "test:fuzz:ci": "FUZZ=1 FUZZ_REPEATS=10000 bun vitest run",
     "test:fast2": "bun vitest run --reporter=vitestx/dotz",

@@ -7,7 +7,7 @@
  */
 
 import { createApp, type EventHandlerContext } from "@hightea/term/runtime"
-import type { Key, ParsedMouse, FocusManager, InkxNode } from "@hightea/term"
+import type { Key, ParsedMouse, FocusManager, TeaNode } from "@hightea/term"
 import { activeEditTargetRef } from "@hightea/term"
 import { createLogger, type SpanLogger } from "decant"
 import { isErr } from "@km/core"
@@ -732,7 +732,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (mouse.action === "down" && mouse.button === 0) {
       const actionCtx = buildActionCtx(get, () => {})
 
-      // DOM-style hit testing via inkx render tree
+      // DOM-style hit testing via hightea render tree
       const hitNode = ctx.hitTest(mouse.x, mouse.y)
       if (!hitNode) return
 
@@ -741,7 +741,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       let nodeId: string | null = null
       let isColumnNode = false
       let colIndex: number | null = null
-      let current: InkxNode | null = hitNode
+      let current: TeaNode | null = hitNode
       while (current) {
         const props = current.props as Record<string, unknown>
         if (!nodeId && typeof props.id === "string") {

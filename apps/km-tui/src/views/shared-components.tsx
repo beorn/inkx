@@ -152,7 +152,7 @@ function CardLayoutTracker({
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) return
 
-      // Use measured dimensions directly from inkx layout
+      // Use measured dimensions directly from hightea layout
       registry.register(colIndex, cardIndex, {
         x: computed.x,
         y: computed.y,

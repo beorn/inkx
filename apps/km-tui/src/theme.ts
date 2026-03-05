@@ -7,7 +7,7 @@
  * detection fails.
  *
  * All components use $token strings (e.g., "$selection", "$focusborder")
- * which inkx ThemeProvider resolves at render time.
+ * which hightea ThemeProvider resolves at render time.
  */
 import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@hightea/term"
 import type { Theme, TerminalCaps } from "@hightea/term"

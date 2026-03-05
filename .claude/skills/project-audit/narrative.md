@@ -68,7 +68,7 @@ A user should know "Can I use this?" before they run `npm install`.
 ```
 - useContentRect()
 - Five-phase pipeline
-- Flexx layout engine
+- Flexture layout engine
 - No WASM memory growth
 - CJK support
 - Incremental output
@@ -81,7 +81,7 @@ A user should know "Can I use this?" before they run `npm install`.
 ### Layout & Rendering
 - `useContentRect()` — components query their own dimensions (solves Ink's oldest issue)
 - Five-phase pipeline — only changed nodes re-render (200x+ faster interactive updates)
-- Flexx layout engine — pure TS, 7KB, zero native deps
+- Flexture layout engine — pure TS, 7KB, zero native deps
 
 ### Production Stability
 ...

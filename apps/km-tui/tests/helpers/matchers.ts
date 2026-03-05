@@ -1,7 +1,7 @@
 /**
  * Custom Vitest Matchers for TUI Testing
  *
- * Provides Playwright-inspired matchers for testing inkx components.
+ * Provides Playwright-inspired matchers for testing hightea components.
  * These complement the built-in toExist and toHaveCount matchers in board-test.ts.
  *
  * @example

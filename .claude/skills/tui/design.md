@@ -4,7 +4,7 @@ description: TUI styling rules - colors, selection states, icons
 
 # TUI Design System
 
-**Keywords**: TUI styling, colors, selection, cyan, yellow, icons, colorblind, background color, chalk, inkx
+**Keywords**: TUI styling, colors, selection, cyan, yellow, icons, colorblind, background color, chalk, hightea
 
 When modifying TUI styling (colors, selection states, visual hierarchy), follow these rules. See @docs/ref/ui.md for the full design system.
 
@@ -37,10 +37,10 @@ When modifying TUI styling (colors, selection states, visual hierarchy), follow 
 
 ## Background Colors
 
-Use inkx `backgroundColor` OR term.style().bg\*, never both on same element (throws by default):
+Use hightea `backgroundColor` OR term.style().bg\*, never both on same element (throws by default):
 
 ```tsx
-// ✅ CORRECT - inkx style
+// ✅ CORRECT - hightea style
 <Text backgroundColor="cyan">{text}</Text>
 
 // ✅ CORRECT - term.style() for ANSI strings
@@ -153,6 +153,6 @@ NOT every operation clears the selection. The rule depends on what happened to t
 
 For testing TUI appearance, see [tui.md](../tests/tui.md):
 
-- TUI tests (vitest + inkx virtual buffer) for fast deterministic checks
+- TUI tests (vitest + hightea virtual buffer) for fast deterministic checks
 - GUI/TTY tests (TTY MCP) for pixel-level verification
 - DEBUG_LOG for correlating state with visuals

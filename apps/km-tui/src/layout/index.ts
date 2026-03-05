@@ -4,7 +4,7 @@
  * Layout functions for the TUI that operate on styled ANSI strings.
  * These are TUI-specific and not needed by CLI commands.
  *
- * ## Text utilities (from inkx)
+ * ## Text utilities (from hightea)
  * - `wrapText` - Word-wrap styled text
  * - `truncateText`, `padText` - Truncate and pad styled text
  * - `constrainText` - Combine wrap + truncate with limits
@@ -13,20 +13,20 @@
  * ## Path rendering (km-ink specific)
  * - `renderPath`, `renderParentPath` - Smart breadcrumb path rendering
  *
- * ## Constraint components (inkx-bound)
+ * ## Constraint components (hightea-bound)
  * - `ConstraintRoot` - Provides terminal dimensions via context
  * - `FlexRow`, `FlexItem` - Horizontal space distribution
  * - `TruncatedText` - Auto-truncating text component
  * - `ScrollableList` - Virtualized scrolling list
  */
 
-// Text utilities from factory (which imports from inkx)
+// Text utilities from factory (which imports from hightea)
 export { wrapText, truncateText, padText, constrainText, displayLength, calcScrollOffset } from "./factory.tsx"
 
 // Path rendering (km-ink specific)
 export { renderPath, renderParentPath, calcPathLength, type PathSegment } from "./path.ts"
 
-// Constraint components and hooks (inkx-bound by default)
+// Constraint components and hooks (hightea-bound by default)
 export {
   // Components
   ConstraintRoot,
@@ -56,4 +56,4 @@ export {
   type TerminalSize,
   type FlexItemConfig,
   type ScrollState,
-} from "./inkx.ts"
+} from "./hightea.ts"

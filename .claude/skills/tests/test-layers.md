@@ -24,10 +24,10 @@ Layer 2: km-markdown (.test.ts)  → Parse fidelity: markdown in, AST/nodes out
 Layer 1: km-core (.test.ts)      → Contracts: inputs in, invariants hold
 
 ── vendor (TUI stack) ──────────────────────────────────────────────────
-Layer 0a: inkx-ui (.test.ts)     → Component behavior: props in, visual + interaction out
-Layer 0b: inkx (.test.ts)        → Rendering pipeline: React tree in, terminal buffer out
-Layer 0c: flexx (.test.ts)       → Layout computation: flex config in, box coordinates out
-Layer 0d: chalkx (.test.ts)      → Terminal primitives: color/style in, ANSI sequences out
+Layer 0a: hightea-ui (.test.ts)  → Component behavior: props in, visual + interaction out
+Layer 0b: hightea (.test.ts)     → Rendering pipeline: React tree in, terminal buffer out
+Layer 0c: flexture (.test.ts)       → Layout computation: flex config in, box coordinates out
+Layer 0d: ansi (.test.ts)        → Terminal primitives: color/style in, ANSI sequences out
 
 ── vendor (infrastructure) ─────────────────────────────────────────────
 Layer 0e: logger (.test.ts)      → Log routing: calls in, formatted output out
@@ -45,7 +45,7 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
-| **termless** | ANSI output → real terminal emulator state. Style correctness, cursor positioning, wide chars. | inkx buffer is correct. |
+| **termless** | ANSI output → real terminal emulator state. Style correctness, cursor positioning, wide chars. | hightea buffer is correct. |
 | **km-tui** | Key → visual outcome + data saved. Multi-step journeys. | Board reducer works. Storage persists. Rendering is correct. |
 | **km-board** | Action sequences → state transitions. Fold/zoom/cursor composition. | Nodes exist. Markdown parses. |
 | **km-storage** | File ↔ DB round-trip integrity. Concurrent edits. Sync safety. | Markdown parser is correct. |
@@ -56,10 +56,10 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
-| **inkx-ui** | Component lifecycle (spinner frames, progress updates, multi-progress orchestration). | inkx renders components correctly. |
-| **inkx** | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding. Incremental render = fresh render. | flexx computes layout. chalkx produces correct ANSI. |
-| **flexx** | Flex layout: positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout (fuzz oracle). | Nothing — leaf computation engine. |
-| **chalkx** | Color/style output, terminal capability detection, ANSI sequence generation. | Nothing — leaf terminal abstraction. |
+| **hightea-ui** | Component lifecycle (spinner frames, progress updates, multi-progress orchestration). | hightea renders components correctly. |
+| **hightea** | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding. Incremental render = fresh render. | flexture computes layout. ansi produces correct ANSI. |
+| **flexture** | Flex layout: positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout (fuzz oracle). | Nothing — leaf computation engine. |
+| **ansi** | Color/style output, terminal capability detection, ANSI sequence generation. | Nothing — leaf terminal abstraction. |
 
 ### Vendor infrastructure
 
@@ -81,7 +81,7 @@ The "trust the layer below" principle keeps tests focused, but bugs cluster at *
 
 1. **Complex or implicit contracts**: If the interface between layers has subtle invariants that neither side fully specifies in its own tests, a test spanning both layers catches contract mismatches. Example: km-board assumes storage handles a certain action sequence, but storage changed its contract.
 
-2. **Consistently-wrong results**: Fuzz oracles catch *inconsistencies* (incremental != fresh) but not *consistently wrong* output. If flexx computes padding off-by-1 consistently, the differential fuzz oracle passes. A targeted inkx test asserting exact buffer positions catches this.
+2. **Consistently-wrong results**: Fuzz oracles catch *inconsistencies* (incremental != fresh) but not *consistently wrong* output. If flexture computes padding off-by-1 consistently, the differential fuzz oracle passes. A targeted hightea test asserting exact buffer positions catches this.
 
 3. **Feature combinations not covered by either layer**: If markdown content influences UI state (e.g., a special notation that collapses a card), neither km-markdown tests nor km-board tests alone cover it. A journey test exercising the full chain is the only guard.
 
@@ -89,11 +89,11 @@ The "trust the layer below" principle keeps tests focused, but bugs cluster at *
 
 | Boundary | Risk | Guard |
 |----------|------|-------|
-| **inkx → flexx** | Layout coordinates wrong but consistent | Targeted position assertions in inkx tests + golden file snapshots |
+| **hightea → flexture** | Layout coordinates wrong but consistent | Targeted position assertions in hightea tests + golden file snapshots |
 | **km-tui → km-board** | Board reducer contract mismatch | Journey tests that verify BOTH screen AND state for every major action |
 | **km-board → km-storage** | Persistence assumption drift | Journey tests that verify saved data, not just screen |
 | **km-storage → km-markdown** | Parser edge case not in markdown tests | Ensure tricky real-world patterns (Obsidian, Asana) are tested at L2 |
-| **inkx → chalkx** | Low risk — stable, thin API | Unit tests sufficient; any breakage shows in UI color assertions |
+| **hightea → ansi** | Low risk — stable, thin API | Unit tests sufficient; any breakage shows in UI color assertions |
 
 ### The rule
 
@@ -299,9 +299,9 @@ test.fuzz("markdown roundtrip preserves structure", () => {
 
 Also use for: frontmatter preservation, list nesting depth, inline formatting combinations.
 
-### Layout Verification Test (inkx)
+### Layout Verification Test (hightea)
 
-For the inkx→flexx boundary, assert exact buffer positions — not just content existence. The fuzz oracle catches inconsistencies, but these catch consistently-wrong layout.
+For the hightea→flexture boundary, assert exact buffer positions — not just content existence. The fuzz oracle catches inconsistencies, but these catch consistently-wrong layout.
 
 ```typescript
 test("side-by-side boxes render at correct positions", () => {
@@ -317,7 +317,7 @@ test("side-by-side boxes render at correct positions", () => {
 })
 ```
 
-Use sparingly — a handful of position-asserting tests at the inkx level catch flexx layout bugs that the fuzz oracle misses (consistently-wrong results).
+Use sparingly — a handful of position-asserting tests at the hightea level catch flexture layout bugs that the fuzz oracle misses (consistently-wrong results).
 
 ### Parametric Variants (any layer)
 
@@ -364,10 +364,10 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 | Package | Tests | Layer | What it tests | Trusts | Key patterns |
 |---------|-------|-------|---------------|--------|-------------|
-| **inkx-ui** | 11 | Components (L0a) | Spinner frames, progress updates, multi-progress orchestration | inkx rendering | Component unit tests, dual API (CLI + React) |
-| **inkx** | 199 | Rendering (L0b) | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding | flexx layout, chalkx ANSI | `createRenderer()`, `expectFrame()`, buffer assertions |
-| **flexx** | 9+7 bench | Layout (L0c) | Flex positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout | Nothing (leaf) | Differential fuzz oracle, yoga compat, benchmarks |
-| **chalkx** | 5 | Terminal (L0d) | Color/style output, capability detection, ANSI sequences | Nothing (leaf) | Env var mocking, detection tests |
+| **hightea-ui** | 11 | Components (L0a) | Spinner frames, progress updates, multi-progress orchestration | hightea rendering | Component unit tests, dual API (CLI + React) |
+| **hightea** | 199 | Rendering (L0b) | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding | flexture layout, ansi ANSI | `createRenderer()`, `expectFrame()`, buffer assertions |
+| **flexture** | 9+7 bench | Layout (L0c) | Flex positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout | Nothing (leaf) | Differential fuzz oracle, yoga compat, benchmarks |
+| **ansi** | 5 | Terminal (L0d) | Color/style output, capability detection, ANSI sequences | Nothing (leaf) | Env var mocking, detection tests |
 
 ### Vendor infrastructure
 
@@ -391,10 +391,10 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 ### Vendor TUI stack
 
-- **inkx → flexx dependency is the critical boundary**. inkx trusts flexx for layout. The flexx differential fuzz oracle catches *inconsistencies* (incremental != fresh), but NOT *consistently wrong* results (e.g., padding off-by-1 that's consistent). To guard against the latter, add a few targeted inkx tests that assert exact buffer positions for known layouts (see [Layout Verification Test template](#layout-verification-test-inkx)). Also consider golden file snapshots for complex inkx layouts to catch position drift. No cross-package regression suite exists yet — these targeted tests are the recommended first step.
-- **inkx → chalkx dependency is stable**. chalkx's ANSI output is a thin, stable API. Unit tests are sufficient here.
-- **inkx-ui → inkx is consumer-level**. inkx-ui tests should verify component behavior (spinner animation, progress updates) without re-testing inkx rendering internals. Currently all `.test.ts`, no consumer-level specs.
-- **inkx has 199 test files but few consumer-facing tests**. Most tests are internal (buffer encoding, diff algorithm, scheduler). The consumer perspective ("render this component tree, press keys, verify buffer") is well-tested indirectly through km-tui's `testEnv()`, but inkx itself could benefit from more API-level tests that don't depend on km.
+- **hightea → flexture dependency is the critical boundary**. hightea trusts flexture for layout. The flexture differential fuzz oracle catches *inconsistencies* (incremental != fresh), but NOT *consistently wrong* results (e.g., padding off-by-1 that's consistent). To guard against the latter, add a few targeted hightea tests that assert exact buffer positions for known layouts (see [Layout Verification Test template](#layout-verification-test-hightea)). Also consider golden file snapshots for complex hightea layouts to catch position drift. No cross-package regression suite exists yet — these targeted tests are the recommended first step.
+- **hightea → ansi dependency is stable**. ansi's ANSI output is a thin, stable API. Unit tests are sufficient here.
+- **hightea-ui → hightea is consumer-level**. hightea-ui tests should verify component behavior (spinner animation, progress updates) without re-testing hightea rendering internals. Currently all `.test.ts`, no consumer-level specs.
+- **hightea has 199 test files but few consumer-facing tests**. Most tests are internal (buffer encoding, diff algorithm, scheduler). The consumer perspective ("render this component tree, press keys, verify buffer") is well-tested indirectly through km-tui's `testEnv()`, but hightea itself could benefit from more API-level tests that don't depend on km.
 
 ### Vendor infrastructure
 
@@ -426,7 +426,7 @@ The import cost taxonomy in [test-first-protocol.md](test-first-protocol.md#test
 
 ## Benchmarks to Consider
 
-Beyond existing flexx layout and inkx rendering benchmarks:
+Beyond existing flexture layout and hightea rendering benchmarks:
 
 | Area | What to Measure | Why |
 |------|----------------|-----|

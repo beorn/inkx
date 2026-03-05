@@ -1,12 +1,12 @@
 ---
-description: TUI testing with inkx - character-level terminal buffer testing
+description: TUI testing with hightea - character-level terminal buffer testing
 ---
 
-# TUI Tests (inkx)
+# TUI Tests (hightea)
 
-Character-level terminal buffer testing via inkx.
+Character-level terminal buffer testing via hightea.
 
-**Keywords**: TUI test, inkx, board.spec, testEnv, acceptance, component, unit
+**Keywords**: TUI test, hightea, board.spec, testEnv, acceptance, component, unit
 
 ---
 
@@ -26,17 +26,17 @@ const { board } = testEnv(() => ..., { checkIncremental: false })
 
 ## Diagnostic Mode
 
-**For runtime debugging**, run with `INKX_STRICT=1` (catches bugs in the production `createApp` path that testEnv may not catch):
+**For runtime debugging**, run with `HIGHTEA_STRICT=1` (catches bugs in the production `createApp` path that testEnv may not catch):
 
 ```bash
 # In the real app
-INKX_STRICT=1 bun km view /path/to/vault
+HIGHTEA_STRICT=1 bun km view /path/to/vault
 
 # In tests
-INKX_STRICT=1 bun vitest run apps/km-tui/tests/
+HIGHTEA_STRICT=1 bun vitest run apps/km-tui/tests/
 
 # Real vault with diagnostics
-INKX_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
+HIGHTEA_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
 ```
 
 **What these checks catch:**
@@ -177,7 +177,7 @@ board.expect("[data-selected]").toHaveCount(1) // One selected item
 Layout and visibility matchers for InkxLocator elements:
 
 ```typescript
-import { createLocator } from "inkx/testing"
+import { createLocator } from "@hightea/term/testing"
 
 const locator = createLocator(result.getContainer())
 const col1 = locator.getByTestId("col1")

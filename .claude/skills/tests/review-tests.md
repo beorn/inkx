@@ -258,13 +258,13 @@ Profile representative tests from each layer to understand the actual import cos
 Pick 3-4 representative tests spanning the cost spectrum:
 
 ```bash
-# Layer 0: Pure logic (no inkx/React)
+# Layer 0: Pure logic (no hightea/React)
 time bun vitest run apps/km-tui/tests/layout/constrain.test.ts 2>&1 | grep "Transform\|Duration"
 
-# Layer 1: Component unit (React, some inkx)
+# Layer 1: Component unit (React, some hightea)
 time bun vitest run apps/km-tui/tests/views/node-view.test.tsx 2>&1 | grep "Transform\|Duration"
 
-# Layer 2: Integration (testEnv/inkx full pipeline)
+# Layer 2: Integration (testEnv/hightea full pipeline)
 time bun vitest run apps/km-tui/tests/hr.test.ts 2>&1 | grep "Transform\|Duration"
 ```
 
@@ -273,13 +273,13 @@ time bun vitest run apps/km-tui/tests/hr.test.ts 2>&1 | grep "Transform\|Duratio
 | Layer | Type | Typical Import Cost | Example |
 |---|---|---|---|
 | 0 | Pure Logic | ~20-50ms | `layout/constrain.test.ts`, `text/inline-parser.test.ts` |
-| 0+ | Some imports | ~500-700ms | `input-mode.test.ts` (zustand, but no inkx) |
+| 0+ | Some imports | ~500-700ms | `input-mode.test.ts` (zustand, but no hightea) |
 | 1 | Component Unit | ~200ms | `views/node-view.test.tsx` |
 | 2 | Integration (testEnv) | ~1.8s | `hr.test.ts`, `alignment.test.ts` |
 | 3 | Acceptance (multi-step) | ~1.8s | `fold.slow.test.ts` |
 | 4 | TTY/Snapshot | ~1.8s | `pty-integration.slow.spec.ts` |
 
-**Key insight**: Layer 2+ files all share the same ~1.8s import cost because they import `testEnv` which imports `inkx/testing`, which initializes the layout engine (top-level await WASM init). Consolidating Layer 2+ files saves ~1.8s per eliminated file.
+**Key insight**: Layer 2+ files all share the same ~1.8s import cost because they import `testEnv` which imports `@hightea/term/testing`, which initializes the layout engine (top-level await WASM init). Consolidating Layer 2+ files saves ~1.8s per eliminated file.
 
 ### Vitest Worker Analysis
 
@@ -303,7 +303,7 @@ grep -h "^import\|^export.*from" vendor/hightea/src/testing/index.tsx | head -20
 grep "from ['\"]\.\.\/index" vendor/hightea/src/testing/index.tsx
 ```
 
-**Known finding (2026-03)**: `inkx/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
+**Known finding (2026-03)**: `@hightea/term/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
 
 ### Vitest Pre-bundling (optional)
 
@@ -322,7 +322,7 @@ server: {
 
 ### Guideline
 
-Prefer lower test layers. A test for pure cursor logic belongs in Layer 0, not Layer 2. When writing new tests, ask: does this test NEED testEnv/inkx, or can it test the logic directly?
+Prefer lower test layers. A test for pure cursor logic belongs in Layer 0, not Layer 2. When writing new tests, ask: does this test NEED testEnv/hightea, or can it test the logic directly?
 
 ## Phase 2.5: Layer Analysis
 
@@ -567,7 +567,7 @@ Output structured findings:
 
 | Check                  | Last Updated | Latest Upstream | Status |
 | ---------------------- | ------------ | --------------- | ------ |
-| Yoga tests (flexx)     | YYYY-MM-DD   | vX.Y.Z          | ✅/❌  |
+| Yoga tests (flexture)     | YYYY-MM-DD   | vX.Y.Z          | ✅/❌  |
 
 ### Performance
 
@@ -822,7 +822,7 @@ curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_na
 **When to re-import:**
 
 - When Yoga releases a new version (especially major/minor versions)
-- If Flexx layout behavior seems incorrect but tests pass
+- If Flexture layout behavior seems incorrect but tests pass
 - Periodically (e.g., quarterly) during test reviews
 
 **How to re-import:**
@@ -836,7 +836,7 @@ bun test tests/yoga/  # Verify tests pass
 **Source**: https://github.com/facebook/yoga/tree/main/gentest/fixtures
 
 If tests fail after re-import, either:
-1. Flexx has a layout bug that needs fixing
+1. Flexture has a layout bug that needs fixing
 2. Yoga changed expected behavior (check release notes)
 
 ### Check chaos test coverage

@@ -5,7 +5,7 @@
  * content shifts after navigating up/down levels (k k j j).
  *
  * Bug: km-tui.level-nav-shift
- * The test harness buffer is correct, but inkx differential rendering
+ * The test harness buffer is correct, but hightea differential rendering
  * produces different ANSI output on the real terminal.
  *
  * ## Findings

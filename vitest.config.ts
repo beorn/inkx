@@ -14,7 +14,7 @@ const alwaysExclude = [
 	"apps/km-tui/tests/pty-integration.slow.spec.ts",
 ]
 
-// Performance note: each test file pays ~1.8s import overhead (React + inkx + zustand
+// Performance note: each test file pays ~1.8s import overhead (React + hightea + zustand
 // module initialization). TUI files >5s are .slow. to keep test:fast under 20s.
 // The "threads" pool (default) shares Vite transform cache across workers.
 // The "forks" pool with isolate:false shares modules too, but fork process overhead

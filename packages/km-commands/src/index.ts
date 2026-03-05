@@ -194,16 +194,16 @@ export {
 export type { HelpItem, HelpSection, VerbGridRow } from "./help-data.ts"
 export { getHelpScreenData, VERB_GRID } from "./help-data.ts"
 
-// Ink Adapter (for TUI integration)
+// Key Adapter (for TUI integration)
 export {
   initCommandSystem,
-  inkKeyToString,
-  inkKeyToModifiers,
-  processInkKey,
+  keyToString,
+  keyToModifiers,
+  processKey,
   buildKeybindingContext,
   wouldHandleKey,
   getChordState,
   handleChordTimeout,
-  type InkKeyEvent,
-  type InkCommandResult,
-} from "./ink-adapter.ts"
+  type KeyEvent,
+  type KeyCommandResult,
+} from "./key-adapter.ts"

@@ -228,7 +228,7 @@ describe("date badge display", () => {
       repo.updateNode(taskNode.id, { due_at: "2026-03-15" })
     })
 
-    // Trigger render flush (inkx custom renderer needs a keypress to flush
+    // Trigger render flush (hightea custom renderer needs a keypress to flush
     // useSyncExternalStore updates — j/k is a no-op cursor move on single card)
     await driver.press("j")
 
@@ -907,7 +907,7 @@ describe("priority (sp)", () => {
   })
 
   test("sp cycles through priorities", () => {
-    // incremental: false — pre-existing inkx toast rendering mismatch at (41,21)
+    // incremental: false — pre-existing hightea toast rendering mismatch at (41,21)
     const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))), { incremental: false })
 
     board.press("j")

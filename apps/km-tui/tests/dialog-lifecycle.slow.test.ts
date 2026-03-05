@@ -22,7 +22,7 @@ import { dispatchCommandById } from "../src/board-app.ts"
 
 /**
  * Open the search dialog via the "search" command.
- * After dispatching, press Backspace to flush the inkx render pipeline.
+ * After dispatching, press Backspace to flush the hightea render pipeline.
  * The dialog text input is empty at this point, so Backspace is a no-op.
  */
 function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
@@ -30,7 +30,7 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
     dispatchCommandById("search", store.getState as () => BoardAppStore)
     store.setState((s) => s)
   })
-  board.press("Backspace") // flush inkx render pipeline
+  board.press("Backspace") // flush hightea render pipeline
 }
 
 // ---------------------------------------------------------------------------

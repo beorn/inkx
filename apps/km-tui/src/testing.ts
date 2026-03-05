@@ -32,7 +32,7 @@
 import React from "react"
 import { createRenderer, bufferToStyledText } from "@hightea/term/testing"
 import type { AutoLocator, FilterOptions } from "@hightea/term/testing"
-import type { InkxNode } from "@hightea/term"
+import type { TeaNode } from "@hightea/term"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"
@@ -75,7 +75,7 @@ function delegateLocatorMethods(
     getAttribute: (name) => getBaseLocator().getAttribute(name),
     boundingBox: () => getBaseLocator().boundingBox(),
     isVisible: () => getBaseLocator().isVisible(),
-    filter: (optionsOrPredicate: FilterOptions | ((node: InkxNode) => boolean)) => {
+    filter: (optionsOrPredicate: FilterOptions | ((node: TeaNode) => boolean)) => {
       const loc = getBaseLocator()
       if (typeof optionsOrPredicate === "function") {
         return loc.filter(optionsOrPredicate)

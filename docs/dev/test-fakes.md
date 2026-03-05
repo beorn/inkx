@@ -285,7 +285,7 @@ const nodes = item("board", item("col1 km.limit:: 3", item("1a"), item("1b")))
 
 **Location**: `apps/km-tui/tests/helpers/board-test.ts`
 
-One-line fixture creation + rendering with fluent API. Combines tree builder with inkx test renderer.
+One-line fixture creation + rendering with fluent API. Combines tree builder with hightea test renderer.
 
 ```typescript
 import { testEnv, item } from "../helpers/board-test"

@@ -1,4 +1,4 @@
-# Unified Inkx Rendering API
+# Unified Hightea Rendering API
 
 > **Status: Future** — Design proposal, not yet implemented.
 
@@ -33,10 +33,10 @@ Unify production and testing render paths via a pure generator API that separate
 
 **Triggers:**
 
-- Major inkx feature touching both render paths
+- Major hightea feature touching both render paths
 - Need production frame capture (debugging, logging)
 - Test infrastructure overhaul
-- Extracting inkx as standalone library
+- Extracting hightea as standalone library
 
 **Skip if:**
 
@@ -425,7 +425,7 @@ interface Term {
 }
 ```
 
-Add to inkx as wrapper (avoid chalkx churn).
+Add to hightea as wrapper (avoid ansi churn).
 
 **Done when:** Can iterate term input as structured events.
 
@@ -465,11 +465,11 @@ Async variant consuming event stream.
 
 | File                            | Changes                         |
 | ------------------------------- | ------------------------------- |
-| `inkx/src/render-gen.ts`        | New: `renderSync()`, `render()` |
-| `inkx/src/run.ts`               | New: `run()` wrapper            |
-| `inkx/src/testing/test-term.ts` | New: `createTestTerm()`         |
-| `inkx/src/context.ts`           | Events to queue                 |
-| `inkx/src/index.ts`             | Exports                         |
+| `hightea/src/render-gen.ts`        | New: `renderSync()`, `render()` |
+| `hightea/src/run.ts`               | New: `run()` wrapper            |
+| `hightea/src/testing/test-term.ts` | New: `createTestTerm()`         |
+| `hightea/src/context.ts`           | Events to queue                 |
+| `hightea/src/index.ts`             | Exports                         |
 
 ---
 
@@ -479,8 +479,8 @@ Async variant consuming event stream.
 
 **Options:**
 
-- A: Add to @beorn/chalkx Term
-- B: Wrapper in inkx
+- A: Add to @hightea/ansi Term
+- B: Wrapper in hightea
 
 **Lean:** B first (less churn), A later if useful elsewhere.
 
@@ -527,6 +527,6 @@ expect(term.screenshot()).toContain("selected")
 
 ## See Also
 
-- [inkx-nested-mounting.md](inkx-nested-mounting.md) — Nested mounting API (speculative, lower priority)
+- [hightea-nested-mounting.md](hightea-nested-mounting.md) — Nested mounting API (speculative, lower priority)
 - [../dev/ink-patterns.md](../dev/ink-patterns.md) — Current patterns
 - [../principles.md](../principles.md) — Principle 7: Async Generator Pipelines

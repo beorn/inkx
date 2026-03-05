@@ -13,7 +13,7 @@ Cursor navigation takes 1-2ms. Fold/unfold operations complete within 55ms. No o
 ### Remaining bottlenecks
 
 - **React mount overhead**: ~1.9s for 2852 React nodes (72 visible cards at ~24 nodes/card). This is pure component creation time in React's reconciler.
-- **Flexx layout at scale**: For boards with 3900+ components, layout takes ~746ms (87% of mount time, ~190us/node). Typical visible viewports (48 cards) render in ~140ms.
+- **Flexture layout at scale**: For boards with 3900+ components, layout takes ~746ms (87% of mount time, ~190us/node). Typical visible viewports (48 cards) render in ~140ms.
 - **useContentRect cascade**: Layout feedback hooks add ~45% to mount time via re-render cascade (140ms to 203ms for a 6x8 card grid).
 - **Unfold at root**: ~150ms for unfold_all, ~462ms worst case (zoom-out after full unfold).
 
@@ -98,7 +98,7 @@ Performance work spanned Feb 22-24, 2026. The commits tell the story:
 
 **Feb 22 -- UI-layer optimizations (Phase 1)**: Batch preload children cache, board-wide fold + layout cache, non-blocking zoom loading, batch child counts, progressive fold disclosure, SQLite WAL + covering index + query coalescing + cursor prefetch. All reasonable. None targeted the root cause.
 
-**Feb 23 -- Render pipeline work (Phase 2)**: Two-phase zoom with skeleton, progressive column reveal, lazy nodeIndex, fix 10s event loop blocks (`countDescendantsAtDepth` early-exit), batch preload + grandchild counts, inkx Fill single-pass rendering, FoldedChildRow + activity filter, progressive reveal on fold changes, debounced search, FoldAwareChild per-node atoms, inkx Box/Text overhead stripping. A full day of render optimization. Progressive column reveal was the primary new bottleneck.
+**Feb 23 -- Render pipeline work (Phase 2)**: Two-phase zoom with skeleton, progressive column reveal, lazy nodeIndex, fix 10s event loop blocks (`countDescendantsAtDepth` early-exit), batch preload + grandchild counts, hightea Fill single-pass rendering, FoldedChildRow + activity filter, progressive reveal on fold changes, debounced search, FoldAwareChild per-node atoms, hightea Box/Text overhead stripping. A full day of render optimization. Progressive column reveal was the primary new bottleneck.
 
 **Feb 24 -- Storage-layer breakthrough (Phase 3)**: In-memory name index (40x speedup). Removal of progressive column reveal (8x speedup). Addition of component timing hooks and event loop diagnostics. The actual fix.
 
@@ -111,11 +111,11 @@ Current instrumentation for diagnosing performance issues:
 | Span timing | `TRACE=1 bun km view` | Per-operation timing (repo load, build state, key handling) |
 | Component timing | Built into TreeNode render | Per-card render time, hook overhead |
 | Event loop monitor | `useEventLoopMonitor()` | Main thread blocks above threshold |
-| inkx instrumentation | `INKX_INSTRUMENT=1` | Skip/render counts, pipeline phase timing |
-| inkx strict mode | `INKX_STRICT=1` | Incremental vs fresh render comparison |
+| hightea instrumentation | `HIGHTEA_INSTRUMENT=1` | Skip/render counts, pipeline phase timing |
+| hightea strict mode | `HIGHTEA_STRICT=1` | Incremental vs fresh render comparison |
 | React DevTools | `DEBUG_DEVTOOLS=1 bun km view` | Flame graph of component mount/update |
-| Debug logging | `DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log` | Detailed render pipeline trace |
-| Pipeline phase timing | `globalThis.__inkx_last_pipeline` | Per-phase breakdown (measure, layout, content, output) |
+| Debug logging | `DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log` | Detailed render pipeline trace |
+| Pipeline phase timing | `globalThis.__hightea_last_pipeline` | Per-phase breakdown (measure, layout, content, output) |
 
 ## Key Lessons
 

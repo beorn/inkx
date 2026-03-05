@@ -212,14 +212,14 @@ Ctrl+P = find prev (when find bar active + text input)
 
 In km-commands, modifiers use macOS user-facing names:
 
-| km-commands field | Key | inkx field |
+| km-commands field | Key | hightea field |
 |-------------------|-----|------------|
 | `cmd` | Cmd (⌘) | `super` |
 | `opt` | Option (⌥) | `meta` |
 | `ctrl` | Control (⌃) | `ctrl` |
 | `shift` | Shift (⇧) | `shift` |
 
-The ink adapter (`inkKeyToModifiers`) translates between the two naming schemes.
+The key adapter (`keyToModifiers`) translates between the two naming schemes.
 
 ## 7. Help Dialog Rendering
 
@@ -285,7 +285,7 @@ Nonsensical combinations are skipped (e.g., `a g`, `c j`).
 
 ### Keybinding Resolution
 
-1. Ink key event -> `processInkKey()` in ink-adapter
+1. Key event -> `processKey()` in key-adapter
 2. Chord processing (pending prefix detection, timeout)
 3. Keybinding resolution against layers (first match wins)
 4. If binding has `execute`, call it directly

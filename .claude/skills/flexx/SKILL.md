@@ -1,9 +1,9 @@
 ---
-description: Debug and fix Flexx layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexx layout is broken or performance degrades.
+description: Debug and fix Flexture layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexture layout is broken or performance degrades.
 argument-hint: [symptom] (describe the layout bug, or "bench" for performance workflow)
 ---
 
-# Flexx Diagnostic Workflow
+# Flexture Diagnostic Workflow
 
 **Issue**: $ARGUMENTS
 
@@ -47,7 +47,7 @@ The differential oracle: build tree → layout → mark dirty → re-layout → 
 When fuzz doesn't catch it, mirror the real component structure:
 
 ```typescript
-import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "@beorn/flexx"
+import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "@hightea/layout"
 
 test("mirrors km card structure", () => {
   const root = Node.create()
@@ -94,7 +94,7 @@ child.layout.height = savedH
 
 ### Step 4: Check CSS §4.5 Divergence
 
-Flexx forces `flexShrink >= 1` for `overflow:hidden/scroll` containers (Yoga doesn't). If layout differs from Yoga for overflow containers, this is intentional:
+Flexture forces `flexShrink >= 1` for `overflow:hidden/scroll` containers (Yoga doesn't). If layout differs from Yoga for overflow containers, this is intentional:
 
 ```typescript
 // layout-zero.ts ~line 1244
@@ -107,7 +107,7 @@ Test: `vendor/flexture/tests/yoga-overflow-compare.test.ts`
 
 ### Step 5: Check Edge-Based Rounding
 
-Naive `Math.round(width)` creates pixel gaps. Flexx rounds absolute edge positions:
+Naive `Math.round(width)` creates pixel gaps. Flexture rounds absolute edge positions:
 
 ```typescript
 const absLeft = Math.round(absX + marginLeft + fractionalLeft)
@@ -142,9 +142,9 @@ diff /tmp/bench-before.txt /tmp/bench-after.txt
 ```
 
 **Baseline numbers** (must maintain):
-- Flat trees: Flexx ~2x Yoga
-- Shallow deep trees: Flexx ~2.3x Yoga
-- No-change re-layout: Flexx ~5.5x Yoga
+- Flat trees: Flexture ~2x Yoga
+- Shallow deep trees: Flexture ~2.3x Yoga
+- No-change re-layout: Flexture ~5.5x Yoga
 
 **Thresholds**:
 - Regressions <5% for minor features
@@ -162,7 +162,7 @@ Verifies the fuzz suite catches 4 deliberate cache mutations. If a mutation isn'
 
 ## NaN Semantics Reference
 
-NaN is treacherous in Flexx — it means both "unconstrained" and appears as a natural sentinel choice:
+NaN is treacherous in Flexture — it means both "unconstrained" and appears as a natural sentinel choice:
 
 | Comparison | Result | Consequence |
 |-----------|--------|-------------|
@@ -197,7 +197,7 @@ Agent 4: Check mutation test coverage
 
 1. **Rebuild** — `cd vendor/flexture && bun run build`
 2. **Benchmark** — Verify no performance regression
-3. **Run inkx tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/hightea/tests/`
+3. **Run hightea tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/hightea/tests/`
 4. **Update docs** — Add to `src/CLAUDE.md` lessons if new pattern discovered
 
 ## Key Files

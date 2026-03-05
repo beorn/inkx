@@ -4,7 +4,7 @@
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  *
- * Uses inkx VirtualList for React-level virtualization of large lists.
+ * Uses hightea VirtualList for React-level virtualization of large lists.
  *
  * Performance optimization: Pre-caches board pills for all visible nodes
  * to avoid O(n) database queries during render.
@@ -193,7 +193,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
         <Text> </Text>
       </Box>
 
-      {/* Virtualized list using inkx VirtualList */}
+      {/* Virtualized list using hightea VirtualList */}
       <VirtualList
         items={flatItems}
         height={height - 1}

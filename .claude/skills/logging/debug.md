@@ -18,8 +18,8 @@ debug("config", { watchEnabled, debounceMs })
 
 ```text
 km:<layer>:<subsystem>       # Main packages
-inkx:<subsystem>             # inkx renderer
-flexx:<subsystem>            # flexx layout engine
+hightea:<subsystem>          # hightea renderer
+flexture:<subsystem>            # flexture layout engine
 ```
 
 ## Keep Statements Concise
@@ -38,11 +38,11 @@ TUI apps occupy the terminal, so debug output must go to a file:
 # Debug km code
 DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
 
-# Debug inkx rendering/layout issues
-DEBUG=inkx:* DEBUG_LOG=/tmp/inkx.log bun km view /path/to/vault
+# Debug hightea rendering/layout issues
+DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log bun km view /path/to/vault
 
 # Debug everything
-DEBUG=km:*,inkx:*,flexx:* DEBUG_LOG=/tmp/debug.log bun km view /path
+DEBUG=km:*,hightea:*,flexture:* DEBUG_LOG=/tmp/debug.log bun km view /path
 
 # In another terminal
 tail -f /tmp/debug.log
@@ -52,9 +52,9 @@ tail -f /tmp/debug.log
 
 | Issue | Namespace |
 |-------|-----------|
-| Layout problems | `DEBUG=flexx:layout` |
-| Keyboard input not working | `DEBUG=inkx:useInput` |
-| Render not updating | `DEBUG=inkx:render,inkx:pipeline` |
+| Layout problems | `DEBUG=flexture:layout` |
+| Keyboard input not working | `DEBUG=hightea:useInput` |
+| Render not updating | `DEBUG=hightea:render,hightea:pipeline` |
 | Storage/sync issues | `DEBUG=km:storage:*` |
 | Board state issues | `DEBUG=km:board:*` |
 

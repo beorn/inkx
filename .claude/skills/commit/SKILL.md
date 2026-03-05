@@ -44,7 +44,7 @@ git push
 
 ```bash
 set -e
-(cd vendor/hightea && bun run lint --fix && git add -A && git commit -m "fix(inkx): msg
+(cd vendor/hightea && bun run lint --fix && git add -A && git commit -m "fix(hightea): msg
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
 

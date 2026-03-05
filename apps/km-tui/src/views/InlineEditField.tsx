@@ -1,13 +1,13 @@
 /**
  * InlineEditField — inline text editor for node titles and body blocks.
  *
- * Uses useEditContext (inkx EditContext) which registers an EditTarget.
+ * Uses useEditContext (hightea EditContext) which registers an EditTarget.
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
  *
  * Width is auto-detected via useContentRect() — the nearest Box ancestor's
  * content width is used for visual line wrapping. This guarantees cursor
- * positions match inkx's rendered line breaks.
+ * positions match hightea's rendered line breaks.
  */
 
 import React from "react"
@@ -40,7 +40,7 @@ export function InlineEditField({
   stickyX,
 }: InlineEditFieldProps): React.ReactElement {
   // Auto-detect width from nearest Box ancestor's content area.
-  // This is the same width inkx's renderer uses for word wrapping,
+  // This is the same width hightea's renderer uses for word wrapping,
   // ensuring cursor positions match displayed line breaks.
   const { width } = useContentRect()
 

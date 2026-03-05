@@ -1,19 +1,19 @@
 /**
- * Ink Adapter Tests
+ * Key Adapter Tests
  *
- * Tests for the Ink key event to command system bridge.
+ * Tests for the key event to command system bridge.
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
 import {
   initCommandSystem,
-  inkKeyToString,
-  inkKeyToModifiers,
-  processInkKey,
+  keyToString,
+  keyToModifiers,
+  processKey,
   buildKeybindingContext,
   wouldHandleKey,
-  type InkKeyEvent,
-} from "../src/ink-adapter.ts"
+  type KeyEvent,
+} from "../src/key-adapter.ts"
 import type { CommandContext, TNode } from "../src/types.ts"
 import { clearRegistry } from "../src/registry.ts"
 import { clearKeybindings } from "../src/keybindings.ts"
@@ -59,46 +59,46 @@ function createCommandContext(overrides?: Partial<CommandContext>): CommandConte
   }
 }
 
-describe("inkKeyToString", () => {
+describe("keyToString", () => {
   it("converts arrow keys", () => {
-    expect(inkKeyToString("", { upArrow: true })).toBe("ArrowUp")
-    expect(inkKeyToString("", { downArrow: true })).toBe("ArrowDown")
-    expect(inkKeyToString("", { leftArrow: true })).toBe("ArrowLeft")
-    expect(inkKeyToString("", { rightArrow: true })).toBe("ArrowRight")
+    expect(keyToString("", { upArrow: true })).toBe("ArrowUp")
+    expect(keyToString("", { downArrow: true })).toBe("ArrowDown")
+    expect(keyToString("", { leftArrow: true })).toBe("ArrowLeft")
+    expect(keyToString("", { rightArrow: true })).toBe("ArrowRight")
   })
 
   it("converts special keys", () => {
-    expect(inkKeyToString("", { return: true })).toBe("Enter")
-    expect(inkKeyToString("", { escape: true })).toBe("Escape")
-    expect(inkKeyToString("", { backspace: true })).toBe("Backspace")
-    expect(inkKeyToString("", { delete: true })).toBe("Delete")
-    expect(inkKeyToString("", { tab: true })).toBe("Tab")
+    expect(keyToString("", { return: true })).toBe("Enter")
+    expect(keyToString("", { escape: true })).toBe("Escape")
+    expect(keyToString("", { backspace: true })).toBe("Backspace")
+    expect(keyToString("", { delete: true })).toBe("Delete")
+    expect(keyToString("", { tab: true })).toBe("Tab")
   })
 
   it("returns input character for regular keys", () => {
-    expect(inkKeyToString("j", {})).toBe("j")
-    expect(inkKeyToString("k", {})).toBe("k")
-    expect(inkKeyToString("a", {})).toBe("a")
-    expect(inkKeyToString("G", {})).toBe("G")
-    expect(inkKeyToString("1", {})).toBe("1")
-    expect(inkKeyToString(" ", {})).toBe(" ")
+    expect(keyToString("j", {})).toBe("j")
+    expect(keyToString("k", {})).toBe("k")
+    expect(keyToString("a", {})).toBe("a")
+    expect(keyToString("G", {})).toBe("G")
+    expect(keyToString("1", {})).toBe("1")
+    expect(keyToString(" ", {})).toBe(" ")
   })
 
   it("prioritizes special key flags over input", () => {
     // If both enter flag and input are present, flag wins
-    expect(inkKeyToString("\r", { return: true })).toBe("Enter")
-    expect(inkKeyToString("\x1b", { escape: true })).toBe("Escape")
+    expect(keyToString("\r", { return: true })).toBe("Enter")
+    expect(keyToString("\x1b", { escape: true })).toBe("Escape")
   })
 
   it("handles empty key event", () => {
-    expect(inkKeyToString("x", {})).toBe("x")
-    expect(inkKeyToString("", {})).toBe("")
+    expect(keyToString("x", {})).toBe("x")
+    expect(keyToString("", {})).toBe("")
   })
 })
 
-describe("inkKeyToModifiers", () => {
+describe("keyToModifiers", () => {
   it("extracts ctrl modifier", () => {
-    const result = inkKeyToModifiers({ ctrl: true })
+    const result = keyToModifiers({ ctrl: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(false)
 
@@ -106,7 +106,7 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("extracts shift modifier", () => {
-    const result = inkKeyToModifiers({ shift: true })
+    const result = keyToModifiers({ shift: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(true)
 
@@ -114,8 +114,8 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("maps Ink meta to opt (Alt/Option on macOS)", () => {
-    // In Ink/inkx, meta represents Alt/Option — mapped to opt
-    const result = inkKeyToModifiers({ meta: true })
+    // In Ink/hightea, meta represents Alt/Option — mapped to opt
+    const result = keyToModifiers({ meta: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
 
@@ -123,7 +123,7 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("handles multiple modifiers", () => {
-    const result = inkKeyToModifiers({ ctrl: true, shift: true })
+    const result = keyToModifiers({ ctrl: true, shift: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(true)
 
@@ -131,7 +131,7 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("handles all modifiers combined", () => {
-    const result = inkKeyToModifiers({ ctrl: true, shift: true, meta: true })
+    const result = keyToModifiers({ ctrl: true, shift: true, meta: true })
     expect(result.ctrl).toBe(true)
     expect(result.shift).toBe(true)
 
@@ -139,7 +139,7 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("handles empty key event", () => {
-    const result = inkKeyToModifiers({})
+    const result = keyToModifiers({})
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
 
@@ -147,11 +147,11 @@ describe("inkKeyToModifiers", () => {
   })
 
   it("treats undefined as false", () => {
-    const result = inkKeyToModifiers({
+    const result = keyToModifiers({
       ctrl: undefined,
       shift: undefined,
       meta: undefined,
-    } as InkKeyEvent)
+    } as KeyEvent)
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)
   })
@@ -233,7 +233,7 @@ describe("initCommandSystem", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    const result = processInkKey("j", {}, cmdCtx, kbCtx)
+    const result = processKey("j", {}, cmdCtx, kbCtx)
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("cursor_down")
   })
@@ -245,12 +245,12 @@ describe("initCommandSystem", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    const result = processInkKey("j", {}, cmdCtx, kbCtx)
+    const result = processKey("j", {}, cmdCtx, kbCtx)
     expect(result.handled).toBe(true)
   })
 })
 
-describe("processInkKey", () => {
+describe("processKey", () => {
   beforeEach(() => {
     clearRegistry()
     clearKeybindings()
@@ -264,7 +264,7 @@ describe("processInkKey", () => {
       siblingIndex: 0,
     })
 
-    const result = processInkKey("j", {}, cmdCtx, kbCtx)
+    const result = processKey("j", {}, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("cursor_down")
@@ -275,7 +275,7 @@ describe("processInkKey", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    const result = processInkKey("~", {}, cmdCtx, kbCtx)
+    const result = processKey("~", {}, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(false)
     expect(result.commandId).toBeNull()
@@ -289,7 +289,7 @@ describe("processInkKey", () => {
       siblingIndex: 0,
     })
 
-    const result = processInkKey("", { downArrow: true }, cmdCtx, kbCtx)
+    const result = processKey("", { downArrow: true }, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(true)
     // Per docs/06-ui.md: arrows use same commands as hjkl
@@ -301,7 +301,7 @@ describe("processInkKey", () => {
     const cmdCtx = createCommandContext()
 
     // Cmd+Z → undo (Ctrl+Z is reserved for SIGTSTP)
-    const result = processInkKey("z", { super: true }, cmdCtx, kbCtx)
+    const result = processKey("z", { super: true }, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("undo")
@@ -313,11 +313,11 @@ describe("processInkKey", () => {
     const cmdCtx = createCommandContext()
 
     // Enter in normal mode → enter_inline_edit
-    const normalResult = processInkKey("", { return: true }, cmdCtx, normalCtx)
+    const normalResult = processKey("", { return: true }, cmdCtx, normalCtx)
     expect(normalResult.commandId).toBe("enter_inline_edit")
 
     // Enter in move mode → confirm_move
-    const moveResult = processInkKey("", { return: true }, cmdCtx, moveCtx)
+    const moveResult = processKey("", { return: true }, cmdCtx, moveCtx)
     expect(moveResult.commandId).toBe("confirm_move")
   })
 
@@ -325,7 +325,7 @@ describe("processInkKey", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
 
-    const result = processInkKey("", { escape: true }, cmdCtx, kbCtx)
+    const result = processKey("", { escape: true }, cmdCtx, kbCtx)
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("close_or_quit")
@@ -336,12 +336,12 @@ describe("processInkKey", () => {
     const cmdCtx = createCommandContext()
 
     // Step 1: v should start a chord (pending) — v is a chord prefix for view/visual
-    const r1 = processInkKey("v", {}, cmdCtx, kbCtx)
+    const r1 = processKey("v", {}, cmdCtx, kbCtx)
     expect(r1.handled).toBe(true)
     expect(r1.pending).toBe("v")
 
     // Step 2: c should resolve the chord to toggle_collapse
-    const r2 = processInkKey("c", {}, cmdCtx, kbCtx)
+    const r2 = processKey("c", {}, cmdCtx, kbCtx)
     expect(r2.handled).toBe(true)
     expect(r2.commandId).toBe("toggle_collapse")
   })

@@ -171,7 +171,7 @@ export function useColumns(
   // Coalesce rapid version bumps — multiple mutations within one frame
   // (e.g., background link resolution firing touch() multiple times)
   // only trigger one derivation. Disabled in test env where act() needs sync updates.
-  // @ts-expect-error - React internal flag set by inkx test renderer
+  // @ts-expect-error - React internal flag set by hightea test renderer
   const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
   const [debouncedVersion, setDebouncedVersion] = useState(repoVersion)
   useEffect(() => {

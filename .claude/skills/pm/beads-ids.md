@@ -56,7 +56,7 @@ km-<scope>-<N>
 
 - `km-storage-15` - Storage package work #15
 - `km-tui.persist-nav` - TUI board navigation persistence
-- `km-inkx.bg-bleed` - inkx background color bleed bug
+- `km-hightea.bg-bleed` - hightea background color bleed bug
 
 **Metadata carries classification:**
 
@@ -84,9 +84,9 @@ km-vitestx             # Test framework tracking epic
 km-vitestx.mdtest      # mdtest vitest plugin subtask
 km-infra.ci-fuzz       # CI fuzzing (cross-cutting infra)
 
-km-inkx                # inkx/chalkx tracking epic
-km-inkx.stale-pixels   # Stale pixel bugs subtask
-km-inkx.bg-bleed       # Background color bleed subtask
+km-hightea                # hightea tracking epic
+km-hightea.stale-pixels   # Stale pixel bugs subtask
+km-hightea.bg-bleed       # Background color bleed subtask
 ```
 
 **Note**: Dot notation works with ANY prefix — not just `km-`. Always check the database prefix first.
@@ -133,7 +133,7 @@ km-<4-5 char random>
 | --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
 | Package-specific bug  | 1: Scoped       | `km-storage-15`, `hightea-render-3`     | Check prefix first, find next N |
 | Feature in a package  | 1: Scoped       | `km-tui-8`, `hightea/packages/ansi-color-2`         | Clear scope                     |
-| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-inkx.bg-bleed`       | Dot notation works with any prefix |
+| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-hightea.bg-bleed`       | Dot notation works with any prefix |
 | Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
 | Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
@@ -162,9 +162,9 @@ km-<4-5 char random>
 
 | Scope      | Covers                                           |
 | ---------- | ------------------------------------------------ |
-| `term`     | vendor/beorn-term, beorn-tui, inkx/chalkx absorb |
+| `term`     | vendor/beorn-term, beorn-tui, hightea absorb |
 | `termless` | vendor/termless (headless terminal testing) |
-| `flexx`    | vendor/flexture                               |
+| `flexture`    | vendor/flexture                               |
 | `logger`   | vendor/decant                              |
 
 ### Infrastructure & Cross-Cutting
@@ -183,7 +183,7 @@ km-<4-5 char random>
 
 When creating beads for a package/area not listed above:
 
-1. **Use existing scope if related**: e.g., inkx/chalkx work → `tui` (they're TUI ecosystem)
+1. **Use existing scope if related**: e.g., hightea work → `tui` (they're TUI ecosystem)
 2. **Vendor packages**: Use package name without `beorn-` prefix
 3. **Core packages**: Use package name without `@km/` prefix
 4. **Keep it short**: Prefer 3-6 character scope tokens
@@ -197,9 +197,9 @@ km-storage-8          # Parent epic
 km-storage-8.1        # Subtask 1
 km-storage-8.2        # Subtask 2
 
-km-inkx               # Tracking epic
-km-inkx.stale-pixels  # Named subtask
-km-inkx.bg-bleed      # Named subtask
+km-hightea               # Tracking epic
+km-hightea.stale-pixels  # Named subtask
+km-hightea.bg-bleed      # Named subtask
 ```
 
 **Rules:**
@@ -247,7 +247,7 @@ bd list | grep "km-storage-8"     # Prefix match
 --label sync        # Sync system
 --label parser      # Parser
 --label watcher     # File watcher
---label flexx       # Layout engine
+--label flexture       # Layout engine
 ```
 
 **Phase labels** (for epics):

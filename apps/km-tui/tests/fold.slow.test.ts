@@ -1223,7 +1223,7 @@ describe("progressive fold/unfold", () => {
 
   test("L unfolds per-card depth, eventually revealing deepest children", () => {
     // Disable incremental check: expanding folded nodes changes tree height,
-    // which can cause fresh-render layout drift in inkx
+    // which can cause fresh-render layout drift in hightea
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
     // Initially everything visible down to depth 2, subtask-x hidden

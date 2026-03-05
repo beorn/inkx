@@ -30,7 +30,7 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(fu
   // Expose imperative handle for parent components
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
-      // No-op for now - inkx Box doesn't expose imperative scroll yet
+      // No-op for now - hightea Box doesn't expose imperative scroll yet
       // Documents the intent for future implementation
     },
   }))

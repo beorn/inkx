@@ -92,7 +92,7 @@ describe("Visual mode", () => {
   test("d (cut) in visual mode stages selected cards to clipboard", () => {
     const { board, store } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
-      { incremental: false }, // toast overlay causes INKX_STRICT_OUTPUT style mismatch (pre-existing)
+      { incremental: false }, // toast overlay causes HIGHTEA_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     // Enter visual mode and extend selection to include task1 + task2
@@ -113,7 +113,7 @@ describe("Visual mode", () => {
   test("y (copy) in visual mode stages selected cards to clipboard for paste", () => {
     const { board, repo, store } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
-      { incremental: false }, // toast overlay causes INKX_STRICT_OUTPUT style mismatch (pre-existing)
+      { incremental: false }, // toast overlay causes HIGHTEA_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     expect(childIds(repo, "col1")).toEqual(["task1", "task2", "task3"])
@@ -636,7 +636,7 @@ describe("Visual mode + clipboard integration", () => {
   test("visual mode copy then paste duplicates all selected cards", () => {
     const { board, repo } = testEnv(
       () => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-      { incremental: false }, // toast overlay causes INKX_STRICT_OUTPUT style mismatch (pre-existing)
+      { incremental: false }, // toast overlay causes HIGHTEA_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     // Enter visual mode on A, extend to B
@@ -659,7 +659,7 @@ describe("Visual mode + clipboard integration", () => {
   test("visual mode cut stages nodes, paste moves them to new position", () => {
     const { board, repo, store } = testEnv(
       () => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
-      { incremental: false }, // toast overlay causes INKX_STRICT_OUTPUT style mismatch (pre-existing)
+      { incremental: false }, // toast overlay causes HIGHTEA_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C", "D"])

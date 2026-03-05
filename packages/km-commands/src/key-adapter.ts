@@ -1,7 +1,7 @@
 /**
- * Ink Adapter for @km/commands
+ * Key Adapter for @km/commands
  *
- * Bridges Ink's useInput key events to the command system.
+ * Bridges key events to the command system.
  * This allows gradual migration from keyboard-handler.ts.
  */
 
@@ -41,8 +41,8 @@ function flattenActions(...results: (CommandAction | CommandAction[] | null)[]):
   return out
 }
 
-/** Ink's Key event structure */
-export interface InkKeyEvent {
+/** Key event structure */
+export interface KeyEvent {
   escape?: boolean
   return?: boolean
   ctrl?: boolean
@@ -66,8 +66,8 @@ export function initCommandSystem(): void {
   chordState = createChordState()
 }
 
-/** Convert Ink key event to our key string format */
-export function inkKeyToString(input: string, key: InkKeyEvent): string {
+/** Convert key event to our key string format */
+export function keyToString(input: string, key: KeyEvent): string {
   if (key.upArrow) return "ArrowUp"
   if (key.downArrow) return "ArrowDown"
   if (key.leftArrow) return "ArrowLeft"
@@ -80,8 +80,8 @@ export function inkKeyToString(input: string, key: InkKeyEvent): string {
   return input
 }
 
-/** Convert Ink key event to modifier flags (translates inkx names to km-commands names) */
-export function inkKeyToModifiers(key: InkKeyEvent): {
+/** Convert key event to modifier flags (translates hightea names to km-commands names) */
+export function keyToModifiers(key: KeyEvent): {
   ctrl: boolean
   opt: boolean
   shift: boolean
@@ -89,16 +89,16 @@ export function inkKeyToModifiers(key: InkKeyEvent): {
 } {
   return {
     ctrl: !!key.ctrl,
-    opt: !!key.meta, // inkx "meta" = Option (⌥) on macOS terminals
+    opt: !!key.meta, // hightea "meta" = Option (⌥) on macOS terminals
     shift: !!key.shift,
-    cmd: !!key.super, // inkx "super" = Cmd (⌘) on macOS (requires Kitty protocol)
+    cmd: !!key.super, // hightea "super" = Cmd (⌘) on macOS (requires Kitty protocol)
   }
 }
 
 // Module-level chord state (persists across key events)
 let chordState: ChordState = createChordState()
 
-export interface InkCommandResult {
+export interface KeyCommandResult {
   /** The command that was executed, or null if no command matched */
   commandId: string | null
   /** The action(s) to dispatch, or null if command returned null */
@@ -119,7 +119,7 @@ function isBlockingModal(kbCtx: KeybindingContext): boolean {
 }
 
 /**
- * Process an Ink key event through the command system.
+ * Process a key event through the command system.
  *
  * @param input - The input character from useInput
  * @param key - The key event from useInput
@@ -128,14 +128,14 @@ function isBlockingModal(kbCtx: KeybindingContext): boolean {
  * @returns Result with commandId and actions to dispatch
  */
 // oxlint-disable-next-line complexity/complexity -- Sequential chord + keybinding resolution pipeline
-export function processInkKey(
+export function processKey(
   input: string,
-  key: InkKeyEvent,
+  key: KeyEvent,
   ctx: CommandContext,
   kbCtx: KeybindingContext,
-): InkCommandResult {
-  const keyStr = inkKeyToString(input, key)
-  const modifiers = inkKeyToModifiers(key)
+): KeyCommandResult {
+  const keyStr = keyToString(input, key)
+  const modifiers = keyToModifiers(key)
   const hasModifiers = !!modifiers.ctrl || !!modifiers.opt || !!modifiers.shift || !!modifiers.cmd
 
   // Text input priority: when textInputFocused and input is a printable character
@@ -232,7 +232,7 @@ export function getChordState(): ChordState {
  * Handle chord timeout: resolve the pending prefix as its standalone command.
  * Called by the TUI layer after 300ms of no second key.
  */
-export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext): InkCommandResult | null {
+export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext): KeyCommandResult | null {
   const prefix = chordState.timeout()
   if (!prefix) return null
 
@@ -335,9 +335,9 @@ export function buildKeybindingContext(options: {
  * Check if a key event would be handled by the command system.
  * Useful for deciding whether to fall back to legacy handlers.
  */
-export function wouldHandleKey(input: string, key: InkKeyEvent, kbCtx: KeybindingContext): boolean {
-  const keyStr = inkKeyToString(input, key)
-  const modifiers = inkKeyToModifiers(key)
+export function wouldHandleKey(input: string, key: KeyEvent, kbCtx: KeybindingContext): boolean {
+  const keyStr = keyToString(input, key)
+  const modifiers = keyToModifiers(key)
   return resolveKeybinding(keyStr, modifiers, kbCtx) != null
 }
 

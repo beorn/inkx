@@ -8,7 +8,7 @@
 - Keybindings: registration, mode-aware resolution, chord prefix detection, chord suffixes
 - Chord state machine: pending state, chord resolution, timeout, Ctrl bypass, reset
 - Executor: command execution, context building, action dispatch
-- Ink adapter: key event normalization, modifier extraction, key-to-command bridging
+- Key adapter: key event normalization, modifier extraction, key-to-command bridging
 - Error constructors: boundary, precondition, unimplemented result types
 - Verb x location vocabulary: target resolvers, verb constructors, grid generation
 
@@ -16,7 +16,7 @@
 
 - How actions affect board state — that's km-board
 - How commands render on screen — that's km-tui
-- Raw terminal key parsing — that's inkx
+- Raw terminal key parsing — that's hightea
 
 ## Patterns
 

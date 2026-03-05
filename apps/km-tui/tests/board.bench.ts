@@ -5,37 +5,37 @@
  * test infrastructure as board.spec.ts.
  *
  * Runs benchmarks for BOTH layout engines by default. Set env vars to filter:
- *   INKX_ENGINE=flexx  - Only run flexx benchmarks
- *   INKX_ENGINE=yoga   - Only run yoga benchmarks
+ *   HIGHTEA_ENGINE=flexture  - Only run flexture benchmarks
+ *   HIGHTEA_ENGINE=yoga   - Only run yoga benchmarks
  *
  * Run:
  *   bun bench apps/km-tui/tests/board.bench.ts
- *   INKX_ENGINE=flexx bun bench apps/km-tui/tests/board.bench.ts
+ *   HIGHTEA_ENGINE=flexture bun bench apps/km-tui/tests/board.bench.ts
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import { createFlexxEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@hightea/term"
+import { createFlextureEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@hightea/term"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
 // Check for engine filter via env var
-const ENGINE_FILTER = process.env.INKX_ENGINE?.toLowerCase() as "flexx" | "yoga" | undefined
-const RUN_FLEXX = !ENGINE_FILTER || ENGINE_FILTER === "flexx"
+const ENGINE_FILTER = process.env.HIGHTEA_ENGINE?.toLowerCase() as "flexture" | "yoga" | undefined
+const RUN_FLEXTURE = !ENGINE_FILTER || ENGINE_FILTER === "flexture"
 const RUN_YOGA = !ENGINE_FILTER || ENGINE_FILTER === "yoga"
 
 if (ENGINE_FILTER) {
-  console.warn(`[bench] INKX_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`)
+  console.warn(`[bench] HIGHTEA_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`)
 }
 
 // Very low iteration for fast feedback (user can increase via vitest config)
 const BENCH_OPTIONS = { iterations: 1, warmupIterations: 0 }
 
 // Initialize engines once
-let flexxEngine: LayoutEngine
+let flextureEngine: LayoutEngine
 let yogaEngine: LayoutEngine
 
 beforeAll(async () => {
-  if (RUN_FLEXX) flexxEngine = createFlexxEngine()
+  if (RUN_FLEXTURE) flextureEngine = createFlextureEngine()
   if (RUN_YOGA) yogaEngine = await initYogaEngine()
 })
 
@@ -123,16 +123,16 @@ function createMixed(cols: number, cardsPerCol: number, nestDepth: number) {
 }
 
 // ============================================================================
-// Benchmarks - Both Engines (filtered by INKX_ENGINE env var)
+// Benchmarks - Both Engines (filtered by HIGHTEA_ENGINE env var)
 // ============================================================================
 
-// Flexx Engine
-if (RUN_FLEXX) {
-  describe("Board Layout [flexx] - Kanban", () => {
+// Flexture Engine
+if (RUN_FLEXTURE) {
+  describe("Board Layout [flexture] - Kanban", () => {
     bench(
       "5 cols × 30 cards (~160 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(5, 30))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(5, 30))
       },
       BENCH_OPTIONS,
     )
@@ -140,7 +140,7 @@ if (RUN_FLEXX) {
     bench(
       "10 cols × 100 cards (~1010 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(10, 100))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(10, 100))
       },
       BENCH_OPTIONS,
     )
@@ -148,7 +148,7 @@ if (RUN_FLEXX) {
     bench(
       "15 cols × 200 cards (~3015 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(15, 200))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(15, 200))
       },
       BENCH_OPTIONS,
     )
@@ -156,7 +156,7 @@ if (RUN_FLEXX) {
     bench(
       "20 cols × 250 cards (~5020 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(20, 250))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(20, 250))
       },
       BENCH_OPTIONS,
     )
@@ -164,7 +164,7 @@ if (RUN_FLEXX) {
     bench(
       "25 cols × 400 cards (~10025 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(25, 400))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(25, 400))
       },
       BENCH_OPTIONS,
     )
@@ -172,17 +172,17 @@ if (RUN_FLEXX) {
     bench(
       "30 cols × 500 cards (~15030 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createLargeBoard(30, 500))
+        testEnvWithEngine(flextureEngine, () => createLargeBoard(30, 500))
       },
       BENCH_OPTIONS,
     )
   })
 
-  describe("Board Layout [flexx] - Deep Tree", () => {
+  describe("Board Layout [flexture] - Deep Tree", () => {
     bench(
       "depth=4 breadth=4 (~341 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createDeepTree(4, 4))
+        testEnvWithEngine(flextureEngine, () => createDeepTree(4, 4))
       },
       BENCH_OPTIONS,
     )
@@ -190,17 +190,17 @@ if (RUN_FLEXX) {
     bench(
       "depth=5 breadth=3 (~364 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createDeepTree(5, 3))
+        testEnvWithEngine(flextureEngine, () => createDeepTree(5, 3))
       },
       BENCH_OPTIONS,
     )
   })
 
-  describe("Board Layout [flexx] - Shapes", () => {
+  describe("Board Layout [flexture] - Shapes", () => {
     bench(
       "wide-flat 100×50 (~5050 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createWideFlat(100, 50))
+        testEnvWithEngine(flextureEngine, () => createWideFlat(100, 50))
       },
       BENCH_OPTIONS,
     )
@@ -208,7 +208,7 @@ if (RUN_FLEXX) {
     bench(
       "deep-chain depth=500 (~500 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createDeepChain(500))
+        testEnvWithEngine(flextureEngine, () => createDeepChain(500))
       },
       BENCH_OPTIONS,
     )
@@ -216,7 +216,7 @@ if (RUN_FLEXX) {
     bench(
       "mixed 10×100 nest=5 (~1660 nodes)",
       () => {
-        testEnvWithEngine(flexxEngine, () => createMixed(10, 100, 5))
+        testEnvWithEngine(flextureEngine, () => createMixed(10, 100, 5))
       },
       BENCH_OPTIONS,
     )

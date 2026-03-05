@@ -1,7 +1,7 @@
 # Lesson: Debugging Rendering Bugs
 
 **Date**: 2026-02-05
-**Bug**: km-inkx.1 — ghost characters when re-rendering shorter content
+**Bug**: km-hightea.1 (hightea) — ghost characters when re-rendering shorter content
 **Outcome**: ~20 turns wasted on theorizing before using the right tools
 
 ## What Happened

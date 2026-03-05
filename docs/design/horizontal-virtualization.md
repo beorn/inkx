@@ -35,7 +35,7 @@ This works but:
 Create a dedicated `HorizontalVirtualList` component alongside `VirtualList`:
 
 ```tsx
-import { HorizontalVirtualList } from 'inkx';
+import { HorizontalVirtualList } from '@hightea/term';
 
 <HorizontalVirtualList
   items={columns}
@@ -289,7 +289,7 @@ For horizontal, use ◀/▶ instead of ▲/▼:
 ◀3│ Column A │ Column B │ Column C │▶5
 ```
 
-This requires extending inkx's overflow indicator system to support horizontal direction.
+This requires extending hightea's overflow indicator system to support horizontal direction.
 
 ## Challenges
 
@@ -314,13 +314,13 @@ Board already uses VirtualList inside columns. HorizontalVirtualList wrapping Vi
 
 This is fine - they're independent. Inner VirtualList only renders when outer includes that column.
 
-### 4. Horizontal Overflow in inkx
+### 4. Horizontal Overflow in hightea
 
-Current inkx `overflow="scroll"` is vertical-only. Need to:
-1. Add horizontal scroll support to inkx Box
-2. Or implement HorizontalVirtualList using pure React windowing (no inkx scroll)
+Current hightea `overflow="scroll"` is vertical-only. Need to:
+1. Add horizontal scroll support to hightea Box
+2. Or implement HorizontalVirtualList using pure React windowing (no hightea scroll)
 
-Option 2 is simpler and doesn't require inkx changes.
+Option 2 is simpler and doesn't require hightea changes.
 
 ## Files to Modify
 
@@ -358,7 +358,7 @@ Option 2 is simpler and doesn't require inkx changes.
    - But complicates width calculations
 
 2. **Support bidirectional scroll in single Box?**
-   - Would require inkx changes
+   - Would require hightea changes
    - Defer to VirtualGrid if needed
 
 3. **Indicator style - border vs overlay?**
@@ -368,7 +368,7 @@ Option 2 is simpler and doesn't require inkx changes.
 ## Next Steps
 
 1. [ ] Create bead for this feature
-2. [ ] Implement HorizontalVirtualList in inkx
+2. [ ] Implement HorizontalVirtualList in hightea
 3. [ ] Add tests
 4. [ ] Migrate Board.tsx
 5. [ ] Update documentation

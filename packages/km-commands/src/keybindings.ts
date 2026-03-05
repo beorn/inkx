@@ -678,7 +678,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     // Undo/redo/yank must be explicitly bound above the wildcard so they still work.
     // The wildcard absorbs all remaining keys during inline editing, preventing
     // node-mode commands (navigation, edit, task, fold, view, quit) from firing.
-    // Printable chars never reach here — processInkKey's TEXT_INSERT short-circuit
+    // Printable chars never reach here — processKey's TEXT_INSERT short-circuit
     // handles them before keybinding resolution.
     {
       name: "inline-edit-barrier",

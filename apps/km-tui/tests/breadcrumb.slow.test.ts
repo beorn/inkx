@@ -558,7 +558,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 })
 
 // =============================================================================
-// Multi-line paragraph text bleed (km-inkx.zoom-mismatch)
+// Multi-line paragraph text bleed (km-hightea.zoom-mismatch)
 // =============================================================================
 
 describe("zoom-mismatch: multi-line paragraph text bleed", () => {

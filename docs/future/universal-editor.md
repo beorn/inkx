@@ -14,7 +14,7 @@ We're building two things:
 
 Both are first-class targets. The shared foundation is a **great text + node editing engine** that works across platforms — the same document model, commands, undo, and text editing logic powering both apps. Not by emulating one platform in another, but by sharing the core and using each platform's native rendering.
 
-km already has the seed: an ID-based tree model (nodes reference parents by ID rather than living in `children[]` arrays — stable under concurrent edits), a command system decoupled from rendering, lazy-loadable SQLite storage, and multiple views (board, outline, list). The gap is that these layers aren't cleanly separated — editing is coupled to inkx (terminal), and the board logic is tangled with view code. This design untangles them.
+km already has the seed: an ID-based tree model (nodes reference parents by ID rather than living in `children[]` arrays — stable under concurrent edits), a command system decoupled from rendering, lazy-loadable SQLite storage, and multiple views (board, outline, list). The gap is that these layers aren't cleanly separated — editing is coupled to hightea (terminal), and the board logic is tangled with view code. This design untangles them.
 
 ### Why This Matters Beyond km
 
@@ -359,7 +359,7 @@ interface EditContextLike {
 
 ### termily: Terminal Rendering
 
-termily is the complete terminal platform — everything needed to render a React component tree to a terminal. It's what inkx becomes after the portable parts (runtime, commands, plugins) move to runly and docily.
+termily is the complete terminal platform — everything needed to render a React component tree to a terminal. It's what hightea becomes after the portable parts (runtime, commands, plugins) move to runly and docily.
 
 Components follow the React Native pattern — platform-specific primitives with a familiar API:
 
@@ -470,15 +470,15 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 ## Roadmap
 
 ### Phase A — Terminal (current state)
-- inkx + custom text editing + SQLite + Board/Outline/List views
+- hightea + custom text editing + SQLite + Board/Outline/List views
 - This is km today, progressively refactored
 - Operations-based undo via event log
 
 ### Phase B — Extract packages
-1. **textily**: Extract `text-cursor.ts` from inkx. Implement `TerminalEditContext`, `TextOp` with `invertOp()`, `useEditContext()` hook. Refactor TextArea to use EditContext internally. Tests: 50+ covering EditContext methods + events + text operations.
+1. **textily**: Extract `text-cursor.ts` from hightea. Implement `TerminalEditContext`, `TextOp` with `invertOp()`, `useEditContext()` hook. Refactor TextArea to use EditContext internally. Tests: 50+ covering EditContext methods + events + text operations.
 2. **runly**: Extract runtime (event loop, state management), event streams, run modes. Extract React reconciler abstraction (renderer-agnostic parts). Tests: event streams, run modes, state cycle.
 3. **docily**: Extract command system from km-commands. Define `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection` interfaces. Implement `DocOperation` types with invertibility, `UndoManager`, `DocumentEditor`. Extract plugin composition. Adapter: `DocumentStore` over existing km `Repo`. Tests: Full CRUD + undo/redo + cross-block navigation + commands, all without rendering.
-4. **termily**: Everything remaining in inkx — cell buffer, ANSI diff, dirty tracking, stdin parser, terminal detection. Components: Box, Text, VirtualList, ScrollView. flexily integration. Tests: Existing inkx rendering tests.
+4. **termily**: Everything remaining in hightea — cell buffer, ANSI diff, dirty tracking, stdin parser, terminal detection. Components: Box, Text, VirtualList, ScrollView. flexily integration. Tests: Existing hightea rendering tests.
 5. **flexily**: Rename flexture (already standalone).
 6. **km-app**: Extract state management, hooks, business logic, navigation, and view definitions from km-tui into a platform-agnostic app layer. Components retain a thin platform-specific rendering layer; all logic behind them is shared. Wire km-tui as a thin shell importing km-app + termily.
 
@@ -637,9 +637,9 @@ These benefits apply equally to a terminal TUI, a web SPA, a collaboration serve
 
 km-specific details for the package extraction. These reference the current codebase and will be outdated once the extraction is complete.
 
-### What's Portable in inkx
+### What's Portable in hightea
 
-Analysis of the current inkx codebase reveals a **60/40 split** between portable and terminal-specific code:
+Analysis of the current hightea codebase reveals a **60/40 split** between portable and terminal-specific code:
 
 **Portable (~60%) → runly + docily:**
 
@@ -684,7 +684,7 @@ Analysis of the current inkx codebase reveals a **60/40 split** between portable
 | Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
 | Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
 | Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
-| Flexx layout | `vendor/flexture/` | ~3000 | flexily (standalone) |
+| Flexture layout | `vendor/flexture/` | ~3000 | flexily (standalone) |
 
 **Key finding**: No Slate.js dependency. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. No Slate to remove.
 
@@ -695,7 +695,7 @@ Analysis of the current inkx codebase reveals a **60/40 split** between portable
 | Custom text editing (blockEditTargetRef) | textily EditContext + factory | W3C-aligned, swappable implementations |
 | `KNode.children[]` arrays (in-memory tree) | docily ID + `parentId/parentIdx` queries | Lazy loading, CRDT-friendly, matches storage |
 | `board-actions.ts` (1,380-line switch) | docily DocumentEditor | Pure logic, testable without rendering |
-| inkx monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
-| inkx-only rendering | termily (terminal) or react-dom (web) | Same editing engine, native rendering per platform |
+| hightea monolith (runtime + rendering + commands) | runly + termily + docily | Clean separation, web-portable |
+| hightea-only rendering | termily (terminal) or react-dom (web) | Same editing engine, native rendering per platform |
 | Custom `wrapSegment` etc. | textily text-cursor (done!) | Standalone, tested, reusable |
 | Eager tree loading | docily DocumentStore lazy queries | Handles 100K+ node vaults |

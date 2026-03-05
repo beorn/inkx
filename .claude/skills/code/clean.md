@@ -89,13 +89,13 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
-### inkx & Vendor Philosophy
+### hightea & Vendor Philosophy
 
-**inkx should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in inkx, don't expect consumers to work around it.
+**hightea should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in hightea, don't expect consumers to work around it.
 
-**km is inkx's perfect showcase.** It should leverage the framework to its fullest — never reinvent what inkx provides, never work around inkx problems. If km builds something generally useful that isn't in inkx, ask whether it belongs in inkx. If inkx has a bug or missing feature, fix it in inkx directly (vendor packages are git submodules — fix them in place).
+**km is hightea's perfect showcase.** It should leverage the framework to its fullest — never reinvent what hightea provides, never work around hightea problems. If km builds something generally useful that isn't in hightea, ask whether it belongs in hightea. If hightea has a bug or missing feature, fix it in hightea directly (vendor packages are git submodules — fix them in place).
 
-**This applies to all `vendor/` packages**, not just inkx. Never work around vendor bugs; fix them at the source.
+**This applies to all `vendor/` packages**, not just hightea. Never work around vendor bugs; fix them at the source.
 
 #### Theme & Token Patterns
 
@@ -107,7 +107,7 @@ Catalog opportunities in these categories:
 | `"#5599dd"` (hex literal) | `"$focusborder"` or `"$primary"` | Hex colors break on non-truecolor terminals |
 | `kitty: true` (hardcoded) | `kitty: caps.kittyKeyboard` | Use `detectTerminalCaps()` for protocol flags |
 | `width={42}` (magic number) | `flexGrow={1}` or named constant | Rely on flex layout, not fixed widths |
-| `.padEnd(n)` in TSX | `<Box width={n}>` + `<Text>` | Layout is inkx's job, not string padding |
+| `.padEnd(n)` in TSX | `<Box width={n}>` + `<Text>` | Layout is hightea's job, not string padding |
 | `useTerm().red("x")` in JSX | `<Text color="$error">x</Text>` | Use component props, not ANSI string building |
 
 **Token mapping** (ANSI 16 dark theme defaults):

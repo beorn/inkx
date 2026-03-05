@@ -173,7 +173,7 @@ describe("km-tui.collapsed-shift", () => {
   })
 
   test("collapsed column in middle position has symmetric borders", () => {
-    // Suppress [EXCESS] inkx layout warnings — column collapse/resize triggers
+    // Suppress [EXCESS] hightea layout warnings — column collapse/resize triggers
     // transient layout overflow that is unrelated to border rendering correctness
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {

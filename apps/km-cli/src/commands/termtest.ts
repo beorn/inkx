@@ -1,7 +1,7 @@
 /**
  * Terminal Capability Test (CLI wrapper)
  *
- * Delegates to inkx's runTermtest() for the actual test output.
+ * Delegates to hightea's runTermtest() for the actual test output.
  *
  *   bun km termtest              # all sections
  *   bun km termtest emoji        # emoji width alignment only

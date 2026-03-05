@@ -6,7 +6,7 @@
  * - Per-suite timing
  * - Updates in place using cursor positioning
  *
- * Unlike the inkx version, this renders inline starting from current cursor position,
+ * Unlike the hightea version, this renders inline starting from current cursor position,
  * similar to MultiProgress in @hightea/ui.
  */
 

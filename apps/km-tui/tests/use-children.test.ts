@@ -2,7 +2,7 @@
  * useChildren Hook Tests
  *
  * Tests the generic useChildren hook that returns children of any node.
- * Uses createFakeRepo + inkx createRenderer to exercise the React hook.
+ * Uses createFakeRepo + hightea createRenderer to exercise the React hook.
  */
 
 import React, { act } from "react"

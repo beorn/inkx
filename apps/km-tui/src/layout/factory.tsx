@@ -1,7 +1,7 @@
 /**
  * Layout Factory
  *
- * Constraint-based layout components for inkx TUI applications.
+ * Constraint-based layout components for hightea TUI applications.
  * Provides dimension awareness via React context.
  */
 
@@ -18,7 +18,7 @@ import React, {
 import { constrainText, displayWidth, wrapText, truncateText, padText } from "@hightea/term"
 
 // =============================================================================
-// Text Utilities (re-export from inkx with aliases)
+// Text Utilities (re-export from hightea with aliases)
 // =============================================================================
 
 /** Alias for displayWidth for compatibility */
@@ -378,7 +378,7 @@ function calculateVariableHeightScrollState<T>(
 // =============================================================================
 
 /**
- * Framework interface - the minimal API needed from ink/inkx
+ * Framework interface - the minimal API needed from ink/hightea
  */
 export interface Framework {
   Box: ComponentType<{
@@ -426,7 +426,7 @@ export interface ScrollableListProps<T> {
 }
 
 /**
- * Create layout components bound to a specific framework (ink or inkx)
+ * Create layout components bound to a specific framework (ink or hightea)
  */
 export function createLayoutComponents(fw: Framework) {
   const { Box, Text, useStdout } = fw

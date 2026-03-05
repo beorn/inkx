@@ -1,9 +1,9 @@
 /**
  * Inline AST Components
  *
- * React (inkx) components for rendering inline AST nodes.
+ * React (hightea) components for rendering inline AST nodes.
  * Each component maps an AST node type to JSX output using
- * inkx's Text component for terminal styling.
+ * hightea's Text component for terminal styling.
  *
  * Each component handles an InlineNode type from the inline parser.
  * The InlineText component is the main entry point — it parses text
