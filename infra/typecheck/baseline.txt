@@ -162,6 +162,7 @@
 2 vendor/hightea/examples/playground/playground-app.tsx
 1 vendor/hightea/examples/viewer.tsx
 1 vendor/hightea/examples/web/dom-app.tsx
+1 vendor/hightea/examples/web/showcase-app.tsx
 1 vendor/hightea/packages/ui/tests/multi-progress.test.ts
 1 vendor/hightea/packages/ui/tests/react-components.test.ts
 1 vendor/hightea/scripts/measure-bundle.ts
