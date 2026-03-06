@@ -12,6 +12,8 @@ const alwaysExclude = [
 	"vendor/mdtest/tests/mdtest-e2e.slow.test.ts",
 	// Spawns real km subprocess with PTY (via termless) — needs full CPU, can't run in parallel
 	"apps/km-tui/tests/pty-integration.slow.spec.ts",
+	// Playwright tests — run via `bun run test:showcase` in vendor/hightea, not vitest
+	"vendor/hightea/tests/web/**",
 ]
 
 // Performance note: each test file pays ~1.8s import overhead (React + hightea + zustand
