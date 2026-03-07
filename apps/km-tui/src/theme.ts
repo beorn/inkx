@@ -1,7 +1,7 @@
 /**
  * km Theme Configuration
  *
- * Delegates fully to themex for theme derivation. At startup, km detects
+ * Delegates fully to swatch for theme derivation. At startup, km detects
  * the terminal's actual colors via OSC queries and derives a matching theme.
  * Falls back to built-in themes (Nord dark / Catppuccin Latte light) when
  * detection fails.
@@ -20,7 +20,7 @@ export const defaultKmTheme: Theme = ansi16DarkTheme
  *
  * - Truecolor terminals: queries OSC 4/10/11 for the real palette,
  *   fills gaps from Nord (dark) or Catppuccin Latte (light), derives
- *   a full 33-token theme via themex.
+ *   a full 33-token theme via swatch.
  * - ANSI 16 terminals: uses named ANSI colors that adapt to whatever
  *   terminal theme the user has configured.
  */

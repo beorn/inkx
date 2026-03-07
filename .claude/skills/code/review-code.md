@@ -88,10 +88,10 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 | Old hightea render | `createRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer hightea APIs   |
-| Deprecated hightea | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter` |
+| Deprecated hightea | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexture-adapter` |
 | Deprecated ansi    | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
 | Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
-| Manual layout calc | `displayWidth()` in app code for layout - should rely on hightea/flexx      |
+| Manual layout calc | `displayWidth()` in app code for layout - should rely on hightea/flexture      |
 | hightea string comp| `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | Hardcoded color    | `color="red"` instead of `color="$error"` — bypasses theme system           |
@@ -207,13 +207,13 @@ The script detects:
 
 **Deprecated APIs (3 patterns)** - see km-hightea.deprecations bead:
 
-- Pattern 28: Deprecated hightea APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexx-adapter`)
+- Pattern 28: Deprecated hightea APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexture-adapter`)
 - Pattern 29: Deprecated ansi APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
 - Pattern 30: Deprecated km-storage functions (`getBeadsConfig`, `getTuiConfig`, `getConfigPath`, `loadRepo`, `createMockWatcher`)
 
 **Other issues (1 pattern)**:
 
-- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on hightea/flexx)
+- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on hightea/flexture)
 
 **Alignment/guidelines issues (4 patterns)** - from docs/principles.md Quick Reference:
 

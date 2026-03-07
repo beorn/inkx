@@ -40,7 +40,7 @@ export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } fr
 // Term primitives (re-exported from hightea)
 export { createTerm, term, type Term, type StyleChain } from "@hightea/term"
 
-// Extended ANSI features (chalkx - not re-exported by hightea)
+// Extended ANSI features (@hightea/ansi - not re-exported by hightea)
 export {
   curlyUnderline,
   dottedUnderline,

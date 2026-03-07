@@ -78,7 +78,7 @@
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
     "release": "release-it",
-    "test:flexx:yoga": "cd vendor/flexture && bun test:yoga"
+    "test:flexture:yoga": "cd vendor/flexture && bun test:yoga"
   },
   "devDependencies": {
     "flexture": "workspace:*",

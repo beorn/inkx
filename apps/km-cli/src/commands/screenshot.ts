@@ -33,7 +33,7 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
-    const [storageModule, coreModule, cliModule, tuiModule, inkxModule] = await Promise.all([
+    const [storageModule, coreModule, cliModule, tuiModule, highteatModule] = await Promise.all([
       import("@km/storage"),
       import("@km/core"),
       import("../program.ts"),
@@ -114,7 +114,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Use renderStatic for one-shot rendering (production code)
     const plain = format === "text" || format === "debug"
-    const rendered = await inkxModule.renderStatic(element, {
+    const rendered = await highteatModule.renderStatic(element, {
       width,
       height,
       plain,

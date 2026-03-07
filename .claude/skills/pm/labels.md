@@ -42,7 +42,7 @@ Use when work spans multiple packages or when the ID prefix isn't specific enoug
 | `tui`       | apps/km-tui                 |
 | `cli`       | apps/km-cli                 |
 | `markdown`  | @km/markdown package        |
-| `flexx`     | vendor/flexture          |
+| `flexture`  | vendor/flexture          |
 | `test`      | Test infrastructure         |
 | `cross-pkg` | Spans multiple packages     |
 | `vendor`    | Vendored dependencies       |

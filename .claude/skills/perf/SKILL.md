@@ -81,7 +81,7 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 | Variable | Effect |
 |----------|--------|
 | `DEBUG_DEVTOOLS=1` | Connect to React DevTools (flame graph) |
-| `HIGHTEA_ENGINE=flexx\|yoga` | Select layout engine |
+| `HIGHTEA_ENGINE=flexture\|yoga` | Select layout engine |
 
 ## Layer-by-Layer Diagnostics
 

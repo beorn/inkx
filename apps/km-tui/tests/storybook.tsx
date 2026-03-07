@@ -31,7 +31,7 @@
  */
 
 import React, { useState } from "react"
-import { render as inkxRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@hightea/term"
+import { render as highteatRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@hightea/term"
 
 import {
   InlineText,
@@ -1850,7 +1850,7 @@ const renderMode = mode === "inline" ? "inline" : "fullscreen"
 const alternateScreen = mode === "fullscreen" ? true : false
 
 using term = createTerm()
-const instance = await inkxRender(<InteractiveStorybook mode={mode} />, term, {
+const instance = await highteatRender(<InteractiveStorybook mode={mode} />, term, {
   exitOnCtrlC: true,
   mode: renderMode,
   alternateScreen,

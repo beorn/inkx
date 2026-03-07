@@ -3,7 +3,7 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 
 # Phase 3: Remove all 10 submodules, re-add 8 at new paths
-# (chalkx and inkx-ui are merged into hightea, so they're not re-added)
+# (ansi and hightea-ui are merged into hightea, so they're not re-added)
 
 # Record SHAs before removal
 declare -A SHAS

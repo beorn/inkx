@@ -53,7 +53,7 @@ Output a comprehensive table of all open beads with these columns (up to 100 bea
 
 | ID                    | Type    | Title                    | Priority | Claimed |
 | --------------------- | ------- | ------------------------ | -------- | ------- |
-| km-hightea               | epic    | hightea & chalkx issues     | P1       | -       |
+| km-hightea               | epic    | hightea & ansi issues     | P1       | -       |
 | km-hightea.stale-pixels  | bug     | Stale pixel bugs         | P1       | claude  |
 | km-hightea.bg-bleed      | bug     | Background color bleed   | P2       | -       |
 | km-tui                | epic    | TUI app issues           | P2       | -       |
@@ -181,7 +181,7 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 **Consolidation pattern** (for scattered beads sharing a theme):
 
 1. **Identify clusters**: Search for beads by keyword across IDs, titles, descriptions
-2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "hightea & chalkx issues"). Use `bd epic status` to check epic health.
+2. **Create tracking epic**: `km-<scope>` with `--type epic` and a clean scope description title (e.g., "hightea & ansi issues"). Use `bd epic status` to check epic health.
 3. **Rename sub-beads**: Use `bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `bd update <new-id> --parent km-<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
 5. **Verify**: `bd children <epic-id>` to confirm structure
