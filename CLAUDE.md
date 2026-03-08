@@ -114,6 +114,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [flexture/](.claude/skills/flexture/)                                     | Flexture layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
+| [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
 | [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
