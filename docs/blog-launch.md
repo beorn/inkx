@@ -135,7 +135,7 @@ Phase 1: MEASURE
   Nodes with intrinsic sizing (fit-content) get measured.
 
 Phase 2: LAYOUT
-  The layout engine (Flexture or Yoga) computes positions and
+  The layout engine (Flexily or Yoga) computes positions and
   dimensions for every node. useContentRect() subscribers
   receive their values.
 
@@ -166,19 +166,19 @@ When a user presses `j` to move a cursor, silvery's dirty tracking updates only 
 
 **Full pipeline (cold render):**
 
-| Components   | silvery (Flexture) | Ink (Yoga NAPI) |                     |
+| Components   | silvery (Flexily) | Ink (Yoga NAPI) |                     |
 | ------------ | ------------------ | --------------- | ------------------- |
 | 1 Box+Text   | 165 us             | 271 us          | silvery 1.6x faster |
 | 100 Box+Text | 45.0 ms            | 49.4 ms         | silvery 1.1x faster |
 
 **Layout engine (pure layout, no React):**
 
-| Benchmark      | Flexture (JS) | Yoga WASM | Yoga NAPI (C++) |
+| Benchmark      | Flexily (JS) | Yoga WASM | Yoga NAPI (C++) |
 | -------------- | ------------- | --------- | --------------- |
 | 100 nodes flat | 85 us         | 88 us     | 197 us          |
 | 50-node kanban | 57 us         | 54 us     | 136 us          |
 
-[Flexture](https://github.com/beorn/flexture), silvery's default layout engine, is a 7 KB (gzipped) pure JavaScript flexbox implementation -- no native dependencies, no WASM. It matches Yoga's correctness on the flexbox subset that terminal UIs need, at 2.4x the speed of Yoga NAPI.
+[Flexily](https://github.com/beorn/flexily), silvery's default layout engine, is a 7 KB (gzipped) pure JavaScript flexbox implementation -- no native dependencies, no WASM. It matches Yoga's correctness on the flexbox subset that terminal UIs need, at 2.4x the speed of Yoga NAPI.
 
 **Where Ink wins:** When the entire component tree re-renders from scratch (replacing the root element), Ink is 30x faster because its output is just string concatenation. But this scenario almost never happens in real apps -- it's the equivalent of unmounting and remounting your entire UI.
 
@@ -203,7 +203,7 @@ What you gain:
 - Input layer stack with DOM-style event bubbling
 - Plugin composition (`withCommands`, `withKeybindings`, `withDiagnostics`)
 - Playwright-style test locators (`getByTestId`, `getByText`, `locator()`)
-- Zero native dependencies with Flexture (no Yoga NAPI compile step)
+- Zero native dependencies with Flexily (no Yoga NAPI compile step)
 
 ## Testing
 
@@ -233,7 +233,7 @@ No real terminal needed. No mock stdout. Configurable dimensions, synchronous as
 ## Getting started
 
 ```bash
-bun add @silvery/term react flexture
+bun add @silvery/term react flexily
 ```
 
 ```tsx

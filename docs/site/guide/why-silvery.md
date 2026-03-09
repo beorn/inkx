@@ -105,17 +105,17 @@ This is a breaking API change. Ink's maintainer has shown no interest in major a
 
 ## Runtime Stability
 
-Beyond layout feedback, silvery + Flexture eliminates several classes of runtime issues that affect long-running TUI applications.
+Beyond layout feedback, silvery + Flexily eliminates several classes of runtime issues that affect long-running TUI applications.
 
 ### No WASM Memory Growth
 
 Yoga's WASM linear memory grows monotonically — every layout computation allocates from a linear memory region that cannot shrink. Over hours of interactive use, this accumulates into hundreds of megabytes. The only fix is resetting the entire WASM module, which drops all cached state.
 
-Flexture is pure TypeScript. It allocates and frees normally via the JS garbage collector. Long-running sessions use constant memory regardless of how many layout passes have run.
+Flexily is pure TypeScript. It allocates and frees normally via the JS garbage collector. Long-running sessions use constant memory regardless of how many layout passes have run.
 
 ### Layout Caching
 
-Flexture fingerprints each node's constraints and caches layout results. When a single card changes in a 1000-node tree, only that card and its ancestors recompute layout. Static regions (status bars, headers, borders) have zero layout cost after first render.
+Flexily fingerprints each node's constraints and caches layout results. When a single card changes in a 1000-node tree, only that card and its ancestors recompute layout. Static regions (status bars, headers, borders) have zero layout cost after first render.
 
 Yoga recomputes the full tree on every layout pass. For applications with mostly-static chrome and a small interactive region, this wastes >95% of layout work.
 
@@ -129,13 +129,13 @@ silvery tracks dirty flags per node. A cursor move in a 1000-node tree costs 169
 
 Yoga WASM requires async loading — the module must be fetched, compiled, and instantiated before any layout can occur. Applications that want fast startup must defer this loading, adding complexity.
 
-Flexture is synchronous TypeScript. `import` and go — no async initialization, no deferred loading, no WASM compilation step.
+Flexily is synchronous TypeScript. `import` and go — no async initialization, no deferred loading, no WASM compilation step.
 
 ### No Native Dependencies
 
 Yoga NAPI (used by Ink) is a C++ addon compiled per platform. Build failures on CI, incompatible Node versions, and missing build tools are common friction points. Yoga WASM avoids the build step but adds the memory growth problem.
 
-silvery + Flexture requires zero native dependencies. It runs identically on any JS runtime (Node, Bun, Deno) without platform-specific binaries.
+silvery + Flexily requires zero native dependencies. It runs identically on any JS runtime (Node, Bun, Deno) without platform-specific binaries.
 
 ### Built-in Unicode
 

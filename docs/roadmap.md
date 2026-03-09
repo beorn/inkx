@@ -1,113 +1,73 @@
 # Silvery Roadmap
 
-This document outlines the vision for Silvery — not a commitment, but an exploration of where the two-phase rendering pattern could go.
+## Current Status
 
-## Contents
+Terminal target is production-ready (used in [km](https://github.com/beorn/km)). Canvas and DOM adapters are implemented as experimental. Not yet published on npm — pending 1.0 release.
 
-- [Overview](#overview)
-- [Terminal (Complete)](#terminal-complete)
-- [Web Targets (Canvas, DOM, WebGL)](#web-targets-canvas-dom-webgl)
-- [React Native](#react-native)
-- [Beyond React](#beyond-react)
-- [Specialized Targets](#specialized-targets)
-- [Plugin Composition](#plugin-composition)
+## 1.0 Release
 
-## Overview
+1.0 signals: stable core API, reliable Ink migration, published on npm, semver for breaking changes. Experimental targets (Canvas, DOM) are excluded from the stability guarantee.
 
-| Target       | Value             | Status         | Why                                                          |
-| ------------ | ----------------- | -------------- | ------------------------------------------------------------ |
-| Terminal     | **High** (proven) | ✅ Complete    | Original use case, working in production                     |
-| Canvas 2D   | **High**          | ✅ Implemented | No existing React layout solution for canvas                 |
-| DOM          | **Medium**        | ✅ Implemented | Accessibility, text selection (xterm.js pattern)             |
-| WebGL        | **High**          | 🔮 Future      | 900% faster than canvas (per xterm.js)                       |
-| React Native | **High**          | 🔮 Future      | FlatList pain is real, Litho/ComponentKit prove the approach |
-| PDF/Email    | **Medium**        | 🔮 Future      | Niche but useful for reports                                 |
+### What's done
 
-## Terminal (Complete)
+- **Ink compatibility**: Box, Text, Newline, Spacer, Static, all hooks, `render()`, flexbox props, border styles, compat test suite, migration guide
+- **Core API frozen**: 18 components, 11 hooks, runtime (`run()`, `createApp()`), store, render, testing, plugins, focus, input, theming, animation
+- **Entry points**: 17 layered entry points (`silvery`, `silvery/ink`, `silvery/runtime`, etc.)
+- **Reliability**: memory leak tests, `withDiagnostics` mismatch detection
+- **Performance**: benchmark suite with Ink comparison
+- **Docs**: README, migration guide, component/hook/plugin reference, architecture deep dive, testing guide, comparison docs, CLAUDE.md
 
-The foundation — production-ready with all planned features implemented.
+### What's left
 
-**Core**: Terminal buffer, ANSI output with diffing, keyboard input, [Flexily](https://github.com/beorn/flexily) layout engine (2.5x faster than Yoga, zero WASM), `overflow="scroll"`, Unicode/emoji/CJK handling, style layering.
+| Task | Bead |
+|------|------|
+| Validate migration guide against 3+ real Ink apps | — |
+| API surface audit (remove accidental public exports) | — |
+| Tree-shaking verification | km-silvery.layered-arch |
+| Long-running memory test (10k+ render cycles) | — |
+| Fix border text overflow bug | — |
+| Bundle size measurement + comparison with Ink | km-silvery.bundle-audit |
+| `npm pack --dry-run` clean tarball | — |
+| Publish `silvery@1.0.0` | — |
+| CHANGELOG.md | — |
+| Terminal compatibility matrix (Ghostty, Kitty, iTerm2, WezTerm, Terminal.app, Windows Terminal, tmux/Zellij) | km-silvery.term-compat |
 
-**Enhanced**: React DevTools (`connectDevTools()`), Cursor API (TextArea, TextInput with real terminal cursor), Kitty keyboard protocol (auto-detected), SGR mouse (click/hover/drag), Image protocols (Sixel + Kitty).
+### Release sequence
 
-## Web Targets (Canvas, DOM, WebGL)
+1. Flexily 1.0 published (silvery depends on it)
+2. Layered architecture restructure + tree-shaking verification
+3. Bundle audit
+4. Fix border text overflow
+5. Validate migration against real Ink apps
+6. Terminal compatibility matrix
+7. Tag and publish `silvery@1.0.0`
 
-Canvas and DOM adapters are implemented, validating the multi-target architecture.
+## Future Targets
 
-| Adapter   | Status      | Entry Point      |
-| --------- | ----------- | ---------------- |
-| Canvas 2D | ✅ Complete | `silvery/canvas` |
-| DOM       | ✅ Complete | `silvery/dom`    |
-| WebGL     | 🔮 Future   | —                |
+| Target | Value | Status | Entry Point |
+|--------|-------|--------|-------------|
+| Terminal | High (proven) | Production | `@silvery/term` |
+| Canvas 2D | High | Experimental | `silvery/canvas` |
+| DOM | Medium | Experimental | `silvery/dom` |
+| WebGL | High | Future | — |
+| React Native | High | Future | — |
+| PDF/Email | Medium | Future | — |
 
-```tsx
-// Canvas rendering
-import { renderToCanvas, Box, Text } from "@silvery/term/canvas"
-renderToCanvas(<App />, canvas, { fontSize: 14 })
+**Why multi-target matters**: Silvery's core innovation is two-phase rendering with synchronous layout feedback — components know their size during render via `useContentRect()`. This solves the "ResizeObserver dance" problem across all targets, not just terminals.
 
-// DOM rendering (accessible, text-selectable)
-import { renderToDOM, Box, Text } from "@silvery/term/dom"
-renderToDOM(<App />, container, { fontSize: 14 })
-```
-
-**Why this matters**: Web developers solve layout-dependent rendering with the "ResizeObserver dance" — `useRef` + `ResizeObserver` + `useEffect` + a blank first render. Silvery's `useContentRect()` gives components their dimensions during render, not after. This is high value for canvas games, data visualization, design tools, and dashboards where CSS layout doesn't apply.
-
-**Renderer tradeoffs** (per [xterm.js research](https://github.com/xtermjs/xterm.js/issues/3271)):
-
-| Renderer | Performance        | Text Selection | Accessibility |
-| -------- | ------------------ | -------------- | ------------- |
-| WebGL    | Best (900% faster) | ❌             | ❌            |
-| Canvas   | Good               | ❌             | ❌            |
-| DOM      | Slowest            | ✅             | ✅            |
-
-**Reuse from core**: Reconciler (100%), layout engine (100%), `useContentRect` (100%), style system (partial — no underlines, needs color mapping). ~30% of the codebase is directly reusable across targets.
-
-## React Native
-
-The **highest-impact** future target. React Native's biggest pain point is virtualized lists — `FlatList` requires height estimation, and variable-height items cause scroll jank. Shopify's FlashList improves recycling but still needs height estimates.
-
-Silvery's two-phase pattern solves this: layout is calculated in JS before rendering, so scroll position comes from actual heights — no estimation, no jank. Facebook's Litho (Android) and ComponentKit (iOS) already proved this approach works (~35% scroll performance improvement).
-
-**Best path**: Investigate React Native's Fabric architecture, which has synchronous layout capabilities that could enable Silvery's pattern without a full reconciler replacement.
+**Reuse from core**: Reconciler (100%), layout engine (100%), `useContentRect` (100%), style system (partial). ~30% of the codebase is directly reusable.
 
 ## Beyond React
 
-Silvery's architecture separates the component model from rendering targets through the `RenderAdapter` interface. While React is the current (and only) reconciler, the two-phase pattern — compute layout first, then render — is framework-agnostic.
+The two-phase pattern is framework-agnostic. Potential future adapters: Svelte (compile-time, no reconciler overhead), Solid (fine-grained reactivity), framework-agnostic core (layout + buffer + diffing as standalone library). React is the priority.
 
-The core insight is that layout should be synchronous and available during render, not computed asynchronously after. This applies regardless of whether the component model is React, [Svelte](https://svelte.dev/), [Vue](https://vuejs.org/), [Solid](https://www.solidjs.com/), or something else entirely.
+## Semver Policy (post-1.0)
 
-Potential directions:
-- **Svelte adapter** — Svelte's compile-time approach could eliminate reconciler overhead entirely
-- **Solid adapter** — Fine-grained reactivity + synchronous layout is a natural fit
-- **Framework-agnostic core** — Extract layout + buffer + diffing as a standalone library that any framework can target
+| Change | Bump |
+|--------|------|
+| Breaking core API | Major (2.0) |
+| Breaking experimental targets | Minor (1.x) with notice |
+| New component/hook/entry point | Minor |
+| Bug fix, perf, docs | Patch |
 
-This is exploratory. React support is the priority, and the architecture is designed so that adding new component models doesn't require changing the rendering pipeline.
-
-## Specialized Targets
-
-| Target | Use Case          | Feasibility | Notes                          |
-| ------ | ----------------- | ----------- | ------------------------------ |
-| PDF    | Reports, invoices | Medium      | Layout engine + PDF primitives |
-| Email  | HTML email        | Medium      | Generate inline-styled HTML    |
-| AR/VR  | Spatial UI        | Research    | 3D layout is a different problem |
-
-## Plugin Composition
-
-Status tracking for the plugin system described in the [Building an App](guides/building-an-app.md) guide.
-
-| Feature                                       | Status      |
-| --------------------------------------------- | ----------- |
-| Individual plugins (withDomEvents, etc.)       | ✅ Implemented |
-| createApp() + centralized key handler          | ✅ Implemented |
-| Unified pipe() composition                     | Planned     |
-| Typed dispatch proxy                           | Planned     |
-| app.subscribe() with selector reactions        | Planned     |
-| Plugin-scoped cleanup via DisposableStack      | Planned     |
-| Effect combinators (debounce, throttle, delay) | Planned     |
-
-## See Also
-
-- [architecture.md](deep-dives/architecture.md) — Core architecture and RenderAdapter interface
-- [design.md](design/design.md) — Terminal implementation details
-- [performance.md](deep-dives/performance.md) — Performance characteristics
+The `silvery/ink` compat layer is part of the 1.0 stability contract.

@@ -21,7 +21,7 @@ import LiveDemo from '../.vitepress/components/LiveDemo.vue'
 
 ## How It Works
 
-silvery's `RenderAdapter` interface abstracts the rendering target. The same component tree runs through the same layout engine (Flexture) and render pipeline. The xterm adapter writes ANSI escape sequences to an xterm.js terminal emulator running in the browser.
+silvery's `RenderAdapter` interface abstracts the rendering target. The same component tree runs through the same layout engine (Flexily) and render pipeline. The xterm adapter writes ANSI escape sequences to an xterm.js terminal emulator running in the browser.
 
 ### The Component
 

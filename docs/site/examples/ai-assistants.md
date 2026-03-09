@@ -134,7 +134,7 @@ Most TUI frameworks leave you to build chat infrastructure from scratch. silvery
 Install silvery and build your first AI assistant:
 
 ```bash
-bun add @silvery/term react flexture
+bun add @silvery/term react flexily
 ```
 
 See the [Getting Started guide](/guide/getting-started) for a full walkthrough, or explore the [component reference](/guide/components) for Box, Text, TextInput, VirtualList, and other building blocks.

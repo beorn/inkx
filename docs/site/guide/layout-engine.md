@@ -1,6 +1,6 @@
 # Layout Engine
 
-silvery uses a pluggable layout engine architecture. It supports [Flexture](https://github.com/beorn/flexture) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
+silvery uses a pluggable layout engine architecture. It supports [Flexily](https://github.com/beorn/flexily) (pure JavaScript, recommended) and [Yoga](https://yogalayout.dev/) (Facebook's WASM-based flexbox implementation).
 
 ## Quick Start
 
@@ -14,33 +14,33 @@ using term = createTerm()
 await render(<App />, term)
 ```
 
-## Flexture (Recommended)
+## Flexily (Recommended)
 
-Flexture is a pure JavaScript layout engine with a Yoga-compatible API. It's the recommended choice because:
+Flexily is a pure JavaScript layout engine with a Yoga-compatible API. It's the recommended choice because:
 
 - **No WASM** - Works everywhere, no binary dependencies
 - **Smaller bundle** - ~30KB vs ~170KB for Yoga
 - **Synchronous initialization** - No async dance needed
 - **Better for testing** - Deterministic, no platform-specific WASM behavior
 
-### Explicit Flexture Setup
+### Explicit Flexily Setup
 
-If you want to explicitly set up Flexture (not usually necessary):
+If you want to explicitly set up Flexily (not usually necessary):
 
 ```tsx
 import { render, setLayoutEngine, createFlexxEngine, Box, Text } from "@silvery/term"
 
-// Initialize Flexture (synchronous - no await needed)
+// Initialize Flexily (synchronous - no await needed)
 setLayoutEngine(createFlexxEngine())
 
-// Now render uses Flexture for layout
+// Now render uses Flexily for layout
 using term = createTerm()
 await render(<App />, term)
 ```
 
-### Using renderSync with Flexture
+### Using renderSync with Flexily
 
-Since Flexture doesn't require async initialization, you can use `renderSync()`:
+Since Flexily doesn't require async initialization, you can use `renderSync()`:
 
 ```tsx
 import { renderSync, setLayoutEngine, createFlexxEngine } from "@silvery/term"
@@ -105,7 +105,7 @@ setLayoutEngine(engine)
 function createFlexxEngine(): FlexxLayoutEngine
 ```
 
-Creates a Flexture layout engine. Unlike Yoga, this is synchronous:
+Creates a Flexily layout engine. Unlike Yoga, this is synchronous:
 
 ```tsx
 import { setLayoutEngine, createFlexxEngine } from "@silvery/term"
@@ -131,7 +131,7 @@ if (!isLayoutEngineInitialized()) {
 
 ## Engine Comparison
 
-| Feature             | Yoga (WASM)              | Flexture (Pure JS)    |
+| Feature             | Yoga (WASM)              | Flexily (Pure JS)    |
 | ------------------- | ------------------------ | --------------------- |
 | Initialization      | Async (WASM loading)     | Sync                  |
 | Performance         | Faster for large trees   | Good for small-medium |
@@ -145,12 +145,12 @@ if (!isLayoutEngineInitialized()) {
 - **Precise flexbox behavior** - Yoga is the reference implementation
 - **Production apps** - Battle-tested at Facebook scale
 
-### When to Use Flexture
+### When to Use Flexily
 
 - **Quick prototypes** - No async initialization dance
 - **Simple layouts** - Performance difference is negligible
 - **WASM-restricted environments** - Some serverless/edge runtimes
-- **Bundle size concerns** - Flexture is significantly smaller
+- **Bundle size concerns** - Flexily is significantly smaller
 
 ## Performance Characteristics
 
@@ -158,7 +158,7 @@ if (!isLayoutEngineInitialized()) {
 
 Both engines implement the same flexbox algorithm. The difference is in execution:
 
-| Tree Size | Yoga   | Flexture |
+| Tree Size | Yoga   | Flexily |
 | --------- | ------ | -------- |
 | 10 nodes  | ~0.1ms | ~0.2ms   |
 | 100 nodes | ~1ms   | ~3ms     |
@@ -169,7 +169,7 @@ For typical TUI apps (10-50 nodes), both engines are effectively instant.
 ### Memory
 
 - **Yoga**: Uses WASM linear memory, very efficient
-- **Flexture**: Uses JavaScript objects, slightly higher GC pressure
+- **Flexily**: Uses JavaScript objects, slightly higher GC pressure
 
 ## Custom Layout Engines
 
@@ -233,7 +233,7 @@ interface LayoutConstants {
 }
 ```
 
-See the [Flexture adapter source](https://github.com/beorn/silvery/blob/main/src/adapters/flexture-adapter.ts) for a complete example.
+See the [Flexily adapter source](https://github.com/beorn/silvery/blob/main/src/adapters/flexily-adapter.ts) for a complete example.
 
 ### Example: Minimal Custom Engine
 
@@ -320,7 +320,7 @@ renderSync(term, <App />)
 
 ### WASM loading fails
 
-If Yoga WASM fails to load, try Flexture as a fallback:
+If Yoga WASM fails to load, try Flexily as a fallback:
 
 ```tsx
 import { render, setLayoutEngine, createFlexxEngine, isLayoutEngineInitialized } from "@silvery/term"
@@ -331,7 +331,7 @@ try {
   await render(<App />, term)
 } catch (e) {
   if (!isLayoutEngineInitialized()) {
-    console.warn("Falling back to Flexture engine")
+    console.warn("Falling back to Flexily engine")
     setLayoutEngine(createFlexxEngine())
     renderSync(term, <App />)
   } else {

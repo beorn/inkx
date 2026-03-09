@@ -109,8 +109,8 @@ interface RootOptions {
   alternateScreen?: boolean
   /** Enable exit on Ctrl+C. Default: true */
   exitOnCtrlC?: boolean
-  /** Layout engine. Default: 'flexture' */
-  layoutEngine?: "flexture" | "yoga"
+  /** Layout engine. Default: 'flexily' */
+  layoutEngine?: "flexily" | "yoga"
   /** Abort signal for external cleanup */
   signal?: AbortSignal
 }

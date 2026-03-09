@@ -59,7 +59,7 @@ const { unmount, waitUntilExit } = await render(<App />, term)
 Without `createTerm()`, silvery creates a default term internally — matching Ink's behavior exactly.
 
 ::: tip Why is render() async?
-`render()` returns a handle synchronously (like Ink), but `await`-ing it waits for layout engine initialization. With Flexture (the default), this is near-instant — just a dynamic `import()`. With Yoga, it's a genuine WASM compilation step. For fully synchronous rendering, use `renderSync()` after initializing the engine manually. Most apps should just `await render(<App />)`.
+`render()` returns a handle synchronously (like Ink), but `await`-ing it waits for layout engine initialization. With Flexily (the default), this is near-instant — just a dynamic `import()`. With Yoga, it's a genuine WASM compilation step. For fully synchronous rendering, use `renderSync()` after initializing the engine manually. Most apps should just `await render(<App />)`.
 :::
 
 ## What Works Identically

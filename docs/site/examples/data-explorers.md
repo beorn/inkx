@@ -128,7 +128,7 @@ Data explorers need responsive tables, large dataset handling, and non-blocking 
 Install silvery and build your first data explorer in minutes:
 
 ```bash
-bun add @silvery/term react flexture
+bun add @silvery/term react flexily
 ```
 
 Follow the [Getting Started guide](/guide/getting-started) for a full walkthrough, or explore the [Components](/guide/components) reference.

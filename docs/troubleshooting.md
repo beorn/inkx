@@ -49,14 +49,14 @@
 - Check that your terminal supports it (Ghostty, Kitty, WezTerm, foot — see [terminal-capabilities.md](reference/terminal-capabilities.md)).
 - iTerm2 and Terminal.app do not support the Kitty protocol.
 
-### Flexture vs Yoga layout differences
+### Flexily vs Yoga layout differences
 
-If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexture:
+If you migrated from Ink (which uses Yoga), some layout behaviors differ with Flexily:
 
-- **Percentage widths**: Flexture resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
-- **Default `flexShrink`**: Both default to 1, but Flexture may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
-- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexture does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
-- **Gap**: Flexture supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
+- **Percentage widths**: Flexily resolves `width="50%"` against the parent's content area. Yoga resolves against the parent's total width including padding. If your layout is off by a few cells, check padding on the parent.
+- **Default `flexShrink`**: Both default to 1, but Flexily may clamp earlier on zero-width children. If a child collapses unexpectedly, set `flexShrink={0}` explicitly.
+- **`flexBasis="auto"`**: Yoga uses the intrinsic content size. Flexily does the same but measures text differently for multi-line content. If text wraps unexpectedly, set an explicit `width`.
+- **Gap**: Flexily supports `gap`, `rowGap`, `columnGap` the same as Yoga. If gaps don't appear, verify `flexDirection` is set (gap only applies between flex children along the main axis).
 
 Switch engines to isolate: `SILVERY_ENGINE=yoga bun run app.ts`
 

@@ -30,7 +30,7 @@ The existence of these solutions validates the need. silvery brings this pattern
 ┌────────────────────────────────────────────────────────────────────┐
 │                         @silvery/core                                 │
 │  ├── React reconciler (SilveryNode tree)                             │
-│  ├── Layout engine interface (pluggable: Yoga, Flexture, custom)     │
+│  ├── Layout engine interface (pluggable: Yoga, Flexily, custom)     │
 │  ├── Two-phase pipeline (measure → layout → render)               │
 │  ├── Hooks: useContentRect(), useScreenRect()                     │
 │  └── Style system (merging, layering, category-based)             │
@@ -55,7 +55,7 @@ The existence of these solutions validates the need. silvery brings this pattern
 **@silvery/core** contains everything that doesn't depend on the render target:
 
 1. **React Reconciler** - Custom host config that builds SilveryNode tree
-2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexture, or custom engines
+2. **Layout Engine Abstraction** - Interface supporting Yoga, Flexily, or custom engines
 3. **Two-Phase Pipeline Orchestration** - Measure → Layout → Content render sequence
 4. **Layout Hooks** - `useContentRect()`, `useScreenRect()` implementation
 5. **Style System** - Category-based merging (container, text, decorations, emphasis)
@@ -328,7 +328,7 @@ interface ComputedLayout {
 
 | Engine                 | Bundle Size | Speed       | Notes                         |
 | ---------------------- | ----------- | ----------- | ----------------------------- |
-| **Flexture** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
+| **Flexily** (default) | 7 KB gzip   | 2.5x faster | Pure JS, synchronous init     |
 | **Yoga**               | 38 KB gzip  | Baseline    | WASM, async init, RTL support |
 
 ## Package Decomposition (Future)

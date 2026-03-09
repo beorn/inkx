@@ -37,7 +37,7 @@ Design document for a full interactive playground where users can write JSX and 
                     +--------------+          |
                     | React        |----------+
                     | Reconciler   |
-                    | + Flexture      |
+                    | + Flexily      |
                     +--------------+
 ```
 
@@ -46,7 +46,7 @@ Design document for a full interactive playground where users can write JSX and 
 1. **Edit**: User modifies JSX in Monaco Editor
 2. **Transpile**: Sucrase converts JSX to plain JS (fast, no Babel overhead)
 3. **Evaluate**: `new Function()` creates the component from transpiled code
-4. **Render**: silvery's React reconciler + Flexture layout + Canvas adapter render to OffscreenCanvas
+4. **Render**: silvery's React reconciler + Flexily layout + Canvas adapter render to OffscreenCanvas
 5. **Display**: OffscreenCanvas drawn to visible `<canvas>` element
 
 ### Why Sucrase (Not Babel)
@@ -69,7 +69,7 @@ Sucrase is purpose-built for development transforms. It strips types and convert
 | Code editor      | Monaco Editor  | VSCode engine, TypeScript intellisense, JSX |
 | JSX transpiler   | Sucrase        | Fast, small, browser-compatible             |
 | UI framework     | React          | Already a dependency of silvery             |
-| Layout engine    | Flexture       | Pure JS, synchronous init, no WASM          |
+| Layout engine    | Flexily       | Pure JS, synchronous init, no WASM          |
 | Canvas rendering | silvery/canvas | The whole point                             |
 
 ## Project Structure
