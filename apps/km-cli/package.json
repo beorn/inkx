@@ -15,8 +15,6 @@
   "dependencies": {
     "@beorn/tools": "workspace:*",
     "@commander-js/extra-typings": "^14.0.0",
-    "@hightea/term": "workspace:*",
-    "@hightea/ui": "workspace:*",
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/core": "workspace:*",
@@ -24,6 +22,8 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@km/tui": "workspace:*",
+    "@silvery/react": "workspace:*",
+    "@silvery/ui": "workspace:*",
     "commander": "^13.1.0",
     "react": "catalog:"
   },

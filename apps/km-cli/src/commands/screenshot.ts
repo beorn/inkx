@@ -33,12 +33,12 @@ export const screenshotCommand = new Command("screenshot")
     const format: OutputFormat = options.format as OutputFormat
 
     // Import modules
-    const [storageModule, coreModule, cliModule, tuiModule, highteatModule] = await Promise.all([
+    const [storageModule, coreModule, cliModule, tuiModule, silverytModule] = await Promise.all([
       import("@km/storage"),
       import("@km/core"),
       import("../program.ts"),
       import("@km/tui"),
-      import("@hightea/term"),
+      import("@silvery/react"),
     ])
 
     // Resolve path and load repo
@@ -114,7 +114,7 @@ export const screenshotCommand = new Command("screenshot")
 
     // Use renderStatic for one-shot rendering (production code)
     const plain = format === "text" || format === "debug"
-    const rendered = await highteatModule.renderStatic(element, {
+    const rendered = await silverytModule.renderStatic(element, {
       width,
       height,
       plain,

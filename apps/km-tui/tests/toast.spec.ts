@@ -2,9 +2,9 @@
  * Toast rendering tests - acceptance level UI tests
  *
  * incremental: false — toast overlays (position=absolute) cause incremental
- * rendering mismatches because the hightea incremental renderer doesn't fully
+ * rendering mismatches because the silvery incremental renderer doesn't fully
  * track absolute-positioned overlay appearance/disappearance. This is a
- * pre-existing hightea limitation, not a toast component bug.
+ * pre-existing silvery limitation, not a toast component bug.
  */
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
@@ -140,7 +140,7 @@ describe("Toast rendering", () => {
   test("board content remains visible when toast appears (km-9zu9f)", () => {
     // Regression: toast appearance triggered incremental render that blanked
     // the board content. Only the toast was visible, rest of screen was blank.
-    // Note: incremental: false because toast overlays cause known hightea
+    // Note: incremental: false because toast overlays cause known silvery
     // incremental mismatches. The regression itself is tested by checking
     // that board content is still visible in the fresh render.
     //

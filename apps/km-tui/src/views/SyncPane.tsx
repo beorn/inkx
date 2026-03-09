@@ -6,7 +6,7 @@
  * state transitions and sync operations.
  */
 import React from "react"
-import { Box, Text } from "@hightea/term"
+import { Box, Text } from "@silvery/react"
 import type { SyncEvent } from "../ui-reducer.ts"
 import type { WatcherStatus } from "@km/storage"
 

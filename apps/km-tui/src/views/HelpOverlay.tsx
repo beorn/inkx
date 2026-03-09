@@ -10,7 +10,7 @@
  * a text app with string arithmetic.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Fill, ModalDialog } from "@hightea/term"
+import { Box, Text, Fill, ModalDialog } from "@silvery/react"
 import { KeyBinding } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 

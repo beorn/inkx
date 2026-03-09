@@ -10,7 +10,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
 import { act } from "react"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import {
   extractReferences,
   formatDate,
@@ -389,7 +389,7 @@ function checkBorders(board: ReturnType<typeof testEnv>["board"], nodeIds: strin
 }
 
 describe("border rendering after detail pane close", () => {
-  // Suppress [EXCESS] hightea layout warnings — detail pane resize triggers
+  // Suppress [EXCESS] silvery layout warnings — detail pane resize triggers
   // transient layout overflow that is unrelated to border rendering correctness
   let errorSpy: ReturnType<typeof vi.spyOn>
   beforeEach(() => {
@@ -529,7 +529,7 @@ test.each(["D open/close", "D open → l → D close", "D open → j → D close
       {
         checkIncremental: false,
         checkStability: false,
-        checkLayout: false, // hightea layout overflow bug — not what this test checks
+        checkLayout: false, // silvery layout overflow bug — not what this test checks
         skipLines: [0, -1],
       },
     )
@@ -565,7 +565,7 @@ test("border regression: Space → l → Space with createBoardDriver", async ()
     {
       checkIncremental: false,
       checkStability: false,
-      checkLayout: false, // hightea layout overflow bug — not what this test checks
+      checkLayout: false, // silvery layout overflow bug — not what this test checks
       skipLines: [0, -1],
     },
   )

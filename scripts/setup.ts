@@ -53,7 +53,7 @@ async function getStaleSubmoduleConfigs(validPaths: Set<string>): Promise<string
 
   const stale = new Set<string>()
   for (const line of result.stdout.toString().split("\n")) {
-    // Lines look like: submodule.vendor/hightea.url git@github.com:...
+    // Lines look like: submodule.vendor/silvery.url git@github.com:...
     const match = line.match(/^submodule\.([^.]+)\./)
     if (match?.[1]) {
       const path = match[1]

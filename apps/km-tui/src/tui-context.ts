@@ -9,7 +9,7 @@
  */
 
 import type { KNode, ToastQueue } from "@km/core"
-import type { FocusManager } from "@hightea/term"
+import type { FocusManager } from "@silvery/react"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
 import type { ColumnView } from "./types.ts"

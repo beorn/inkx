@@ -6,7 +6,7 @@
  * arrows only appear when there is overflow (hiddenCount > 0).
  */
 import React from "react"
-import { Box, Text } from "@hightea/term"
+import { Box, Text } from "@silvery/react"
 
 export interface VerticalScrollIndicatorProps {
   direction: "left" | "right"

@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { VirtualTerminal, outputPhase } from "@hightea/term/toolbelt"
+import { VirtualTerminal, outputPhase } from "@silvery/term/toolbelt"
 
 // =============================================================================
 // Fold all / unfold all commands
@@ -272,8 +272,8 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
   /** Verify ANSI diff replay produces correct terminal output */
   function verifyDiffReplay(
-    prevBuffer: ReturnType<ReturnType<typeof import("@hightea/term/testing").createRenderer>["lastBuffer"]>,
-    nextBuffer: ReturnType<ReturnType<typeof import("@hightea/term/testing").createRenderer>["lastBuffer"]>,
+    prevBuffer: ReturnType<ReturnType<typeof import("@silvery/test").createRenderer>["lastBuffer"]>,
+    nextBuffer: ReturnType<ReturnType<typeof import("@silvery/test").createRenderer>["lastBuffer"]>,
     label: string,
   ) {
     if (!prevBuffer || !nextBuffer) throw new Error(`${label}: No buffer`)
@@ -1223,7 +1223,7 @@ describe("progressive fold/unfold", () => {
 
   test("L unfolds per-card depth, eventually revealing deepest children", () => {
     // Disable incremental check: expanding folded nodes changes tree height,
-    // which can cause fresh-render layout drift in hightea
+    // which can cause fresh-render layout drift in silvery
     const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
 
     // Initially everything visible down to depth 2, subtask-x hidden

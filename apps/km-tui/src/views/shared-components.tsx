@@ -5,8 +5,8 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "@hightea/term"
-import { useApp as useAppStore } from "@hightea/term/runtime"
+import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/react"
+import { useApp as useAppStore } from "@silvery/term/runtime"
 import { createLogger } from "decant"
 
 const log = createLogger("km:tui:layout")
@@ -152,7 +152,7 @@ function CardLayoutTracker({
     (computed: { x: number; y: number; width: number; height: number }) => {
       if (!registry) return
 
-      // Use measured dimensions directly from hightea layout
+      // Use measured dimensions directly from silvery layout
       registry.register(colIndex, cardIndex, {
         x: computed.x,
         y: computed.y,

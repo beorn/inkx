@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import { Text } from "@hightea/term"
+import { Text } from "@silvery/react"
 import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
@@ -53,7 +53,7 @@ export function stripTaskMark(text: string): string {
  */
 export const VARIANT_CONFIG = {
   // Limit children in oneliner to prevent performance issues with large nodes
-  // (e.g., People folder with 3k+ children creating 40k+ hightea nodes)
+  // (e.g., People folder with 3k+ children creating 40k+ silvery nodes)
   oneliner: { maxChildren: 20, showInfoColumns: true },
   multiline: { maxChildren: 8, showInfoColumns: false },
 } as const
@@ -115,7 +115,7 @@ export function getNodeStyle(
     backgroundColor = "$selection"
     textColor = "$selection-fg"
   }
-  // Default (no assignment): inherits $fg from WorkspaceView wrapper via hightea fg inheritance
+  // Default (no assignment): inherits $fg from WorkspaceView wrapper via silvery fg inheritance
   // No colored background for nodes with ownColor - color only applies to fold marker
 
   // Dim state for done/dropped tasks (no strikethrough per design)

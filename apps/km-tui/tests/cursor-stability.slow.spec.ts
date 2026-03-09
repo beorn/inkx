@@ -9,11 +9,11 @@
 import { test, expect, describe } from "vitest"
 import { createTestBoard, check } from "@km/tui/test"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { stripAnsi } from "@hightea/term/testing"
+import { stripAnsi } from "@silvery/test"
 import { existsSync } from "fs"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import { createBoardDriver } from "../src/driver.ts"
 
 /**
@@ -176,7 +176,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
   test("undo/redo preserves cursor position", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item.task("tA"), item.task("tB")), item("col2", item.task("tC"))),
-      { incremental: false }, // toast overlay causes HIGHTEA_STRICT_OUTPUT style mismatch (pre-existing)
+      { incremental: false }, // toast overlay causes SILVERY_STRICT_OUTPUT style mismatch (pre-existing)
     )
 
     // Navigate to tB

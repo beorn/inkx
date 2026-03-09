@@ -31,7 +31,7 @@
  */
 
 import React, { useState } from "react"
-import { render as highteatRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@hightea/term"
+import { render as silverytRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@silvery/react"
 
 import {
   InlineText,
@@ -75,7 +75,7 @@ interface TUIBoardState {
   helpMode: boolean
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
-import { StoreContext } from "@hightea/term/runtime"
+import { StoreContext } from "@silvery/term/runtime"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
@@ -1850,7 +1850,7 @@ const renderMode = mode === "inline" ? "inline" : "fullscreen"
 const alternateScreen = mode === "fullscreen" ? true : false
 
 using term = createTerm()
-const instance = await highteatRender(<InteractiveStorybook mode={mode} />, term, {
+const instance = await silverytRender(<InteractiveStorybook mode={mode} />, term, {
   exitOnCtrlC: true,
   mode: renderMode,
   alternateScreen,

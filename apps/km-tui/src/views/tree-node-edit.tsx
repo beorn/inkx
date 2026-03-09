@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useMemo } from "react"
-import { Box, Text } from "@hightea/term"
+import { Box, Text } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isOutline } from "@km/core"
 import { extractTitleTaskMarker, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"

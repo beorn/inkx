@@ -15,10 +15,10 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
-import { steps } from "@hightea/ui/progress"
+import { steps } from "@silvery/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { SyncManager } from "@km/storage"

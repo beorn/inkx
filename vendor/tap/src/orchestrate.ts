@@ -8,7 +8,7 @@
  *   - CI-friendly, no labels/blocks
  *   - Single summary at end with per-runner timing
  *
- * - **Parallel mode** (TTY): 3 separate streams with hightea TUI
+ * - **Parallel mode** (TTY): 3 separate streams with silvery TUI
  *   - Pre-filled with dimmed dots (progress bars)
  *   - Real-time updates as tests complete
  *   - Different symbols for slow tests
@@ -16,7 +16,7 @@
  * Mode selection:
  * - `auto` (default): TTY detection - parallel for terminal, unified for pipes/CI
  * - `unified`: Force interleaved dots (merged TAP)
- * - `parallel`: Force hightea TUI (requires renderParallel function)
+ * - `parallel`: Force silvery TUI (requires renderParallel function)
  */
 
 import { spawn } from "bun"
@@ -37,7 +37,7 @@ export interface OrchestratorOptions {
   suites: Suite[]
   mode?: "unified" | "parallel" | "auto" // Auto-detect based on TTY
   output?: Writable
-  renderParallel?: (suites: Suite[]) => Promise<number> // Inject hightea renderer
+  renderParallel?: (suites: Suite[]) => Promise<number> // Inject silvery renderer
 }
 
 export function createOrchestrator(options: OrchestratorOptions) {
@@ -58,7 +58,7 @@ export function createOrchestrator(options: OrchestratorOptions) {
 // Resolve mode based on TTY detection
 function resolveMode(mode: "unified" | "parallel" | "auto" | undefined, output: Writable): "unified" | "parallel" {
   if (mode === "auto" || mode === undefined) {
-    // Auto-detect: use parallel (hightea) for TTY, unified (interleaved) for non-TTY
+    // Auto-detect: use parallel (silvery) for TTY, unified (interleaved) for non-TTY
     return isTTY(output) ? "parallel" : "unified"
   }
   return mode

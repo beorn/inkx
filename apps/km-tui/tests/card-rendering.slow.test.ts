@@ -17,12 +17,12 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { stripAnsi } from "@hightea/term/testing"
-import { displayWidth, graphemeWidth } from "@hightea/term"
+import { stripAnsi } from "@silvery/test"
+import { displayWidth, graphemeWidth } from "@silvery/react"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ function findBorderCell(
   return null
 }
 
-// ANSI color numbers used by hightea buffer
+// ANSI color numbers used by silvery buffer
 const ANSI_BLACK = 0
 const ANSI_YELLOW = 3
 const ANSI_WHITE = 7 // $text2 in dark theme
@@ -983,8 +983,8 @@ describe("col-header-last-char", () => {
  */
 
 // Enable style-aware output verification for col-header-dup tests
-const _prevStrictOutput = process.env.HIGHTEA_STRICT_OUTPUT
-process.env.HIGHTEA_STRICT_OUTPUT = "1"
+const _prevStrictOutput = process.env.SILVERY_STRICT_OUTPUT
+process.env.SILVERY_STRICT_OUTPUT = "1"
 
 describe("col-header-dup: column header style transition", () => {
   test("incremental render matches fresh during card/column navigation", async () => {
@@ -1127,15 +1127,15 @@ describe("col-header-dup: column header style transition", () => {
 // not consumed as part of the grapheme cluster, splitting the emoji across multiple
 // columns and causing progressive cursor drift in the virtual terminal replay.
 //
-// These tests verify that HIGHTEA_STRICT catches no mismatches when rendering emoji.
+// These tests verify that SILVERY_STRICT catches no mismatches when rendering emoji.
 // =============================================================================
 
 describe("emoji content garble reproduction", () => {
   beforeEach(() => {
-    process.env.HIGHTEA_STRICT = "1"
+    process.env.SILVERY_STRICT = "1"
   })
   afterEach(() => {
-    delete process.env.HIGHTEA_STRICT
+    delete process.env.SILVERY_STRICT
   })
 
   test("cards with flag emoji + navigation", () => {
@@ -1180,7 +1180,7 @@ describe("emoji content garble reproduction", () => {
     )
     const { board } = testEnv(() => nodes, { cols: 100, rows: 25 })
 
-    // Navigate — HIGHTEA_STRICT checks buffer + output on each press
+    // Navigate — SILVERY_STRICT checks buffer + output on each press
     for (const key of ["l", "l", "j", "j", "j", "h", "h", "k", "k", "l", "j"]) {
       board.press(key)
     }
@@ -1207,7 +1207,7 @@ describe("emoji content garble reproduction", () => {
     )
     const { board } = testEnv(() => nodes, { cols: 80, rows: 20 })
 
-    // Navigate extensively — HIGHTEA_STRICT catches any mismatch
+    // Navigate extensively — SILVERY_STRICT catches any mismatch
     const sequence = ["j", "j", "j", "l", "j", "j", "h", "k", "k", "l", "l", "j", "j", "j", "k", "h", "j", "j"]
     for (const key of sequence) {
       board.press(key)

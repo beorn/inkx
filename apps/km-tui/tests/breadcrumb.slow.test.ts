@@ -9,10 +9,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { outputPhase, VirtualTerminal } from "@hightea/term/toolbelt"
+import { outputPhase, VirtualTerminal } from "@silvery/term/toolbelt"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
@@ -558,7 +558,7 @@ describe("Breadcrumb path when zoomed deep", () => {
 })
 
 // =============================================================================
-// Multi-line paragraph text bleed (km-hightea.zoom-mismatch)
+// Multi-line paragraph text bleed (km-silvery.zoom-mismatch)
 // =============================================================================
 
 describe("zoom-mismatch: multi-line paragraph text bleed", () => {

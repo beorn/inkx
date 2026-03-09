@@ -1,5 +1,5 @@
-import type { PositionRegistry, ScreenRect } from "@hightea/term"
-import { createPositionRegistry } from "@hightea/term"
+import type { PositionRegistry, ScreenRect } from "@silvery/react"
+import { createPositionRegistry } from "@silvery/react"
 import { createLogger } from "decant"
 
 const log = createLogger("km:grid-navigator")

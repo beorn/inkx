@@ -378,7 +378,7 @@ describe("collapse/uncollapse columns", () => {
 
 describe("collapsed column width", () => {
   it("collapsed column via keypress should be narrow (<=5 chars wide)", () => {
-    // Use wider terminal (120 cols) to avoid hightea EXCESS layout warnings
+    // Use wider terminal (120 cols) to avoid silvery EXCESS layout warnings
     // when column widths change during collapse
     const { board } = testEnv(
       () =>

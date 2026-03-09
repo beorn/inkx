@@ -1,6 +1,6 @@
 import React from "react"
-import { renderString } from "@hightea/term"
-import { Box, Text } from "@hightea/term"
+import { renderString } from "@silvery/react"
+import { Box, Text } from "@silvery/react"
 import type { AccountConfig, QuotaInfo, QuotaWindow } from "./types.ts"
 
 // ── Helpers ─────────────────────────────────────────────────────────────

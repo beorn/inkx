@@ -5,7 +5,7 @@
  * content shifts after navigating up/down levels (k k j j).
  *
  * Bug: km-tui.level-nav-shift
- * The test harness buffer is correct, but hightea differential rendering
+ * The test harness buffer is correct, but silvery differential rendering
  * produces different ANSI output on the real terminal.
  *
  * ## Findings
@@ -35,7 +35,7 @@
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Level navigation invariants", () => {

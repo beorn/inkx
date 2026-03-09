@@ -6,10 +6,10 @@
 
 import { createLogger } from "decant"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
-import { steps } from "@hightea/ui/progress"
+import { steps } from "@silvery/ui/progress"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 

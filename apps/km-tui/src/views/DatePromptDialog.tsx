@@ -5,7 +5,7 @@
  * Uses useDialogInput for text input + dialogTargetRef wiring.
  */
 import React from "react"
-import { Box, Text, CursorLine, ModalDialog } from "@hightea/term"
+import { Box, Text, CursorLine, ModalDialog } from "@silvery/react"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"

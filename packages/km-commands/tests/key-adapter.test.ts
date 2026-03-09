@@ -114,7 +114,7 @@ describe("keyToModifiers", () => {
   })
 
   it("maps Ink meta to opt (Alt/Option on macOS)", () => {
-    // In Ink/hightea, meta represents Alt/Option — mapped to opt
+    // In Ink/silvery, meta represents Alt/Option — mapped to opt
     const result = keyToModifiers({ meta: true })
     expect(result.ctrl).toBe(false)
     expect(result.shift).toBe(false)

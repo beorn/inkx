@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, statSync } from "fs"
 import { join } from "path"
 import type { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
 

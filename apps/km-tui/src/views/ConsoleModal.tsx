@@ -5,7 +5,7 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "@hightea/term"
+import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "@silvery/react"
 
 const MAX_LINES = 100
 
@@ -30,7 +30,7 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(fu
   // Expose imperative handle for parent components
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
-      // No-op for now - hightea Box doesn't expose imperative scroll yet
+      // No-op for now - silvery Box doesn't expose imperative scroll yet
       // Documents the intent for future implementation
     },
   }))

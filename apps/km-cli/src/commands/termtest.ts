@@ -1,7 +1,7 @@
 /**
  * Terminal Capability Test (CLI wrapper)
  *
- * Delegates to hightea's runTermtest() for the actual test output.
+ * Delegates to silvery's runTermtest() for the actual test output.
  *
  *   bun km termtest              # all sections
  *   bun km termtest emoji        # emoji width alignment only
@@ -9,7 +9,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { runTermtest, TERMTEST_SECTIONS, type TermtestSection } from "@hightea/term"
+import { runTermtest, TERMTEST_SECTIONS, type TermtestSection } from "@silvery/react"
 
 export const termtestCommand = new Command("termtest")
   .description("Visual terminal capability test — run in any terminal to verify feature support")

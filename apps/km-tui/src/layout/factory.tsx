@@ -1,7 +1,7 @@
 /**
  * Layout Factory
  *
- * Constraint-based layout components for hightea TUI applications.
+ * Constraint-based layout components for silvery TUI applications.
  * Provides dimension awareness via React context.
  */
 
@@ -15,10 +15,10 @@ import React, {
   type ReactNode,
   type ReactElement,
 } from "react"
-import { constrainText, displayWidth, wrapText, truncateText, padText } from "@hightea/term"
+import { constrainText, displayWidth, wrapText, truncateText, padText } from "@silvery/react"
 
 // =============================================================================
-// Text Utilities (re-export from hightea with aliases)
+// Text Utilities (re-export from silvery with aliases)
 // =============================================================================
 
 /** Alias for displayWidth for compatibility */
@@ -378,7 +378,7 @@ function calculateVariableHeightScrollState<T>(
 // =============================================================================
 
 /**
- * Framework interface - the minimal API needed from ink/hightea
+ * Framework interface - the minimal API needed from ink/silvery
  */
 export interface Framework {
   Box: ComponentType<{
@@ -426,7 +426,7 @@ export interface ScrollableListProps<T> {
 }
 
 /**
- * Create layout components bound to a specific framework (ink or hightea)
+ * Create layout components bound to a specific framework (ink or silvery)
  */
 export function createLayoutComponents(fw: Framework) {
   const { Box, Text, useStdout } = fw

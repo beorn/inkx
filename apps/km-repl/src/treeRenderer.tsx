@@ -1,12 +1,12 @@
 /**
  * Tree Renderer for km-sh
  *
- * Renders a BoardState tree using hightea for TUI-style output.
+ * Renders a BoardState tree using silvery for TUI-style output.
  * Used by the `render` command to provide visual debugging.
  */
 
 import React from "react"
-import { Box, Text, renderStatic } from "@hightea/term"
+import { Box, Text, renderStatic } from "@silvery/react"
 import type { BoardState, TNode, TPath } from "./board-types.ts"
 
 // Status icons for task status
@@ -170,7 +170,7 @@ function TreeView({ state, width, height }: TreeViewProps): React.ReactElement {
 }
 
 /**
- * Render a BoardState to text using hightea renderStatic
+ * Render a BoardState to text using silvery renderStatic
  */
 export async function renderTree(
   state: BoardState,

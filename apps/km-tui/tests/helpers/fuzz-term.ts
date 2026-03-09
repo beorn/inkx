@@ -1,7 +1,7 @@
 /**
  * Fuzz term — fake terminal providers for TUI fuzz testing.
  *
- * Implements hightea's Provider interface so it can replace the real terminal
+ * Implements silvery's Provider interface so it can replace the real terminal
  * with programmatic key sources (random or replayed sequences).
  *
  * @example
@@ -19,7 +19,7 @@
 import { createSeededRandom, type SeededRandom } from "vitestx"
 
 // ---------------------------------------------------------------------------
-// Types (mirrors hightea Provider/Key shapes)
+// Types (mirrors silvery Provider/Key shapes)
 // ---------------------------------------------------------------------------
 
 export interface FuzzState {

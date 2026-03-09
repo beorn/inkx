@@ -24,9 +24,9 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, keyToAnsi, type App } from "@hightea/term/testing"
-import { StoreContext, parseKey } from "@hightea/term/runtime"
-import { createFocusManager, FocusManagerContext } from "@hightea/term"
+import { createRenderer, keyToAnsi, type App } from "@silvery/test"
+import { StoreContext, parseKey } from "@silvery/term/runtime"
+import { createFocusManager, FocusManagerContext } from "@silvery/react"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
 import { createBoardState } from "../../src/board-types.ts"
@@ -74,7 +74,7 @@ export interface TestBoardResult {
   readonly hasStatus: boolean
   /** Get current status message if visible */
   getStatus: () => { level: string; message: string } | null
-  /** Access to underlying hightea App for advanced use */
+  /** Access to underlying silvery App for advanced use */
   _result: App
   /** Access to underlying Repo for advanced use */
   _repo: Repo

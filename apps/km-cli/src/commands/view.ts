@@ -34,7 +34,7 @@ export const viewCommand = new Command("view")
     })
 
     // Clear the "Loading..." line from bootstrap.ts
-    const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@hightea/ui/cli")
+    const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@silvery/ui/cli")
     process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
     // Import modules
@@ -54,12 +54,12 @@ export const viewCommand = new Command("view")
 
     // Patch console early so startup warnings (stale events, etc.) are captured
     // in the TUI console panel instead of being lost to stderr before alt screen.
-    const { patchConsole } = await import("@hightea/term")
+    const { patchConsole } = await import("@silvery/react")
     const patchedConsole =
       interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 
     // Load repo + build state with unified progress display
-    const { steps } = await import("@hightea/ui/progress")
+    const { steps } = await import("@silvery/ui/progress")
     const { createRepo } = storageModule
 
     let createdRepo: import("@km/storage").Repo | undefined

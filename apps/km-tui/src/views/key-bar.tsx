@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, useFocusManager } from "@hightea/term"
+import { Box, Text, useFocusManager } from "@silvery/react"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import { isDetailPaneId } from "../board-types.ts"
 

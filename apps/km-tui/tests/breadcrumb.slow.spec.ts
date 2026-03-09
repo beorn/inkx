@@ -3,7 +3,7 @@
  *
  * User-level journey specs for the top-bar breadcrumb trail. Complements
  * breadcrumb.slow.test.ts which focuses on ANSI replay correctness, ghost
- * prefix regression (km-axswu), and multi-line text bleed (km-hightea.zoom-mismatch).
+ * prefix regression (km-axswu), and multi-line text bleed (km-silvery.zoom-mismatch).
  *
  * These journey tests cover the user stories:
  * - Zoom in to a card, breadcrumb shows ancestor path

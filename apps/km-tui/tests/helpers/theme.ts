@@ -1,12 +1,12 @@
 /**
  * Test Colors (TC) — semantic token names → ANSI 16 color indices.
  *
- * Maps hightea theme tokens from `ansi16DarkTheme` (the default test theme)
+ * Maps silvery theme tokens from `ansi16DarkTheme` (the default test theme)
  * to their resolved ANSI 256-color indices. Use these instead of magic
  * numbers in color assertions.
  *
  * Source of truth: vendor/swatch/src/palettes/index.ts (ansi16DarkTheme)
- *                  vendor/hightea/src/pipeline/render-helpers.ts (namedColors)
+ *                  vendor/silvery/src/pipeline/render-helpers.ts (namedColors)
  *
  * @example
  * ```ts

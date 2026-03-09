@@ -14,7 +14,7 @@ import { dispatchCommandById } from "../src/board-app.ts"
 
 /**
  * Open the search dialog via the "search" command.
- * After dispatching, press Backspace to flush the hightea render pipeline.
+ * After dispatching, press Backspace to flush the silvery render pipeline.
  * The dialog text input is empty at this point, so Backspace is a no-op.
  */
 function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
@@ -22,7 +22,7 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
     dispatchCommandById("search", store.getState as () => BoardAppStore)
     store.setState((s) => s)
   })
-  board.press("Backspace") // flush hightea render pipeline
+  board.press("Backspace") // flush silvery render pipeline
 }
 
 describe("Display", () => {
@@ -166,7 +166,7 @@ describe("Text Rendering", () => {
     const longTitle = "A".repeat(200)
     const { board } = testEnv(() => item("board", item("col", item(longTitle))))
     const output = board.screenshot()
-    expect(output).toContain("\u2026") // U+2026 horizontal ellipsis (from hightea truncateText)
+    expect(output).toContain("\u2026") // U+2026 horizontal ellipsis (from silvery truncateText)
   })
 
   test("special characters render correctly", () => {
@@ -772,7 +772,7 @@ describe("Detail Pane Navigation", () => {
   })
 
   test("h/l navigates columns while detail pane stays open", () => {
-    // Suppress [EXCESS] hightea layout warnings — detail pane resize triggers
+    // Suppress [EXCESS] silvery layout warnings — detail pane resize triggers
     // transient layout overflow that is unrelated to navigation correctness
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {

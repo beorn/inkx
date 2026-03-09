@@ -4,13 +4,13 @@
  * Three bugs:
  * 1. Exits edit mode when cursor crosses to another node (should seamlessly enter edit on next block)
  * 2. Ghost cursor (two cursors shown — stale inverse attribute not cleared)
- * 3. Line positions wrong (manual wrapSegment doesn't match hightea visual wrapping)
+ * 3. Line positions wrong (manual wrapSegment doesn't match silvery visual wrapping)
  *
  * Each test is written to FAIL with the current bugs, then pass after fixes.
  */
 
 import { describe, test, expect } from "vitest"
-import { wrapText, getWrappedLines, cursorToRowCol } from "@hightea/term"
+import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
 

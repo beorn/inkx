@@ -10,7 +10,7 @@
  */
 
 import React, { useMemo } from "react"
-import { Box, Text, useTheme } from "@hightea/term"
+import { Box, Text, useTheme } from "@silvery/react"
 import { ownerPaneId, isDetailViewPane, type LayoutNode, type PaneState } from "../board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"

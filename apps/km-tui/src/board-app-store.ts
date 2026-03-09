@@ -46,7 +46,7 @@ import {
 import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
-import type { EditTarget } from "@hightea/term"
+import type { EditTarget } from "@silvery/react"
 import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"

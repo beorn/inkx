@@ -56,7 +56,7 @@ npm rejects names "confusingly similar" to existing packages at **publish time o
 **How it works**: npm normalizes names by stripping `-`, `.`, `_`. If the normalized form matches an existing package, publish is rejected.
 
 **Known examples**:
-- `hightea` → blocked by `high-tea`
+- `silvery` → available (hightea was blocked by `high-tea`, silvery is the replacement)
 - `omlog` → blocked by similarity to `npmlog`
 
 **Manual variant check** (best effort — catches hyphenated collisions):
@@ -94,7 +94,7 @@ Name             Package    Org Scope    Variants
 ─────────────────────────────────────────────────
 steeply          available  available    clean
 chahai           available  available    clean
-hightea          available  -            BLOCKED by high-tea
+silvery          available  available    clean
 @leafy           -          taken        -
 ```
 
@@ -102,5 +102,15 @@ hightea          available  -            BLOCKED by high-tea
 
 - **Scoped packages are safest** — no similarity blocking, no squatting risk
 - **npm-name-cli says available ≠ publishable** — it doesn't catch similarity blocks
-- **Squatting disputes**: [npm dispute policy](https://docs.npmjs.com/policies/disputes) for abandoned packages
 - **Org scopes are first-come**: create with `npm org create` to reserve
+
+## Disputes (hard)
+
+npm's [dispute policy](https://docs.npmjs.com/policies/disputes) exists but is difficult in practice:
+
+- **Trademark required**: npm strongly favors trademark holders. Without a registered trademark, disputes rarely succeed.
+- **Squatted packages** (empty/placeholder): npm *can* transfer these, but the process is slow and inconsistent. File via `npm support` with evidence the package is abandoned.
+- **Org scopes**: even harder to dispute than packages. There's no "abandoned org" policy — if someone created it, they own it.
+- **Timeline**: weeks to months. No guarantee of success.
+- **Practical advice**: if the name you want is taken, pick a different name. Disputes are a last resort for names you have trademark rights to, not a general-purpose mechanism.
+- **What works better**: use a scoped package under an org you create (`@yourorg/name`). This sidesteps all name conflicts entirely.

@@ -1,6 +1,3 @@
-[submodule "vendor/hightea"]
-	path = vendor/hightea
-	url = git@github.com:beorn/hightea.git
 [submodule "vendor/flexture"]
 	path = vendor/flexture
 	url = git@github.com:beorn/flexture.git
@@ -22,3 +19,6 @@
 [submodule "vendor/tools"]
 	path = vendor/tools
 	url = git@github.com:beorn/tools.git
+[submodule "vendor/silvery"]
+	path = vendor/silvery
+	url = https://github.com/beorn/silvery.git

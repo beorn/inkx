@@ -10,7 +10,7 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, ModalDialog } from "@hightea/term"
+import { Box, Text, ModalDialog } from "@silvery/react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
@@ -365,7 +365,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   const omniTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
   React.useEffect(() => {
     clearTimeout(omniTimerRef.current)
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
       setDeferredQuery(query)
     } else {

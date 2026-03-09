@@ -9,7 +9,7 @@
  * setScrollOffset from a sibling's useEffect doesn't get flushed by act().
  */
 import React, { useMemo } from "react"
-import { VirtualList, type VirtualListProps } from "@hightea/term"
+import { VirtualList, type VirtualListProps } from "@silvery/react"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 

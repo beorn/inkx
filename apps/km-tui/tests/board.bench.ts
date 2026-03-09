@@ -5,26 +5,26 @@
  * test infrastructure as board.spec.ts.
  *
  * Runs benchmarks for BOTH layout engines by default. Set env vars to filter:
- *   HIGHTEA_ENGINE=flexture  - Only run flexture benchmarks
- *   HIGHTEA_ENGINE=yoga   - Only run yoga benchmarks
+ *   SILVERY_ENGINE=flexture  - Only run flexture benchmarks
+ *   SILVERY_ENGINE=yoga   - Only run yoga benchmarks
  *
  * Run:
  *   bun bench apps/km-tui/tests/board.bench.ts
- *   HIGHTEA_ENGINE=flexture bun bench apps/km-tui/tests/board.bench.ts
+ *   SILVERY_ENGINE=flexture bun bench apps/km-tui/tests/board.bench.ts
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import { createFlextureEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@hightea/term"
+import { createFlextureEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@silvery/react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 
 // Check for engine filter via env var
-const ENGINE_FILTER = process.env.HIGHTEA_ENGINE?.toLowerCase() as "flexture" | "yoga" | undefined
+const ENGINE_FILTER = process.env.SILVERY_ENGINE?.toLowerCase() as "flexture" | "yoga" | undefined
 const RUN_FLEXTURE = !ENGINE_FILTER || ENGINE_FILTER === "flexture"
 const RUN_YOGA = !ENGINE_FILTER || ENGINE_FILTER === "yoga"
 
 if (ENGINE_FILTER) {
-  console.warn(`[bench] HIGHTEA_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`)
+  console.warn(`[bench] SILVERY_ENGINE=${ENGINE_FILTER} - running only ${ENGINE_FILTER} benchmarks`)
 }
 
 // Very low iteration for fast feedback (user can increase via vitest config)
@@ -123,7 +123,7 @@ function createMixed(cols: number, cardsPerCol: number, nestDepth: number) {
 }
 
 // ============================================================================
-// Benchmarks - Both Engines (filtered by HIGHTEA_ENGINE env var)
+// Benchmarks - Both Engines (filtered by SILVERY_ENGINE env var)
 // ============================================================================
 
 // Flexture Engine

@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs"
 import { join, dirname } from "path"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
 

@@ -31,7 +31,7 @@ import { dispatchCommandById } from "../src/board-app.ts"
 
 /**
  * Open the search dialog via the "search" command.
- * After dispatching, press Backspace to flush the hightea render pipeline.
+ * After dispatching, press Backspace to flush the silvery render pipeline.
  * The dialog text input is empty at this point, so Backspace is a no-op.
  */
 function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
@@ -39,7 +39,7 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
     dispatchCommandById("search", store.getState as () => BoardAppStore)
     store.setState((s) => s)
   })
-  board.press("Backspace") // flush hightea render pipeline
+  board.press("Backspace") // flush silvery render pipeline
 }
 
 // Helper to create li nodes with li children (item() converts parents to oi)
@@ -1040,7 +1040,7 @@ describe("scroll to selection after zoom", () => {
 
   test("cursor state is correct in DOM after ZOOM_IN (no render needed)", () => {
     // Verify that the cursor DOM element is correct after ZOOM_IN,
-    // even before a render cycle runs (DOM is updated by React, not hightea pipeline)
+    // even before a render cycle runs (DOM is updated by React, not silvery pipeline)
     const tasks = Array.from({ length: 15 }, (_, i) => item(`dtask${i}`))
     const { board, store } = testEnv(() => item("root", item("col", ...tasks)), { rows: 15, checkIncremental: false })
 

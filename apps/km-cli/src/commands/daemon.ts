@@ -12,7 +12,7 @@ const log = createLogger("km:cli:daemon")
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync } from "fs"
 import { join, dirname } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"

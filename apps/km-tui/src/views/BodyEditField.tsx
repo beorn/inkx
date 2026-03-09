@@ -10,7 +10,7 @@
  */
 
 import React from "react"
-import { EditContextDisplay, useContentRect, useEditContext } from "@hightea/term"
+import { EditContextDisplay, useContentRect, useEditContext } from "@silvery/react"
 
 interface BodyEditFieldProps {
   initialValue: string

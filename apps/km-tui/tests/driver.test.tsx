@@ -1,5 +1,5 @@
 /**
- * Tests for hightea command driver plugins
+ * Tests for silvery command driver plugins
  *
  * Verifies withCommands and withKeybindings work correctly for:
  * - Direct command invocation via app.cmd.down()
@@ -10,9 +10,9 @@
  */
 
 import { describe, test, expect, beforeEach } from "vitest"
-import { createRenderer } from "@hightea/term/testing"
-import { Box, Text, withCommands, withKeybindings } from "@hightea/term"
-import type { CommandRegistryLike, WithCommandsOptions } from "@hightea/term"
+import { createRenderer } from "@silvery/test"
+import { Box, Text, withCommands, withKeybindings } from "@silvery/react"
+import type { CommandRegistryLike, WithCommandsOptions } from "@silvery/react"
 import {
   createCommandRegistry,
   allCommands,
@@ -702,7 +702,7 @@ describe("createBoardDriver", () => {
 
 describe("emoji rendering via driver", () => {
   test("flag emoji navigation does not garble", async () => {
-    process.env.HIGHTEA_STRICT = "1"
+    process.env.SILVERY_STRICT = "1"
     try {
       const nodes = item.root(
         "board",
@@ -723,18 +723,18 @@ describe("emoji rendering via driver", () => {
         incremental: true,
       })
 
-      // Navigate — HIGHTEA_STRICT checks buffer + output on each press
+      // Navigate — SILVERY_STRICT checks buffer + output on each press
       for (const key of ["l", "l", "j", "j", "h", "j", "k", "l", "h", "h"]) {
         await driver.press(key)
       }
       expect(true).toBe(true)
     } finally {
-      delete process.env.HIGHTEA_STRICT
+      delete process.env.SILVERY_STRICT
     }
   })
 
   test("mixed emoji and ASCII", async () => {
-    process.env.HIGHTEA_STRICT = "1"
+    process.env.SILVERY_STRICT = "1"
     try {
       const nodes = item.root(
         "board",
@@ -753,7 +753,7 @@ describe("emoji rendering via driver", () => {
       }
       expect(true).toBe(true)
     } finally {
-      delete process.env.HIGHTEA_STRICT
+      delete process.env.SILVERY_STRICT
     }
   })
 })

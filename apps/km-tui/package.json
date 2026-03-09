@@ -9,15 +9,15 @@
     "./test": "./src/test.ts"
   },
   "dependencies": {
-    "@hightea/ansi": "workspace:*",
-    "@hightea/term": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
+    "@silvery/ansi": "workspace:*",
+    "@silvery/react": "workspace:*",
+    "@silvery/theme": "workspace:*",
     "react": "catalog:",
-    "swatch": "workspace:*",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

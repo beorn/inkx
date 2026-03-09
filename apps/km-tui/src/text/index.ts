@@ -37,10 +37,10 @@ export {
 // Node formatting
 export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } from "./format.ts"
 
-// Term primitives (re-exported from hightea)
-export { createTerm, term, type Term, type StyleChain } from "@hightea/term"
+// Term primitives (re-exported from silvery)
+export { createTerm, term, type Term, type StyleChain } from "@silvery/react"
 
-// Extended ANSI features (@hightea/ansi - not re-exported by hightea)
+// Extended ANSI features (@silvery/ansi - not re-exported by silvery)
 export {
   curlyUnderline,
   dottedUnderline,
@@ -51,7 +51,7 @@ export {
   hyperlink,
   detectExtendedUnderline,
   type UnderlineStyle,
-} from "@hightea/ansi"
+} from "@silvery/ansi"
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"

@@ -8,10 +8,10 @@
  * - `stripAnsi(text)` - remove all ANSI escape codes
  */
 
-import { stripAnsi } from "@hightea/term"
+import { stripAnsi } from "@silvery/react"
 import stringWidth from "string-width"
 
-// Re-export ANSI utilities from hightea (canonical implementation)
+// Re-export ANSI utilities from silvery (canonical implementation)
 export { stripAnsi }
 
 /**

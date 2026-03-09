@@ -6,8 +6,8 @@
  * - Per-suite timing
  * - Updates in place using cursor positioning
  *
- * Unlike the hightea version, this renders inline starting from current cursor position,
- * similar to MultiProgress in @hightea/ui.
+ * Unlike the silvery version, this renders inline starting from current cursor position,
+ * similar to MultiProgress in @silvery/ui.
  */
 
 import { spawn } from "bun"

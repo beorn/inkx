@@ -3,11 +3,11 @@ set -e
 cd "$(git rev-parse --show-toplevel)"
 
 # Phase 3: Remove all 10 submodules, re-add 8 at new paths
-# (ansi and hightea-ui are merged into hightea, so they're not re-added)
+# (ansi and silvery-ui are merged into silvery, so they're not re-added)
 
 # Record SHAs before removal
 declare -A SHAS
-SHAS[hightea]=$(cd vendor/hightea && git rev-parse HEAD)
+SHAS[silvery]=$(cd vendor/silvery && git rev-parse HEAD)
 SHAS[flexture]=$(cd vendor/flexture && git rev-parse HEAD)
 SHAS[swatch]=$(cd vendor/swatch && git rev-parse HEAD)
 SHAS[decant]=$(cd vendor/decant && git rev-parse HEAD)
@@ -20,7 +20,7 @@ echo "=== Recorded SHAs ==="
 for k in "${!SHAS[@]}"; do echo "  $k: ${SHAS[$k]}"; done
 
 # Remove all submodules
-for sub in hightea/packages/ansi hightea/packages/ui hightea flexture swatch decant vitestx mdtest termless tools; do
+for sub in silvery/packages/ansi silvery/packages/ui silvery flexture swatch decant vitestx mdtest termless tools; do
   echo "--- Removing vendor/$sub ---"
   git submodule deinit -f "vendor/$sub"
   git rm -f "vendor/$sub"
@@ -31,7 +31,7 @@ echo "=== All submodules removed ==="
 
 # Re-add submodules at new paths with new URLs
 declare -A URLS
-URLS[hightea]="git@github.com:beorn/hightea.git"
+URLS[silvery]="git@github.com:beorn/silvery.git"
 URLS[flexture]="git@github.com:beorn/flexture.git"
 URLS[swatch]="git@github.com:beorn/swatch.git"
 URLS[decant]="git@github.com:beorn/decant.git"
@@ -40,7 +40,7 @@ URLS[mdtest]="git@github.com:beorn/mdtest.git"
 URLS[termless]="git@github.com:beorn/termless.git"
 URLS[tools]="git@github.com:beorn/tools.git"
 
-for name in hightea flexture swatch decant vitestx mdtest termless tools; do
+for name in silvery flexture swatch decant vitestx mdtest termless tools; do
   echo "--- Adding vendor/$name (${URLS[$name]}) ---"
   git submodule add "${URLS[$name]}" "vendor/$name"
   cd "vendor/$name"

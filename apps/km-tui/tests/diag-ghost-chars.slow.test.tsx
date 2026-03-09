@@ -1,5 +1,5 @@
 /**
- * Ghost Character Diagnostic Test (km-hightea.1)
+ * Ghost Character Diagnostic Test (km-silvery.1)
  *
  * Key insight: a real terminal accumulates ALL ANSI diffs from startup.
  * Pairwise replay (prev→next) might pass while cumulative replay diverges.
@@ -13,11 +13,11 @@ import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { VirtualTerminal, Box, Text, useInput } from "@hightea/term"
-import { createRenderer } from "@hightea/term/testing"
-import { outputPhase } from "@hightea/term/toolbelt"
+import { VirtualTerminal, Box, Text, useInput } from "@silvery/react"
+import { createRenderer } from "@silvery/test"
+import { outputPhase } from "@silvery/term/toolbelt"
 import { item } from "./helpers/board-test.ts"
-import type { TerminalBuffer } from "@hightea/term/src/buffer.js"
+import type { TerminalBuffer } from "@silvery/term"
 
 // =============================================================================
 // Running Terminal — simulates what a real terminal accumulates

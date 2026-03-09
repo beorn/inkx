@@ -9,7 +9,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
 import { resolvePathArg, findProject } from "@km/storage"

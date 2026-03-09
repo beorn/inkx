@@ -102,7 +102,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
     if (targetId !== null) {
       dispatchBoard({ type: "SELECT", nodeId: targetId })
       // In cards view, attach deferred resolve for off-screen Y-correction.
-      // register() will fire it during hightea's Phase 2.7.
+      // register() will fire it during silvery's Phase 2.7.
       if (ui.viewMode === "cards") {
         // Find the column that contains targetId for deferred resolution.
         // Body cards need special handling: their parent_id is the root,

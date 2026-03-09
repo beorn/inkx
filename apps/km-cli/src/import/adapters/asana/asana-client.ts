@@ -1,4 +1,4 @@
-import { createTerm } from "@hightea/term"
+import { createTerm } from "@silvery/react"
 import { ASANA_BASE } from "./asana-types.ts"
 import type { RecordedCall } from "./asana-types.ts"
 

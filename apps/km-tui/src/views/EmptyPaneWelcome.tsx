@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "@hightea/term"
+import { Box, Text } from "@silvery/react"
 
 export function EmptyPaneWelcome(): React.ReactElement {
   return (

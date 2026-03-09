@@ -6,9 +6,9 @@
  * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
-import { createApp, type EventHandlerContext } from "@hightea/term/runtime"
-import type { Key, ParsedMouse, FocusManager, TeaNode } from "@hightea/term"
-import { activeEditTargetRef } from "@hightea/term"
+import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
+import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
+import { activeEditTargetRef } from "@silvery/react"
 import { createLogger, type SpanLogger } from "decant"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -732,7 +732,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (mouse.action === "down" && mouse.button === 0) {
       const actionCtx = buildActionCtx(get, () => {})
 
-      // DOM-style hit testing via hightea render tree
+      // DOM-style hit testing via silvery render tree
       const hitNode = ctx.hitTest(mouse.x, mouse.y)
       if (!hitNode) return
 

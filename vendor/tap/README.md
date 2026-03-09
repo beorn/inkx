@@ -122,10 +122,10 @@ process.exit(exitCode)
 
 **Display modes** (automatic based on TTY):
 
-- **TTY (terminal)**: Parallel TUI with hightea - 3 separate streams updating in real-time
+- **TTY (terminal)**: Parallel TUI with silvery - 3 separate streams updating in real-time
 - **Non-TTY (CI/pipes)**: Unified TAP stream with interleaved dots
 
-**Parallel TUI mode** (requires `hightea` and `react` peer dependencies):
+**Parallel TUI mode** (requires `silvery` and `react` peer dependencies):
 
 ```typescript
 import { createOrchestrator } from "@beorn/tap"
@@ -136,7 +136,7 @@ const orchestrator = createOrchestrator({
   suites: [
     /* ... */
   ],
-  renderParallel, // Inject hightea renderer
+  renderParallel, // Inject silvery renderer
 })
 ```
 
@@ -362,7 +362,7 @@ interface Suite {
 
 - `"auto"` (default) - TTY detection: parallel for terminals, unified for CI/pipes
 - `"unified"` - Force merged TAP stream with interleaved dots
-- `"parallel"` - Force hightea TUI with separate streams (requires renderParallel)
+- `"parallel"` - Force silvery TUI with separate streams (requires renderParallel)
 
 **Example:**
 

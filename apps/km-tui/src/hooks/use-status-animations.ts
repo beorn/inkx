@@ -5,7 +5,7 @@
  * log toast notifications, and spinner frame animation.
  */
 import React, { useState, useEffect } from "react"
-import { useInterval } from "@hightea/term"
+import { useInterval } from "@silvery/react"
 import type { ToastQueue } from "@km/core"
 
 // Spinner frames (braille unicode dots animation)
@@ -35,7 +35,7 @@ export function useFlashOnChange(value: number): boolean {
     prevRef.current = value
     if (value === 0) return
     setFlash(true)
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     const timer = setTimeout(() => setFlash(false), FLASH_DURATION)
     return () => clearTimeout(timer)
@@ -50,14 +50,14 @@ export function useLogToast(total: number, toastQueue?: ToastQueue): void {
 
   useEffect(() => {
     if (firedRef.current || total === 0 || !toastQueue) return
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     firedRef.current = true
     toastQueue.info(`${total} log messages \u2014 press \` to see`)
   }, [total, toastQueue])
 }
 
-/** Hook for animated spinner frame - uses hightea useInterval (Dan Abramov's ref pattern) */
+/** Hook for animated spinner frame - uses silvery useInterval (Dan Abramov's ref pattern) */
 export function useSpinnerFrame(enabled: boolean): string {
   const [frameIndex, setFrameIndex] = useState(0)
 

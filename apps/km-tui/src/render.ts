@@ -12,7 +12,7 @@
  * - Selection/current highlighting via theme tokens ($selection/$selection-fg)
  */
 
-import { createTerm, type StyleChain } from "@hightea/term"
+import { createTerm, type StyleChain } from "@silvery/react"
 import type { TaskStatus } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import type { InitialBoardData, RenderOptions } from "./types.ts"

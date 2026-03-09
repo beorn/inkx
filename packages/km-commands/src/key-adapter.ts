@@ -80,7 +80,7 @@ export function keyToString(input: string, key: KeyEvent): string {
   return input
 }
 
-/** Convert key event to modifier flags (translates hightea names to km-commands names) */
+/** Convert key event to modifier flags (translates silvery names to km-commands names) */
 export function keyToModifiers(key: KeyEvent): {
   ctrl: boolean
   opt: boolean
@@ -89,9 +89,9 @@ export function keyToModifiers(key: KeyEvent): {
 } {
   return {
     ctrl: !!key.ctrl,
-    opt: !!key.meta, // hightea "meta" = Option (⌥) on macOS terminals
+    opt: !!key.meta, // silvery "meta" = Option (⌥) on macOS terminals
     shift: !!key.shift,
-    cmd: !!key.super, // hightea "super" = Cmd (⌘) on macOS (requires Kitty protocol)
+    cmd: !!key.super, // silvery "super" = Cmd (⌘) on macOS (requires Kitty protocol)
   }
 }
 

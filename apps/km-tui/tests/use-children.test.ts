@@ -2,13 +2,13 @@
  * useChildren Hook Tests
  *
  * Tests the generic useChildren hook that returns children of any node.
- * Uses createFakeRepo + hightea createRenderer to exercise the React hook.
+ * Uses createFakeRepo + silvery createRenderer to exercise the React hook.
  */
 
 import React, { act } from "react"
 import { describe, it, expect } from "vitest"
-import { createRenderer } from "@hightea/term/testing"
-import { Text } from "@hightea/term"
+import { createRenderer } from "@silvery/test"
+import { Text } from "@silvery/react"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
 import { useChildren } from "../src/hooks/use-children.ts"

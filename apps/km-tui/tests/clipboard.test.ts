@@ -95,7 +95,7 @@ describe("Clipboard operations", () => {
   })
 
   test("cut clears clipboard after paste", () => {
-    // incremental: false — pre-existing hightea toast rendering mismatch
+    // incremental: false — pre-existing silvery toast rendering mismatch
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))), { incremental: false })
 
     // Cut A
@@ -120,7 +120,7 @@ describe("Clipboard operations", () => {
   })
 
   test("copy with multi-selection", () => {
-    // incremental: false — pre-existing hightea toast rendering mismatch
+    // incremental: false — pre-existing silvery toast rendering mismatch
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))), {
       incremental: false,
     })

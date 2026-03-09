@@ -8,8 +8,8 @@
  * supporting both ANSI 16 color names and truecolor hex values.
  */
 
-import { createTerm, resolveThemeColor, type StyleChain } from "@hightea/term"
-import { getActiveTheme } from "swatch"
+import { createTerm, resolveThemeColor, type StyleChain } from "@silvery/react"
+import { getActiveTheme } from "@silvery/theme"
 
 /** Cached term instance for color styling. Uses default color detection. */
 let _termStyle: StyleChain | undefined

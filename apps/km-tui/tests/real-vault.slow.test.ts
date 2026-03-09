@@ -14,7 +14,7 @@
 import { describe, test, expect } from "vitest"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/react"
 import { createBoardDriver } from "../src/driver.ts"
 
 /**

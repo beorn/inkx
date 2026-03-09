@@ -1,7 +1,7 @@
 /**
  * Board Test Helper - Fluent API for Visual Board Testing
  *
- * Wraps hightea createRenderer with a concise, documentation-like API
+ * Wraps silvery createRenderer with a concise, documentation-like API
  * for testing TUI board rendering.
  *
  * ## Architecture (3-layer pattern)
@@ -35,11 +35,11 @@
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
-import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@hightea/term/testing"
-import { compareBuffers, formatMismatch } from "@hightea/term/toolbelt"
-import { StoreContext } from "@hightea/term/runtime"
-import { parseKey } from "@hightea/term/runtime"
-import { createFocusManager, FocusManagerContext, ThemeProvider, hitTest } from "@hightea/term"
+import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
+import { compareBuffers, formatMismatch } from "@silvery/term/toolbelt"
+import { StoreContext } from "@silvery/term/runtime"
+import { parseKey } from "@silvery/term/runtime"
+import { createFocusManager, FocusManagerContext, ThemeProvider, hitTest } from "@silvery/react"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
@@ -62,7 +62,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
-import type { ParsedMouse } from "@hightea/term"
+import type { ParsedMouse } from "@silvery/react"
 import type { InitialBoardData } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 
@@ -1548,7 +1548,7 @@ function createFluentBoardApi(ctx: {
      * For each mismatch, reports position, incremental cell, and fresh cell.
      *
      * Only meaningful when `incremental: true` was passed to testEnv (which is
-     * the default). Delegates to hightea's `compareBuffers` + `formatMismatch`.
+     * the default). Delegates to silvery's `compareBuffers` + `formatMismatch`.
      *
      * @example
      * ```typescript

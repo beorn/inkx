@@ -1,18 +1,18 @@
 /**
  * Card and Column components for the Board view
  *
- * Uses hightea VirtualList for React-level virtualization of large card lists.
+ * Uses silvery VirtualList for React-level virtualization of large card lists.
  *
  * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
  * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.
  * No CardState wrapper — cards are plain KNode objects.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
-import { useApp as useAppStore } from "@hightea/term/runtime"
+import { useApp as useAppStore } from "@silvery/term/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
-import { Box, Text, useScreenRectCallback } from "@hightea/term"
+import { Box, Text, useScreenRectCallback } from "@silvery/react"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"

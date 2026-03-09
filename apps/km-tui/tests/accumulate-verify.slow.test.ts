@@ -4,7 +4,7 @@
  * Tests that changesToAnsi output, when replayed through a virtual terminal,
  * produces the same screen state as a fresh bufferToAnsi render.
  *
- * This catches the class of bug where the buffer content is correct (HIGHTEA_STRICT
+ * This catches the class of bug where the buffer content is correct (SILVERY_STRICT
  * passes) but the ANSI escape sequences produced by changesToAnsi are wrong
  * (garbled terminal output in production).
  *
@@ -18,12 +18,12 @@ import { createBoardDriver } from "../src/driver.ts"
 import { item } from "./helpers/board-test.ts"
 
 // Enable buffer-level + ANSI output verification.
-// HIGHTEA_STRICT now includes HIGHTEA_STRICT_OUTPUT automatically.
+// SILVERY_STRICT now includes SILVERY_STRICT_OUTPUT automatically.
 beforeEach(() => {
-  process.env.HIGHTEA_STRICT = "1"
+  process.env.SILVERY_STRICT = "1"
 })
 afterEach(() => {
-  delete process.env.HIGHTEA_STRICT
+  delete process.env.SILVERY_STRICT
 })
 
 describe("Incremental ANSI output verification", () => {
@@ -77,8 +77,8 @@ describe("Incremental ANSI output verification", () => {
 
     for (const key of sequence) {
       await driver.press(key)
-      // HIGHTEA_STRICT verifies buffer content
-      // HIGHTEA_STRICT_OUTPUT verifies ANSI output via virtual terminal replay
+      // SILVERY_STRICT verifies buffer content
+      // SILVERY_STRICT_OUTPUT verifies ANSI output via virtual terminal replay
     }
 
     expect(true).toBe(true)
@@ -154,7 +154,7 @@ describe("Incremental ANSI output verification", () => {
     }
     if (!rootId) throw new Error("No suitable board root found in vault")
 
-    // No withDiagnostics — just incremental rendering with HIGHTEA_STRICT checks
+    // No withDiagnostics — just incremental rendering with SILVERY_STRICT checks
     const driver = createBoardDriver(repo, rootId, {
       columns: 120,
       rows: 30,

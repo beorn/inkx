@@ -1,9 +1,9 @@
 /**
  * Inline AST Components
  *
- * React (hightea) components for rendering inline AST nodes.
+ * React (silvery) components for rendering inline AST nodes.
  * Each component maps an AST node type to JSX output using
- * hightea's Text component for terminal styling.
+ * silvery's Text component for terminal styling.
  *
  * Each component handles an InlineNode type from the inline parser.
  * The InlineText component is the main entry point — it parses text
@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Link, Text } from "@hightea/term"
+import { Link, Text } from "@silvery/react"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"

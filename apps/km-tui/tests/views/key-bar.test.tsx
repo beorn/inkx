@@ -6,8 +6,8 @@
 
 import { describe, it, expect } from "vitest"
 import React from "react"
-import { createRenderer } from "@hightea/term/testing"
-import { createFocusManager, FocusManagerContext } from "@hightea/term"
+import { createRenderer } from "@silvery/test"
+import { createFocusManager, FocusManagerContext } from "@silvery/react"
 import { KeyBar } from "../../src/views/key-bar.tsx"
 import type { PaneUI } from "../../src/ui-reducer.ts"
 

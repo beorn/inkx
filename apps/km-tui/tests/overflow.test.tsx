@@ -10,7 +10,7 @@
 
 import { describe, test, it, expect } from "vitest"
 import React from "react"
-import { createRenderer } from "@hightea/term/testing"
+import { createRenderer } from "@silvery/test"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { OverflowIndicator } from "../src/views/OverflowIndicator.tsx"
 import type { KNode } from "@km/core"

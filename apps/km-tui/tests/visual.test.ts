@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createRenderer } from "@hightea/term/testing"
+import { createRenderer } from "@silvery/test"
 import { createGridNavigator } from "@km/board"
 import { createFakeRepo } from "@km/storage"
 import { createTestBoard } from "@km/tui/test"

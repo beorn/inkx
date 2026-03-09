@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, CursorLine, useFocusManager, useEditContext } from "@hightea/term"
+import { Box, Text, CursorLine, useFocusManager, useEditContext } from "@silvery/react"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
@@ -34,7 +34,7 @@ function useFlash(message: string | undefined): boolean {
       setFlash(true)
     }
     if (!message) return
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     const timer = setTimeout(() => setFlash(false), FLASH_MS)
     return () => clearTimeout(timer)
@@ -344,7 +344,7 @@ export function StatusCounters({
     }
     const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
     tick()
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
@@ -411,7 +411,7 @@ function FindInput({
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
   const debouncedChange = useRef((value: string) => {
     clearTimeout(timerRef.current)
-    // @ts-expect-error - React internal flag set by hightea test renderer
+    // @ts-expect-error - React internal flag set by silvery test renderer
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
       onQueryChange(value)
     } else {

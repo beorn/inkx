@@ -7,10 +7,10 @@
  * detection fails.
  *
  * All components use $token strings (e.g., "$selection", "$focusborder")
- * which hightea ThemeProvider resolves at render time.
+ * which silvery ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@hightea/term"
-import type { Theme, TerminalCaps } from "@hightea/term"
+import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@silvery/react"
+import type { Theme, TerminalCaps } from "@silvery/react"
 
 /** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme

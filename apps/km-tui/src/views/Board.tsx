@@ -21,8 +21,8 @@ import {
   setWindowTitle,
   useFocusManager,
   type PatchedConsole,
-} from "@hightea/term"
-import { useApp as useAppStore, useAppShallow, StoreContext } from "@hightea/term/runtime"
+} from "@silvery/react"
+import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/term/runtime"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -228,7 +228,7 @@ function BoardTopBar({
       : selectionLevel === "column" || !cursorCardNodeId
         ? cursorColumnNodeId
         : cursorCardNodeId
-  // Let hightea's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
+  // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
   const filterIndicator = formatFilterIndicator(filterProperties, filterText)
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
   const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, rootId), termWidth - 4 - reservedWidth)
@@ -517,7 +517,7 @@ export function Board({ patchedConsole }: BoardProps) {
   )
   const taskStatusFilter = ui.filterProperties.taskStatus
 
-  // Board focus state — derived from hightea focus scope system.
+  // Board focus state — derived from silvery focus scope system.
   // activeScopeId is set by syncFocusScope() when pane focus changes.
   // null means no scope activated yet (first render) — treat as focused.
   const { activeScopeId } = useFocusManager()
@@ -746,7 +746,7 @@ export function Board({ patchedConsole }: BoardProps) {
           },
         })
       }
-      // @ts-expect-error - React internal flag set by hightea test renderer
+      // @ts-expect-error - React internal flag set by silvery test renderer
       if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
         computeMatches()
       } else {
@@ -782,7 +782,7 @@ export function Board({ patchedConsole }: BoardProps) {
           },
         })
       }
-      // @ts-expect-error - React internal flag set by hightea test renderer
+      // @ts-expect-error - React internal flag set by silvery test renderer
       if (globalThis.IS_REACT_ACT_ENVIRONMENT) {
         computeMatches()
       } else {

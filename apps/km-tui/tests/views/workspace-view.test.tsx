@@ -7,8 +7,8 @@
 
 import { describe, it, expect } from "vitest"
 import React from "react"
-import { createRenderer } from "@hightea/term/testing"
-import { Text } from "@hightea/term"
+import { createRenderer } from "@silvery/test"
+import { Text } from "@silvery/react"
 import { WorkspaceView } from "../../src/views/WorkspaceView.tsx"
 import type { LayoutNode, PaneState, PaneViewType } from "../../src/board-types.ts"
 import { createBoardState, createPaneState, createEmptyPaneState } from "../../src/board-types.ts"

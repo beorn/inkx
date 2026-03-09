@@ -1,7 +1,7 @@
 /**
  * Custom Vitest Matchers for TUI Testing
  *
- * Provides Playwright-inspired matchers for testing hightea components.
+ * Provides Playwright-inspired matchers for testing silvery components.
  * These complement the built-in toExist and toHaveCount matchers in board-test.ts.
  *
  * @example
@@ -16,7 +16,7 @@
  */
 
 import { expect } from "vitest"
-import type { AutoLocator, Rect } from "@hightea/term/testing"
+import type { AutoLocator, Rect } from "@silvery/test"
 
 // =============================================================================
 // Type Guard

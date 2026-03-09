@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, CursorLine, Toggle, ModalDialog, useEditContext } from "@hightea/term"
+import { Box, Text, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 
 interface SearchReplaceDialogProps {

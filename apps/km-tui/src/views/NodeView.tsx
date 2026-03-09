@@ -28,7 +28,7 @@
  *
  */
 import React from "react"
-import { Box, Text } from "@hightea/term"
+import { Box, Text } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
 import {
@@ -43,7 +43,7 @@ import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"
-import { styledUnderline } from "@hightea/ansi"
+import { styledUnderline } from "@silvery/ansi"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
 

@@ -42,11 +42,11 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
-import { createRenderer, keyToAnsi, type App } from "@hightea/term/testing"
-import { withCommands, createFocusManager, FocusManagerContext } from "@hightea/term"
-import type { AppWithCommands, AppState } from "@hightea/term"
-import { StoreContext } from "@hightea/term/runtime"
-import { parseKey } from "@hightea/term/runtime"
+import { createRenderer, keyToAnsi, type App } from "@silvery/test"
+import { withCommands, createFocusManager, FocusManagerContext } from "@silvery/react"
+import type { AppWithCommands, AppState } from "@silvery/react"
+import { StoreContext } from "@silvery/term/runtime"
+import { parseKey } from "@silvery/term/runtime"
 import {
   createCommandRegistry,
   allCommands,
@@ -132,7 +132,7 @@ export interface TUIDriverState extends AppState {
 export interface BoardDriver extends AppWithCommands {
   /** Get rich state for AI decision-making */
   getState(): TUIDriverState
-  /** The underlying hightea App */
+  /** The underlying silvery App */
   readonly app: App
   /** Layout registry for position tracking */
   readonly navigator: GridNavigator
