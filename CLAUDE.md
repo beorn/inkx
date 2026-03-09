@@ -60,7 +60,7 @@ Packages in `vendor/` (silvery, ansi, mdtest, flexily, etc.) are **git submodule
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
-**silvery is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all silvery features when available, and when a feature is missing, implement it in silvery (not as a km workaround). silvery should be independently excellent; km proves it.
+**Silvery is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all Silvery features when available, and when a feature is missing, implement it in silvery (not as a km workaround). Silvery should be independently excellent; km proves it.
 
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
@@ -110,7 +110,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
-| [silvery/](.claude/skills/silvery/)                                       | silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [silvery/](.claude/skills/silvery/)                                       | Silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
 | [flexily/](.claude/skills/flexily/)                                     | Flexily layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |

@@ -86,13 +86,13 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Prop drilling      | Same props passed through several layers and/or with unneccessary aliasing  |
 | Import side effect | Module-level initialization, `let x = expensiveInit()` on load              |
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
-| Old silvery render | `createRenderer` inside function body (wasteful recreation each call)   |
-| Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer silvery APIs   |
-| Deprecated silvery | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexily-adapter` |
+| Old Silvery render | `createRenderer` inside function body (wasteful recreation each call)   |
+| Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer Silvery APIs   |
+| Deprecated Silvery | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexily-adapter` |
 | Deprecated ansi    | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
 | Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
-| Manual layout calc | `displayWidth()` in app code for layout - should rely on silvery/flexily      |
-| silvery string comp| `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
+| Manual layout calc | `displayWidth()` in app code for layout - should rely on Silvery/Flexily      |
+| Silvery string comp| `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | Hardcoded color    | `color="red"` instead of `color="$error"` — bypasses theme system           |
 | Hex color literal  | `"#5599dd"` in TSX — won't work on limited terminals (Terminal.app)         |
@@ -381,10 +381,10 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Old silvery render  | Medium           | createRenderer inside function body (should be at module level) |
-| Old lastFrame       | Medium           | Should use app.text or other newer silvery APIs   |
-| Manual layout calc  | Low              | High if workaround for silvery bug                |
-| silvery string comp | Medium           | High if in shared components; defeats silvery layout model |
+| Old Silvery render  | Medium           | createRenderer inside function body (should be at module level) |
+| Old lastFrame       | Medium           | Should use app.text or other newer Silvery APIs   |
+| Manual layout calc  | Low              | High if workaround for Silvery bug                |
+| Silvery string comp | Medium           | High if in shared components; defeats Silvery layout model |
 | Hardcoded color     | Medium           | High if in shared components; Low if in test fixtures   |
 | Hex color literal   | High             | Breaks on Terminal.app, tmux without truecolor          |
 | Hardcoded protocol  | High             | Low if behind detectTerminalCaps() check                |
@@ -393,7 +393,7 @@ For each finding (from Iteration 0.5 + Iteration 1):
 
 | Finding Type        | Default Severity | Context Adjustments                               |
 | ------------------- | ---------------- | ------------------------------------------------- |
-| Deprecated silvery  | High             | app.html→app.ansi, useLayout→useContentRect, etc  |
+| Deprecated Silvery  | High             | app.html→app.ansi, useLayout→useContentRect, etc  |
 | Deprecated ansi     | Medium           | Old default/chalk exports, old detection functions |
 | Deprecated storage  | Medium           | High if singleton-related (getDb, emit functions)  |
 

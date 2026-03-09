@@ -203,7 +203,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## Termless TTY Regression Tests
 
-Tests that feed silvery ANSI output through a real terminal emulator (xterm.js/Ghostty WASM) and assert on the resulting terminal state. Catches bugs that virtual buffer tests miss: ANSI generation errors, style leaks across frames, cursor positioning after diff output, wide character rendering.
+Tests that feed Silvery ANSI output through a real terminal emulator (xterm.js/Ghostty WASM) and assert on the resulting terminal state. Catches bugs that virtual buffer tests miss: ANSI generation errors, style leaks across frames, cursor positioning after diff output, wide character rendering.
 
 **Speed**: ~30-100ms per test (WASM, in-process, deterministic). Fast enough for CI.
 
@@ -213,15 +213,15 @@ import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
 
 test("board renders correct colors through real terminal", () => {
-  // Render a board, capture ANSI output from silvery
+  // Render a board, capture ANSI output from Silvery
   const { board } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
-  const ansiOutput = board.ansi // raw ANSI from silvery output phase
+  const ansiOutput = board.ansi // raw ANSI from Silvery output phase
 
   // Feed to real terminal emulator
   const term = createTerminal({ backend: createXtermBackend({ cols: 80, rows: 24 }) })
   term.feed(ansiOutput)
 
-  // Assert on terminal state (not silvery buffer — the actual parsed result)
+  // Assert on terminal state (not Silvery buffer — the actual parsed result)
   expect(term.screen).toContainText("Buy milk")
   expect(term.cell(0, 0)).toBeBold()
   expect(term.cell(0, 0)).toHaveFg("#cyan")

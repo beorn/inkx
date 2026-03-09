@@ -8,14 +8,14 @@ Claude needs a way to quickly test TUI interactions - debug bugs, explore edge c
 
 | Option | Simplicity | Flexibility | Compatibility | Speed |
 |--------|------------|-------------|---------------|-------|
-| **A: silvery test renderer** | ★★★★★ | ★★★★☆ | silvery native | ~1000/s |
+| **A: Silvery test renderer** | ★★★★★ | ★★★★☆ | Silvery native | ~1000/s |
 | **B: MCP TTY (Playwright)** | ★★☆☆☆ | ★★★★★ | Any TUI | ~1/s |
 | **C: Headless stdin/stdout** | ★★★☆☆ | ★★★☆☆ | Any process | ~100/s |
-| **D: Custom Term injection** | ★★★★☆ | ★★★★☆ | silvery native | ~1000/s |
+| **D: Custom Term injection** | ★★★★☆ | ★★★★☆ | Silvery native | ~1000/s |
 
 ---
 
-## Option A: silvery Test Renderer (Existing)
+## Option A: Silvery Test Renderer (Existing)
 
 **What it is**: Use `createTestRenderer()` from silvery/testing with components directly.
 
@@ -57,7 +57,7 @@ const text = await mcp__tty__text({ sessionId })
 **Pros**:
 - Tests the REAL full app (including CLI parsing, startup)
 - Visual debugging via browser
-- Works with any TUI (not just silvery)
+- Works with any TUI (not just Silvery)
 
 **Cons**:
 - Slow (~1s per interaction due to browser)
@@ -114,15 +114,15 @@ console.log(board.text())
 
 **Cons**:
 - Requires flush/sync mechanism
-- silvery-specific
+- Silvery-specific
 
-**What's needed**: Thin wrapper around silvery render + vault loading.
+**What's needed**: Thin wrapper around Silvery render + vault loading.
 
 ---
 
 ## Recommendation
 
-**Start with Option A** (silvery test renderer) because:
+**Start with Option A** (Silvery test renderer) because:
 1. It already exists and works
 2. Just needs a `testBoard()` helper for vault loading
 3. Fastest iteration speed
@@ -151,7 +151,7 @@ This is ~10 lines and unlocks ad-hoc testing immediately.
 
 ## Solution: `testBoard()` Helper
 
-A thin wrapper that creates a controllable TUI instance using silvery's existing `AsyncIterable<Event>` architecture.
+A thin wrapper that creates a controllable TUI instance using Silvery's existing `AsyncIterable<Event>` architecture.
 
 ```typescript
 // Claude writes this, runs with `bun /tmp/test.ts`
@@ -209,7 +209,7 @@ interface TestBoard {
   text(): string                           // Plain text (stripped ANSI)
   ansi(): string                           // With ANSI codes
 
-  // DOM queries (via silvery App)
+  // DOM queries (via Silvery App)
   query(selector: string): Element | null
   locator(selector: string): Locator       // Auto-refreshing
 

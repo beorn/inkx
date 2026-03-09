@@ -89,11 +89,11 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
-### silvery & Vendor Philosophy
+### Silvery & Vendor Philosophy
 
-**silvery should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in silvery, don't expect consumers to work around it.
+**Silvery should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in Silvery, don't expect consumers to work around it.
 
-**km is silvery's perfect showcase.** It should leverage the framework to its fullest — never reinvent what silvery provides, never work around silvery problems. If km builds something generally useful that isn't in silvery, ask whether it belongs in silvery. If silvery has a bug or missing feature, fix it in silvery directly (vendor packages are git submodules — fix them in place).
+**km is Silvery's perfect showcase.** It should leverage the framework to its fullest — never reinvent what Silvery provides, never work around Silvery problems. If km builds something generally useful that isn't in Silvery, ask whether it belongs in Silvery. If Silvery has a bug or missing feature, fix it in Silvery directly (vendor packages are git submodules — fix them in place).
 
 **This applies to all `vendor/` packages**, not just silvery. Never work around vendor bugs; fix them at the source.
 

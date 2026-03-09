@@ -33,10 +33,10 @@ Unify production and testing render paths via a pure generator API that separate
 
 **Triggers:**
 
-- Major silvery feature touching both render paths
+- Major Silvery feature touching both render paths
 - Need production frame capture (debugging, logging)
 - Test infrastructure overhaul
-- Extracting silvery as standalone library
+- Extracting Silvery as standalone library
 
 **Skip if:**
 
@@ -425,7 +425,7 @@ interface Term {
 }
 ```
 
-Add to silvery as wrapper (avoid ansi churn).
+Add to Silvery as wrapper (avoid ansi churn).
 
 **Done when:** Can iterate term input as structured events.
 
@@ -480,7 +480,7 @@ Async variant consuming event stream.
 **Options:**
 
 - A: Add to @silvery/ansi Term
-- B: Wrapper in silvery
+- B: Wrapper in Silvery
 
 **Lean:** B first (less churn), A later if useful elsewhere.
 

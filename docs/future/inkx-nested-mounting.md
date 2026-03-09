@@ -1,8 +1,8 @@
-# Nested Mounting API for silvery
+# Nested Mounting API for Silvery
 
 > **Status: Future** — Speculative design, no concrete use case yet.
 
-Allow rendering into sub-regions of an existing silvery app, similar to React's `createRoot(container)` pattern.
+Allow rendering into sub-regions of an existing Silvery app, similar to React's `createRoot(container)` pattern.
 
 **TL;DR:** Extend `render()` to accept an AutoLocator as mount target, enabling multiple independent React trees in different terminal regions. Useful for micro-frontend patterns in CLI apps.
 
@@ -12,7 +12,7 @@ Allow rendering into sub-regions of an existing silvery app, similar to React's 
 
 ### Current State
 
-Today, silvery apps are single React trees:
+Today, Silvery apps are single React trees:
 
 ```tsx
 using term = createTerm()

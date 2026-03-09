@@ -101,7 +101,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │         (end-user visible, documentation-like)              │
 ├──────────────────────────┬──────────────────────────────────┤
 │  VISUAL (TUI)            │  CLI                             │
-│  silvery createRenderer│  mdtest (.test.md)               │
+│  Silvery createRenderer│  mdtest (.test.md)               │
 │  + InkxLocator           │                                  │
 │  - Screen coordinates    │  - Command output                │
 │  - Representative fixtures│ - Error messages                │
@@ -118,7 +118,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
 │  VENDOR (git submodules) │  (tests in vendor/*/,            │
-│  - silvery, flexily, logger│   included in test:fast)         │
+│  - Silvery, Flexily, logger│   included in test:fast)         │
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -581,7 +581,7 @@ This section maps km's testing tools to industry-standard terminology, helping d
 | Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
 | Differential Testing | Oracle-Based Testing | Flexily fuzz vs Yoga             | Layout engine       |
 | Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
-| Acceptance Testing   | E2E Testing          | mdtest, silvery specs          | CLI, TUI            |
+| Acceptance Testing   | E2E Testing          | mdtest, Silvery specs          | CLI, TUI            |
 
 ### Exploration Testing (Unified Pattern)
 
@@ -599,13 +599,13 @@ All exploration tests follow the same pattern:
 ```
 Dynamic Testing
 ├── Functional
-│   ├── Acceptance (mdtest, silvery specs) → verifies user-visible behavior
+│   ├── Acceptance (mdtest, Silvery specs) → verifies user-visible behavior
 │   ├── Regression (preserved failing tests) → prevents re-introduction
 │   └── Smoke (quick sanity) → fast CI gate
 ├── Exploration
 │   ├── Fault Injection (chaos/) → sync resilience
 │   ├── Monkey Testing (/explore) → UI stability
-│   └── Differential (flexily fuzz) → layout correctness
+│   └── Differential (Flexily fuzz) → layout correctness
 └── Performance
     ├── Benchmarks (vitest bench) → track regressions
     └── Profile-Guided → manual optimization
@@ -630,7 +630,7 @@ Dynamic Testing
 
 ## Testing Categories
 
-### TUI Tests (silvery)
+### TUI Tests (Silvery)
 
 Fast, character-based testing for components:
 
@@ -668,7 +668,7 @@ km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 
 **When to use**: Debugging visual issues, sharing TUI state in bug reports.
 
-**Not for**: Automated tests (use silvery test renderer instead).
+**Not for**: Automated tests (use Silvery test renderer instead).
 
 ### GUI Tests (ttyd + Playwright)
 
@@ -769,7 +769,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Testing Need             | Use This                | Not This         |
 | ------------------------ | ----------------------- | ---------------- |
-| TUI rendering/navigation | silvery createRenderer | Playwright       |
+| TUI rendering/navigation | Silvery createRenderer | Playwright       |
 | CLI command output       | mdtest (.test.md)       | Unit test        |
 | Domain object behavior   | Unit test with DI       | Integration test |
 | Pure function logic      | Unit test               | mdtest           |
@@ -780,7 +780,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ```
 Is it end-user visible behavior?
-├── Yes, TUI → Visual acceptance test (silvery)
+├── Yes, TUI → Visual acceptance test (Silvery)
 ├── Yes, CLI → mdtest (.test.md)
 └── No
     ├── Is it a domain object? → Unit test (factory, DI)
@@ -944,7 +944,7 @@ gen((ctx) => {
 })
 ```
 
-**Fuzz terms** (for silvery Provider-based TUI testing):
+**Fuzz terms** (for Silvery Provider-based TUI testing):
 
 ```typescript
 import { createFuzzTerm, createReplayTerm } from '../helpers/fuzz-term'

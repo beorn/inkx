@@ -16,7 +16,7 @@
 
 - How actions affect board state — that's km-board
 - How commands render on screen — that's km-tui
-- Raw terminal key parsing — that's silvery
+- Raw terminal key parsing — that's Silvery
 
 ## Patterns
 

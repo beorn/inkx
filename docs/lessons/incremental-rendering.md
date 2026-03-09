@@ -1,8 +1,8 @@
 # Debugging Incremental Rendering Bugs
 
-**Keywords**: silvery, rendering, incremental, stale pixels, fast-path, dirty flags, SILVERY_STRICT
+**Keywords**: Silvery, rendering, incremental, stale pixels, fast-path, dirty flags, SILVERY_STRICT
 
-This document captures lessons learned from fixing incremental rendering bugs in silvery. Use these patterns when you're stuck debugging visual glitches.
+This document captures lessons learned from fixing incremental rendering bugs in Silvery. Use these patterns when you're stuck debugging visual glitches.
 
 ## The Meta-Lesson: When Stuck, Build Better Tools
 

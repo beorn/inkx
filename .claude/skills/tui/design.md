@@ -37,7 +37,7 @@ When modifying TUI styling (colors, selection states, visual hierarchy), follow 
 
 ## Background Colors
 
-Use silvery `backgroundColor` OR term.style().bg\*, never both on same element (throws by default):
+Use Silvery `backgroundColor` OR term.style().bg\*, never both on same element (throws by default):
 
 ```tsx
 // ✅ CORRECT - silvery style
@@ -153,6 +153,6 @@ NOT every operation clears the selection. The rule depends on what happened to t
 
 For testing TUI appearance, see [tui.md](../tests/tui.md):
 
-- TUI tests (vitest + silvery virtual buffer) for fast deterministic checks
+- TUI tests (vitest + Silvery virtual buffer) for fast deterministic checks
 - GUI/TTY tests (TTY MCP) for pixel-level verification
 - DEBUG_LOG for correlating state with visuals

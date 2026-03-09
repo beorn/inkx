@@ -4,7 +4,7 @@ km is a PIM/PKM engine that turns markdown files into a queryable, navigable sem
 
 ## Current State
 
-The core engine is operational: parser, query system, bidirectional sync, SQLite storage, CLI, and a functional TUI with kanban board view. Active development is focused on TUI polish and the rendering engine (silvery).
+The core engine is operational: parser, query system, bidirectional sync, SQLite storage, CLI, and a functional TUI with kanban board view. Active development is focused on TUI polish and the rendering engine (Silvery).
 
 What works today:
 
@@ -98,7 +98,7 @@ Currently km edits task titles inline. This horizon brings rich, markdown-native
 
 Mouse support makes km accessible to more people and enables interactions that are awkward with keys alone.
 
-- **Mouse infrastructure**: hit registry via silvery layout feedback (position → element mapping)
+- **Mouse infrastructure**: hit registry via Silvery layout feedback (position → element mapping)
 - **Click-to-select**: click a card to focus it, click a column header to focus column
 - **Scroll wheel**: vertical scrolling in columns and detail pane
 - **Double-click**: edit a card title, or drill into a node
@@ -162,7 +162,7 @@ Cross-cutting work that supports all horizons. Tracked by dedicated epics.
 
 | Area | Epic | Focus |
 |------|------|-------|
-| **silvery** | `km-silvery` | Terminal rendering engine — performance, correctness, incremental updates |
+| **Silvery** | `km-silvery` | Terminal rendering engine — performance, correctness, incremental updates |
 | **flexily** | `km-flexily` | Flexbox layout engine for terminal UI |
 | **vi-monkey** | `km-vi-monkey` | Test framework, benchmarks, diagnostics |
 | **Infra** | `km-infra` | CI, monorepo packaging, linting, regression suites |

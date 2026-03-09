@@ -18,8 +18,8 @@ debug("config", { watchEnabled, debounceMs })
 
 ```text
 km:<layer>:<subsystem>       # Main packages
-silvery:<subsystem>          # silvery renderer
-flexily:<subsystem>            # flexily layout engine
+silvery:<subsystem>          # Silvery renderer
+flexily:<subsystem>            # Flexily layout engine
 ```
 
 ## Keep Statements Concise
