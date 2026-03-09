@@ -38,7 +38,7 @@ test("emits sync event with injected events", async () => {
 ## Ad-Hoc Testing
 
 ```bash
-bun vitest run vendor/beorn-watcher-chaos/tests/   # All watcher-chaos tests (~instant)
+bun vitest run tests/   # All watcher-chaos tests (~instant)
 ```
 
 ## Efficiency

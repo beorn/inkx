@@ -29,7 +29,7 @@ Factory functions, no classes, explicit types. Follows km project conventions.
 ## Testing
 
 ```bash
-bun vitest run vendor/accountly/tests/
+bun vitest run tests/
 ```
 
 Tests use temp directories for filesystem operations and mock `fetch` for API calls. Keychain tests verify command format without actually touching Keychain.

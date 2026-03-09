@@ -34,7 +34,7 @@ test("unified mode merges suite streams", async () => {
 ## Ad-Hoc Testing
 
 ```bash
-bun vitest run vendor/beorn-tap/tests/   # All tap tests (~instant)
+bun vitest run tests/   # All tap tests (~instant)
 ```
 
 ## Efficiency
