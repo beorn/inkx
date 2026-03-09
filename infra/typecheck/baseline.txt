@@ -680,10 +680,9 @@
 8 vendor/tools/tools/playwright-tty-mcp.ts
 7 vendor/tools/tools/recall/extract.ts
 1 vendor/tools/tools/recall/search.ts
-73 vendor/vitestx/src/dotz/index.tsx
-2 vendor/vitestx/src/fuzz/gen.ts
-1 vendor/vitestx/src/fuzz/regression.ts
-3 vendor/vitestx/src/fuzz/test-fuzz.ts
-4 vendor/vitestx/src/random.ts
-1 vendor/vitestx/tests/fuzz.fuzz.ts
+2 vendor/vi-monkey/src/fuzz/gen.ts
+1 vendor/vi-monkey/src/fuzz/regression.ts
+3 vendor/vi-monkey/src/fuzz/test-fuzz.ts
+4 vendor/vi-monkey/src/random.ts
+1 vendor/vi-monkey/tests/fuzz.fuzz.ts
 1 vitest.config.ts

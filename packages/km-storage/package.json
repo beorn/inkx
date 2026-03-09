@@ -15,6 +15,6 @@
   },
   "devDependencies": {
     "@beorn/watcher-chaos": "workspace:*",
-    "vitestx": "workspace:*"
+    "vi-monkey": "workspace:*"
   }
 }

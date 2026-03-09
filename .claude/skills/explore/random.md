@@ -34,7 +34,7 @@ FUZZ=1 bun vitest run apps/km-tui/tests/my-debug.fuzz.ts
 ### gen/take - Random Sequences
 
 ```typescript
-import { gen, take } from '@beorn/vitestx/fuzz'
+import { gen, take } from 'vi-monkey/fuzz'
 
 // Uniform random from array
 for await (const key of take(gen(['j', 'k', 'h', 'l']), 100)) {
@@ -67,7 +67,7 @@ for await (const key of take(gen(({ random }) => {
 ### test.fuzz - Auto-Shrinking Tests
 
 ```typescript
-import { test, gen, take } from '@beorn/vitestx/fuzz'
+import { test, gen, take } from 'vi-monkey/fuzz'
 
 test.fuzz("navigation invariants", async () => {
   const { board } = testEnv(() => item("board", item("col", item("A"), item("B"))))

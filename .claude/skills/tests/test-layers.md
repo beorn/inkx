@@ -31,7 +31,7 @@ Layer 0d: ansi (.test.ts)        → Terminal primitives: color/style in, ANSI s
 
 ── vendor (infrastructure) ─────────────────────────────────────────────
 Layer 0e: logger (.test.ts)      → Log routing: calls in, formatted output out
-Layer 0f: vitestx (.test.ts)     → Test tooling: generators in, fuzz/chaos sequences out
+Layer 0f: vi-monkey (.test.ts)     → Test tooling: generators in, fuzz/chaos sequences out
 Layer 0g: mdtest (.test.ts)      → Test runner: markdown in, shell execution + assertion out
 Layer 0h: tools (.test.ts)       → Dev CLI: commands in, file/API effects out
 Layer 0i: accountly (.test.ts)   → Credentials: provider config in, auth tokens out
@@ -66,7 +66,7 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
 | **logger** | Namespace filtering, log level propagation, span timing, structured output. | Nothing — standalone. |
-| **vitestx** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst), dotz reporter. | vitest API is correct. |
+| **vi-monkey** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst), dotz reporter. | vitest API is correct. |
 | **mdtest** | Markdown code block extraction, shell session execution, output assertion. | Nothing — standalone test runner. |
 | **tools** | Refactor CLI (AST transforms), recall (session search), LLM bridge. | Filesystem, external APIs. |
 | **accountly** | Multi-provider credential management, keychain abstraction, token refresh. | Nothing — mocks all system APIs. |
@@ -276,7 +276,7 @@ Prioritize: fold/unfold edge cases, cursor movement rules, multi-action sequence
 For parser fidelity, property-based tests catch edge cases that hand-written examples miss. The key property: `roundtrip(md) === md` — parsing then serializing should preserve the original.
 
 ```typescript
-import { gen, take } from "@beorn/vitestx"
+import { gen, take } from "vi-monkey"
 import { roundtrip } from "./helpers/test-utils"
 
 // Generate random markdown documents
@@ -374,7 +374,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 | Package | Tests | Layer | What it tests | Key patterns |
 |---------|-------|-------|---------------|-------------|
 | **logger** | 2 | Logging (L0e) | Namespace filtering, level propagation, span timing | Mock console |
-| **vitestx** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers, dotz reporter | Self-testing (tests its own tools) |
+| **vi-monkey** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers, dotz reporter | Self-testing (tests its own tools) |
 | **mdtest** | 9 | Test runner (L0g) | Markdown code block extraction, shell execution, output assertion | Shell session capture |
 | **tools** | 10 | Dev CLI (L0h) | Refactor (AST transforms), recall (session search), LLM bridge | Temp filesystem, mock fetch |
 | **accountly** | 11 | Credentials (L0i) | Multi-provider management, keychain abstraction, token refresh | Mock keychain, mock fetch |
@@ -398,8 +398,8 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 ### Vendor infrastructure
 
-- **These are standalone packages** — they don't form a dependency chain (logger doesn't depend on vitestx, etc.). Each is tested in isolation, which is correct.
-- **vitestx is self-testing** — it uses its own fuzz/chaos tools to test itself. This is the right pattern for test infrastructure.
+- **These are standalone packages** — they don't form a dependency chain (logger doesn't depend on vi-monkey, etc.). Each is tested in isolation, which is correct.
+- **vi-monkey is self-testing** — it uses its own fuzz/chaos tools to test itself. This is the right pattern for test infrastructure.
 - **No vendor packages have test CLAUDE.md yet.** Only km app packages (km-tui, km-board, km-storage, km-markdown, km-core, km-cli) have per-directory test docs. Add vendor test CLAUDE.md on demand as packages grow or test patterns become complex enough to document.
 
 ## Relationship to Import Cost Layers

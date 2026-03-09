@@ -1,7 +1,7 @@
 /**
  * TUI Navigation Fuzz Tests
  *
- * AI-driven exploration tests using vitestx's fuzz infrastructure.
+ * AI-driven exploration tests using vi-monkey's fuzz infrastructure.
  * These tests exercise the TUI with random actions and check invariants.
  *
  * ## Running
@@ -38,7 +38,7 @@
  */
 
 import { describe, expect } from "vitest"
-import { test, gen, take, createSeededRandom } from "vitestx/fuzz"
+import { test, gen, take, createSeededRandom } from "vi-monkey/fuzz"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"

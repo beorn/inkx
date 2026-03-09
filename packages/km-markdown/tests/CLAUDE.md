@@ -79,7 +79,7 @@ test("quick check: my edge case", () => {
 For parser fidelity beyond hand-written examples, use property-based tests. The key property: **roundtrip preservation** — `roundtrip(md) === md`.
 
 ```typescript
-import { gen, take } from "@beorn/vitestx"
+import { gen, take } from "@beorn/vi-monkey"
 import { roundtrip } from "./helpers/test-utils"
 
 const mdGen = gen.oneOf(

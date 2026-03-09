@@ -29,7 +29,7 @@ bun test packages/km-storage/tests/sync/chaos/
 gen(fsEventPicker) → chaos transformers → take(n) → test loop + invariants
 ```
 
-Uses vitestx's `test.fuzz` with `gen()`/`take()` for auto-shrinking and regression.
+Uses vi-monkey's `test.fuzz` with `gen()`/`take()` for auto-shrinking and regression.
 
 ### Stream Transformers
 
@@ -61,7 +61,7 @@ bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 
 ### 2. On Failure
 
-vitestx auto-saves failing sequences to `__fuzz_cases__/` for regression.
+vi-monkey auto-saves failing sequences to `__fuzz_cases__/` for regression.
 Shrinking finds minimal failing event sequence automatically.
 
 ### 3. Analyze Root Cause

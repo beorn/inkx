@@ -36,11 +36,11 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 gen(fsEventPicker) → chaos transformers → take(n) → reconcile loop → invariants
 ```
 
-Uses vitestx's `test.fuzz` with composable async iterable stream transformers.
+Uses vi-monkey's `test.fuzz` with composable async iterable stream transformers.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     test.fuzz (vitestx)                          │
+│                     test.fuzz (vi-monkey)                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────┐     ┌─────────────────┐                   │
@@ -153,7 +153,7 @@ FUZZ_SEED=12345 bun test packages/km-storage/tests/sync/chaos/chaos-fuzz.fuzz.ts
 ### Basic Test Structure
 
 ```typescript
-import { test, describe, expect, gen, take, createSeededRandom } from "vitestx"
+import { test, describe, expect, gen, take, createSeededRandom } from "vi-monkey"
 import { chaos, drop, reorder, type ChaosTransformerConfig } from "./transformers.ts"
 import { createFixedSetPicker } from "./chaos-fuzz.fuzz.ts" // or create your own picker
 
@@ -610,7 +610,7 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 | File                       | Purpose                                               |
 | -------------------------- | ----------------------------------------------------- |
 | `concurrent.test.ts`       | Deterministic concurrent edit tests using fake timers |
-| `chaos-fuzz.fuzz.ts`  | Property-based fuzz tests using vitestx gen/take      |
+| `chaos-fuzz.fuzz.ts`  | Property-based fuzz tests using vi-monkey gen/take      |
 
 ---
 
@@ -621,7 +621,7 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 | M1: Foundation               | ✅     | Watcher DI, ChaosWatcher, initial tests         |
 | M2: Full FS Mocking          | ✅     | FakeFileSystem class for fast testing            |
 | M3: Invariant Framework      | ✅     | Verifier class, structured reports               |
-| M4: vitestx Integration      | ✅     | gen/take + stream transformers + test.fuzz        |
+| M4: vi-monkey Integration      | ✅     | gen/take + stream transformers + test.fuzz        |
 | M5: Auto-Regression          | ✅     | __fuzz_cases__/ auto-saved on failure             |
 
 **Performance:** In-memory FakeFileSystem provides ~9x speedup (~60ms vs ~560ms/iteration).

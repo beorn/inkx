@@ -1,17 +1,17 @@
 /**
  * Chaos Stream Transformers for FS sync testing
  *
- * Re-exports generic transformers from vitestx/chaos and adds
+ * Re-exports generic transformers from vi-monkey/chaos and adds
  * FS-domain-specific transformers that know about FsEvent shape.
  */
 
 import { dirname } from "path"
-import type { SeededRandom } from "vitestx"
-import { chaos as baseChaos, builtinChaosRegistry, type ChaosConfig, type ChaosRegistry } from "vitestx/chaos"
+import type { SeededRandom } from "vi-monkey"
+import { chaos as baseChaos, builtinChaosRegistry, type ChaosConfig, type ChaosRegistry } from "vi-monkey/chaos"
 import type { FsEvent, ChaosScenarioType } from "./types.ts"
 
 // Re-export generic transformers (operate on any AsyncIterable<T>)
-export { drop, reorder, duplicate, type ChaosConfig } from "vitestx/chaos"
+export { drop, reorder, duplicate, type ChaosConfig } from "vi-monkey/chaos"
 
 /** Configuration for a chaos scenario in the transformer pipeline */
 export interface ChaosTransformerConfig {
@@ -104,7 +104,7 @@ async function* renameChain(source: AsyncIterable<FsEvent>, depth: number, rng: 
 }
 
 // ---------------------------------------------------------------------------
-// FS chaos registry — extends vitestx built-in with domain-specific types
+// FS chaos registry — extends vi-monkey built-in with domain-specific types
 // ---------------------------------------------------------------------------
 
 const FS_CHAOS_REGISTRY: ChaosRegistry<FsEvent> = {

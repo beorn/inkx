@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { parseMarkdownToNodes, nodesToMarkdown } from "@km/markdown"
-import { createSeededRandom, type SeededRandom } from "vitestx"
+import { createSeededRandom, type SeededRandom } from "vi-monkey"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
