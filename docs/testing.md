@@ -1,10 +1,10 @@
 # Testing
 
-## Testing Your silvery App
+## Testing Your Silvery App
 
 ### Setup
 
-silvery works with Vitest out of the box. Add to your `vitest.config.ts`:
+Silvery works with Vitest out of the box. Add to your `vitest.config.ts`:
 
 ```typescript
 import { defineConfig } from "vitest/config"
@@ -121,7 +121,7 @@ console.log(app.text) // Print plain text
 
 ### Real Terminal Verification with @termless/test
 
-For testing that your silvery app renders correctly through a real terminal emulator -- verifying colors, cursor position, scrollback, terminal modes, and cross-terminal compatibility -- use [@termless/test](https://github.com/beorn/termless). It feeds your silvery ANSI output through actual terminal backends (xterm.js, Ghostty, Alacritty, etc.) and provides composable matchers for the full terminal state:
+For testing that your Silvery app renders correctly through a real terminal emulator -- verifying colors, cursor position, scrollback, terminal modes, and cross-terminal compatibility -- use [@termless/test](https://github.com/beorn/termless). It feeds your Silvery ANSI output through actual terminal backends (xterm.js, Ghostty, Alacritty, etc.) and provides composable matchers for the full terminal state:
 
 ```typescript
 import { createTerminal } from "@termless/core"
@@ -147,7 +147,7 @@ test("renders correct colors through real terminal", () => {
 
 ## Philosophy
 
-Since silvery targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
+Since Silvery targets API compatibility with Ink and Chalk, we have a **golden specification**: their existing test suites. Rather than writing tests from scratch, we leverage their tests as our compatibility contract.
 
 **Core principle**: If Ink's tests pass, we're compatible. If they don't, we know exactly what's broken.
 
@@ -359,7 +359,7 @@ cd /tmp/chalk && npm test
 
 ### 3.1 Snapshot-Based Visual Testing
 
-Use silvery testing API with text snapshots:
+Use Silvery testing API with text snapshots:
 
 ```typescript
 // tests/visual/visual.test.ts
@@ -567,7 +567,7 @@ async function recordMetrics() {
 
 ### 5.1 @silvery/term/testing
 
-silvery provides a Playwright-inspired testing API with **auto-refreshing locators**:
+Silvery provides a Playwright-inspired testing API with **auto-refreshing locators**:
 
 ```typescript
 import { createRenderer } from '@silvery/term/testing';
@@ -1165,7 +1165,7 @@ describe('Long-running stability', () => {
 
 ## 9. Auto-Refreshing Locators
 
-silvery provides Playwright-inspired locators that **auto-refresh on every access**, eliminating stale reference bugs.
+Silvery provides Playwright-inspired locators that **auto-refresh on every access**, eliminating stale reference bugs.
 
 ### 9.1 Quick Start
 

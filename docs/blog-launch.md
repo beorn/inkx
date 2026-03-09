@@ -2,7 +2,7 @@
 
 React components have never been able to know their own dimensions during render. In the DOM, you reach for `ResizeObserver` and accept a layout jank flash. In React Native, you guess at `FlatList` item heights and hope the scroll doesn't stutter. In terminal UIs built with [Ink](https://github.com/vadimdemedes/ink), you thread `width` props through every level of the component tree.
 
-silvery takes a different approach. It runs layout _before_ content rendering, so components access their actual dimensions synchronously via a hook:
+Silvery takes a different approach. It runs layout _before_ content rendering, so components access their actual dimensions synchronously via a hook:
 
 ```tsx
 function Card() {
@@ -13,7 +13,7 @@ function Card() {
 
 No prop drilling. No second render pass. No guessing.
 
-This is the same insight behind [WPF's Measure/Arrange](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/layout) (2006), [CSS Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) (2022), and Facebook's [Litho/ComponentKit](https://github.com/facebook/litho) (which yielded 35% scroll performance gains in the Facebook app). silvery brings two-phase rendering to React with a five-phase pipeline: reconcile, measure, layout, content, output.
+This is the same insight behind [WPF's Measure/Arrange](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/advanced/layout) (2006), [CSS Container Queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) (2022), and Facebook's [Litho/ComponentKit](https://github.com/facebook/litho) (which yielded 35% scroll performance gains in the Facebook app). Silvery brings two-phase rendering to React with a five-phase pipeline: reconcile, measure, layout, content, output.
 
 ## Why this matters for AI tool builders
 
@@ -23,13 +23,13 @@ If you're building a CLI assistant, an AI coding tool, or any terminal applicati
 
 2. **Programmatic control** -- An AI agent needs to read the screen, discover available commands, and execute them. Most terminal UI frameworks treat this as an afterthought.
 
-silvery was designed with both of these as first-class concerns.
+Silvery was designed with both of these as first-class concerns.
 
 ### Scrollable containers that just work
 
 Ink's most-requested feature since 2019 ([#222](https://github.com/vadimdemedes/ink/issues/222)) is scrolling. Without layout feedback, you can't know how much content fits -- so you end up estimating heights, manually virtualizing, and passing width down through every component.
 
-In silvery, scrolling is a style property:
+In Silvery, scrolling is a style property:
 
 ```tsx
 <Box overflow="scroll" scrollTo={selectedIdx}>
@@ -54,7 +54,7 @@ const frozenCount = useScrollback(items, {
 
 ### A command system built for AI introspection
 
-silvery includes a plugin composition system inspired by SlateJS. The `withCommands` plugin adds a `cmd` object that exposes every command with its metadata:
+Silvery includes a plugin composition system inspired by SlateJS. The `withCommands` plugin adds a `cmd` object that exposes every command with its metadata:
 
 ```tsx
 const app = withCommands(render(<Board />), {
@@ -111,11 +111,11 @@ await driver.cmd.down() // Throws with screenshot path if any check fails
 
 ### CLAUDE.md as the AI-readable API reference
 
-silvery ships with a [CLAUDE.md](https://github.com/beorn/silvery/blob/main/CLAUDE.md) -- a structured reference document designed for LLM consumption. It contains the complete API surface (imports, component props, hook signatures, common patterns, anti-patterns) in a format that Claude Code, Cursor, and other AI coding tools can ingest directly.
+Silvery ships with a [CLAUDE.md](https://github.com/beorn/silvery/blob/main/CLAUDE.md) -- a structured reference document designed for LLM consumption. It contains the complete API surface (imports, component props, hook signatures, common patterns, anti-patterns) in a format that Claude Code, Cursor, and other AI coding tools can ingest directly.
 
 This isn't documentation written for humans and then fed to an AI. It's a parallel artifact: the same API, organized for how LLMs read code. Quick start, import paths, testing API, debugging flags -- all in one file, optimized for context window efficiency.
 
-When an AI assistant works on an silvery codebase, it reads `CLAUDE.md` and immediately knows:
+When an AI assistant works on a Silvery codebase, it reads `CLAUDE.md` and immediately knows:
 
 - How to import components (`import { Box, Text } from "@silvery/term"`)
 - How to write tests (`createRenderer` + Playwright-style locators)
@@ -167,16 +167,16 @@ When a user presses `j` to move a cursor, silvery's dirty tracking updates only 
 **Full pipeline (cold render):**
 
 | Components   | silvery (Flexily) | Ink (Yoga NAPI) |                     |
-| ------------ | ------------------ | --------------- | ------------------- |
-| 1 Box+Text   | 165 us             | 271 us          | silvery 1.6x faster |
-| 100 Box+Text | 45.0 ms            | 49.4 ms         | silvery 1.1x faster |
+| ------------ | ----------------- | --------------- | ------------------- |
+| 1 Box+Text   | 165 us            | 271 us          | silvery 1.6x faster |
+| 100 Box+Text | 45.0 ms           | 49.4 ms         | silvery 1.1x faster |
 
 **Layout engine (pure layout, no React):**
 
 | Benchmark      | Flexily (JS) | Yoga WASM | Yoga NAPI (C++) |
-| -------------- | ------------- | --------- | --------------- |
-| 100 nodes flat | 85 us         | 88 us     | 197 us          |
-| 50-node kanban | 57 us         | 54 us     | 136 us          |
+| -------------- | ------------ | --------- | --------------- |
+| 100 nodes flat | 85 us        | 88 us     | 197 us          |
+| 50-node kanban | 57 us        | 54 us     | 136 us          |
 
 [Flexily](https://github.com/beorn/flexily), silvery's default layout engine, is a 7 KB (gzipped) pure JavaScript flexbox implementation -- no native dependencies, no WASM. It matches Yoga's correctness on the flexbox subset that terminal UIs need, at 2.4x the speed of Yoga NAPI.
 
