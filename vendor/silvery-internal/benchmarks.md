@@ -68,20 +68,20 @@ Silvery tracks which nodes changed and only re-renders the dirty subtree -- no R
 ### First Render (Full Pipeline)
 
 | Components | Silvery (Flexily) | Ink 6 (Yoga NAPI) | Ratio        |
-| ---------- | ------------------ | ----------------- | ------------ |
-| 1          | 169 us             | 257 us            | Silvery 1.5x |
-| 100        | 44.2 ms            | 50.5 ms           | Silvery 1.1x |
-| 1000       | 446 ms             | 546 ms            | Silvery 1.2x |
+| ---------- | ----------------- | ----------------- | ------------ |
+| 1          | 169 us            | 257 us            | Silvery 1.5x |
+| 100        | 44.2 ms           | 50.5 ms           | Silvery 1.1x |
+| 1000       | 446 ms            | 546 ms            | Silvery 1.2x |
 
 Both include React reconciliation. First-render performance is similar -- the incremental machinery doesn't help here.
 
 ### Full Pipeline (React Reconciliation + Layout + Output)
 
 | Components             | Silvery (Flexily) | Ink 6 (Yoga NAPI) | Faster       |
-| ---------------------- | ------------------ | ----------------- | ------------ |
-| 1 Box+Text (80x24)     | 165 us             | 271 us            | Silvery 1.6x |
-| 100 Box+Text (80x24)   | 45.0 ms            | 49.4 ms           | Silvery 1.1x |
-| 1000 Box+Text (120x40) | 463 ms             | 541 ms            | Silvery 1.2x |
+| ---------------------- | ----------------- | ----------------- | ------------ |
+| 1 Box+Text (80x24)     | 165 us            | 271 us            | Silvery 1.6x |
+| 100 Box+Text (80x24)   | 45.0 ms           | 49.4 ms           | Silvery 1.1x |
+| 1000 Box+Text (120x40) | 463 ms            | 541 ms            | Silvery 1.2x |
 
 Silvery uses `createRenderer()` (headless). Ink uses `render()` with mock stdout + unmount per iteration.
 
@@ -144,25 +144,25 @@ Flexily (pure JS, 7KB) is 2.6x faster than Yoga NAPI for flat layouts. Matches Y
 
 ## Bundle Size
 
-| Package            | Size (gzip) |
-| ------------------ | ----------- |
+| Package           | Size (gzip) |
+| ----------------- | ----------- |
 | Silvery + Flexily | ~45 KB      |
-| Silvery + Yoga     | ~76 KB      |
-| Ink                | ~52 KB      |
+| Silvery + Yoga    | ~76 KB      |
+| Ink               | ~52 KB      |
 
 ---
 
 ## Summary Table
 
-| Scenario                              | Silvery          | Ink                     |                          |
-| ------------------------------------- | ---------------- | ----------------------- | ------------------------ |
-| Cold render (1 component)             | 165 us           | 271 us                  | Silvery 1.6x faster      |
-| Cold render (1000 components)         | 463 ms           | 541 ms                  | Silvery 1.2x faster      |
-| Full React rerender (1000 components) | 630 ms           | 20.7 ms                 | Ink 30x faster           |
-| **Typical interactive update**        | **169 us**       | **20.7 ms**             | **Silvery 100x+ faster** |
-| Layout (50-node kanban)               | 57 us (Flexily) | 136 us (Yoga NAPI)      | Flexily 2.4x faster     |
-| Terminal resize (1000 nodes)          | 21 us            | Full re-render          | --                       |
-| Buffer diff (80x24, 10% changed)      | 34 us            | N/A (row-based strings) | --                       |
+| Scenario                              | Silvery         | Ink                     |                          |
+| ------------------------------------- | --------------- | ----------------------- | ------------------------ |
+| Cold render (1 component)             | 165 us          | 271 us                  | Silvery 1.6x faster      |
+| Cold render (1000 components)         | 463 ms          | 541 ms                  | Silvery 1.2x faster      |
+| Full React rerender (1000 components) | 630 ms          | 20.7 ms                 | Ink 30x faster           |
+| **Typical interactive update**        | **169 us**      | **20.7 ms**             | **Silvery 100x+ faster** |
+| Layout (50-node kanban)               | 57 us (Flexily) | 136 us (Yoga NAPI)      | Flexily 2.4x faster      |
+| Terminal resize (1000 nodes)          | 21 us           | Full re-render          | --                       |
+| Buffer diff (80x24, 10% changed)      | 34 us           | N/A (row-based strings) | --                       |
 
 **Understanding the rerender row:** When the _entire_ component tree re-renders from scratch (e.g., replacing the root element), Ink is 30x faster because its output is just string concatenation. Silvery runs a 5-phase pipeline (measure, layout, content, output) after React reconciliation -- that's the cost of layout feedback. But this scenario almost never happens in real apps.
 

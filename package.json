@@ -19,7 +19,6 @@
   "overrides": {
     "@silvery/react": "$@silvery/react",
     "@silvery/term": "$@silvery/term",
-    "@silvery/ansi": "$@silvery/ansi",
     "@silvery/tea": "$@silvery/tea",
     "@silvery/ui": "$@silvery/ui",
     "@silvery/theme": "$@silvery/theme",
@@ -117,7 +116,6 @@
     "@vitest/ui": "^4.0.18",
     "@silvery/react": "workspace:*",
     "@silvery/term": "workspace:*",
-    "@silvery/ansi": "workspace:*",
     "@silvery/tea": "workspace:*",
     "@silvery/ui": "workspace:*",
     "@silvery/theme": "workspace:*",

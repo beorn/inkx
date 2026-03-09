@@ -14,7 +14,6 @@
     "@km/markdown": "workspace:*",
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
-    "@silvery/ansi": "workspace:*",
     "@silvery/react": "workspace:*",
     "@silvery/theme": "workspace:*",
     "react": "catalog:",

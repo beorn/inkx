@@ -169,9 +169,9 @@ When a user presses `j` to move a cursor, Silvery's dirty tracking updates only 
 **Full pipeline (cold render):**
 
 | Components   | Silvery (Flexily) | Ink (Yoga NAPI) |                     |
-| ------------ | ------------------ | --------------- | ------------------- |
-| 1 Box+Text   | 165 us             | 271 us          | Silvery 1.6x faster |
-| 100 Box+Text | 45.0 ms            | 49.4 ms         | Silvery 1.1x faster |
+| ------------ | ----------------- | --------------- | ------------------- |
+| 1 Box+Text   | 165 us            | 271 us          | Silvery 1.6x faster |
+| 100 Box+Text | 45.0 ms           | 49.4 ms         | Silvery 1.1x faster |
 
 **Layout engine (pure layout, no React):**
 

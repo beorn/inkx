@@ -396,15 +396,14 @@ describe("alignment: title text", () => {
 // =============================================================================
 
 describe("alignment: date badges", () => {
+  // Use dates far in the future so they always render as "Mon DD" (not relative like "Sunday")
   test("date badge is right-aligned within card width", () => {
     const nodes = item("board", item("col1", item.task("Task with date")))
-    // Set a due date on the task
     const taskNode = nodes.find((n) => n.content === "Task with date")!
-    taskNode.due_at = "2026-03-15"
+    taskNode.due_at = "2027-03-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screenshot = board.screenshot()
-    // Date badge should appear somewhere in the output
     expect(screenshot).toContain("Mar 15")
 
     // Find the row containing "Mar 15" and verify it's right-aligned
@@ -423,8 +422,8 @@ describe("alignment: date badges", () => {
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
     const taskA = nodes.find((n) => n.content === "Task A")!
     const taskB = nodes.find((n) => n.content === "Task B")!
-    taskA.due_at = "2026-03-15"
-    taskB.due_at = "2026-04-20"
+    taskA.due_at = "2027-03-15"
+    taskB.due_at = "2027-04-20"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
     const screenshot = board.screenshot()
