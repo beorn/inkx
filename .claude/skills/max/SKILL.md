@@ -87,6 +87,7 @@ After agents complete:
 - Edit files one at a time when pattern is clear
 - Skip TodoWrite (user can't see your parallel progress)
 - Let sub-agents run `bun fix` or `test:all` (parent does this once)
+- **NEVER use `isolation: "worktree"` for agents that create files** — worktrees are cleaned up when no commits exist, losing all work. Use shared-workspace agents (the default) instead. Worktrees are only safe for read-only research agents or when agents are explicitly instructed to commit.
 
 ## Sticky Mode
 
