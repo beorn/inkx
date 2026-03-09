@@ -121,4 +121,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [perf/](.claude/skills/perf/)                                       | Performance diagnostics and profiling (all layers)                    |
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Systematic troubleshooting (reproduce, instrument, bisect, escalate)  |
+| [npm/](.claude/skills/npm/)                                         | Check npm package/scope availability                                  |
 | [batch-refactor](vendor/tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

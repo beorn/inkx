@@ -40,7 +40,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 **Code Layout:**
 
 - ESM imports only (`import`/`export`, never `require`)
-- Package names (`@silvery/term`), never relative `../vendor/...`
+- Package names (`silvery`), never relative `../vendor/...`
 - Helpers after `return` or end of file
 
 **Avoid:**

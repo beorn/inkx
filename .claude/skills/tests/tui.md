@@ -26,17 +26,17 @@ const { board } = testEnv(() => ..., { checkIncremental: false })
 
 ## Diagnostic Mode
 
-**For runtime debugging**, run with `HIGHTEA_STRICT=1` (catches bugs in the production `createApp` path that testEnv may not catch):
+**For runtime debugging**, run with `SILVERY_STRICT=1` (catches bugs in the production `createApp` path that testEnv may not catch):
 
 ```bash
 # In the real app
-HIGHTEA_STRICT=1 bun km view /path/to/vault
+SILVERY_STRICT=1 bun km view /path/to/vault
 
 # In tests
-HIGHTEA_STRICT=1 bun vitest run apps/km-tui/tests/
+SILVERY_STRICT=1 bun vitest run apps/km-tui/tests/
 
 # Real vault with diagnostics
-HIGHTEA_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
+SILVERY_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real-vault.test.ts
 ```
 
 **What these checks catch:**
@@ -177,7 +177,7 @@ board.expect("[data-selected]").toHaveCount(1) // One selected item
 Layout and visibility matchers for InkxLocator elements:
 
 ```typescript
-import { createLocator } from "@silvery/term/testing"
+import { createLocator } from "silvery/testing"
 
 const locator = createLocator(result.getContainer())
 const col1 = locator.getByTestId("col1")

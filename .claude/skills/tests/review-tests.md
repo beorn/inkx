@@ -279,7 +279,7 @@ time bun vitest run apps/km-tui/tests/hr.test.ts 2>&1 | grep "Transform\|Duratio
 | 3 | Acceptance (multi-step) | ~1.8s | `fold.slow.test.ts` |
 | 4 | TTY/Snapshot | ~1.8s | `pty-integration.slow.spec.ts` |
 
-**Key insight**: Layer 2+ files all share the same ~1.8s import cost because they import `testEnv` which imports `@silvery/term/testing`, which initializes the layout engine (top-level await WASM init). Consolidating Layer 2+ files saves ~1.8s per eliminated file.
+**Key insight**: Layer 2+ files all share the same ~1.8s import cost because they import `testEnv` which imports `silvery/testing`, which initializes the layout engine (top-level await WASM init). Consolidating Layer 2+ files saves ~1.8s per eliminated file.
 
 ### Vitest Worker Analysis
 
@@ -303,7 +303,7 @@ grep -h "^import\|^export.*from" vendor/silvery/src/testing/index.tsx | head -20
 grep "from ['\"]\.\.\/index" vendor/silvery/src/testing/index.tsx
 ```
 
-**Known finding (2026-03)**: `@silvery/term/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
+**Known finding (2026-03)**: `silvery/testing` does NOT import the barrel file — it uses direct imports. The 1.8s cost comes from actual module graph (React, reconciler, layout engine WASM init via `await ensureDefaultLayoutEngine()`).
 
 ### Vitest Pre-bundling (optional)
 

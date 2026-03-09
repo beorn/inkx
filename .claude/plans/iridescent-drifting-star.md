@@ -8,19 +8,19 @@ Claude needs a way to quickly test TUI interactions - debug bugs, explore edge c
 
 | Option | Simplicity | Flexibility | Compatibility | Speed |
 |--------|------------|-------------|---------------|-------|
-| **A: hightea test renderer** | ★★★★★ | ★★★★☆ | hightea native | ~1000/s |
+| **A: silvery test renderer** | ★★★★★ | ★★★★☆ | silvery native | ~1000/s |
 | **B: MCP TTY (Playwright)** | ★★☆☆☆ | ★★★★★ | Any TUI | ~1/s |
 | **C: Headless stdin/stdout** | ★★★☆☆ | ★★★☆☆ | Any process | ~100/s |
-| **D: Custom Term injection** | ★★★★☆ | ★★★★☆ | hightea native | ~1000/s |
+| **D: Custom Term injection** | ★★★★☆ | ★★★★☆ | silvery native | ~1000/s |
 
 ---
 
-## Option A: hightea Test Renderer (Existing)
+## Option A: silvery Test Renderer (Existing)
 
-**What it is**: Use `createTestRenderer()` from @hightea/term/testing with components directly.
+**What it is**: Use `createTestRenderer()` from silvery/testing with components directly.
 
 ```typescript
-import { createTestRenderer } from "@hightea/term/testing"
+import { createTestRenderer } from "silvery/testing"
 import { BoardApp } from "./views"
 
 const render = createTestRenderer({ columns: 80, rows: 24 })
@@ -57,7 +57,7 @@ const text = await mcp__tty__text({ sessionId })
 **Pros**:
 - Tests the REAL full app (including CLI parsing, startup)
 - Visual debugging via browser
-- Works with any TUI (not just hightea)
+- Works with any TUI (not just silvery)
 
 **Cons**:
 - Slow (~1s per interaction due to browser)
@@ -114,15 +114,15 @@ console.log(board.text())
 
 **Cons**:
 - Requires flush/sync mechanism
-- hightea-specific
+- silvery-specific
 
-**What's needed**: Thin wrapper around hightea render + vault loading.
+**What's needed**: Thin wrapper around silvery render + vault loading.
 
 ---
 
 ## Recommendation
 
-**Start with Option A** (hightea test renderer) because:
+**Start with Option A** (silvery test renderer) because:
 1. It already exists and works
 2. Just needs a `testBoard()` helper for vault loading
 3. Fastest iteration speed
@@ -151,7 +151,7 @@ This is ~10 lines and unlocks ad-hoc testing immediately.
 
 ## Solution: `testBoard()` Helper
 
-A thin wrapper that creates a controllable TUI instance using hightea's existing `AsyncIterable<Event>` architecture.
+A thin wrapper that creates a controllable TUI instance using silvery's existing `AsyncIterable<Event>` architecture.
 
 ```typescript
 // Claude writes this, runs with `bun /tmp/test.ts`
@@ -177,7 +177,7 @@ We use 100% real BoardApp code. The testBoard() helper only provides:
 Based on O3's research, the most ergonomic approach combines:
 
 1. **Cypress-style command queue** - `press()` returns `this` for chaining
-2. **Internal flush after each event** - Uses hightea's `updateContainerSync`
+2. **Internal flush after each event** - Uses silvery's `updateContainerSync`
 3. **Game loop pattern** - Each `press()` is one "tick" of the event loop
 
 ```typescript
@@ -209,7 +209,7 @@ interface TestBoard {
   text(): string                           // Plain text (stripped ANSI)
   ansi(): string                           // With ANSI codes
 
-  // DOM queries (via hightea App)
+  // DOM queries (via silvery App)
   query(selector: string): Element | null
   locator(selector: string): Locator       // Auto-refreshing
 
@@ -288,7 +288,7 @@ function createPushableEvents() {
 
 ### app.flush() - The Key Innovation
 
-hightea already has `updateContainerSync` in the reconciler. We expose a `flush()` method that:
+silvery already has `updateContainerSync` in the reconciler. We expose a `flush()` method that:
 1. Processes the pushed event through the async iterator
 2. Forces React to process all updates synchronously
 3. Returns when the render is complete
@@ -300,7 +300,7 @@ This makes `press()` appear synchronous even though the underlying system is asy
 | File | Description |
 |------|-------------|
 | `apps/km-tui/tests/helpers/test-board.ts` | Main testBoard() function |
-| `vendor/hightea/src/testing/flush.ts` | Expose flush() on App |
+| `vendor/silvery/src/testing/flush.ts` | Expose flush() on App |
 | `.claude/skills/tests/adhoc.md` | Documentation for Claude |
 
 ## How /explore Uses This
@@ -335,7 +335,7 @@ console.log(b.text())
 
 ## Open Questions
 
-1. **Does hightea already expose flush()?**
+1. **Does silvery already expose flush()?**
    - Need to check if `updateContainerSync` is accessible from App
    - May need to add a method to expose it
 

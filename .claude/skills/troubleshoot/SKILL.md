@@ -20,7 +20,7 @@ argument-hint: [symptom description]
 withDiagnostics(createBoardDriver(...), { checkIncremental: true, checkReplay: true })
 
 # For pipeline bugs
-HIGHTEA_STRICT=1 bun vitest run <test-file>
+SILVERY_STRICT=1 bun vitest run <test-file>
 
 # For behavior bugs
 test("repro: <symptom>", async () => {
@@ -63,10 +63,10 @@ Write the test to `/tmp/` first, promote to `apps/km-tui/tests/` when stable.
 
 | Bug type | Instrumentation | What it shows |
 |----------|----------------|---------------|
-| Rendering (garbled, stale pixels) | `HIGHTEA_STRICT=1` | Exact cell mismatch, node trace, cascade decisions |
-| Rendering (pipeline) | `HIGHTEA_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
-| Rendering (ANSI output) | `HIGHTEA_STRICT_OUTPUT=1` | ANSI output verification |
-| Performance | `HIGHTEA_INSTRUMENT=1` + component timing hooks | Per-phase timing, node counts |
+| Rendering (garbled, stale pixels) | `SILVERY_STRICT=1` | Exact cell mismatch, node trace, cascade decisions |
+| Rendering (pipeline) | `SILVERY_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
+| Rendering (ANSI output) | `SILVERY_STRICT_OUTPUT=1` | ANSI output verification |
+| Performance | `SILVERY_INSTRUMENT=1` + component timing hooks | Per-phase timing, node counts |
 | Behavior (state) | `DEBUG=<namespace> DEBUG_LOG=/tmp/debug.log` | Runtime traces |
 | Event loop blocks | Built-in block detection | Timing + stack |
 
@@ -162,7 +162,7 @@ After 20+ minutes on the same problem with 2+ failed approaches:
 | Skip bisect for regressions | "I think I know which commit" often wastes hours | Bisect takes 5 minutes and gives certainty |
 | Fix without understanding | Blind fixes create new bugs | Understand the mechanism, then fix |
 | Test one thing at a time manually | Slow and error-prone | Write an automated test script for bisect |
-| Assume terminal bug | 99% of the time it's your code | `HIGHTEA_STRICT=1` proves it |
+| Assume terminal bug | 99% of the time it's your code | `SILVERY_STRICT=1` proves it |
 | Skip the worktree | Bisect in main worktree risks dirty state | Always use `bun worktree create` |
 
 ## Integration with Other Skills

@@ -26,7 +26,7 @@ Follow the [test-first protocol](../tests/test-first-protocol.md). No code analy
 // /tmp/diag-rendering.test.ts
 import { createBoardDriver } from "@km/tui/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "@silvery/term"
+import { withDiagnostics } from "silvery"
 import { item } from "@km/tui/tests/helpers/board-test.ts"
 
 const nodes = item.root("board",
@@ -303,7 +303,7 @@ See `vendor/flexture/docs/incremental-layout-bugs.md` for full details, industry
 TUI tests check DOM content and computed colors (Phase 3), but bugs often live in Phase 4 (ANSI diff) and Phase 5 (terminal rendering). Two mechanisms make tests catch what users see:
 
 - `withDiagnostics(..., { checkReplay: true })` — replays ANSI output through a virtual terminal and compares to buffer. Catches diff algorithm bugs.
-- `HIGHTEA_STRICT=1` / `checkIncremental: true` — runs BOTH incremental and fresh renders, compares cell-by-cell. Catches stale-pixel bugs.
+- `SILVERY_STRICT=1` / `checkIncremental: true` — runs BOTH incremental and fresh renders, compares cell-by-cell. Catches stale-pixel bugs.
 
 ### Guidelines for Visual Bug Tests
 

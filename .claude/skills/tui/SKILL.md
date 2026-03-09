@@ -38,8 +38,8 @@ See [tests/SKILL.md](../tests/SKILL.md) for test commands.
 
 ```bash
 # FIRST: Run with diagnostic mode (catches incremental render bugs)
-HIGHTEA_STRICT=1 bun vitest run apps/km-tui/tests/
-HIGHTEA_STRICT=1 bun km view /path/to/vault
+SILVERY_STRICT=1 bun vitest run apps/km-tui/tests/
+SILVERY_STRICT=1 bun km view /path/to/vault
 
 # Run visual storybook (inline default, j/k to navigate, q to quit)
 bun storybook

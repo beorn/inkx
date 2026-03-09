@@ -47,7 +47,7 @@ The differential oracle: build tree → layout → mark dirty → re-layout → 
 When fuzz doesn't catch it, mirror the real component structure:
 
 ```typescript
-import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "@silvery/layout"
+import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "silvery"
 
 test("mirrors km card structure", () => {
   const root = Node.create()
