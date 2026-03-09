@@ -1,8 +1,8 @@
-# Nested Mounting API for hightea
+# Nested Mounting API for silvery
 
 > **Status: Future** — Speculative design, no concrete use case yet.
 
-Allow rendering into sub-regions of an existing hightea app, similar to React's `createRoot(container)` pattern.
+Allow rendering into sub-regions of an existing silvery app, similar to React's `createRoot(container)` pattern.
 
 **TL;DR:** Extend `render()` to accept an AutoLocator as mount target, enabling multiple independent React trees in different terminal regions. Useful for micro-frontend patterns in CLI apps.
 
@@ -12,7 +12,7 @@ Allow rendering into sub-regions of an existing hightea app, similar to React's 
 
 ### Current State
 
-Today, hightea apps are single React trees:
+Today, silvery apps are single React trees:
 
 ```tsx
 using term = createTerm()
@@ -217,7 +217,7 @@ The proposal suggests "each render creates independent React reconciler root." T
 
 ### Verdict
 
-**Not recommended for implementation** without a concrete use case that can't be solved with standard React composition. The generator-based render API ([hightea-render-api.md](hightea-render-api.md)) addresses more pressing pain points and should be prioritized.
+**Not recommended for implementation** without a concrete use case that can't be solved with standard React composition. The generator-based render API ([silvery-render-api.md](silvery-render-api.md)) addresses more pressing pain points and should be prioritized.
 
 ---
 
@@ -245,6 +245,6 @@ The proposal suggests "each render creates independent React reconciler root." T
 
 ## See Also
 
-- [hightea-render-api.md](hightea-render-api.md) — Generator-based unified render API (higher priority)
+- [silvery-render-api.md](silvery-render-api.md) — Generator-based unified render API (higher priority)
 - React 18 `createRoot()` — [React docs](https://react.dev/reference/react-dom/client/createRoot)
 - Micro-frontends — [martinfowler.com](https://martinfowler.com/articles/micro-frontends.html)

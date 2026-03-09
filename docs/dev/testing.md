@@ -101,7 +101,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │         (end-user visible, documentation-like)              │
 ├──────────────────────────┬──────────────────────────────────┤
 │  VISUAL (TUI)            │  CLI                             │
-│  hightea createRenderer│  mdtest (.test.md)               │
+│  silvery createRenderer│  mdtest (.test.md)               │
 │  + InkxLocator           │                                  │
 │  - Screen coordinates    │  - Command output                │
 │  - Representative fixtures│ - Error messages                │
@@ -118,7 +118,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
 │  VENDOR (git submodules) │  (tests in vendor/*/,            │
-│  - hightea, flexture, logger│   included in test:fast)         │
+│  - silvery, flexture, logger│   included in test:fast)         │
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -141,7 +141,7 @@ End-user visible tests that serve as documentation. A new developer should under
 
 ### 1.1 TUI Spec Tests
 
-**Framework**: `@hightea/term/testing` with `testEnv()` helper from `board-test.ts`
+**Framework**: `Silvery/testing` with `testEnv()` helper from `board-test.ts`
 
 **Location**: `apps/km-tui/tests/*.spec.ts`
 
@@ -244,7 +244,7 @@ board.press("j") // vim-style down
 **Custom matchers for InkxLocator**:
 
 ```typescript
-import { createLocator } from "@hightea/term/testing"
+import { createLocator } from "Silvery/testing"
 
 const locator = createLocator(result.getContainer())
 const col1 = locator.getByTestId("col1")
@@ -469,7 +469,7 @@ Per-layer tests for pure logic (no database, no I/O):
 
 Vendor packages (`vendor/*`) are git submodules - part of km's test suite.
 
-**Test location:** Tests live in each vendor package (e.g., `vendor/hightea/tests/`).
+**Test location:** Tests live in each vendor package (e.g., `vendor/silvery/tests/`).
 
 **Included automatically:** `test:fast` and `test:all` discover and run vendor tests.
 
@@ -581,7 +581,7 @@ This section maps km's testing tools to industry-standard terminology, helping d
 | Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
 | Differential Testing | Oracle-Based Testing | Flexture fuzz vs Yoga             | Layout engine       |
 | Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
-| Acceptance Testing   | E2E Testing          | mdtest, hightea specs          | CLI, TUI            |
+| Acceptance Testing   | E2E Testing          | mdtest, silvery specs          | CLI, TUI            |
 
 ### Exploration Testing (Unified Pattern)
 
@@ -599,7 +599,7 @@ All exploration tests follow the same pattern:
 ```
 Dynamic Testing
 ├── Functional
-│   ├── Acceptance (mdtest, hightea specs) → verifies user-visible behavior
+│   ├── Acceptance (mdtest, silvery specs) → verifies user-visible behavior
 │   ├── Regression (preserved failing tests) → prevents re-introduction
 │   └── Smoke (quick sanity) → fast CI gate
 ├── Exploration
@@ -630,12 +630,12 @@ Dynamic Testing
 
 ## Testing Categories
 
-### TUI Tests (hightea)
+### TUI Tests (silvery)
 
 Fast, character-based testing for components:
 
 ```typescript
-import { createRenderer, createLocator, keyToAnsi } from "@hightea/term/testing";
+import { createRenderer, createLocator, keyToAnsi } from "Silvery/testing";
 
 const render = createRenderer({ cols: 80, rows: 24 });
 const { lastFrameText, getContainer, stdin, debug } = render(<Board {...props} />);
@@ -668,7 +668,7 @@ km screenshot /path/to/file.md --format ansi -o /tmp/out.txt
 
 **When to use**: Debugging visual issues, sharing TUI state in bug reports.
 
-**Not for**: Automated tests (use hightea test renderer instead).
+**Not for**: Automated tests (use silvery test renderer instead).
 
 ### GUI Tests (ttyd + Playwright)
 
@@ -769,7 +769,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Testing Need             | Use This                | Not This         |
 | ------------------------ | ----------------------- | ---------------- |
-| TUI rendering/navigation | hightea createRenderer | Playwright       |
+| TUI rendering/navigation | silvery createRenderer | Playwright       |
 | CLI command output       | mdtest (.test.md)       | Unit test        |
 | Domain object behavior   | Unit test with DI       | Integration test |
 | Pure function logic      | Unit test               | mdtest           |
@@ -780,7 +780,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ```
 Is it end-user visible behavior?
-├── Yes, TUI → Visual acceptance test (hightea)
+├── Yes, TUI → Visual acceptance test (silvery)
 ├── Yes, CLI → mdtest (.test.md)
 └── No
     ├── Is it a domain object? → Unit test (factory, DI)
@@ -944,7 +944,7 @@ gen((ctx) => {
 })
 ```
 
-**Fuzz terms** (for hightea Provider-based TUI testing):
+**Fuzz terms** (for silvery Provider-based TUI testing):
 
 ```typescript
 import { createFuzzTerm, createReplayTerm } from '../helpers/fuzz-term'

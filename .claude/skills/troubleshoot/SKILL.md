@@ -87,8 +87,8 @@ For pipeline bugs, read the mismatch output carefully — it includes:
 bun worktree create bisect-<name>
 cd <worktree>
 
-# For submodule bisect (e.g., hightea)
-cd vendor/hightea
+# For submodule bisect (e.g., silvery)
+cd vendor/silvery
 git bisect start
 git bisect bad HEAD
 git bisect good <known-good-commit>

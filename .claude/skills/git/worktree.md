@@ -179,7 +179,7 @@ bun worktree create my-feature --allow-dirty
 Push your submodule changes first:
 
 ```bash
-cd vendor/hightea
+cd vendor/silvery
 git push
 cd ../..
 bun worktree create my-feature

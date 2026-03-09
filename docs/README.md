@@ -82,7 +82,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [lessons/refactoring.md](lessons/refactoring.md)                     | Delete first, fix second (with examples)      |
 | [lessons/filetree-as-peer.md](lessons/filetree-as-peer.md)           | Peer vs representation design                 |
 | [lessons/km-me0n.md](lessons/km-me0n.md)                             | Test isolation after data corruption          |
-| [lessons/incremental-rendering.md](lessons/incremental-rendering.md) | Debugging hightea fast-path bugs (build tooling) |
+| [lessons/incremental-rendering.md](lessons/incremental-rendering.md) | Debugging silvery fast-path bugs (build tooling) |
 
 ### Developer Guides
 

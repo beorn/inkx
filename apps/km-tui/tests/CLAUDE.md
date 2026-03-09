@@ -24,7 +24,7 @@ This is the largest test directory (~112 files). Tests here verify what the user
 | Helper                                     | Purpose                                              |
 | ------------------------------------------ | ---------------------------------------------------- |
 | `item(title, ...children)`                 | Fluent tree builder for test fixtures                |
-| `testEnv(builder)`                         | Create virtual board with fake repo + hightea buffer |
+| `testEnv(builder)`                         | Create virtual board with fake repo + silvery buffer |
 | `testEnvWithRepo(builder)`                 | testEnv with repo access for persistence checks      |
 | `renderBoard(nodes, opts)`                 | Static render without interaction                    |
 | `renderBoardWithStore(repo, rootId, opts)` | Static render with store context                     |
@@ -203,7 +203,7 @@ board.expectNodeColor("Buy milk", "whiteBright")
 
 ## Termless TTY Regression Tests
 
-Tests that feed hightea ANSI output through a real terminal emulator (xterm.js/Ghostty WASM) and assert on the resulting terminal state. Catches bugs that virtual buffer tests miss: ANSI generation errors, style leaks across frames, cursor positioning after diff output, wide character rendering.
+Tests that feed silvery ANSI output through a real terminal emulator (xterm.js/Ghostty WASM) and assert on the resulting terminal state. Catches bugs that virtual buffer tests miss: ANSI generation errors, style leaks across frames, cursor positioning after diff output, wide character rendering.
 
 **Speed**: ~30-100ms per test (WASM, in-process, deterministic). Fast enough for CI.
 
@@ -213,15 +213,15 @@ import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
 
 test("board renders correct colors through real terminal", () => {
-  // Render a board, capture ANSI output from hightea
+  // Render a board, capture ANSI output from silvery
   const { board } = testEnv(() => item("board", item("Todo", item("Buy milk"))))
-  const ansiOutput = board.ansi // raw ANSI from hightea output phase
+  const ansiOutput = board.ansi // raw ANSI from silvery output phase
 
   // Feed to real terminal emulator
   const term = createTerminal({ backend: createXtermBackend({ cols: 80, rows: 24 }) })
   term.feed(ansiOutput)
 
-  // Assert on terminal state (not hightea buffer — the actual parsed result)
+  // Assert on terminal state (not silvery buffer — the actual parsed result)
   expect(term.screen).toContainText("Buy milk")
   expect(term.cell(0, 0)).toBeBold()
   expect(term.cell(0, 0)).toHaveFg("#cyan")
@@ -229,7 +229,7 @@ test("board renders correct colors through real terminal", () => {
 })
 ```
 
-**Canonical examples**: `vendor/hightea/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
+**Canonical examples**: `vendor/silvery/tests/output-termless.test.ts` (fullscreen diff), `inline-termless.test.ts` (inline mode), `scrollback-termless.test.ts` (scrollback + cursor).
 
 **@termless/test matchers** (auto-registered via `import "@termless/test/matchers"`):
 

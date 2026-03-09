@@ -42,7 +42,7 @@ bun run test:changed                              # Only changed files
 
 ## Efficiency
 
-These are the lightest tests in the project (~20-50ms import cost). No database, no framework imports. Keep them pure — if a test here needs `@km/storage` or hightea, it belongs in a higher layer.
+These are the lightest tests in the project (~20-50ms import cost). No database, no framework imports. Keep them pure — if a test here needs `@km/storage` or silvery, it belongs in a higher layer.
 
 ## See Also
 

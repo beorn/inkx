@@ -159,14 +159,14 @@ function useInputLayer(id: string, handler: InputHandler) {
 
 ### Implementation
 
-**Completed in km-hightea.driver.1**
+**Completed in km-silvery.driver.1**
 
 Files created:
-- `vendor/hightea/src/contexts/InputLayerContext.tsx` - Context and provider
-- `vendor/hightea/src/hooks/useInputLayer.ts` - Hook re-exports
-- `vendor/hightea/tests/input-layer.test.tsx` - Tests (14 passing)
+- `vendor/silvery/src/contexts/InputLayerContext.tsx` - Context and provider
+- `vendor/silvery/src/hooks/useInputLayer.ts` - Hook re-exports
+- `vendor/silvery/tests/input-layer.test.tsx` - Tests (14 passing)
 
-Exports added to `vendor/hightea/src/index.ts`:
+Exports added to `vendor/silvery/src/index.ts`:
 - `InputLayerProvider` - Wrap your app to enable the layer stack
 - `useInputLayer` - Register a layer with a handler
 - `useInputLayerContext` - Access dispatch and layer management
@@ -213,7 +213,7 @@ The driver (`apps/km-tui/src/driver.ts`) uses `onStateCaptureREPLACE_WITH_CREATE
 
 ### Target State
 
-Migrate driver to use `createApp()` from @hightea/term/runtime:
+Migrate driver to use `createApp()` from Silvery/runtime:
 1. Define board state + key handlers via `createApp()`
 2. Board component uses `useApp(selector)` for state
 3. Driver accesses state via `app.store.getState()` directly

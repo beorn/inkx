@@ -174,7 +174,7 @@
         "tests/**/*.ts"
       ]
     },
-    "vendor/hightea": {
+    "vendor/silvery": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts",
@@ -187,7 +187,7 @@
         "tests/**/*.tsx"
       ]
     },
-    "vendor/hightea/packages/ansi": {
+    "vendor/silvery/packages/ansi": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts"
@@ -197,7 +197,7 @@
         "tests/**/*.ts"
       ]
     },
-    "vendor/hightea/packages/core": {
+    "vendor/silvery/packages/core": {
       "entry": [
         "src/index.ts"
       ],
@@ -205,7 +205,7 @@
         "src/**/*.ts"
       ]
     },
-    "vendor/hightea/packages/ui": {
+    "vendor/silvery/packages/ui": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts",

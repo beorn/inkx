@@ -193,38 +193,38 @@ These colors have specific semantic meanings and **MUST NOT** be reused:
 
 ---
 
-## Chalk vs hightea Styling
+## Chalk vs silvery Styling
 
 The TUI uses two styling systems that can conflict:
 
 | System         | How it works                                              | Best for                                     |
 | -------------- | --------------------------------------------------------- | -------------------------------------------- |
-| **hightea props** | `<Box backgroundColor="cyan">` fills entire computed area | Backgrounds, containers, selection           |
+| **silvery props** | `<Box backgroundColor="cyan">` fills entire computed area | Backgrounds, containers, selection           |
 | **chalk/ANSI** | `chalk.bgCyan('text')` only colors text characters        | Inline text styling (bold, italic, fg color) |
 
 ### The Rule
 
-**Don't use chalk.bg\* when hightea backgroundColor is set on the Text or any parent Box.**
+**Don't use chalk.bg\* when silvery backgroundColor is set on the Text or any parent Box.**
 
-When both are used, chalk bg only colors the text characters while hightea fills the whole box, creating visible gaps in the padding/empty space.
+When both are used, chalk bg only colors the text characters while silvery fills the whole box, creating visible gaps in the padding/empty space.
 
 ### Safe Patterns
 
 ```tsx
-// OK: hightea bg only
+// OK: silvery bg only
 <Box backgroundColor="cyan"><Text>plain text</Text></Box>
 
-// OK: chalk bg only (no hightea bg)
+// OK: chalk bg only (no silvery bg)
 <Text>{chalk.bgYellow('highlighted')}</Text>
 
-// OK: chalk for text styling (no bg), hightea for container bg
+// OK: chalk for text styling (no bg), silvery for container bg
 <Box backgroundColor="cyan"><Text>{chalk.bold('bold text')}</Text></Box>
 ```
 
 ### Unsafe Pattern
 
 ```tsx
-// BAD: Both hightea bg AND chalk bg
+// BAD: Both silvery bg AND chalk bg
 <Box backgroundColor="cyan">
   <Text>{chalk.bgBlack("text")}</Text> // Creates visual gaps
 </Box>
@@ -232,7 +232,7 @@ When both are used, chalk bg only colors the text characters while hightea fills
 
 ### Runtime Detection
 
-InkX detects this conflict at runtime. Control via `HIGHTEA_BG_CONFLICT` env var:
+InkX detects this conflict at runtime. Control via `SILVERY_BG_CONFLICT` env var:
 
 | Value             | Behavior                              |
 | ----------------- | ------------------------------------- |
@@ -242,10 +242,10 @@ InkX detects this conflict at runtime. Control via `HIGHTEA_BG_CONFLICT` env var
 
 ### Intentional Override
 
-If you know what you're doing and intentionally want both backgrounds, use `bgOverride()` from @hightea/ansi:
+If you know what you're doing and intentionally want both backgrounds, use `bgOverride()` from @silvery/ansi:
 
 ```tsx
-import { bgOverride } from "@hightea/ansi"
+import { bgOverride } from "@silvery/ansi"
 
 // This is allowed - you're explicitly opting out of the safety check
 ;<Box backgroundColor="cyan">
@@ -506,7 +506,7 @@ interface BoardState {
 
 ### Pane Focus (Focus Scopes)
 
-Each pane (board, detail) is a hightea **focus scope** — a container that remembers its last focused element. Pane focus is managed via `focusManager.activateScope()` (WPF FocusScope model), which:
+Each pane (board, detail) is a silvery **focus scope** — a container that remembers its last focused element. Pane focus is managed via `focusManager.activateScope()` (WPF FocusScope model), which:
 
 1. Saves the current focus in the outgoing scope's memory
 2. Switches `activeScopeId` to the new scope

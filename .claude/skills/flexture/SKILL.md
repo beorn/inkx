@@ -47,7 +47,7 @@ The differential oracle: build tree → layout → mark dirty → re-layout → 
 When fuzz doesn't catch it, mirror the real component structure:
 
 ```typescript
-import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "@hightea/layout"
+import { Node, FLEX_DIRECTION_COLUMN, OVERFLOW_SCROLL } from "@silvery/layout"
 
 test("mirrors km card structure", () => {
   const root = Node.create()
@@ -197,7 +197,7 @@ Agent 4: Check mutation test coverage
 
 1. **Rebuild** — `cd vendor/flexture && bun run build`
 2. **Benchmark** — Verify no performance regression
-3. **Run hightea tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/hightea/tests/`
+3. **Run silvery tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/silvery/tests/`
 4. **Update docs** — Add to `src/CLAUDE.md` lessons if new pattern discovered
 
 ## Key Files

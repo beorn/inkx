@@ -26,7 +26,7 @@ Follow the [test-first protocol](../tests/test-first-protocol.md). No code analy
 // /tmp/diag-rendering.test.ts
 import { createBoardDriver } from "@km/tui/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "@hightea/term"
+import { withDiagnostics } from "@silvery/term"
 import { item } from "@km/tui/tests/helpers/board-test.ts"
 
 const nodes = item.root("board",
@@ -273,7 +273,7 @@ check.all(board)          // All of the above (synthetic only)
 
 ## Layout Bugs (Wrong Dimensions, Text Overflow, Card Sizing)
 
-If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexture layout caching bug** rather than a hightea rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
+If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexture layout caching bug** rather than a silvery rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
 
 **Quick check**: Does the bug only appear after navigation (re-layout), not on initial render? → Likely a layout caching bug.
 

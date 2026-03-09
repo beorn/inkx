@@ -34,7 +34,7 @@ Consistent naming across all layers — no mixing of synonyms:
 | Phase 1 character ops | **PlainTextOp** | ~16 high-level ops (cursor_left, yank, kill_to_end) |
 | Phase 4 structural ops | **TreeOp** | 9 SlateJS-compatible tree ops (insert_node, split_node) |
 
-**Note**: hightea's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a noun-singleton.
+**Note**: silvery's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a noun-singleton.
 
 ## Why This Shape
 
@@ -68,7 +68,7 @@ Every interactive subsystem mapped to its current state management approach:
 | **Navigation history** | `useBoard.ts` | Data-only back/forward stack | Part of `Board.apply()` (Phase 2) |
 | **Command system** | `command-bridge.ts`, `keybindings.ts` | Key → command → operation (already data-driven) | Unchanged (routes to TEA machines) |
 
-### hightea (framework)
+### silvery (framework)
 
 | Domain | Files | Current Approach | Target |
 |---|---|---|---|
@@ -83,9 +83,9 @@ Every interactive subsystem mapped to its current state management approach:
 ### Key observations
 
 - **Board navigation is closest to TEA**: `dispatchBoard()` already takes operation objects and returns state changes. Extracting the pure function is straightforward.
-- **Text editing has the most duplication**: readline-ops (hightea) and board-actions-edit (km-tui) both handle text operations. `PlainText.apply()` unifies them.
+- **Text editing has the most duplication**: readline-ops (silvery) and board-actions-edit (km-tui) both handle text operations. `PlainText.apply()` unifies them.
 - **Command system is already correct**: It translates keys → semantic operations. It just needs to dispatch to TEA machines instead of imperative handlers.
-- **createStore already works**: hightea's runtime is fully TEA. The app machines (Phase 2) can use it directly.
+- **createStore already works**: silvery's runtime is fully TEA. The app machines (Phase 2) can use it directly.
 
 ## The Architecture
 
@@ -94,7 +94,7 @@ Every interactive subsystem mapped to its current state management approach:
 Pure readline-style editing. No framework dependency. The `PlainText` namespace is both a type and a set of pure functions:
 
 ```ts
-// @hightea/term/core — zero dependencies
+// Silvery/core — zero dependencies
 
 namespace PlainText {
   // The state machine — universal 2-param signature
@@ -157,7 +157,7 @@ Each node's rich text body is edited by SlateJS — the mature React-based edito
 ```ts
 // km uses SlateJS directly for body editing
 // On web: slate + slate-react (full DOM rendering)
-// On terminal: slate headless + hightea rendering adapter
+// On terminal: slate headless + silvery rendering adapter
 
 // SlateJS provides its own Editor/Transforms/Node singletons:
 Transforms.insertText(editor, "hello")
@@ -166,7 +166,7 @@ Transforms.splitNodes(editor, { at: point })
 ```
 
 km doesn't build its own rich text engine. SlateJS is the engine. km provides:
-- A **hightea rendering adapter** for terminal display (translates Slate's element/leaf tree to hightea components)
+- A **silvery rendering adapter** for terminal display (translates Slate's element/leaf tree to silvery components)
 - **ID-based node addressing** at the Tree level (SlateJS uses paths internally within a body, which is fine — bodies are small, path instability doesn't matter within a single node)
 - **Kill ring integration** via the same effect pattern as PlainText
 
@@ -602,7 +602,7 @@ km has two editing levels with clear scope boundaries:
 ```
 
 - **Tree.apply()** handles tree operations: insert_node, remove_node, move_node, set_node, set_selection, load_children. Delegates body editing to SlateJS.
-- **SlateJS** handles body content: paragraphs, inline formatting, lists, code blocks. On web: slate + slate-react. On terminal: slate headless + hightea rendering adapter. Path-based addressing within a body is fine — bodies are small and path instability doesn't matter at that scope.
+- **SlateJS** handles body content: paragraphs, inline formatting, lists, code blocks. On web: slate + slate-react. On terminal: slate headless + silvery rendering adapter. Path-based addressing within a body is fine — bodies are small and path instability doesn't matter at that scope.
 - **PlainText.apply()** handles simple single-line inputs: search bars, dialog text fields, inline title editing. No rich text, no marks — just cursor + readline shortcuts.
 
 SlateJS-compatibility means:
@@ -704,7 +704,7 @@ Both modes share the same rendering code. The only difference is who drives the 
 
 ## Phased Plan
 
-### Phase 1: PlainText (@hightea/term/core) — character-level TEA
+### Phase 1: PlainText (Silvery/core) — character-level TEA
 
 Extract from `handleReadlineKey`. Pure noun-singleton, zero dependencies, no React.
 
@@ -734,7 +734,7 @@ Replace Zustand's imperative `setUI()` with composed pure machines. Machines com
 
 Integrate SlateJS as the body editor for individual nodes:
 
-- **Terminal adapter**: Translate SlateJS element/leaf tree to hightea components for rendering
+- **Terminal adapter**: Translate SlateJS element/leaf tree to silvery components for rendering
 - **Shared operations**: Same op names as km's TreeOps where applicable (`insert_text`, `split_node`)
 - **Kill ring integration**: Same effect pattern as PlainText
 - **Selection bridge**: When editing a body, the global selection is `TextSelection` with the body node's ID; SlateJS manages the internal cursor
@@ -743,7 +743,7 @@ Integrate SlateJS as the body editor for individual nodes:
 // Body editing flow:
 // 1. User presses Enter on a node → Board dispatches "enter edit mode"
 // 2. SlateJS editor created/focused for that node's body
-// 3. Keys route to SlateJS (via hightea adapter on terminal)
+// 3. Keys route to SlateJS (via silvery adapter on terminal)
 // 4. Escape → Board dispatches "exit edit mode" → NodeSelection
 ```
 
@@ -783,7 +783,7 @@ Phase 3 (future)   SlateJS integration    per-node body editing (rich text)
 Phase 4 (future)   Tree.apply()           document tree, undo, CRDT
 ```
 
-Each phase is independently useful. Phase 1 improves hightea today. Phase 2 improves km-tui testability. Phase 3 enables rich text editing. Phase 4 enables the full document model with collaboration.
+Each phase is independently useful. Phase 1 improves silvery today. Phase 2 improves km-tui testability. Phase 3 enables rich text editing. Phase 4 enables the full document model with collaboration.
 
 ## Reactivity Integration
 
@@ -855,14 +855,14 @@ function dispatch(state: BoardState, op: BoardOp): BoardState {
 
 The common pattern: **the state transition function produces enough information to compute the minimal UI update**.
 
-## @hightea/term/tea — Zustand Middleware
+## Silvery/tea — Zustand Middleware
 
-The TEA effects-as-data pattern now has a concrete runtime in hightea: a ~30-line Zustand `StateCreator` middleware exported from `@hightea/term/tea`.
+The TEA effects-as-data pattern now has a concrete runtime in silvery: a ~30-line Zustand `StateCreator` middleware exported from `Silvery/tea`.
 
 ### Shape
 
 ```ts
-import { tea, collect } from "@hightea/term/tea"
+import { tea, collect } from "Silvery/tea"
 
 const store = createStore(
   tea(initialState, reducer, { runners })
@@ -896,12 +896,12 @@ Effect runners are injected via `options.runners`, making them swappable: produc
 
 ### Status
 
-Shipped in hightea, export path `@hightea/term/tea`. PlainText already uses it internally. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
+Shipped in silvery, export path `Silvery/tea`. PlainText already uses it internally. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
 
 ## See Also
 
 - [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
-- [focus-routing.md](../../vendor/hightea/docs/deep-dives/focus-routing.md) — Command-system input routing
+- [focus-routing.md](../../vendor/silvery/docs/deep-dives/focus-routing.md) — Command-system input routing
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects
 

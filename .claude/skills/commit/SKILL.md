@@ -44,17 +44,17 @@ git push
 
 ```bash
 set -e
-(cd vendor/hightea && bun run lint --fix && git add -A && git commit -m "fix(hightea): msg
+(cd vendor/silvery && bun run lint --fix && git add -A && git commit -m "fix(silvery): msg
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>")
 
 bd sync 2>/dev/null || true
-git add vendor/hightea file1.ts && \
+git add vendor/silvery file1.ts && \
   git diff --cached --quiet && echo "Already committed by bd sync" || \
   git commit -m "fix(tui): msg
 
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
-(cd vendor/hightea && git push)
+(cd vendor/silvery && git push)
 git push
 ```
 

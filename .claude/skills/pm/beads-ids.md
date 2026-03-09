@@ -21,8 +21,8 @@ sqlite3 .beads/beads.db "SELECT id FROM issues LIMIT 1"
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/hightea | `hightea-` |
-| vendor/hightea/packages/ansi | `hightea/packages/ansi-` |
+| vendor/silvery | `silvery-` |
+| vendor/silvery/packages/ansi | `silvery/packages/ansi-` |
 | Other vendor packages | `beorn-<name>-` |
 
 **Never assume `km-`** — always verify for the current working directory. The `bd` command will reject mismatched prefixes.
@@ -56,7 +56,7 @@ km-<scope>-<N>
 
 - `km-storage-15` - Storage package work #15
 - `km-tui.persist-nav` - TUI board navigation persistence
-- `km-hightea.bg-bleed` - hightea background color bleed bug
+- `km-silvery.bg-bleed` - silvery background color bleed bug
 
 **Metadata carries classification:**
 
@@ -84,9 +84,9 @@ km-vitestx             # Test framework tracking epic
 km-vitestx.mdtest      # mdtest vitest plugin subtask
 km-infra.ci-fuzz       # CI fuzzing (cross-cutting infra)
 
-km-hightea                # hightea tracking epic
-km-hightea.stale-pixels   # Stale pixel bugs subtask
-km-hightea.bg-bleed       # Background color bleed subtask
+km-silvery                # silvery tracking epic
+km-silvery.stale-pixels   # Stale pixel bugs subtask
+km-silvery.bg-bleed       # Background color bleed subtask
 ```
 
 **Note**: Dot notation works with ANY prefix — not just `km-`. Always check the database prefix first.
@@ -131,9 +131,9 @@ km-<4-5 char random>
 
 | Scenario              | Pattern         | Example                                    | Notes                           |
 | --------------------- | --------------- | ------------------------------------------ | ------------------------------- |
-| Package-specific bug  | 1: Scoped       | `km-storage-15`, `hightea-render-3`     | Check prefix first, find next N |
-| Feature in a package  | 1: Scoped       | `km-tui-8`, `hightea/packages/ansi-color-2`         | Clear scope                     |
-| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-hightea.bg-bleed`       | Dot notation works with any prefix |
+| Package-specific bug  | 1: Scoped       | `km-storage-15`, `silvery-render-3`     | Check prefix first, find next N |
+| Feature in a package  | 1: Scoped       | `km-tui-8`, `silvery/packages/ansi-color-2`         | Clear scope                     |
+| Epic with subtasks    | 2: Hierarchical | `km-storage-8.1`, `km-silvery.bg-bleed`       | Dot notation works with any prefix |
 | Cross-package feature | 3: Keyword      | `km-dark-mode`                             | Memorable name                  |
 | Quick bug capture     | 4: Opaque       | `km-5vsut`                                 | Auto-generated                  |
 | Unknown scope yet     | 4: Opaque       | `km-a1b2c`                                 | Refine later                    |
@@ -162,7 +162,7 @@ km-<4-5 char random>
 
 | Scope      | Covers                                           |
 | ---------- | ------------------------------------------------ |
-| `term`     | vendor/beorn-term, beorn-tui, hightea absorb |
+| `term`     | vendor/beorn-term, beorn-tui, silvery absorb |
 | `termless` | vendor/termless (headless terminal testing) |
 | `flexture`    | vendor/flexture                               |
 | `logger`   | vendor/decant                              |
@@ -183,7 +183,7 @@ km-<4-5 char random>
 
 When creating beads for a package/area not listed above:
 
-1. **Use existing scope if related**: e.g., hightea work → `tui` (they're TUI ecosystem)
+1. **Use existing scope if related**: e.g., silvery work → `tui` (they're TUI ecosystem)
 2. **Vendor packages**: Use package name without `beorn-` prefix
 3. **Core packages**: Use package name without `@km/` prefix
 4. **Keep it short**: Prefer 3-6 character scope tokens
@@ -197,9 +197,9 @@ km-storage-8          # Parent epic
 km-storage-8.1        # Subtask 1
 km-storage-8.2        # Subtask 2
 
-km-hightea               # Tracking epic
-km-hightea.stale-pixels  # Named subtask
-km-hightea.bg-bleed      # Named subtask
+km-silvery               # Tracking epic
+km-silvery.stale-pixels  # Named subtask
+km-silvery.bg-bleed      # Named subtask
 ```
 
 **Rules:**

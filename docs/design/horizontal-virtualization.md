@@ -35,7 +35,7 @@ This works but:
 Create a dedicated `HorizontalVirtualList` component alongside `VirtualList`:
 
 ```tsx
-import { HorizontalVirtualList } from '@hightea/term';
+import { HorizontalVirtualList } from 'Silvery';
 
 <HorizontalVirtualList
   items={columns}
@@ -289,7 +289,7 @@ For horizontal, use ◀/▶ instead of ▲/▼:
 ◀3│ Column A │ Column B │ Column C │▶5
 ```
 
-This requires extending hightea's overflow indicator system to support horizontal direction.
+This requires extending silvery's overflow indicator system to support horizontal direction.
 
 ## Challenges
 
@@ -314,21 +314,21 @@ Board already uses VirtualList inside columns. HorizontalVirtualList wrapping Vi
 
 This is fine - they're independent. Inner VirtualList only renders when outer includes that column.
 
-### 4. Horizontal Overflow in hightea
+### 4. Horizontal Overflow in silvery
 
-Current hightea `overflow="scroll"` is vertical-only. Need to:
-1. Add horizontal scroll support to hightea Box
-2. Or implement HorizontalVirtualList using pure React windowing (no hightea scroll)
+Current silvery `overflow="scroll"` is vertical-only. Need to:
+1. Add horizontal scroll support to silvery Box
+2. Or implement HorizontalVirtualList using pure React windowing (no silvery scroll)
 
-Option 2 is simpler and doesn't require hightea changes.
+Option 2 is simpler and doesn't require silvery changes.
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `vendor/hightea/src/components/HorizontalVirtualList.tsx` | New component |
-| `vendor/hightea/src/index.ts` | Export HorizontalVirtualList |
-| `vendor/hightea/CLAUDE.md` | Document HorizontalVirtualList |
+| `vendor/silvery/src/components/HorizontalVirtualList.tsx` | New component |
+| `vendor/silvery/src/index.ts` | Export HorizontalVirtualList |
+| `vendor/silvery/CLAUDE.md` | Document HorizontalVirtualList |
 | `apps/km-tui/src/views/Board.tsx` | Migrate to HorizontalVirtualList |
 | `apps/km-tui/src/views/CardsView.tsx` | Migrate if applicable |
 
@@ -358,7 +358,7 @@ Option 2 is simpler and doesn't require hightea changes.
    - But complicates width calculations
 
 2. **Support bidirectional scroll in single Box?**
-   - Would require hightea changes
+   - Would require silvery changes
    - Defer to VirtualGrid if needed
 
 3. **Indicator style - border vs overlay?**
@@ -368,7 +368,7 @@ Option 2 is simpler and doesn't require hightea changes.
 ## Next Steps
 
 1. [ ] Create bead for this feature
-2. [ ] Implement HorizontalVirtualList in hightea
+2. [ ] Implement HorizontalVirtualList in silvery
 3. [ ] Add tests
 4. [ ] Migrate Board.tsx
 5. [ ] Update documentation

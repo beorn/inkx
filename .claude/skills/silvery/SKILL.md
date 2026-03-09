@@ -1,9 +1,9 @@
 ---
-description: Debug and fix hightea rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when hightea renders incorrectly or has visual artifacts.
+description: Debug and fix silvery rendering issues — incremental rendering, dirty flags, scroll containers, sticky children. Use when silvery renders incorrectly or has visual artifacts.
 argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven workflow)
 ---
 
-# hightea Diagnostic Workflow
+# silvery Diagnostic Workflow
 
 **Issue**: $ARGUMENTS
 
@@ -12,7 +12,7 @@ argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven 
 ```
 I see a visual glitch
 ├── Content correct on initial render, wrong after navigation?
-│   └── Incremental rendering bug → Step 1: HIGHTEA_STRICT
+│   └── Incremental rendering bug → Step 1: SILVERY_STRICT
 ├── Wrong sizes or positions (not wrong pixels)?
 │   └── Possibly a Flexture layout bug → See .claude/skills/flexture/SKILL.md
 ├── Scroll content jumps or disappears?
@@ -22,7 +22,7 @@ I see a visual glitch
 ├── Border artifacts after color change?
 │   └── paintDirty cascading → Step 5: Check contentAreaAffected
 └── Ghost characters or stale pixels?
-    └── Output phase or region clearing → Step 1: HIGHTEA_STRICT
+    └── Output phase or region clearing → Step 1: SILVERY_STRICT
 ```
 
 ## Diagnostic Steps
@@ -45,22 +45,22 @@ For non-testEnv tests, use `withDiagnostics({ checkIncremental: true })` on the 
 
 If a test exercises dialog open/close, toast show/hide, or any component mount/unmount and does NOT have incremental checking, **add it before investigating**.
 
-### Step 1: HIGHTEA_STRICT
+### Step 1: SILVERY_STRICT
 
-Run with HIGHTEA_STRICT to catch incremental vs fresh render divergence at the runtime level.
+Run with SILVERY_STRICT to catch incremental vs fresh render divergence at the runtime level.
 
 ```bash
 # In the app (catches production createApp path issues)
-HIGHTEA_STRICT=1 bun km view /path/to/vault
+SILVERY_STRICT=1 bun km view /path/to/vault
 
 # In tests (testEnv checks incremental by default since 2026-02-17)
-bun vitest run vendor/hightea/tests/
+bun vitest run vendor/silvery/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
-**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `HIGHTEA_STRICT=1` with the real app for those.
+**Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `SILVERY_STRICT=1` with the real app for those.
 
-If HIGHTEA_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
+If SILVERY_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
 - **Cell values** (incremental vs fresh) — shows exactly what diverged
 - **Node path** — which component owns the mismatched cell
 - **Dirty flags** — whether the node was clean when it shouldn't have been
@@ -69,17 +69,17 @@ If HIGHTEA_STRICT throws `IncrementalRenderMismatchError`, the error output incl
 
 ### Step 2: Write a Failing Test
 
-Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For hightea bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
+Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For silvery bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
 
-### Step 3: HIGHTEA_INSTRUMENT
+### Step 3: SILVERY_INSTRUMENT
 
 Enable performance instrumentation to see skip/render counts:
 
 ```bash
-HIGHTEA_INSTRUMENT=1 bun km view /path
+SILVERY_INSTRUMENT=1 bun km view /path
 ```
 
-Exposed on `globalThis.__hightea_content_detail` (per-frame) and `globalThis.__hightea_content_all` (array):
+Exposed on `globalThis.__silvery_content_detail` (per-frame) and `globalThis.__silvery_content_all` (array):
 - `nodesVisited`, `nodesRendered`, `nodesSkipped` — too many renders = over-invalidation
 - `clearOps` — how many region clears happened
 - `cascadeMinDepth`, `cascadeNodes` — cascade analysis
@@ -90,7 +90,7 @@ Exposed on `globalThis.__hightea_content_detail` (per-frame) and `globalThis.__h
 For node-level diagnostics when you have a specific mismatch position:
 
 ```typescript
-import { findNodeAtPosition, getNodeDebugInfo, buildMismatchContext } from "@hightea/term/debug-mismatch"
+import { findNodeAtPosition, getNodeDebugInfo, buildMismatchContext } from "silvery/debug-mismatch"
 
 const ctx = buildMismatchContext(root, mismatch, incrementalBuffer, freshBuffer)
 console.log(formatMismatchContext(ctx))
@@ -131,7 +131,7 @@ When multiple hypotheses exist, test them concurrently:
 
 ```
 Agent 1: Test "dirty flag propagation" hypothesis
-  → Write test targeting flag cascade, check with HIGHTEA_STRICT
+  → Write test targeting flag cascade, check with SILVERY_STRICT
 
 Agent 2: Test "scroll tier selection" hypothesis
   → Write test with scroll container, vary scroll offset, check tier
@@ -151,16 +151,16 @@ Merge findings: typically one agent's test fails, confirming that hypothesis.
 # Pre-flight: check CPU load
 top -l 1 -n 5 -stats command,cpu | head -10
 
-# Run hightea benchmarks (if they exist for the area you're changing)
-bun vitest run vendor/hightea/tests/
+# Run silvery benchmarks (if they exist for the area you're changing)
+bun vitest run vendor/silvery/tests/
 
 # Run the full app to verify no visual regression
-HIGHTEA_STRICT=1 bun km view /path
+SILVERY_STRICT=1 bun km view /path
 ```
 
 ## After Fixing
 
-1. **Promote regression test** — Move from `/tmp/` to `vendor/hightea/tests/` or `apps/km-tui/tests/`
+1. **Promote regression test** — Move from `/tmp/` to `vendor/silvery/tests/` or `apps/km-tui/tests/`
 2. **Update docs** — Add to pipeline `CLAUDE.md` lessons if new pattern discovered
 3. **Create prevention bead** — If structural change needed to prevent this class of bug
 
@@ -179,7 +179,7 @@ HIGHTEA_STRICT=1 bun km view /path
 
 ## Cross-References
 
-- `vendor/hightea/src/pipeline/CLAUDE.md` — Dirty flags, cascade, scroll tiers, lessons learned
+- `vendor/silvery/src/pipeline/CLAUDE.md` — Dirty flags, cascade, scroll tiers, lessons learned
 - `.claude/skills/tui/fix.md` — TUI-level debugging (board driver, diagnostics)
 - `.claude/skills/explore/random.md` — Fuzz testing workflow
 - `docs/lessons/debugging-rendering.md` — Anti-patterns when debugging rendering

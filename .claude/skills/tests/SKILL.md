@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 
 # Testing
 
-**Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, hightea
+**Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, silvery
 
 ## Workflows
 
@@ -71,7 +71,7 @@ Dot reporter is the default (configured in vitest.config.ts) — one dot per tes
 
 **When iterating on a package**, run vitest directly on that directory:
 ```bash
-bun vitest run vendor/hightea/tests/
+bun vitest run vendor/silvery/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
@@ -120,7 +120,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Category | What | Skill |
 |----------|------|-------|
-| **TUI Tests** | Term buffer (hightea) | [tui.md](tui.md) |
+| **TUI Tests** | Term buffer (silvery) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
 | **Fuzz (TUI)** | gen/take/test.fuzz (vitestx) | [vitestx CLAUDE.md](../../../vendor/vitestx/CLAUDE.md) |
@@ -240,7 +240,7 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | ---------------------------- | ----------------------------------------------- |
 | TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
 | Test layering philosophy     | [test-layers.md](test-layers.md)                |
-| TUI testing (hightea)        | [tui.md](tui.md)                                |
+| TUI testing (silvery)        | [tui.md](tui.md)                                |
 | CLI testing (mdtest)         | [cli.md](cli.md)                                |
 | GUI/TTY testing (ttyd/playwright)| [gui.md](gui.md)                                |
 | Benchmarks                   | [bench.md](bench.md)                            |

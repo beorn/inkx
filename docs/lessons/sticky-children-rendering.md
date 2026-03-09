@@ -6,7 +6,7 @@
 
 ## The Bug
 
-After adding sticky children support to hightea's scroll containers, all 10 fuzz test seeds failed with `IncrementalRenderMismatchError`. The incremental render produced different buffer content than a fresh render, specifically at positions where sticky headers rendered.
+After adding sticky children support to silvery's scroll containers, all 10 fuzz test seeds failed with `IncrementalRenderMismatchError`. The incremental render produced different buffer content than a fresh render, specifically at positions where sticky headers rendered.
 
 ## Root Cause
 
@@ -54,13 +54,13 @@ This means:
 ## What Worked
 
 1. **Fuzz testing caught it immediately** — 10/10 seeds failed, making it impossible to ignore
-2. **`HIGHTEA_STRICT=1` pinpointed exact positions** — Error output showed cell values, node paths, bg values
+2. **`SILVERY_STRICT=1` pinpointed exact positions** — Error output showed cell values, node paths, bg values
 3. **Each fix was validated independently** — Could see mismatch count drop with each fix (10 → 6 → 2 → 0)
 4. **The pipeline CLAUDE.md was essential** — Understanding the three scroll tiers and the cascade formulas made the fix path clear
 
 ## Cross-References
 
-- `vendor/hightea/src/pipeline/CLAUDE.md` — Scroll container three-tier strategy, sticky children two-pass rendering
-- `vendor/hightea/src/pipeline/content-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
-- `docs/lessons/debugging-rendering.md` — General hightea debugging methodology
+- `vendor/silvery/src/pipeline/CLAUDE.md` — Scroll container three-tier strategy, sticky children two-pass rendering
+- `vendor/silvery/src/pipeline/content-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
+- `docs/lessons/debugging-rendering.md` — General silvery debugging methodology
 - `docs/lessons/incremental-rendering.md` — Fast-path logic and common bug patterns

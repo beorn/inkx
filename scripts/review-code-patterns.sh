@@ -174,7 +174,7 @@ grep -rn "^\s\+.*createRenderer" packages apps --include="*.test.ts" --include="
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
-echo "=== PATTERN 23: Old hightea APIs ==="
+echo "=== PATTERN 23: Old silvery APIs ==="
 # Old testing patterns that should use modern app.text / app.ansi:
 #   - lastFrame() - old way, use app.ansi for ANSI or app.text for plain
 #   - getContainer() - use app.locator() instead (auto-refreshing)
@@ -248,7 +248,7 @@ echo ""
 # DEPRECATED APIS (Patterns 28-30) - see km-deprecations bead
 # =============================================================================
 
-echo "=== PATTERN 28: Deprecated hightea APIs ==="
+echo "=== PATTERN 28: Deprecated silvery APIs ==="
 # APIs that should be migrated (see km-deprecations bead)
 #   - app.html → app.ansi
 #   - useLayout → useContentRect
@@ -261,14 +261,14 @@ grep -rn "app\.html\|useLayout()\|layoutEqual\|computedLayout\|ANSI_REGEX\|flext
 echo ""
 
 echo "=== PATTERN 29: Deprecated ansi APIs ==="
-# Old @hightea/ansi patterns (see km-deprecations bead)
-#   - import chalkX from '@hightea/ansi' → import { createTerm } from '@hightea/ansi'
-#   - import { chalk } from '@hightea/ansi' → term.red() etc
+# Old @silvery/ansi patterns (see km-deprecations bead)
+#   - import chalkX from '@silvery/ansi' → import { createTerm } from '@silvery/ansi'
+#   - import { chalk } from '@silvery/ansi' → term.red() etc
 #   - supportsExtendedUnderline() → detectExtendedUnderline()
 #   - setExtendedUnderlineSupport() → createTerm({ extendedUnderline })
-grep -rn "supportsExtendedUnderline\|setExtendedUnderlineSupport\|from.*@hightea/ansi.*chalk\b" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+grep -rn "supportsExtendedUnderline\|setExtendedUnderlineSupport\|from.*@silvery/ansi.*chalk\b" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
-grep -rn "import chalkX\|import.*default.*from.*@hightea/ansi" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
+grep -rn "import chalkX\|import.*default.*from.*@silvery/ansi" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/" || true
 echo ""
 
@@ -285,8 +285,8 @@ grep -rn "from.*repo-loader\|from.*@km/storage.*loadRepo" packages --include="*.
 echo ""
 
 echo "=== PATTERN 31: Manual layout calculations in app code ==="
-# displayWidth() in app code suggests manual layout that should be handled by hightea/flexture
-# NOTE: Currently a known workaround for km-hightea-flexgrow bug - review when bug is fixed
+# displayWidth() in app code suggests manual layout that should be handled by silvery/flexture
+# NOTE: Currently a known workaround for km-silvery-flexgrow bug - review when bug is fixed
 # Exclude vendor/ (library code may need it) and test files
 grep -rn "displayWidth(" apps packages --include="*.ts" --include="*.tsx" 2>/dev/null \
   | grep -v "node_modules\|vendor/\|\.test\.\|tests/" || true

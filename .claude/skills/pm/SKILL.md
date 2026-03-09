@@ -14,7 +14,7 @@ Issue tracking using beads. Coordinates work across Claude sessions.
 
 **Directory**: Always run `bd` commands from the km root (`/Users/beorn/Code/pim/km`). If in a subdirectory (e.g., `vendor/*`), prefix commands with `cd /Users/beorn/Code/pim/km &&`.
 
-**Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `hightea-*`). Always check with `bd list --limit 1` before creating.
+**Submodule warning**: In `vendor/*` directories, beads use different prefixes (e.g., `silvery-*`). Always check with `bd list --limit 1` before creating.
 
 ## Current State
 
@@ -82,7 +82,7 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 
 | Epic | Scope | Example |
 |------|-------|---------|
-| `km-hightea` | hightea rendering engine | `km-hightea.bg-bleed` |
+| `km-silvery` | silvery rendering engine | `km-silvery.bg-bleed` |
 | `km-flexture` | Flexture layout engine | `km-flexture.cold-start` |
 | `km-tui` | TUI app views/interaction | `km-tui.emptybody` |
 | `km-vitestx` | Test framework package | `km-vitestx.mdtest` |

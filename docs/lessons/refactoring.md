@@ -20,13 +20,13 @@ Hard-won lessons from big refactoring projects. Follow these to avoid common tra
 
 ---
 
-## Case Study 2: hightea/ansi Absorption
+## Case Study 2: silvery/ansi Absorption
 
 **Bead**: km-term-2 epic
 
-**Problem**: `@beorn/tui` depended on hightea, causing module resolution issues.
+**Problem**: `@beorn/tui` depended on silvery, causing module resolution issues.
 
-**Wrong approach**: Re-exported hightea components from tui ("for convenience").
+**Wrong approach**: Re-exported silvery components from tui ("for convenience").
 
 **Result**: Confusing import paths, bundle issues, unclear boundaries between packages.
 

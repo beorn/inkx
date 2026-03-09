@@ -212,7 +212,7 @@ Ctrl+P = find prev (when find bar active + text input)
 
 In km-commands, modifiers use macOS user-facing names:
 
-| km-commands field | Key | hightea field |
+| km-commands field | Key | silvery field |
 |-------------------|-----|------------|
 | `cmd` | Cmd (⌘) | `super` |
 | `opt` | Option (⌥) | `meta` |

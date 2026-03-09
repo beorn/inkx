@@ -51,11 +51,11 @@ Bug 1 was found by a targeted test. Bugs 2 and 3 were found by fuzz testing — 
 - `vendor/flexture/tests/relayout-consistency.test.ts` — 1100+ tests across 9 groups
 - `vendor/flexture/docs/testing.md` — test methodology
 - `vendor/flexture/docs/incremental-layout-bugs.md` — bug taxonomy with Chrome/Yoga/PanGui industry context
-- `vendor/hightea/tests/layout-snapshots.test.tsx` — 7 rendered output snapshot tests
+- `vendor/silvery/tests/layout-snapshots.test.tsx` — 7 rendered output snapshot tests
 
 ## Cross-References
 
 - `vendor/flexture/docs/incremental-layout-bugs.md` — full bug taxonomy and industry history
 - `vendor/flexture/docs/testing.md` — test infrastructure reference
-- `docs/lessons/debugging-rendering.md` — complementary lesson on hightea rendering bugs
-- `docs/lessons/incremental-rendering.md` — hightea incremental rendering (distinct from layout caching)
+- `docs/lessons/debugging-rendering.md` — complementary lesson on silvery rendering bugs
+- `docs/lessons/incremental-rendering.md` — silvery incremental rendering (distinct from layout caching)

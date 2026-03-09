@@ -16,11 +16,11 @@ To use native resolution (no paths, no plugins), add workspace packages to root 
 
 ### 1. Bun Runtime
 
-**How it resolves**: Bun has internal knowledge of workspace packages. When you run `bun run file.ts`, it resolves `@hightea/ansi` directly to `vendor/hightea/packages/ansi` without needing symlinks.
+**How it resolves**: Bun has internal knowledge of workspace packages. When you run `bun run file.ts`, it resolves `@silvery/ansi` directly to `vendor/silvery/packages/ansi` without needing symlinks.
 
 ```bash
 # Works - Bun knows about workspaces internally
-echo 'import { createTerm } from "@hightea/ansi"' | bun run -
+echo 'import { createTerm } from "@silvery/ansi"' | bun run -
 ```
 
 **Symlink behavior**: Bun only creates symlinks in a package's `node_modules` when that package explicitly depends on another workspace package via `workspace:*`.
@@ -30,15 +30,15 @@ Example: `apps/km-cli/package.json` has:
 ```json
 {
   "dependencies": {
-    "@hightea/term": "workspace:*",
-    "@hightea/ansi": "workspace:*"
+    "Silvery": "workspace:*",
+    "@silvery/ansi": "workspace:*"
   }
 }
 ```
 
-So `apps/km-cli/node_modules/@hightea/term` exists as a symlink to `vendor/hightea`.
+So `apps/km-cli/node_modules/Silvery` exists as a symlink to `vendor/silvery`.
 
-But root `node_modules/@hightea/ansi` does NOT exist because the root `package.json` doesn't depend on it.
+But root `node_modules/@silvery/ansi` does NOT exist because the root `package.json` doesn't depend on it.
 
 ### 2. TypeScript (tsc)
 
@@ -50,8 +50,8 @@ But root `node_modules/@hightea/ansi` does NOT exist because the root `package.j
 {
   "compilerOptions": {
     "paths": {
-      "@hightea/ansi": ["vendor/hightea/packages/ansi/src/index.ts"],
-      "@hightea/term": ["vendor/hightea/src/index.ts"]
+      "@silvery/ansi": ["vendor/silvery/packages/ansi/src/index.ts"],
+      "Silvery": ["vendor/silvery/src/index.ts"]
     }
   }
 }
@@ -60,7 +60,7 @@ But root `node_modules/@hightea/ansi` does NOT exist because the root `package.j
 **Without paths**: TypeScript fails:
 
 ```
-error TS2307: Cannot find module '@hightea/ansi' or its corresponding type declarations.
+error TS2307: Cannot find module '@silvery/ansi' or its corresponding type declarations.
 ```
 
 ### 3. Vite / Vitest
@@ -103,17 +103,17 @@ Add workspace packages as devDependencies in root `package.json`:
 ```json
 {
   "devDependencies": {
-    "@hightea/ansi": "workspace:*",
+    "@silvery/ansi": "workspace:*",
     "@beorn/mdtest": "workspace:*",
-    "@hightea/term": "workspace:*"
+    "Silvery": "workspace:*"
   }
 }
 ```
 
 Then `bun install` creates symlinks:
 
-- `node_modules/@hightea/ansi` → `vendor/hightea/packages/ansi`
-- `node_modules/@hightea/term` → `vendor/hightea`
+- `node_modules/@silvery/ansi` → `vendor/silvery/packages/ansi`
+- `node_modules/Silvery` → `vendor/silvery`
 
 TypeScript and Vite then resolve via standard node_modules lookup.
 
@@ -127,9 +127,9 @@ Create symlinks manually in a postinstall script. More complex, less idiomatic.
 
 | Folder                 | Package Name     | Import As        |
 | ---------------------- | ---------------- | ---------------- |
-| `vendor/hightea/packages/ansi`  | `@hightea/ansi`  | `@hightea/ansi`  |
-| `vendor/hightea`    | `@hightea/term`  | `@hightea/term`  |
-| `vendor/hightea/packages/ui` | `@hightea/ui` | `@hightea/ui` |
+| `vendor/silvery/packages/ansi`  | `@silvery/ansi`  | `@silvery/ansi`  |
+| `vendor/silvery`    | `Silvery`  | `Silvery`  |
+| `vendor/silvery/packages/ui` | `@silvery/ui` | `@silvery/ui` |
 | `packages/km-core`     | `@km/core`       | `@km/core`       |
 
 Note: Folder name doesn't have to match package name. The `name` field in `package.json` is what matters.
@@ -140,16 +140,16 @@ Note: Folder name doesn't have to match package name. The `name` field in `packa
 
 ```bash
 # Check what Bun knows about workspaces
-bun pm ls | grep -E "@hightea|@beorn|@km"
+bun pm ls | grep -E "@silvery|@beorn|@km"
 
 # Check if symlink exists
-ls -la node_modules/@hightea/ansi
+ls -la node_modules/@silvery/ansi
 
 # Test Bun runtime resolution
-bun -e "console.log(require.resolve('@hightea/ansi'))"
+bun -e "console.log(require.resolve('@silvery/ansi'))"
 
 # Test TypeScript resolution (will fail without paths/symlinks)
-echo 'import "@hightea/ansi"' > /tmp/test.ts && bun tsc --noEmit /tmp/test.ts
+echo 'import "@silvery/ansi"' > /tmp/test.ts && bun tsc --noEmit /tmp/test.ts
 ```
 
 ---

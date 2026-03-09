@@ -155,13 +155,13 @@ ENDOFFILE
 
 # Append full source files (use cat, not excerpts)
 echo '### types.ts' >> /tmp/fresh-context.md
-cat vendor/hightea/src/types.ts >> /tmp/fresh-context.md
+cat vendor/silvery/src/types.ts >> /tmp/fresh-context.md
 
 echo '### content-phase.ts' >> /tmp/fresh-context.md
-cat vendor/hightea/src/pipeline/content-phase.ts >> /tmp/fresh-context.md
+cat vendor/silvery/src/pipeline/content-phase.ts >> /tmp/fresh-context.md
 
 echo '### layout-phase.ts' >> /tmp/fresh-context.md
-cat vendor/hightea/src/pipeline/layout-phase.ts >> /tmp/fresh-context.md
+cat vendor/silvery/src/pipeline/layout-phase.ts >> /tmp/fresh-context.md
 
 # ... etc — include ALL relevant files
 ```

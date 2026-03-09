@@ -91,7 +91,7 @@ Synthesize findings into categorized issues. For each issue, classify:
 |----------|-------|------|---------|
 | **Code DRY** | Functions, patterns | Medium | Identical helper in 3 files |
 | **Stale docs** | Renamed APIs, wrong numbers | High | useLayout() renamed to useContentRect() 3 months ago |
-| **Naming** | Inconsistent casing/terms | Low | "Hightea" vs "hightea" in prose |
+| **Naming** | Inconsistent casing/terms | Low | "Hightea" vs "silvery" in prose |
 | **Structure** | Doc organization, file sizes | Medium | 627-line getting-started is really 2 docs |
 | **Overlap** | Duplicate content | Medium | comparison.md and ink-comparison.md share 80% |
 | **Narrative** | README doesn't sell the project | High | Tagline undersells, features are a flat dump |

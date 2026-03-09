@@ -1,12 +1,12 @@
 ---
-description: TUI testing with hightea - character-level terminal buffer testing
+description: TUI testing with silvery - character-level terminal buffer testing
 ---
 
-# TUI Tests (hightea)
+# TUI Tests (silvery)
 
-Character-level terminal buffer testing via hightea.
+Character-level terminal buffer testing via silvery.
 
-**Keywords**: TUI test, hightea, board.spec, testEnv, acceptance, component, unit
+**Keywords**: TUI test, silvery, board.spec, testEnv, acceptance, component, unit
 
 ---
 
@@ -177,7 +177,7 @@ board.expect("[data-selected]").toHaveCount(1) // One selected item
 Layout and visibility matchers for InkxLocator elements:
 
 ```typescript
-import { createLocator } from "@hightea/term/testing"
+import { createLocator } from "@silvery/term/testing"
 
 const locator = createLocator(result.getContainer())
 const col1 = locator.getByTestId("col1")

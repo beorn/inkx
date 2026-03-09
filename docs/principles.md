@@ -1287,6 +1287,6 @@ bun fix              # Lint + format
 
 Real stories from km development that shaped these principles:
 
-- [refactoring.md](lessons/refactoring.md) — **Refactoring Lessons**: Delete first, fix second. Backwards compatibility is a trap. Includes case studies from domain objects migration and hightea/ansi absorption.
+- [refactoring.md](lessons/refactoring.md) — **Refactoring Lessons**: Delete first, fix second. Backwards compatibility is a trap. Includes case studies from domain objects migration and silvery/ansi absorption.
 - [filetree-as-peer.md](lessons/filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
 - [km-me0n.md](lessons/km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.

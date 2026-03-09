@@ -41,7 +41,7 @@ bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 **When iterating on a specific package**, run vitest directly:
 
 ```bash
-bun vitest run vendor/hightea/tests/
+bun vitest run vendor/silvery/tests/
 bun vitest run apps/km-tui/tests/
 ```
 
@@ -56,11 +56,11 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 
 ## Vendor Packages (Git Submodules)
 
-Packages in `vendor/` (hightea, ansi, mdtest, flexture, etc.) are **git submodules** that are part of km.
+Packages in `vendor/` (silvery, ansi, mdtest, flexture, etc.) are **git submodules** that are part of km.
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
-**hightea is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all hightea features when available, and when a feature is missing, implement it in hightea (not as a km workaround). hightea should be independently excellent; km proves it.
+**silvery is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all silvery features when available, and when a feature is missing, implement it in silvery (not as a km workaround). silvery should be independently excellent; km proves it.
 
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
@@ -110,11 +110,12 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
-| [hightea/](.claude/skills/hightea/)                                       | hightea rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [silvery/](.claude/skills/silvery/)                                       | silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
 | [flexture/](.claude/skills/flexture/)                                     | Flexture layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
 | [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |
+| [repo-health/](.claude/skills/repo-health/)                         | Package health audit (license, metadata, gitignore, docs, CI)        |
 | [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
 | [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |

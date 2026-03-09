@@ -8,7 +8,7 @@ allowed-tools: Task, Read, Glob, Grep, Bash
 
 **Keywords**: slow, perf, performance, lag, event loop, blocked, timing, profile, benchmark
 
-Diagnose and fix performance issues across all layers: storage, board state, React rendering, hightea pipeline, and terminal output.
+Diagnose and fix performance issues across all layers: storage, board state, React rendering, silvery pipeline, and terminal output.
 
 ## Decision Tree
 
@@ -36,15 +36,15 @@ bun km perf analyze trace.jsonl --sort total
 DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
 # Heartbeat reports: "event loop blocked for 1173ms — key='l' → cursor_right — render: content=800ms output=200ms (total=1050ms)"
 
-# hightea instrumentation (skip/render counts per frame)
-HIGHTEA_INSTRUMENT=1 DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
-# Read: globalThis.__hightea_content_detail
+# silvery instrumentation (skip/render counts per frame)
+SILVERY_INSTRUMENT=1 DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
+# Read: globalThis.__silvery_content_detail
 
 # Full render pipeline debug trace
-DEBUG=hightea:* DEBUG_LOG=/tmp/hightea.log bun km view --repo <path> <board>
+DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view --repo <path> <board>
 
 # Incremental render correctness check
-HIGHTEA_STRICT=1 bun km view --repo <path> <board>
+SILVERY_STRICT=1 bun km view --repo <path> <board>
 
 # Profile startup phases in detail
 VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
@@ -61,27 +61,27 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 | `TRACE_FORMAT=json` | JSON span output (pipe-friendly, use with `bun km perf analyze`) |
 | `LOG_LEVEL=debug` | Enable debug logging (default: `warn`) |
 | `DEBUG=km:*` | Enable debug for km namespaces (auto-lowers level) |
-| `DEBUG=hightea:*` | Enable debug for hightea pipeline |
-| `DEBUG='km:*,hightea:*'` | Both km and hightea |
+| `DEBUG=silvery:*` | Enable debug for silvery pipeline |
+| `DEBUG='km:*,silvery:*'` | Both km and silvery |
 | `DEBUG='km:*,-km:storage:sql'` | Exclude specific namespaces |
 | `DEBUG_LOG=/tmp/km.log` | Redirect debug output to file (required for TUI — terminal is captured) |
 
-### hightea Rendering
+### silvery Rendering
 
 | Variable | Effect |
 |----------|--------|
-| `HIGHTEA_INSTRUMENT=1` | Content-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
-| `HIGHTEA_STRICT=1` | Compare incremental vs fresh render every frame (crashes on mismatch) |
-| `HIGHTEA_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing |
-| `HIGHTEA_DEV=1` | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
-| `HIGHTEA_PROFILE_RENDER=1` | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
+| `SILVERY_INSTRUMENT=1` | Content-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
+| `SILVERY_STRICT=1` | Compare incremental vs fresh render every frame (crashes on mismatch) |
+| `SILVERY_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing |
+| `SILVERY_DEV=1` | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
+| `SILVERY_PROFILE_RENDER=1` | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
 
 ### Other
 
 | Variable | Effect |
 |----------|--------|
 | `DEBUG_DEVTOOLS=1` | Connect to React DevTools (flame graph) |
-| `HIGHTEA_ENGINE=flexture\|yoga` | Select layout engine |
+| `SILVERY_ENGINE=flexture\|yoga` | Select layout engine |
 
 ## Layer-by-Layer Diagnostics
 
@@ -157,20 +157,20 @@ The output phase generates ANSI diff output. Corruption typically means cursor p
 
 ```bash
 # Check incremental render correctness (buffer level)
-HIGHTEA_STRICT=1 bun km view --repo <path> <board>
+SILVERY_STRICT=1 bun km view --repo <path> <board>
 
 # Full output debug trace
-DEBUG=hightea:pipeline:output DEBUG_LOG=/tmp/hightea.log bun km view --repo <path> <board>
+DEBUG=silvery:pipeline:output DEBUG_LOG=/tmp/silvery.log bun km view --repo <path> <board>
 ```
 
 **Key files**:
-- `vendor/hightea/src/pipeline/output-phase.ts` — ANSI diff generation, cursor tracking
-- `vendor/hightea/src/scheduler.ts` — frame scheduling, synchronized update wrapping
+- `vendor/silvery/src/pipeline/output-phase.ts` — ANSI diff generation, cursor tracking
+- `vendor/silvery/src/scheduler.ts` — frame scheduling, synchronized update wrapping
 
 **Common issues**:
 - textSizing (OSC 66) causing width tracking mismatch — disable with `textSizing: false`
 - Large output (>100KB per frame) — check `render.spanData.bytes` in scheduler logs
-- Synchronized update not preventing tearing — check `HIGHTEA_SYNC_UPDATE` env
+- Synchronized update not preventing tearing — check `SILVERY_SYNC_UPDATE` env
 
 ### Event Loop Blocks
 
@@ -190,7 +190,7 @@ grep "event loop blocked" /tmp/km.log
 
 | Slow Phase | Likely Cause |
 |-----------|-------------|
-| `content` | Too many nodes rendered (check skip counts with HIGHTEA_INSTRUMENT) |
+| `content` | Too many nodes rendered (check skip counts with SILVERY_INSTRUMENT) |
 | `layout` | Flexture/Yoga layout on large tree (>3000 nodes) |
 | `output` | Large ANSI output string (check bytes count) |
 | `measure` | fit-content measurement on many nodes |
@@ -200,12 +200,12 @@ grep "event loop blocked" /tmp/km.log
 
 | Variable | Set By | Contents |
 |----------|--------|----------|
-| `__hightea_last_pipeline` | `pipeline/index.ts` | Per-phase timing: `{ measure, layout, scroll, screenRect, notify, content, output, total }` |
-| `__hightea_content_detail` | `content-phase.ts` | Content-phase breakdown: nodes visited/rendered/skipped, per-flag counts, scroll tier info |
-| `__hightea_content_all` | `content-phase.ts` | Array of all per-frame content-phase snapshots |
+| `__silvery_last_pipeline` | `pipeline/index.ts` | Per-phase timing: `{ measure, layout, scroll, screenRect, notify, content, output, total }` |
+| `__silvery_content_detail` | `content-phase.ts` | Content-phase breakdown: nodes visited/rendered/skipped, per-flag counts, scroll tier info |
+| `__silvery_content_all` | `content-phase.ts` | Array of all per-frame content-phase snapshots |
 | `__km_last_key` | `board-app.ts` | Last key pressed + resolved command (e.g., `"j → cursor_down"`) |
 
-Requires `HIGHTEA_INSTRUMENT=1` for content detail. Pipeline timing is always available.
+Requires `SILVERY_INSTRUMENT=1` for content detail. Pipeline timing is always available.
 
 ## Benchmarks
 
@@ -232,7 +232,7 @@ cd /Users/beorn/Code/pim/km
 VAULT=/path/to/vault bun apps/km-tui/tests/profile-startup.ts
 ```
 
-This measures: createRepo, buildBoardState, deriveColumnsFromRepo, buildNodeIndex, React mount, navigation timing, fold/unfold, preloadSubtree, zoom simulation. Activates `HIGHTEA_INSTRUMENT` internally.
+This measures: createRepo, buildBoardState, deriveColumnsFromRepo, buildNodeIndex, React mount, navigation timing, fold/unfold, preloadSubtree, zoom simulation. Activates `SILVERY_INSTRUMENT` internally.
 
 ## Span Trace Analysis
 

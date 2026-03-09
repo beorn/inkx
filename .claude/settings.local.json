@@ -28,7 +28,7 @@
       "Skill(complete)",
       "Skill(claude)",
       "Skill(logging)",
-      "Skill(hightea)",
+      "Skill(silvery)",
       "Skill(flexture)",
       "Skill(fresh)",
       "Skill(llm)",
@@ -47,7 +47,8 @@
       "mcp__termless__screenshot",
       "mcp__termless__press",
       "mcp__termless__stop",
-      "mcp__termless__wait"
+      "mcp__termless__wait",
+      "Skill(project-cleanup)"
     ],
     "deny": [],
     "ask": []

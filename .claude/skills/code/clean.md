@@ -89,13 +89,13 @@ Catalog opportunities in these categories:
 - Use established utilities (check imports in similar files)
 - Preserve public API (exports, function signatures)
 
-### hightea & Vendor Philosophy
+### silvery & Vendor Philosophy
 
-**hightea should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in hightea, don't expect consumers to work around it.
+**silvery should be the most ergonomic TUI framework out there.** The easy way should be the right way. If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in silvery, don't expect consumers to work around it.
 
-**km is hightea's perfect showcase.** It should leverage the framework to its fullest — never reinvent what hightea provides, never work around hightea problems. If km builds something generally useful that isn't in hightea, ask whether it belongs in hightea. If hightea has a bug or missing feature, fix it in hightea directly (vendor packages are git submodules — fix them in place).
+**km is silvery's perfect showcase.** It should leverage the framework to its fullest — never reinvent what silvery provides, never work around silvery problems. If km builds something generally useful that isn't in silvery, ask whether it belongs in silvery. If silvery has a bug or missing feature, fix it in silvery directly (vendor packages are git submodules — fix them in place).
 
-**This applies to all `vendor/` packages**, not just hightea. Never work around vendor bugs; fix them at the source.
+**This applies to all `vendor/` packages**, not just silvery. Never work around vendor bugs; fix them at the source.
 
 #### Theme & Token Patterns
 
@@ -107,7 +107,7 @@ Catalog opportunities in these categories:
 | `"#5599dd"` (hex literal) | `"$focusborder"` or `"$primary"` | Hex colors break on non-truecolor terminals |
 | `kitty: true` (hardcoded) | `kitty: caps.kittyKeyboard` | Use `detectTerminalCaps()` for protocol flags |
 | `width={42}` (magic number) | `flexGrow={1}` or named constant | Rely on flex layout, not fixed widths |
-| `.padEnd(n)` in TSX | `<Box width={n}>` + `<Text>` | Layout is hightea's job, not string padding |
+| `.padEnd(n)` in TSX | `<Box width={n}>` + `<Text>` | Layout is silvery's job, not string padding |
 | `useTerm().red("x")` in JSX | `<Text color="$error">x</Text>` | Use component props, not ANSI string building |
 
 **Token mapping** (ANSI 16 dark theme defaults):

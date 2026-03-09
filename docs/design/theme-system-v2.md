@@ -2,7 +2,7 @@
 
 > **SUPERSEDED**: This design spec predates the swatch redesign (2026-03).
 > The actual implementation uses ColorPalette (22 terminal colors) → Theme (33 shadcn-style tokens).
-> See `vendor/swatch/CLAUDE.md` for the current architecture.
+> See `vendor/silvery/packages/theme/CLAUDE.md` for the current architecture.
 > Token names below (`$text`, `$chromebg`, etc.) are outdated — current tokens use
 > `$fg`, `$inverse`, `$surface`, etc. See the CLAUDE.md semantic tokens table.
 
@@ -22,7 +22,7 @@
 
 Components reference tokens with `$` prefix: `color="$primary"`, `borderColor="$separator"`.
 Derived from a `ThemePalette` (14 raw colors) via `deriveTheme()` -- both defined in the
-`swatch` package. See the [swatch semantic tokens reference](../../vendor/swatch/docs/reference/semantic-tokens.md)
+`swatch` package. See the [swatch semantic tokens reference](../../vendor/silvery/packages/theme/docs/reference/semantic-tokens.md)
 for the full token list and derivation rules.
 
 ### Content Palette (16)
@@ -63,14 +63,14 @@ The theme system uses a two-layer architecture defined in `swatch`:
 - **Layer 1: ThemePalette** -- 14 raw colors (6 surface ramp + 8 accent hues)
 - **Layer 2: Theme** -- 19 semantic tokens + 16 palette colors derived via `deriveTheme()`
 
-See the [swatch design philosophy](../../vendor/swatch/docs/guide/design-philosophy.md) for
+See the [swatch design philosophy](../../vendor/silvery/packages/theme/docs/guide/design-philosophy.md) for
 the full rationale, design influences, and cross-theme comparison. See the
-[derivation rules reference](../../vendor/swatch/docs/reference/derivation-rules.md) for
+[derivation rules reference](../../vendor/silvery/packages/theme/docs/reference/derivation-rules.md) for
 the exact `deriveTheme()` and `generateTheme()` algorithms.
 
 ### Token Aliases
 
-See [swatch semantic tokens: backward-compatible aliases](../../vendor/swatch/docs/reference/semantic-tokens.md#backward-compatible-aliases).
+See [swatch semantic tokens: backward-compatible aliases](../../vendor/silvery/packages/theme/docs/reference/semantic-tokens.md#backward-compatible-aliases).
 
 | Alias Token     | Resolves To    |
 |-----------------|--------------- |
@@ -83,7 +83,7 @@ See [swatch semantic tokens: backward-compatible aliases](../../vendor/swatch/do
 ### Cross-Platform Binding
 
 The same `ThemePalette` + `deriveTheme()` produces a `Theme` that binds to any platform.
-See [swatch web usage guide](../../vendor/swatch/docs/guide/web-usage.md) for CSS custom
+See [swatch web usage guide](../../vendor/silvery/packages/theme/docs/guide/web-usage.md) for CSS custom
 properties and React context examples.
 
 ## Where Each Token Is Used in km
@@ -168,10 +168,10 @@ properties and React context examples.
 After migration, `km` constants reduce from ~25 to **0** -- all colors come from
 theme tokens. The `km` object and `theme.ts` in km-tui are deleted.
 
-### hightea Default: Box borderColor = $separator
+### silvery Default: Box borderColor = $separator
 
 When `borderStyle` or `outlineStyle` is set but no explicit `borderColor`/`outlineColor`
-is provided, hightea resolves the color to `$separator` from the active theme. This
+is provided, silvery resolves the color to `$separator` from the active theme. This
 eliminates the need to specify `borderColor` on every bordered element.
 
 ```tsx
@@ -184,14 +184,14 @@ eliminates the need to specify `borderColor` on every bordered element.
 
 ## Implementation Plan
 
-### Phase 0: Color Utilities -- DONE (vendor/swatch)
+### Phase 0: Color Utilities -- DONE (vendor/silvery/packages/theme)
 
-Extracted to `swatch` package (`vendor/swatch/src/color.ts`).
+Extracted to `swatch` package (`vendor/silvery/packages/theme/src/color.ts`).
 
-### Phase 1: ThemePalette + deriveTheme() -- DONE (vendor/swatch)
+### Phase 1: ThemePalette + deriveTheme() -- DONE (vendor/silvery/packages/theme)
 
 Extracted to the `swatch` package. ThemePalette and deriveTheme now live in `swatch`.
-hightea imports from `"swatch"`. Built-in palettes (45 total across 15 theme families).
+silvery imports from `"swatch"`. Built-in palettes (45 total across 15 theme families).
 
 ### Phase 2: km-tui Migration (apps/km-tui)
 

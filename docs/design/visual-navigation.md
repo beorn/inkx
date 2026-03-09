@@ -115,7 +115,7 @@ cursorNodeId changed → Zustand notifies
     → Card: useChildren(repo, cardId)   — cache hit
     → isSelected via store selector (per component)
     → React.memo: only old + new cursor nodes re-render
-  → hightea: reconcile → yoga → paint → diff → output
+  → silvery: reconcile → yoga → paint → diff → output
 ```
 
 ### Mutation

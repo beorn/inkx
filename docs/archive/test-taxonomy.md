@@ -10,7 +10,7 @@ Generated: 2026-01-23
 | Sync (slow)         | 13    | ~140   | ~3k   | keep                   |
 | Chaos/fuzzer        | 10    | ~160   | ~3k   | keep                   |
 | Acceptance (mdtest) | 13    | ~200   | ~2k   | keep                   |
-| Playwright          | 2     | 14     | 400   | **migrate to hightea**    |
+| Playwright          | 2     | 14     | 400   | **migrate to silvery**    |
 | Vendor              | 37    | ~500   | ~10k  | keep (owned by vendor) |
 
 ## Action Items
@@ -19,8 +19,8 @@ Generated: 2026-01-23
 
 | File                                                                       | Tests | Reason                                             |
 | -------------------------------------------------------------------------- | ----- | -------------------------------------------------- |
-| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use hightea `createRenderer()` instead of browser |
-| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use hightea `createRenderer()` instead of browser |
+| [tui.playwright.ts](apps/km-tui/tests/tui.playwright.ts)                   | 8     | Use silvery `createRenderer()` instead of browser |
+| [body-content.playwright.ts](apps/km-tui/tests/body-content.playwright.ts) | 6     | Use silvery `createRenderer()` instead of browser |
 
 ### Navigation Tests - No Overlap (Verified)
 
@@ -151,8 +151,8 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 | File                       | Tests | Lines | Type       | Speed | Disposition         |
 | -------------------------- | ----- | ----- | ---------- | ----- | ------------------- |
-| tui.playwright.ts          | 8     | 230   | acceptance | slow  | **migrate to hightea** |
-| body-content.playwright.ts | 6     | 169   | acceptance | slow  | **migrate to hightea** |
+| tui.playwright.ts          | 8     | 230   | acceptance | slow  | **migrate to silvery** |
+| body-content.playwright.ts | 6     | 169   | acceptance | slow  | **migrate to silvery** |
 
 ## CLI Layer (apps/km-cli)
 
@@ -238,10 +238,10 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 
 37 test files in vendor packages. These are owned by the vendor submodules:
 
-- hightea/packages/ansi (5 files)
+- silvery/packages/ansi (5 files)
 - flexture (1 file)
-- hightea (12 files)
-- hightea/packages/ui (11 files)
+- silvery (12 files)
+- silvery/packages/ui (11 files)
 - decant (2 files)
 - Others (6 files)
 

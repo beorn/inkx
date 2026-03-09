@@ -140,8 +140,8 @@ bd list --limit 1
 | Location | Prefix |
 |----------|--------|
 | km (main project) | `km-` |
-| vendor/hightea | `hightea-` |
-| vendor/hightea/packages/ansi | `hightea/packages/ansi-` |
+| vendor/silvery | `silvery-` |
+| vendor/silvery/packages/ansi | `silvery/packages/ansi-` |
 | Other vendor packages | `beorn-<name>-` |
 
 **Never assume `km-`** — always verify for the current working directory.
@@ -430,7 +430,7 @@ These flags DON'T EXIST - check `bd <cmd> --help` if unsure:
 | `bd create --name`               | `bd create --title` or `bd create <title>` (positional) |
 | `bd update --desc`               | `bd update --description` or `-d`                       |
 | `bd create --id km-...` (in vendor) | Check prefix first: `bd list --limit 1`              |
-| Assume dot notation is km-only   | Dot notation works with any prefix (`km-hightea.bg-bleed`) |
+| Assume dot notation is km-only   | Dot notation works with any prefix (`km-silvery.bg-bleed`) |
 
 **Note**: `--description` and `--notes` are BOTH valid on `bd update` but serve different purposes:
 

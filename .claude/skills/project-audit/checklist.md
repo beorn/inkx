@@ -24,7 +24,7 @@ description: Detailed audit checklist by category
 
 ## Naming Consistency
 
-- [ ] **Project name casing**: Should the project name be lowercase in prose? (e.g., "hightea" not "Hightea", "iPhone" not "Iphone")
+- [ ] **Project name casing**: Should the project name be lowercase in prose? (e.g., "silvery" not "Hightea", "iPhone" not "Iphone")
 - [ ] **Type name casing**: Are type/interface names consistent? (PascalCase for types, camelCase for functions)
 - [ ] **Terminology drift**: Same concept with multiple names (e.g., "layout feedback" vs "two-phase rendering" vs "measure/arrange")
 - [ ] **File naming**: Consistent kebab-case, camelCase, or PascalCase across the project
