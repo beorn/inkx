@@ -5,7 +5,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { KNode } from "@km/core"
 import { rowToNode } from "./utils.ts"
 

@@ -15,7 +15,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 

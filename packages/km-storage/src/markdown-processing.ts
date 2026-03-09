@@ -19,7 +19,7 @@
  *   const resolved = toResolvedLinks(file, resolver)   // syncing path
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Event, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
 import { hashContent } from "./cas.ts"

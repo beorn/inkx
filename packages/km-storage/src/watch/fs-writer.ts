@@ -8,7 +8,7 @@
  * The TUI replaces this with SyncManager via emitter.setFsSync().
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { existsSync, mkdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"

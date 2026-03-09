@@ -10,7 +10,7 @@ import { createHash } from "crypto"
 import { parseMarkdownWithLinks } from "@km/markdown"
 
 // Create logger for this module's debug output
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 const log = createLogger("km:storage:parse-worker")
 
 export interface ParseRequest {

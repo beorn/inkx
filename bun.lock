@@ -56,9 +56,9 @@
         "@types/react": "^19.2.13",
         "@types/sinonjs__fake-timers": "^15.0.1",
         "@vitest/ui": "^4.0.18",
-        "decant": "workspace:*",
-        "flexture": "workspace:*",
+        "flexily": "workspace:*",
         "knip": "^5.83.1",
+        "loggily": "workspace:*",
         "oxfmt": "^0.28.0",
         "oxlint": "^1.43.0",
         "oxlint-plugin-complexity": "^2.0.1",
@@ -68,7 +68,6 @@
         "react": "^19.2.4",
         "react-devtools-core": "^7.0.1",
         "release-it": "^19.2.4",
-        "swatch": "workspace:*",
         "type-coverage": "^2.29.7",
         "typescript": "^5.9.3",
         "vitest": "^4.0.18",
@@ -190,7 +189,7 @@
     "packages/km-core": {
       "name": "@km/core",
       "dependencies": {
-        "decant": "workspace:*",
+        "loggily": "workspace:*",
         "nanoevents": "^9.1.0",
       },
     },
@@ -256,17 +255,8 @@
         "picocolors": "^1.1.1",
       },
     },
-    "vendor/decant": {
-      "name": "decant",
-      "version": "0.3.0",
-      "devDependencies": {
-        "@types/node": "^25.3.3",
-        "vitepress": "^1.6.3",
-        "vitest": "^4.0.18",
-      },
-    },
-    "vendor/flexture": {
-      "name": "flexture",
+    "vendor/flexily": {
+      "name": "flexily",
       "version": "0.2.0",
       "dependencies": {
         "debug": "^4.4.3",
@@ -274,9 +264,18 @@
       "devDependencies": {
         "@types/bun": "^1.3.0",
         "@types/debug": "^4.1.12",
-        "decant": "github:beorn/decant",
+        "loggily": "github:beorn/loggily",
         "typescript": "^5.7.3",
         "yoga-wasm-web": "^0.3.3",
+      },
+    },
+    "vendor/loggily": {
+      "name": "loggily",
+      "version": "0.3.0",
+      "devDependencies": {
+        "@types/node": "^25.3.3",
+        "vitepress": "^1.6.3",
+        "vitest": "^4.0.18",
       },
     },
     "vendor/mdtest": {
@@ -310,12 +309,10 @@
       "version": "0.0.1",
       "dependencies": {
         "chalk": "^5.6.2",
-        "decant": "github:beorn/decant",
-        "loggily": "^0.0.1",
+        "loggily": "github:beorn/loggily",
         "react-reconciler": "^0.33.0",
         "slice-ansi": "^8.0.0",
         "string-width": "^8.2.0",
-        "swatch": "github:beorn/swatch",
         "zustand": "^5.0.11",
       },
       "devDependencies": {
@@ -377,7 +374,7 @@
         "@silvery/react": "workspace:*",
         "@silvery/tea": "workspace:*",
         "@silvery/test": "workspace:*",
-        "flexture": "github:beorn/flexture",
+        "flexily": "github:beorn/flexily",
       },
     },
     "vendor/silvery/packages/test": {
@@ -392,9 +389,6 @@
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
       "version": "0.0.1",
-      "dependencies": {
-        "swatch": "github:beorn/swatch",
-      },
     },
     "vendor/silvery/packages/ui": {
       "name": "@silvery/ui",
@@ -403,24 +397,6 @@
         "@silvery/react": "workspace:*",
         "@silvery/theme": "workspace:*",
       },
-    },
-    "vendor/swatch": {
-      "name": "swatch",
-      "version": "0.2.0",
-      "bin": {
-        "swatch": "./src/cli.ts",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.3.0",
-        "typescript": "^5.7.3",
-        "vitepress": "^1.6.4",
-      },
-      "peerDependencies": {
-        "@silvery/react": "*",
-      },
-      "optionalPeers": [
-        "@silvery/react",
-      ],
     },
     "vendor/tap": {
       "name": "@beorn/tap",
@@ -571,13 +547,13 @@
       },
       "peerDependencies": {
         "@silvery/react": ">=0.1.0",
-        "decant": ">=0.1.0",
+        "loggily": ">=0.1.0",
         "react": ">=19.0.0",
         "vitest": ">=2.0.0",
       },
       "optionalPeers": [
         "@silvery/react",
-        "decant",
+        "loggily",
         "react",
       ],
     },
@@ -598,9 +574,8 @@
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@silvery/ui": "vendor/silvery/packages/ui",
     "@termless/core": "vendor/termless/packages/core",
-    "decant": "vendor/decant",
-    "flexture": "vendor/flexture",
-    "swatch": "vendor/swatch",
+    "flexily": "vendor/flexily",
+    "loggily": "vendor/loggily",
     "zod": "^4.3.6",
   },
   "catalog": {
@@ -1574,8 +1549,6 @@
 
     "debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
 
-    "decant": ["decant@workspace:vendor/decant"],
-
     "decode-named-character-reference": ["decode-named-character-reference@1.3.0", "", { "dependencies": { "character-entities": "^2.0.0" } }, "sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q=="],
 
     "deep-eql": ["deep-eql@5.0.2", "", {}, "sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q=="],
@@ -1718,7 +1691,7 @@
 
     "flatted": ["flatted@3.4.1", "", {}, "sha512-IxfVbRFVlV8V/yRaGzk0UVIcsKKHMSfYw66T/u4nTwlWteQePsxe//LjudR1AMX4tZW3WFCh3Zqa/sjlqpbURQ=="],
 
-    "flexture": ["flexture@workspace:vendor/flexture"],
+    "flexily": ["flexily@workspace:vendor/flexily"],
 
     "fn.name": ["fn.name@1.1.0", "", {}, "sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw=="],
 
@@ -1938,7 +1911,7 @@
 
     "logform": ["logform@2.7.0", "", { "dependencies": { "@colors/colors": "1.6.0", "@types/triple-beam": "^1.3.2", "fecha": "^4.2.0", "ms": "^2.1.1", "safe-stable-stringify": "^2.3.1", "triple-beam": "^1.3.0" } }, "sha512-TFYA4jnP7PVbmlBIfhlSe+WKxs9dklXMTEGcBCIvLhE/Tn3H6Gk1norupVW7m5Cnd4bLcr08AytbyV/xj7f/kQ=="],
 
-    "loggily": ["loggily@0.0.1", "", {}, "sha512-eBnG5qcs0obtHk/AHgvrMlH/lKq9TAO55v5+COxRHOQI15gFlkW7eev9LtSwXBhQQEit22JnIFTu9sYSIv/n+w=="],
+    "loggily": ["loggily@workspace:vendor/loggily"],
 
     "longest-streak": ["longest-streak@3.1.0", "", {}, "sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g=="],
 
@@ -2432,8 +2405,6 @@
 
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
-    "swatch": ["swatch@workspace:vendor/swatch"],
-
     "tabbable": ["tabbable@6.4.0", "", {}, "sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg=="],
 
     "tap-parser": ["tap-parser@18.3.0", "", { "dependencies": { "events-to-array": "^2.0.3", "tap-yaml": "4.3.0" }, "bin": { "tap-parser": "bin/cmd.cjs" } }, "sha512-sa0M18e6RARfO0Lrm1zbQvb+7G4G/ThkFIJFvjeH1DKenl4xwyUgpRUCb5Jq64Xe086p4auiLvRzfpRjGd3Zow=="],
@@ -2684,6 +2655,8 @@
 
     "@manypkg/get-packages/fs-extra": ["fs-extra@8.1.0", "", { "dependencies": { "graceful-fs": "^4.2.0", "jsonfile": "^4.0.0", "universalify": "^0.1.0" } }, "sha512-yhlQgA6mnOJUKOsRUFsgJdQCvkKhcz8tlZG5HBQfReYZy46OwLcY+Zia0mtdHsOo9y/hP+CxMN0TU9QxoOtG4g=="],
 
+    "@silvery/term/flexily": ["flexture@github:beorn/flexily#f7088e0", { "dependencies": { "debug": "^4.4.3" } }, "beorn-flexily-f7088e0"],
+
     "@termless/cli/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
 
     "@termless/monorepo/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
@@ -2718,6 +2691,8 @@
 
     "execa/onetime": ["onetime@6.0.0", "", { "dependencies": { "mimic-fn": "^4.0.0" } }, "sha512-1FlR+gjXK7X+AsAHso35MnyN5KqGwJRi/31ft6x0M194ht7S+rWAvd7PHss9xSKMzE0asv1pyIHaJYq+BbacAQ=="],
 
+    "flexily/loggily": ["decant@github:beorn/loggily#855c678", {}, "beorn-loggily-855c678"],
+
     "gray-matter/js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
 
     "hosted-git-info/lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
@@ -2745,6 +2720,8 @@
     "rollup/fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
     "router/path-to-regexp": ["path-to-regexp@8.3.0", "", {}, "sha512-7jdwVIRtsP8MYpdXSwOS0YdD0Du+qOoF/AEPIt88PcCFrZCzx41oxku1jD88hZBwbNUIEfpqvuhjFaMAqMTWnA=="],
+
+    "silvery/loggily": ["decant@github:beorn/loggily#855c678", {}, "beorn-loggily-855c678"],
 
     "silvery/oxfmt": ["oxfmt@0.36.0", "", { "dependencies": { "tinypool": "2.1.0" }, "optionalDependencies": { "@oxfmt/binding-android-arm-eabi": "0.36.0", "@oxfmt/binding-android-arm64": "0.36.0", "@oxfmt/binding-darwin-arm64": "0.36.0", "@oxfmt/binding-darwin-x64": "0.36.0", "@oxfmt/binding-freebsd-x64": "0.36.0", "@oxfmt/binding-linux-arm-gnueabihf": "0.36.0", "@oxfmt/binding-linux-arm-musleabihf": "0.36.0", "@oxfmt/binding-linux-arm64-gnu": "0.36.0", "@oxfmt/binding-linux-arm64-musl": "0.36.0", "@oxfmt/binding-linux-ppc64-gnu": "0.36.0", "@oxfmt/binding-linux-riscv64-gnu": "0.36.0", "@oxfmt/binding-linux-riscv64-musl": "0.36.0", "@oxfmt/binding-linux-s390x-gnu": "0.36.0", "@oxfmt/binding-linux-x64-gnu": "0.36.0", "@oxfmt/binding-linux-x64-musl": "0.36.0", "@oxfmt/binding-openharmony-arm64": "0.36.0", "@oxfmt/binding-win32-arm64-msvc": "0.36.0", "@oxfmt/binding-win32-ia32-msvc": "0.36.0", "@oxfmt/binding-win32-x64-msvc": "0.36.0" }, "bin": { "oxfmt": "bin/oxfmt" } }, "sha512-/ejJ+KoSW6J9bcNT9a9UtJSJNWhJ3yOLSBLbkoFHJs/8CZjmaZVZAJe4YgO1KMJlKpNQasrn/G9JQUEZI3p0EQ=="],
 

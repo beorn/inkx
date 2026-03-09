@@ -17,7 +17,7 @@
  * These are stored in the HistoryEntry for cursor restoration on undo/redo.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoStack } from "../undo-stack.ts"

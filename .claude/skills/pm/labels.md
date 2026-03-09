@@ -42,7 +42,7 @@ Use when work spans multiple packages or when the ID prefix isn't specific enoug
 | `tui`       | apps/km-tui                 |
 | `cli`       | apps/km-cli                 |
 | `markdown`  | @km/markdown package        |
-| `flexture`  | vendor/flexture          |
+| `flexily`  | vendor/flexily          |
 | `test`      | Test infrastructure         |
 | `cross-pkg` | Spans multiple packages     |
 | `vendor`    | Vendored dependencies       |
@@ -70,7 +70,7 @@ Classify by system or feature area within packages.
 | `query`    | Query system/data access       |
 | `commands` | Command/keybinding system      |
 | `mouse`    | Mouse interaction              |
-| `layout`   | Layout/rendering (Flexture)       |
+| `layout`   | Layout/rendering (Flexily)       |
 | `nav`      | Navigation/cursor movement     |
 | `undo`     | Undo/redo functionality        |
 | `perf`     | Performance/optimization       |

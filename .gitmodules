@@ -1,12 +1,9 @@
-[submodule "vendor/flexture"]
-	path = vendor/flexture
-	url = git@github.com:beorn/flexture.git
-[submodule "vendor/swatch"]
-	path = vendor/swatch
-	url = git@github.com:beorn/swatch.git
-[submodule "vendor/decant"]
-	path = vendor/decant
-	url = git@github.com:beorn/decant.git
+[submodule "vendor/flexily"]
+	path = vendor/flexily
+	url = git@github.com:beorn/flexily.git
+[submodule "vendor/loggily"]
+	path = vendor/loggily
+	url = git@github.com:beorn/loggily.git
 [submodule "vendor/vitestx"]
 	path = vendor/vitestx
 	url = git@github.com:beorn/vitestx.git
@@ -21,4 +18,4 @@
 	url = git@github.com:beorn/tools.git
 [submodule "vendor/silvery"]
 	path = vendor/silvery
-	url = https://github.com/beorn/silvery.git
+	url = git@github.com:beorn/silvery.git

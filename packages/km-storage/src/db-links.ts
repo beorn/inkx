@@ -9,7 +9,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { createDbOps } from "./db-ops.ts"
 import { findChildByContent } from "./db-queries/index.ts"
 

@@ -14,7 +14,7 @@
  * Default max 100 entries. Oldest entries are dropped when exceeded.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:undo")
 

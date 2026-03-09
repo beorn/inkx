@@ -12,7 +12,7 @@ import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { PaneUI } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "@silvery/react"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
 import type { PickerOption } from "./ItemPicker.tsx"
 

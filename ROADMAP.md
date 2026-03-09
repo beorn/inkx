@@ -163,6 +163,6 @@ Cross-cutting work that supports all horizons. Tracked by dedicated epics.
 | Area | Epic | Focus |
 |------|------|-------|
 | **silvery** | `km-silvery` | Terminal rendering engine — performance, correctness, incremental updates |
-| **flexture** | `km-flexture` | Flexbox layout engine for terminal UI |
+| **flexily** | `km-flexily` | Flexbox layout engine for terminal UI |
 | **vitestx** | `km-vitestx` | Test framework, benchmarks, diagnostics |
 | **Infra** | `km-infra` | CI, monorepo packaging, linting, regression suites |

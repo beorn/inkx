@@ -385,7 +385,7 @@ termily is to the terminal what `react-dom` is to the browser — a host rendere
 
 ### flexily: Standalone Flexbox
 
-flexily is a pure JavaScript flexbox layout engine. It already exists as flexture. Independent of all other packages — useful anywhere you need flexbox math without a browser.
+flexily is a pure JavaScript flexbox layout engine. It already exists as flexily. Independent of all other packages — useful anywhere you need flexbox math without a browser.
 
 - Zero-allocation layout algorithm
 - W3C Flexbox spec compliance
@@ -479,7 +479,7 @@ See [Appendix: Platform Strategies](#platform-strategies) for comparison with Re
 2. **runly**: Extract runtime (event loop, state management), event streams, run modes. Extract React reconciler abstraction (renderer-agnostic parts). Tests: event streams, run modes, state cycle.
 3. **docily**: Extract command system from km-commands. Define `DocNode`, `DocumentStore`, `DocCursor`, `DocSelection` interfaces. Implement `DocOperation` types with invertibility, `UndoManager`, `DocumentEditor`. Extract plugin composition. Adapter: `DocumentStore` over existing km `Repo`. Tests: Full CRUD + undo/redo + cross-block navigation + commands, all without rendering.
 4. **termily**: Everything remaining in silvery — cell buffer, ANSI diff, dirty tracking, stdin parser, terminal detection. Components: Box, Text, VirtualList, ScrollView. flexily integration. Tests: Existing silvery rendering tests.
-5. **flexily**: Rename flexture (already standalone).
+5. **flexily**: Rename flexily (already standalone).
 6. **km-app**: Extract state management, hooks, business logic, navigation, and view definitions from km-tui into a platform-agnostic app layer. Components retain a thin platform-specific rendering layer; all logic behind them is shared. Wire km-tui as a thin shell importing km-app + termily.
 
 **Cross-cutting**: CRDT-ready from day one — DocOperations as invertible ops mapping to Automerge/Yjs. Tests: Existing km-tui tests pass with new engine.
@@ -684,7 +684,7 @@ Analysis of the current silvery codebase reveals a **60/40 split** between porta
 | Board actions (nav) | `apps/km-tui/src/board/board-actions-nav.ts` | 285 | docily |
 | Board actions (selection) | `apps/km-tui/src/board/board-actions-selection.ts` | 142 | docily |
 | Board actions (zoom) | `apps/km-tui/src/board/board-actions-zoom.ts` | 325 | docily |
-| Flexture layout | `vendor/flexture/` | ~3000 | flexily (standalone) |
+| Flexily layout | `vendor/flexily/` | ~3000 | flexily (standalone) |
 
 **Key finding**: No Slate.js dependency. Text editing is entirely custom via the command-dispatch pattern and `blockEditTargetRef`. No Slate to remove.
 

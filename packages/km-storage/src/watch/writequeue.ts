@@ -4,7 +4,7 @@
  * Manages pending filesystem writes with debouncing and retry logic
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import * as fs from "fs"
 import { dirname } from "path"
 import { EventEmitter } from "events"

@@ -55,10 +55,10 @@ function inferScope(bead: Bead): string {
     return "storage"
   }
   if (
-    text.includes("flexture") ||
+    text.includes("flexily") ||
     text.includes("layout")
   ) {
-    return "flexture"
+    return "flexily"
   }
   if (text.includes("board") || text.includes("@km/board")) return "board"
   if (

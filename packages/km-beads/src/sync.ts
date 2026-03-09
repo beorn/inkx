@@ -5,7 +5,7 @@
  */
 
 import { join } from "node:path"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Issue, BeadsFs } from "./types.ts"
 import { parseBeadsIssuesJsonl, type BeadsIssue } from "./schema.ts"
 

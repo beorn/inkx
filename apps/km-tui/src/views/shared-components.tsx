@@ -7,7 +7,7 @@
 import React, { useCallback } from "react"
 import { Box, Text, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/react"
 import { useApp as useAppStore } from "@silvery/term/runtime"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"

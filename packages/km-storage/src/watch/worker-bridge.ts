@@ -8,8 +8,8 @@
  * during FSEvents setup.
  */
 
-import { createLogger } from "decant"
-import { createWorkerLogHandler } from "decant/worker"
+import { createLogger } from "loggily"
+import { createWorkerLogHandler } from "loggily/worker"
 import { EventEmitter } from "events"
 import { getIgnorePatterns } from "../ignore.ts"
 import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts"

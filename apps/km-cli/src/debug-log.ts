@@ -9,7 +9,7 @@
  * Must be imported before any debug() calls.
  */
 
-import { addWriter, setSuppressConsole } from "decant"
+import { addWriter, setSuppressConsole } from "loggily"
 import createDebug from "debug"
 import { appendFileSync, createWriteStream } from "fs"
 import { relative } from "path"

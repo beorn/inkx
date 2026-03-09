@@ -9,7 +9,7 @@
 import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
 import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
 import { activeEditTargetRef } from "@silvery/react"
-import { createLogger, type SpanLogger } from "decant"
+import { createLogger, type SpanLogger } from "loggily"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"

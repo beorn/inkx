@@ -7,7 +7,7 @@
 
 import { watch, type FSWatcher } from "chokidar"
 import { dirname } from "path"
-import { createWorkerLogger } from "decant/worker"
+import { createWorkerLogger } from "loggily/worker"
 
 // Create worker logger that forwards to main thread
 const log = createWorkerLogger(postMessage, "km:storage:watch:worker")
@@ -54,7 +54,7 @@ export interface WatcherStatus {
 }
 
 // Message types from worker → main thread
-import type { WorkerMessage as LoggerWorkerMessage } from "decant/worker"
+import type { WorkerMessage as LoggerWorkerMessage } from "loggily/worker"
 
 export type WorkerMessage =
   | { type: "ready"; watchedPaths?: number }

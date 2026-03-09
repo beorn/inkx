@@ -634,7 +634,7 @@ This document is part of the **Exploration Testing** family. See [testing.md#dyn
 
 **Related exploration tests:**
 - [`/explore`](../../.claude/skills/explore/SKILL.md) — TUI monkey testing (keyboard surface)
-- [vendor/flexture/](../../vendor/flexture/) — Layout engine with Yoga differential fuzz
+- [vendor/flexily/](../../vendor/flexily/) — Layout engine with Yoga differential fuzz
 
 **Implementation:**
 - [testing.md](testing.md) — General testing guide

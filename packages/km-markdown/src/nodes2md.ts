@@ -4,7 +4,7 @@
  * Serializes km nodes back to markdown format
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
 import { getMarkerForStatus, isOutline, isItem, isEmbed, stringifyMetadata, stringifyTaskMetadata } from "@km/core"

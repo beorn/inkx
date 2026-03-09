@@ -53,7 +53,7 @@ echo "Slow integration: $(find packages apps -name '*.slow.test.ts' 2>/dev/null 
 echo "Slow mdtest: $(find packages apps tests -name '*.slow.test.md' 2>/dev/null | wc -l)"
 echo "Playwright: $(find packages apps -name '*.playwright.ts' 2>/dev/null | wc -l)"
 echo "Chaos: $(find packages -path '*/chaos/*.test.ts' 2>/dev/null | wc -l)"
-echo "Yoga (vendor): $(find vendor/flexture/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
+echo "Yoga (vendor): $(find vendor/flexily/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
 
 # Tests per package
 echo -e "\n=== Tests by Package ==="
@@ -567,7 +567,7 @@ Output structured findings:
 
 | Check                  | Last Updated | Latest Upstream | Status |
 | ---------------------- | ------------ | --------------- | ------ |
-| Yoga tests (flexture)     | YYYY-MM-DD   | vX.Y.Z          | ✅/❌  |
+| Yoga tests (flexily)     | YYYY-MM-DD   | vX.Y.Z          | ✅/❌  |
 
 ### Performance
 
@@ -808,12 +808,12 @@ time bun run test:fast 2>&1 | tail -5
 
 ### Check for stale vendor test fixtures
 
-The Yoga layout tests in `vendor/flexture/tests/yoga/` are generated from Facebook's Yoga project.
+The Yoga layout tests in `vendor/flexily/tests/yoga/` are generated from Facebook's Yoga project.
 These should be refreshed periodically to catch new test cases or Yoga behavior changes.
 
 ```bash
 # Check when Yoga tests were last generated
-ls -la vendor/flexture/tests/yoga/*.test.ts | head -5
+ls -la vendor/flexily/tests/yoga/*.test.ts | head -5
 
 # Check latest Yoga release (compare against last import)
 curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_name
@@ -822,13 +822,13 @@ curl -s https://api.github.com/repos/facebook/yoga/releases/latest | grep tag_na
 **When to re-import:**
 
 - When Yoga releases a new version (especially major/minor versions)
-- If Flexture layout behavior seems incorrect but tests pass
+- If Flexily layout behavior seems incorrect but tests pass
 - Periodically (e.g., quarterly) during test reviews
 
 **How to re-import:**
 
 ```bash
-cd vendor/flexture
+cd vendor/flexily
 bun scripts/import-yoga-tests.ts
 bun test tests/yoga/  # Verify tests pass
 ```
@@ -836,7 +836,7 @@ bun test tests/yoga/  # Verify tests pass
 **Source**: https://github.com/facebook/yoga/tree/main/gentest/fixtures
 
 If tests fail after re-import, either:
-1. Flexture has a layout bug that needs fixing
+1. Flexily has a layout bug that needs fixing
 2. Yoga changed expected behavior (check release notes)
 
 ### Check chaos test coverage

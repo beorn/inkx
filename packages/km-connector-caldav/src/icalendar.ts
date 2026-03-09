@@ -5,7 +5,7 @@
  * Implements RFC 5545 (iCalendar).
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { CalendarEvent, Attendee } from "./types.ts"
 import { parseEventStatus, parseAttendeeStatus } from "./constants.ts"
 

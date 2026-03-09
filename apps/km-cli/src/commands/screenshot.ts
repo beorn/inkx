@@ -6,7 +6,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { setDebugRepoRoot } from "../debug-log.ts"
 
 const log = createLogger("km:cli:screenshot")

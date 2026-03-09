@@ -6,7 +6,7 @@
  * - Pre-parsed content (from parallel parsing pipeline)
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { toRelativeFsPath } from "../../path-utils.ts"

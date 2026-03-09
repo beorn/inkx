@@ -10,7 +10,7 @@
  */
 
 import { type KNode, isOutline } from "@km/core"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:navigate")
 

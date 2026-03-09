@@ -24,9 +24,8 @@
     "@silvery/ui": "$@silvery/ui",
     "@silvery/theme": "$@silvery/theme",
     "@silvery/test": "$@silvery/test",
-    "flexture": "$flexture",
-    "decant": "$decant",
-    "swatch": "$swatch",
+    "flexily": "$flexily",
+    "loggily": "$loggily",
     "@termless/core": "$@termless/core",
     "zod": "^4.3.6"
   },
@@ -82,12 +81,11 @@
     "build": "bun build ./apps/km-cli/src/index.ts --outdir ./dist --target node",
     "storybook": "bun run apps/km-tui/tests/storybook.tsx",
     "release": "release-it",
-    "test:flexture:yoga": "cd vendor/flexture && bun test:yoga"
+    "test:flexily:yoga": "cd vendor/flexily && bun test:yoga"
   },
   "devDependencies": {
-    "flexture": "workspace:*",
-    "decant": "workspace:*",
-    "swatch": "workspace:*",
+    "flexily": "workspace:*",
+    "loggily": "workspace:*",
     "@beorn/mdtest": "workspace:*",
     "@beorn/tap": "workspace:*",
     "@beorn/watcher-chaos": "workspace:*",

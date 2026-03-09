@@ -5,7 +5,7 @@
  * Events are the source of truth for all state changes.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database, SQLQueryBindings } from "bun:sqlite"
 
 const log = createLogger("km:storage:db:events")

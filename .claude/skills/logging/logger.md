@@ -198,5 +198,5 @@ Is this a programming error or data integrity risk?
 
 ## Full Documentation
 
-See `vendor/decant/CLAUDE.md` for complete API reference.
-See `vendor/decant/docs/conditional-logging-research.md` for performance research.
+See `vendor/loggily/CLAUDE.md` for complete API reference.
+See `vendor/loggily/docs/conditional-logging-research.md` for performance research.

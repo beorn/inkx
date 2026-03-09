@@ -474,7 +474,7 @@ describe("Database Rules", () => {
 
   describe("path escape warnings", () => {
     test("should warn when km.add:: rule path escapes repo root with ../", async () => {
-      const { addWriter } = await import("decant")
+      const { addWriter } = await import("loggily")
       const logOutput: string[] = []
       const unsubscribe = addWriter((formatted) => {
         logOutput.push(formatted)
@@ -510,7 +510,7 @@ describe("Database Rules", () => {
     })
 
     test("should not warn for valid relative paths", async () => {
-      const { addWriter } = await import("decant")
+      const { addWriter } = await import("loggily")
       const logOutput: string[] = []
       const unsubscribe = addWriter((formatted) => {
         logOutput.push(formatted)

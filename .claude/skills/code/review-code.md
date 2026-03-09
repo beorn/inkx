@@ -88,10 +88,10 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 | Inverted pyramid   | Helpers before main logic, main flow buried at bottom                       |
 | Old silvery render | `createRenderer` inside function body (wasteful recreation each call)   |
 | Old lastFrame      | Capturing `lastFrame()` instead of using `app.text` or newer silvery APIs   |
-| Deprecated silvery | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexture-adapter` |
+| Deprecated silvery | `app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexily-adapter` |
 | Deprecated ansi    | Default chalkX import, `chalk` export, `supportsExtendedUnderline`          |
 | Deprecated storage | `getBeadsConfig`, `getTuiConfig`, `loadRepo`, `createMockWatcher`           |
-| Manual layout calc | `displayWidth()` in app code for layout - should rely on silvery/flexture      |
+| Manual layout calc | `displayWidth()` in app code for layout - should rely on silvery/flexily      |
 | silvery string comp| `useTerm()` / `useStyle()` to build ANSI strings in `<Text>` — use Text props + Box layout |
 | High complexity    | Function with cyclomatic>20 or cognitive>15, candidate for extraction       |
 | Hardcoded color    | `color="red"` instead of `color="$error"` — bypasses theme system           |
@@ -207,13 +207,13 @@ The script detects:
 
 **Deprecated APIs (3 patterns)** - see km-silvery.deprecations bead:
 
-- Pattern 28: Deprecated silvery APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexture-adapter`)
+- Pattern 28: Deprecated silvery APIs (`app.html`, `useLayout`, `layoutEqual`, `computedLayout`, `ANSI_REGEX`, `flexily-adapter`)
 - Pattern 29: Deprecated ansi APIs (default `chalkX` import, `chalk` export, `supportsExtendedUnderline`, `setExtendedUnderlineSupport`)
 - Pattern 30: Deprecated km-storage functions (`getBeadsConfig`, `getTuiConfig`, `getConfigPath`, `loadRepo`, `createMockWatcher`)
 
 **Other issues (1 pattern)**:
 
-- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on silvery/flexture)
+- Pattern 31: Manual layout calculations (`displayWidth()` in app code - should rely on silvery/flexily)
 
 **Alignment/guidelines issues (4 patterns)** - from docs/principles.md Quick Reference:
 

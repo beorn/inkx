@@ -2,7 +2,7 @@
  * Conditional logging for km-tui
  *
  * Uses optional chaining pattern: log.debug?.() skips argument evaluation
- * when debug logging is disabled. See vendor/decant/docs/conditional-logging-research.md
+ * when debug logging is disabled. See vendor/loggily/docs/conditional-logging-research.md
  *
  * @example
  * import { log, sid } from "../log"
@@ -10,7 +10,7 @@
  * log.debug?.("render %s children=%d", sid(node.id), children.length)
  * log.trace?.("layout col=%d card=%d", colIndex, cardIndex)
  */
-import { createLogger, type ConditionalLogger } from "decant"
+import { createLogger, type ConditionalLogger } from "loggily"
 
 // ============================================================
 // Short ID helper

@@ -28,7 +28,7 @@
     "archive/",
     "apps/km-cli/src/tui/experiments/",
     "vendor/opentui/issues/",
-    "vendor/flexture/**",
+    "vendor/flexily/**",
     "vendor/termless/packages/vt100/tests/backend.test.ts"
   ],
   "rules": {

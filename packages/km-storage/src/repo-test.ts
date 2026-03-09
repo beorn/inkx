@@ -6,7 +6,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { join } from "path"
 
 import type { DataStore, HasDatabase } from "./data-store.ts"

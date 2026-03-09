@@ -5,7 +5,7 @@
  * whether markdown files have pre-parsed content available.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import type { Emitter } from "../emitter.ts"

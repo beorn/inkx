@@ -22,7 +22,7 @@ Audit and fix package/repo organization issues: missing LICENSE files, tracked b
 
 **Argument**: $ARGUMENTS
 
-Default target: current working directory. If paths are given, audit each directory. For monorepo vendor packages, pass multiple paths: `/repo-health vendor/silvery vendor/swatch vendor/flexture`.
+Default target: current working directory. If paths are given, audit each directory. For monorepo vendor packages, pass multiple paths: `/repo-health vendor/silvery vendor/swatch vendor/flexily`.
 
 ## Phase 1: Scan
 

@@ -5,7 +5,7 @@
  * Implements RFC 4791 (CalDAV) and RFC 6578 (WebDAV Sync).
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { CalDAVConfig, CalendarEvent, SyncResult, SyncState } from "./types.ts"
 import { parseICalendar, formatICalendar } from "./icalendar.ts"
 import { createBasicAuthHeader, webdavRequest } from "./webdav-base.ts"

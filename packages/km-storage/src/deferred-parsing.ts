@@ -11,7 +11,7 @@
 // eslint-disable-next-line promise/prefer-await-to-callbacks -- Type declaration, not actual callback
 declare function setImmediate(callback: (value?: unknown) => void): unknown
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
 import { readFileSync } from "fs"
 import { createParsePool } from "./parse-pool.ts"

@@ -441,7 +441,7 @@ bun run bench:compare
 
 Benchmarks are located in `benchmarks/`:
 
-- `layout.bench.ts` - Flexture layout computation performance
+- `layout.bench.ts` - Flexily layout computation performance
 - `parser.bench.ts` - Markdown parsing/serialization
 
 ### Writing Benchmarks

@@ -11,7 +11,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 
 const log = createLogger("km:storage:link-resolver")

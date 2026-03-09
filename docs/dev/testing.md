@@ -118,7 +118,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │  - Config: loading       │  - Formatters, validators        │
 ├──────────────────────────┼──────────────────────────────────┤
 │  VENDOR (git submodules) │  (tests in vendor/*/,            │
-│  - silvery, flexture, logger│   included in test:fast)         │
+│  - silvery, flexily, logger│   included in test:fast)         │
 └──────────────────────────┴──────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -579,7 +579,7 @@ This section maps km's testing tools to industry-standard terminology, helping d
 | -------------------- | -------------------- | ------------------------------ | ------------------- |
 | Fault Injection      | Chaos Engineering    | `/chaos`, `chaos-testing.md`   | Filesystem sync     |
 | Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
-| Differential Testing | Oracle-Based Testing | Flexture fuzz vs Yoga             | Layout engine       |
+| Differential Testing | Oracle-Based Testing | Flexily fuzz vs Yoga             | Layout engine       |
 | Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
 | Acceptance Testing   | E2E Testing          | mdtest, silvery specs          | CLI, TUI            |
 
@@ -592,7 +592,7 @@ All exploration tests follow the same pattern:
 | ----------- | --------- | -------------------- | ----------------------------------- | ------------ |
 | Sync Chaos  | FS events | 11 chaos scenarios   | noDuplicates, noOrphans, syncMatch  | Seeded RNG   |
 | TUI Explore | Keyboard  | Weighted random keys | singleCursor, validView, noErrors   | Seeded RNG   |
-| Flexture Fuzz  | Layout    | Random node trees    | Yoga equivalence                    | Seeded RNG   |
+| Flexily Fuzz  | Layout    | Random node trees    | Yoga equivalence                    | Seeded RNG   |
 
 ### Full Taxonomy Tree
 
@@ -605,7 +605,7 @@ Dynamic Testing
 ├── Exploration
 │   ├── Fault Injection (chaos/) → sync resilience
 │   ├── Monkey Testing (/explore) → UI stability
-│   └── Differential (flexture fuzz) → layout correctness
+│   └── Differential (flexily fuzz) → layout correctness
 └── Performance
     ├── Benchmarks (vitest bench) → track regressions
     └── Profile-Guided → manual optimization
@@ -624,7 +624,7 @@ Dynamic Testing
 
 - [chaos-testing.md](chaos-testing.md) — Filesystem sync chaos testing
 - [.claude/skills/explore/](../../.claude/skills/explore/) — TUI exploration skill
-- [vendor/flexture/](../../vendor/flexture/) — Layout engine with Yoga differential tests
+- [vendor/flexily/](../../vendor/flexily/) — Layout engine with Yoga differential tests
 
 ---
 

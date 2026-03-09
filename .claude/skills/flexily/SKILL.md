@@ -1,9 +1,9 @@
 ---
-description: Debug and fix Flexture layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexture layout is broken or performance degrades.
+description: Debug and fix Flexily layout issues — caching, fingerprinting, zero-allocation, performance. Use when Flexily layout is broken or performance degrades.
 argument-hint: [symptom] (describe the layout bug, or "bench" for performance workflow)
 ---
 
-# Flexture Diagnostic Workflow
+# Flexily Diagnostic Workflow
 
 **Issue**: $ARGUMENTS
 
@@ -32,12 +32,12 @@ I see a layout issue
 Always start here. 1200+ tests using differential oracle — catches any caching/fingerprint bug.
 
 ```bash
-bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
+bun vitest run vendor/flexily/tests/relayout-consistency.test.ts
 ```
 
 If a seed fails, isolate it:
 ```bash
-bun vitest run vendor/flexture/tests/relayout-consistency.test.ts -t "seed=42"
+bun vitest run vendor/flexily/tests/relayout-consistency.test.ts -t "seed=42"
 ```
 
 The differential oracle: build tree → layout → mark dirty → re-layout → compare against fresh layout. Fresh layout is trivially correct (no caching). Any difference is a bug.
@@ -94,7 +94,7 @@ child.layout.height = savedH
 
 ### Step 4: Check CSS §4.5 Divergence
 
-Flexture forces `flexShrink >= 1` for `overflow:hidden/scroll` containers (Yoga doesn't). If layout differs from Yoga for overflow containers, this is intentional:
+Flexily forces `flexShrink >= 1` for `overflow:hidden/scroll` containers (Yoga doesn't). If layout differs from Yoga for overflow containers, this is intentional:
 
 ```typescript
 // layout-zero.ts ~line 1244
@@ -103,11 +103,11 @@ if ((overflow === OVERFLOW_HIDDEN || overflow === OVERFLOW_SCROLL) && flex.flexS
 }
 ```
 
-Test: `vendor/flexture/tests/yoga-overflow-compare.test.ts`
+Test: `vendor/flexily/tests/yoga-overflow-compare.test.ts`
 
 ### Step 5: Check Edge-Based Rounding
 
-Naive `Math.round(width)` creates pixel gaps. Flexture rounds absolute edge positions:
+Naive `Math.round(width)` creates pixel gaps. Flexily rounds absolute edge positions:
 
 ```typescript
 const absLeft = Math.round(absX + marginLeft + fractionalLeft)
@@ -124,27 +124,27 @@ If gaps appear, check that rounding uses absolute coordinates, not relative.
 top -l 1 -n 5 -stats command,cpu | head -10
 
 # 2. Save baseline
-cd vendor/flexture && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-before.txt
+cd vendor/flexily && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-before.txt
 
 # 3. Make changes...
 
 # 4. Rebuild if source changed
-cd vendor/flexture && bun run build
+cd vendor/flexily && bun run build
 
 # 5. Check CPU load again
 top -l 1 -n 5 -stats command,cpu | head -10
 
 # 6. Save after
-cd vendor/flexture && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-after.txt
+cd vendor/flexily && bun bench bench/yoga-compare-warmup.bench.ts > /tmp/bench-after.txt
 
 # 7. Compare
 diff /tmp/bench-before.txt /tmp/bench-after.txt
 ```
 
 **Baseline numbers** (must maintain):
-- Flat trees: Flexture ~2x Yoga
-- Shallow deep trees: Flexture ~2.3x Yoga
-- No-change re-layout: Flexture ~5.5x Yoga
+- Flat trees: Flexily ~2x Yoga
+- Shallow deep trees: Flexily ~2.3x Yoga
+- No-change re-layout: Flexily ~5.5x Yoga
 
 **Thresholds**:
 - Regressions <5% for minor features
@@ -162,7 +162,7 @@ Verifies the fuzz suite catches 4 deliberate cache mutations. If a mutation isn'
 
 ## NaN Semantics Reference
 
-NaN is treacherous in Flexture — it means both "unconstrained" and appears as a natural sentinel choice:
+NaN is treacherous in Flexily — it means both "unconstrained" and appears as a natural sentinel choice:
 
 | Comparison | Result | Consequence |
 |-----------|--------|-------------|
@@ -195,7 +195,7 @@ Agent 4: Check mutation test coverage
 
 ## After Fixing
 
-1. **Rebuild** — `cd vendor/flexture && bun run build`
+1. **Rebuild** — `cd vendor/flexily && bun run build`
 2. **Benchmark** — Verify no performance regression
 3. **Run silvery tests** — Layout changes can cause rendering mismatches: `bun vitest run vendor/silvery/tests/`
 4. **Update docs** — Add to `src/CLAUDE.md` lessons if new pattern discovered
@@ -215,8 +215,8 @@ Agent 4: Check mutation test coverage
 
 ## Cross-References
 
-- `vendor/flexture/src/CLAUDE.md` — Algorithm phases, zero-allocation design, caching, lessons learned
-- `vendor/flexture/docs/testing.md` — Test methodology
-- `vendor/flexture/docs/incremental-layout-bugs.md` — Bug taxonomy, industry context
+- `vendor/flexily/src/CLAUDE.md` — Algorithm phases, zero-allocation design, caching, lessons learned
+- `vendor/flexily/docs/testing.md` — Test methodology
+- `vendor/flexily/docs/incremental-layout-bugs.md` — Bug taxonomy, industry context
 - `.claude/skills/tui/fix.md` — "Layout Bugs" section for TUI-level diagnosis
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson

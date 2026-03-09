@@ -26,7 +26,7 @@ Layer 1: km-core (.test.ts)      → Contracts: inputs in, invariants hold
 ── vendor (TUI stack) ──────────────────────────────────────────────────
 Layer 0a: silvery-ui (.test.ts)  → Component behavior: props in, visual + interaction out
 Layer 0b: silvery (.test.ts)     → Rendering pipeline: React tree in, terminal buffer out
-Layer 0c: flexture (.test.ts)       → Layout computation: flex config in, box coordinates out
+Layer 0c: flexily (.test.ts)       → Layout computation: flex config in, box coordinates out
 Layer 0d: ansi (.test.ts)        → Terminal primitives: color/style in, ANSI sequences out
 
 ── vendor (infrastructure) ─────────────────────────────────────────────
@@ -57,8 +57,8 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
 | **silvery-ui** | Component lifecycle (spinner frames, progress updates, multi-progress orchestration). | silvery renders components correctly. |
-| **silvery** | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding. Incremental render = fresh render. | flexture computes layout. ansi produces correct ANSI. |
-| **flexture** | Flex layout: positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout (fuzz oracle). | Nothing — leaf computation engine. |
+| **silvery** | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding. Incremental render = fresh render. | flexily computes layout. ansi produces correct ANSI. |
+| **flexily** | Flex layout: positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout (fuzz oracle). | Nothing — leaf computation engine. |
 | **ansi** | Color/style output, terminal capability detection, ANSI sequence generation. | Nothing — leaf terminal abstraction. |
 
 ### Vendor infrastructure
@@ -81,7 +81,7 @@ The "trust the layer below" principle keeps tests focused, but bugs cluster at *
 
 1. **Complex or implicit contracts**: If the interface between layers has subtle invariants that neither side fully specifies in its own tests, a test spanning both layers catches contract mismatches. Example: km-board assumes storage handles a certain action sequence, but storage changed its contract.
 
-2. **Consistently-wrong results**: Fuzz oracles catch *inconsistencies* (incremental != fresh) but not *consistently wrong* output. If flexture computes padding off-by-1 consistently, the differential fuzz oracle passes. A targeted silvery test asserting exact buffer positions catches this.
+2. **Consistently-wrong results**: Fuzz oracles catch *inconsistencies* (incremental != fresh) but not *consistently wrong* output. If flexily computes padding off-by-1 consistently, the differential fuzz oracle passes. A targeted silvery test asserting exact buffer positions catches this.
 
 3. **Feature combinations not covered by either layer**: If markdown content influences UI state (e.g., a special notation that collapses a card), neither km-markdown tests nor km-board tests alone cover it. A journey test exercising the full chain is the only guard.
 
@@ -89,7 +89,7 @@ The "trust the layer below" principle keeps tests focused, but bugs cluster at *
 
 | Boundary | Risk | Guard |
 |----------|------|-------|
-| **silvery → flexture** | Layout coordinates wrong but consistent | Targeted position assertions in silvery tests + golden file snapshots |
+| **silvery → flexily** | Layout coordinates wrong but consistent | Targeted position assertions in silvery tests + golden file snapshots |
 | **km-tui → km-board** | Board reducer contract mismatch | Journey tests that verify BOTH screen AND state for every major action |
 | **km-board → km-storage** | Persistence assumption drift | Journey tests that verify saved data, not just screen |
 | **km-storage → km-markdown** | Parser edge case not in markdown tests | Ensure tricky real-world patterns (Obsidian, Asana) are tested at L2 |
@@ -301,7 +301,7 @@ Also use for: frontmatter preservation, list nesting depth, inline formatting co
 
 ### Layout Verification Test (silvery)
 
-For the silvery→flexture boundary, assert exact buffer positions — not just content existence. The fuzz oracle catches inconsistencies, but these catch consistently-wrong layout.
+For the silvery→flexily boundary, assert exact buffer positions — not just content existence. The fuzz oracle catches inconsistencies, but these catch consistently-wrong layout.
 
 ```typescript
 test("side-by-side boxes render at correct positions", () => {
@@ -317,7 +317,7 @@ test("side-by-side boxes render at correct positions", () => {
 })
 ```
 
-Use sparingly — a handful of position-asserting tests at the silvery level catch flexture layout bugs that the fuzz oracle misses (consistently-wrong results).
+Use sparingly — a handful of position-asserting tests at the silvery level catch flexily layout bugs that the fuzz oracle misses (consistently-wrong results).
 
 ### Parametric Variants (any layer)
 
@@ -365,8 +365,8 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 | Package | Tests | Layer | What it tests | Trusts | Key patterns |
 |---------|-------|-------|---------------|--------|-------------|
 | **silvery-ui** | 11 | Components (L0a) | Spinner frames, progress updates, multi-progress orchestration | silvery rendering | Component unit tests, dual API (CLI + React) |
-| **silvery** | 199 | Rendering (L0b) | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding | flexture layout, ansi ANSI | `createRenderer()`, `expectFrame()`, buffer assertions |
-| **flexture** | 9+7 bench | Layout (L0c) | Flex positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout | Nothing (leaf) | Differential fuzz oracle, yoga compat, benchmarks |
+| **silvery** | 199 | Rendering (L0b) | Reconciler, scheduler, incremental diff, keyboard dispatch, buffer encoding | flexily layout, ansi ANSI | `createRenderer()`, `expectFrame()`, buffer assertions |
+| **flexily** | 9+7 bench | Layout (L0c) | Flex positioning, sizing, wrapping, overflow. Incremental relayout = fresh layout | Nothing (leaf) | Differential fuzz oracle, yoga compat, benchmarks |
 | **ansi** | 5 | Terminal (L0d) | Color/style output, capability detection, ANSI sequences | Nothing (leaf) | Env var mocking, detection tests |
 
 ### Vendor infrastructure
@@ -391,7 +391,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 
 ### Vendor TUI stack
 
-- **silvery → flexture dependency is the critical boundary**. silvery trusts flexture for layout. The flexture differential fuzz oracle catches *inconsistencies* (incremental != fresh), but NOT *consistently wrong* results (e.g., padding off-by-1 that's consistent). To guard against the latter, add a few targeted silvery tests that assert exact buffer positions for known layouts (see [Layout Verification Test template](#layout-verification-test-silvery)). Also consider golden file snapshots for complex silvery layouts to catch position drift. No cross-package regression suite exists yet — these targeted tests are the recommended first step.
+- **silvery → flexily dependency is the critical boundary**. silvery trusts flexily for layout. The flexily differential fuzz oracle catches *inconsistencies* (incremental != fresh), but NOT *consistently wrong* results (e.g., padding off-by-1 that's consistent). To guard against the latter, add a few targeted silvery tests that assert exact buffer positions for known layouts (see [Layout Verification Test template](#layout-verification-test-silvery)). Also consider golden file snapshots for complex silvery layouts to catch position drift. No cross-package regression suite exists yet — these targeted tests are the recommended first step.
 - **silvery → ansi dependency is stable**. ansi's ANSI output is a thin, stable API. Unit tests are sufficient here.
 - **silvery-ui → silvery is consumer-level**. silvery-ui tests should verify component behavior (spinner animation, progress updates) without re-testing silvery rendering internals. Currently all `.test.ts`, no consumer-level specs.
 - **silvery has 199 test files but few consumer-facing tests**. Most tests are internal (buffer encoding, diff algorithm, scheduler). The consumer perspective ("render this component tree, press keys, verify buffer") is well-tested indirectly through km-tui's `testEnv()`, but silvery itself could benefit from more API-level tests that don't depend on km.
@@ -426,7 +426,7 @@ The import cost taxonomy in [test-first-protocol.md](test-first-protocol.md#test
 
 ## Benchmarks to Consider
 
-Beyond existing flexture layout and silvery rendering benchmarks:
+Beyond existing flexily layout and silvery rendering benchmarks:
 
 | Area | What to Measure | Why |
 |------|----------------|-----|

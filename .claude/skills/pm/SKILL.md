@@ -83,7 +83,7 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | Epic | Scope | Example |
 |------|-------|---------|
 | `km-silvery` | silvery rendering engine | `km-silvery.bg-bleed` |
-| `km-flexture` | Flexture layout engine | `km-flexture.cold-start` |
+| `km-flexily` | Flexily layout engine | `km-flexily.cold-start` |
 | `km-tui` | TUI app views/interaction | `km-tui.emptybody` |
 | `km-vitestx` | Test framework package | `km-vitestx.mdtest` |
 | `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |

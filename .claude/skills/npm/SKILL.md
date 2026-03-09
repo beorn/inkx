@@ -37,6 +37,8 @@ bunx npm-name-cli steeply @leafy chahai
 **Handles**: exact name lookup, org scope ownership detection.
 **Does NOT handle**: similarity blocking (see below).
 
+**Reliability caveat**: "available" is *usually* right but not guaranteed — some scopes that show available can't actually be registered (e.g., `@earthy` showed available but registration failed). "Failed to check" is ambiguous (could be taken or timeout). **Only `npm org create` confirms true availability.** Treat npm-name-cli results as a filter, not a guarantee.
+
 ### curl (for scoped packages)
 
 `npm-name-cli` doesn't check `@scope/name` pairs — only bare names and `@scope` orgs. Use curl for scoped:

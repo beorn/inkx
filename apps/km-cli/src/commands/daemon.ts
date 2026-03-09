@@ -4,7 +4,7 @@
  * Manages the km daemon - a background process for sync and automation
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { createServer, connect } from "net"
 import type { Socket } from "net"
 

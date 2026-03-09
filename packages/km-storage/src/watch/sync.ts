@@ -4,7 +4,7 @@
  * Coordinates bidirectional sync between filesystem and database
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { existsSync, mkdirSync, statSync } from "fs"
 import type { Database } from "bun:sqlite"
 

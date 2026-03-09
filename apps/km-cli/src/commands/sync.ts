@@ -4,7 +4,7 @@
  * One-time sync between filesystem and database, or continuous watch mode
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "@silvery/react"
 

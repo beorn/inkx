@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "decant": "workspace:*",
+    "loggily": "workspace:*",
     "nanoevents": "^9.1.0"
   }
 }

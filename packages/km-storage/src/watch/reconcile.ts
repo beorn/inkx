@@ -5,7 +5,7 @@
  * Operations are applied using the applier module.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"

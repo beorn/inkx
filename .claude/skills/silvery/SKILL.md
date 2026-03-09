@@ -14,7 +14,7 @@ I see a visual glitch
 ├── Content correct on initial render, wrong after navigation?
 │   └── Incremental rendering bug → Step 1: SILVERY_STRICT
 ├── Wrong sizes or positions (not wrong pixels)?
-│   └── Possibly a Flexture layout bug → See .claude/skills/flexture/SKILL.md
+│   └── Possibly a Flexily layout bug → See .claude/skills/flexily/SKILL.md
 ├── Scroll content jumps or disappears?
 │   └── Scroll tier issue → Step 5: Check tier selection
 ├── Sticky header shows wrong bg or corrupts items?

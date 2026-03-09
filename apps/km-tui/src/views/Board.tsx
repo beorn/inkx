@@ -39,7 +39,7 @@ import type { GridNavigator } from "@km/board"
 import type { PaneUI, FilterProperties } from "../ui-reducer.ts"
 import { hasActivePropertyFilters } from "../ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 // cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)

@@ -81,7 +81,7 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 | Variable | Effect |
 |----------|--------|
 | `DEBUG_DEVTOOLS=1` | Connect to React DevTools (flame graph) |
-| `SILVERY_ENGINE=flexture\|yoga` | Select layout engine |
+| `SILVERY_ENGINE=flexily\|yoga` | Select layout engine |
 
 ## Layer-by-Layer Diagnostics
 
@@ -191,7 +191,7 @@ grep "event loop blocked" /tmp/km.log
 | Slow Phase | Likely Cause |
 |-----------|-------------|
 | `content` | Too many nodes rendered (check skip counts with SILVERY_INSTRUMENT) |
-| `layout` | Flexture/Yoga layout on large tree (>3000 nodes) |
+| `layout` | Flexily/Yoga layout on large tree (>3000 nodes) |
 | `output` | Large ANSI output string (check bytes count) |
 | `measure` | fit-content measurement on many nodes |
 | No pipeline data | Block outside render (storage query, filesystem, etc.) |

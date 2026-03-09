@@ -1,5 +1,5 @@
 /**
- * Flexture Layout Benchmarks
+ * Flexily Layout Benchmarks
  *
  * Methodology (following Taffy's approach):
  * - Isolate layout computation from tree creation
@@ -20,7 +20,7 @@ import {
   JUSTIFY_SPACE_BETWEEN,
   ALIGN_CENTER,
   GUTTER_ALL,
-} from "flexture"
+} from "flexily"
 
 // ============================================================================
 // Test Case Generators (Yoga-compatible structures)
@@ -158,7 +158,7 @@ function createDashboardTree(): Node {
 // Benchmarks
 // ============================================================================
 
-describe("Flexture Layout Benchmarks", () => {
+describe("Flexily Layout Benchmarks", () => {
   describe("Flat Hierarchy (list-like)", () => {
     let tree100: Node
     let tree500: Node

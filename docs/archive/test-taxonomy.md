@@ -239,10 +239,10 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 37 test files in vendor packages. These are owned by the vendor submodules:
 
 - silvery/packages/ansi (5 files)
-- flexture (1 file)
+- flexily (1 file)
 - silvery (12 files)
 - silvery/packages/ui (11 files)
-- decant (2 files)
+- loggily (2 files)
 - Others (6 files)
 
 Disposition: **keep** (owned by vendor, not part of km test review)

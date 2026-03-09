@@ -164,8 +164,8 @@ km-<4-5 char random>
 | ---------- | ------------------------------------------------ |
 | `term`     | vendor/beorn-term, beorn-tui, silvery absorb |
 | `termless` | vendor/termless (headless terminal testing) |
-| `flexture`    | vendor/flexture                               |
-| `logger`   | vendor/decant                              |
+| `flexily`    | vendor/flexily                               |
+| `logger`   | vendor/loggily                              |
 
 ### Infrastructure & Cross-Cutting
 
@@ -247,7 +247,7 @@ bd list | grep "km-storage-8"     # Prefix match
 --label sync        # Sync system
 --label parser      # Parser
 --label watcher     # File watcher
---label flexture       # Layout engine
+--label flexily       # Layout engine
 ```
 
 **Phase labels** (for epics):

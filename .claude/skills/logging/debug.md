@@ -19,7 +19,7 @@ debug("config", { watchEnabled, debounceMs })
 ```text
 km:<layer>:<subsystem>       # Main packages
 silvery:<subsystem>          # silvery renderer
-flexture:<subsystem>            # flexture layout engine
+flexily:<subsystem>            # flexily layout engine
 ```
 
 ## Keep Statements Concise
@@ -42,7 +42,7 @@ DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view /path/to/vault
 
 # Debug everything
-DEBUG=km:*,silvery:*,flexture:* DEBUG_LOG=/tmp/debug.log bun km view /path
+DEBUG=km:*,silvery:*,flexily:* DEBUG_LOG=/tmp/debug.log bun km view /path
 
 # In another terminal
 tail -f /tmp/debug.log
@@ -52,7 +52,7 @@ tail -f /tmp/debug.log
 
 | Issue | Namespace |
 |-------|-----------|
-| Layout problems | `DEBUG=flexture:layout` |
+| Layout problems | `DEBUG=flexily:layout` |
 | Keyboard input not working | `DEBUG=silvery:useInput` |
 | Render not updating | `DEBUG=silvery:render,silvery:pipeline` |
 | Storage/sync issues | `DEBUG=km:storage:*` |

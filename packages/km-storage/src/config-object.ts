@@ -5,7 +5,7 @@
  * Created via loadConfigObject() factory function.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import {
   loadConfigWithPath,
   clearConfigCache,

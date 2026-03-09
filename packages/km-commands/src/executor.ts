@@ -1,4 +1,4 @@
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 

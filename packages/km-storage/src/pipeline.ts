@@ -26,7 +26,7 @@
  *   await runPipeline(done)
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { basename } from "path"
 import type { KNode } from "@km/core"

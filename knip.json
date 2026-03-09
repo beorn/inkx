@@ -154,7 +154,7 @@
         "tests/**/*.tsx"
       ]
     },
-    "vendor/decant": {
+    "vendor/loggily": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts"
@@ -164,7 +164,7 @@
         "tests/**/*.ts"
       ]
     },
-    "vendor/flexture": {
+    "vendor/flexily": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts"
@@ -227,19 +227,6 @@
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts"
-      ]
-    },
-    "vendor/swatch": {
-      "entry": [
-        "src/index.ts",
-        "tests/**/*.test.ts",
-        "tests/**/*.test.tsx"
-      ],
-      "project": [
-        "src/**/*.ts",
-        "tests/**/*.ts",
-        "src/**/*.tsx",
-        "tests/**/*.tsx"
       ]
     },
     "vendor/tap": {

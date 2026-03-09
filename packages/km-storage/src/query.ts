@@ -5,7 +5,7 @@
  * Parsing is done by @km/core query module.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { rowToNode } from "./db-queries/index.ts"
 

@@ -5,7 +5,7 @@
  * Replaces the old rebuild command with a structured set of subcommands.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "@silvery/react"
 

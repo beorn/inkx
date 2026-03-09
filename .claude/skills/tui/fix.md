@@ -273,13 +273,13 @@ check.all(board)          // All of the above (synthetic only)
 
 ## Layout Bugs (Wrong Dimensions, Text Overflow, Card Sizing)
 
-If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexture layout caching bug** rather than a silvery rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
+If the bug is about **wrong sizes or positions** (not wrong pixels), it may be a **Flexily layout caching bug** rather than a silvery rendering bug. Layout bugs manifest as incorrect `width`/`height` computations during re-layout of partially-dirty trees.
 
 **Quick check**: Does the bug only appear after navigation (re-layout), not on initial render? → Likely a layout caching bug.
 
 ```bash
-# Run the Flexture re-layout fuzz suite (1100+ tests, differential oracle)
-bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
+# Run the Flexily re-layout fuzz suite (1100+ tests, differential oracle)
+bun vitest run vendor/flexily/tests/relayout-consistency.test.ts
 
 # If all pass, the caching logic is correct for known patterns.
 # Create a targeted test mirroring the real component structure.
@@ -290,13 +290,13 @@ bun vitest run vendor/flexture/tests/relayout-consistency.test.ts
 2. **Sentinel collisions** — NaN used as both "invalidated" and "unconstrained"
 3. **Fingerprint incompleteness** — parent override not captured in cache key
 
-See `vendor/flexture/docs/incremental-layout-bugs.md` for full details, industry context, and debugging methodology.
+See `vendor/flexily/docs/incremental-layout-bugs.md` for full details, industry context, and debugging methodology.
 
 ## See Also
 
 - [explore/random.md](../explore/random.md) — Fuzz testing
 - `docs/lessons/layout-caching.md` — Layout caching bugs lesson
-- `vendor/flexture/docs/testing.md` — Flexture test infrastructure
+- `vendor/flexily/docs/testing.md` — Flexily test infrastructure
 
 ## TUI Test Accuracy
 

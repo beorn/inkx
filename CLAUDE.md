@@ -56,7 +56,7 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 
 ## Vendor Packages (Git Submodules)
 
-Packages in `vendor/` (silvery, ansi, mdtest, flexture, etc.) are **git submodules** that are part of km.
+Packages in `vendor/` (silvery, ansi, mdtest, flexily, etc.) are **git submodules** that are part of km.
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 
@@ -111,7 +111,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
 | [silvery/](.claude/skills/silvery/)                                       | silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
-| [flexture/](.claude/skills/flexture/)                                     | Flexture layout bugs (caching, fingerprinting, benchmarking)             |
+| [flexily/](.claude/skills/flexily/)                                     | Flexily layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
 | [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |

@@ -4,7 +4,7 @@
  * Shared functionality for CalDAV and CardDAV clients.
  */
 
-import { createLogger } from "decant"
+import { createLogger } from "loggily"
 
 const log = createLogger("km:webdav:base")
 
