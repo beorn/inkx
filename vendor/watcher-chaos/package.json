@@ -12,6 +12,14 @@
     "testing",
     "watcher"
   ],
+  "homepage": "https://github.com/beorn/watcher-chaos#readme",
+  "bugs": {
+    "url": "https://github.com/beorn/watcher-chaos/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beorn/watcher-chaos.git"
+  },
   "license": "MIT",
   "author": "beorn",
   "files": [
