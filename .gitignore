@@ -67,3 +67,7 @@ imports/
 
 # Playwright CLI session data (logs, page dumps)
 .playwright-cli/
+
+# Batch refactor tool editsets
+.editsets/
+editset.json
