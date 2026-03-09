@@ -41,7 +41,7 @@ Single TAP stream, unified summary, parallel execution with accurate timing.
 ## Installation
 
 ```bash
-bun add -d @beorn/tap
+npm install -D @beorn/tap
 ```
 
 ## CLI Usage
@@ -122,7 +122,7 @@ process.exit(exitCode)
 
 **Display modes** (automatic based on TTY):
 
-- **TTY (terminal)**: Parallel TUI with silvery - 3 separate streams updating in real-time
+- **TTY (terminal)**: Parallel TUI with Silvery - 3 separate streams updating in real-time
 - **Non-TTY (CI/pipes)**: Unified TAP stream with interleaved dots
 
 **Parallel TUI mode** (requires `silvery` and `react` peer dependencies):
@@ -136,7 +136,7 @@ const orchestrator = createOrchestrator({
   suites: [
     /* ... */
   ],
-  renderParallel, // Inject silvery renderer
+  renderParallel, // Inject Silvery renderer
 })
 ```
 
@@ -362,7 +362,7 @@ interface Suite {
 
 - `"auto"` (default) - TTY detection: parallel for terminals, unified for CI/pipes
 - `"unified"` - Force merged TAP stream with interleaved dots
-- `"parallel"` - Force silvery TUI with separate streams (requires renderParallel)
+- `"parallel"` - Force Silvery TUI with separate streams (requires renderParallel)
 
 **Example:**
 
