@@ -26,13 +26,13 @@ CLI (src/cli/runner.ts)
 
 ## Key Files
 
-| File                        | Purpose                                 |
-| --------------------------- | --------------------------------------- |
-| `src/orchestrate.ts`        | Suite orchestration, mode selection      |
-| `src/merge.ts`              | TAP stream merging                       |
-| `src/consumer.ts`           | TAP parsing and summary generation       |
-| `src/parallel-tui.ts`       | TUI for parallel test output             |
-| `src/producers/bun.ts`      | Bun JUnit → TAP conversion               |
+| File                   | Purpose                             |
+| ---------------------- | ----------------------------------- |
+| `src/orchestrate.ts`   | Suite orchestration, mode selection |
+| `src/merge.ts`         | TAP stream merging                  |
+| `src/consumer.ts`      | TAP parsing and summary generation  |
+| `src/parallel-tui.ts`  | TUI for parallel test output        |
+| `src/producers/bun.ts` | Bun JUnit → TAP conversion          |
 
 ## Subpath Exports
 

@@ -21,12 +21,12 @@ ChaosWatcher (src/watcher.ts)
 
 ## Key Files
 
-| File                  | Purpose                                      |
-| --------------------- | -------------------------------------------- |
-| `src/watcher.ts`      | ChaosWatcher implementation                  |
-| `src/scenarios.ts`    | Predefined chaos scenarios                   |
-| `src/seeded-random.ts`| Seeded RNG for reproducible chaos            |
-| `src/fake-fs.ts`      | Virtual filesystem for testing               |
+| File                   | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `src/watcher.ts`       | ChaosWatcher implementation       |
+| `src/scenarios.ts`     | Predefined chaos scenarios        |
+| `src/seeded-random.ts` | Seeded RNG for reproducible chaos |
+| `src/fake-fs.ts`       | Virtual filesystem for testing    |
 
 ## Predefined Scenarios
 
