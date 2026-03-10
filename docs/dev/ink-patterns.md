@@ -1,5 +1,7 @@
 # Ink Development Patterns
 
+_Patterns documented for Ink v4.x (pre-Silvery migration). Last verified: 2026-01._
+
 This guide documents patterns, workarounds, and best practices for working with Ink in km's TUI layer. These solutions address known Ink limitations and ensure consistent behavior.
 
 **Related docs:**

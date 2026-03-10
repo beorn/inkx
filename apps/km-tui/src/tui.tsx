@@ -324,6 +324,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
               kitty: caps.kittyKeyboard,
               mouse: caps.mouse,
               focusReporting: true,
+              textSizing: "auto",
               slowFrameThreshold: 33,
               caps,
             }
