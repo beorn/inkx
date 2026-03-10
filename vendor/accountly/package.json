@@ -23,9 +23,7 @@
       "default": "./src/index.ts"
     }
   },
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"

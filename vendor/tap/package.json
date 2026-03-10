@@ -41,9 +41,7 @@
     "./producers/playwright": "./src/producers/playwright.ts",
     "./producers/vitest": "./src/producers/vitest.ts"
   },
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "scripts": {
     "test": "bun test tests/",
     "test:fast": "bun test tests/ --timeout 5000",
