@@ -1,6 +1,7 @@
 {
   "name": "@beorn/accountly",
   "version": "0.2.0",
+  "private": true,
   "description": "Multi-account manager for Claude Code and other AI providers",
   "license": "MIT",
   "author": "Beorn",
@@ -23,7 +24,6 @@
       "default": "./src/index.ts"
     }
   },
-  "private": true,
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
