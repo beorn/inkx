@@ -308,10 +308,10 @@ describe("cursor color override", () => {
     const ansi = board._result.ansi
     const lines = ansi.split("\n")
 
-    // Find the unselected card (no yellow background 48;5;3)
+    // Find the unselected card (no yellow background: 48;5;3 in 256-color or \x1b[43m in 4-bit)
     const codeLine = lines.find((line) => {
       const plain = stripAnsi(line)
-      return plain.includes("Has code text") && !line.includes("48;5;3")
+      return plain.includes("Has code text") && !line.includes("48;5;3") && !line.includes("\x1b[43m")
     })
     expect(codeLine).toBeDefined()
 
