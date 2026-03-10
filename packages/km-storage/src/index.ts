@@ -270,7 +270,11 @@ export type {
   SyncResult as RepoSyncResult,
   SyncConflict,
   RepoStats,
+  ExpandResult,
+  ExpandProgress,
 } from "./repo.ts"
+
+export type { UnexploredDir } from "./discovery.ts"
 
 // Testing utilities
 export {
