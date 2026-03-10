@@ -95,14 +95,12 @@ describe("parseInlineText", () => {
 
   // ── Block references ────────────────────────────────────────────────────
 
-  it("block ID suffix is stripped by kmast transform and re-emitted as blockref", () => {
-    // kmBlockIdTransform strips " ^blockId" from text, then we re-emit as blockref node.
-    // A space is injected between the text and the blockref to preserve word spacing.
+  it("block ID suffix is stripped by kmast transform (metadata, not a link)", () => {
+    // kmBlockIdTransform strips " ^blockId" from text — it's the block's own ID.
+    // NOT re-emitted as blockref — bare ^ID is metadata, not a cross-reference.
     const nodes = parseInlineText("Task ^1201889996442258")
-    expect(types(nodes)).toEqual(["plain", "plain", "blockref"])
+    expect(types(nodes)).toEqual(["plain"])
     expect(nodes[0]).toEqual({ type: "plain", text: "Task" })
-    expect(nodes[1]).toEqual({ type: "plain", text: " " })
-    expect(nodes[2]).toEqual({ type: "blockref", id: "1201889996442258" })
   })
 
   it("parses block ref wikilink [[^GID]]", () => {

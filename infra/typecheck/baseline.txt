@@ -216,7 +216,7 @@
 1 vendor/silvery/examples/kitty/images.tsx
 29 vendor/silvery/examples/kitty/input.tsx
 45 vendor/silvery/examples/kitty/keys.tsx
-25 vendor/silvery/examples/layout/dashboard.tsx
+28 vendor/silvery/examples/layout/dashboard.tsx
 43 vendor/silvery/examples/layout/live-resize.tsx
 5 vendor/silvery/examples/layout/overflow.tsx
 1 vendor/silvery/examples/playground/playground-app.tsx

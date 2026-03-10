@@ -322,7 +322,7 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   )
 }
 
-export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement | null {
+export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const resolved = ctx.resolveBlockRef?.(node.id)
   if (resolved) {
@@ -332,8 +332,8 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
       </Text>
     )
   }
-  // Unresolved block refs are hidden (metadata-only)
-  return null
+  // Unresolved block refs: show ID in red so broken refs are visible
+  return <Text color={resolveColor(ctx, "$error")}>^{node.id}</Text>
 }
 
 // =============================================================================

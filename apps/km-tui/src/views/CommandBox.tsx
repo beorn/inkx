@@ -333,13 +333,14 @@ export function StatusCounters({
 }): React.ReactElement {
   const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
   const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
-  const spinnerFrame = useSpinnerFrame(isLoading)
+  // Pause spinner animation when terminal is blurred (saves CPU/battery)
+  const spinnerFrame = useSpinnerFrame(isLoading && ui.terminalFocused)
 
-  // Elapsed time counter for long operations
+  // Elapsed time counter for long operations (pauses when terminal blurred)
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
-    if (!ui.loadingStartTime) {
-      setElapsed(0)
+    if (!ui.loadingStartTime || !ui.terminalFocused) {
+      if (!ui.loadingStartTime) setElapsed(0)
       return
     }
     const tick = () => setElapsed(Math.floor((Date.now() - (ui.loadingStartTime ?? 0)) / 1000))
@@ -348,7 +349,7 @@ export function StatusCounters({
     if (globalThis.IS_REACT_ACT_ENVIRONMENT) return
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [ui.loadingStartTime])
+  }, [ui.loadingStartTime, ui.terminalFocused])
 
   const logTotal = consoleStats?.total ?? 0
   const hasWarnings = (consoleStats?.errors ?? 0) > 0 || (consoleStats?.warnings ?? 0) > 0

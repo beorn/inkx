@@ -877,6 +877,13 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
     "term:mouse": (data, ctx) => {
       handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)
     },
+    "term:focus": (data, ctx) => {
+      const { focused } = data as { focused: boolean }
+      ctx.get().setUI({ terminalFocused: focused })
+      // Expose on globalThis for the heartbeat interval (which runs outside the store)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
+      ;(globalThis as any).__km_terminal_focused = focused
+    },
   })
 
   // Wrap run to capture the exit function

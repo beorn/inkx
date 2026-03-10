@@ -89,6 +89,7 @@ export interface UIState {
   recentProjectIds: string[]
 
   // Terminal state (global)
+  terminalFocused: boolean
   dimensions: { columns: number; rows: number }
 
   // Loading state (global — repo-level)
@@ -328,6 +329,7 @@ export function createInitialUIState(
 
     recentProjectIds: [],
 
+    terminalFocused: true,
     dimensions,
 
     isLoading: false,

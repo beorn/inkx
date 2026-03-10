@@ -1,0 +1,12 @@
+# Tests
+tests/
+**/*.test.ts
+**/*.spec.ts
+
+# Development config
+.claude/
+tsconfig.json
+bun.lock
+
+# Build artifacts
+node_modules/

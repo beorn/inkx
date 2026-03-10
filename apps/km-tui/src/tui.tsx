@@ -153,9 +153,17 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     // Event-loop heartbeat: detect main-thread blocks >500ms
     // Reports last key, render pipeline phase breakdown, render count, and cause
+    // Pauses when terminal loses focus (saves CPU/battery — no diagnostics needed while blurred)
     let lastHeartbeat = performance.now()
     let lastRenderCount = 0
     const heartbeatInterval = setInterval(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
+      const termFocused = (globalThis as any).__km_terminal_focused as boolean | undefined
+      if (termFocused === false) {
+        // Reset heartbeat baseline so we don't false-alarm on refocus
+        lastHeartbeat = performance.now()
+        return
+      }
       const now = performance.now()
       const gap = now - lastHeartbeat
       if (gap > 500) {
@@ -300,7 +308,14 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           </RepoProvider>
         </ThemeProvider>,
         isInteractive
-          ? { alternateScreen: true, kitty: caps.kittyKeyboard, mouse: caps.mouse, slowFrameThreshold: 33, caps }
+          ? {
+              alternateScreen: true,
+              kitty: caps.kittyKeyboard,
+              mouse: caps.mouse,
+              focusReporting: true,
+              slowFrameThreshold: 33,
+              caps,
+            }
           : { cols, rows, stdout: process.stdout, caps },
       )
 

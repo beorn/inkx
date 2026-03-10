@@ -91,6 +91,7 @@ describe("CommandBox", () => {
     recentProjectIds: [],
 
     // Terminal state (global)
+    terminalFocused: true,
     dimensions: { columns: 80, rows: 24 },
 
     // Loading state (global)
@@ -324,6 +325,7 @@ describe("StatusCounters", () => {
     showOmnibox: false,
     showFavoritesDialog: false,
     favoritesSelectedKey: null,
+    terminalFocused: true,
   }
 
   const mockRootPath = "/tmp/test-repo"

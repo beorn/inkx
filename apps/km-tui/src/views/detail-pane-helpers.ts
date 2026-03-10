@@ -215,8 +215,8 @@ function stripKnownFromNodes(nodes: InlineNode[]): string {
       case "field":
         break
       case "blockref":
-        // Preserve blockrefs — they may resolve to titles in InlineText
-        result += ` ^${node.id}`
+        // Dead path after cleanup — bare ^ID is no longer parsed as blockref.
+        // Only [[^ID]] wikilinks create cross-references (handled in wikilink case).
         break
       case "wikilink":
         // Preserve wikilinks — they may resolve to titles in InlineText

@@ -27,7 +27,11 @@ function convertAsanaLinks(text: string): string {
     const mdLinkRe = new RegExp(`\\[([^\\]]*?)\\]\\(${pattern.source}\\)`, "g")
     text = text.replace(mdLinkRe, (_match, _linkText: string, gid: string) => `[[^${gid}]]`)
   }
-  // Second pass: convert bare Asana URLs
+  // Second pass: convert <asana-url> autolinks → [[^GID]] (consuming angle brackets)
+  for (const pattern of ASANA_URL_PATTERNS) {
+    text = text.replace(new RegExp(`<${pattern.source}>`, "g"), "[[^$1]]")
+  }
+  // Third pass: convert bare Asana URLs
   for (const pattern of ASANA_URL_PATTERNS) {
     text = text.replace(new RegExp(pattern.source, "g"), "[[^$1]]")
   }

@@ -27,6 +27,9 @@
   "bin": {
     "tap": "./src/cli/runner.ts"
   },
+  "files": [
+    "src"
+  ],
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -37,6 +40,9 @@
     "./producers/bun": "./src/producers/bun.ts",
     "./producers/playwright": "./src/producers/playwright.ts",
     "./producers/vitest": "./src/producers/vitest.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "test": "bun test tests/",

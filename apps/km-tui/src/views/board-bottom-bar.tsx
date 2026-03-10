@@ -54,8 +54,8 @@ export function BottomBar({
   // Determine if we need spinner animation
   const isSyncing = ui.watcherStatus?.state === "syncing" || ui.watcherStatus?.state === "starting"
   const isLoading = ui.isLoading || ui.backgroundParsing || isSyncing
-  // Only run spinner animation when actually displaying it
-  const spinnerFrame = useSpinnerFrame(isLoading)
+  // Only run spinner animation when actually displaying it (pause when terminal blurred)
+  const spinnerFrame = useSpinnerFrame(isLoading && ui.terminalFocused)
 
   // Flash white for 3s when any counter changes
   const logTotal = consoleStats?.total ?? 0

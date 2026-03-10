@@ -1,10 +1,11 @@
 /**
- * Regression: km-tui.raw-id-tasks, km-tui.bare-ids-still
+ * Block reference resolution tests.
  *
- * Block references (^numericId), angle-bracket refs (<^numericId>), and
- * wikilinks ([[^nodeId]]) should resolve to target node titles when possible,
- * rather than showing raw IDs.
- * Unresolved blockrefs should be hidden; unresolved wikilinks should be dimmed.
+ * The blockref model after cleanup:
+ * - `^ID` at end of block = block identifier (metadata, stripped by kmBlockIdTransform, not rendered)
+ * - `[[^ID]]` = blockref wikilink (the ONLY format that creates a visible cross-reference)
+ * - `<^ID>` is NOT a valid format — angle brackets are for URLs only
+ * - Unresolved wikilinks show target text dimmed
  */
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
@@ -32,25 +33,22 @@ function targetNode(id: string, content: string): KNode {
 }
 
 describe("blockref/wikilink resolution", () => {
-  test("parser: standalone ^blockref preserved as blockref node", () => {
-    const nodes = parseInlineText("See ^1210156063601370")
+  // --- ^ID = block identifier (metadata, not a link) ---
+
+  test("parser: bare ^ID at end of text is stripped (block identifier, not a link)", () => {
+    const nodes = parseInlineText("Task ^1201889996442258")
+    // kmBlockIdTransform strips " ^ID", so only "Task" remains as plain text
+    // No blockref node should be emitted — the ^ID is metadata
     const blockref = nodes.find((n) => n.type === "blockref")
-    expect(blockref).toBeDefined()
-    if (blockref?.type === "blockref") {
-      expect(blockref.id).toBe("1210156063601370")
-    }
+    expect(blockref).toBeUndefined()
+    const plainText = nodes
+      .filter((n) => n.type === "plain")
+      .map((n) => (n as { text: string }).text)
+      .join("")
+    expect(plainText).toBe("Task")
   })
 
-  test("parser: [[^nodeId]] creates wikilink with full target", () => {
-    const nodes = parseInlineText("See [[^1210156063601370]]")
-    const wikilink = nodes.find((n) => n.type === "wikilink")
-    expect(wikilink).toBeDefined()
-    if (wikilink?.type === "wikilink") {
-      expect(wikilink.target).toBe("^1210156063601370")
-    }
-  })
-
-  test("full board: standalone blockref resolves to target title", () => {
+  test("full board: bare ^ID is not rendered (block identifier is metadata)", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("See ^1210156063601370")))
@@ -62,24 +60,25 @@ describe("blockref/wikilink resolution", () => {
 
     const card = board.q("[data-cursor]")
     const text = card.textContent()
-    expect(text).toContain("Review quarterly budget")
-    expect(text).not.toContain("1210156063601370")
-  })
-
-  test("full board: standalone blockref hidden when unresolved", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See ^1210156063601370 notes"))), {
-      rows: 20,
-      columns: 60,
-    })
-
-    const card = board.q("[data-cursor]")
-    const text = card.textContent()
-    expect(text).not.toContain("1210156063601370")
+    // Bare ^ID is metadata — stripped, NOT resolved as a link
     expect(text).toContain("See")
-    expect(text).toContain("notes")
+    expect(text).not.toContain("1210156063601370")
+    // Should NOT resolve to target title (it's the block's OWN ID, not a reference)
+    expect(text).not.toContain("Review quarterly budget")
   })
 
-  test("full board: wikilink [[^nodeId]] resolves to target title", () => {
+  // --- [[^ID]] = blockref wikilink (the only visible cross-reference format) ---
+
+  test("parser: [[^nodeId]] creates wikilink with full target", () => {
+    const nodes = parseInlineText("See [[^1210156063601370]]")
+    const wikilink = nodes.find((n) => n.type === "wikilink")
+    expect(wikilink).toBeDefined()
+    if (wikilink?.type === "wikilink") {
+      expect(wikilink.target).toBe("^1210156063601370")
+    }
+  })
+
+  test("full board: [[^nodeId]] resolves to target title", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("See [[^1210156063601370]]")))
@@ -95,7 +94,7 @@ describe("blockref/wikilink resolution", () => {
     expect(text).not.toContain("1210156063601370")
   })
 
-  test("full board: unresolved wikilink shows target dimmed (not hidden)", () => {
+  test("full board: unresolved [[^ID]] shows target dimmed (not hidden)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("See [[^9999999999999999]]"))), {
       rows: 20,
       columns: 80,
@@ -107,82 +106,24 @@ describe("blockref/wikilink resolution", () => {
     expect(text).toContain("^9999999999999999")
   })
 
-  // --- km-tui.bare-ids-still regression tests ---
+  // --- <^ID> is NOT a valid blockref format ---
 
-  test("parser: <^numericId> parsed as single blockref (no angle brackets)", () => {
+  test("parser: <^ID> is not parsed as blockref (angle brackets are for URLs only)", () => {
+    // After cleanup, <^ID> is not recognized. The angle brackets + caret are plain text.
     const nodes = parseInlineText("See <^1203717363310394>")
     const blockref = nodes.find((n) => n.type === "blockref")
-    expect(blockref).toBeDefined()
-    if (blockref?.type === "blockref") {
-      expect(blockref.id).toBe("1203717363310394")
+    expect(blockref).toBeUndefined()
+  })
+
+  // --- Embed wikilinks ---
+
+  test("parser: ![[^ID]] creates embed wikilink (handled by mdast, not inline patterns)", () => {
+    const nodes = parseInlineText("See ![[^1201889996442258]]")
+    const wikilink = nodes.find((n) => n.type === "wikilink")
+    expect(wikilink).toBeDefined()
+    if (wikilink?.type === "wikilink") {
+      expect(wikilink.target).toBe("^1201889996442258")
+      expect(wikilink.isEmbed).toBe(true)
     }
-    // Angle brackets should NOT appear as plain text
-    const plainTexts = nodes
-      .filter((n) => n.type === "plain")
-      .map((n) => (n as { text: string }).text)
-      .join("")
-    expect(plainTexts).not.toContain("<")
-    expect(plainTexts).not.toContain(">")
-  })
-
-  test("parser: bare ^ID at end of line has separating space", () => {
-    const nodes = parseInlineText("See ^1210156063601370")
-    // Should be: plain("See"), plain(" "), blockref
-    const types = nodes.map((n) => n.type)
-    expect(types).toContain("blockref")
-    // When flattened, there should be a space before the blockref position
-    const plainTexts = nodes
-      .filter((n) => n.type === "plain")
-      .map((n) => (n as { text: string }).text)
-      .join("")
-    expect(plainTexts).toBe("See ")
-  })
-
-  test("full board: <^ID> resolves to target title without angle brackets", () => {
-    const { board } = testEnv(
-      () => {
-        const nodes = item("board", item("col1", item("See <^1210156063601370>")))
-        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
-        return nodes
-      },
-      { rows: 20, columns: 80 },
-    )
-
-    const card = board.q("[data-cursor]")
-    const text = card.textContent()
-    expect(text).toContain("Review quarterly budget")
-    expect(text).not.toContain("1210156063601370")
-    expect(text).not.toContain("<")
-    expect(text).not.toContain(">")
-  })
-
-  test("full board: <^ID> hidden when unresolved (no angle brackets)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("See <^1210156063601370>"))), {
-      rows: 20,
-      columns: 80,
-    })
-
-    const card = board.q("[data-cursor]")
-    const text = card.textContent()
-    expect(text).not.toContain("1210156063601370")
-    expect(text).not.toContain("<")
-    expect(text).not.toContain(">")
-    expect(text).toContain("See")
-  })
-
-  test("full board: resolved blockref has proper spacing", () => {
-    const { board } = testEnv(
-      () => {
-        const nodes = item("board", item("col1", item("See ^1210156063601370")))
-        nodes.push(targetNode("1210156063601370", "Review quarterly budget"))
-        return nodes
-      },
-      { rows: 20, columns: 80 },
-    )
-
-    const card = board.q("[data-cursor]")
-    const text = card.textContent()
-    // Should have a space between "See" and resolved title
-    expect(text).toContain("See Review quarterly budget")
   })
 })

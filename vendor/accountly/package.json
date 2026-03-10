@@ -2,9 +2,18 @@
   "name": "@beorn/accountly",
   "version": "0.2.0",
   "description": "Multi-account manager for Claude Code and other AI providers",
+  "license": "MIT",
+  "author": "Beorn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beorn/accountly.git"
+  },
   "bin": {
     "accountly": "./src/cli.ts"
   },
+  "files": [
+    "src"
+  ],
   "type": "module",
   "module": "src/index.ts",
   "types": "./dist/index.d.ts",
@@ -13,6 +22,9 @@
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

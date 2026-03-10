@@ -165,6 +165,58 @@ const doctorResetCommand = new Command("reset")
     await loadAndReport(repoPath, "syncFromWorktree", "Reset complete")
   })
 
+const doctorLinksCommand = new Command("links")
+  .description("Detect broken wikilinks (unresolved targets)")
+  .argument("[path]", "Path to repo (default: current directory)")
+  .action((path) => {
+    const { kmDir, repoPath } = resolveKmDir(path)
+    const dbPath = join(kmDir, "state.db")
+
+    console.log(term.bold("km doctor links"), term.dim(`(repo ${formatPath(repoPath)})`))
+
+    if (!existsSync(dbPath)) {
+      console.error(term.red("No state.db found. Run 'km doctor rebuild' first."))
+      process.exit(1)
+    }
+
+    const db = new Database(dbPath, { readonly: true })
+
+    try {
+      const brokenLinks = getBrokenLinks(db)
+
+      if (brokenLinks.length === 0) {
+        console.log(term.green("  ✓ No broken wikilinks"))
+        return
+      }
+
+      console.log(`  ${brokenLinks.length} broken wikilink(s):`)
+      console.log()
+
+      // Group by source file for cleaner output
+      const bySource = new Map<string, typeof brokenLinks>()
+      for (const link of brokenLinks) {
+        const key = link.source_path ?? link.source_id
+        const existing = bySource.get(key)
+        if (existing) {
+          existing.push(link)
+        } else {
+          bySource.set(key, [link])
+        }
+      }
+
+      for (const [source, links] of bySource) {
+        console.log(`  ${source}`)
+        for (const link of links) {
+          const section = link.section ? `#${link.section}` : ""
+          const type = link.embedded ? "embed" : "link"
+          console.log(term.dim(`    -> [[${link.target_name}${section}]]`), term.dim(`(${type})`))
+        }
+      }
+    } finally {
+      db.close()
+    }
+  })
+
 // ============================================
 // Main Doctor Command
 // ============================================
@@ -175,6 +227,7 @@ export const doctorCommand = new Command("doctor")
   .addCommand(doctorGcCommand)
   .addCommand(doctorRebuildCommand)
   .addCommand(doctorResetCommand)
+  .addCommand(doctorLinksCommand)
   .action((path) => {
     const { kmDir, repoPath } = resolveKmDir(path)
 
@@ -203,6 +256,15 @@ export const doctorCommand = new Command("doctor")
         console.log(`  state.db       ${health.db.nodeCount.toLocaleString()} nodes, ${formatSize(health.db.size)}`)
       } else {
         console.log(`  state.db       ${term.dim("(not found)")}`)
+      }
+
+      // Links
+      if (db) {
+        const brokenCount = getBrokenLinkCount(db)
+        if (brokenCount > 0) {
+          health.issues.push(`${brokenCount} broken wikilink(s)\n` + `      Run 'km doctor links' to see details`)
+        }
+        console.log(`  Links          ${brokenCount > 0 ? `${brokenCount} broken` : term.green("all resolved")}`)
       }
 
       // Issues
@@ -278,4 +340,31 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+interface BrokenLink {
+  source_id: string
+  source_path: string | null
+  target_name: string
+  section: string | null
+  embedded: boolean
+}
+
+function getBrokenLinks(db: Database): BrokenLink[] {
+  return db
+    .query(
+      `
+    SELECT l.source_id, n.fs_path as source_path, l.target_name, l.section, l.embedded
+    FROM links l
+    LEFT JOIN nodes n ON n.id = l.source_id
+    WHERE l.target_id IS NULL
+    ORDER BY n.fs_path, l.target_name
+  `,
+    )
+    .all() as BrokenLink[]
+}
+
+function getBrokenLinkCount(db: Database): number {
+  const row = db.prepare("SELECT COUNT(*) as count FROM links WHERE target_id IS NULL").get() as { count: number }
+  return row.count
 }

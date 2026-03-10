@@ -113,22 +113,16 @@ function phrasingToPlainText(nodes: PhrasingContent[]): string {
 }
 
 // =============================================================================
-// km-specific syntax: wikilinks, sigils, fields, block refs, autolinks
+// km-specific syntax: wikilinks, sigils, fields, block identifiers
 // =============================================================================
 
 /** Patterns for km-specific inline syntax, matched in order of priority */
 const KM_PATTERNS = [
   // Arrow block references: → ^numericId or → [[^numericId]] (Asana recurring task parents)
+  // Stripped entirely — these are metadata (recur_parent relationship), not display content
   {
     re: /\s*→\s*(?:\[\[)?\^(\d+)(?:\]\])?/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
-  },
-  // Embed block references: ![[^numericId]]
-  { re: /!\[\[\^(\d+)\]\]/g, make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }) },
-  // Angle-bracket block references: <^numericId> (10+ digits)
-  {
-    re: /<\^(\d{10,})>/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
+    make: (_m: RegExpExecArray): InlineNode => ({ type: "field", key: "recur_parent", value: _m[1] }),
   },
   // Wiki links: ![[target]], [[target]], [[target|alias]]
   {
@@ -155,10 +149,11 @@ const KM_PATTERNS = [
     re: /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi,
     make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1], value: m[2].trim() }),
   },
-  // Standalone block refs: ^numericId (10+ digits, outside wikilinks)
+  // Bare ^numericId (10+ digits) — block identifier metadata, stripped from display.
+  // Only [[^ID]] wikilinks create visible cross-references; bare ^ID is metadata only.
   {
     re: /\^(\d{10,})/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "blockref", id: m[1] }),
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: "block_id", value: m[1] }),
     // Skip if inside a wikilink
     skipIf: (m: RegExpExecArray, text: string) => {
       const before = text.slice(0, m.index ?? 0)
@@ -263,20 +258,11 @@ export function parseInlineText(text: string): InlineNode[] {
     if (i > 0) result.push({ type: "plain", text: "\n" })
     if (child?.type === "paragraph" && "children" in child) {
       result.push(...phrasingToInline(child.children))
-      // Re-emit block ID stripped by kmBlockIdTransform as a blockref node.
-      // The transform strips " ^ID" (with preceding space) from the text,
-      // so we re-inject a space before the blockref to preserve word spacing
-      // when the blockref resolves to a display title.
-      const blockId = (child.data as Record<string, unknown> | undefined)?.blockId
-      if (typeof blockId === "string") {
-        // Add a separating space if the last node doesn't already end with whitespace
-        const lastNode = result[result.length - 1]
-        const needsSpace = lastNode && !(lastNode.type === "plain" && /\s$/.test(lastNode.text))
-        if (needsSpace) {
-          result.push({ type: "plain", text: " " })
-        }
-        result.push({ type: "blockref", id: blockId })
-      }
+      // Note: kmBlockIdTransform strips trailing " ^ID" and stores it in
+      // node.data.blockId. This is the block's OWN identifier (metadata),
+      // not a reference to another block. We intentionally do NOT re-inject
+      // it as a blockref node — block identifiers are not rendered.
+      // Only [[^ID]] wikilinks create visible cross-references.
     } else {
       // Fallback for non-paragraph blocks (headings, code blocks, etc.)
       const start = child?.position?.start?.offset ?? 0
