@@ -200,16 +200,16 @@ function findSelectedCardContent(ansi: string, text: string): string | undefined
   for (const line of lines) {
     const plain = stripAnsi(line)
     if (!plain.includes(text)) continue
-    // Selected card has yellow background (48;5;3)
-    if (!line.includes("48;5;3")) continue
+    // Selected card has yellow background (48;5;3 in 256-color or 43 in 4-bit)
+    if (!line.includes("48;5;3") && !line.includes("\x1b[43m")) continue
 
     // Extract content between border chars │...│
     const firstBorder = line.indexOf("\u2502")
     const lastBorder = line.lastIndexOf("\u2502")
     if (firstBorder >= 0 && lastBorder > firstBorder) {
       let content = line.slice(firstBorder + 1, lastBorder)
-      // Trim trailing ANSI code that belongs to the border character
-      content = content.replace(/\x1b\[[\d;:]+m$/, "")
+      // Trim trailing ANSI codes that belong to the border character transition
+      content = content.replace(/(\x1b\[[\d;:]+m)+$/, "")
       return content
     }
   }

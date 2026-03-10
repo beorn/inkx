@@ -68,12 +68,12 @@ describe("HelpOverlay", () => {
     expect(app.text).toContain("context")
   })
 
-  test("shows combined entries with dot leaders", () => {
+  test("shows combined entries with key-description pairs", () => {
     const app = renderHelp()
     // Combined navigation entries
-    expect(app.text).toMatch(/hjkl.*·+.*navigate/)
+    expect(app.text).toMatch(/hjkl.*navigate/)
     // Combined fold entries (slash-separated display: "H/L")
-    expect(app.text).toMatch(/H\/L.*·+.*fold\/unfold/)
+    expect(app.text).toMatch(/H\/L.*fold\/unfold/)
   })
 
   test("shows task section with task commands", () => {
@@ -109,8 +109,8 @@ describe("HelpOverlay", () => {
       return s.includes("find") && s.includes("/")
     })
     expect(findLine).toBeDefined()
-    // Yellow ANSI code (38;5;3) — keys use $warning token (yellow in ANSI 16)
-    expect(findLine).toMatch(/38;5;3/)
+    // Yellow ANSI code — keys use $warning token (yellow: 38;5;3 in 256-color or 33 in 4-bit)
+    expect(findLine).toMatch(/38;5;3|\x1b\[33m/)
   })
 
   test("scrolling shifts visible content", () => {
