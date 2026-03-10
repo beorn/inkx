@@ -574,6 +574,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (handleChordInput(result, ctx, get, exitApp, parentSpan) === "consumed") return
 
     // When a dialog is open, unhandled keys are expected (limited key set).
+    // TODO(km-canonical): The dialog mode stack and command filtering below could
+    // potentially be replaced with withFocus() scoping, where dialog components
+    // create focus scopes that intercept keys before they reach the board command
+    // system. This would move dialog key filtering from imperative mode checks to
+    // declarative focus tree structure.
     const dialogOpen = getModeStack().isDialog()
 
     if (!result.handled) {
@@ -856,6 +861,20 @@ function describeKey(input: string, key: Key): string {
 
 /**
  * Create the board app definition.
+ *
+ * TODO(km-canonical): Migrate to pipe() composition. Currently uses createApp()
+ * with an event handler map, which couples store creation and event wiring.
+ * The pipe() migration would separate these concerns:
+ *   pipe(
+ *     createApp(storeCreator),
+ *     withReact(<BoardApp />),
+ *     withTerminal(process, { mouse, kitty, ... }),
+ *     withFocus(),
+ *     withDomEvents(),
+ *   )
+ * This requires createApp() to support deferred event handler registration
+ * (e.g., via a withEventHandlers() plugin) so term:key/term:mouse/term:resize
+ * handlers can be composed as plugins rather than constructor args.
  *
  * @param storeParams - Parameters for creating the initial store state
  * @returns AppDefinition that can be .run() with a React element

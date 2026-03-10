@@ -195,7 +195,7 @@
 15 vendor/silvery/examples/interactive/_input-debug.tsx
 7 vendor/silvery/examples/interactive/_textarea-bare.tsx
 27 vendor/silvery/examples/interactive/ai-chat.tsx
-19 vendor/silvery/examples/interactive/app-todo.tsx
+20 vendor/silvery/examples/interactive/app-todo.tsx
 18 vendor/silvery/examples/interactive/async-data.tsx
 47 vendor/silvery/examples/interactive/cli-wizard.tsx
 26 vendor/silvery/examples/interactive/clipboard.tsx
@@ -224,6 +224,7 @@
 1 vendor/silvery/examples/playground/playground-app.tsx
 5 vendor/silvery/examples/runtime/elm-counter.tsx
 5 vendor/silvery/examples/runtime/hello-runtime.tsx
+15 vendor/silvery/examples/runtime/pipe-composition.tsx
 4 vendor/silvery/examples/runtime/run-counter.tsx
 6 vendor/silvery/examples/runtime/runtime-counter.tsx
 100 vendor/silvery/examples/screenshots/generate.tsx
@@ -247,6 +248,7 @@
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
 44 vendor/silvery/packages/compat/src/ink.ts
+4 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/components/Box.tsx
 1 vendor/silvery/packages/react/src/components/Fill.tsx
 2 vendor/silvery/packages/react/src/components/Link.tsx
@@ -278,6 +280,8 @@
 2 vendor/silvery/packages/tea/src/types.ts
 1 vendor/silvery/packages/tea/src/with-commands.ts
 2 vendor/silvery/packages/tea/src/with-diagnostics.ts
+2 vendor/silvery/packages/tea/src/with-dom-events.ts
+1 vendor/silvery/packages/tea/src/with-focus.ts
 3 vendor/silvery/packages/tea/src/with-render.ts
 3 vendor/silvery/packages/term/src/ansi-sanitize.ts
 7 vendor/silvery/packages/term/src/app.ts

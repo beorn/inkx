@@ -292,6 +292,17 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     }
 
     // Create L3 app (Zustand store + term:key handler)
+    // TODO(km-canonical): Migrate to pipe() composition once createApp() supports plugin-based
+    // event handler registration. Currently createApp() takes event handlers as a map in the
+    // constructor, while pipe() plugins like withTerminal(process) wrap run() to inject terminal
+    // options. The migration would look like:
+    //   const boardApp = pipe(
+    //     createApp(storeCreator),
+    //     withReact(<BoardApp ... />),
+    //     withTerminal(process, { mouse: caps.mouse, kitty: caps.kittyKeyboard, ... }),
+    //     withFocus(),
+    //     withDomEvents(),
+    //   )
     const boardApp = createBoardApp(storeParams)
 
     {

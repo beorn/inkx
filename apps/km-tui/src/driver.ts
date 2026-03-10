@@ -43,8 +43,8 @@
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
-import { withCommands, createFocusManager, FocusManagerContext } from "@silvery/react"
-import type { AppWithCommands, AppState } from "@silvery/react"
+import { createFocusManager, FocusManagerContext } from "@silvery/react"
+import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/tea/plugins"
 import { StoreContext } from "@silvery/term/runtime"
 import { parseKey } from "@silvery/term/runtime"
 import {
@@ -210,6 +210,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
+  // TODO(km-canonical): Once the driver uses a full pipe() chain with withFocus(),
+  // the focus manager can be provided via the plugin instead of manual creation.
+  // withFocus({ focusManager }) already accepts an external instance.
   const focusManager = createFocusManager()
 
   // Create command registry
@@ -278,13 +281,16 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // Get keybindings for command metadata
   const getKeybindings = (): Keybinding[] => defaultKeybindings()
 
-  // Apply withCommands plugin for introspection
-  const appWithCmd = withCommands(baseApp, {
-    registry,
-    getContext,
-    handleAction,
-    getKeybindings,
-  })
+  // Apply plugins via pipe() composition
+  const appWithCmd = pipe(
+    baseApp,
+    withCommands({
+      registry,
+      getContext,
+      handleAction,
+      getKeybindings,
+    }),
+  )
 
   // Focus-aware event handler context (same shape as EventHandlerContext from create-app.tsx)
   const eventCtx = {
