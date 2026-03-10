@@ -901,7 +901,6 @@ Shipped in silvery, export path `Silvery/tea`. PlainText already uses it interna
 ## See Also
 
 - [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
-- [focus-routing.md](../../vendor/silvery/docs/deep-dives/focus-routing.md) — Command-system input routing
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects
 

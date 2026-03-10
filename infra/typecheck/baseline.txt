@@ -233,7 +233,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-24 vendor/silvery/packages/compat/src/ink.ts
+34 vendor/silvery/packages/compat/src/ink.ts
 2 vendor/silvery/packages/react/src/components/Box.tsx
 1 vendor/silvery/packages/react/src/components/Fill.tsx
 2 vendor/silvery/packages/react/src/components/Link.tsx
@@ -257,7 +257,7 @@
 1 vendor/silvery/packages/react/src/measureElement.ts
 6 vendor/silvery/packages/react/src/reconciler/host-config.ts
 1 vendor/silvery/packages/react/src/reconciler/index.ts
-13 vendor/silvery/packages/react/src/reconciler/nodes.ts
+8 vendor/silvery/packages/react/src/reconciler/nodes.ts
 3 vendor/silvery/packages/react/src/render-string.tsx
 14 vendor/silvery/packages/react/src/render.tsx
 1 vendor/silvery/packages/tea/src/plugins.ts
@@ -345,6 +345,7 @@
 2 vendor/silvery/tests/compat/ink/helpers/render-to-string.ts
 2 vendor/silvery/tests/compat/ink/render-to-string.test.tsx
 1 vendor/silvery/tests/compat/ink/text.test.tsx
+5 vendor/silvery/tests/features/default-bg.test.tsx
 1 vendor/silvery/tests/features/osc22-mouse-cursor.test.ts
 1 vendor/silvery/tests/features/text-decorations.test.ts
 34 vendor/silvery/tests/fixtures/index.tsx

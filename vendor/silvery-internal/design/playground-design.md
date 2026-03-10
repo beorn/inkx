@@ -260,5 +260,5 @@ Monaco dominates. For a lighter alternative, consider CodeMirror 6 (~150 KB) wit
 
 - `examples/playground/` -- Static playground (Phase 1)
 - `examples/web/canvas.html` -- Minimal Canvas adapter demo
-- `docs/deep-dives/architecture.md` -- RenderAdapter interface
+- `deep-dives/architecture.md` -- RenderAdapter interface
 - `docs/roadmap.md` -- Multi-target rendering vision

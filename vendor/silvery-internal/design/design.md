@@ -4,10 +4,10 @@
 >
 > **Historical Document** — This was the original design RFC for Silvery (early 2025).
 > Many details (naming, layout engine, hook names) have changed since implementation.
-> For current architecture, see [architecture.md](../../silvery/docs/deep-dives/architecture.md).
+> For current architecture, see [architecture.md](../deep-dives/architecture.md).
 > For current API, use `useContentRect()` (not `useLayout()`).
 
-> **Note**: For high-level architecture and future targets (Canvas, React Native), see [architecture.md](../../silvery/docs/deep-dives/architecture.md) and [roadmap.md](../../silvery/docs/roadmap.md). This document focuses on terminal-specific implementation details.
+> **Note**: For high-level architecture and future targets (Canvas, React Native), see [architecture.md](../deep-dives/architecture.md) and [roadmap.md](../../silvery/docs/roadmap.md). This document focuses on terminal-specific implementation details.
 
 ## Executive Summary
 
