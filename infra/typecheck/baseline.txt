@@ -38,9 +38,9 @@
 1 apps/km-tui/src/reactive.ts
 3 apps/km-tui/src/test.ts
 2 apps/km-tui/src/testing.ts
-15 apps/km-tui/src/text/InlineComponents.tsx
+16 apps/km-tui/src/text/InlineComponents.tsx
 2 apps/km-tui/src/text/format.ts
-14 apps/km-tui/src/text/inline-parser.ts
+12 apps/km-tui/src/text/inline-parser.ts
 3 apps/km-tui/src/tui.tsx
 1 apps/km-tui/src/ui-context.tsx
 33 apps/km-tui/src/views/Board.tsx
@@ -351,6 +351,7 @@
 10 vendor/silvery/tests/features/aspect-ratio.test.tsx
 4 vendor/silvery/tests/features/bg-inheritance.test.tsx
 11 vendor/silvery/tests/features/borders.test.tsx
+10 vendor/silvery/tests/features/content-phase-adapter-clipping.test.tsx
 13 vendor/silvery/tests/features/cursor-compat.test.tsx
 5 vendor/silvery/tests/features/default-bg.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
