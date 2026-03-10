@@ -232,7 +232,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-53 vendor/silvery/packages/compat/src/ink.ts
+44 vendor/silvery/packages/compat/src/ink.ts
 2 vendor/silvery/packages/react/src/components/Box.tsx
 1 vendor/silvery/packages/react/src/components/Fill.tsx
 2 vendor/silvery/packages/react/src/components/Link.tsx
@@ -290,7 +290,7 @@
 4 vendor/silvery/packages/term/src/runtime/event-handlers.ts
 2 vendor/silvery/packages/term/src/runtime/keys.ts
 1 vendor/silvery/packages/term/src/runtime/layout.ts
-15 vendor/silvery/packages/term/src/runtime/run.tsx
+5 vendor/silvery/packages/term/src/runtime/run.tsx
 1 vendor/silvery/packages/term/src/runtime/types.ts
 6 vendor/silvery/packages/term/src/scheduler.ts
 1 vendor/silvery/packages/term/src/term-def.ts
@@ -342,11 +342,9 @@
 6 vendor/silvery/packages/ui/src/components/useTextArea.ts
 4 vendor/silvery/packages/ui/src/image/Image.tsx
 4 vendor/silvery/tests/compat/ink/helpers/create-stdin.ts
-2 vendor/silvery/tests/compat/ink/helpers/render-to-string.ts
 1 vendor/silvery/tests/compat/ink/measure-element.test.tsx
 2 vendor/silvery/tests/compat/ink/render-to-string.test.tsx
 1 vendor/silvery/tests/compat/ink/terminal-resize.test.tsx
-1 vendor/silvery/tests/compat/ink/text.test.tsx
 7 vendor/silvery/tests/compat/ink/use-box-metrics.test.tsx
 1 vendor/silvery/tests/features/ansi-passthrough.test.tsx
 5 vendor/silvery/tests/features/ansi-sanitize.test.ts
@@ -358,12 +356,13 @@
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 1 vendor/silvery/tests/features/osc22-mouse-cursor.test.ts
 5 vendor/silvery/tests/features/overflow-borders.test.tsx
-20 vendor/silvery/tests/features/position-offsets.test.tsx
+26 vendor/silvery/tests/features/position-offsets.test.tsx
 10 vendor/silvery/tests/features/prop-removal.test.tsx
-8 vendor/silvery/tests/features/static.test.tsx
+7 vendor/silvery/tests/features/render-options.test.tsx
+7 vendor/silvery/tests/features/static.test.tsx
 14 vendor/silvery/tests/features/tab-focus.test.tsx
 1 vendor/silvery/tests/features/text-decorations.test.ts
-6 vendor/silvery/tests/features/transform.test.tsx
+5 vendor/silvery/tests/features/transform.test.tsx
 2 vendor/silvery/tests/features/use-cursor.test.tsx
 34 vendor/silvery/tests/fixtures/index.tsx
 6 vendor/silvery/tests/hooks/use-textarea.test.tsx
