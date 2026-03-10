@@ -183,7 +183,11 @@ export function* discoverFiles(
   }
 
   // --- Nested generator for directory scanning ---
-  function* scanDirectory(dirPath: string, parentId: string | null, depth: number): Generator<StepYield, void, unknown> {
+  function* scanDirectory(
+    dirPath: string,
+    parentId: string | null,
+    depth: number,
+  ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (except root)
