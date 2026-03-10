@@ -1613,7 +1613,7 @@ export function* createRepo(
       if (idx === -1) {
         throw new Error(`Directory not in unexplored list: ${dirPath}`)
       }
-      const [dir] = remainingUnexplored.splice(idx, 1)
+      const dir = remainingUnexplored.splice(idx, 1)[0]!
 
       // Run a targeted discovery on just this directory, using the original
       // repo root for consistent ID generation and relative paths.
@@ -1649,7 +1649,7 @@ export function* createRepo(
       ensureOpen()
 
       while (remainingUnexplored.length > 0) {
-        const dir = remainingUnexplored[0]
+        const dir = remainingUnexplored[0]!
         const result = await this.expandDirectory(dir.path)
         yield {
           dirPath: dir.path,

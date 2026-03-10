@@ -151,6 +151,19 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     },
 
     deferredFiles: [],
+    unexploredDirs: [],
+    async expandDirectory() {
+      return { nodeCount: 0, linkCount: 0, newUnexploredDirs: [] }
+    },
+    async *expandAll() {
+      // No-op for fake repo
+    },
+    withDeferredFs(fn) {
+      return fn()
+    },
+    syncToFs() {
+      // No-op for fake repo
+    },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     database: null as any,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
