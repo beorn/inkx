@@ -84,7 +84,7 @@ export function WorkspaceView({
   const paneLabels = derivePaneLabels(layout, panes)
 
   return (
-    <Box flexGrow={1} overflow="hidden">
+    <Box flexGrow={1} flexDirection="column" overflow="hidden">
       <LayoutNodeView
         node={layout}
         panes={panes}
@@ -227,7 +227,7 @@ function LayoutNodeView({
 function PaneSeparator(): React.ReactElement {
   const SEPARATOR_FILL = "│\n".repeat(200)
   return (
-    <Box flexGrow={1} overflow="hidden">
+    <Box flexGrow={1} flexDirection="column" overflow="hidden">
       <Text dimColor>{SEPARATOR_FILL}</Text>
     </Box>
   )
