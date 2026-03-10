@@ -1,6 +1,7 @@
 {
   "name": "@beorn/tap",
   "version": "0.3.0",
+  "private": true,
   "description": "TAP stream orchestration: merge parallel test runners, convert formats (Bun JUnit, Playwright), beautiful terminal output",
   "keywords": [
     "bun",
@@ -41,7 +42,6 @@
     "./producers/playwright": "./src/producers/playwright.ts",
     "./producers/vitest": "./src/producers/vitest.ts"
   },
-  "private": true,
   "scripts": {
     "test": "bun test tests/",
     "test:fast": "bun test tests/ --timeout 5000",
