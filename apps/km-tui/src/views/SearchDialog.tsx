@@ -112,7 +112,7 @@ function SearchResults({
             decorations={decorations}
           >
             {result.tags.length > 0 && (
-              <Text color={isSelected ? "$selection-fg" : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selection" : "$primary"} dimColor={!isSelected}>
                 {` #${result.tags.join(" #")}`}
               </Text>
             )}

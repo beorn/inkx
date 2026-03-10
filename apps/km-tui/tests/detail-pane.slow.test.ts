@@ -156,7 +156,7 @@ describe("getStatusDisplay", () => {
     ["done", "done", "$success"],
     ["wip", "wip", "$warning"],
     ["blocked", "blocked", "$error"],
-    ["dropped", "dropped", "$muted-fg"],
+    ["dropped", "dropped", "$muted"],
   ] as const)("status %s returns text=%s color=%s", (status, expectedText, expectedColor) => {
     const result = getStatusDisplay(status)
     expect(result.text).toBe(expectedText)

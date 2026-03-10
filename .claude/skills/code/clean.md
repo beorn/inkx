@@ -102,7 +102,7 @@ Catalog opportunities in these categories:
 | Anti-Pattern | Correct Pattern | Why |
 |---|---|---|
 | `color="red"` | `color="$error"` | Theme portability — colors vary by theme |
-| `backgroundColor="black"` | `backgroundColor="$surface"` | Elevated surfaces use semantic token |
+| `backgroundColor="black"` | `backgroundColor="$surface-bg"` | Elevated surfaces use semantic token |
 | `borderColor="gray"` | `borderColor="$separator"` | Borders/dividers use semantic token |
 | `"#5599dd"` (hex literal) | `"$focusborder"` or `"$primary"` | Hex colors break on non-truecolor terminals |
 | `kitty: true` (hardcoded) | `kitty: caps.kittyKeyboard` | Use `detectTerminalCaps()` for protocol flags |

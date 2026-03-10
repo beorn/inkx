@@ -556,7 +556,7 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0}
-                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$muted-fg" : (tc ?? style.ownColor)}
+                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$muted" : (tc ?? style.ownColor)}
                 dimColor={sd || dimUntitled}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}

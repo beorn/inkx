@@ -236,16 +236,16 @@ const Card = React.memo(
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
     const yieldTop = isPrevBodyBlock && isPrevAtCursor
-    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface" : "$muted-fg"
+    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface-bg" : "$muted"
 
     if (isHR && !isEditing) {
       // HR cards render borderless with padding (matching border width) for alignment.
       // Padding on all 4 sides matches border dimensions for layout stability.
       // When selected, they get a yellow border like other body blocks.
       const hrLayoutProps = isSelected
-        ? { borderStyle: "round" as const, borderColor: "$selection", borderDimColor: false }
+        ? { borderStyle: "round" as const, borderColor: "$selection-bg", borderDimColor: false }
         : isMultiSelected || isColSelected
-          ? { borderStyle: "round" as const, borderColor: "$selection", borderDimColor: false }
+          ? { borderStyle: "round" as const, borderColor: "$selection-bg", borderDimColor: false }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
         <Box flexDirection="column" flexShrink={0} width={width} {...hrLayoutProps}>
@@ -261,7 +261,7 @@ const Card = React.memo(
             })}
           >
             <Text
-              color={isSelected || isMultiSelected ? "$selection" : undefined}
+              color={isSelected || isMultiSelected ? "$selection-bg" : undefined}
               dimColor={!isSelected && !isMultiSelected}
               wrap="truncate"
             >
@@ -273,7 +273,7 @@ const Card = React.memo(
     }
 
     if (isVirtualColumn || isVirtualCard) {
-      const bodyBorderColor = isEditing ? "$focusborder" : "$selection"
+      const bodyBorderColor = isEditing ? "$focusborder" : "$selection-bg"
       return (
         <Box
           flexDirection="column"
@@ -312,7 +312,7 @@ const Card = React.memo(
     const isCardCollapsed = card.rules?.collapse === true
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
-      const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "$selection" : "$muted-fg"
+      const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "$selection-bg" : "$muted"
       return (
         <Box
           flexDirection="column"
@@ -345,11 +345,11 @@ const Card = React.memo(
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
-    const defaultBorder = isDoneOrDropped ? "$muted-fg" : treeConfig.borderMode === "black" ? "$surface" : "$border"
+    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const borderColor = isEditing
       ? "$focusborder"
       : isSelected || isMultiSelected || isColSelected
-        ? "$selection"
+        ? "$selection-bg"
         : defaultBorder
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
@@ -453,14 +453,14 @@ function bodyBlockLayoutProps(
   _isLastBodyBlock: boolean,
   isMultiSelected: boolean,
   isColumnSelected = false,
-  defaultBorderColor = "$muted-fg",
+  defaultBorderColor = "$muted",
   cursorDim = false,
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor, borderDimColor: cursorDim }
   return {
     borderStyle: "round" as const,
-    borderColor: isMultiSelected || isColumnSelected ? "$selection" : defaultBorderColor,
-    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$surface",
+    borderColor: isMultiSelected || isColumnSelected ? "$selection-bg" : defaultBorderColor,
+    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$surface-bg",
   }
 }
 
@@ -688,7 +688,7 @@ export const Column = React.memo(function Column({
     // Account for border (2 rows) and count line (1 row)
     const verticalChars = name.slice(0, Math.max(0, height - 3)).split("")
     const countStr = String(count)
-    const borderColor = isColumnSelected ? "$selection" : "$surface"
+    const borderColor = isColumnSelected ? "$selection-bg" : "$surface-bg"
     return (
       <Box
         id={column.node.id}
@@ -711,14 +711,14 @@ export const Column = React.memo(function Column({
           borderColor={borderColor}
           borderDimColor={false}
           overflow="hidden"
-          backgroundColor={isColumnSelected ? "$selection" : undefined}
+          backgroundColor={isColumnSelected ? "$selection-bg" : undefined}
         >
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
               <Text
                 bold={isColumnSelected}
-                color={isColumnSelected ? "$selection-fg" : (ownColor ?? "$muted-fg")}
+                color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")}
                 dimColor={!isColumnSelected}
               >
                 {ch}
@@ -728,7 +728,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text dimColor={!isColumnSelected} color={isColumnSelected ? "$selection-fg" : undefined}>
+            <Text dimColor={!isColumnSelected} color={isColumnSelected ? "$selection" : undefined}>
               {countStr}
             </Text>
           </Box>

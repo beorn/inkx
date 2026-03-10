@@ -2,7 +2,7 @@
  * PaneBar — shared top bar component for all pane types.
  *
  * Provides consistent styling across board, detail, and empty panes:
- * - Chrome bg/fg ($inverse/$inverse-fg) by default (light bg, dark text in dark themes)
+ * - Chrome bg/fg ($inverse/$inverse) by default (light bg, dark text in dark themes)
  * - Yellow ($selected) background when board-level selected
  * - Per-pane theme dims tokens for unfocused panes
  * - Left/right layout with overflow hidden on the left
@@ -29,10 +29,10 @@ export interface PaneBarProps {
 
 export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: PaneBarProps): React.ReactElement {
   // Per-pane theme dims all $tokens for unfocused panes — no manual dimColor needed.
-  const bg = backgroundColor ?? "$inverse"
+  const bg = backgroundColor ?? "$inverse-bg"
 
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color="$inverse-fg">
+    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color="$inverse">
       {/* Left: content (path, title, etc.) */}
       <Box flexGrow={1} overflow="hidden">
         {left}

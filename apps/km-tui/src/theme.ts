@@ -6,7 +6,7 @@
  * Falls back to built-in themes (Nord dark / Catppuccin Latte light) when
  * detection fails.
  *
- * All components use $token strings (e.g., "$selection", "$focusborder")
+ * All components use $token strings (e.g., "$selection-bg", "$focusborder")
  * which silvery ThemeProvider resolves at render time.
  */
 import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@silvery/react"
@@ -58,18 +58,18 @@ export function deriveUnfocusedTheme(theme: Theme): Theme {
     primary: dimColor(theme.primary),
     link: dimColor(theme.link),
     inputborder: dimColor(theme.inputborder),
+    selectionbg: dimColor(theme.selectionbg),
     selection: dimColor(theme.selection),
-    selectionfg: dimColor(theme.selectionfg),
     focusborder: dimColor(theme.focusborder),
     fg: dimColor(theme.fg),
-    mutedfg: dimColor(theme.mutedfg),
+    muted: dimColor(theme.muted),
     disabledfg: dimColor(theme.disabledfg),
     border: dimColor(theme.border),
+    inversebg: dimColor(theme.inversebg),
     inverse: dimColor(theme.inverse),
-    inversefg: dimColor(theme.inversefg),
     error: dimColor(theme.error),
     warning: dimColor(theme.warning),
     success: dimColor(theme.success),
-    surface: dimColor(theme.surface),
+    surfacebg: dimColor(theme.surfacebg),
   }
 }

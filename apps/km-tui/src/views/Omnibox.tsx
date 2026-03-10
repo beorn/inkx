@@ -260,8 +260,8 @@ function SectionDivider({ label }: { label: string }): React.ReactElement {
 
 function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSelected: boolean }): React.ReactElement {
   const typeIcon = result.type === "goto" ? " " : " "
-  const bg = isSelected ? "$selection" : undefined
-  const fg = isSelected ? "$selection-fg" : undefined
+  const bg = isSelected ? "$selection-bg" : undefined
+  const fg = isSelected ? "$selection" : undefined
 
   return (
     <Box height={1} backgroundColor={bg} flexDirection="row">
@@ -277,7 +277,7 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
       {/* Shortcut hint: fixed width, never squeezed */}
       {result.shortcutHint && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "$selection-fg" : "$inputborder"} backgroundColor={bg}>
+          <Text color={isSelected ? "$selection" : "$inputborder"} backgroundColor={bg}>
             {"  "}
             {result.shortcutHint}
           </Text>
