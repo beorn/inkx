@@ -198,7 +198,10 @@
 27 vendor/silvery/examples/interactive/ai-chat.tsx
 19 vendor/silvery/examples/interactive/app-todo.tsx
 18 vendor/silvery/examples/interactive/async-data.tsx
+47 vendor/silvery/examples/interactive/cli-wizard.tsx
 26 vendor/silvery/examples/interactive/clipboard.tsx
+47 vendor/silvery/examples/interactive/data-explorer.tsx
+33 vendor/silvery/examples/interactive/dev-tools.tsx
 2 vendor/silvery/examples/interactive/inline-bench.tsx
 22 vendor/silvery/examples/interactive/kanban.tsx
 19 vendor/silvery/examples/interactive/layout-ref.tsx
@@ -229,6 +232,10 @@
 44 vendor/silvery/examples/viewer.tsx
 1 vendor/silvery/examples/web/canvas-app.tsx
 29 vendor/silvery/examples/web/showcases.tsx
+8 vendor/silvery/examples/web/showcases/coding-agent.tsx
+1 vendor/silvery/examples/web/showcases/dashboard.tsx
+1 vendor/silvery/examples/web/showcases/kanban.tsx
+1 vendor/silvery/examples/web/showcases/shared.tsx
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
@@ -351,7 +358,7 @@
 10 vendor/silvery/tests/features/aspect-ratio.test.tsx
 4 vendor/silvery/tests/features/bg-inheritance.test.tsx
 11 vendor/silvery/tests/features/borders.test.tsx
-10 vendor/silvery/tests/features/content-phase-adapter-clipping.test.tsx
+14 vendor/silvery/tests/features/content-phase-adapter-clipping.test.tsx
 13 vendor/silvery/tests/features/cursor-compat.test.tsx
 5 vendor/silvery/tests/features/default-bg.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
