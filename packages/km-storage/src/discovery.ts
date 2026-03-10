@@ -38,12 +38,26 @@ const log = createLogger("km:storage:discovery")
 /** Discovery mode: "stub" for fast (no parsing), "full" for complete */
 type DiscoveryMode = "stub" | "full"
 
+/** A directory that was not explored due to preloadDepth limit */
+export interface UnexploredDir {
+  /** Node ID of the directory */
+  id: string
+  /** Relative fs_path */
+  path: string
+  /** Parent node ID */
+  parentId: string
+  /** Approximate child count from readdir (no stat) */
+  childCount: number
+}
+
 /** Options for discoverFiles */
 export interface DiscoveryOptions {
   /** Discovery mode: "stub" or "full" */
   parseMode: DiscoveryMode
   /** Errors accumulator */
   errors: LoadError[]
+  /** Maximum directory depth to eagerly load. Infinity = load everything (default). */
+  preloadDepth?: number
 }
 
 /** Result from discoverFiles */
@@ -52,6 +66,8 @@ export interface DiscoveryResult {
   pendingLinks: PendingLink[]
   /** Files to parse later (stub mode only) */
   deferredFiles?: DeferredFile[]
+  /** Directories that were not explored due to depth limit */
+  unexploredDirs?: UnexploredDir[]
 }
 
 // ============================================================================
@@ -77,12 +93,14 @@ export function* discoverFiles(
   options: DiscoveryOptions,
 ): Generator<StepYield, DiscoveryResult, unknown> {
   const { parseMode, errors } = options
+  const preloadDepth = options.preloadDepth ?? Infinity
 
   yield "Discovering files"
 
   const events: Event[] = []
   const pendingLinks: PendingLink[] = []
   const deferredFiles: DeferredFile[] = []
+  const unexploredDirs: UnexploredDir[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
 
@@ -125,11 +143,14 @@ export function* discoverFiles(
   const visitedDirs = new Set<string>([repoRealpath])
 
   // Scan filesystem
-  yield* scanDirectory(repoRoot, repoRootId)
+  yield* scanDirectory(repoRoot, repoRootId, 0)
 
   yield { current, total }
 
-  return parseMode === "stub" ? { events, pendingLinks: [], deferredFiles } : { events, pendingLinks }
+  const result: DiscoveryResult =
+    parseMode === "stub" ? { events, pendingLinks: [], deferredFiles } : { events, pendingLinks }
+  if (unexploredDirs.length > 0) result.unexploredDirs = unexploredDirs
+  return result
 
   /**
    * Check if a directory can be entered (not already visited).
@@ -162,7 +183,11 @@ export function* discoverFiles(
   }
 
   // --- Nested generator for directory scanning ---
-  function* scanDirectory(dirPath: string, parentId: string | null): Generator<StepYield, void, unknown> {
+  function* scanDirectory(
+    dirPath: string,
+    parentId: string | null,
+    depth: number,
+  ): Generator<StepYield, void, unknown> {
     if (!existsSync(dirPath)) return
 
     // Skip ignored directories (except root)
@@ -195,8 +220,23 @@ export function* discoverFiles(
           events.push(
             createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
           )
-          yield* scanDirectory(fullPath, folderId)
+          // Depth limit: record as unexplored instead of recursing
+          if (depth >= preloadDepth) {
+            const childCount = quickChildCount(fullPath, ignorePatterns, repoRoot)
+            unexploredDirs.push({
+              id: folderId,
+              path: toRelativeFsPath(repoRoot, fullPath),
+              parentId: parentId ?? ".",
+              childCount,
+            })
+          } else {
+            yield* scanDirectory(fullPath, folderId, depth + 1)
+          }
         } else if (targetStat.isFile()) {
+          // Files at depth >= preloadDepth are inside an unexplored dir's parent,
+          // but since we're processing entries at this level, only skip files if
+          // this directory itself is beyond the limit. Since we only enter scanDirectory
+          // when depth < preloadDepth (or depth === 0 for root), files here are always valid.
           yield* handleFile(fullPath, parentId, order++, entry.name)
         }
         // Symlink to something else (socket, etc.) — skip
@@ -209,7 +249,18 @@ export function* discoverFiles(
         events.push(
           createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
         )
-        yield* scanDirectory(fullPath, folderId)
+        // Depth limit: record as unexplored instead of recursing
+        if (depth >= preloadDepth) {
+          const childCount = quickChildCount(fullPath, ignorePatterns, repoRoot)
+          unexploredDirs.push({
+            id: folderId,
+            path: toRelativeFsPath(repoRoot, fullPath),
+            parentId: parentId ?? ".",
+            childCount,
+          })
+        } else {
+          yield* scanDirectory(fullPath, folderId, depth + 1)
+        }
         continue
       }
 
@@ -321,6 +372,19 @@ export function* discoverFiles(
 /** Check if a filename has a parseable extension (.md or .txt) */
 function isParseableFile(name: string): boolean {
   return name.endsWith(".md") || name.endsWith(".txt")
+}
+
+/**
+ * Quick child count for an unexplored directory.
+ * Uses readdirSync and filters out ignored entries without stat calls.
+ */
+function quickChildCount(dirPath: string, ignorePatterns: string[], repoRoot: string): number {
+  try {
+    const entries = readdirSync(dirPath)
+    return entries.filter((name) => !shouldIgnore(join(dirPath, name), ignorePatterns, repoRoot)).length
+  } catch {
+    return 0
+  }
 }
 
 /**

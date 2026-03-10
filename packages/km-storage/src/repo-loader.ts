@@ -29,7 +29,7 @@ import { generatePathBasedId } from "./id-utils.ts"
 import { INSERT_NODE_SQL } from "./db-insert.ts"
 
 // Import extracted modules
-import { discoverFiles } from "./discovery.ts"
+import { discoverFiles, type UnexploredDir } from "./discovery.ts"
 import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts"
 import { parseDeferredAsync as parseDeferredAsyncImpl, parseStubFile as parseStubFileImpl } from "./deferred-parsing.ts"
 
@@ -60,6 +60,8 @@ export interface LoadResult {
   pendingLinks?: PendingLink[]
   /** Files pending deferred parsing (only present if discoverOnly was true) */
   deferredFiles?: DeferredFile[]
+  /** Directories not explored due to preloadDepth limit */
+  unexploredDirs?: UnexploredDir[]
   /** The NodeStore instance for querying/mutating nodes */
   store: NodeStore
   /** The database instance used for loading (for DI/testing) */
@@ -98,6 +100,12 @@ export interface LoadOptions {
    * - "disk": Read from events.jsonl
    */
   mode?: "memory" | "disk"
+  /**
+   * Maximum directory depth to eagerly load during discovery.
+   * Directories beyond this depth are recorded as unexplored.
+   * Default: Infinity (load everything).
+   */
+  preloadDepth?: number
 }
 
 /** Files pending deferred parsing (for discoverOnly mode) */
@@ -182,7 +190,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 3. Mode-specific event source
   const source: EventSource =
     mode === "memory"
-      ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly)
+      ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth)
       : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
@@ -247,6 +255,7 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     duration,
     pendingLinks: returnPendingLinks,
     deferredFiles: returnDeferredFiles,
+    unexploredDirs: source.unexploredDirs,
     store,
     database: db,
   }
@@ -282,6 +291,7 @@ interface EventSource {
   events: Event[]
   pendingLinks: PendingLink[]
   deferredFiles?: DeferredFile[]
+  unexploredDirs?: UnexploredDir[]
 }
 
 // ============================================================================
@@ -380,10 +390,12 @@ function* discoverMemoryMode(
   errors: LoadError[],
   db: Database,
   discoverOnly: boolean,
+  preloadDepth?: number,
 ): Generator<StepYield, EventSource, unknown> {
   return yield* discoverFiles(repoRoot, db, {
     parseMode: discoverOnly ? "stub" : "full",
     errors,
+    preloadDepth,
   })
 }
 

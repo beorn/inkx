@@ -16,7 +16,7 @@
 
 import { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { Event, KNode, TaskStatus } from "@km/core"
@@ -30,7 +30,12 @@ import {
   updateTargetName as dbUpdateTargetName,
   type Link,
 } from "./db-links.ts"
-import { resolveNode as dbResolveNode, resolveByName as dbResolveByName } from "./db-queries/smart-resolver.ts"
+import {
+  resolveNode as dbResolveNode,
+  resolveByName as dbResolveByName,
+  clearNameIndex,
+  clearResolveCache,
+} from "./db-queries/smart-resolver.ts"
 import {
   getAllTasks as dbGetAllTasks,
   getLinksTo as dbGetLinksTo,
@@ -47,7 +52,21 @@ import type { FileTree } from "./file-tree.ts"
 import { createDiskFileTree } from "./file-tree.ts"
 import { executeQuery, parseQuery } from "./query.ts"
 import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
-import { loadRepo, type DeferredFile, type LoadError, type StepYield } from "./repo-loader.ts"
+import {
+  loadRepo,
+  ensureRepoRootNode,
+  type DeferredFile,
+  type LoadError,
+  type PendingLink,
+  type StepYield,
+} from "./repo-loader.ts"
+import { type UnexploredDir } from "./discovery.ts"
+import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
+import { generatePathBasedId } from "./id-utils.ts"
+import { toRelativeFsPath } from "./path-utils.ts"
+import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
+import { resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts"
+import { INSERT_NODE_SQL } from "./db-insert.ts"
 import { SCHEMA, migrateSchema } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
 import { FsWriter } from "./watch/fs-writer.ts"
@@ -566,6 +585,26 @@ export interface RepoStats {
   duration: number
 }
 
+/** Result from expanding a single unexplored directory */
+export interface ExpandResult {
+  /** Number of nodes added */
+  nodeCount: number
+  /** Number of links resolved */
+  linkCount: number
+  /** Nested unexplored directories found during expansion */
+  newUnexploredDirs: UnexploredDir[]
+}
+
+/** Progress from expandAll() */
+export interface ExpandProgress {
+  /** Directory path just expanded */
+  dirPath: string
+  /** Nodes added in this directory */
+  nodeCount: number
+  /** Remaining unexplored directories */
+  remaining: number
+}
+
 /**
  * SyncResult from one-shot sync operation.
  */
@@ -652,6 +691,15 @@ export interface Repo extends Disposable {
 
   /** Files pending deferred parsing (for discoverOnly mode) */
   readonly deferredFiles: DeferredFile[]
+
+  /** Directories not yet explored due to preloadDepth limit */
+  unexploredDirs: UnexploredDir[]
+
+  /** Expand a single unexplored directory, adding its contents to the database */
+  expandDirectory(dirPath: string): Promise<ExpandResult>
+
+  /** Load all remaining unexplored directories (for background indexing) */
+  expandAll(): AsyncGenerator<ExpandProgress>
 
   /** Event emitter for this repo (owns kmDir, eventHub, fsSync) */
   readonly emitter: Emitter
@@ -932,6 +980,277 @@ function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): st
 }
 
 // =============================================================================
+// Directory Expansion (for preloadDepth)
+// =============================================================================
+
+/** Internal result from expandUnexploredDirectory */
+interface ExpandInternalResult {
+  nodeCount: number
+  pendingLinks: PendingLink[]
+  newUnexploredDirs: UnexploredDir[]
+}
+
+/**
+ * Expand a single unexplored directory by scanning it and inserting nodes into the database.
+ * Uses the original repoRoot for consistent ID generation and relative paths.
+ *
+ * This is intentionally simpler than the full discoverFiles() pipeline:
+ * - No progress yielding (runs synchronously)
+ * - No file counting step
+ * - Respects preloadDepth for nested directories
+ */
+function expandUnexploredDirectory(
+  db: Database,
+  repoRoot: string,
+  dir: UnexploredDir,
+  options: { parseMode: "stub" | "full"; preloadDepth?: number },
+): ExpandInternalResult {
+  const fullPath = join(repoRoot, dir.path)
+  if (!existsSync(fullPath)) return { nodeCount: 0, pendingLinks: [], newUnexploredDirs: [] }
+
+  const ignorePatterns = getIgnorePatterns(repoRoot)
+  const preloadDepth = options.preloadDepth ?? Infinity
+  const now = Date.now()
+  const events: Event[] = []
+  const pendingLinks: PendingLink[] = []
+  const newUnexploredDirs: UnexploredDir[] = []
+  const visitedDirs = new Set<string>()
+
+  // Track the current dir's realpath to prevent cycles
+  try {
+    visitedDirs.add(realpathSync(fullPath))
+  } catch {
+    return { nodeCount: 0, pendingLinks: [], newUnexploredDirs: [] }
+  }
+
+  // Scan starting at depth 0 relative to this directory
+  scanDir(fullPath, dir.id, 0)
+
+  // Apply events to database
+  if (events.length > 0) {
+    db.run("BEGIN IMMEDIATE")
+    try {
+      const insertStmt = db.prepare(INSERT_NODE_SQL)
+      for (const event of events) {
+        if (event.type === "node_created") {
+          const data = event.data as Record<string, unknown>
+          insertStmt.run(
+            data.id as string,
+            data.type as string,
+            (data.fstype as string) ?? null,
+            (data.parent_id as string) ?? ".",
+            data.item ? 1 : 0,
+            (data.embed_source as string) ?? null,
+            (data.parent_idx as number) ?? 0,
+            (data.fs_path as string) ?? null,
+            (data.fs_ino as number) ?? null,
+            (data.fs_mtime as number) ?? null,
+            (data.name as string) ?? null,
+            (data.block_id as string) ?? null,
+            (data.title as string) ?? null,
+            (data.md_pos as number) ?? null,
+            (data.md_line as number) ?? null,
+            (data.list_marker as string) ?? null,
+            (data.task_marker as string) ?? null,
+            (data.task_status as string) ?? null,
+            (data.assigned_to as string) ?? null,
+            (data.due_at as string) ?? null,
+            (data.start_at as string) ?? null,
+            (data.priority as string) ?? null,
+            (data.content as string) ?? null,
+            (data.content_hash as string) ?? null,
+            JSON.stringify(data.data ?? {}),
+            event.ts,
+            event.ts,
+            event.id,
+          )
+        }
+      }
+      db.run("COMMIT")
+    } catch (error) {
+      db.run("ROLLBACK")
+      throw error
+    }
+  }
+
+  return { nodeCount: events.length, pendingLinks, newUnexploredDirs }
+
+  function scanDir(dirPath: string, parentId: string, depth: number): void {
+    let entries
+    try {
+      entries = readdirSync(dirPath, { withFileTypes: true })
+    } catch {
+      return
+    }
+
+    let order = 0
+    for (const entry of entries) {
+      const entryPath = join(dirPath, entry.name)
+      if (shouldIgnore(entryPath, ignorePatterns, repoRoot)) continue
+
+      if (entry.isSymbolicLink()) {
+        let targetStat
+        try {
+          targetStat = statSync(entryPath)
+        } catch {
+          continue // broken symlink
+        }
+        if (targetStat.isDirectory()) {
+          let real: string
+          try {
+            real = realpathSync(entryPath)
+          } catch {
+            continue
+          }
+          if (visitedDirs.has(real)) continue
+          visitedDirs.add(real)
+          handleDir(entryPath, parentId, order++, entry.name, depth)
+        } else if (targetStat.isFile()) {
+          handleFile(entryPath, parentId, order++, entry.name)
+        }
+        continue
+      }
+
+      if (entry.isDirectory()) {
+        let real: string
+        try {
+          real = realpathSync(entryPath)
+        } catch {
+          continue
+        }
+        if (visitedDirs.has(real)) continue
+        visitedDirs.add(real)
+        handleDir(entryPath, parentId, order++, entry.name, depth)
+        continue
+      }
+
+      if (entry.isFile()) {
+        handleFile(entryPath, parentId, order++, entry.name)
+      }
+    }
+  }
+
+  function handleDir(dirPath: string, parentId: string, order: number, name: string, depth: number): void {
+    const folderId = generatePathBasedId(repoRoot, dirPath)
+    const relPath = toRelativeFsPath(repoRoot, dirPath)
+    events.push({
+      id: folderId,
+      type: "node_created",
+      actor: "fs-expand",
+      ts: now,
+      data: {
+        id: folderId,
+        type: "h",
+        item: true,
+        fstype: "folder",
+        parent_id: parentId,
+        parent_idx: order,
+        fs_path: relPath,
+        name,
+        content: name,
+      },
+    })
+
+    if (depth >= preloadDepth) {
+      // Record as unexplored
+      let childCount = 0
+      try {
+        const entries = readdirSync(dirPath)
+        childCount = entries.filter((n) => !shouldIgnore(join(dirPath, n), ignorePatterns, repoRoot)).length
+      } catch {
+        // ignore
+      }
+      newUnexploredDirs.push({ id: folderId, path: relPath, parentId, childCount })
+    } else {
+      scanDir(dirPath, folderId, depth + 1)
+    }
+  }
+
+  function handleFile(filePath: string, parentId: string, order: number, entryName: string): void {
+    const fileId = generatePathBasedId(repoRoot, filePath)
+    const relPath = toRelativeFsPath(repoRoot, filePath)
+    const isMd = entryName.endsWith(".md")
+    const isTxt = entryName.endsWith(".txt")
+
+    if (!isMd && !isTxt) {
+      // Non-markdown file
+      events.push({
+        id: fileId,
+        type: "node_created",
+        actor: "fs-expand",
+        ts: now,
+        data: {
+          id: fileId,
+          type: "h",
+          item: true,
+          fstype: "file",
+          parent_id: parentId,
+          parent_idx: order,
+          fs_path: relPath,
+          content: entryName,
+        },
+      })
+      return
+    }
+
+    if (options.parseMode === "stub") {
+      const ext = isTxt ? /\.txt$/i : /\.md$/i
+      const name = entryName.replace(ext, "")
+      events.push({
+        id: fileId,
+        type: "node_created",
+        actor: "fs-expand",
+        ts: now,
+        data: {
+          id: fileId,
+          type: "h",
+          item: true,
+          fstype: isTxt ? "txtfile" : "mdfile",
+          parent_id: parentId,
+          parent_idx: order,
+          fs_path: relPath,
+          name,
+          title: name,
+          data: { _stub: true },
+        },
+      })
+    } else {
+      // Full parse mode
+      try {
+        const content = readFileSync(filePath, "utf-8")
+        const { nodes, wikilinks } = isTxt
+          ? parsePlainTextToNodes(content, filePath)
+          : parseMarkdownWithLinks(content, filePath)
+
+        const fileNode = nodes[0]
+        if (fileNode?.type === "h" && fileNode?.item && (fileNode.fstype === "file" || fileNode.fstype === "mdfile")) {
+          fileNode.parent_id = parentId
+          fileNode.parent_idx = order
+          fileNode.fs_path = relPath
+        }
+
+        for (const node of nodes) {
+          const nodeId = node.id ?? generatePathBasedId(repoRoot, filePath, node.md_line)
+          events.push({
+            id: nodeId,
+            type: "node_created",
+            actor: "fs-expand",
+            ts: now,
+            data: { ...node, id: nodeId },
+          })
+        }
+
+        for (const wikilink of wikilinks) {
+          pendingLinks.push(wikilink)
+        }
+      } catch {
+        // Skip files we can't read
+      }
+    }
+  }
+}
+
+// =============================================================================
 // Factory: createRepo
 // =============================================================================
 
@@ -944,6 +1263,7 @@ interface RepoInitResult {
   loadErrors: LoadError[]
   stats: RepoStats
   deferredFiles: DeferredFile[]
+  unexploredDirs: UnexploredDir[]
 }
 
 /**
@@ -995,6 +1315,7 @@ function* initWithFileLoading(
     searchAncestors: false, // rootPath is already the repo root
     skipLinkResolution: options.skipLinkResolution,
     discoverOnly: options.discoverOnly,
+    preloadDepth: options.preloadDepth,
     mode, // Pass our mode decision to loadRepo
     db, // ADR-002: pass db to avoid singleton
   })
@@ -1010,6 +1331,7 @@ function* initWithFileLoading(
     duration: loadResult.duration,
   }
   const deferredFiles = loadResult.deferredFiles ?? []
+  const unexploredDirs = loadResult.unexploredDirs ?? []
 
   // Health checks for disk mode
   if (mode === "disk") {
@@ -1030,7 +1352,7 @@ function* initWithFileLoading(
 
   log.debug?.(`loaded files: ${stats.nodeCount} nodes, ${stats.linkCount} links, ${loadErrors.length} errors`)
 
-  return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles }
+  return { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs }
 }
 
 /**
@@ -1099,6 +1421,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
     loadErrors: [],
     stats: { nodeCount: 0, linkCount: 0, duration: 0 },
     deferredFiles: [],
+    unexploredDirs: [],
   }
 }
 
@@ -1123,6 +1446,13 @@ export interface CreateRepoOptions {
    * Creates stub nodes without parsing - call parseDeferredAsync() afterward.
    */
   discoverOnly?: boolean
+  /**
+   * Maximum directory depth to eagerly load at startup.
+   * Directories beyond this depth are recorded as unexplored and can be
+   * loaded on demand via expandDirectory() or expandAll().
+   * Default: Infinity (load everything).
+   */
+  preloadDepth?: number
   /** Lifecycle hooks for mutation interception */
   hooks?: RepoHooks
 }
@@ -1175,9 +1505,12 @@ export function* createRepo(
   const kmDir = join(rootPath, ".km")
 
   // Delegate to the appropriate initialization helper
-  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles } = options.loadFiles
+  const { db, mode, emitter, dataStore, loadErrors, stats, deferredFiles, unexploredDirs } = options.loadFiles
     ? yield* initWithFileLoading(rootPath, kmDir, options)
     : yield* initEmptyDb(kmDir, options)
+
+  // Mutable list of unexplored directories (shrinks as dirs are expanded)
+  const remainingUnexplored = [...unexploredDirs]
 
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
   // The TUI replaces this with SyncManager via emitter.setFsSync().
@@ -1264,6 +1597,68 @@ export function* createRepo(
     loadErrors,
     stats,
     deferredFiles,
+    get unexploredDirs() {
+      return remainingUnexplored
+    },
+    set unexploredDirs(dirs: UnexploredDir[]) {
+      remainingUnexplored.length = 0
+      remainingUnexplored.push(...dirs)
+    },
+
+    async expandDirectory(dirPath: string): Promise<ExpandResult> {
+      ensureOpen()
+
+      // Find and remove the directory from unexplored list
+      const idx = remainingUnexplored.findIndex((d) => d.path === dirPath)
+      if (idx === -1) {
+        throw new Error(`Directory not in unexplored list: ${dirPath}`)
+      }
+      const dir = remainingUnexplored.splice(idx, 1)[0]!
+
+      // Run a targeted discovery on just this directory, using the original
+      // repo root for consistent ID generation and relative paths.
+      const result = expandUnexploredDirectory(db, rootPath, dir, {
+        parseMode: options.discoverOnly ? "stub" : "full",
+        preloadDepth: options.preloadDepth,
+      })
+
+      // Add any newly discovered unexplored dirs to the remaining list
+      remainingUnexplored.push(...result.newUnexploredDirs)
+
+      // Resolve links if we have them
+      let linkCount = 0
+      if (result.pendingLinks.length > 0) {
+        linkCount = await resolveLinksAsyncImpl(db, result.pendingLinks)
+      }
+
+      // Bust all caches and bump version so TUI re-renders
+      childrenCache.clear()
+      clearNameIndex()
+      clearResolveCache()
+      state.version++
+      state.notify()
+
+      return {
+        nodeCount: result.nodeCount,
+        linkCount,
+        newUnexploredDirs: result.newUnexploredDirs,
+      }
+    },
+
+    async *expandAll(): AsyncGenerator<ExpandProgress> {
+      ensureOpen()
+
+      while (remainingUnexplored.length > 0) {
+        const dir = remainingUnexplored[0]!
+        const result = await this.expandDirectory(dir.path)
+        yield {
+          dirPath: dir.path,
+          nodeCount: result.nodeCount,
+          remaining: remainingUnexplored.length,
+        }
+      }
+    },
+
     emitter,
 
     // Spread shared query and mutation methods
@@ -1479,6 +1874,13 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     loadErrors: [],
     stats: { nodeCount: 0, linkCount: 0, duration: 0 },
     deferredFiles: [],
+    unexploredDirs: [],
+    async expandDirectory(_dirPath: string): Promise<ExpandResult> {
+      return { nodeCount: 0, linkCount: 0, newUnexploredDirs: [] }
+    },
+    async *expandAll(): AsyncGenerator<ExpandProgress> {
+      // No-op: bare repos have no unexplored directories
+    },
     get emitter() {
       ensureOpen()
       return emitter
