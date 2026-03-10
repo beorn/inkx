@@ -76,10 +76,10 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {/* Title header — selection-colored background */}
-      <Box height={1} flexShrink={0} width={width} backgroundColor="$inverse" flexDirection="row">
+      <Box height={1} flexShrink={0} width={width} backgroundColor="$inverse-bg" flexDirection="row">
         <Box width={1} flexShrink={0} />
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
-          <Text bold color="$inverse-fg" wrap="truncate">
+          <Text bold color="$inverse" wrap="truncate">
             {statusIcon && <Text>{statusIcon.char} </Text>}
             <InlineText text={displayContent} context={{ colorOverride: null, hideFields: true }} />
           </Text>
@@ -159,14 +159,14 @@ const LABEL_WIDTH = 12
 /**
  * Renders a single metadata property row: [label] [value]
  *
- * Selection highlighting uses $selection/$selection-fg tokens,
+ * Selection highlighting uses $selection/$selection tokens,
  * which the per-pane theme dims for unfocused panes.
  */
 function MetadataRow({ metaId, label, node, isSelected, width }: MetadataRowProps): React.ReactElement {
   const repo = useRepo()
-  const bg = isSelected ? "$selection" : undefined
-  const fg = isSelected ? "$selection-fg" : undefined
-  const labelColor = isSelected ? "$selection-fg" : "$muted-fg"
+  const bg = isSelected ? "$selection-bg" : undefined
+  const fg = isSelected ? "$selection" : undefined
+  const labelColor = isSelected ? "$selection" : "$muted"
 
   const value = getMetadataValue(label, node, repo)
 

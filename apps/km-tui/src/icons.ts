@@ -40,7 +40,7 @@ export const UNFOLDED_MARKER: StatusIcon = {
 /** Marker for nodes without children - TINY */
 export const EMPTY_MARKER: StatusIcon = {
   char: "\u00B7", // · middle dot
-  color: "$muted-fg",
+  color: "$muted",
 }
 
 /**
@@ -89,7 +89,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
     case "done":
       return { char: "\u2713", color: "$success" } // ✓ check mark
     case "dropped":
-      return { char: "\u2717", color: "$muted-fg" } // ✗ ballot X
+      return { char: "\u2717", color: "$muted" } // ✗ ballot X
     case null:
     case undefined:
       // Missing status - show red warning triangle
@@ -99,7 +99,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
       // This helps debug what invalid status was received
       return {
         char: String(status).charAt(0),
-        color: "$selection-fg",
+        color: "$selection",
         backgroundColor: "$fg",
       }
   }
@@ -166,18 +166,18 @@ export function getTypeBullet(
       case "mdsection":
         return { char: "\u00A7", color: "$fg" } // § section sign
       default:
-        return { char: "\u00B7", color: "$muted-fg" } // · middle dot
+        return { char: "\u00B7", color: "$muted" } // · middle dot
     }
   }
 
   if (isItem(node.type, node.item) && !isOutline(node.type, node.item)) {
     // List items with children get a bullet
     if (hasChildren) return { char: "\u2022", color: "$fg" } // • bullet
-    return { char: "\u00B7", color: "$muted-fg" } // · middle dot
+    return { char: "\u00B7", color: "$muted" } // · middle dot
   }
 
   // Leaf items: p, code, quote, etc.
-  return { char: "\u00B7", color: "$muted-fg" } // · middle dot
+  return { char: "\u00B7", color: "$muted" } // · middle dot
 }
 
 // =============================================================================
@@ -197,7 +197,7 @@ export function getCircleBullet(hasChildren: boolean, isFolded = false): StatusI
     }
     return { char: "\u25CB", color: "$fg" } // ○ hollow circle
   }
-  return { char: "\u00B7", color: "$muted-fg" } // · middle dot
+  return { char: "\u00B7", color: "$muted" } // · middle dot
 }
 
 // =============================================================================
@@ -221,13 +221,13 @@ export function getColumnHeaderIcon(
   isVirtual: boolean,
   ownColor?: string,
 ): StatusIcon {
-  if (isVirtual) return { char: "\u00B7", color: "$muted-fg" } // · middle dot
+  if (isVirtual) return { char: "\u00B7", color: "$muted" } // · middle dot
 
   const baseIcon =
     iconStyle === "workflowy"
       ? getCircleBullet(true, false) // columns always expanded → ○
       : iconStyle === "nerdfont"
-        ? (getTypeBullet(node, true) ?? { char: "\u00B7", color: "$muted-fg" as const })
+        ? (getTypeBullet(node, true) ?? { char: "\u00B7", color: "$muted" as const })
         : getFoldMarker(true, false) // regular: unfolded marker •
   return ownColor ? { ...baseIcon, color: ownColor } : baseIcon
 }
@@ -245,7 +245,7 @@ export const COLORED_CIRCLE: StatusIcon = {
  */
 export const SMALL_BULLET: StatusIcon = {
   char: "\u00B7", // middle dot ·
-  color: "$muted-fg",
+  color: "$muted",
 }
 
 /**

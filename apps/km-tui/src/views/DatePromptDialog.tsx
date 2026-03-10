@@ -24,7 +24,7 @@ export interface DatePromptDialogProps {
 /** Get live preview text for the current input */
 function getPreview(field: string, input: string): { text: string; color: string } {
   const trimmed = input.trim()
-  if (!trimmed) return { text: "Empty = clear value", color: "$muted-fg" }
+  if (!trimmed) return { text: "Empty = clear value", color: "$muted" }
 
   if (field === "rrule") {
     const rrule = naturalToRRule(trimmed)

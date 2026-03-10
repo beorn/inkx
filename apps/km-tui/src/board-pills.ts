@@ -166,8 +166,8 @@ export function getHeaderStyle(
   // Per-pane theme dims $selected for unfocused panes automatically
   if (isActiveSelection) {
     return {
-      color: "$selection-fg",
-      backgroundColor: "$selection",
+      color: "$selection",
+      backgroundColor: "$selection-bg",
       dimColor: false,
     }
   }
@@ -179,7 +179,7 @@ export function getHeaderStyle(
   //   the terminal's bright-white default, matching card text.
   // Note: headers are always bold (handled by component)
   return {
-    color: isSelected ? "$selection" : undefined,
+    color: isSelected ? "$selection-bg" : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

@@ -5,26 +5,26 @@
  * to their resolved ANSI 256-color indices. Use these instead of magic
  * numbers in color assertions.
  *
- * Source of truth: vendor/swatch/src/palettes/index.ts (ansi16DarkTheme)
+ * Source of truth: vendor/silvery/packages/theme/src/palettes/index.ts (ansi16DarkTheme)
  *                  vendor/silvery/src/pipeline/render-helpers.ts (namedColors)
  *
  * @example
  * ```ts
  * import { TC } from "./helpers/theme.ts"
  *
- * expect(cell.bg).toEqual(TC.$selection)     // instead of 3
- * expect(cell.fg).toEqual(TC["$selection-fg"]) // instead of 0
+ * expect(cell.bg).toEqual(TC["$selection-bg"]) // instead of 3
+ * expect(cell.fg).toEqual(TC.$selection)       // instead of 0
  * ```
  */
 export const TC = {
-  /** Selection highlight background — yellow (3) */
-  $selection: 3,
   /** Text on selected background — black (0) */
-  "$selection-fg": 0,
+  $selection: 0,
+  /** Selection highlight background — yellow (3) */
+  "$selection-bg": 3,
   /** Primary foreground text — whiteBright (15) */
   $fg: 15,
   /** Muted foreground text — white (7) */
-  "$muted-fg": 7,
+  $muted: 7,
   /** Disabled foreground text — gray (8) */
   "$disabled-fg": 8,
   /** Dividers, borders, rules — gray (8) */
@@ -43,8 +43,10 @@ export const TC = {
   $focusborder: 12,
   /** Interactive control borders — blueBright (12) */
   $inputborder: 12,
-  /** Elevated surfaces — black (0) */
-  $surface: 0,
+  /** Text on elevated surface — whiteBright (15) */
+  $surface: 15,
+  /** Elevated surface background — black (0) */
+  "$surface-bg": 0,
 
   // ── Backward compatibility aliases ────────────────────────────────
   // Old token names → same color values. Use new names in new tests.

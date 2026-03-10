@@ -33,7 +33,7 @@ interface FavoritesDialogProps {
 function SectionHeader({ label }: { label: string }): React.ReactElement {
   return (
     <Box height={1}>
-      <Text color="$muted-fg" bold>
+      <Text color="$muted" bold>
         {label}
       </Text>
     </Box>

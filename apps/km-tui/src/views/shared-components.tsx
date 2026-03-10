@@ -310,7 +310,7 @@ function KeySegment({ segment, color = "$warning" }: { segment: string; color?: 
       <Text bold color={color}>
         {parts.map((part, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
+            {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
             {part}
           </React.Fragment>
         ))}
@@ -357,7 +357,7 @@ export function KeyBinding({ keys, color = "$warning" }: { keys: string; color?:
     <>
       {segments.map((seg, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
           <KeySegment segment={seg} color={color} />
         </React.Fragment>
       ))}
@@ -400,7 +400,7 @@ export function InputBox({
   afterCursor,
   prompt = "",
   placeholder = "",
-  promptColor = "$selection",
+  promptColor = "$selection-bg",
   showCursor = true,
   focusRing = false,
 }: InputBoxProps): React.ReactElement {
@@ -472,21 +472,21 @@ export function NodeLine({
   const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
 
   return (
-    <Box width="100%" height={1} backgroundColor={isSelected ? "$selection" : "$surface"} flexDirection="row">
+    <Box width="100%" height={1} backgroundColor={isSelected ? "$selection-bg" : "$surface-bg"} flexDirection="row">
       {/* Title: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
-        <Text color={isSelected ? "$selection-fg" : undefined} wrap="truncate">
+        <Text color={isSelected ? "$selection" : undefined} wrap="truncate">
           {prefix}
-          <Text color={isSelected ? "$selection-fg" : icon.color}>{icon.char} </Text>
+          <Text color={isSelected ? "$selection" : icon.color}>{icon.char} </Text>
           <InlineText text={title} decorations={decorations} />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "$selection-fg" : undefined}>
+          <Text color={isSelected ? "$selection" : undefined}>
             {parentContext && (
-              <Text dimColor={!isSelected} color={isSelected ? "$selection-fg" : undefined}>
+              <Text dimColor={!isSelected} color={isSelected ? "$selection" : undefined}>
                 {` < ${parentContext}`}
               </Text>
             )}

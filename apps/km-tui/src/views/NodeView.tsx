@@ -139,7 +139,7 @@ export function ColumnHeader({
   hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? "$selection-fg" : icon.color
+  const iconColor = isColumnSelected ? "$selection" : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
 
   // Build count display
@@ -171,7 +171,7 @@ export function ColumnHeader({
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
                     {untitled ? (
-                      <Text dimColor color={"$muted-fg"}>
+                      <Text dimColor color={"$muted"}>
                         {displayName}
                       </Text>
                     ) : (
@@ -187,7 +187,7 @@ export function ColumnHeader({
                   {hasBody && !isVirtual && <Text dimColor>{" ···"}</Text>}
                   {typeSuffix ? (
                     <Text
-                      color={isColumnSelected ? "$muted-fg" : undefined}
+                      color={isColumnSelected ? "$muted" : undefined}
                       dimColor={!isColumnSelected}
                     >{` ${typeSuffix}`}</Text>
                   ) : (
@@ -204,7 +204,7 @@ export function ColumnHeader({
                         color={"$error"}
                       >{` ${styledUnderline("curly", [255, 80, 80], countDisplay)}${warningIndicator}`}</Text>
                     ) : (
-                      <Text color={isColumnSelected ? headerStyle.color : "$muted-fg"}>{` ${countDisplay}`}</Text>
+                      <Text color={isColumnSelected ? headerStyle.color : "$muted"}>{` ${countDisplay}`}</Text>
                     )}
                   </Text>
                 </Box>
@@ -217,7 +217,7 @@ export function ColumnHeader({
       {/* Separator line between header and cards */}
       {showSeparator && (
         <Box height={1} flexShrink={0} width={width}>
-          <Text color={isColumnSelected ? "$selection" : "$disabled-fg"}>{"\u2500".repeat(Math.max(0, width))}</Text>
+          <Text color={isColumnSelected ? "$selection-bg" : "$disabled-fg"}>{"\u2500".repeat(Math.max(0, width))}</Text>
         </Box>
       )}
     </Box>
@@ -275,9 +275,9 @@ export function NodeLineView({
       return nodeIsTask ? stripTaskMark(rawContent) : rawContent
     })()
 
-  const textColor = isSelected ? "$selection-fg" : undefined
-  const bgColor = isSelected ? "$selection" : undefined
-  const iconColor = isSelected ? "$selection-fg" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$selection" : undefined
+  const bgColor = isSelected ? "$selection-bg" : undefined
+  const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const indentStr = indent > 0 ? "  ".repeat(indent) : ""
 
   return (
@@ -342,9 +342,9 @@ export function NodeCardView({
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-  const textColor = isSelected ? "$selection-fg" : undefined
-  const bgColor = isSelected ? "$selection" : undefined
-  const iconColor = isSelected ? "$selection-fg" : isDoneOrDropped ? undefined : icon.color
+  const textColor = isSelected ? "$selection" : undefined
+  const bgColor = isSelected ? "$selection-bg" : undefined
+  const iconColor = isSelected ? "$selection" : isDoneOrDropped ? undefined : icon.color
   const shouldStripColor = isSelected || isDoneOrDropped
 
   // Subtask progress badge (e.g., "3/7") — shows done/total for task children
@@ -379,13 +379,13 @@ export function NodeCardView({
               text={displayContent}
               context={{ colorOverride: shouldStripColor ? null : undefined, hideFields: true }}
             />
-            {subtaskBadge && <Text color={isSelected ? "$selection-fg" : "$muted-fg"}>{` ${subtaskBadge}`}</Text>}
+            {subtaskBadge && <Text color={isSelected ? "$selection" : "$muted"}>{` ${subtaskBadge}`}</Text>}
             {hasBody && <Text dimColor>{" ···"}</Text>}
           </Text>
         </Box>
         {isBlocked && (
           <Box flexShrink={0}>
-            <Text color={isSelected ? "$selection-fg" : "$error"}>{" blocked"}</Text>
+            <Text color={isSelected ? "$selection" : "$error"}>{" blocked"}</Text>
           </Box>
         )}
         {hasDateBadge && (
@@ -443,8 +443,8 @@ export function NodeColumnView({
   isSelected = false,
   width,
 }: NodeColumnViewProps): React.ReactElement {
-  const textColor = isSelected ? "$selection-fg" : undefined
-  const bgColor = isSelected ? "$selection" : undefined
+  const textColor = isSelected ? "$selection" : undefined
+  const bgColor = isSelected ? "$selection-bg" : undefined
 
   return (
     <Box flexDirection="column" width={width}>
@@ -456,12 +456,12 @@ export function NodeColumnView({
           </Text>
         </Box>
         <Box flexShrink={0}>
-          <Text color={isSelected ? "$selection-fg" : "$muted-fg"}>{` ${count}`}</Text>
+          <Text color={isSelected ? "$selection" : "$muted"}>{` ${count}`}</Text>
         </Box>
       </Box>
       {/* Separator line */}
       <Box height={1} width={width}>
-        <Text dimColor={!isSelected} color={isSelected ? "$selection" : undefined}>
+        <Text dimColor={!isSelected} color={isSelected ? "$selection-bg" : undefined}>
           {"\u2500".repeat(Math.max(0, width ?? 40))}
         </Text>
       </Box>
@@ -511,14 +511,14 @@ export function NodeTabView({
     displayName.length > maxNameWidth ? displayName.slice(0, maxNameWidth - 1) + "\u2026" : displayName
   const countStr = ` (${count})`
 
-  const textColor = isSelected ? "$selection-fg" : isActive ? "$selection" : "$fg"
+  const textColor = isSelected ? "$selection" : isActive ? "$selection-bg" : "$fg"
 
   return (
-    <Box backgroundColor={isSelected ? "$selection" : undefined}>
+    <Box backgroundColor={isSelected ? "$selection-bg" : undefined}>
       <Text bold color={textColor} dimColor={!isActive && !isSelected && dimInactive}>
         {" "}
         {untitled ? (
-          <Text dimColor color={"$muted-fg"}>
+          <Text dimColor color={"$muted"}>
             {truncatedName}
           </Text>
         ) : (
@@ -591,12 +591,12 @@ export function NodeDetailView({
       width={width}
       height={height}
       borderStyle="round"
-      borderColor={"$selection"}
-      backgroundColor={"$surface"}
+      borderColor={"$selection-bg"}
+      backgroundColor={"$surface-bg"}
     >
       {/* Title header — yellow bg */}
-      <Box flexDirection="column" width={width - 2} backgroundColor={"$selection"} paddingX={1}>
-        <Text bold color={"$selection-fg"} wrap="wrap">
+      <Box flexDirection="column" width={width - 2} backgroundColor={"$selection-bg"} paddingX={1}>
+        <Text bold color={"$selection"} wrap="wrap">
           {statusIcon && <Text>{statusIcon.char} </Text>}
           <InlineText text={displayContent} context={{ colorOverride: null, hideFields: true }} />
         </Text>

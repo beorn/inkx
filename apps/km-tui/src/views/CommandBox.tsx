@@ -70,8 +70,8 @@ function FlashMessage({ message, color }: { message: string; color?: string }): 
     <Box
       flexDirection="row"
       borderStyle="round"
-      borderColor={isFlash ? "$muted-fg" : "$border"}
-      backgroundColor="$surface"
+      borderColor={isFlash ? "$muted" : "$border"}
+      backgroundColor="$surface-bg"
       paddingX={1}
       overflow="hidden"
     >
@@ -98,7 +98,7 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
       flexDirection="column"
       borderStyle="round"
       borderColor={dimmed ? "$disabled-fg" : "$border"}
-      backgroundColor="$surface"
+      backgroundColor="$surface-bg"
       paddingX={1}
       paddingY={1}
       overflow="hidden"
@@ -157,7 +157,7 @@ function CommandFeedback({
 const MODE_COLORS: Record<string, string> = {
   NORMAL: "$success",
   INSERT: "$warning",
-  VISUAL: "$selection",
+  VISUAL: "$selection-bg",
   MOVE: "magenta",
   FIND: "$primary",
 }
@@ -258,7 +258,7 @@ export function CommandBox({
           flexDirection="row"
           borderStyle="round"
           borderColor={borderColor}
-          backgroundColor="$surface"
+          backgroundColor="$surface-bg"
           overflow="hidden"
         >
           <Text color={modeColor} bold id="mode-label">
@@ -294,7 +294,7 @@ export function CommandBox({
                 </Text>
               )}
               {multiSuffix && (
-                <Text color="$selection" id="multi-count">
+                <Text color="$selection-bg" id="multi-count">
                   {multiSuffix}
                 </Text>
               )}

@@ -71,7 +71,7 @@ function DescText({ text }: { text: string }): React.ReactElement {
     <>
       {parts.map((part, i) => (
         <React.Fragment key={i}>
-          {i > 0 && <Text color={"$muted-fg"}>{"/"}</Text>}
+          {i > 0 && <Text color={"$muted"}>{"/"}</Text>}
           <Text>{part}</Text>
         </React.Fragment>
       ))}
@@ -93,7 +93,7 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text color={"$muted-fg"} dimColor>
+          <Text color={"$muted"} dimColor>
             {"·"}
           </Text>
         </Fill>

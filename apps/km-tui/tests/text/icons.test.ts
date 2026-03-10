@@ -11,7 +11,7 @@ describe("getStatusIcon", () => {
     ["wip", "□", "$warning"],
     ["blocked", "✗", "$error"],
     ["done", "✓", "$success"],
-    ["dropped", "✗", "$muted-fg"],
+    ["dropped", "✗", "$muted"],
   ] as const)("returns %s icon with correct char and color", (status, char, color) => {
     const icon = getStatusIcon(status)
     expect(icon.char).toBe(char)
@@ -28,7 +28,7 @@ describe("getStatusIcon", () => {
   it.each(["invalid", "x"])("returns first char with inverted colors for unrecognized '%s'", (status) => {
     const icon = getStatusIcon(status)
     expect(icon.char).toBe(status[0])
-    expect(icon.color).toBe("$selection-fg")
+    expect(icon.color).toBe("$selection")
     expect(icon.backgroundColor).toBe("$fg")
   })
 })

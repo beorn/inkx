@@ -110,7 +110,7 @@ function PickerOptions({
             isSelected={isSelected}
           >
             {opt.isRecent && (
-              <Text color={isSelected ? "$selection-fg" : "$primary"} dimColor={!isSelected}>
+              <Text color={isSelected ? "$selection" : "$primary"} dimColor={!isSelected}>
                 {" (recent)"}
               </Text>
             )}
@@ -228,7 +228,7 @@ export function ItemPicker({
       {/* Search input */}
       <Box borderStyle="round" borderColor={"$focusborder"} flexShrink={0}>
         <Text>
-          <Text color={"$selection"}>{"/ "}</Text>
+          <Text color={"$selection-bg"}>{"/ "}</Text>
           <CursorLine beforeCursor={editCtx.beforeCursor} afterCursor={editCtx.afterCursor} />
         </Text>
       </Box>
