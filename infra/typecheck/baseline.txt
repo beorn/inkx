@@ -246,7 +246,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-44 vendor/silvery/packages/compat/src/ink.ts
+42 vendor/silvery/packages/compat/src/ink.ts
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
 1 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/components/Box.tsx
