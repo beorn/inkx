@@ -319,7 +319,7 @@
 1 vendor/silvery/packages/test/src/compare-buffers.ts
 2 vendor/silvery/packages/test/src/debug-mismatch.ts
 1 vendor/silvery/packages/test/src/debug.ts
-11 vendor/silvery/packages/test/src/index.tsx
+12 vendor/silvery/packages/test/src/index.tsx
 1 vendor/silvery/packages/test/src/locator.ts
 11 vendor/silvery/packages/ui/src/canvas/index.ts
 12 vendor/silvery/packages/ui/src/components.ts
@@ -366,9 +366,11 @@
 1 vendor/silvery/tests/compat/ink/render-to-string.test.tsx
 1 vendor/silvery/tests/compat/ink/terminal-resize.test.tsx
 7 vendor/silvery/tests/compat/ink/use-box-metrics.test.tsx
+1 vendor/silvery/tests/examples/ai-chat.test.tsx
 10 vendor/silvery/tests/examples/static-scrollback.test.tsx
 1 vendor/silvery/tests/features/ansi-passthrough.test.tsx
 5 vendor/silvery/tests/features/ansi-sanitize.test.ts
+1 vendor/silvery/tests/features/app-exit-keys.test.tsx
 10 vendor/silvery/tests/features/aspect-ratio.test.tsx
 4 vendor/silvery/tests/features/bg-inheritance.test.tsx
 11 vendor/silvery/tests/features/borders.test.tsx
@@ -386,6 +388,7 @@
 7 vendor/silvery/tests/features/render-options.test.tsx
 4 vendor/silvery/tests/features/run-exit.test.tsx
 4 vendor/silvery/tests/features/run-writable.test.tsx
+6 vendor/silvery/tests/features/scrollback-fill.test.tsx
 3 vendor/silvery/tests/features/static.test.tsx
 14 vendor/silvery/tests/features/tab-focus.test.tsx
 1 vendor/silvery/tests/features/text-decorations.test.ts
