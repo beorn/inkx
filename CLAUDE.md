@@ -10,7 +10,7 @@ Correctness > maintainability > simplicity > performance. Write the minimal corr
 
 **Always**: write a failing test before fixing a bug; run `bun fix` and `bun run test:fast` before closing work; claim a bead before coding; search history (`bun recall`) before theorizing.
 
-**Ask first**: destructive operations (deleting files, dropping data); architectural changes touching 3+ packages; anything that changes public API surface; closing someone else's bead.
+**Ask first**: destructive operations (deleting files, dropping data); architectural changes touching 3+ packages; anything that changes public API surface; closing someone else's bead; posting issues/PRs to external repos (load [upstream skill](.claude/skills/pm/workflows/upstream.md) first).
 
 **Never**: commit secrets/credentials; use `git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`; use bare `bun test`; work around vendor bugs (fix them directly); skip tests; close a bead without evidence.
 
@@ -122,4 +122,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [perf/](.claude/skills/perf/)                                       | Performance diagnostics and profiling (all layers)                    |
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Systematic troubleshooting (reproduce, instrument, bisect, escalate)  |
 | [npm/](.claude/skills/npm/)                                         | Check npm package/scope availability                                  |
+| [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
 | [batch-refactor](vendor/tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |
