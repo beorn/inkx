@@ -355,7 +355,7 @@
 6 vendor/silvery/packages/ui/src/components/Toggle.tsx
 2 vendor/silvery/packages/ui/src/components/Tooltip.tsx
 5 vendor/silvery/packages/ui/src/components/TreeView.tsx
-1 vendor/silvery/packages/ui/src/components/Typography.tsx
+2 vendor/silvery/packages/ui/src/components/Typography.tsx
 3 vendor/silvery/packages/ui/src/components/VirtualList.tsx
 3 vendor/silvery/packages/ui/src/components/VirtualView.tsx
 1 vendor/silvery/packages/ui/src/components/useReadline.ts
