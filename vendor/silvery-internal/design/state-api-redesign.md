@@ -1,6 +1,6 @@
 # Silvery API Redesign
 
-_Status: draft. Bead: km-5kh9r._
+_Status: finalized. Bead: km-5kh9r. Implementation: km-silvery.api-impl._
 
 ## The Problem
 
@@ -339,27 +339,37 @@ The pitch: **Day 1, it's React for terminals. Day 30, when the pain hits, the Si
 | Providers (DI with scoped contract) | Runtime providers (term, fs) + app plugins (functions) | Clear separation |
 | keybindings in `createApp` | Plugin or config field on app | Composable |
 
-## Open Questions
+## Decisions
 
-1. **App shape** — Is the app always a plain object, or could `createApp()` add value (validation, type narrowing, defaults)?
+1. **App shape** — Plain object is canonical. No `createApp()` wrapper needed — TypeScript infers types from spread and pipe. Optional `createApp()` for validation/defaults can come later if needed.
 
-2. **Plugin composition** — Plugins enrich the app via `(app) => app & newStuff`. Do they compose "into" the sub-objects (model, updates, view) or "alongside" them? Current leaning: into, via spread.
+2. **Plugin composition** — Into sub-objects via spread. `withUndo()` merges into `updates`, `keybindings`, etc. TypeScript intersection types accumulate at each step.
 
-3. **Naming: "updates"** — Model operations are called "updates" (matches TEA). Runtime I/O results are "effects". Commands are a separate interaction layer. Are these names clear enough?
+3. **Naming: "updates"** — Keep "updates" for model ops (matches TEA's Msg/Update). Document the distinction from React setState clearly in guides. "Effects" for I/O. "Commands" for user intents.
 
-4. **Provider interface** — What's the minimal typed contract for runtime providers? Current thinking: `getState()`, `subscribe()`, optional `events()`. Effect routing via discriminated union on `effect.target`.
+4. **Provider interface** — Just an object with capabilities (term, fs, http). No formal getState/subscribe contract. Effect routing via discriminated union on `effect.target`. Providers are the runtime's I/O surface, nothing more.
 
-5. **`model` vs `models`** — Single model uses `model` field, multiple uses `models` map. Should these unify?
+5. **`model` vs `models`** — Keep separate. `model` for the common case (one state machine), `models` map for composition. Internally unified handling.
 
-6. **Auto-signaling** — Should `state: { count: 0 }` auto-wrap in signals (Valtio-style proxy)?
+6. **Auto-signaling** — Deferred (P4). Explore Valtio-style proxy wrapping later. For now, explicit `signal()` is clearer and more predictable. See km-silvery.auto-signals.
 
-7. **React bridge** — `useModel(model, selector)` needs `useSyncExternalStore`. Should `@silvery/tea/react` be a separate entry point or bundled?
+7. **React bridge** — `@silvery/tea/react` as separate entry point. Keeps the core framework-agnostic. Same pattern for `/svelte`, `/vue`.
 
-8. **Migration** — `createSlice` and current `createApp` have users. Deprecated wrappers for one release?
+8. **Migration** — Deprecated wrappers for `createSlice`, `createApp`, `useApp` for one release cycle. Clear deprecation warnings pointing to new APIs.
 
-9. **`@silvery/tea` independence** — Could `@silvery/tea` become a standalone package (e.g., `silvertea`) outside the `@silvery` scope? The state library is framework-agnostic and could serve web apps, mobile, CLI tools.
+9. **`@silvery/tea` independence** — Keep as `@silvery/tea` for now. Evaluate standalone (`silvertea`) after Silvery 1.0 establishes credibility. See km-silvery.tea-standalone.
 
-10. **Unification** — Don't over-unify. Models, providers, and plugins serve different roles. Unify the philosophy (message-passing, pure/impure boundary) but keep distinct types for distinct roles. Validated by comparison with Elm, Roc, XState, Effect-TS.
+10. **Unification** — Confirmed: don't over-unify. Models, providers, and plugins serve different roles. Unified philosophy (message-passing, pure/impure boundary) but distinct types.
+
+### Plugin safety (km-silvery.plugin-safety)
+
+Plugins can collide — same command name, both modify `updates`, etc. Guidelines:
+
+- **Last-write-wins** for spread composition (standard JS behavior). Document this.
+- **Dev mode warning** when two plugins contribute the same command name or update handler.
+- **Scoping convention**: plugin commands use `plugin.command` namespace (e.g., `vim.normal`, `undo.undo`).
+- **Order matters**: document that plugins compose left-to-right in `pipe()`. Later plugins override earlier ones.
+- **TypeScript enforces**: intersection types make most conflicts visible at compile time.
 
 ## Strategic Positioning (validated by deep research, 2026-03-11)
 
