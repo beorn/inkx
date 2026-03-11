@@ -245,7 +245,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-47 vendor/silvery/packages/compat/src/ink.ts
+51 vendor/silvery/packages/compat/src/ink.ts
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
 1 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/components/Box.tsx
@@ -371,12 +371,15 @@
 14 vendor/silvery/tests/features/content-phase-adapter-clipping.test.tsx
 13 vendor/silvery/tests/features/cursor-compat.test.tsx
 5 vendor/silvery/tests/features/default-bg.test.tsx
+2 vendor/silvery/tests/features/inline-bleed.test.tsx
+2 vendor/silvery/tests/features/inline-output.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 1 vendor/silvery/tests/features/osc22-mouse-cursor.test.ts
 5 vendor/silvery/tests/features/overflow-borders.test.tsx
 26 vendor/silvery/tests/features/position-offsets.test.tsx
 10 vendor/silvery/tests/features/prop-removal.test.tsx
 7 vendor/silvery/tests/features/render-options.test.tsx
+4 vendor/silvery/tests/features/run-exit.test.tsx
 7 vendor/silvery/tests/features/static.test.tsx
 14 vendor/silvery/tests/features/tab-focus.test.tsx
 1 vendor/silvery/tests/features/text-decorations.test.ts
