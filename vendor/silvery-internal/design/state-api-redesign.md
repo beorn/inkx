@@ -16,12 +16,13 @@ import { run } from "silvery"
 
 function Counter() {
   const [count, setCount] = useState(0)
-  useInput((key) => { if (key === "j") setCount(c => c + 1) })
+  useInput((key) => {
+    if (key === "j") setCount((c) => c + 1)
+  })
   return <Text>Count: {count}</Text>
 }
 
 await run(<Counter />)
-
 
 // ── Sip 2: Shared state via signals ────────────────────────
 import { run, signal } from "silvery"
@@ -29,12 +30,13 @@ import { run, signal } from "silvery"
 const count = signal(0)
 
 function Counter() {
-  useInput((key) => { if (key === "j") count.value++ })
+  useInput((key) => {
+    if (key === "j") count.value++
+  })
   return <Text>Count: {count.value}</Text>
 }
 
 await run(<Counter />)
-
 
 // ── Sip 3: Model with updates-as-data ──────────────────────
 import { run, createModel, signal } from "silvery"
@@ -42,34 +44,41 @@ import { run, createModel, signal } from "silvery"
 const Todo = createModel({
   state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
   updates: {
-    moveCursor(s, { delta }) { s.cursor.value += delta },
-    toggle(s, { index }) { s.items.value[index].done ^= 1 },
+    moveCursor(s, { delta }) {
+      s.cursor.value += delta
+    },
+    toggle(s, { index }) {
+      s.items.value[index].done ^= 1
+    },
   },
 })
 
 await run(<TodoView />, { model: Todo })
 
-
 // ── Sip 4: Commands + keybindings (plugin) ─────────────────
-await run(<TodoView />, pipe(
-  { model: Todo },
-  withCommands({
-    cursor_down: { name: "Move Down", update: "moveCursor", args: { delta: 1 } },
-    toggle: { name: "Toggle", update: "toggle" },
-    help: { name: "Help", action: () => openOverlay("help") },
-  }),
-  withKeybindings({ j: "cursor_down", k: "cursor_up", x: "toggle" }),
-))
+await run(
+  <TodoView />,
+  pipe(
+    { model: Todo },
+    withCommands({
+      cursor_down: { name: "Move Down", update: "moveCursor", args: { delta: 1 } },
+      toggle: { name: "Toggle", update: "toggle" },
+      help: { name: "Help", action: () => openOverlay("help") },
+    }),
+    withKeybindings({ j: "cursor_down", k: "cursor_up", x: "toggle" }),
+  ),
+)
 
 // Or with an opinionated plugin:
 await run(<TodoView />, withVim({ model: Todo }))
-
 
 // ── Sip 5: Effects — pick your style ───────────────────────
 const Todo = createModel({
   state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
   updates: {
-    moveCursor(s, { delta }) { s.cursor.value += delta },
+    moveCursor(s, { delta }) {
+      s.cursor.value += delta
+    },
 
     // Direct — just works, not replayable
     async save(s) {
@@ -89,7 +98,6 @@ const Todo = createModel({
   },
 })
 
-
 // ── Sip 6: Explicit runtime — full control ─────────────────
 import { createRuntime, createReactView, createTerm } from "silvery"
 
@@ -97,19 +105,14 @@ const term = createTerm()
 const view = createReactView(<TodoApp />, term)
 const { run, render } = createRuntime({ term, fs })
 
-const app = pipe(
-  { model: Todo, view },
-  withVim(),
-  withUndo(),
-)
+const app = pipe({ model: Todo, view }, withVim(), withUndo())
 
 const handle = run(app)
 
-handle.apply({ update: "moveCursor", delta: 1 })  // push update
-handle.apply("toggle")                             // by command name
-handle.state.cursor.value                          // read state
-handle.exit()                                      // shutdown
-
+handle.apply({ update: "moveCursor", delta: 1 }) // push update
+handle.apply("toggle") // by command name
+handle.state.cursor.value // read state
+handle.exit() // shutdown
 
 // ── Testing — swap providers, same app ─────────────────────
 const { run } = createRuntime({ term: { width: 80 }, fs: mockFs })
@@ -122,7 +125,6 @@ expect(handle.state.cursor.value).toBe(1)
 const todo = Todo.create({ effects: "collect" })
 todo.toggle({ index: 0 })
 expect(todo.effects).toContainEqual({ type: "persist" })
-
 
 // ── Different targets, same app ────────────────────────────
 const app = pipe({ model: Todo }, withVim(), withUndo())
@@ -208,8 +210,12 @@ const view = createReactView(<TodoApp />, term)
 const Todo = createModel({
   state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
   updates: {
-    moveCursor(s, { delta }) { s.cursor.value += delta },
-    toggle(s, { index }) { s.items.value[index].done ^= 1 },
+    moveCursor(s, { delta }) {
+      s.cursor.value += delta
+    },
+    toggle(s, { index }) {
+      s.items.value[index].done ^= 1
+    },
   },
 })
 
@@ -232,6 +238,7 @@ const handle = run(app)
 ```
 
 Three concepts, all composable:
+
 - **Runtime** — I/O providers (term, fs, http). Created once, reused.
 - **App** — pure logic (model, view, commands, keybindings). Composed with plugins.
 - **View** — framework + render target. Self-contained. Runtime knows nothing about React.
@@ -248,11 +255,12 @@ while (running) {
     const [newState, effects] = apply(state, queue.shift()!)
     state = newState
     for (const fx of effects) {
-      if (fx.type === "dispatch") queue.push(fx)        // sync cross-dispatch
-      else providers[fx.target]?.[fx.action](fx.args)   // I/O
+      if (fx.type === "dispatch")
+        queue.push(fx) // sync cross-dispatch
+      else providers[fx.target]?.[fx.action](fx.args) // I/O
     }
   }
-  const event = await nextEvent()  // only async point
+  const event = await nextEvent() // only async point
   queue.push(eventToUpdate(event))
 }
 ```
@@ -305,20 +313,20 @@ Runtime routes dispatch effects to the target model. Type-safe — `Board.ops.ad
 `@silvery/tea` is framework-agnostic. Thin bindings (~5-10 lines each):
 
 ```tsx
-import { useModel } from "@silvery/tea/react"   // useSyncExternalStore
-import { useModel } from "@silvery/tea/svelte"   // writable store bridge
-import { useModel } from "@silvery/tea/vue"      // ref() bridge
+import { useModel } from "@silvery/tea/react" // useSyncExternalStore
+import { useModel } from "@silvery/tea/svelte" // writable store bridge
+import { useModel } from "@silvery/tea/vue" // ref() bridge
 ```
 
 ## How Silvery Compares
 
-| | Terminal | State | Events | Rendering |
-|---|---------|-------|--------|-----------|
-| **Ink** | Hidden | React hooks only | `useInput` hooks | React (coupled to state) |
-| **Bubbletea** | Hidden | Enforced TEA | Message dispatch | Pure strings |
-| **Ratatui** | Explicit | BYO | Manual event loop | Immediate mode |
-| **Textual** | Hidden | Reactive (auto) | Message queue | Widget tree + CSS |
-| **Silvery** | Explicit (`Term`) | BYO (signals, tea, Zustand, useState) | Commands + keybindings | React (decoupled from state) |
+|               | Terminal          | State                                 | Events                 | Rendering                    |
+| ------------- | ----------------- | ------------------------------------- | ---------------------- | ---------------------------- |
+| **Ink**       | Hidden            | React hooks only                      | `useInput` hooks       | React (coupled to state)     |
+| **Bubbletea** | Hidden            | Enforced TEA                          | Message dispatch       | Pure strings                 |
+| **Ratatui**   | Explicit          | BYO                                   | Manual event loop      | Immediate mode               |
+| **Textual**   | Hidden            | Reactive (auto)                       | Message queue          | Widget tree + CSS            |
+| **Silvery**   | Explicit (`Term`) | BYO (signals, tea, Zustand, useState) | Commands + keybindings | React (decoupled from state) |
 
 **From Bubbletea**: updates-as-data, effects-as-data, pure state machines — but opt-in, not enforced.
 **From Ratatui**: explicit terminal, state decoupled from rendering — but with React's DX.
@@ -329,15 +337,15 @@ The pitch: **Day 1, it's React for terminals. Day 30, when the pain hits, the Si
 
 ## What Changes
 
-| Current | New | Why |
-|---------|-----|-----|
-| `render()` / `renderSync()` / `renderStatic()` | `render(el, config?)` — one function, returns string | 4 → 1 |
-| `run(element)` + `createApp(config).run(element)` | `run(el, config?)` or `createRuntime(providers).run(app)` | 2 → 1 (convenience) or explicit |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates, effects? })` | 2 → 1 |
-| `useApp(selector)` | `useModel(model, selector)` | Framework-agnostic |
-| `tea()`, `createStore()` | Removed | Internal, no longer needed |
-| Providers (DI with scoped contract) | Runtime providers (term, fs) + app plugins (functions) | Clear separation |
-| keybindings in `createApp` | Plugin or config field on app | Composable |
+| Current                                              | New                                                       | Why                             |
+| ---------------------------------------------------- | --------------------------------------------------------- | ------------------------------- |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string      | 4 → 1                           |
+| `run(element)` + `createApp(config).run(element)`    | `run(el, config?)` or `createRuntime(providers).run(app)` | 2 → 1 (convenience) or explicit |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates, effects? })`               | 2 → 1                           |
+| `useApp(selector)`                                   | `useModel(model, selector)`                               | Framework-agnostic              |
+| `tea()`, `createStore()`                             | Removed                                                   | Internal, no longer needed      |
+| Providers (DI with scoped contract)                  | Runtime providers (term, fs) + app plugins (functions)    | Clear separation                |
+| keybindings in `createApp`                           | Plugin or config field on app                             | Composable                      |
 
 ## Decisions
 
@@ -376,6 +384,7 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 **Narrative**: "Day 1, it's React for terminals. Day 30, the Silvery Way is one sip away."
 
 **Three winning angles**:
+
 1. **AI-native terminal apps** — No competitor has command introspection + state query + screenshot APIs for agent control. Category-defining. (km-silvery.ai-demo, km-silvery.ai-apis)
 2. **Performance + stability** — Per-node dirty rendering, no WASM memory leaks. Claude Code's 120GB Yoga leak is the cautionary tale. (km-silvery.benchmarks)
 3. **Gradual adoption** — Sip progression means zero commitment up front, full power when needed. Ink devs can migrate with an import change. (km-silvery.ink-migration)
@@ -383,6 +392,7 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 **First 1000 users**: JS/TS devs who outgrew Ink, AI coding agent builders, internal dev tool teams, Node.js library maintainers wanting polished CLIs.
 
 **Killer features to build** (no competitor has these):
+
 - HMR for TUIs — the "Vite moment" (km-silvery.hmr)
 - AI-first APIs — screen model queries, command surfaces (km-silvery.ai-apis)
 - Visual regression testing — buffer → image diffing (km-silvery.visual-regression)
