@@ -340,7 +340,7 @@
         "tests/**/*.ts"
       ]
     },
-    "vendor/vi-monkey": {
+    "vendor/vimonkey": {
       "entry": [
         "src/index.ts",
         "tests/**/*.test.ts",

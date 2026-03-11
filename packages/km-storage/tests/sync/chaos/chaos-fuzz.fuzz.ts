@@ -1,14 +1,14 @@
 /**
- * Chaos Fuzz Tests — vi-monkey gen/take + stream transformers
+ * Chaos Fuzz Tests — vimonkey gen/take + stream transformers
  *
  * Pull-based chaos testing: gen(picker) → transformers → take(n) → reconcile loop.
  * Replaces the push-based ChaosWatcher pattern with composable async iterables.
  */
 
-import { test, describe, expect, gen, take, createSeededRandom } from "vi-monkey"
+import { test, describe, expect, gen, take, createSeededRandom } from "vimonkey"
 import { Database } from "bun:sqlite"
 import { join, dirname } from "path"
-import type { Picker, PickerContext, SeededRandom } from "vi-monkey"
+import type { Picker, PickerContext, SeededRandom } from "vimonkey"
 import { generateFileContent } from "./event-picker.ts"
 import { chaos, drop, reorder, atomicSave, duplicate, type ChaosTransformerConfig } from "./transformers.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
@@ -130,7 +130,7 @@ function checkInvariants(verifier: Verifier) {
 // Tests
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("Chaos Fuzz Tests (vi-monkey)", () => {
+describe("Chaos Fuzz Tests (vimonkey)", () => {
   const initialFiles = ["notes/note1.md", "notes/note2.md", "tasks/task1.md", "readme.md", "inbox.md"]
 
   test.fuzz("sync survives random change events (no chaos)", async () => {

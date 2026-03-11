@@ -16,7 +16,7 @@
  * ```
  */
 
-import { createSeededRandom, type SeededRandom } from "vi-monkey"
+import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 // ---------------------------------------------------------------------------
 // Types (mirrors silvery Provider/Key shapes)

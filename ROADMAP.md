@@ -164,5 +164,5 @@ Cross-cutting work that supports all horizons. Tracked by dedicated epics.
 |------|------|-------|
 | **Silvery** | `km-silvery` | Terminal rendering engine — performance, correctness, incremental updates |
 | **flexily** | `km-flexily` | Flexbox layout engine for terminal UI |
-| **vi-monkey** | `km-vi-monkey` | Test framework, benchmarks, diagnostics |
+| **vimonkey** | `km-vimonkey` | Test framework, benchmarks, diagnostics |
 | **Infra** | `km-infra` | CI, monorepo packaging, linting, regression suites |

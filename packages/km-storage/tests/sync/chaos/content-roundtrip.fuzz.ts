@@ -18,7 +18,7 @@
 import { describe, test, expect } from "vitest"
 import { writeFileSync, mkdirSync, readFileSync } from "fs"
 import { join } from "path"
-import { createSeededRandom, type SeededRandom } from "vi-monkey"
+import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 import { getAllNodes, getChildren, withTestEnv, createTestEnvRepo } from "@km/storage"
 import { createTestSyncManager } from "../../watch/sync-test-helpers.ts"

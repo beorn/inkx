@@ -11,10 +11,10 @@
  * then runs reconciliation to verify the DB stays in sync.
  */
 
-import { test, describe, expect, gen, take, createSeededRandom } from "vi-monkey"
+import { test, describe, expect, gen, take, createSeededRandom } from "vimonkey"
 import { Database } from "bun:sqlite"
 import { join, dirname, basename } from "path"
-import type { Picker, PickerContext, SeededRandom } from "vi-monkey"
+import type { Picker, PickerContext, SeededRandom } from "vimonkey"
 import { generateFileContent } from "./event-picker.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"

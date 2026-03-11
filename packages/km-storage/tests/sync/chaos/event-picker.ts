@@ -1,11 +1,11 @@
 /**
- * FS event picker for vi-monkey's gen()
+ * FS event picker for vimonkey's gen()
  *
  * Generates random but valid filesystem events, maintaining file state
  * so operations are always coherent (e.g., won't change a nonexistent file).
  */
 
-import type { Picker, PickerContext, SeededRandom } from "vi-monkey"
+import type { Picker, PickerContext, SeededRandom } from "vimonkey"
 import type { FsEvent, FsEventType } from "./types.ts"
 
 interface FileState {
@@ -27,7 +27,7 @@ const OPERATION_WEIGHTS: Partial<Record<Operation, number>> = {
 
 /**
  * Create a picker that generates random FS events while tracking file state.
- * Returns a picker function suitable for vi-monkey's gen().
+ * Returns a picker function suitable for vimonkey's gen().
  */
 function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
   const state: FileState = {

@@ -911,14 +911,14 @@ SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts
 
 ## Fuzz Testing (TUI)
 
-TUI components can be fuzz-tested using `vi-monkey`'s ergonomic API. This generates random keyboard input sequences, checks invariants after each action, and auto-shrinks failures to minimal reproductions.
+TUI components can be fuzz-tested using `vimonkey`'s ergonomic API. This generates random keyboard input sequences, checks invariants after each action, and auto-shrinks failures to minimal reproductions.
 
 **Location**: `*.slow.test.ts` files (fuzz tests use the `.slow.` suffix convention)
 
 **Pattern**:
 
 ```typescript
-import { test, gen, take } from 'vi-monkey'
+import { test, gen, take } from 'vimonkey'
 
 test.fuzz('cursor invariants', async () => {
   const handle = await run(<Board />, { cols: 80, rows: 24 })
@@ -956,7 +956,7 @@ const term = createFuzzTerm({ keys: ['j', 'k', 'Enter'], count: 100, seed: 42 })
 const term = createReplayTerm(['j', 'j', 'k', 'Enter'])
 ```
 
-See `apps/km-tui/tests/helpers/fuzz-term.ts` and `vendor/vi-monkey/CLAUDE.md` for full API reference.
+See `apps/km-tui/tests/helpers/fuzz-term.ts` and `vendor/vimonkey/CLAUDE.md` for full API reference.
 
 ---
 

@@ -7,7 +7,7 @@
  * 3. Structure preservation — node types and counts are stable
  */
 
-import { test, describe, expect, gen, take, type SeededRandom } from "vi-monkey"
+import { test, describe, expect, gen, take, type SeededRandom } from "vimonkey"
 import { roundtrip, parse, normalizeMarkdown } from "./helpers/test-utils.ts"
 
 // ---------------------------------------------------------------------------

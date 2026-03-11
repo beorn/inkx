@@ -123,7 +123,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **TUI Tests** | Term buffer (silvery) | [tui.md](tui.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
-| **Fuzz (TUI)** | gen/take/test.fuzz (vi-monkey) | [vi-monkey CLAUDE.md](../../../vendor/vi-monkey/CLAUDE.md) |
+| **Fuzz (TUI)** | gen/take/test.fuzz (vimonkey) | [vimonkey CLAUDE.md](../../../vendor/vimonkey/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |
