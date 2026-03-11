@@ -48,7 +48,8 @@
       "mcp__termless__press",
       "mcp__termless__stop",
       "mcp__termless__wait",
-      "Skill(project-cleanup)"
+      "Skill(project-cleanup)",
+      "Skill(npm)"
     ],
     "deny": [],
     "ask": []
