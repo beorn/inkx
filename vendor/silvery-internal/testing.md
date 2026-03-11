@@ -121,25 +121,29 @@ console.log(app.ansi) // Print with ANSI colors
 console.log(app.text) // Print plain text
 ```
 
-### Real Terminal Verification with @termless/test
+### Full ANSI Testing with termless
 
-For testing that your Silvery app renders correctly through a real terminal emulator -- verifying colors, cursor position, scrollback, terminal modes, and cross-terminal compatibility -- use [@termless/test](https://github.com/beorn/termless). It feeds your Silvery ANSI output through actual terminal backends (xterm.js, Ghostty, Alacritty, etc.) and provides composable matchers for the full terminal state:
+For testing that your Silvery app renders correctly through a real terminal emulator — verifying colors, cursor position, scrollback, box drawing characters, and cross-terminal compatibility — use `createTerm()` with a termless backend. This creates a Term backed by a real terminal emulator (xterm.js, Ghostty, etc.), routes all ANSI output through the render pipeline, and exposes `screen`/`scrollback` for assertions:
 
 ```typescript
-import { createTerminal } from "@termless/core"
 import { createXtermBackend } from "@termless/xtermjs"
 import "@termless/test/matchers"
+import { createTerm } from "@silvery/term"
+import { run } from "@silvery/term/runtime"
 
-test("renders correct colors through real terminal", () => {
-  const term = createTerminal({ backend: createXtermBackend(), cols: 80, rows: 24 })
-  term.feed(app.ansi) // Feed silvery output into terminal emulator
+test("renders box borders correctly", async () => {
+  using term = createTerm(createXtermBackend(), { cols: 40, rows: 10 })
+  const handle = await run(<MyApp />, term)
 
-  expect(term.cell(0, 0)).toHaveFg("#ff0000")
-  expect(term.cell(0, 0)).toBeBold()
-  expect(term).toBeInMode("altScreen")
-  expect(term.screen).toContainText("Dashboard")
+  // termless assertions — full ANSI fidelity
+  expect(term.screen).toContainText("Hello")
+  expect(term.screen.getText()).toContain("╭") // box drawing characters
 
-  term.close()
+  // Interaction via handle.press()
+  await handle.press("j")
+  expect(term.screen).toContainText("Count: 1")
+
+  handle.unmount()
 })
 ```
 
