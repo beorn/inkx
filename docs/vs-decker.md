@@ -9,7 +9,7 @@ Reference implementation: ~/Code/DZ/decker/apps/webapp/packages/decker-boardline
 
 ## Overview
 
-AspectKM TUIDecker WebappFrameworkInk (React for CLI)React (Web)EditorCustom tree navigationSlate.js rich textSyncFile-based (@km/storage)Yjs CRDT (real-time collab)StateuseReducer × 2 (ui + board)Zustand storesCommands@km/commands + TUI handlersDirect Cmd functions
+AspectKM TUIDecker WebappFrameworkSilvery (React TUI)React (Web)EditorCustom tree navigationSlate.js rich textSyncFile-based (@km/storage)Yjs CRDT (real-time collab)StateuseReducer × 2 (ui + board)Zustand storesCommands@km/commands + TUI handlersDirect Cmd functions
 
 ## 1. Board View System
 

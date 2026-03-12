@@ -123,7 +123,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **TUI Tests** | Component + board testing (silvery) | [tui.md](tui.md) |
 | **Terminal Tests** | ANSI/cell/cursor verification (termless) | [termless.md](termless.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
-| **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
+| **GUI/TTY Tests** | Screenshots (MCP/playwright) | [gui.md](gui.md) |
 | **Fuzz (TUI)** | gen/take/test.fuzz (vimonkey) | [vimonkey CLAUDE.md](../../../vendor/vimonkey/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
