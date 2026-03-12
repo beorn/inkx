@@ -10,7 +10,7 @@
  *   - Recent item tracking
  */
 import React from "react"
-import { Box, Text, CursorLine, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, CursorLine, ModalDialog } from "@silvery/react"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -92,7 +92,7 @@ function PickerOptions({
   const visibleOptions = filteredOptions.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (filteredOptions.length === 0) {
-    return <Text dimColor> {emptyLabel}</Text>
+    return <Small> {emptyLabel}</Small>
   }
 
   return (
@@ -212,13 +212,13 @@ export function ItemPicker({
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>{"↑↓ nav  Enter select  Esc cancel"}</Text>
+      <Small>{"↑↓ nav  Enter select  Esc cancel"}</Small>
       {filteredCount > maxVisible && (
-        <Text dimColor>
+        <Small>
           {scrollOffset > 0 ? "↑" : " "}
           {` ${selectedIndex + 1}/${filteredCount} `}
           {scrollOffset + maxVisible < filteredCount ? "↓" : " "}
-        </Text>
+        </Small>
       )}
     </Box>
   )
@@ -236,7 +236,7 @@ export function ItemPicker({
       {/* Options list */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {loaderRef.current && (
-          <React.Suspense fallback={<Text dimColor> Loading...</Text>}>
+          <React.Suspense fallback={<Small> Loading...</Small>}>
             <PickerOptions
               loader={loaderRef.current}
               query={deferredQuery}

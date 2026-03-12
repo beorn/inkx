@@ -6,7 +6,7 @@
  * state transitions and sync operations.
  */
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/react"
 import type { SyncEvent } from "../ui-reducer.ts"
 import type { WatcherStatus } from "@km/storage"
 
@@ -80,10 +80,10 @@ export function SyncPane({ events, watcherStatus, width }: SyncPaneProps): React
     >
       <Box flexDirection="row" justifyContent="space-between">
         <Text bold> Sync Activity</Text>
-        <Text dimColor>{stateLabel} · S to close </Text>
+        <Small>{stateLabel} · S to close </Small>
       </Box>
       {visibleEvents.length === 0 ? (
-        <Text dimColor> No sync events yet</Text>
+        <Small> No sync events yet</Small>
       ) : (
         visibleEvents.map((ev, i) => (
           <Box key={i} flexDirection="row" overflow="hidden">

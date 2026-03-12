@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExtern
 import {
   Box,
   Text,
+  Small,
   useApp,
   ErrorBoundary,
   HorizontalVirtualList,
@@ -382,7 +383,7 @@ export function BoardCore({
               >
                 {columns.length === 0 ? (
                   <Box flexDirection="column" padding={1} width={termWidth} height={contentHeight}>
-                    <Text dimColor>Empty board</Text>
+                    <Small>Empty board</Small>
                   </Box>
                 ) : (
                   <HorizontalVirtualList

@@ -88,10 +88,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       {/* Description on second line if present */}
       {toast.description && <Small>{toast.description}</Small>}
       {/* Show individual items if below threshold */}
-      {shouldShowItems &&
-        toast.items?.map((item, i) => (
-          <Small key={i}>{"  • " + item}</Small>
-        ))}
+      {shouldShowItems && toast.items?.map((item, i) => <Small key={i}>{"  • " + item}</Small>)}
     </Box>
   )
 }

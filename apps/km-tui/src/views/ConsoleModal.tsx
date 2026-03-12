@@ -5,7 +5,16 @@
  * Auto-opens on first output, can be toggled with backtick.
  */
 import React, { forwardRef, useImperativeHandle } from "react"
-import { Box, ErrorBoundary, Text, stripAnsi, useConsole, ModalDialog, type PatchedConsole } from "@silvery/react"
+import {
+  Box,
+  ErrorBoundary,
+  Text,
+  Small,
+  stripAnsi,
+  useConsole,
+  ModalDialog,
+  type PatchedConsole,
+} from "@silvery/react"
 
 const MAX_LINES = 100
 
@@ -61,7 +70,7 @@ export const ConsoleModal = forwardRef<ConsoleModalHandle, ConsoleModalProps>(fu
         <Box flexDirection="column" height={contentHeight} overflow="scroll">
           <ErrorBoundary fallback={<Text color="$error">Console error</Text>}>
             {visibleEntries.length === 0 ? (
-              <Text dimColor>No console output yet</Text>
+              <Small>No console output yet</Small>
             ) : (
               visibleEntries.map((entry, i) => (
                 <Text key={i} color={getColorForMethod(entry.method)} wrap="truncate">

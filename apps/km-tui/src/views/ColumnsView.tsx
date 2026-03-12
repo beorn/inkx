@@ -9,7 +9,7 @@
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Text, HorizontalVirtualList } from "@silvery/react"
+import { Box, Text, Small, HorizontalVirtualList } from "@silvery/react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:columns")
@@ -162,7 +162,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
         />
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
-          <Text dimColor>(empty)</Text>
+          <Small>(empty)</Small>
         </Box>
       )}
     </Box>
@@ -209,7 +209,7 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
       {/* Columns row — HVL handles horizontal windowing and scroll indicators */}
       {columns.length === 0 ? (
         <Box flexDirection="row" flexGrow={1}>
-          <Text dimColor>Empty board</Text>
+          <Small>Empty board</Small>
         </Box>
       ) : (
         <HorizontalVirtualList

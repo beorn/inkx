@@ -7,7 +7,7 @@
  * Uses silvery VirtualList for React-level virtualization.
  */
 import React, { useMemo } from "react"
-import { Box, Text, VirtualList } from "@silvery/react"
+import { Box, Text, Small, VirtualList } from "@silvery/react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -148,11 +148,11 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
             />
           ) : (
             <Box marginLeft={1}>
-              <Text dimColor>(empty)</Text>
+              <Small>(empty)</Small>
             </Box>
           )
         ) : (
-          <Text dimColor>No column selected</Text>
+          <Small>No column selected</Small>
         )}
       </Box>
     </Box>

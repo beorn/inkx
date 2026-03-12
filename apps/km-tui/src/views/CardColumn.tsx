@@ -12,7 +12,7 @@ import { useApp as useAppStore } from "@silvery/term/runtime"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
-import { Box, Text, useScreenRectCallback } from "@silvery/react"
+import { Box, Text, Small, useScreenRectCallback } from "@silvery/react"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"
@@ -800,7 +800,7 @@ export const Column = React.memo(function Column({
       ) : (
         <Box flexDirection="column" flexGrow={1} minHeight={1}>
           <Box marginTop={1} paddingLeft={3}>
-            <Text dimColor>(empty)</Text>
+            <Small>(empty)</Small>
           </Box>
         </Box>
       )}

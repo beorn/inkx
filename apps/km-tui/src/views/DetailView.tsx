@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask, decomposeDatetime } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -56,7 +56,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   if (!rootNode) {
     return (
       <Box flexDirection="column" width={width} height={height} paddingX={1}>
-        <Text dimColor>(no item selected)</Text>
+        <Small>(no item selected)</Small>
       </Box>
     )
   }
@@ -128,7 +128,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
         {/* Empty state */}
         {metaKeys.length === 0 && children.length === 0 && (
           <Box paddingX={1}>
-            <Text dimColor>(empty)</Text>
+            <Small>(empty)</Small>
           </Box>
         )}
       </Box>

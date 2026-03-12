@@ -28,7 +28,7 @@
  *
  */
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
 import {
@@ -406,7 +406,7 @@ export function NodeCardView({
       {/* Overflow indicator */}
       {overflowCount > 0 && (
         <Box paddingLeft={1}>
-          <Text dimColor>+{overflowCount} more</Text>
+          <Small>+{overflowCount} more</Small>
         </Box>
       )}
     </Box>
@@ -646,7 +646,7 @@ export function NodeDetailView({
           </Box>
         )}
 
-        {bodyChildren.length === 0 && structuralChildren.length === 0 && <Text dimColor>(empty)</Text>}
+        {bodyChildren.length === 0 && structuralChildren.length === 0 && <Small>(empty)</Small>}
 
         {/* Backlinks */}
         {backlinks.length > 0 && (
@@ -662,7 +662,7 @@ export function NodeDetailView({
                 </Text>
               </Text>
             ))}
-            {backlinks.length > maxBacklinks && <Text dimColor> +{backlinks.length - maxBacklinks} more</Text>}
+            {backlinks.length > maxBacklinks && <Small> +{backlinks.length - maxBacklinks} more</Small>}
           </Box>
         )}
       </Box>
