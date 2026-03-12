@@ -321,6 +321,9 @@
     "vendor/silvery": {
       "name": "silvery",
       "version": "0.0.1",
+      "bin": {
+        "silvery": "./bin/silvery.ts",
+      },
       "dependencies": {
         "chalk": "^5.6.2",
         "loggily": "github:beorn/loggily",
@@ -342,7 +345,7 @@
         "playwright": "^1.58.2",
         "react": "^19.0.0",
         "typescript": "^5.5.0",
-        "vimonkey": "workspace:*",
+        "vimonkey": "github:beorn/vimonkey",
         "vitepress": "^1.5.0",
         "vitepress-plugin-llms": "^1.0.0",
         "vitest": "^4.0.18",
@@ -386,6 +389,7 @@
         "@silvery/react": "workspace:*",
         "@silvery/tea": "workspace:*",
         "@silvery/test": "workspace:*",
+        "@silvery/theme": "workspace:*",
         "flexily": "github:beorn/flexily",
       },
     },
@@ -2723,6 +2727,8 @@
     "router/path-to-regexp": ["path-to-regexp@8.3.0", "", {}, "sha512-7jdwVIRtsP8MYpdXSwOS0YdD0Du+qOoF/AEPIt88PcCFrZCzx41oxku1jD88hZBwbNUIEfpqvuhjFaMAqMTWnA=="],
 
     "silvery/oxfmt": ["oxfmt@0.36.0", "", { "dependencies": { "tinypool": "2.1.0" }, "optionalDependencies": { "@oxfmt/binding-android-arm-eabi": "0.36.0", "@oxfmt/binding-android-arm64": "0.36.0", "@oxfmt/binding-darwin-arm64": "0.36.0", "@oxfmt/binding-darwin-x64": "0.36.0", "@oxfmt/binding-freebsd-x64": "0.36.0", "@oxfmt/binding-linux-arm-gnueabihf": "0.36.0", "@oxfmt/binding-linux-arm-musleabihf": "0.36.0", "@oxfmt/binding-linux-arm64-gnu": "0.36.0", "@oxfmt/binding-linux-arm64-musl": "0.36.0", "@oxfmt/binding-linux-ppc64-gnu": "0.36.0", "@oxfmt/binding-linux-riscv64-gnu": "0.36.0", "@oxfmt/binding-linux-riscv64-musl": "0.36.0", "@oxfmt/binding-linux-s390x-gnu": "0.36.0", "@oxfmt/binding-linux-x64-gnu": "0.36.0", "@oxfmt/binding-linux-x64-musl": "0.36.0", "@oxfmt/binding-openharmony-arm64": "0.36.0", "@oxfmt/binding-win32-arm64-msvc": "0.36.0", "@oxfmt/binding-win32-ia32-msvc": "0.36.0", "@oxfmt/binding-win32-x64-msvc": "0.36.0" }, "bin": { "oxfmt": "bin/oxfmt" } }, "sha512-/ejJ+KoSW6J9bcNT9a9UtJSJNWhJ3yOLSBLbkoFHJs/8CZjmaZVZAJe4YgO1KMJlKpNQasrn/G9JQUEZI3p0EQ=="],
+
+    "silvery/vimonkey": ["vimonkey@github:beorn/vimonkey#db48faf", { "dependencies": { "debug": "^4.4.0" }, "peerDependencies": { "vitest": ">=4.0.0" } }, "beorn-vimonkey-db48faf"],
 
     "tsutils/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
