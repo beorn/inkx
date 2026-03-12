@@ -10,7 +10,7 @@
  * to avoid O(n) database queries during render.
  */
 import React, { useMemo, useCallback } from "react"
-import { Box, Text, VirtualList } from "@silvery/react"
+import { Box, Text, Small, VirtualList } from "@silvery/react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
@@ -181,7 +181,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     return (
       <Box flexDirection="column" width={width} height={height}>
         <Text> </Text>
-        <Text dimColor>Empty board</Text>
+        <Small>Empty board</Small>
       </Box>
     )
   }

@@ -10,7 +10,7 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, ModalDialog } from "@silvery/react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
@@ -253,7 +253,7 @@ function scoreResult(result: OmniboxResult, query: string): number {
 function SectionDivider({ label }: { label: string }): React.ReactElement {
   return (
     <Box height={1}>
-      <Text dimColor>{`── ${label} ──`}</Text>
+      <Small>{`── ${label} ──`}</Small>
     </Box>
   )
 }
@@ -418,13 +418,13 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>{"↑↓ nav  Enter select  Esc close"}</Text>
+      <Small>{"↑↓ nav  Enter select  Esc close"}</Small>
       {resultCount > maxVisible && (
-        <Text dimColor>
+        <Small>
           {scrollOffset > 0 ? "↑" : " "}
           {` ${selectedIndex + 1}/${resultCount} `}
           {scrollOffset + maxVisible < resultCount ? "↓" : " "}
-        </Text>
+        </Small>
       )}
     </Box>
   )
@@ -446,7 +446,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
       {/* Results list */}
       <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
         {filteredResults.length === 0 ? (
-          <Text dimColor>{query.length >= MIN_SEARCH_LENGTH ? "No results" : "No matching commands"}</Text>
+          <Small>{query.length >= MIN_SEARCH_LENGTH ? "No results" : "No matching commands"}</Small>
         ) : (
           visibleResults.map((result, i) => {
             const actualIndex = scrollOffset + i

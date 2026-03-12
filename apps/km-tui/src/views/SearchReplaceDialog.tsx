@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
+import { Box, Text, Small, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 
 interface SearchReplaceDialogProps {
@@ -115,10 +115,10 @@ export function SearchReplaceDialog({
           <Toggle value={useRegex} onChange={() => {}} label="regex" isActive={false} testID="regex-toggle" />
         </Box>
         <Box flexDirection="row" gap={1}>
-          <Text dimColor>Tab:field</Text>
-          <Text dimColor>^R:repl</Text>
-          <Text dimColor>^⇧R:all</Text>
-          <Text dimColor>^X:regex</Text>
+          <Small>Tab:field</Small>
+          <Small>^R:repl</Small>
+          <Small>^⇧R:all</Small>
+          <Small>^X:regex</Small>
         </Box>
       </Box>
     </ModalDialog>

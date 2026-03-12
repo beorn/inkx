@@ -4,7 +4,7 @@
  * Displays up to 5 toasts stacked vertically with borders and black backgrounds.
  */
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/react"
 import type { Toast as ToastType } from "@km/core"
 import { BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 
@@ -86,13 +86,11 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       {/* Progress bar */}
       {toast.progress != null && <ProgressBar progress={toast.progress} color={color} />}
       {/* Description on second line if present */}
-      {toast.description && <Text dimColor>{toast.description}</Text>}
+      {toast.description && <Small>{toast.description}</Small>}
       {/* Show individual items if below threshold */}
       {shouldShowItems &&
         toast.items?.map((item, i) => (
-          <Text key={i} dimColor>
-            {"  • " + item}
-          </Text>
+          <Small key={i}>{"  • " + item}</Small>
         ))}
     </Box>
   )

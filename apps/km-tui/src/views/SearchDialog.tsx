@@ -5,7 +5,7 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, ErrorBoundary, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, ErrorBoundary, ModalDialog } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -92,7 +92,7 @@ function SearchResults({
   const visibleResults = results.slice(scrollOffset, scrollOffset + maxVisible)
 
   if (results.length === 0) {
-    return <Text dimColor>No matching items</Text>
+    return <Small>No matching items</Small>
   }
 
   return (
@@ -254,11 +254,11 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
         {"  Esc cancel"}
       </Text>
       {resultCount > maxVisible && (
-        <Text dimColor>
+        <Small>
           {scrollOffset > 0 ? "↑" : " "}
           {` ${selectedIndex + 1}/${resultCount} `}
           {scrollOffset + maxVisible < resultCount ? "↓" : " "}
-        </Text>
+        </Small>
       )}
     </Box>
   )
@@ -280,11 +280,11 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
       <ErrorBoundary fallback={<Text color={"$error"}>Search error</Text>}>
         <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
           {trimmedQuery.length < MIN_QUERY_LENGTH ? (
-            <Text dimColor>
+            <Small>
               {trimmedQuery.length === 0
                 ? "Type to search..."
                 : `Type ${MIN_QUERY_LENGTH - trimmedQuery.length} more char${MIN_QUERY_LENGTH - trimmedQuery.length > 1 ? "s" : ""}...`}
-            </Text>
+            </Small>
           ) : (
             <SearchResults
               results={results}
