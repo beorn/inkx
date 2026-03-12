@@ -124,8 +124,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | **Terminal Tests** | ANSI/cell/cursor verification (termless) | [termless.md](termless.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (MCP/playwright) | [gui.md](gui.md) |
-| **Fuzz (TUI)** | gen/take/test.fuzz (vimonkey) | [vimonkey CLAUDE.md](../../../vendor/vimonkey/CLAUDE.md) |
-| **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
+| **Fuzz / Chaos** | Property-based, gen/take/test.fuzz (vimonkey) | [chaos.md](chaos.md) |
+| **Exploration** | Interactive AI probing + monkey testing | `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |
 
@@ -282,7 +282,7 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | CLI testing (mdtest)         | [cli.md](cli.md)                                |
 | GUI/TTY testing (MCP/screenshots) | [gui.md](gui.md)                           |
 | Benchmarks                   | [bench.md](bench.md)                            |
-| Chaos/fuzz testing sync      | [chaos.md](chaos.md)                            |
+| Fuzz/chaos testing (vimonkey) | [chaos.md](chaos.md)                           |
 | Test quality review          | [review-tests.md](review-tests.md) (infrequent) |
 
 **Full reference**: [docs/dev/testing.md](../../docs/dev/testing.md)
