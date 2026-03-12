@@ -181,7 +181,7 @@ The **primary** way to read state is `state.todo.cursor.value` — direct signal
 | **AI code mode**         | `todo.cursor.value`           | Domain object globals — same signals                  |
 | **Command execute**      | `ctx.state.todo.cursor.value` | Same signals via command context                      |
 | **External (CLI/MCP)**   | `getState()` → JSON           | Serialized snapshot for remote consumers              |
-| **Tests / Drivers**      | `state.todo.cursor.value`     | Same signals — plus `waitFor()` for async observation |
+| **Tests / External**     | `state.todo.cursor.value`     | Same signals — plus `waitFor()` for async observation |
 
 ## Architecture
 
@@ -205,13 +205,13 @@ Two surfaces, same `apply()` pattern. Plugins wrap `apply()` via closure. App-le
 │  App plugins (bridge both):                                      │
 │    withKeybindings — input → state.apply()                       │
 │    withCommands   — named intents + metadata                     │
+│    withTerm       — terminal I/O (applied by run() by default)   │
 │    withLogging    — wraps both apply() chains                    │
 └──────────────────────────────────────────────────────────────────┘
          │
-    Drivers (scoped external callers):
-      state.drive(async () => { ... })
-      Same interface as testing: apply, waitFor, events
-      Child scope → ALS signal propagation → auto-cleanup
+    run(app)             — creates root scope, renders view, listens for input
+    run(app, runner)     — same, plus runner gets the handle for automation
+    createState + direct — no run(), no scope, just call methods (tests)
 ```
 
 Inspired by **Roc's platform model** (app is pure logic, runtime handles I/O) but split into two typed surfaces. And by **SlateJS** (plugins wrap `apply()` via closure, composing behavior without inheritance).
@@ -507,27 +507,14 @@ const state = pipe(
   },
   prefs: { ... },
 
-  // Reactive observation
+  // Reactive observation — signal-smart
   waitFor(pred: (s) => boolean): Promise<void>,
-  events: AsyncIterable<UpdateEvent>,
-  signal: AbortSignal,
-
-  // Drivers — scoped external callers
-  drive(fn: () => Promise<void>): Disposable,
 }
 ```
 
-`waitFor(predicate)` subscribes to relevant signals and resolves when the predicate becomes true. Rejects with `AbortError` if the app exits. This is what makes external driving ergonomic — no polling, just "wake me when this is true."
+`waitFor(predicate)` is **signal-smart**: it tracks which signals the predicate reads (via proxy interception during the first call), subscribes only to those signals, and resolves when the predicate becomes true. Rejects with `AbortError` if the app exits. No polling — just "wake me when this is true."
 
-`events` is an `AsyncIterable` of everything that happens:
-
-```typescript
-type UpdateEvent =
-  | { type: "update"; model: string; name: string; args: unknown }
-  | { type: "stateChange"; model: string; signal: string; prev: unknown; next: unknown }
-  | { type: "effect"; effect: AsyncEffect }
-  | { type: "exit"; reason: string }
-```
+If you need to observe all state changes (for logging, recording, replay), wrap `state.apply()` via a plugin — the same mechanism used for undo, validation, etc. No separate event stream needed.
 
 ### RuntimeSurface (from `createRuntime`)
 
@@ -669,17 +656,15 @@ state.chat.submit({ text: "fix the bug" })
 await state.waitFor((s) => s.chat.streamPhase.value === "done")
 expect(state.chat.exchanges.value).toHaveLength(2)
 
-// Recording / replay via events:
-const log = []
-for await (const event of state.events) {
-  log.push(event)
-}
-for (const event of log) {
-  if (event.type === "update") state.apply(event)
-}
+// Recording / replay via plugin:
+const state = pipe(createState({ chat: Chat }), withRecording())
+state.chat.submit({ text: "hello" })
+state.chat.submit({ text: "world" })
+// state.recording → [{ model: "chat", name: "submit", args: { text: "hello" } }, ...]
+for (const op of state.recording) state.apply(op) // replay
 ```
 
-No "driver" abstraction. Plugins compose at definition time; runners override at `run()` time; tests call directly. All three use the same `state.apply()` / `state.waitFor()` interface.
+Three patterns, no special abstractions. Plugins compose at definition time; runners override at `run()` time; tests call directly. All three use the same `state.apply()` / `state.waitFor()` interface.
 
 ## How Silvery Compares
 
@@ -731,7 +716,7 @@ The pitch: **Day 1, it's React for terminals. Day 30, when the pain hits, the Si
 
 5. **Naming: "updates"** — keep for model ops (matches TEA's Msg/Update). "Effects" for I/O. "Commands" for user intents. Clear three-level vocabulary.
 
-6. **Drivers are scoped external callers.** `state.drive(fn)` creates a child scope of the app root and runs `fn` within it. Automatic `AbortSignal` propagation via `AsyncLocalStorage` — no manual signal threading. Same `state.apply()` / `state.waitFor()` interface as testing. Returns a `Disposable` handle. Plugins compose at definition time, drivers compose at runtime.
+6. **No driver abstraction.** External callers use three natural patterns: (a) app plugins for automation known at definition time (`withAutoAdvance(script)`), (b) `run(app, runner)` for runtime automation (AI agents, demos, testing), (c) direct calls for tests. All three use the same `state.apply()` / `state.waitFor()` interface. `run()` creates the root scope, applies `withTerm()` by default, and optionally accepts a runner — an async function that receives the handle.
 
 7. **Plugin composition into sub-objects via spread.** `withUndo()` merges into `updates`, `keybindings`, etc. TypeScript intersection types accumulate at each step. Last-write-wins for collisions (standard JS). Dev mode warns on duplicate command names.
 
@@ -767,17 +752,17 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 
 ## What Changes
 
-| Current                                              | New                                                           | Why                                   |
-| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
-| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string          | 4 → 1                                 |
-| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 → 1                                 |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates })`                             | 2 → 1                                 |
-| `useApp(selector)`                                   | `useModel(model, selector)`                                   | Framework-agnostic                    |
-| `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
-| Providers (DI with scoped contract)                  | Two surfaces: `createState()` + `createRuntime()`             | Clear separation, same `apply()`      |
-| Runtime = monolith (event loop + I/O + effects)      | Runtime surface = effects only, state surface = updates only  | Each surface does one thing           |
-| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
-| Handle = the control surface                         | StateSurface IS the control surface, drivers call it directly | No separate Handle shape              |
+| Current                                              | New                                                                  | Why                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string                 | 4 → 1                                 |
+| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                                     | 2 → 1                                 |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates })`                                    | 2 → 1                                 |
+| `useApp(selector)`                                   | `useModel(model, selector)`                                          | Framework-agnostic                    |
+| `tea()`, `createStore()`                             | Removed                                                              | Internal, no longer needed            |
+| Providers (DI with scoped contract)                  | Two surfaces: `createState()` + `createRuntime()`                    | Clear separation, same `apply()`      |
+| Runtime = monolith (event loop + I/O + effects)      | Runtime surface = effects only, state surface = updates only         | Each surface does one thing           |
+| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields                  | Behavioral composition, not just data |
+| Handle = the control surface                         | StateSurface IS the control surface, external code calls it directly | No separate Handle shape              |
 
 ## Current State & Migration Path
 
