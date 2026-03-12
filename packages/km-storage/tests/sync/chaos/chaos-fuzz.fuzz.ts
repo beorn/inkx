@@ -16,6 +16,7 @@ import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
 import { SCHEMA } from "../../../src/schema.ts"
 import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
+import { getAllNodes, getChildren } from "../../../src/index.ts"
 import type { FsEvent } from "./types.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,13 +118,76 @@ function applyEventToFs(
 /** Check core invariants.
  * Note: parentIntegrity is not checked because atomicSave (unlink+add) orphans
  * child nodes — this matches the existing chaos test behavior which uses verifyAll
- * with expected state rather than structural parent checks. */
-function checkInvariants(verifier: Verifier) {
+ * with expected state rather than structural parent checks.
+ *
+ * Content roundtrip: verifies that child nodes in the DB that have content
+ * are not silently corrupted to empty strings. Also verifies that file nodes
+ * with children still have non-empty content on those children (catches silent
+ * content clearing that existence checks alone would miss). */
+function checkInvariants(verifier: Verifier, env: ChaosTestEnv) {
   const dupes = verifier.verifyNoDuplicates()
   expect(dupes.stats.duplicateNodes, `Duplicate nodes: ${dupes.errors.join(", ")}`).toBe(0)
 
   const paths = verifier.verifyFilePaths()
   expect(paths.passed, `File paths: ${paths.errors.join(", ")}`).toBe(true)
+
+  // Content roundtrip: verify child nodes haven't had their content silently cleared
+  // This catches data loss bugs where the parser/reconciler zeroes out content fields
+  const db = env.db
+  const allNodes = getAllNodes(db)
+
+  // Check 1: heading nodes (type "h") that represent file sections should have content
+  // (the heading text). A section heading with empty content is suspicious.
+  const sectionNodes = allNodes.filter((n) => n.type === "h" && !n.fstype && n.parent_id)
+  for (const node of sectionNodes) {
+    // Section headings should have content (the heading text)
+    if (node.content === "") {
+      // Verify this isn't a legitimately empty heading by checking the file
+      const parent = allNodes.find((n) => n.id === node.parent_id)
+      if (parent?.fs_path) {
+        const fsPath = parent.fs_path.startsWith("/") ? parent.fs_path : join(env.repoDir, parent.fs_path)
+        if (env.mockFs.existsSync(fsPath)) {
+          const fsContent = env.mockFs.readFileSync(fsPath, "utf-8")
+          // If the file has substantial content but this heading is empty, that's data loss
+          if (fsContent.length > 20) {
+            expect
+              .soft(
+                node.content,
+                `Content roundtrip: section node ${node.id} under ${parent.fs_path} has empty content but file has ${fsContent.length} bytes`,
+              )
+              .not.toBe("")
+          }
+        }
+      }
+    }
+  }
+
+  // Check 2: file nodes with children should still have those children's content intact
+  const fileNodes = allNodes.filter(
+    (n) => n.type === "h" && (n.fstype === "file" || n.fstype === "mdfile") && n.fs_path,
+  )
+  let emptyContentChildren = 0
+  let totalChildren = 0
+  for (const fileNode of fileNodes) {
+    const children = getChildren(db, fileNode.id)
+    totalChildren += children.length
+    for (const child of children) {
+      // Paragraph nodes (type "p") should have content
+      if (child.type === "p" && (child.content === "" || child.content === undefined)) {
+        emptyContentChildren++
+      }
+    }
+  }
+  // Allow some empty paragraphs (they can be legitimate blank lines),
+  // but flag if more than half of paragraph children are empty
+  if (totalChildren > 0 && emptyContentChildren > totalChildren / 2) {
+    expect
+      .soft(
+        emptyContentChildren,
+        `Content roundtrip: ${emptyContentChildren}/${totalChildren} child nodes have empty content — possible silent data loss`,
+      )
+      .toBeLessThan(totalChildren / 2)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,7 +213,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -172,7 +236,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -195,7 +259,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -218,7 +282,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -247,7 +311,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -276,7 +340,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -299,7 +363,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -322,7 +386,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
@@ -345,7 +409,7 @@ describe("Chaos Fuzz Tests (vimonkey)", () => {
         env.handleEvent(event)
       }
 
-      checkInvariants(env.verifier)
+      checkInvariants(env.verifier, env)
     } finally {
       env.db.close()
     }
