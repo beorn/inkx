@@ -90,9 +90,11 @@ export default defineConfig({
 			},
 		},
 		include: process.env.FUZZ
-			? ["**/*.fuzz.ts"]
+			? ["**/*.fuzz.{ts,tsx}"]
 			: ["**/*.{test,spec}.{ts,tsx,md}"],
-		exclude: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
+		exclude: process.env.FUZZ
+			? [...alwaysExclude, "**/*.slow.*"]
+			: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
 		setupFiles: ["./packages/km-infra/vitest/setup.ts"],
 		benchmark: {
 			include: [
