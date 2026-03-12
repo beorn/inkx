@@ -16,7 +16,7 @@
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog } from "@silvery/react"
+import { Box, Text, ModalDialog, H1, H2 } from "@silvery/react"
 import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
@@ -33,9 +33,7 @@ interface FavoritesDialogProps {
 function SectionHeader({ label }: { label: string }): React.ReactElement {
   return (
     <Box height={1}>
-      <Text color="$muted" bold>
-        {label}
-      </Text>
+      <H2 color="$muted">{label}</H2>
     </Box>
   )
 }
@@ -58,9 +56,7 @@ function KeyRow({
 
   return (
     <Box flexDirection="row" height={1}>
-      <Text color="$primary" bold>
-        {` ${keyChar} `}
-      </Text>
+      <H1>{` ${keyChar} `}</H1>
       {node && title ? (
         <Box flexGrow={1} flexShrink={1} overflow="hidden">
           <NodeLine node={node} title={title} />

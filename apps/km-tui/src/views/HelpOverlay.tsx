@@ -10,7 +10,7 @@
  * a text app with string arithmetic.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Fill, ModalDialog } from "@silvery/react"
+import { Box, Text, Fill, ModalDialog, H2, Small } from "@silvery/react"
 import { KeyBinding } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
@@ -43,13 +43,11 @@ const SECTION_ROWS: Array<string[] | "verb-grid"> = [
 function SectionHeaderLine({ title, hint }: { title: string; hint?: string }): React.ReactElement {
   return (
     <Box flexDirection="row">
-      <Text bold color={"$accent"}>
-        {title.toUpperCase()}
-      </Text>
+      <H2>{title.toUpperCase()}</H2>
       {hint && (
         <>
           <Text> </Text>
-          <Text dimColor>{hint}</Text>
+          <Small>{hint}</Small>
         </>
       )}
       <Text> </Text>
@@ -212,23 +210,15 @@ function buildVerbGridLines(): React.ReactElement[] {
     <Box key="vg-col-hdr" flexDirection="row">
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
-        <Text bold color={"$accent"}>
-          {"go to"}
-        </Text>
+        <H2>{"go to"}</H2>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={"$accent"}>
-          {"move"}
-        </Text>
+        <H2>{"move"}</H2>
       </Box>
       <Box width={VG_COL_W}>
-        <Text bold color={"$accent"}>
-          {"add/link"}
-        </Text>
+        <H2>{"add/link"}</H2>
       </Box>
-      <Text bold color={"$accent"}>
-        {"create"}
-      </Text>
+      <H2>{"create"}</H2>
     </Box>,
   )
 
