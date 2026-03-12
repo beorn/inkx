@@ -214,6 +214,124 @@ const fx = {
 }
 ```
 
+### `fx.from()` — wrapping any API into effects
+
+Any object with methods can become a scoped effect provider in one line:
+
+```typescript
+const fs = fx.from(nodeFs.promises)
+const db = fx.from(database)
+const http = fx.from(httpClient)
+```
+
+Each method call creates an `AsyncEffect` descriptor. The original function becomes the default runner. The descriptor is serializable data (`{ provider, method, args }`) — the runner is looked up by name at execution time, not carried on the descriptor.
+
+```typescript
+// What fs.readFile("/data.json", "utf8") creates:
+{
+  provider: "fs",
+  method: "readFile",
+  args: ["/data.json", "utf8"],
+  // Default runner: the real nodeFs.readFile
+}
+
+// What it returns: AsyncEffect<Buffer>
+// When awaited: scope lookup → runner call → real fs.readFile with { signal }
+```
+
+Single function wrapping also works:
+
+```typescript
+const readFile = fx.from(nodeFs.readFile)
+```
+
+**Type mapping** — TypeScript infers return types from the original API:
+
+```typescript
+type Effectified<T> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => Promise<infer R>
+    ? (...args: A) => AsyncEffect<R>
+    : T[K] extends (...args: infer A) => infer R
+      ? (...args: A) => AsyncEffect<R>
+      : T[K]
+}
+```
+
+`fs.readFile(path)` returns `AsyncEffect<Buffer>` because `nodeFs.readFile` returns `Promise<Buffer>`.
+
+**Two flavors:**
+
+| Factory                    | Use case                   | Default runner                 |
+| -------------------------- | -------------------------- | ------------------------------ |
+| `fx.from(impl)`            | Wrap an existing API       | The real implementation        |
+| `fx.effect<Args, R>(name)` | Declare an abstract effect | None — must provide at runtime |
+
+```typescript
+// Abstract effects — runtime provides implementation
+const toast = fx.effect<{ message: string; level?: string }, void>("toast")
+const confirm = fx.effect<{ title: string }, boolean>("confirm")
+
+// Wire at runtime:
+createRuntime({
+  runners: { toast: showToast, confirm: showDialog },
+})
+
+// In tests:
+testScope({ toast: spy(), confirm: () => true })
+```
+
+`fx.from(impl)` wraps existing APIs — the real implementation IS the default runner. `fx.effect(name)` declares abstract capabilities that different runtimes implement differently (toast in terminal vs browser vs test).
+
+### Serialization and execution policies
+
+Effect descriptors are plain data (`{ provider, method, args }`). Two orthogonal configuration axes:
+
+**Creation policy** (configured on the fx definition) — controls how the descriptor is created:
+
+```typescript
+fx.from(impl) // raw args (zero overhead)
+fx.from(impl, { snapshot: true }) // structuredClone args at creation
+fx.from(impl, { track: false }) // no descriptor, call through directly
+```
+
+**Execution policy** (configured on the scope/runner) — controls what happens when awaited:
+
+| Mode                  | Descriptor       | Scope lookup | Recorded           | Runner called   | Overhead |
+| --------------------- | ---------------- | ------------ | ------------------ | --------------- | -------- |
+| **tracked** (default) | Yes              | Yes          | If `withRecording` | Yes             | ~1-5μs   |
+| **snapshot**          | Yes + clone args | Yes          | Yes (serializable) | Yes             | ~5-50μs  |
+| **direct**            | No               | No           | No                 | Yes (immediate) | ~0       |
+
+```typescript
+// Scope-level: record everything with serialized snapshots
+const scope = testScope({ recording: { snapshot: true } })
+
+// Runtime-level: skip all tracking in production
+createRuntime({ effectMode: "direct" })
+```
+
+**Layer priority**: runtime > scope > fx definition. Runtime says "direct mode" → everything bypasses, regardless of fx definition.
+
+**When to snapshot**: The mutation hazard (args changed between creation and execution) is real in theory but rare in practice — signal-based state management encourages immutable values. Default to raw args (zero overhead). Use `{ snapshot: true }` on specific `fx.from()` calls for APIs with mutable args, or `withRecording({ snapshot: true })` on scopes when recording for replay/DevTools.
+
+**When to go direct**: I/O effects dominate effect overhead (milliseconds of real work vs microseconds of scope bookkeeping). Don't optimize until profiling shows it matters. The `effectMode: "direct"` escape hatch exists but shouldn't be the default.
+
+### Built-in effects are just pre-wrapped APIs
+
+With `fx.from()`, the built-in timer effects aren't special — they're a pre-wrapped API:
+
+```typescript
+export const fx = {
+  ...timerEffects, // delay, interval, cancel — pre-wrapped
+  from, // wrap any API
+  effect, // declare abstract effect
+  all, // parallel with structured cancellation
+  merge, // merge async iterables
+}
+```
+
+Everything uses the same mechanism: `fx.delay(300)` creates an `AsyncEffect<void>` whose runner is `setTimeout`. `fs.readFile(path)` creates an `AsyncEffect<Buffer>` whose runner is `nodeFs.readFile`. Same scope routing, same cancellation, same recording.
+
 ### Effect runners — where AbortSignal meets I/O
 
 Runners are where effects actually execute. Every runner receives the scope's `AbortSignal` automatically — no manual threading.
@@ -468,10 +586,10 @@ const withRetry =
   }
 ```
 
-Same composition model everywhere:
+Same composition model everywhere (see [state-api-redesign.md](./state-api-redesign.md) for the full two-surface architecture):
 
 ```
-Models:   pipe(Todo, withVim(), withUndo())
+State:    pipe(createState({...}), withUndo(), withValidation())
 Runtime:  pipe(createRuntime({...}), withTracing(), withRecording())
 Scopes:   pipe(createScope(name), withRetry(), withRateLimit())
 ```
@@ -770,4 +888,4 @@ Centurion was a standalone concurrency library. Here, structured concurrency is 
 
 ---
 
-_See also: [state-api-redesign.md](./state-api-redesign.md) (effects, models, sip progression), [command-centric.md](./command-centric.md) (commands as the app's behavior), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps)._
+_See also: [state-api-redesign.md](./state-api-redesign.md) (two-surface architecture, plugin composition, sip progression), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

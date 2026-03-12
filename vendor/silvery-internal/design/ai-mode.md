@@ -19,7 +19,7 @@ This doc covers: how AI discovers commands (domain objects + types), the code in
 
 Before an AI can act, it needs to know what the app can do. The biggest problem with flat command lists is that they're overwhelming — 173 undifferentiated items.
 
-**Domain objects** solve this. The [command registry's nested tree structure](./command-centric.md#one-command-every-surface) naturally maps to typed objects — each subtree becomes a domain:
+**Domain objects** solve this. As described in [Command-Centric Design](./command-centric.md#how-domain-objects-form), the command registry's nested tree naturally maps to typed domains — each subtree becomes a domain object with methods. This grouping matters for AI because it reduces a flat list of 173 commands into a handful of navigable domains:
 
 ```typescript
 // Flat (overwhelming — 173 undifferentiated items):
@@ -36,8 +36,6 @@ screen     → { text, lines, width, height }                        // rendered
 ```
 
 Discovery = **explore a few domain objects**, not scan a flat list. The AI asks "what domains exist?" (6 objects), picks the relevant one, drills into its methods.
-
-Domain objects come from the command tree's nesting — each subtree becomes a typed domain. See [How Domain Objects Form](./command-centric.md#how-domain-objects-form) in Part 1 for the plugin composition mechanism.
 
 ### Type Definitions
 

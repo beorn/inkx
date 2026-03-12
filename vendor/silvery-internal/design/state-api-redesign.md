@@ -8,7 +8,7 @@ Six overlapping entry points (`createApp`, `createSlice`, `createEffects`, `crea
 
 ## The API at a Glance
 
-Eight sips from `useState` to multi-target apps. Each step adds one thing. Nothing rewrites.
+Eight sips from `useState` to full apps. Each step adds one thing. Nothing rewrites.
 
 ```tsx
 // ── Sip 1: Just React ──────────────────────────────────────
@@ -38,8 +38,8 @@ function Counter() {
 
 await run(<Counter />)
 
-// ── Sip 3: Model with updates-as-data ──────────────────────
-import { run, createModel, signal } from "silvery"
+// ── Sip 3: State surface — updates-as-data ─────────────────
+import { run, createModel, createState, signal } from "silvery"
 
 const Todo = createModel({
   state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
@@ -53,330 +53,364 @@ const Todo = createModel({
   },
 })
 
-await run(<TodoView />, { model: Todo })
+const state = createState({ todo: Todo })
 
-// ── Sip 4: Commands + keybindings (plugin) ─────────────────
+// Two equivalent ways to call:
+state.todo.toggle({ index: 0 }) // function call
+state.apply({ model: "todo", name: "toggle", args: { index: 0 } }) // data
+
+await run(<TodoView />, { state })
+
+// ── Sip 4: Commands + keybindings ───────────────────────────
 await run(
   <TodoView />,
   pipe(
-    { model: Todo },
+    { state },
     withCommands({
-      cursor_down: { name: "Move Down", update: "moveCursor", args: { delta: 1 } },
-      toggle: { name: "Toggle", update: "toggle" },
+      cursor_down: { name: "Move Down", update: "todo.moveCursor", args: { delta: 1 } },
+      cursor_up: { name: "Move Up", update: "todo.moveCursor", args: { delta: -1 } },
+      toggle: { name: "Toggle", update: "todo.toggle" },
       help: { name: "Help", action: () => openOverlay("help") },
     }),
     withKeybindings({ j: "cursor_down", k: "cursor_up", x: "toggle" }),
   ),
 )
 
-// Or with an opinionated plugin:
-await run(<TodoView />, withVim({ model: Todo }))
-
-// ── Sip 5: Effects-as-data (async) ──────────────────────────
+// ── Sip 5: Effects via runtime surface ──────────────────────
 const Todo = createModel({
   state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
   updates: {
-    // No effects — plain function
     moveCursor(s, { delta }) {
       s.cursor.value += delta
     },
 
-    // The Silvery Way — await typed effects (scoped, abortable, traced)
+    // Async updates await typed effects — scoped, abortable, traced
     async save(s) {
       await fx.persist({ data: s.items.value })
     },
 
-    // Multiple effects — await each
-    async saveAndNotify(s) {
-      await fx.persist({ data: s.items.value })
-      await fx.toast({ message: "Saved!" })
-    },
-
-    // Sequential async — await returns typed result naturally
     async importAndSave(s, { url }) {
-      const data = await fx.fetch(url) // Response — typed naturally
+      const data = await fx.fetch(url) // typed: Response
       s.items.value = data
       await fx.persist({ data })
     },
 
-    // Built-in timer effects
     async startAutoSave(s) {
-      s.autoSave.value = await fx.interval(30_000, "save") // Disposable handle
-    },
-    async stopAutoSave(s) {
-      s.autoSave.value[Symbol.dispose]() // manual cleanup
-    },
-    async debouncedSearch(s, { query }) {
-      s.query.value = query
-      await fx.delay(300, "executeSearch") // fire "executeSearch" after 300ms
+      s.autoSave.value = await fx.interval(30_000, "save") // Disposable
     },
   },
 })
 
-// ── Sip 6: Explicit runtime — full control ─────────────────
-import { createRuntime, createReactView, createTerm } from "silvery"
+const state = createState({ todo: Todo })
+const rt = createRuntime({ fs: nodeFs.promises, timer: timerImpl })
 
-const term = createTerm()
-const view = createReactView(<TodoApp />, term)
-const { run, render } = createRuntime({ term, fs })
+await run(<TodoView />, { state, rt })
 
-const app = pipe({ model: Todo, view }, withVim(), withUndo())
+// ── Sip 6: Plugin composition ───────────────────────────────
 
-const handle = run(app)
+// State plugins wrap state.apply()
+const state = pipe(
+  createState({ todo: Todo }),
+  withUndo(), // pushes history on every apply
+  withValidation(rules), // validates before apply
+)
 
-handle.apply({ update: "moveCursor", delta: 1 }) // push update
-handle.apply("toggle") // by command name
-handle.state.cursor.value // read state
-handle.exit() // shutdown
+// Runtime plugins wrap rt.apply()
+const rt = pipe(
+  createRuntime({ fs, timer }),
+  withTracing(), // loggily span per effect
+  withRecording(), // captures effect descriptors
+)
 
-// ── Testing — swap providers, same app ─────────────────────
-const { run } = createRuntime({ term: { width: 80 }, fs: mockFs })
-const handle = run(app)
+// App plugins bridge both surfaces
+const app = pipe(
+  { state, rt, view: <TodoApp /> },
+  withKeybindings({ x: "toggle" }), // maps input → state.apply()
+  withLogging(), // wraps both apply() chains
+)
 
-handle.apply("cursor_down")
-expect(handle.state.cursor.value).toBe(1)
+await run(app)
 
-// Model-only — no runtime needed
-const todo = Todo.create()
-todo.toggle({ index: 0 })
-const effects = await collect(() => todo.save())
-expect(effects).toContainEqual(fx.persist({ data: todo.state.items.value }))
-
-// ── Different targets, same app ────────────────────────────
-const app = pipe({ model: Todo }, withVim(), withUndo())
-
+// ── Sip 7: Different targets, same app ──────────────────────
 // Terminal
-run({ ...app, view: createReactView(<TodoTUI />, term) })
+await run({ state, rt, view: <TodoTUI /> })
 
 // Browser xterm.js
-run({ ...app, view: createReactView(<TodoTUI />, xterm) })
+await run({ state, rt, view: <TodoTUI /> }, { term: xtermBackend })
 
-// Svelte
-run({ ...app, view: createSvelteView(TodoSvelte, term) })
+// Headless — no view, just the surfaces
+state.todo.toggle({ index: 0 })
+await state.waitFor((s) => s.todo.items.value[0].done)
 
-// Headless — no view, just ops
-const handle = run(app)
-for await (const op of websocket) handle.apply(op)
+// ── Sip 8: Testing — same surfaces, mock runners ───────────
+// State-only (no runtime needed)
+const state = createState({ todo: Todo })
+state.todo.moveCursor({ delta: 1 })
+expect(state.todo.cursor.value).toBe(1)
+
+// With effects — swap runners
+const rt = testRuntime({ fetch: () => mockData, persist: spy() })
+const state = createState({ todo: Todo })
+
+await state.todo.importAndSave({ url: "/api" })
+expect(state.todo.items.value).toEqual(mockData)
+expect(rt.effects).toContainEqual(fx.persist({ data: mockData }))
 ```
 
 ## Principles
 
-1. **Runtime/App separation.** The runtime owns I/O and the event loop. The app is passive — pure state, pure update functions, pure views.
+1. **Two surfaces, one pattern.** State has `apply()` for updates. Runtime has `apply()` for effects. Both composable with `with*` plugins. Same mental model, same composition, two concerns separated.
+
 2. **React-native.** Your hooks, your state, your components work. Silvery adds terminal capabilities, not a new programming model.
-3. **Native JS composition.** Plain objects, spread, function composition, async iterables. No framework-specific plugin/provider interfaces where JS already has the concept.
+
+3. **Native JS composition.** Plain objects, spread, function composition, async iterables. No framework-specific interfaces where JS already has the concept.
+
 4. **State is optional and pluggable.** Use `useState`, `signal()`, Zustand, `createModel` — or nothing. The runtime doesn't care.
-5. **The Silvery Way is opt-in.** The shiny path (updates-as-data, effects-as-data, commands) is always visible but never forced.
+
+5. **Function calls are data.** `state.todo.toggle({index: 0})` is sugar for `state.apply({...})`. Switch between direct calling and declarative data freely. Both are the same thing under the hood.
+
+6. **The Silvery Way is opt-in.** The shiny path (updates-as-data, effects-as-data, commands) is always visible but never forced.
 
 ### State access: one primary, many projections
 
-The **primary** way to read state is `handle.state` — a typed proxy of the model's signals. Every other access pattern is sugar over this:
+The **primary** way to read state is `state.todo.cursor.value` — direct signal access. Every other pattern is sugar:
 
-| Context                  | Access                       | Notes                                                     |
-| ------------------------ | ---------------------------- | --------------------------------------------------------- |
-| **In-process (primary)** | `handle.state.cursor.value`  | Direct signal read — typed, reactive                      |
-| **AI code mode**         | `state(s => s.cursor.value)` | Selector function — injected global, reads `handle.state` |
-| **Command execute**      | `ctx.state.cursor.value`     | Same proxy via command context                            |
-| **External (CLI/MCP)**   | `getState()` → JSON          | Serialized snapshot for remote consumers                  |
-| **Tests**                | `handle.state.cursor.value`  | Same as in-process                                        |
+| Context                  | Access                        | Notes                                                 |
+| ------------------------ | ----------------------------- | ----------------------------------------------------- |
+| **In-process (primary)** | `state.todo.cursor.value`     | Direct signal read — typed, reactive                  |
+| **AI code mode**         | `todo.cursor.value`           | Domain object globals — same signals                  |
+| **Command execute**      | `ctx.state.todo.cursor.value` | Same signals via command context                      |
+| **External (CLI/MCP)**   | `getState()` → JSON           | Serialized snapshot for remote consumers              |
+| **Tests / Drivers**      | `state.todo.cursor.value`     | Same signals — plus `waitFor()` for async observation |
 
-`handle.state` is canonical. `state(selector)` in AI code mode is a convenience wrapper. `getState()` returns a serialized snapshot for consumers that can't hold a reference. Don't introduce new access patterns.
+## Architecture
 
-## Architecture Overview
+Two surfaces, same `apply()` pattern. Plugins wrap `apply()` via closure. App-level plugins bridge both.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ Runtime (active)                                         │
-│   Drives the event loop. Executes effects. Owns I/O.    │
-│   Created with providers: term, fs, http, ...            │
-│                                                          │
-│   events → updates → apply(state, update) → effects     │
-│     ↑                                          │        │
-│     └────────── more updates ──────────────────┘        │
-├──────────────────────────────────────────────────────────┤
-│ App (passive)                                            │
-│   Pure state + update functions + view.                  │
-│   Composed with plugins (plain functions).               │
-│                                                          │
-│   model: state + updates (pure)                          │
-│   view: state → UI (pure)                                │
-│   commands: named intents with metadata                  │
-└──────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│ App                                                              │
+│                                                                  │
+│  ┌─ State Surface ────────────────┐ ┌─ Runtime Surface ────────┐│
+│  │                                │ │                          ││
+│  │ state.apply(UpdateOp)          │ │ rt.apply(EffectOp) → T   ││
+│  │ state.todo.toggle(args)        │ │                          ││
+│  │ state.waitFor(pred)            │ │ Effect runners:          ││
+│  │                                │ │   fetch, persist, timer  ││
+│  │ Plugins: withUndo              │ │                          ││
+│  │          withValidation        │ │ Plugins: withTracing     ││
+│  │          withHistory           │ │          withRecording   ││
+│  └────────────────────────────────┘ └──────────────────────────┘│
+│                                                                  │
+│  App plugins (bridge both):                                      │
+│    withKeybindings — input → state.apply()                       │
+│    withCommands   — named intents + metadata                     │
+│    withLogging    — wraps both apply() chains                    │
+└──────────────────────────────────────────────────────────────────┘
+         │
+    Drivers (scoped external callers):
+      state.drive(async () => { ... })
+      Same interface as testing: apply, waitFor, events
+      Child scope → ALS signal propagation → auto-cleanup
 ```
 
-Inspired by Roc's platform model: the runtime is the platform, the app is pure logic. The app never does I/O — it returns effect descriptions. The runtime decides how to execute them.
+Inspired by **Roc's platform model** (app is pure logic, runtime handles I/O) but split into two typed surfaces. And by **SlateJS** (plugins wrap `apply()` via closure, composing behavior without inheritance).
 
-## Two Layers
+### Two layers
 
-### Layer 1: Convenience (most users)
+**Layer 1: Convenience** (most users)
 
 ```tsx
 import { run, render } from "silvery"
 
-// One-shot output — sync, returns string
+// One-shot output
 render(<Table data={rows} />)
-render(<Table data={rows} />, { width: 80 })
 
 // Interactive — zero config
 await run(<Counter />)
 
-// Interactive — with model and plugins
-await run(<TodoApp />, withVim({ model: Todo }))
+// Interactive — with state + plugins
+await run(<TodoApp />, pipe({ state, rt }, withKeybindings({ j: "down" })))
 ```
 
-`run()` and `render()` are convenience wrappers that internally create a runtime, a React view, and wire everything together.
+`run()` and `render()` are convenience wrappers that internally create surfaces and wire them together.
 
-### Layer 2: Explicit (power users)
+**Layer 2: Explicit** (power users)
 
 ```tsx
-import { createRuntime, createReactView, createModel } from "silvery"
+import { createState, createRuntime, createModel } from "silvery"
 
-// 1. Term — I/O target
-const term = createTerm()
+// 1. Models — pure definitions
+const Todo = createModel({ state: () => ({ ... }), updates: { ... } })
 
-// 2. View — framework + target, self-contained
-const view = createReactView(<TodoApp />, term)
+// 2. State surface — instantiate models, compose with plugins
+const state = pipe(createState({ todo: Todo }), withUndo())
 
-// 3. Model — pure state + updates
-const Todo = createModel({
-  state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
-  updates: {
-    moveCursor(s, { delta }) {
-      s.cursor.value += delta
-    },
-    toggle(s, { index }) {
-      s.items.value[index].done ^= 1
-    },
-  },
-})
+// 3. Runtime surface — provide effect runners, compose with plugins
+const rt = pipe(createRuntime({ fs, timer }), withTracing())
 
-// 4. App — compose with plugins (plain functions)
+// 4. App — compose both surfaces + view + app-level plugins
 const app = pipe(
-  { model: Todo, view },
-  withCommands({
-    cursor_down: { name: "Move Down", update: "moveCursor", args: { delta: 1 } },
-    toggle: { name: "Toggle Done", update: "toggle" },
-  }),
-  withKeybindings({ j: "cursor_down", k: "cursor_up", x: "toggle" }),
-  withUndo(),
+  { state, rt, view: <TodoApp /> },
+  withCommands({ ... }),
+  withKeybindings({ j: "cursor_down" }),
 )
 
-// 5. Runtime — I/O providers
-const { run, render } = createRuntime({ term, fs })
-
-// 6. Run
-const handle = run(app)
+// 5. Run
+await run(app)
 ```
-
-Three concepts, all composable:
-
-- **Runtime** — I/O providers (term, fs, http). Created once, reused.
-- **App** — pure logic (model, view, commands, keybindings). Composed with plugins.
-- **View** — framework + render target. Self-contained. Runtime knows nothing about React.
 
 ## Key Mechanisms
 
+### The two surfaces
+
+The core architectural idea: state and effects are separate concerns with the same interface.
+
+**State surface** (`createState`): Instantiates models, provides `apply()` for updates. Signal-based reactivity — mutations are synchronous and immediate. High throughput for burst events (key repeat, paste).
+
+**Runtime surface** (`createRuntime`): Provides effect runners, exposes `apply()` for effects. Each `fx.*` call creates an `AsyncEffect<T>` descriptor; `rt.apply()` executes it with the scope's `AbortSignal`.
+
+Both surfaces have `apply()`. Both are composable with `with*` plugins. Both use the same SlateJS-style closure wrapping. The only difference: state `apply()` is synchronous (mutates signals), runtime `apply()` is async (executes I/O).
+
+### Plugin composition
+
+Plugins wrap `apply()` by capturing the old method and installing a new one:
+
+```typescript
+function withUndo(): StatePlugin {
+  return (state) => {
+    const { apply } = state
+    state.apply = (op) => {
+      pushHistory(op)
+      apply(op)
+    }
+    return state
+  }
+}
+
+function withTracing(): RuntimePlugin {
+  return (rt) => {
+    const { apply } = rt
+    rt.apply = async (op) => {
+      const span = loggily.startSpan(`${op.provider}:${op.method}`)
+      try {
+        return await apply(op)
+      } finally {
+        span.end()
+      }
+    }
+    return rt
+  }
+}
+
+function withKeybindings(map: Record<string, string>): AppPlugin {
+  return (app) => {
+    // Bridge: input events → state.apply() via command lookup
+    app.rt.onInput((key) => {
+      const cmd = map[key]
+      if (cmd) app.state.apply(app.commands.resolve(cmd))
+    })
+    return app
+  }
+}
+```
+
+Three plugin levels:
+
+| Level   | What it wraps   | Examples                                   |
+| ------- | --------------- | ------------------------------------------ |
+| State   | `state.apply()` | withUndo, withValidation, withHistory      |
+| Runtime | `rt.apply()`    | withTracing, withRecording, withRetry      |
+| App     | Both + wiring   | withKeybindings, withCommands, withLogging |
+
+**Branded types** prevent accidental cross-surface plugin application:
+
+```typescript
+interface StateSurface {
+  readonly _surface: "state"
+  apply(op: UpdateOp): void
+}
+interface RuntimeSurface {
+  readonly _surface: "runtime"
+  apply<T>(op: EffectOp<T>): Promise<T>
+}
+interface AppSurface {
+  readonly _surface: "app"
+  state: StateSurface
+  rt: RuntimeSurface
+}
+
+type StatePlugin = (s: StateSurface) => StateSurface
+type RuntimePlugin = (rt: RuntimeSurface) => RuntimeSurface
+type AppPlugin = (app: AppSurface) => AppSurface
+```
+
 ### The inner loop
 
-The runtime processes updates in two phases — **state mutations are synchronous**, effects are delegated to the scope tree:
+The state surface processes updates in a sync queue. Effects are delegated to the runtime surface via the scope tree:
 
 ```typescript
 while (running) {
   // 1. Drain the sync queue (state mutations)
   while (queue.length > 0) {
     const update = queue.shift()!
-    const scope = model.scope.createChild(update.name)
 
     if (update.isAsync) {
-      // Async update: state mutations happen eagerly (signals),
-      // effects run within the child scope (concurrent with other updates)
+      // Async: state mutations happen eagerly (signals),
+      // effects execute within a child scope on the runtime surface
+      const scope = rt.createChild(update.name)
       scopeContext.run(scope, () => update.fn(state, update.args))
-      // → await fx.fetch() inside the update looks up scope via ALS
-      // → scope.run(effect) delegates to runner with { signal }
     } else {
-      // Sync update: just mutate state, no scope needed
+      // Sync: just mutate state
       update.fn(state, update.args)
     }
   }
 
-  // 2. Wait for next event (only async point in the loop itself)
+  // 2. Wait for next event
   const event = await nextEvent()
   queue.push(eventToUpdate(event))
 }
 ```
 
-State mutations via signals are synchronous and immediate — no microtask scheduling. High throughput for burst events (key repeat, paste). Effects are lazy: they execute only when `await`ed inside the update, delegated to the scope's runner with automatic `AbortSignal` threading.
+**Concurrent async updates**: Multiple async updates can overlap — each gets its own child scope on the runtime surface. State mutations happen eagerly via signals; the last mutation wins. For strict serialization, a `withSerialUpdates()` state plugin can queue async updates.
 
-**Concurrent async updates**: Multiple async updates on the same model can overlap — they each get their own child scope. State mutations happen eagerly via signals, so order matters: the last mutation wins. If you need serialization, use `fx.dispatch` to chain updates (the dispatched update runs after the current one). This is a deliberate choice: most updates are synchronous (no overlap), and the few async ones are I/O-bound with no competing mutations. If a future use case requires strict serialization, a `withSerialUpdates()` plugin can queue async updates per model.
+### Effects and structured concurrency
 
-### Plugins
-
-`<T>(app: T) => T & NewStuff`. No plugin interface. Just functions that enrich objects:
+Effects are typed descriptors (`AsyncEffect<T>`) that are both plain data and `await`-able. When `await`ed inside a model update, they look up the current scope via `AsyncLocalStorage` and delegate to the runtime surface. State mutations happen eagerly (via signals); effects are lazy (via `await`).
 
 ```typescript
-function withUndo<T extends { updates: Record<string, any> }>(app: T) {
-  return {
-    ...app,
-    updates: { ...app.updates, undo(s) { ... }, redo(s) { ... } },
-    keybindings: { ...app.keybindings, "ctrl+z": "undo", "ctrl+shift+z": "redo" },
-  }
-}
-```
-
-### Effects pipeline
-
-Updates that have effects are **async functions** — they `await` typed `AsyncEffect` descriptors. Each `fx.*` function returns an `AsyncEffect<T>` that is both a plain data descriptor and a thenable. When `await`ed, it looks up the current scope via `AsyncLocalStorage` and delegates to the scope's effect runner. The scope automatically records the effect, traces it as a loggily span, and passes its `AbortSignal` to the runner. State mutations happen eagerly (via signals); effects are lazy (via `await`). See [scope-tree.md](./scope-tree.md) for the full scope tree design.
-
-```
-async update → state mutation + await AsyncEffect descriptors
-  → AsyncEffect.then() → ALS scope lookup → scope.run(effect)
-    → runner executes with { signal } → promise resolves → update continues
-
 // No effects — plain function
 moveCursor(s, { delta }) { s.cursor.value += delta }
 
-// With effects — async function (await returns typed result naturally)
+// With effects — async function, await typed effects
 async save(s) { await fx.persist({ data: s.items.value }) }
 
 // Sequential — each await is scoped, abortable, traced
 async importAndSave(s, { url }) {
-  const data = await fx.fetch(url)    // data: Response — typed naturally!
+  const data = await fx.fetch(url)    // data: Response — typed naturally
   s.items.value = data
   await fx.persist({ data })
 }
 ```
 
-**Testing**: `collect()` works for fire-and-forget effects (no runners needed). When downstream code depends on effect results, use `testScope()` with mock runners — same constraint as generators:
+The runtime surface owns the scope tree. Effects form a hierarchy: runtime scope → model scope → update scope. Cancellation flows down via `AbortSignal`, errors propagate up via promise rejection. No effect outlives its parent scope.
 
-```typescript
-// Fire-and-forget: collect() with no-op runners
-const effects = await collect(() => todo.save(state))
-expect(effects).toEqual([fx.persist({ data: items })])
-
-// Data-dependent: mock runners required
-const scope = testScope({ fetch: () => mockData })
-await scope.run(() => todo.importAndSave(state, { url: "/api" }))
-expect(scope.effects).toEqual([fx.fetch("/api"), fx.persist({ data: mockData })])
-```
+For the full effects system — `AsyncEffect` implementation, `fx.from()` API wrapping, serialization policies, effect runners, structured concurrency details, cancellation cascading, scopes-as-loggily-spans, testing patterns (`collect()`, `testScope()`, `withTestClock()`) — see [scope-tree.md](./scope-tree.md).
 
 ### Built-in timer effects
 
-The runtime provides timer effect runners out of the box. No `useRef`/`useEffect` soup:
+Timer effects are provided by the runtime as pre-wrapped APIs:
 
 ```typescript
-fx.delay(ms, update) // fire update once after delay — AsyncEffect<void>
-fx.interval(ms, update) // fire update repeatedly — AsyncEffect<Disposable>
-```
+fx.delay(ms)                 // AsyncEffect<void> — awaitable pause
+fx.interval(ms, update)      // AsyncEffect<Disposable> — repeating, auto-cleanup
 
-Timer runners register cleanup on the scope's `DisposableStack`. **Auto-cleanup**: when the scope (model or app) cancels, all its timers are cancelled via `AbortSignal`. No forgotten `clearInterval`, no leaked refs.
-
-```typescript
-// Timer returns a Disposable handle for manual cleanup
 async startAutoSave(s) {
   s.autoSave.value = await fx.interval(30_000, "save")
 },
 async stopAutoSave(s) {
-  s.autoSave.value[Symbol.dispose]()   // manual cleanup
-  // or: model unmount cancels scope → interval cleaned up automatically
+  s.autoSave.value[Symbol.dispose]()
+  // or: model unmount → scope cancels → interval cleaned up automatically
 },
 ```
 
@@ -391,122 +425,7 @@ async confirm(s) {
 }
 ```
 
-Runtime routes dispatch effects to the target model's instance. Type-safe — TypeScript infers valid update names and arg types from the Board model.
-
-### Structured concurrency
-
-Effects form a **scope tree**. Every scope owns its child effects and sub-scopes. Cancellation propagates down via `AbortSignal`, errors propagate up via promise rejection. No effect can outlive its parent scope. See [scope-tree.md](./scope-tree.md) for the full design.
-
-```
-Runtime (root scope, AbortController)
-├── Model: Todo (scope, AbortController)
-│   ├── fx.interval(30s, "save")          ← cancelled when Todo scope aborts
-│   ├── fx.subscribe(events, "onEvent")   ← cancelled when Todo scope aborts
-│   └── importAndSave                     ← async update = child scope
-│       ├── fx.fetch(url)                 ← runner gets signal, aborts with scope
-│       └── fx.persist(data)
-├── Model: Navigation (scope, AbortController)
-│   └── fx.interval(100, "scrollAnim")
-└── View (scope, AbortController)
-    └── fx.subscribe(resize, "onResize")
-```
-
-**Implicit scoping**: every model gets a scope with an `AbortController`. Every async update runs within a child scope of its model. Ongoing effects (intervals, subscriptions) register cleanup on their model's `DisposableStack`. The scope's `AbortSignal` is passed to runners automatically via `AsyncLocalStorage`. Users never write scoping code for the common case — it just works.
-
-**Explicit scoping** for grouped operations:
-
-```typescript
-// All fetches run in parallel — if any fails, siblings are cancelled
-async batchImport(s, { urls }) {
-  const results = await fx.all(urls.map(url => fx.fetch(url)))
-  await fx.persist({ data: results })
-}
-```
-
-**Error handling**: runners reject promises on failure, so standard `try/catch` works. `AbortError` is thrown when a scope is cancelled:
-
-```typescript
-async importAndSave(s, { url }) {
-  try {
-    const data = await fx.fetch(url)
-    s.items.value = data
-    await fx.persist({ data })
-  } catch (e) {
-    if (e.name === "AbortError") return   // cancelled — nothing to do
-    await fx.toast({ message: `Import failed: ${e.message}`, level: "error" })
-  }
-}
-```
-
-**Cleanup paths**:
-
-1. **Auto** — scope cancels → `AbortSignal` fires → runners abort → `DisposableStack` cleans up (the default)
-2. **Manual via handle** — `const timer = await fx.interval(...)` returns a `Disposable` handle
-3. **Via `using`** — handles implement `Symbol.dispose` for scoped cleanup within a function
-
-**Effect handles are disposable**:
-
-```typescript
-async startAutoSave(s) {
-  s.autoSave.value = await fx.interval(30_000, "save")
-  // handle is Disposable — has [Symbol.dispose]()
-},
-async stopAutoSave(s) {
-  s.autoSave.value[Symbol.dispose]()
-},
-// But usually: model unmount → scope cancels → interval cleaned up automatically
-```
-
-### Scopes are spans: loggily integration
-
-The scope tree and the observability tree are **the same tree**. Loggily provides span hierarchy, parent-child relationships, timing, `AsyncLocalStorage` context propagation, and the `Disposable` protocol. The `withTracing()` scope plugin wraps each `scope.run()` in a loggily span automatically.
-
-```
-Runtime scope tree                    Loggily span tree
-──────────────────                    ──────────────────
-Runtime (root scope)            →     SPAN app (root)
-├── Model: Todo                 →       SPAN app:todo
-│   ├── fx.interval(30s)        →         SPAN app:todo:autoSave (ongoing)
-│   └── importAndSave           →         SPAN app:todo:importAndSave (246ms)
-│       ├── fx.fetch(url)       →           SPAN app:todo:fetch (234ms) {url}
-│       └── fx.persist(data)    →           SPAN app:todo:persist (12ms) {count: 42}
-└── Model: Navigation           →       SPAN app:navigation
-```
-
-Every effect execution becomes a span with timing, attributes, and parent context — automatically. This gives you:
-
-- **Observability for free** — every effect has duration, success/failure, custom attributes. `TRACE=1` shows the full scope tree with timing.
-- **Scope tracking via `AsyncLocalStorage`** — loggily's context propagation automatically parents child effects to their enclosing scope.
-- **Cancellation logged automatically** — when a scope cancels (unmount, error, manual), the span ends with cancellation metadata. Visible in traces.
-- **DevTools = span viewer** — the live scope tree in DevTools is the live span tree.
-- **Worker thread support** — loggily already forwards spans across worker threads.
-
-Two concerns, two tools:
-
-| What you're checking                                  | Tool                         | Data                                   |
-| ----------------------------------------------------- | ---------------------------- | -------------------------------------- |
-| **Effect logic** (what effects ran)                   | `scope.effects` (via plugin) | Effect descriptors — recorded via ALS  |
-| **Execution observability** (how long, what happened) | Loggily spans (via plugin)   | Timing, attributes, errors, trace tree |
-
-```typescript
-// Effect testing: swap runners, inspect scope.effects
-const scope = testRuntime.createScope("test")
-await scope.run(() => todo.importAndSave(state, { url: "/api" }))
-expect(scope.effects).toContainEqual(fx.fetch("/api"))
-expect(scope.effects).toContainEqual(fx.persist(expect.anything()))
-
-// Observability: loggily shows the scope tree with timing
-// TRACE=1 bun run app
-// → SPAN app:todo:importAndSave (246ms)
-// →   SPAN app:todo:fetch (234ms) {url: "https://..."}
-// →   SPAN app:todo:persist (12ms) {count: 42}
-
-// Production: structured JSON traces
-// TRACE_FORMAT=json bun run app
-// → {"name":"app:todo:fetch","duration":234,"url":"https://...","traceId":"abc"}
-```
-
-No separate tracing infrastructure. No effect-specific logging. The scope system IS the tracing system. Loggily already has the tree, the timing, the `Disposable` protocol, the worker support, and `AsyncLocalStorage` context propagation. Silvery adds the semantics: cancellation propagation, error propagation, resource cleanup.
+The runtime surface routes dispatch effects to the target model's instance. Type-safe — TypeScript infers valid update names and arg types from the model definition.
 
 ### Framework bindings
 
@@ -517,6 +436,250 @@ import { useModel } from "@silvery/tea/react" // useSyncExternalStore
 import { useModel } from "@silvery/tea/svelte" // writable store bridge
 import { useModel } from "@silvery/tea/vue" // ref() bridge
 ```
+
+## Object Shapes
+
+Every object in the system has a clear shape. Understanding these shapes is how you compose them.
+
+### Model (from `createModel`)
+
+The model definition. Module-level, framework-agnostic, reusable.
+
+```typescript
+const Todo = createModel({
+  state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
+  updates: {
+    moveCursor(s, { delta }: { delta: number }) { s.cursor.value += delta },
+    toggle(s, { index }: { index: number }) { s.items.value[index].done ^= 1 },
+    async save(s) { await fx.persist({ data: s.items.value }) },
+  },
+})
+
+// Shape:
+{
+  state: () => State,                              // factory — fresh state per instance
+  updates: { [name]: (state, args?) => void | Promise<void> },
+  create(opts?): ModelInstance,                     // standalone instance for testing
+}
+```
+
+### ModelInstance (from `Model.create()`)
+
+A standalone instance for testing and headless use — without a state surface.
+
+```typescript
+const todo = Todo.create()
+
+// Shape:
+{
+  state: State,                      // live reactive state (signals)
+  moveCursor({ delta }): void,       // callable updates
+  toggle({ index }): void,
+  save(): Promise<void>,             // async updates run in a default scope
+}
+```
+
+### StateSurface (from `createState`)
+
+Holds model instances, processes updates via `apply()`. The primary state interface.
+
+```typescript
+const state = pipe(
+  createState({ todo: Todo, prefs: Prefs }),
+  withUndo(),
+)
+
+// Shape:
+{
+  readonly _surface: "state",
+
+  // The single entry point for all state changes
+  apply(op: UpdateOp): void,
+
+  // Domain proxies — sugar for apply()
+  todo: {
+    moveCursor({ delta }): void,
+    toggle({ index }): void,
+    save(): Promise<void>,
+    // Signal access:
+    cursor: Signal<number>,
+    items: Signal<Item[]>,
+  },
+  prefs: { ... },
+
+  // Reactive observation
+  waitFor(pred: (s) => boolean): Promise<void>,
+  events: AsyncIterable<UpdateEvent>,
+  signal: AbortSignal,
+
+  // Drivers — scoped external callers
+  drive(fn: () => Promise<void>): Disposable,
+}
+```
+
+`waitFor(predicate)` subscribes to relevant signals and resolves when the predicate becomes true. Rejects with `AbortError` if the app exits. This is what makes external driving ergonomic — no polling, just "wake me when this is true."
+
+`events` is an `AsyncIterable` of everything that happens:
+
+```typescript
+type UpdateEvent =
+  | { type: "update"; model: string; name: string; args: unknown }
+  | { type: "stateChange"; model: string; signal: string; prev: unknown; next: unknown }
+  | { type: "effect"; effect: AsyncEffect }
+  | { type: "exit"; reason: string }
+```
+
+### RuntimeSurface (from `createRuntime`)
+
+Executes effects via `apply()`, provides I/O capabilities.
+
+```typescript
+const rt = pipe(
+  createRuntime({ fs: nodeFs.promises, timer: timerImpl }),
+  withTracing(),
+  withRecording(),
+)
+
+// Shape:
+{
+  readonly _surface: "runtime",
+
+  // The single entry point for all effect execution
+  apply<T>(op: EffectOp<T>): Promise<T>,
+
+  // Scope tree management
+  createChild(name: string): Scope,
+
+  // Plugin state
+  effects?: EffectOp[],     // from withRecording()
+}
+```
+
+### AppSurface
+
+Connects state + runtime + view + app-level metadata.
+
+```typescript
+const app = pipe(
+  { state, rt, view: <TodoApp /> },
+  withCommands({ ... }),
+  withKeybindings({ j: "cursor_down" }),
+)
+
+// Shape (varies by plugins applied):
+{
+  readonly _surface: "app",
+  state: StateSurface,
+  rt: RuntimeSurface,
+  view?: JSX.Element,
+
+  // From plugins:
+  commands?: CommandTree,        // from withCommands
+  keybindings?: KeybindingMap,   // from withKeybindings
+
+  // Screen access (for AI, testing):
+  screen?: { text: string, lines: string[] },
+}
+```
+
+### Composition summary
+
+```
+createModel(def)             → Model         (module-level, reusable)
+  Model.create()             → ModelInstance  (standalone: tests, headless)
+
+createState({ models })      → StateSurface  (live state + apply)
+createRuntime({ providers }) → RuntimeSurface (effects + apply)
+
+pipe(surface, ...plugins)    → Same surface, enriched
+
+{ state, rt, view }          → AppSurface    (connects everything)
+pipe(app, ...appPlugins)     → Same app, enriched
+
+await run(app)               → void          (interactive lifecycle)
+```
+
+Five concepts: **Model** (behavior), **StateSurface** (state + updates), **RuntimeSurface** (effects + I/O), **AppSurface** (composition), **Plugin** (`apply()` wrapping). Each serves one role. Nothing couples to anything else.
+
+## External Callers
+
+Anything outside the model can call `state.apply()` and `state.waitFor()`. No special API — just code.
+
+Three natural ways to run async code alongside an app:
+
+### 1. App plugins (definition-time)
+
+For automation known at app creation — auto-advance, AI agent, recording:
+
+```typescript
+function withAutoAdvance(script): AppPlugin {
+  return (app) => {
+    // Async work in the app's scope — scoped, cancellable, traced
+    app.scope.spawn("autoAdvance", async () => {
+      for (const entry of script) {
+        app.state.chat.submit({ text: entry.content })
+        await app.state.waitFor((s) => s.chat.streamPhase.value === "done")
+        await fx.delay(400)
+      }
+    })
+    return app
+  }
+}
+
+// Compose at definition time — no separate "driver" concept:
+const app = pipe(
+  { state, rt, view: <AIChat /> },
+  withCommands(...),
+  args.auto ? withAutoAdvance(SCRIPT) : identity,
+)
+await run(app)
+```
+
+### 2. `run(app, runner)` (runtime)
+
+A **runner** is an optional async function passed to `run()`. `run(app)` uses the default runner (interactive: render view, listen for input). `run(app, runner)` uses a custom runner instead — or both:
+
+```typescript
+// Default — interactive (keybindings, view rendering)
+await run(app)
+
+// Custom runner — replaces default
+await run(app, async (handle) => {
+  while (true) {
+    const action = await agent.decide(handle.screen.text)
+    handle.state.apply(action.update)
+    await handle.state.waitFor((s) => s.chat.streamPhase.value === "done")
+  }
+})
+
+// Runner as override — good for testing, automation, CI screenshots
+await run(app, async (handle) => {
+  handle.state.chat.submit({ text: "fix the bug" })
+  await handle.state.waitFor((s) => s.chat.streamPhase.value === "done")
+})
+```
+
+### 3. Direct calls (tests)
+
+No scoping needed — just call methods:
+
+```typescript
+const state = createState({ chat: Chat })
+state.chat.submit({ text: "fix the bug" })
+await state.waitFor((s) => s.chat.streamPhase.value === "done")
+expect(state.chat.exchanges.value).toHaveLength(2)
+
+// Recording / replay via events:
+const log = []
+for await (const event of state.events) {
+  log.push(event)
+}
+for (const event of log) {
+  if (event.type === "update") state.apply(event)
+}
+```
+
+No "driver" abstraction. Plugins compose at definition time; runners override at `run()` time; tests call directly. All three use the same `state.apply()` / `state.waitFor()` interface.
 
 ## How Silvery Compares
 
@@ -532,70 +695,9 @@ import { useModel } from "@silvery/tea/vue" // ref() bridge
 **From Ratatui**: explicit terminal, state decoupled from rendering — but with React's DX.
 **From Ink**: React components, `run()` simplicity, hooks — but with a path out of the mess.
 **From Roc**: pure app / I/O runtime separation — but in JS, not enforced by compiler.
+**From SlateJS**: plugins wrap `apply()` via closure — but generalized to two surfaces, not just editor operations.
 
 The pitch: **Day 1, it's React for terminals. Day 30, when the pain hits, the Silvery Way is one sip away.**
-
-## What Changes
-
-| Current                                              | New                                                       | Why                             |
-| ---------------------------------------------------- | --------------------------------------------------------- | ------------------------------- |
-| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string      | 4 → 1                           |
-| `run(element)` + `createApp(config).run(element)`    | `run(el, config?)` or `createRuntime(providers).run(app)` | 2 → 1 (convenience) or explicit |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates })`                         | 2 → 1                           |
-| `useApp(selector)`                                   | `useModel(model, selector)`                               | Framework-agnostic              |
-| `tea()`, `createStore()`                             | Removed                                                   | Internal, no longer needed      |
-| Providers (DI with scoped contract)                  | Runtime providers (term, fs) + app plugins (functions)    | Clear separation                |
-| keybindings in `createApp`                           | Plugin or config field on app                             | Composable                      |
-
-## Decisions
-
-1. **App shape** — Plain object is canonical. No `createApp()` wrapper needed — TypeScript infers types from spread and pipe. Optional `createApp()` for validation/defaults can come later if needed.
-
-2. **Plugin composition** — Into sub-objects via spread. `withUndo()` merges into `updates`, `keybindings`, etc. TypeScript intersection types accumulate at each step.
-
-3. **Naming: "updates"** — Keep "updates" for model ops (matches TEA's Msg/Update). Document the distinction from React setState clearly in guides. "Effects" for I/O. "Commands" for user intents.
-
-4. **Provider interface** — Just an object with capabilities (term, fs, http). No formal getState/subscribe contract. Effect routing via discriminated union on `effect.target`. Providers are the runtime's I/O surface, nothing more.
-
-5. **`model` vs `models`** — Keep separate. `model` for the common case (one state machine), `models` map for composition. Internally unified handling.
-
-6. **Auto-signaling** — Deferred (P4). Explore Valtio-style proxy wrapping later. For now, explicit `signal()` is clearer and more predictable. See km-silvery.auto-signals.
-
-7. **React bridge** — `@silvery/tea/react` as separate entry point. Keeps the core framework-agnostic. Same pattern for `/svelte`, `/vue`.
-
-8. **Migration** — Deprecated wrappers for `createSlice`, `createApp`, `useApp` for one release cycle. Clear deprecation warnings pointing to new APIs.
-
-9. **`@silvery/tea` independence** — Keep as `@silvery/tea` for now. Evaluate standalone (`silvertea`) after Silvery 1.0 establishes credibility. See km-silvery.tea-standalone.
-
-10. **Unification** — Confirmed: don't over-unify. Models, providers, and plugins serve different roles. Unified philosophy (message-passing, pure/impure boundary) but distinct types.
-
-11. **Function-calling style over discriminated unions.** Updates are named methods (`updates: { toggle(s, args) {} }`) not discriminated union dispatch (`dispatch({ type: "toggle" })`). Named methods map directly to domain objects (`app.task.toggle_done()`), command registry, AI code mode globals, and REPL tab completion. Discriminated unions offer exhaustiveness checking but lose the function-calling surface that command-centric design requires. The public API is function calls; internally the runtime may use discriminated messages for logging/replay. Cross-model dispatch uses `fx.dispatch(Model, "update", args)` — no `.ops` namespace on models.
-
-12. **Async effects with `AsyncEffect<T>`.** Updates with effects are async functions — `await` typed `AsyncEffect` descriptors. Each `fx.*` function returns an `AsyncEffect<T>` that is both a plain data descriptor and a thenable. When `await`ed, it looks up the current scope via `AsyncLocalStorage`, the scope records the effect, and delegates to the appropriate runner. Natural TypeScript typing (`await fx.fetch(url)` returns `Response` — no adapter tricks). Scope captures effects via ALS — testable by swapping runners and inspecting `scope.effects`. See [scope-tree.md](./scope-tree.md).
-
-13. **Built-in timer effects.** `fx.delay(ms, update)`, `fx.interval(ms, update)` are provided by the runtime as effect runners. Timer runners register cleanup on the scope's `DisposableStack` and respect the scope's `AbortSignal`. `fx.interval()` returns a `Disposable` handle for manual cleanup. Timer management is the #1 source of `useRef`/`useEffect` complexity in React; making it effects-as-data eliminates that entire category of bugs.
-
-14. **Auto-cleanup via AbortSignal.** Every scope owns an `AbortController`. When a scope cancels (model unmount, parent cancel, manual), its `AbortSignal` fires, aborting all pending effects and child scopes automatically. Runners receive the signal and pass it to platform APIs (`fetch(url, { signal })`). No manual cleanup, no forgotten `clearInterval`. The scope tree owns the lifecycle.
-
-15. **Homebrew params, no schema library.** Command params use plain `{ type, description }` descriptors — JSON Schema-shaped, no dependency. TypeScript types on function signatures handle compile-time safety. Runtime schema (for MCP tools, CLI `--help`, palette prompts) is a trivial transform from these descriptors. The 58% of commands with zero params need nothing. Zod/Effect Schema can be added later if the homebrew approach gets unwieldy, but for a TUI framework it likely won't.
-
-16. **No `.ops` on models.** Cross-model dispatch uses `fx.dispatch(Model, "update", args)` — same pattern as `fx.delay()` and `fx.interval()`. The Model definition has no callable methods (it has no state to mutate). Only instances and handles have callable methods. This keeps the distinction honest: definitions describe, instances execute.
-
-17. **Structured concurrency via scope tree.** Effects form a scope tree. Every model gets a scope with an `AbortController`. Every async update runs within a child scope. Ongoing effects register cleanup on their scope's `DisposableStack`. Cancellation propagates down via `AbortSignal` (parent cancel → all children cancel), errors propagate up via promise rejection. No effect can outlive its parent scope. `fx.all()` for parallel operations with structured cancellation (sibling fails → others cancelled). Standard `try/catch` for error handling.
-
-18. **Scopes are loggily spans (via `withTracing()` plugin).** The `withTracing()` scope plugin wraps each `scope.run()` in a loggily span. The scope tree and observability tree become the same tree. Every effect execution becomes a child span with timing, parent-child relationships, and `AsyncLocalStorage` context propagation. `TRACE=1` shows the live scope tree. Effect _logic_ testing inspects `scope.effects` (via `withRecording()` plugin). Effect _observability_ testing uses loggily spans.
-
-19. **Scope plugins via `with*` composition.** The base scope is minimal: `AbortController` + children + ALS context. Everything else — tracing, recording, retry, rate limiting — is composable via `with*` wrappers on `scope.run()`. Same SlateJS-style plugin pattern used throughout Silvery: `pipe(createRuntime({...}), withTracing(), withRecording())`. One composition model everywhere: models, runtime, scopes.
-
-### Plugin safety (km-silvery.plugin-safety)
-
-Plugins can collide — same command name, both modify `updates`, etc. Guidelines:
-
-- **Last-write-wins** for spread composition (standard JS behavior). Document this.
-- **Dev mode warning** when two plugins contribute the same command name or update handler.
-- **Scoping convention**: plugin commands use `plugin.command` namespace (e.g., `vim.normal`, `undo.undo`).
-- **Order matters**: document that plugins compose left-to-right in `pipe()`. Later plugins override earlier ones.
-- **TypeScript enforces**: intersection types make most conflicts visible at compile time.
 
 ## Strategic Positioning (validated by deep research, 2026-03-11)
 
@@ -617,6 +719,66 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 
 **Ecosystem strategy**: @silvery/tea as standalone state library is a Trojan horse, but don't divert core resources. Stay focused on "best terminal UI framework" identity. (km-silvery.tea-standalone)
 
+## Decisions
+
+1. **Two surfaces, same pattern.** State and runtime are separate surfaces with the same `apply()` interface. Both composable with `with*` plugins. This replaces the prior "Runtime (active) / App (passive)" split with a more symmetric design where both sides use the same composition model.
+
+2. **SlateJS-style plugin composition.** Plugins wrap `apply()` by capturing the old method and installing a new one via closure. No plugin interface, no middleware chain — just functions that capture and wrap. Three levels: StatePlugin, RuntimePlugin, AppPlugin.
+
+3. **Branded types for plugin safety.** `_surface: "state" | "runtime" | "app"` prevents structural type matches from allowing a StatePlugin to be applied to a RuntimeSurface. Compile-time safety without ceremony.
+
+4. **Function calls are data.** `state.todo.toggle({index: 0})` creates an `UpdateOp` and feeds it to `state.apply()`. The declarative form (`state.apply({...})`) and the function-calling form are interchangeable. Domain objects are proxies that construct ops.
+
+5. **Naming: "updates"** — keep for model ops (matches TEA's Msg/Update). "Effects" for I/O. "Commands" for user intents. Clear three-level vocabulary.
+
+6. **Drivers are scoped external callers.** `state.drive(fn)` creates a child scope of the app root and runs `fn` within it. Automatic `AbortSignal` propagation via `AsyncLocalStorage` — no manual signal threading. Same `state.apply()` / `state.waitFor()` interface as testing. Returns a `Disposable` handle. Plugins compose at definition time, drivers compose at runtime.
+
+7. **Plugin composition into sub-objects via spread.** `withUndo()` merges into `updates`, `keybindings`, etc. TypeScript intersection types accumulate at each step. Last-write-wins for collisions (standard JS). Dev mode warns on duplicate command names.
+
+8. **`model` as separate from state surface.** `createModel` defines behavior (state factory + update functions). `createState` instantiates models into a live surface with `apply()`. Model is reusable definition; state surface is live instance.
+
+9. **Auto-signaling deferred (P4).** Explore Valtio-style proxy wrapping later. For now, explicit `signal()` is clearer and more predictable. See km-silvery.auto-signals.
+
+10. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`. Keeps core framework-agnostic.
+
+11. **Function-calling style over discriminated unions.** Updates are named methods, not switch-case dispatch. Named methods map to domain objects, command registry, AI code mode globals, and REPL tab completion. Cross-model dispatch uses `fx.dispatch(Model, "update", args)`.
+
+12. **Async effects with `AsyncEffect<T>`.** Updates with effects are async functions that `await` typed `AsyncEffect` descriptors. When `await`ed, the descriptor looks up the current scope via `AsyncLocalStorage` and delegates to the runtime surface. See [scope-tree.md](./scope-tree.md) for the full design.
+
+13. **Built-in timer effects.** `fx.delay(ms)`, `fx.interval(ms, update)` provided by the runtime surface. Timer runners register cleanup on the scope's `DisposableStack` and respect `AbortSignal`. Eliminates `useRef`/`useEffect` complexity.
+
+14. **Auto-cleanup via AbortSignal.** Every scope owns an `AbortController`. Cancellation propagates down; errors propagate up. No effect outlives its parent. See [scope-tree.md](./scope-tree.md) for the scope tree design.
+
+15. **Homebrew params, no schema library.** Command params use plain `{ type, description }` descriptors. TypeScript types handle compile-time safety. Runtime schema generation (MCP, CLI, palette) is a trivial transform.
+
+16. **Structured concurrency via scope tree.** Effects form a scope tree owned by the runtime surface. See [scope-tree.md](./scope-tree.md) for implementation: scope primitives, `AsyncEffect`, `fx.from()`, serialization policies, cancellation cascading, scopes-as-spans, testing patterns.
+
+17. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now. Evaluate standalone after Silvery 1.0. See km-silvery.tea-standalone.
+
+### Plugin safety (km-silvery.plugin-safety)
+
+Plugins can collide — same command name, both modify `updates`, etc. Guidelines:
+
+- **Last-write-wins** for spread composition (standard JS behavior). Document this.
+- **Dev mode warning** when two plugins contribute the same command name or update handler.
+- **Scoping convention**: plugin commands use `plugin.command` namespace (e.g., `vim.normal`, `undo.undo`).
+- **Order matters**: document that plugins compose left-to-right in `pipe()`. Later plugins override earlier ones.
+- **Branded types**: `_surface` field makes most misapplications visible at compile time.
+
+## What Changes
+
+| Current                                              | New                                                           | Why                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string          | 4 → 1                                 |
+| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 → 1                                 |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel({ state, updates })`                             | 2 → 1                                 |
+| `useApp(selector)`                                   | `useModel(model, selector)`                                   | Framework-agnostic                    |
+| `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
+| Providers (DI with scoped contract)                  | Two surfaces: `createState()` + `createRuntime()`             | Clear separation, same `apply()`      |
+| Runtime = monolith (event loop + I/O + effects)      | Runtime surface = effects only, state surface = updates only  | Each surface does one thing           |
+| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
+| Handle = the control surface                         | StateSurface IS the control surface, drivers call it directly | No separate Handle shape              |
+
 ## Current State & Migration Path
 
 ### What exists today (pre-redesign)
@@ -632,7 +794,7 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 
 **`useTea` hook (landed 2026-03-11, stop-gap):**
 
-A parallel implementation built before `createModel` exists. Lives in `@silvery/ui/hooks/useTea.ts`. Uses discriminated union / `useReducer` pattern:
+Uses discriminated union / `useReducer` pattern:
 
 ```typescript
 type Msg = { type: "start" } | { type: "tick" } | { type: "stop" }
@@ -644,26 +806,26 @@ const [state, send] = useTea(init, update)
 
 **What's valuable and permanent from `useTea`:**
 
-- `packages/tea/src/effects.ts` — `fx.delay()`, `fx.interval()`, `fx.cancel()` constructors + `createTimerRunners()` with auto-cleanup. This is the `fx` infrastructure the spec calls for.
-- `collect()` — evolves from normalizing `state | [state, effects]` to running async updates within a recording scope. Same name, simpler semantics.
+- `packages/tea/src/effects.ts` — `fx.delay()`, `fx.interval()`, `fx.cancel()` constructors + `createTimerRunners()` with auto-cleanup. This is the `fx` infrastructure the redesign builds on.
+- `collect()` — evolves from normalizing `state | [state, effects]` to running async updates within a recording scope.
 - `tests/features/tea-effects.test.tsx` — pure `collect()` tests + integration tests. The pure tests work with any approach.
 
 **What will need porting:**
 
-- `useTea` uses discriminated unions (`switch (msg.type)`), not named functions (`updates: { start(s) {} }`). Code using `useTea` will migrate to `createModel` + `useModel` for the function-calling style that command-centric design requires.
-- `useTea` puts state init inside the component call (`useTea(init, update)`). `createModel` defines the model at module level — state lives outside React so it's portable to Svelte, headless, etc.
-- The `createTimerRunners()` plumbing inside `useTea` will move into the runtime. The `fx` constructors and types stay.
+- `useTea` uses discriminated unions (`switch (msg.type)`), not named functions (`updates: { start(s) {} }`). Code using `useTea` migrates to `createModel` + `createState` for the function-calling style.
+- `useTea` puts state init inside the component call (`useTea(init, update)`). `createModel` defines the model at module level — state lives outside React for portability.
+- The `createTimerRunners()` plumbing inside `useTea` moves into the runtime surface. The `fx` constructors and types stay.
 
 **Migration table:**
 
-| `useTea` pattern                             | `createModel` equivalent                           |
-| -------------------------------------------- | -------------------------------------------------- |
-| `type Msg = { type: "start" } \| ...`        | Named update functions (no Msg union needed)       |
-| `function update(s, msg) { switch... }`      | `updates: { start(s) {}, tick(s) {} }`             |
-| `const [state, send] = useTea(init, update)` | `const state = useModel(Todo)` + commands dispatch |
-| `send({ type: "start" })`                    | `app.todo.start()` (domain object)                 |
-| `[state, [fx.delay(...)]]` return            | `async start(s) { await fx.delay(...) }`           |
-| `collect([state, effects])` on return value  | `await collect(() => instance.start())`            |
+| `useTea` pattern                             | `createModel` + `createState` equivalent     |
+| -------------------------------------------- | -------------------------------------------- |
+| `type Msg = { type: "start" } \| ...`        | Named update functions (no Msg union needed) |
+| `function update(s, msg) { switch... }`      | `updates: { start(s) {}, tick(s) {} }`       |
+| `const [state, send] = useTea(init, update)` | `const state = createState({ todo: Todo })`  |
+| `send({ type: "start" })`                    | `state.todo.start()` (domain object)         |
+| `[state, [fx.delay(...)]]` return            | `async start(s) { await fx.delay(...) }`     |
+| `collect([state, effects])` on return value  | `await collect(() => state.todo.start())`    |
 
 The `fx.*` constructors, `collect()`, timer effect types, and `createTimerRunners` survive unchanged. Only the wiring layer changes.
 
@@ -676,176 +838,16 @@ Era 1 (current): tea() + createSlice + createStore + useApp
 Era 1.5 (stop-gap): useTea + fx.* + collect
   → cleaner effects, but discriminated unions, state inside React
 
-Era 2 (this spec): createModel + useModel + createRuntime + plugins
-  → named functions, async/await for effects, model outside React, command-centric, portable
+Era 2 (this spec): createModel + createState + createRuntime + plugins
+  → two surfaces, named functions, async/await effects, SlateJS plugins, portable
 ```
-
-Era 1 → Era 2 is the full migration. Era 1.5 code (`useTea`) is a smaller migration since it already uses `fx.*` and `collect()`.
-
-## Object Shapes
-
-Every object in the system has a clear shape. Understanding these shapes is how you compose them.
-
-### Model (from `createModel`)
-
-The model definition. Module-level, framework-agnostic, reusable.
-
-```typescript
-const Todo = createModel({
-  state: () => ({ cursor: signal(0), items: signal<Item[]>([]) }),
-  updates: {
-    moveCursor(s, { delta }: { delta: number }) { s.cursor.value += delta },
-    toggle(s, { index }: { index: number }) { s.items.value[index].done ^= 1 },
-    async save(s) { await fx.persist({ data: s.items.value }) },
-  },
-})
-
-// Shape of Todo:
-{
-  state: () => State,                              // factory — fresh state per instance
-  updates: { [name]: (state, args?) => void | Promise<void> },
-  create(opts?): ModelInstance,                     // instantiate for testing or headless use
-}
-```
-
-### ModelInstance (from `Model.create()`)
-
-A live instance with mutable state and callable updates. Used in tests and headless scenarios.
-
-```typescript
-const todo = Todo.create()
-
-// Shape:
-{
-  state: State,                      // live reactive state (signals)
-  moveCursor({ delta }): void,       // plain updates — execute immediately
-  toggle({ index }): void,
-  save(): Promise<void>,             // async updates — runs within current scope
-}
-```
-
-Testing: `collect()` works for fire-and-forget effects; use `testScope()` with mock runners when downstream code depends on effect results:
-
-```typescript
-const todo = Todo.create()
-todo.moveCursor({ delta: 1 }) // plain — just call
-
-// Fire-and-forget — collect() with no-op runners is enough
-const effects = await collect(() => todo.save())
-expect(effects).toContainEqual(fx.persist({ data: todo.state.items.value }))
-
-// Data-dependent — mock runners required (same constraint as generators)
-const scope = testScope({ fetch: () => mockData })
-await scope.run(() => todo.importAndSave({ url: "/api" }))
-expect(todo.state.items.value).toEqual(mockData)
-```
-
-### App (plain object, enriched by plugins)
-
-The app is just an object. Plugins add fields via spread.
-
-```typescript
-const app = pipe(
-  { model: Todo, view },             // bare minimum
-  withCommands({ ... }),              // adds: commands, commandTree
-  withKeybindings({ j: "down" }),     // adds: keybindings
-  withUndo(),                         // adds: updates.undo, updates.redo, keybindings
-)
-
-// Shape (varies by plugins applied):
-{
-  model: Model,                      // state machine definition
-  view: View,                        // framework binding (optional for headless)
-  commands?: CommandTree,             // from withCommands
-  keybindings?: KeybindingMap,        // from withKeybindings
-  // ... any fields plugins add
-}
-```
-
-### View (from `createReactView`)
-
-Framework binding + render target. Self-contained — the runtime doesn't know about React.
-
-```typescript
-const view = createReactView(<TodoApp />, term)
-
-// Shape:
-{
-  framework: "react",               // discriminant for multi-framework support
-  mount(stateProxy, dispatch): void, // runtime calls this to start rendering
-  unmount(): void,                   // cleanup
-  getElementTree(): ElementNode,     // virtual DOM introspection (for AI, DevTools)
-}
-```
-
-### Runtime (from `createRuntime`)
-
-I/O providers and the event loop. Created once.
-
-```typescript
-const runtime = createRuntime({ term, fs })
-
-// Shape:
-{
-  run(app): Handle,                  // start an app, get back a control handle
-  render(element, config?): string,  // one-shot render (no event loop)
-  providers: { term, fs, ... },      // I/O capabilities
-}
-```
-
-### Handle (from `runtime.run(app)`)
-
-The live control surface. Domain objects appear here as callable methods.
-
-```typescript
-const handle = runtime.run(app)
-
-// Shape:
-{
-  state: State,                      // live reactive state
-  apply(update): void,               // push an update manually
-  exit(): void,                      // shutdown
-
-  // Domain object proxy — mirrors model updates as callable methods:
-  moveCursor({ delta }): void,
-  toggle({ index }): void,
-  save(): void,
-
-  // If commands are registered, they also appear:
-  commands: {
-    cursor_down(): void,
-    toggle(): void,
-  },
-
-  // Screen access (for AI, testing):
-  screen: {
-    text: string,                    // full screen text
-    lines: string[],                 // by line
-  },
-}
-```
-
-### Composition: How They Fit Together
-
-```
-createModel(def)           → Model        (module-level, reusable)
-  Model.create()           → ModelInstance (standalone: tests, headless)
-
-createReactView(el, term)  → View         (framework + target)
-createRuntime(providers)   → Runtime      (I/O + event loop)
-
-pipe({ model, view }, plugins...)  → App  (pure logic + metadata)
-runtime.run(app)           → Handle       (live control surface)
-
-fx.dispatch(Model, "update", args) → DispatchEffect  (cross-model)
-fx.delay(ms, "update")             → TimerEffect      (timers)
-await collect(() => instance.save()) → Effect[]          (testing)
-```
-
-Five concepts: **Model** (behavior), **View** (rendering), **Runtime** (I/O), **App** (composition), **Handle** (control). Each serves one role. Nothing couples to anything else — swap any piece independently.
 
 ## Implementation
 
 See km-silvery.api-impl (depends on this design doc being finalized).
 
-Phased: Core (createModel, createRuntime, plugins) → Views (createReactView) → Ecosystem (framework bindings) → Migration (deprecated wrappers, including `useTea`).
+Phased: Core (createModel, createState, createRuntime, plugins) → Views (React bindings) → Ecosystem (framework bindings) → Migration (deprecated wrappers, including `useTea`).
+
+---
+
+_See also: [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

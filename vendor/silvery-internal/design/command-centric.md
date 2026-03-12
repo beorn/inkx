@@ -62,7 +62,7 @@ const commands = {
       name: "Toggle Done",
       description: "Toggle the done state of the current task",
       params: { nodeId: { type: "string", description: "Task to toggle" } },
-      execute: (ctx) => ctx.model.toggleDone({ nodeId: ctx.currentNodeId }),
+      execute: (ctx) => ctx.state.task.toggleDone({ nodeId: ctx.currentNodeId }),
       shortcuts: ["x"],
       modes: ["normal"],
     },
@@ -70,26 +70,28 @@ const commands = {
       name: "Set Priority",
       description: "Set task priority (0=critical, 4=backlog)",
       params: { nodeId: { type: "string" }, priority: { type: "number" } },
-      execute: (ctx, { priority }) => ctx.model.setPriority({ nodeId: ctx.currentNodeId, priority }),
+      execute: (ctx, { priority }) => ctx.state.task.setPriority({ nodeId: ctx.currentNodeId, priority }),
     },
   },
   navigation: {
-    down: { name: "Move Down", execute: (ctx) => ctx.model.moveCursor({ delta: 1 }), shortcuts: ["j"] },
-    up: { name: "Move Up", execute: (ctx) => ctx.model.moveCursor({ delta: -1 }), shortcuts: ["k"] },
+    down: { name: "Move Down", execute: (ctx) => ctx.state.nav.moveCursor({ delta: 1 }), shortcuts: ["j"] },
+    up: { name: "Move Up", execute: (ctx) => ctx.state.nav.moveCursor({ delta: -1 }), shortcuts: ["k"] },
   },
 }
 ```
 
+`ctx` is the command execution context — `withCommands` provides it automatically. `ctx.state` is the app's [StateSurface](./state-api-redesign.md) with domain proxies (`ctx.state.task`, `ctx.state.nav`), so commands call the same update functions as any other code. `ctx.currentNodeId` and similar cursor/selection state come from the app's state model.
+
 The nesting does all the work by default:
 
-| Surface              | Derived from tree path                        | Example                          |
-| -------------------- | --------------------------------------------- | -------------------------------- |
-| **CLI**              | `task.toggle_done` → `myapp task toggle-done` | Nesting = subcommand hierarchy   |
-| **Menu**             | `task.toggle_done` → Task → Toggle Done       | Nesting = menu/submenu structure |
-| **Command palette**  | `task.toggle_done` → "Task: Toggle Done"      | Nesting = category prefix        |
-| **Domain object**    | `task.toggle_done` → `task.toggle_done()`     | Nesting = typed object methods   |
-| **TypeScript types** | `task.toggle_done` → `KM.task.toggle_done()`  | Nesting = interface hierarchy    |
-| **MCP tool**         | `task.toggle_done` → tool with dotted name    | Nesting = tool grouping          |
+| Surface              | Derived from tree path                       | Example                          |
+| -------------------- | -------------------------------------------- | -------------------------------- |
+| **CLI**              | `task.toggle_done` → `km task toggle-done`   | Nesting = subcommand hierarchy   |
+| **Menu**             | `task.toggle_done` → Task → Toggle Done      | Nesting = menu/submenu structure |
+| **Command palette**  | `task.toggle_done` → "Task: Toggle Done"     | Nesting = category prefix        |
+| **Domain object**    | `task.toggle_done` → `task.toggle_done()`    | Nesting = typed object methods   |
+| **TypeScript types** | `task.toggle_done` → `KM.task.toggle_done()` | Nesting = interface hierarchy    |
+| **MCP tool**         | `task.toggle_done` → tool with dotted name   | Nesting = tool grouping          |
 
 Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `name`, `execute`, and optionally `shortcuts`.
 
@@ -100,7 +102,7 @@ The framework auto-derives every surface from the tree:
 | Surface             | Auto-generated                                |
 | ------------------- | --------------------------------------------- |
 | **Keyboard**        | `x` triggers `task.toggle_done`               |
-| **CLI**             | `myapp task toggle-done --node-id abc`        |
+| **CLI**             | `km task toggle-done --node-id abc`           |
 | **Command palette** | "Task: Toggle Done" (fuzzy searchable)        |
 | **MCP tool**        | `{ name: "task.toggle_done", ... }`           |
 | **Menu**            | Task → Toggle Done                            |
@@ -236,10 +238,10 @@ Each [plugin](./state-api-redesign.md) contributes a subtree to the command tree
 ```
 Command Tree                    Domain Object           Code / CLI / Menu
 ────────────────                ──────────────────       ────────────────────
-commands.task.toggle_done   →   task.toggle_done()  →   myapp task toggle-done
-commands.task.set_priority  →   task.set_priority() →   myapp task set-priority
-commands.navigation.down    →   navigation.down()   →   myapp navigation down
-commands.history.undo       →   history.undo()      →   myapp history undo
+commands.task.toggle_done   →   task.toggle_done()  →   km task toggle-done
+commands.task.set_priority  →   task.set_priority() →   km task set-priority
+commands.navigation.down    →   navigation.down()   →   km navigation down
+commands.history.undo       →   history.undo()      →   km history undo
 ```
 
 Plugins compose the tree: `withCommands({ task: {...} })` adds a `task` subtree. `withUndo()` adds `history.undo` and `history.redo`. The composition IS the API surface — no separate schema to maintain. Commands are just function calls; invoking a command has negligible overhead (it's the same `execute()` the UI calls, not IPC or serialization).
@@ -248,12 +250,12 @@ Plugins compose the tree: `withCommands({ task: {...} })` adds a `task` subtree.
 
 Examining a real app's 173 commands:
 
-| Pattern              | Count      | CLI mapping                            |
-| -------------------- | ---------- | -------------------------------------- |
-| **Zero-arg**         | ~101 (58%) | `myapp cursor-down`                    |
-| **Implicit context** | ~23 (13%)  | `myapp delete-node` or `--node-id abc` |
-| **Explicit target**  | ~3 (2%)    | `myapp goto @inbox`                    |
-| **Interactive-only** | ~46 (27%)  | Not CLI-relevant                       |
+| Pattern              | Count      | CLI mapping                         |
+| -------------------- | ---------- | ----------------------------------- |
+| **Zero-arg**         | ~101 (58%) | `km cursor-down`                    |
+| **Implicit context** | ~23 (13%)  | `km delete-node` or `--node-id abc` |
+| **Explicit target**  | ~3 (2%)    | `km goto @inbox`                    |
+| **Interactive-only** | ~46 (27%)  | Not CLI-relevant                    |
 
 58% map directly to subcommands. The 27% interactive-only commands don't belong in a CLI. A CLI surface exposes the stateless subset via a filter on command metadata.
 
@@ -269,7 +271,7 @@ Examining a real app's 173 commands:
 
 - **Surface overrides.** The tree provides defaults for every surface, but sometimes you want a different CLI name or menu position than the tree implies. What's the override syntax? Probably optional fields on the command def.
 
-- **Cross-app discovery.** How does an external consumer know an app is command-centric? Options: (a) `myapp describe`, (b) well-known CLI subcommand, (c) environment variable. Detection should be zero-config.
+- **Cross-app discovery.** How does an external consumer know an app is command-centric? Options: (a) `km describe`, (b) well-known CLI subcommand, (c) environment variable. Detection should be zero-config.
 
 - **Relationship to OS-level systems.** The command tree has enough metadata to generate Apple App Intents or Microsoft App Actions manifests. The hard part (defining actions, parameters, descriptions) is already done — it's just a translation task. Should this be built-in?
 
