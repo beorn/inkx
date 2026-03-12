@@ -245,7 +245,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-65 vendor/silvery/packages/compat/src/ink.ts
+64 vendor/silvery/packages/compat/src/ink.ts
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
 1 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/accessibility.ts
@@ -291,6 +291,7 @@
 1 vendor/silvery/packages/term/src/hit-registry.ts
 2 vendor/silvery/packages/term/src/input.ts
 1 vendor/silvery/packages/term/src/inspector.ts
+1 vendor/silvery/packages/term/src/kitty-manager.ts
 2 vendor/silvery/packages/term/src/layout.ts
 4 vendor/silvery/packages/term/src/mouse-events.ts
 5 vendor/silvery/packages/term/src/pipeline/content-phase-adapter.ts
@@ -380,6 +381,7 @@
 13 vendor/silvery/tests/features/cursor-compat.test.tsx
 5 vendor/silvery/tests/features/default-bg.test.tsx
 2 vendor/silvery/tests/features/inline-bleed.test.tsx
+1 vendor/silvery/tests/features/inline-focus-reporting.test.tsx
 2 vendor/silvery/tests/features/inline-jump.test.tsx
 2 vendor/silvery/tests/features/inline-output.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
