@@ -1,6 +1,22 @@
 # km - Task Management TUI
 
-TypeScript, Bun, Ink (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ Markdown files.
+TypeScript, Bun, Silvery (React TUI), SQLite. Bidirectional sync: TUI ↔ Model ↔ Markdown files.
+
+## Technology
+
+| Tech | Role | Canonical Reference |
+|---|---|---|
+| **TypeScript 5.9** | Language (strict mode) | [typescript-eslint rules](https://typescript-eslint.io/rules/) |
+| **Bun** | Runtime, package manager, SQLite driver | [bun.sh/docs](https://bun.sh/docs) — use `bun:sqlite`, `bun:test` is NOT used |
+| **React 19** | UI via `@silvery/react` reconciler (NOT React DOM) | [react.dev](https://react.dev) — hooks, refs, effects all apply |
+| **Silvery** | TUI framework — reconciler, components, theme | [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md), [Styling](vendor/silvery/docs/guide/styling.md), [silvery CLAUDE.md](vendor/silvery/CLAUDE.md) |
+| **Flexily** | Layout engine (Yoga-compatible flexbox) | [flexily CLAUDE.md](vendor/flexily/CLAUDE.md) |
+| **Zustand 5** | State management (used by `@silvery/tea`) | [zustand docs](https://zustand.docs.pmnd.rs/) — immutable updates, selectors |
+| **SQLite** | Storage via `bun:sqlite` | [bun.sh/docs/api/sqlite](https://bun.sh/docs/api/sqlite) — WAL mode, FTS5 |
+| **mdast/micromark** | Markdown parsing & serialization | [syntax-tree/mdast](https://github.com/syntax-tree/mdast), [unifiedjs.com](https://unifiedjs.com) |
+| **Vitest 4** | Test runner (3 projects: default, slow, vendor) | [vitest.dev](https://vitest.dev) — see [tests/](.claude/skills/tests/) |
+| **Termless** | Headless terminal testing | [termless.md](.claude/skills/tests/termless.md) |
+| **oxlint + oxfmt** | Linting & formatting (Rust-based) | Config in `packages/km-infra/oxlint/`, `packages/km-infra/oxfmt/` |
 
 ## Priorities
 
