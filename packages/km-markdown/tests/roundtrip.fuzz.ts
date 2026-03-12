@@ -111,34 +111,130 @@ function randomHR(): string {
   return "---\n"
 }
 
+/** Generate a YAML frontmatter block */
+function randomFrontmatter(rng: SeededRandom): string {
+  const lines: string[] = ["---"]
+
+  // title (string)
+  if (rng.bool(0.7)) {
+    lines.push(`title: ${randomPhrase(rng)}`)
+  }
+
+  // status (enum)
+  if (rng.bool(0.5)) {
+    lines.push(`status: ${rng.pick(["active", "pending", "done", "archived", "draft"])}`)
+  }
+
+  // priority (P1-P5)
+  if (rng.bool(0.4)) {
+    lines.push(`priority: P${rng.int(1, 5)}`)
+  }
+
+  // tags (array of strings)
+  if (rng.bool(0.4)) {
+    const tagCount = rng.int(1, 3)
+    const tagValues = rng.shuffle(WORDS).slice(0, tagCount)
+    lines.push("tags:")
+    for (const t of tagValues) {
+      lines.push(`  - ${t}`)
+    }
+  }
+
+  // due (date string)
+  if (rng.bool(0.3)) {
+    const month = String(rng.int(1, 12)).padStart(2, "0")
+    const day = String(rng.int(1, 28)).padStart(2, "0")
+    lines.push(`due: 2026-${month}-${day}`)
+  }
+
+  lines.push("---")
+  return lines.join("\n") + "\n"
+}
+
+/** Generate an Obsidian-style embed: ![[filename]], ![[filename#heading]], ![[filename|alias]] */
+function randomEmbed(rng: SeededRandom): string {
+  const target = rng.pick(WORDS)
+  const variant = rng.int(0, 2)
+  switch (variant) {
+    case 0:
+      return `![[${target}]]\n`
+    case 1:
+      return `![[${target}#${rng.pick(WORDS)}]]\n`
+    case 2:
+      return `![[${target}|${randomPhrase(rng)}]]\n`
+    default:
+      return `![[${target}]]\n`
+  }
+}
+
+/**
+ * Generate an inline tag: #tag, #tag-with-dashes
+ * Note: nested tags (#nested/tag) are NOT supported by the parser's tag regex,
+ * so we only generate simple and hyphenated tags.
+ */
+function randomTag(rng: SeededRandom): string {
+  const variant = rng.int(0, 1)
+  switch (variant) {
+    case 0:
+      return `#${rng.pick(WORDS)}`
+    case 1:
+      return `#${rng.pick(WORDS)}-${rng.pick(WORDS)}`
+    default:
+      return `#${rng.pick(WORDS)}`
+  }
+}
+
+/** Generate a paragraph containing inline tags */
+function randomParagraphWithTags(rng: SeededRandom): string {
+  const tagCount = rng.int(1, 3)
+  const parts = [randomPhrase(rng)]
+  for (let i = 0; i < tagCount; i++) {
+    parts.push(randomTag(rng))
+  }
+  return parts.join(" ") + "\n"
+}
+
 type FragmentGenerator = (rng: SeededRandom) => string
 
 /** All fragment generators with weights (headings and tasks more common) */
 const GENERATORS: Array<[number, FragmentGenerator]> = [
-  [25, randomHeading],
-  [30, randomTask],
-  [10, randomBlockquote],
-  [10, randomCodeBlock],
-  [10, randomList],
-  [10, randomParagraph],
-  [5, randomHR],
+  [20, randomHeading],
+  [25, randomTask],
+  [8, randomBlockquote],
+  [8, randomCodeBlock],
+  [8, randomList],
+  [8, randomParagraph],
+  [4, randomHR],
+  [7, randomEmbed],
+  [7, randomParagraphWithTags],
+  [5, randomFrontmatter],
 ]
 
-/** Pick a weighted random generator */
+/** Non-frontmatter generators for use inside document body (frontmatter is only valid at document start) */
+const BODY_GENERATORS: Array<[number, FragmentGenerator]> = GENERATORS.filter(([, gen]) => gen !== randomFrontmatter)
+
+/** Pick a weighted random body generator (no frontmatter — use only at document level) */
 function pickGenerator(rng: SeededRandom): FragmentGenerator {
-  const total = GENERATORS.reduce((sum, [w]) => sum + w, 0)
+  const total = BODY_GENERATORS.reduce((sum, [w]) => sum + w, 0)
   let r = rng.float() * total
-  for (const [weight, gen] of GENERATORS) {
+  for (const [weight, gen] of BODY_GENERATORS) {
     r -= weight
     if (r <= 0) return gen
   }
-  return GENERATORS[GENERATORS.length - 1][1]
+  return BODY_GENERATORS[BODY_GENERATORS.length - 1]![1]
 }
 
 /** Generate a complete markdown document from fragments */
 function generateDocument(rng: SeededRandom, fragmentCount: number): string {
-  // Always start with an h1
-  const fragments: string[] = [`# ${randomPhrase(rng)}\n`]
+  const fragments: string[] = []
+
+  // Optionally start with frontmatter
+  if (rng.bool(0.3)) {
+    fragments.push(randomFrontmatter(rng))
+  }
+
+  // Always have an h1
+  fragments.push(`# ${randomPhrase(rng)}\n`)
 
   for (let i = 0; i < fragmentCount; i++) {
     const generator = pickGenerator(rng)
@@ -148,9 +244,11 @@ function generateDocument(rng: SeededRandom, fragmentCount: number): string {
   return fragments.join("\n")
 }
 
-/** Extract all text words from markdown (ignoring syntax characters) */
+/** Extract all text words from markdown (ignoring syntax characters and frontmatter) */
 function extractTextWords(md: string): string[] {
-  return md.split(/[\s\n#>|`\-\[\](){}*_~=+!]+/).filter((w) => WORDS.includes(w))
+  // Strip frontmatter — its content is stored as data, not rendered as text
+  const body = md.replace(/^---\n[\s\S]*?\n---\n/, "")
+  return body.split(/[\s\n#>|`\-\[\](){}*_~=+!]+/).filter((w) => WORDS.includes(w))
 }
 
 // ---------------------------------------------------------------------------
@@ -282,8 +380,8 @@ describe("Roundtrip Fuzz: Structure Preservation", () => {
 
     for await (const md of take(docs, 100)) {
       const output = roundtrip(md)
-      const inputHeadings = [...md.matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1].trim())
-      const outputHeadings = [...output.matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1].trim())
+      const inputHeadings = [...md.matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1]!.trim())
+      const outputHeadings = [...output.matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1]!.trim())
       // Same number of headings
       expect(outputHeadings.length).toBe(inputHeadings.length)
       // Same text content in same order
@@ -378,6 +476,160 @@ describe("Roundtrip Fuzz: Edge Patterns", () => {
       const count = random.int(1, 3)
       const chosen = random.shuffle(props).slice(0, count).join(" ")
       return `# Test\n\n- [ ] ${randomPhrase(random)} ${chosen}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const rt1 = roundtrip(md)
+      const rt2 = roundtrip(rt1)
+      expect(normalizeMarkdown(rt2)).toBe(normalizeMarkdown(rt1))
+    }
+  })
+})
+
+describe("Roundtrip Fuzz: Frontmatter", () => {
+  test.fuzz("frontmatter roundtrips stably", async () => {
+    const docs = gen(({ random }) => {
+      const fm = randomFrontmatter(random)
+      return `${fm}\n# ${randomPhrase(random)}\n\n${randomPhrase(random)}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const rt1 = roundtrip(md)
+      const rt2 = roundtrip(rt1)
+      expect(normalizeMarkdown(rt2)).toBe(normalizeMarkdown(rt1))
+    }
+  })
+
+  test.fuzz("frontmatter keys survive roundtrip", async () => {
+    const docs = gen(({ random }) => {
+      const keys: Array<{ key: string; value: string }> = []
+
+      if (random.bool(0.7)) keys.push({ key: "title", value: randomPhrase(random) })
+      if (random.bool(0.5)) keys.push({ key: "status", value: random.pick(["active", "pending", "done"]) })
+      if (random.bool(0.4)) keys.push({ key: "priority", value: `P${random.int(1, 5)}` })
+      if (random.bool(0.3)) {
+        const month = String(random.int(1, 12)).padStart(2, "0")
+        const day = String(random.int(1, 28)).padStart(2, "0")
+        keys.push({ key: "due", value: `2026-${month}-${day}` })
+      }
+
+      // Ensure at least one key
+      if (keys.length === 0) {
+        keys.push({ key: "title", value: randomPhrase(random) })
+      }
+
+      const yamlLines = keys.map(({ key, value }) => `${key}: ${value}`)
+      const fm = `---\n${yamlLines.join("\n")}\n---\n`
+      return `${fm}\n# ${randomPhrase(random)}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const output = roundtrip(md)
+
+      // Extract frontmatter keys from input
+      const fmMatch = md.match(/^---\n([\s\S]*?)\n---/)
+      if (fmMatch) {
+        const yamlBody = fmMatch[1]!
+        const keyLines = yamlBody.split("\n").filter((l) => l.match(/^\w+:/))
+        for (const line of keyLines) {
+          const key = line.split(":")[0]!.trim()
+          // The key should appear in the output frontmatter
+          expect(output).toContain(`${key}:`)
+        }
+      }
+    }
+  })
+})
+
+describe("Roundtrip Fuzz: Embeds", () => {
+  test.fuzz("embed targets survive roundtrip", async () => {
+    const docs = gen(({ random }) => {
+      const target = random.pick(WORDS)
+      const variant = random.int(0, 2)
+      let embed: string
+      switch (variant) {
+        case 0:
+          embed = `![[${target}]]`
+          break
+        case 1:
+          embed = `![[${target}#${random.pick(WORDS)}]]`
+          break
+        case 2:
+          embed = `![[${target}|${randomPhrase(random)}]]`
+          break
+        default:
+          embed = `![[${target}]]`
+      }
+      return `# ${randomPhrase(random)}\n\n${embed}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const output = roundtrip(md)
+      // Extract the embed target from input
+      const embedMatch = md.match(/!\[\[([^\]#|]+)/)
+      if (embedMatch) {
+        expect(output).toContain(`![[${embedMatch[1]}`)
+      }
+    }
+  })
+
+  test.fuzz("embed syntax is preserved across roundtrips", async () => {
+    const docs = gen(({ random }) => {
+      const embeds: string[] = []
+      const count = random.int(1, 4)
+      for (let i = 0; i < count; i++) {
+        embeds.push(randomEmbed(random))
+      }
+      return `# ${randomPhrase(random)}\n\n${embeds.join("\n")}`
+    })
+
+    for await (const md of take(docs, 50)) {
+      const rt1 = roundtrip(md)
+      const rt2 = roundtrip(rt1)
+      expect(normalizeMarkdown(rt2)).toBe(normalizeMarkdown(rt1))
+    }
+  })
+})
+
+describe("Roundtrip Fuzz: Tags", () => {
+  test.fuzz("tags survive roundtrip", async () => {
+    const docs = gen(({ random }) => {
+      const tag = randomTag(random)
+      return `# ${randomPhrase(random)}\n\n${randomPhrase(random)} ${tag}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const output = roundtrip(md)
+      // Extract tags from input (simple #word or #word-word patterns)
+      const tags = [...md.matchAll(/#([a-zA-Z0-9_-]+(?:-[a-zA-Z0-9_-]+)*)/g)]
+      for (const match of tags) {
+        expect(output).toContain(`#${match[1]}`)
+      }
+    }
+  })
+
+  test.fuzz("tags in tasks survive roundtrip", async () => {
+    const docs = gen(({ random }) => {
+      const tag = randomTag(random)
+      const marker = random.pick([" ", "x", "/"])
+      return `# ${randomPhrase(random)}\n\n- [${marker}] ${randomPhrase(random)} ${tag}\n`
+    })
+
+    for await (const md of take(docs, 100)) {
+      const output = roundtrip(md)
+      // Tags may be extracted into data and reconstructed, but the tag text
+      // should appear somewhere in the output
+      const tags = [...md.matchAll(/#([a-zA-Z0-9_-]+(?:-[a-zA-Z0-9_-]+)*)/g)]
+      for (const match of tags) {
+        expect(output).toContain(`#${match[1]}`)
+      }
+    }
+  })
+
+  test.fuzz("paragraphs with tags are idempotent", async () => {
+    const docs = gen(({ random }) => {
+      const para = randomParagraphWithTags(random)
+      return `# ${randomPhrase(random)}\n\n${para}`
     })
 
     for await (const md of take(docs, 100)) {

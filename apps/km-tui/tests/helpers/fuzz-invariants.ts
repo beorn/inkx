@@ -211,6 +211,105 @@ export const invariants = {
       ).toBeGreaterThan(0)
     }
   },
+
+  /**
+   * When cursor is at card level, selectedNodeId should not be null.
+   * A card-level cursor with no associated node indicates a stale cursor
+   * pointing at a node that no longer exists in the layout.
+   */
+  cursorNodeExists(state: FuzzState, action: string): void {
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
+
+    if (!inDialog && state.cursor.level === "card") {
+      expect
+        .soft(
+          state.selectedNodeId,
+          `Cursor at card level but selectedNodeId is null after ${action} ` +
+            `(col=${state.cursor.col}, card=${state.cursor.card})`,
+        )
+        .not.toBeNull()
+    }
+  },
+
+  /**
+   * Screen content should not have fully blank rows in the middle of content.
+   * A blank row between the first and last non-blank rows indicates a layout gap.
+   * Skips check when detail pane is open (can have intentional whitespace separators).
+   */
+  noContentGaps(state: FuzzState, action: string): void {
+    if (state.detailPaneOpen) return
+
+    const lines = state.screen.split("\n")
+    if (lines.length < 3) return
+
+    // Find first and last non-blank lines
+    let firstNonBlank = -1
+    let lastNonBlank = -1
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]!.trim().length > 0) {
+        if (firstNonBlank === -1) firstNonBlank = i
+        lastNonBlank = i
+      }
+    }
+
+    if (firstNonBlank === -1 || lastNonBlank === firstNonBlank) return
+
+    // Count consecutive blank rows within the content area
+    // A single blank row can be a legitimate separator; 3+ consecutive blank
+    // rows in the middle of content is suspicious
+    const GAP_THRESHOLD = 3
+    let consecutiveBlanks = 0
+    for (let i = firstNonBlank + 1; i < lastNonBlank; i++) {
+      if (lines[i]!.trim().length === 0) {
+        consecutiveBlanks++
+        if (consecutiveBlanks >= GAP_THRESHOLD) {
+          expect
+            .soft(
+              consecutiveBlanks,
+              `${consecutiveBlanks} consecutive blank rows at line ${i - consecutiveBlanks + 1} ` +
+                `within content area after ${action} - possible layout gap`,
+            )
+            .toBeLessThan(GAP_THRESHOLD)
+          return // Report once per check
+        }
+      } else {
+        consecutiveBlanks = 0
+      }
+    }
+  },
+
+  /**
+   * When cursor is at card level, the cursor's card index should be within
+   * the bounds of the column's card array. An out-of-bounds index means
+   * the cursor wasn't clamped after a layout change (fold, filter, zoom).
+   */
+  cursorWithinBounds(state: FuzzState, action: string): void {
+    const inDialog = state.dialogs.search || state.dialogs.help || state.dialogs.newItem || state.dialogs.itemPicker
+
+    if (inDialog) return
+    if (state.cursor.level !== "card") return
+
+    const col = state.columns[state.cursor.col]
+    if (!col) return
+
+    expect
+      .soft(
+        state.cursor.card,
+        `Cursor card index ${state.cursor.card} exceeds column card count ` + `${col.cardNodes.length} after ${action}`,
+      )
+      .toBeLessThan(col.cardNodes.length)
+  },
+
+  /**
+   * At least 1 column should exist in the layout. The board should always
+   * have visible columns — zero columns means the root has no children
+   * or derivation failed silently.
+   */
+  columnCountPositive(state: FuzzState, action: string): void {
+    expect
+      .soft(state.columns.length, `No columns in layout after ${action} - board has no visible content`)
+      .toBeGreaterThan(0)
+  },
 }
 
 // =============================================================================
@@ -240,6 +339,12 @@ export function checkAllInvariants(state: FuzzState, action: string, before?: Fu
   invariants.mutuallyExclusiveDialogs(state, action)
   invariants.stateConsistency(state, action)
   invariants.noScreenFlicker(state, action, before)
+
+  // Structural checks
+  invariants.cursorNodeExists(state, action)
+  invariants.noContentGaps(state, action)
+  invariants.cursorWithinBounds(state, action)
+  invariants.columnCountPositive(state, action)
 }
 
 /**
@@ -268,6 +373,9 @@ export function checkNavigationInvariants(state: FuzzState, action: string, befo
   invariants.noRenderErrors(state, action)
   invariants.validCursor(state, action)
   invariants.validViewMode(state, action)
+  invariants.cursorNodeExists(state, action)
+  invariants.cursorWithinBounds(state, action)
+  invariants.columnCountPositive(state, action)
 }
 
 /**
