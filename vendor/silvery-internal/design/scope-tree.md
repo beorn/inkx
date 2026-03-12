@@ -547,10 +547,10 @@ test("interval fires repeatedly", async () => {
   await scope.run(() => todo.startAutoSave(state))
 
   await clock.advance(30_000) // first tick
-  expect(scope.effects.filter(e => e.type === "persist")).toHaveLength(1)
+  expect(scope.effects.filter((e) => e.type === "persist")).toHaveLength(1)
 
   await clock.advance(30_000) // second tick
-  expect(scope.effects.filter(e => e.type === "persist")).toHaveLength(2)
+  expect(scope.effects.filter((e) => e.type === "persist")).toHaveLength(2)
 })
 ```
 

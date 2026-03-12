@@ -171,13 +171,13 @@ for await (const op of websocket) handle.apply(op)
 
 The **primary** way to read state is `handle.state` — a typed proxy of the model's signals. Every other access pattern is sugar over this:
 
-| Context | Access | Notes |
-|---|---|---|
-| **In-process (primary)** | `handle.state.cursor.value` | Direct signal read — typed, reactive |
-| **AI code mode** | `state(s => s.cursor.value)` | Selector function — injected global, reads `handle.state` |
-| **Command execute** | `ctx.state.cursor.value` | Same proxy via command context |
-| **External (CLI/MCP)** | `getState()` → JSON | Serialized snapshot for remote consumers |
-| **Tests** | `handle.state.cursor.value` | Same as in-process |
+| Context                  | Access                       | Notes                                                     |
+| ------------------------ | ---------------------------- | --------------------------------------------------------- |
+| **In-process (primary)** | `handle.state.cursor.value`  | Direct signal read — typed, reactive                      |
+| **AI code mode**         | `state(s => s.cursor.value)` | Selector function — injected global, reads `handle.state` |
+| **Command execute**      | `ctx.state.cursor.value`     | Same proxy via command context                            |
+| **External (CLI/MCP)**   | `getState()` → JSON          | Serialized snapshot for remote consumers                  |
+| **Tests**                | `handle.state.cursor.value`  | Same as in-process                                        |
 
 `handle.state` is canonical. `state(selector)` in AI code mode is a convenience wrapper. `getState()` returns a serialized snapshot for consumers that can't hold a reference. Don't introduce new access patterns.
 
