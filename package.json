@@ -14,7 +14,8 @@
     "apps/km-tui/packages/*",
     "vendor/*",
     "vendor/termless/packages/*",
-    "vendor/silvery/packages/*"
+    "vendor/silvery/packages/*",
+    "vendor/bearlymade/packages/*"
   ],
   "overrides": {
     "@silvery/react": "$@silvery/react",
@@ -139,6 +140,7 @@
     "typescript": "^5.9.3",
     "vimonkey": "workspace:*",
     "vitest": "^4.0.18",
+    "vitest-silvery-dots": "workspace:*",
     "winston": "^3.19.0",
     "ws": "^8.19.0",
     "yaml": "^2.8.2",

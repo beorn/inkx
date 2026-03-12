@@ -19,3 +19,6 @@
 [submodule "vendor/vimonkey"]
 	path = vendor/vimonkey
 	url = git@github.com:beorn/vimonkey.git
+[submodule "vendor/bearlymade"]
+	path = vendor/bearlymade
+	url = https://github.com/beorn/bearlymade.git

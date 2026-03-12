@@ -66,7 +66,7 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 | Layer | Tests (what it ADDS) | Trusts (from below) |
 |-------|---------------------|---------------------|
 | **logger** | Namespace filtering, log level propagation, span timing, structured output. | Nothing — standalone. |
-| **vimonkey** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst), dotz reporter. | vitest API is correct. |
+| **vimonkey** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst). | vitest API is correct. |
 | **mdtest** | Markdown code block extraction, shell session execution, output assertion. | Nothing — standalone test runner. |
 | **tools** | Refactor CLI (AST transforms), recall (session search), LLM bridge. | Filesystem, external APIs. |
 | **accountly** | Multi-provider credential management, keychain abstraction, token refresh. | Nothing — mocks all system APIs. |
@@ -374,7 +374,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 | Package | Tests | Layer | What it tests | Key patterns |
 |---------|-------|-------|---------------|-------------|
 | **logger** | 2 | Logging (L0e) | Namespace filtering, level propagation, span timing | Mock console |
-| **vimonkey** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers, dotz reporter | Self-testing (tests its own tools) |
+| **vimonkey** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers | Self-testing (tests its own tools) |
 | **mdtest** | 9 | Test runner (L0g) | Markdown code block extraction, shell execution, output assertion | Shell session capture |
 | **tools** | 10 | Dev CLI (L0h) | Refactor (AST transforms), recall (session search), LLM bridge | Temp filesystem, mock fetch |
 | **accountly** | 11 | Credentials (L0i) | Multi-provider management, keychain abstraction, token refresh | Mock keychain, mock fetch |

@@ -10,7 +10,7 @@
 
 ## What NOT to Test Here
 
-- TAP protocol parsing details — tested by the consumers (dotz reporter)
+- TAP protocol parsing details — tested by the consumers (vitest-silvery-dots reporter)
 - Actual test execution — orchestrator manages streams, not test logic
 
 ## Patterns

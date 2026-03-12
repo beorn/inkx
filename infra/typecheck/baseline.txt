@@ -177,6 +177,7 @@
 5 vendor/accountly/tests/providers/openrouter.test.ts
 3 vendor/accountly/tests/providers/xai.test.ts
 1 vendor/accountly/tests/switcher.test.ts
+73 vendor/bearlymade/packages/vitest-silvery-dots/src/index.tsx
 9 vendor/flexily/scripts/measure-bundle.ts
 2 vendor/flexily/src/classic/layout.ts
 2 vendor/flexily/src/layout-helpers.ts
@@ -206,7 +207,7 @@
 23 vendor/silvery/examples/interactive/paste-demo.tsx
 4 vendor/silvery/examples/interactive/scroll.tsx
 10 vendor/silvery/examples/interactive/search-filter.tsx
-57 vendor/silvery/examples/interactive/static-scrollback.tsx
+50 vendor/silvery/examples/interactive/static-scrollback.tsx
 15 vendor/silvery/examples/interactive/task-list.tsx
 10 vendor/silvery/examples/interactive/textarea.tsx
 16 vendor/silvery/examples/interactive/transform.tsx
@@ -245,7 +246,7 @@
 2 vendor/silvery/examples/web/viewer-app.tsx
 2 vendor/silvery/packages/compat/src/chalk.ts
 2 vendor/silvery/packages/compat/src/ink-focus.ts
-64 vendor/silvery/packages/compat/src/ink.ts
+65 vendor/silvery/packages/compat/src/ink.ts
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
 1 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/accessibility.ts
@@ -426,7 +427,5 @@
 3 vendor/vimonkey/src/fuzz/test-fuzz.ts
 2 vendor/vimonkey/src/plugin.ts
 4 vendor/vimonkey/src/random.ts
-2 vendor/vimonkey/tests/dotz-streaming.test.tsx
-2 vendor/vimonkey/tests/dotz.test.tsx
 1 vendor/vimonkey/tests/fuzz.fuzz.ts
 1 vitest.config.ts
