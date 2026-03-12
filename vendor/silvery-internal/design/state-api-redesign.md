@@ -167,6 +167,20 @@ for await (const op of websocket) handle.apply(op)
 4. **State is optional and pluggable.** Use `useState`, `signal()`, Zustand, `createModel` — or nothing. The runtime doesn't care.
 5. **The Silvery Way is opt-in.** The shiny path (updates-as-data, effects-as-data, commands) is always visible but never forced.
 
+### State access: one primary, many projections
+
+The **primary** way to read state is `handle.state` — a typed proxy of the model's signals. Every other access pattern is sugar over this:
+
+| Context | Access | Notes |
+|---|---|---|
+| **In-process (primary)** | `handle.state.cursor.value` | Direct signal read — typed, reactive |
+| **AI code mode** | `state(s => s.cursor.value)` | Selector function — injected global, reads `handle.state` |
+| **Command execute** | `ctx.state.cursor.value` | Same proxy via command context |
+| **External (CLI/MCP)** | `getState()` → JSON | Serialized snapshot for remote consumers |
+| **Tests** | `handle.state.cursor.value` | Same as in-process |
+
+`handle.state` is canonical. `state(selector)` in AI code mode is a convenience wrapper. `getState()` returns a serialized snapshot for consumers that can't hold a reference. Don't introduce new access patterns.
+
 ## Architecture Overview
 
 ```
@@ -263,25 +277,36 @@ Three concepts, all composable:
 
 ### The inner loop
 
-The runtime processes updates **synchronously**. Async only at the edges (waiting for events, executing I/O effects):
+The runtime processes updates in two phases — **state mutations are synchronous**, effects are delegated to the scope tree:
 
 ```typescript
 while (running) {
+  // 1. Drain the sync queue (state mutations)
   while (queue.length > 0) {
-    const [newState, effects] = apply(state, queue.shift()!)
-    state = newState
-    for (const fx of effects) {
-      if (fx.type === "dispatch")
-        queue.push(fx) // sync cross-dispatch
-      else providers[fx.target]?.[fx.action](fx.args) // I/O
+    const update = queue.shift()!
+    const scope = model.scope.createChild(update.name)
+
+    if (update.isAsync) {
+      // Async update: state mutations happen eagerly (signals),
+      // effects run within the child scope (concurrent with other updates)
+      scopeContext.run(scope, () => update.fn(state, update.args))
+      // → await fx.fetch() inside the update looks up scope via ALS
+      // → scope.run(effect) delegates to runner with { signal }
+    } else {
+      // Sync update: just mutate state, no scope needed
+      update.fn(state, update.args)
     }
   }
-  const event = await nextEvent() // only async point
+
+  // 2. Wait for next event (only async point in the loop itself)
+  const event = await nextEvent()
   queue.push(eventToUpdate(event))
 }
 ```
 
-Matches Elm TEA, SolidJS sync signals, Svelte 5 runes. No microtask scheduling per update. High throughput for burst events (key repeat, paste).
+State mutations via signals are synchronous and immediate — no microtask scheduling. High throughput for burst events (key repeat, paste). Effects are lazy: they execute only when `await`ed inside the update, delegated to the scope's runner with automatic `AbortSignal` threading.
+
+**Concurrent async updates**: Multiple async updates on the same model can overlap — they each get their own child scope. State mutations happen eagerly via signals, so order matters: the last mutation wins. If you need serialization, use `fx.dispatch` to chain updates (the dispatched update runs after the current one). This is a deliberate choice: most updates are synchronous (no overlap), and the few async ones are I/O-bound with no competing mutations. If a future use case requires strict serialization, a `withSerialUpdates()` plugin can queue async updates per model.
 
 ### Plugins
 
@@ -338,8 +363,8 @@ expect(scope.effects).toEqual([fx.fetch("/api"), fx.persist({ data: mockData })]
 The runtime provides timer effect runners out of the box. No `useRef`/`useEffect` soup:
 
 ```typescript
-fx.delay(ms, update)          // fire update once after delay — AsyncEffect<void>
-fx.interval(ms, update)       // fire update repeatedly — AsyncEffect<Disposable>
+fx.delay(ms, update) // fire update once after delay — AsyncEffect<void>
+fx.interval(ms, update) // fire update repeatedly — AsyncEffect<Disposable>
 ```
 
 Timer runners register cleanup on the scope's `DisposableStack`. **Auto-cleanup**: when the scope (model or app) cancels, all its timers are cancelled via `AbortSignal`. No forgotten `clearInterval`, no leaked refs.
@@ -458,10 +483,10 @@ Every effect execution becomes a span with timing, attributes, and parent contex
 
 Two concerns, two tools:
 
-| What you're checking                                  | Tool                          | Data                                         |
-| ----------------------------------------------------- | ----------------------------- | -------------------------------------------- |
-| **Effect logic** (what effects ran)                   | `scope.effects` (via plugin)  | Effect descriptors — recorded via ALS        |
-| **Execution observability** (how long, what happened) | Loggily spans (via plugin)    | Timing, attributes, errors, trace tree       |
+| What you're checking                                  | Tool                         | Data                                   |
+| ----------------------------------------------------- | ---------------------------- | -------------------------------------- |
+| **Effect logic** (what effects ran)                   | `scope.effects` (via plugin) | Effect descriptors — recorded via ALS  |
+| **Execution observability** (how long, what happened) | Loggily spans (via plugin)   | Timing, attributes, errors, trace tree |
 
 ```typescript
 // Effect testing: swap runners, inspect scope.effects
@@ -637,8 +662,8 @@ const [state, send] = useTea(init, update)
 | `function update(s, msg) { switch... }`      | `updates: { start(s) {}, tick(s) {} }`             |
 | `const [state, send] = useTea(init, update)` | `const state = useModel(Todo)` + commands dispatch |
 | `send({ type: "start" })`                    | `app.todo.start()` (domain object)                 |
-| `[state, [fx.delay(...)]]` return            | `async start(s) { await fx.delay(...) }`            |
-| `collect([state, effects])` on return value  | `await collect(() => instance.start())`             |
+| `[state, [fx.delay(...)]]` return            | `async start(s) { await fx.delay(...) }`           |
+| `collect([state, effects])` on return value  | `await collect(() => instance.start())`            |
 
 The `fx.*` constructors, `collect()`, timer effect types, and `createTimerRunners` survive unchanged. Only the wiring layer changes.
 
@@ -703,7 +728,7 @@ Testing: `collect()` works for fire-and-forget effects; use `testScope()` with m
 
 ```typescript
 const todo = Todo.create()
-todo.moveCursor({ delta: 1 })                                    // plain — just call
+todo.moveCursor({ delta: 1 }) // plain — just call
 
 // Fire-and-forget — collect() with no-op runners is enough
 const effects = await collect(() => todo.save())

@@ -62,7 +62,7 @@ const commands = {
       name: "Toggle Done",
       description: "Toggle the done state of the current task",
       params: { nodeId: { type: "string", description: "Task to toggle" } },
-      execute: (ctx) => ({ type: "TOGGLE_DONE", nodeId: ctx.currentNodeId }),
+      execute: (ctx) => ctx.model.toggleDone({ nodeId: ctx.currentNodeId }),
       shortcuts: ["x"],
       modes: ["normal"],
     },
@@ -70,12 +70,12 @@ const commands = {
       name: "Set Priority",
       description: "Set task priority (0=critical, 4=backlog)",
       params: { nodeId: { type: "string" }, priority: { type: "number" } },
-      execute: (ctx, { priority }) => ({ type: "SET_PRIORITY", nodeId: ctx.currentNodeId, priority }),
+      execute: (ctx, { priority }) => ctx.model.setPriority({ nodeId: ctx.currentNodeId, priority }),
     },
   },
   navigation: {
-    down: { name: "Move Down", execute: (ctx) => ({ type: "MOVE_CURSOR", delta: 1 }), shortcuts: ["j"] },
-    up: { name: "Move Up", execute: (ctx) => ({ type: "MOVE_CURSOR", delta: -1 }), shortcuts: ["k"] },
+    down: { name: "Move Down", execute: (ctx) => ctx.model.moveCursor({ delta: 1 }), shortcuts: ["j"] },
+    up: { name: "Move Up", execute: (ctx) => ctx.model.moveCursor({ delta: -1 }), shortcuts: ["k"] },
   },
 }
 ```
