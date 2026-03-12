@@ -120,13 +120,50 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 | Category | What | Skill |
 |----------|------|-------|
-| **TUI Tests** | Term buffer (silvery) | [tui.md](tui.md) |
+| **TUI Tests** | Component + board testing (silvery) | [tui.md](tui.md) |
+| **Terminal Tests** | ANSI/cell/cursor verification (termless) | [termless.md](termless.md) |
 | **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (ttyd/playwright) | [gui.md](gui.md) |
 | **Fuzz (TUI)** | gen/take/test.fuzz (vimonkey) | [vimonkey CLAUDE.md](../../../vendor/vimonkey/CLAUDE.md) |
 | **Exploration** | Chaos + monkey testing | [chaos.md](chaos.md), `/explore` |
 | **Bench** | Benchmarks | [bench.md](bench.md) |
 | **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |
+
+## Which Tool? Decision Tree
+
+```
+I want to test...
+├── Component rendering / state / navigation
+│   ├── km board behavior → testEnv() [tui.md]
+│   └── Silvery component → createRenderer() [tui.md]
+│
+├── ANSI output correctness (colors, cursor, escape sequences)
+│   ├── Silvery component → createTermless() [termless.md]
+│   └── Spawned process → createTerminalFixture() + spawn() [termless.md]
+│
+├── Cross-emulator conformance (xterm vs Ghostty vs vt100)
+│   └── Multi-backend workspace [termless.md]
+│
+├── CLI command output
+│   └── mdtest (.test.md files) [cli.md]
+│
+├── Visual pixel verification / manual debugging
+│   └── TTY MCP tools [gui.md]
+│
+└── Fuzz / chaos / property-based
+    └── vimonkey (gen/take/test.fuzz) [chaos.md]
+```
+
+### Tool Comparison
+
+| Tool | Import | Speed | Tests what | Use for |
+|---|---|---|---|---|
+| `createRenderer()` | `@silvery/test` | ~5ms | Virtual buffer (no ANSI) | Component logic, layout, text |
+| `testEnv()` | km-tui helpers | ~200ms | Board state + virtual buffer | km navigation, board features |
+| `createTermless()` | `@silvery/test` | ~10ms | Real xterm.js emulator | ANSI correctness, colors, cursor |
+| `createTerminalFixture()` | `@termless/test` | ~5ms+ | xterm.js + auto-cleanup | Termless tests in vitest |
+| `.spawn()` | Terminal method | 1-15s | Real PTY process | Integration / E2E |
+| TTY MCP | `mcp__tty__*` | seconds | Browser screenshots | Visual debugging, pixel-level |
 
 - Any **test** can have `.slow.` suffix (manually assigned)
 - **Bench** and **Storybook** are not "tests" - must qualify
@@ -241,8 +278,9 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
 | Test layering philosophy     | [test-layers.md](test-layers.md)                |
 | TUI testing (silvery)        | [tui.md](tui.md)                                |
+| Terminal testing (termless)  | [termless.md](termless.md)                      |
 | CLI testing (mdtest)         | [cli.md](cli.md)                                |
-| GUI/TTY testing (ttyd/playwright)| [gui.md](gui.md)                                |
+| GUI/TTY testing (MCP/screenshots) | [gui.md](gui.md)                           |
 | Benchmarks                   | [bench.md](bench.md)                            |
 | Chaos/fuzz testing sync      | [chaos.md](chaos.md)                            |
 | Test quality review          | [review-tests.md](review-tests.md) (infrequent) |

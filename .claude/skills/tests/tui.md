@@ -54,11 +54,86 @@ SILVERY_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real
 
 ## Test Levels
 
-| Level | Suffix | What | Example |
-|-------|--------|------|---------|
-| **Acceptance** | `.spec.ts` | Full app, end-user POV | `render(<Board>)`, press keys, verify DOM |
-| **Component** | `.test.ts` | Single component rendering | `render(<SearchDialog>)`, verify output |
-| **Unit** | `.test.ts` | Pure functions, no render | `truncateText()`, `makeSelectionKey()` |
+| Level | Tool | Suffix | What | Example |
+|-------|------|--------|------|---------|
+| **Acceptance** | `testEnv()` | `.spec.ts` | Full km board, end-user POV | press keys, verify DOM + buffer |
+| **Component** | `createRenderer()` | `.test.ts` | Single silvery component | render, check text/layout |
+| **ANSI verification** | `createTermless()` | `.test.ts` | Real terminal emulator | verify colors, cursor, modes |
+| **Unit** | none | `.test.ts` | Pure functions, no render | `truncateText()` |
+
+---
+
+## Rendering Tools
+
+### createRenderer() — Silvery component tests
+
+For testing silvery components in isolation. Fast (~5ms), no ANSI processing — tests the virtual buffer.
+
+```typescript
+import { createRenderer } from "@silvery/test"
+
+const render = createRenderer({ cols: 80, rows: 24 })
+
+test("help dialog renders sections", async () => {
+  const app = render(<Help />)
+  expect(app.text).toContain("NAVIGATION")
+
+  await app.press("j")
+  expect(app.getByText("SCROLL").count()).toBe(1)
+})
+```
+
+**Key APIs on App** (returned by render):
+- `app.text` — plain text (no ANSI)
+- `app.ansi` — text with ANSI codes
+- `app.press("key")` — send keypress (async)
+- `app.type("text")` — type text
+- `app.resize(cols, rows)` — resize
+- `app.getByTestId("id")` — auto-refreshing locator
+- `app.getByText("text")` — auto-refreshing locator
+- `app.locator("[selector]")` — CSS-like selector
+- `app.screenshot()` — PNG screenshot (lazy Playwright)
+- `app.rerender(<NewElement />)` — re-render with new element
+- `app.unmount()` — cleanup
+
+**Auto-refreshing locators** re-evaluate on every access — no stale references:
+```typescript
+const cursor = app.locator('[data-cursor]')
+expect(cursor.textContent()).toBe("item1")
+await app.press("j")
+expect(cursor.textContent()).toBe("item2")  // Same locator, fresh result
+```
+
+**createRenderer options**: `cols`, `rows`, `incremental`, `singlePassLayout`, `kittyMode`, `debug`, `wrapRoot`.
+
+### testEnv() — km board tests
+
+For testing km-tui board behavior with fixtures. Wraps createRenderer with board state + repo.
+
+```typescript
+import { testEnv, item } from "./helpers"
+
+const { board } = testEnv(() =>
+  item("board",
+    item("col1", item("1a"), item("1b")),
+    item("col2", item("2a")),
+  )
+)
+```
+
+### createTermless() — ANSI verification
+
+When you need to verify actual ANSI output through a real terminal emulator (xterm.js). See [termless.md](termless.md).
+
+```typescript
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+
+const term = createTermless({ cols: 80, rows: 24 })
+const handle = await run(<App />, term)
+expect(term.cell(0, 0)).toBeBold()
+expect(term.cell(0, 0)).toHaveFg("#00ff00")
+```
 
 ---
 

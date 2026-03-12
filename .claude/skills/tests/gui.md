@@ -144,8 +144,12 @@ bun tools/tty.ts capture --command "bun km view /path" --wait-for "BOARD" --text
 
 | Need | Use |
 |------|-----|
-| Automated TUI tests | [TUI tests (silvery)](tui.md) |
+| Automated TUI tests (logic, state) | [TUI tests (silvery)](tui.md) — `testEnv()` / `createRenderer()` |
+| ANSI correctness (colors, cursor, modes) | [Termless](termless.md) — `createTermless()` / `createTerminalFixture()` |
+| Spawned process testing (PTY) | [Termless](termless.md) — `createTerminalFixture()` + `.spawn()` |
 | In-process screenshots | `app.screenshot()` / `withDiagnostics({ captureOnFailure })` |
 | Pixel-level verification | TTY MCP `mcp__tty__screenshot` |
-| Debug visual issue | TTY MCP |
+| Debug visual issue interactively | TTY MCP |
 | One-shot capture | `bun tools/tty.ts capture` |
+
+**Note**: For automated tests, prefer [termless](termless.md) over TTY MCP. Termless runs in-process with auto-cleanup, is faster, and produces deterministic results. TTY MCP is best for interactive debugging sessions where you need to visually inspect the terminal.
