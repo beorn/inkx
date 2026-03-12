@@ -206,7 +206,7 @@
 23 vendor/silvery/examples/interactive/paste-demo.tsx
 4 vendor/silvery/examples/interactive/scroll.tsx
 10 vendor/silvery/examples/interactive/search-filter.tsx
-54 vendor/silvery/examples/interactive/static-scrollback.tsx
+57 vendor/silvery/examples/interactive/static-scrollback.tsx
 15 vendor/silvery/examples/interactive/task-list.tsx
 10 vendor/silvery/examples/interactive/textarea.tsx
 16 vendor/silvery/examples/interactive/transform.tsx
