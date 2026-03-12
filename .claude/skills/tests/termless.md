@@ -25,6 +25,31 @@ Headless terminal testing library (like Playwright for terminal apps). Tests TUI
 
 ---
 
+## MUST Use Termless (createRenderer Cannot Test These)
+
+`createRenderer()` and `testEnv()` operate on a virtual buffer — no ANSI processing, no terminal emulator. The following capabilities **only exist in termless**:
+
+| # | Capability | Why termless is required | Matcher / API |
+|---|---|---|---|
+| 1 | **Scrollback content** | Inline mode pushes content above the viewport into scrollback. Virtual renderers have no scrollback concept. | `term.scrollback`, `term.buffer`, `toHaveScrollbackLines(n)`, `toBeAtBottomOfScrollback()` |
+| 2 | **Cursor position** | Real cursor coordinates after ANSI CSI sequences. Virtual renderers don't track terminal cursor. | `toHaveCursorAt(x, y)` |
+| 3 | **Cursor style** | Block, underline, or beam — set via `DECSCUSR`. | `toHaveCursorStyle("beam")` |
+| 4 | **Cursor visibility** | Hidden/shown via `DECTCEM`. | `toHaveCursorVisible()`, `toHaveCursorHidden()` |
+| 5 | **Terminal modes** | 11 modes set via escape sequences: `altScreen`, `bracketedPaste`, `mouseTracking`, `applicationCursor`, `applicationKeypad`, `autoWrap`, `focusTracking`, `originMode`, `insertMode`, `reverseVideo`, `cursorVisible`. | `toBeInMode("altScreen")` |
+| 6 | **Resolved RGB colors** | After palette lookup, SGR processing, and theme application. Virtual renderers store token names (`$primary`), not resolved `{ r, g, b }`. | `toHaveFg("#ff0000")`, `toHaveBg({ r, g, b })` |
+| 7 | **Cell attributes** | Bold, italic, faint, strikethrough, inverse, underline style — as processed by the emulator. | `toBeBold()`, `toBeItalic()`, `toBeFaint()`, `toHaveUnderline("curly")` |
+| 8 | **ANSI sequence correctness** | Malformed escapes, wrong parameter counts, unsupported sequences — only visible when a real emulator parses the output. | Feed raw ANSI via `term.feed()`, assert rendered result |
+| 9 | **Incremental rendering fidelity** | Cursor movement sequences (`CUP`, `CUU`, `CUD`) + partial updates. Verifies the ANSI output path produces correct screen state. | Compare `term.screen` text after incremental vs full render |
+| 10 | **Scroll regions (DECSTBM)** | Set Top and Bottom Margins — content scrolls within a region. No virtual equivalent. | Feed ANSI with scroll region, verify content positions |
+| 11 | **Wide character / emoji rendering** | CJK and emoji occupy 2 cells. Real emulators handle `wcwidth`; virtual renderers may not. | `toBeWide()`, verify adjacent cell positions |
+| 12 | **Terminal title** | Set via OSC 0/2 escape sequences. | `toHaveTitle("My App")` |
+| 13 | **Cross-emulator conformance** | Same test against xterm.js, Ghostty, vt100, peekaboo — catches emulator-specific bugs. | Multi-backend workspace (see below) |
+| 14 | **Real PTY process output** | Spawn an actual process, interact via PTY, assert on emulated screen. | `term.spawn()` + `waitForStable()` |
+
+**Decision shortcut**: If your assertion uses anything from the Terminal State matchers (`toHaveCursorAt`, `toBeInMode`, `toHaveTitle`, `toHaveScrollbackLines`) or Cell Style matchers (`toBeBold`, `toHaveFg`, `toHaveBg`), you need termless. If you only need text content and DOM structure, use `createRenderer()`.
+
+---
+
 ## Quick Start
 
 ### In-process (silvery component → termless)
