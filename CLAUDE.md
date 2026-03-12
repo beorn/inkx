@@ -103,6 +103,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [pm/](.claude/skills/pm/)                                           | Issue tracking (beads)                                                |
 | [tests/](.claude/skills/tests/)                                     | Writing/running tests                                                 |
+| [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
 | [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
 | [tui/](.claude/skills/tui/)                                         | TUI development                                                       |
 | [explore/](.claude/skills/explore/)                                 | Bug hunting/fuzz testing                                              |
@@ -111,6 +112,8 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
 | [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
 | [silvery/](.claude/skills/silvery/)                                       | Silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md)     | Building with silvery — canonical components, anti-patterns              |
+| [Silvery Styling](vendor/silvery/docs/guide/styling.md)             | Semantic colors, typography presets, theme tokens (`$primary`, `$muted`) |
 | [flexily/](.claude/skills/flexily/)                                     | Flexily layout bugs (caching, fingerprinting, benchmarking)             |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
