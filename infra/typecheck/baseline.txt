@@ -90,6 +90,10 @@
 9 apps/km-tui/tests/visual.test.ts
 16 apps/km-tui/tests/windowing-wire.test.ts
 4 apps/km-tui/tests/workspace-persist.test.ts
+1 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/gen.ts
+1 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/regression.ts
+3 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/test-fuzz.ts
+4 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/random.ts
 2 packages/km-beads/src/migrate.ts
 1 packages/km-beads/src/sync.ts
 1 packages/km-commands/src/commands/tui.ts
@@ -152,11 +156,12 @@
 1 vendor/loggily/tests/features.test.ts
 42 vendor/loggily/tests/logger.test.ts
 1 vendor/loggily/tests/tracing.test.ts
+13 vendor/silvery-internal/prototype/aichat-v2/view.tsx
 5 vendor/silvery/examples/inline/scrollback.tsx
 1 vendor/silvery/examples/interactive/_input-debug.tsx
 1 vendor/silvery/examples/interactive/_textarea-bare.tsx
 8 vendor/silvery/examples/interactive/aichat/components.tsx
-9 vendor/silvery/examples/interactive/aichat/index.tsx
+6 vendor/silvery/examples/interactive/aichat/index.tsx
 5 vendor/silvery/examples/interactive/app-todo.tsx
 1 vendor/silvery/examples/interactive/async-data.tsx
 6 vendor/silvery/examples/interactive/cli-wizard.tsx
@@ -206,7 +211,6 @@
 8 vendor/silvery/examples/web/showcases/theme-explorer.tsx
 2 vendor/silvery/examples/web/viewer-app.tsx
 11 vendor/silvery/packages/compat/src/ink-components.ts
-2 vendor/silvery/packages/compat/src/ink-focus.ts
 12 vendor/silvery/packages/compat/src/ink-hooks.ts
 24 vendor/silvery/packages/compat/src/ink-render.ts
 1 vendor/silvery/packages/compat/src/ink-sanitize.ts
@@ -309,6 +313,7 @@
 2 vendor/silvery/tests/features/inline-focus-reporting.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 4 vendor/silvery/tests/features/prop-removal.test.tsx
+14 vendor/silvery/tests/features/resize-garble.test.tsx
 3 vendor/silvery/tests/features/run-exit.test.tsx
 11 vendor/silvery/tests/features/scrollback-chaos.fuzz.tsx
 5 vendor/silvery/tests/features/scrollback-cross-backend.fuzz.tsx
@@ -323,14 +328,13 @@
 1 vendor/tools/tools/lib/history/indexer.ts
 3 vendor/tools/tools/lib/history/recall.ts
 12 vendor/tools/tools/lib/llm/gemini-deep.ts
-2 vendor/tools/tools/llm.ts
+1 vendor/tools/tools/llm.ts
 8 vendor/tools/tools/playwright-tty-mcp.ts
 7 vendor/tools/tools/recall/extract.ts
 1 vendor/tools/tools/recall/search.ts
 1 vendor/vimonkey/src/fuzz/gen.ts
 1 vendor/vimonkey/src/fuzz/regression.ts
 3 vendor/vimonkey/src/fuzz/test-fuzz.ts
-2 vendor/vimonkey/src/plugin.ts
 4 vendor/vimonkey/src/random.ts
 1 vendor/vimonkey/tests/fuzz.fuzz.ts
 1 vitest.config.ts
