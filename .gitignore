@@ -44,10 +44,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # KM runtime data
 .km/
 
-# Test artifacts
+# Test artifacts (generated at repo root, not in tests/ dirs)
 @*.md
-test-*.tsx
-test-*.ts
+/test-*.tsx
+/test-*.ts
 
 # bv (beads viewer) local config and caches
 .bv/
