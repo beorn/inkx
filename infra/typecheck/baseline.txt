@@ -40,7 +40,7 @@
 12 apps/km-tui/src/text/inline-parser.ts
 3 apps/km-tui/src/tui.tsx
 1 apps/km-tui/src/ui-context.tsx
-12 apps/km-tui/src/views/Board.tsx
+11 apps/km-tui/src/views/Board.tsx
 6 apps/km-tui/src/views/CardColumn.tsx
 6 apps/km-tui/src/views/ColumnsView.tsx
 1 apps/km-tui/src/views/CommandBox.tsx
@@ -105,7 +105,7 @@
 1 packages/km-connector-caldav/src/webdav-base.ts
 4 packages/km-core/src/index.ts
 1 packages/km-infra/vitest/setup.ts
-14 packages/km-markdown/src/ast2nodes.ts
+15 packages/km-markdown/src/ast2nodes.ts
 1 packages/km-markdown/src/extensions/km-heading-task-mark.ts
 14 packages/km-markdown/src/extensions/km-task-mark.ts
 1 packages/km-markdown/src/kmast/types.ts
@@ -117,6 +117,7 @@
 1 packages/km-storage/src/db-queries/utils.ts
 1 packages/km-storage/src/db-rules.ts
 3 packages/km-storage/src/event-compaction.ts
+3 packages/km-storage/src/link-resolver.ts
 2 packages/km-storage/src/query.ts
 3 packages/km-storage/src/repo.ts
 1 packages/km-storage/src/store-memory.ts
@@ -148,7 +149,7 @@
 1 vendor/bearlymade/packages/vitest-silvery-dots/src/index.tsx
 9 vendor/flexily/bench/classic-vs-zero.bench.ts
 9 vendor/flexily/scripts/measure-bundle.ts
-4 vendor/flexily/src/classic/layout.ts
+2 vendor/flexily/src/classic/layout.ts
 2 vendor/flexily/src/layout-helpers.ts
 58 vendor/flexily/tests/layout.test.ts
 1 vendor/flexily/tests/test-utils.ts
@@ -214,7 +215,7 @@
 3 vendor/silvery/examples/web/viewer-app.tsx
 11 vendor/silvery/packages/compat/src/ink-components.ts
 12 vendor/silvery/packages/compat/src/ink-hooks.ts
-24 vendor/silvery/packages/compat/src/ink-render.ts
+22 vendor/silvery/packages/compat/src/ink-render.ts
 1 vendor/silvery/packages/compat/src/ink-sanitize.ts
 2 vendor/silvery/packages/compat/src/ink-utils.ts
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
@@ -310,6 +311,7 @@
 1 vendor/silvery/tests/examples/ai-chat-showcase.test.tsx
 1 vendor/silvery/tests/examples/ai-chat.test.tsx
 5 vendor/silvery/tests/features/ansi-sanitize.test.ts
+1 vendor/silvery/tests/features/box-in-text-warning.test.tsx
 11 vendor/silvery/tests/features/cursor-compat.test.tsx
 1 vendor/silvery/tests/features/default-bg.test.tsx
 2 vendor/silvery/tests/features/fuzz-properties.fuzz.tsx
