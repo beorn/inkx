@@ -284,4 +284,4 @@ Examining a real app's 173 commands:
 
 ---
 
-_See also: [AI Mode](./ai-mode.md) — how AI agents use command-centric apps, including code mode, AI agent mode, domain object discovery, and multi-agent collaboration._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [AI Mode](./ai-mode.md) (AI agents driving command-centric apps)._

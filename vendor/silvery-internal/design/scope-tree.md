@@ -554,18 +554,18 @@ An earlier version used generators (`yield*` with typed adapters). We switched t
 
 **Redux Saga** — same "effects as data" lineage (yield descriptors, test by inspecting). We add structured concurrency and scoped providers instead of a single global middleware.
 
-| Dimension          | Kotlin coroutines        | Effection v4         | Effect.ts               | Silvery scope tree            |
-| ------------------ | ------------------------ | -------------------- | ----------------------- | ----------------------------- |
-| **Size**           | Language built-in        | <5KB                 | ~200KB+                 | Part of Silvery               |
-| **Approach**       | `suspend` + dispatchers  | Generators + runtime | Typed effect values     | async/await + AsyncEffect     |
-| **Type safety**    | Full (suspend typing)    | Minimal              | Maximum (3 type params) | Natural (await typing)        |
-| **DI**             | CoroutineContext         | None                 | Layers + Context        | Pluggable providers           |
-| **Observability**  | None built-in            | None built-in        | Built-in tracing        | Unified with loggily          |
-| **Scope tree**     | Yes (Job hierarchy)      | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
-| **Cleanup**        | Job.invokeOnCompletion   | Generator teardown   | Scope finalizers        | DisposableStack + abort       |
-| **Cancellation**   | CancellationException    | Generator throw      | Fiber interruption      | AbortSignal (platform)        |
-| **Plugins**        | CoroutineContext elems   | None                 | Layers                  | `with*` composition           |
-| **Testing**        | `runTest { }`            | Run generators       | Provide test layers     | Swap providers, inspect scope |
+| Dimension         | Kotlin coroutines       | Effection v4         | Effect.ts               | Silvery scope tree            |
+| ----------------- | ----------------------- | -------------------- | ----------------------- | ----------------------------- |
+| **Size**          | Language built-in       | <5KB                 | ~200KB+                 | Part of Silvery               |
+| **Approach**      | `suspend` + dispatchers | Generators + runtime | Typed effect values     | async/await + AsyncEffect     |
+| **Type safety**   | Full (suspend typing)   | Minimal              | Maximum (3 type params) | Natural (await typing)        |
+| **DI**            | CoroutineContext        | None                 | Layers + Context        | Pluggable providers           |
+| **Observability** | None built-in           | None built-in        | Built-in tracing        | Unified with loggily          |
+| **Scope tree**    | Yes (Job hierarchy)     | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
+| **Cleanup**       | Job.invokeOnCompletion  | Generator teardown   | Scope finalizers        | DisposableStack + abort       |
+| **Cancellation**  | CancellationException   | Generator throw      | Fiber interruption      | AbortSignal (platform)        |
+| **Plugins**       | CoroutineContext elems  | None                 | Layers                  | `with*` composition           |
+| **Testing**       | `runTest { }`           | Run generators       | Provide test layers     | Swap providers, inspect scope |
 
 ## What This Enables
 
@@ -648,8 +648,14 @@ const withTracing =
     scope.run = (effect) => {
       const span = loggily.startSpan(effect.type, effect.args)
       return run(effect).then(
-        (v) => { span.end(); return v },
-        (e) => { span.end(e); throw e },
+        (v) => {
+          span.end()
+          return v
+        },
+        (e) => {
+          span.end(e)
+          throw e
+        },
       )
     }
     return scope
@@ -660,4 +666,4 @@ Additional plugin ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `
 
 ---
 
-_See also: [state-api-redesign.md](./state-api-redesign.md) (two-surface architecture, plugin composition, sip progression), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](./state-api-redesign.md) (signals, models, sip progression), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

@@ -1,6 +1,6 @@
 # App Composition
 
-_Status: draft (v2, 2026-03-12). How apps are assembled from plugins._
+_Status: finalized (v2, 2026-03-13). How apps are assembled from plugins._
 
 _See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command registry, surfaces), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
 
@@ -434,11 +434,98 @@ const editor = pipe(
 )
 ```
 
+## Type-Safe Plugin Composition
+
+**Decision: generic accumulation via intersection types** (not a builder pattern).
+
+Each plugin is `(app: App) => App & { ... }`. When chained via `pipe()`, TypeScript infers the accumulated type as an intersection:
+
+```typescript
+const app = pipe(
+  createApp(),                    // App
+  withPersist("./data"),          // App & { rt: { providers: { persist: PersistAPI } } }
+  withChat(script),               // ... & { model: { chat: ChatModel } }
+  withHistory(),                  // ... (wraps apply(), registers commands — no new fields)
+  withTerminal(<View />, keys),   // ... & { model: { term: TermModel }, rt: { providers: { term: TermAPI } } }
+)
+// app.model.chat — fully typed
+// app.rt.providers.persist — fully typed
+```
+
+**Why not a builder pattern?**
+
+|                    | Generic accumulation                       | Builder pattern                        |
+| ------------------ | ------------------------------------------ | -------------------------------------- |
+| **Extension**      | Any package defines a plugin independently | Central class must know all extensions |
+| **Type inference** | Automatic via return types                 | Manual generic params or overloads     |
+| **Composition**    | Plain function composition (`pipe`)        | Method chaining on a mutable builder   |
+| **Authoring**      | Write a function, return enriched app      | Extend/register with framework API     |
+
+Accumulation is the natural fit because plugins are independently authored functions — no central coordinator needed. TypeScript's structural typing does the rest.
+
+**Safety guarantees:**
+
+- **Collision detection**: Last-write-wins for same-name fields (standard JS behavior). Dev mode emits a warning when two plugins contribute the same namespace.
+- **Namespacing convention**: Plugins prefix their contributions — `chat.*`, `term.*`, `history.*`.
+- **Ordering**: Plugins compose left-to-right in `pipe()`. For `apply()` wrapping, later plugins intercept first (outermost wrapper). Document ordering constraints in plugin docs, not enforced by the framework.
+
+## `op()` Ergonomics
+
+The `op()` proxy makes model method calls interceptable without changing the call site's type signature:
+
+```typescript
+// Identical types — the Proxy is invisible to TypeScript:
+app.model.chat.submit({ text }) // direct call
+op(app.model).chat.submit({ text }) // routed through apply()
+```
+
+### How it works
+
+`op()` returns a recursive Proxy. Property access accumulates a path (`["chat", "submit"]`). When a function property is invoked, the proxy creates an `Op` descriptor and passes it to `app.apply()`:
+
+```typescript
+interface Op {
+  target: "model" | "runtime"
+  path: string[] // e.g., ["chat", "submit"]
+  args: unknown[] // the method arguments
+  run: () => unknown // the original method call (for pass-through)
+}
+```
+
+Plugins wrap `apply()` to intercept ops. Plugins that don't care about a particular op call `o.run()` to pass through. The chain terminates at `o.run()`, which calls the actual method.
+
+### Semantic contract
+
+- **Method calls only** — `op()` does NOT intercept property reads or signal writes. The method call is the operation boundary.
+- **One op per method call** — regardless of how many signals the method writes internally, plugins see one op.
+- **Async and generator methods** work through `op()` — the proxy preserves `async function` and `async function*` return types.
+- **Caching**: The proxy for a given object is cached — `op(app.model)` returns the same Proxy instance across calls. Nested proxies (`op(app.model).chat`) are also cached per path to avoid Proxy allocation on every call.
+
+### Enforcement modes
+
+Apps declare their interception policy:
+
+- **Loose mode** (default): Direct calls and `op()` calls coexist. The app's conventions decide which to use.
+- **Strict mode**: State-changing model methods must go through `op()` or `invoke()`. Direct calls in strict mode throw in dev (warn in prod). Useful for rich text editors where undo must see every mutation.
+
+### Command integration
+
+Command `execute()` functions use `op()` to route through the pipeline:
+
+```
+app.invoke("chat.submit", { text })
+  → command registry lookup
+    → execute({ text })
+      → op(app.model).chat.submit({ text })
+        → app.apply({ target: "model", path: ["chat","submit"], args: [{ text }], run })
+          → withHistory records the op
+            → withTracing logs it
+              → run() → chat.submit() → signal writes → re-render
+```
+
+Every surface (keybinding, CLI, palette, MCP, AI agent, test) goes through the same path.
+
 ## Open Questions
-
-- **`op()` required vs opt-in.** For rich text editors, `op()` might be required for all mutations (undo needs to see everything). For simple apps, it's opt-in. Should the framework enforce this per-app, or is it convention?
-
-- **`op()` granularity.** The proxy captures method calls. Should it also capture signal writes? (`op(model).chat.phase.value = "idle"`) Or should signal writes always be direct, with only method calls interceptable?
 
 - **Plugin ordering.** Last plugin in `pipe` wraps `apply()` outermost — it intercepts first. Should the framework detect/enforce ordering, or is it convention?
 
