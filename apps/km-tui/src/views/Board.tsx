@@ -387,6 +387,7 @@ export function BoardCore({
                   </Box>
                 ) : (
                   <HorizontalVirtualList
+                    key={rootId ?? "root"}
                     items={columns}
                     width={termWidth}
                     height={contentHeight}
