@@ -9,7 +9,10 @@ export function kmRefsTransform(tree: Root): void {
     // Process paragraphs and headings
     if (node.type !== "paragraph" && node.type !== "heading") return
 
-    const text = nodeToText(node as any)
+    // Use cleanText (with key:: value pairs stripped) when available,
+    // to avoid extracting refs from property values (false positives).
+    // cleanText is set by kmInlinePropTransform which runs before this transform.
+    const text = (node.data?.cleanText as string | undefined) ?? nodeToText(node as any)
     const { tags, mentions, projects } = extractAllRefs(text)
 
     // Skip if no refs found

@@ -34,7 +34,6 @@ import {
   nodeToText,
   blockquoteToText,
   tableToMarkdown,
-  listItemToText,
   slugify,
   parseTaskMetadata,
   parseWikiLinks,
@@ -207,14 +206,16 @@ export function parsePlainTextToNodes(content: string, fsPath: string, fsIno?: n
 }
 
 /**
- * Parse YAML frontmatter into data object
+ * Parse YAML frontmatter into data object.
+ * When YAML is malformed, preserves the raw string in `_rawFrontmatter`
+ * so the serializer can emit it verbatim (preventing silent data loss).
  */
 function parseFrontmatter(yaml: string): Record<string, unknown> {
   try {
     const data = parseYaml(yaml) as Record<string, unknown>
     return data ?? {}
   } catch {
-    return {}
+    return { _rawFrontmatter: yaml }
   }
 }
 
@@ -330,7 +331,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
 
       for (const item of list.children) {
         const listItem = item as ListItem
-        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++)
+        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++, list.start)
         nodes.push(...itemNodes)
       }
       continue
@@ -349,11 +350,20 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
 /**
  * Convert a list item to nodes (may include nested items)
  */
-function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOrder: number): KNode[] {
+function convertListItem(
+  item: ListItem,
+  parent: KNode,
+  ordered: boolean,
+  sortOrder: number,
+  listStart?: number | null,
+): KNode[] {
   const nodes: KNode[] = []
   const now = Date.now()
 
-  let text = listItemToText(item)
+  // Extract only the first paragraph's text for node.content.
+  // Extra paragraphs are handled as child nodes below (convertBlock).
+  const firstPara = item.children.find((c) => c.type === "paragraph" || c.type === "text")
+  let text = firstPara ? nodeToText(firstPara as RootContent) : ""
 
   // Read task mark from kmast data (set by kmTaskMark tokenizer)
   const taskMark = item.data?.taskMark as string | undefined
@@ -440,6 +450,7 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
       ...(Object.keys(parsedProps.props).length > 0 ? { props: parsedProps.props } : {}),
       ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
       ...(Object.keys(metadataFromProps).length > 0 ? { metadata: metadataFromProps } : {}),
+      ...(ordered && listStart != null && listStart !== 1 ? { list_start: listStart } : {}),
     },
     created_at: inlineCreatedAt ?? now,
     updated_at: now,
@@ -448,8 +459,10 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
 
   nodes.push(node)
 
-  // Handle nested lists and block content (blockquotes, code, headings, extra paragraphs)
+  // Handle nested lists and block content (blockquotes, code, headings, extra paragraphs, tables, html, hr)
   let childSort = 0
+  // Skip the first paragraph (already extracted as the list item's text content)
+  let skippedFirstPara = false
   for (const child of item.children) {
     if (child.type === "list") {
       const list = child as List
@@ -473,7 +486,22 @@ function convertListItem(item: ListItem, parent: KNode, ordered: boolean, sortOr
         version: "",
       }
       nodes.push(liNode)
-    } else if (child.type === "blockquote" || child.type === "code") {
+    } else if (child.type === "paragraph") {
+      // First paragraph is the item's own text — skip it (already in node.content)
+      if (!skippedFirstPara) {
+        skippedFirstPara = true
+        continue
+      }
+      // Extra paragraphs in multi-paragraph list items
+      const blockNode = convertBlock(child, node, childSort++)
+      if (blockNode) nodes.push(blockNode)
+    } else if (
+      child.type === "blockquote" ||
+      child.type === "code" ||
+      child.type === "table" ||
+      child.type === "html" ||
+      child.type === "thematicBreak"
+    ) {
       const blockNode = convertBlock(child, node, childSort++)
       if (blockNode) nodes.push(blockNode)
     }
@@ -677,6 +705,9 @@ function mergeH1IntoFileNode(
   fileNode.title = h1Section.title
   fileNode.content = h1Section.content
   fileNode.md_pos = h1Section.md_pos
+  if (h1Section.block_id) {
+    fileNode.block_id = h1Section.block_id
+  }
   if (h1Section.rules) {
     fileNode.rules = h1Section.rules
   }

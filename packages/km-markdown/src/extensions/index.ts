@@ -12,14 +12,17 @@
  */
 
 import { gfmAutolinkLiteral } from "micromark-extension-gfm-autolink-literal"
-import { gfmFootnote } from "micromark-extension-gfm-footnote"
+// NOTE: gfmFootnote is intentionally NOT loaded. The parser has no handler for
+// footnoteReference/footnoteDefinition nodes, so enabling the extension would
+// silently drop footnote content during the AST-to-KNode conversion.
+// Re-enable when full footnote roundtrip support is implemented.
 import { gfmStrikethrough } from "micromark-extension-gfm-strikethrough"
 import { gfmTable } from "micromark-extension-gfm-table"
 import { combineExtensions } from "micromark-util-combine-extensions"
 import type { Extension } from "micromark-util-types"
 
 import { gfmAutolinkLiteralFromMarkdown } from "mdast-util-gfm-autolink-literal"
-import { gfmFootnoteFromMarkdown } from "mdast-util-gfm-footnote"
+// NOTE: gfmFootnoteFromMarkdown intentionally not loaded — see comment above.
 import { gfmStrikethroughFromMarkdown } from "mdast-util-gfm-strikethrough"
 import { gfmTableFromMarkdown } from "mdast-util-gfm-table"
 import type { Extension as FromMarkdownExtension } from "mdast-util-from-markdown"
@@ -36,14 +39,7 @@ import { kmRefsTransform } from "./km-refs.ts"
  * Replaces `gfm()` — uses km's task mark tokenizer instead of the GFM one.
  */
 export function km(): Extension {
-  return combineExtensions([
-    gfmAutolinkLiteral(),
-    gfmFootnote(),
-    gfmStrikethrough(),
-    gfmTable(),
-    kmTaskMark(),
-    kmWikilink(),
-  ])
+  return combineExtensions([gfmAutolinkLiteral(), gfmStrikethrough(), gfmTable(), kmTaskMark(), kmWikilink()])
 }
 
 /**
@@ -58,7 +54,6 @@ export function km(): Extension {
 export function kmFromMarkdown(): FromMarkdownExtension[] {
   return [
     gfmAutolinkLiteralFromMarkdown(),
-    gfmFootnoteFromMarkdown(),
     gfmStrikethroughFromMarkdown(),
     gfmTableFromMarkdown(),
     kmTaskMarkFromMarkdown(),

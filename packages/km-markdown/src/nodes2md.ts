@@ -92,21 +92,12 @@ export function nodesToMarkdown(
  */
 function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2): string {
   let md = ""
-  const seenEmbedTargets = new Set<string>()
+  let orderedIndex = 0
 
   for (let i = 0; i < children.length; i++) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- bounds checked by loop condition
     const child = children[i]!
     const nextChild = children[i + 1]
-
-    // Deduplicate embed references pointing to the same target
-    const embedTarget = child.embed_source
-    if (embedTarget && seenEmbedTargets.has(embedTarget)) {
-      continue
-    }
-    if (embedTarget) {
-      seenEmbedTargets.add(embedTarget)
-    }
 
     const isCurrentList = isItem(child.type, child.item) && !isOutline(child.type, child.item)
     const isNextList = nextChild
@@ -115,14 +106,17 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
-      md += serializeNode(child, ctx, 0, false, depth)
+      md += serializeNode(child, ctx, 0, false, depth, orderedIndex)
+      orderedIndex++
       if (!isNextList) {
         // End of list group - add blank line
         md += "\n"
+        orderedIndex = 0
       }
     } else {
       // Non-list items (sections, paragraphs, etc.) handle their own spacing
       md += serializeNode(child, ctx, 0, true, depth)
+      orderedIndex = 0
     }
   }
 
@@ -147,15 +141,31 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   delete frontmatterData._allTags // Computed: aggregated from content
   delete frontmatterData._allProjects // Computed: aggregated from content
 
-  if (Object.keys(frontmatterData).length > 0) {
+  // If raw frontmatter was preserved due to malformed YAML, emit it verbatim
+  const rawFrontmatter = frontmatterData._rawFrontmatter as string | undefined
+  delete frontmatterData._rawFrontmatter
+
+  if (rawFrontmatter && Object.keys(frontmatterData).length === 0) {
+    // Malformed YAML — emit raw block verbatim to prevent data loss
+    md += "---\n"
+    md += rawFrontmatter + "\n"
+    md += "---\n\n"
+  } else if (Object.keys(frontmatterData).length > 0) {
     md += "---\n"
     md += stringifyYaml(frontmatterData)
     md += "---\n\n"
   }
 
-  // H1 heading (merged into file node)
+  // H1 heading (merged into file node) — use same logic as serializeSection for fidelity
   if (node.content) {
-    md += `# ${node.content}\n\n`
+    const title = node.title ?? node.content ?? ""
+    const ruleStr = node.rules ? serializeRules(node.rules) : ""
+    const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
+    let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
+    if (node.embed_source || node.block_id) headingLine = headingLine.trimEnd()
+    if (node.embed_source) headingLine += ` ![[${node.embed_source}]]`
+    if (node.block_id) headingLine += ` ^${node.block_id}`
+    md += headingLine + "\n\n"
   }
 
   // Children (with proper list grouping) — depth 2 for direct children of # heading
@@ -175,6 +185,7 @@ function serializeNode(
   indent: number,
   addTrailingNewline: boolean = true,
   depth = 2,
+  orderedIndex = 0,
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
@@ -200,7 +211,7 @@ function serializeNode(
 
   // List items (item === true && not outline)
   if (isItem(node.type, node.item) && !isOutline(node.type, node.item)) {
-    return serializeLi(node, children, ctx, indent, addTrailingNewline)
+    return serializeLi(node, children, ctx, indent, addTrailingNewline, orderedIndex)
   }
 
   switch (node.type) {
@@ -381,13 +392,34 @@ function serializeQuote(node: KNode): string {
 }
 
 /**
- * Serialize a code block
+ * Serialize a code block.
+ * Scans content for backtick runs and uses a fence longer than the longest run,
+ * or switches to tilde fences when content contains backtick fences.
  */
 function serializeCode(node: KNode): string {
   const lang = (node.data?.lang as string) ?? ""
   const meta = (node.data?.meta as string) ?? ""
   const header = lang + (meta ? " " + meta : "")
-  return "```" + header + "\n" + (node.content ?? "") + "\n```\n\n"
+  const content = node.content ?? ""
+
+  // Find the longest consecutive backtick run in the content
+  let maxBacktickRun = 0
+  const backtickRunRegex = /`+/g
+  let match
+  while ((match = backtickRunRegex.exec(content)) !== null) {
+    maxBacktickRun = Math.max(maxBacktickRun, match[0].length)
+  }
+
+  // If content contains triple+ backticks, use a longer backtick fence or switch to tildes
+  let fence: string
+  if (maxBacktickRun >= 3) {
+    // Use tilde fences to avoid any backtick ambiguity
+    fence = "~".repeat(Math.max(3, maxBacktickRun + 1))
+  } else {
+    fence = "```"
+  }
+
+  return fence + header + "\n" + content + "\n" + fence + "\n\n"
 }
 
 /**
@@ -408,6 +440,7 @@ function serializeLi(
   ctx: SerializeContext,
   indent: number,
   addTrailingNewline: boolean = true,
+  orderedIndex = 0,
 ): string {
   const indentStr = "  ".repeat(indent)
 
@@ -418,7 +451,13 @@ function serializeLi(
     const content = appendTaskMetadata(node)
     line = `${indentStr}- ${marker} ${content}`
   } else {
-    const listMarker = node.list_marker === "1." ? "1." : "-"
+    let listMarker: string
+    if (node.list_marker === "1.") {
+      const start = (node.data?.list_start as number | undefined) ?? 1
+      listMarker = `${start + orderedIndex}.`
+    } else {
+      listMarker = "-"
+    }
     line = `${indentStr}${listMarker} ${node.content ?? ""}`
   }
 
@@ -435,6 +474,8 @@ function serializeLi(
         md += ql ? `${indentStr}  > ${ql}\n` : `${indentStr}  >\n`
       }
     } else if (child.type === "p") {
+      // Blank line before extra paragraphs — required by CommonMark for multi-paragraph list items
+      md += "\n"
       const content = child.content ?? ""
       for (const pl of content.split("\n")) {
         md += `${indentStr}  ${pl}\n`

@@ -1779,3 +1779,297 @@ Content`
     expect(h1s).toHaveLength(1) // just "# Doc"
   })
 })
+
+// =============================================================================
+// Bug fixes: km-markdown.roundtrip-lossy (P0 silent data loss)
+// =============================================================================
+
+describe("Bug fix A1: Duplicate embeds not dropped during serialization", () => {
+  test("two sibling nodes embedding the same target both survive roundtrip", () => {
+    const nodes: KNode[] = [
+      makeTestNode({
+        id: "file1",
+        type: "h",
+        item: true,
+        fstype: "mdfile",
+        parent_id: null,
+        parent_idx: 0,
+        fs_path: "test.md",
+        name: "test",
+        content: "Test File",
+        title: "Test File",
+      }),
+      makeTestNode({
+        id: "embed1",
+        type: "p",
+        parent_id: "file1",
+        parent_idx: 0,
+        embed_source: "shared-target",
+        content: "![[shared-target]]",
+      }),
+      makeTestNode({
+        id: "embed2",
+        type: "p",
+        parent_id: "file1",
+        parent_idx: 1,
+        embed_source: "shared-target",
+        content: "![[shared-target]]",
+      }),
+    ]
+
+    const md = nodesToMarkdown(nodes, nodes)
+    // Both embeds must be present — the old code dropped the second one
+    const embedMatches = md.match(/!\[\[shared-target\]\]/g) ?? []
+    expect(embedMatches).toHaveLength(2)
+  })
+})
+
+describe("Bug fix A2: Root H1 task marks, rules, and block IDs roundtrip", () => {
+  test("H1 with task marker roundtrips", () => {
+    const md = `# [x] Completed Task\n\nSome content.\n`
+    const output = roundtrip(md)
+    expect(output).toContain("# [x] Completed Task")
+  })
+
+  test("H1 with rules roundtrips", () => {
+    const md = `# My Board km.add:: status:todo km.collapse:: true\n\nSome content.\n`
+    const output = roundtrip(md)
+    expect(output).toContain("# My Board km.add:: status:todo km.collapse:: true")
+  })
+
+  test("H1 with block ID roundtrips", () => {
+    const md = `# My Heading ^ab12\n\nSome content.\n`
+    const output = roundtrip(md)
+    expect(output).toContain("# My Heading ^ab12")
+  })
+
+  test("H1 with task marker and block ID roundtrips", () => {
+    const md = `# [ ] Todo Item ^zz99\n\nSome content.\n`
+    const output = roundtrip(md)
+    expect(output).toContain("# [ ] Todo Item ^zz99")
+  })
+
+  test("block_id is copied to file node during H1 merge", () => {
+    const md = `# Heading ^ab12\n\nSome content.\n`
+    const nodes = parse(md)
+    const fileNode = nodes.find((n) => n.fstype === "mdfile")
+    expect(fileNode?.block_id).toBe("ab12")
+  })
+})
+
+describe("Bug fix A3: Multi-paragraph list items preserved", () => {
+  test("list item with multiple paragraphs preserves extra paragraphs", () => {
+    const md = `# Doc\n\n- First paragraph\n\n  Second paragraph\n\n  Third paragraph\n`
+    const output = roundtrip(md)
+    expect(output).toContain("First paragraph")
+    expect(output).toContain("Second paragraph")
+    expect(output).toContain("Third paragraph")
+  })
+
+  test("list item with table child preserves table", () => {
+    const md = `# Doc\n\n- Item with table\n\n  | A | B |\n  | --- | --- |\n  | 1 | 2 |\n`
+    const nodes = parse(md)
+    const tableNode = nodes.find((n) => n.type === "table")
+    expect(tableNode).toBeDefined()
+    expect(tableNode?.content).toContain("| A")
+  })
+})
+
+describe("Bug fix A4: Code blocks with triple backticks in content", () => {
+  test("code block containing triple backticks uses tilde fence", () => {
+    const nodes: KNode[] = [
+      makeTestNode({
+        id: "file1",
+        type: "h",
+        item: true,
+        fstype: "mdfile",
+        parent_id: null,
+        parent_idx: 0,
+        fs_path: "test.md",
+        name: "test",
+        content: "Test",
+        title: "Test",
+      }),
+      makeTestNode({
+        id: "code1",
+        type: "code",
+        parent_id: "file1",
+        parent_idx: 0,
+        content: "```\ninner code\n```",
+        data: { lang: "markdown" },
+      }),
+    ]
+
+    const md = nodesToMarkdown(nodes)
+    // Must use tilde fence since content contains triple backticks
+    expect(md).toContain("~~~~markdown")
+    expect(md).toContain("~~~~\n\n")
+    expect(md).toContain("```\ninner code\n```")
+  })
+
+  test("code block without backticks uses standard triple backtick fence", () => {
+    const nodes: KNode[] = [
+      makeTestNode({
+        id: "file1",
+        type: "h",
+        item: true,
+        fstype: "mdfile",
+        parent_id: null,
+        parent_idx: 0,
+        fs_path: "test.md",
+        name: "test",
+        content: "Test",
+        title: "Test",
+      }),
+      makeTestNode({
+        id: "code1",
+        type: "code",
+        parent_id: "file1",
+        parent_idx: 0,
+        content: "const x = 1",
+        data: { lang: "ts" },
+      }),
+    ]
+
+    const md = nodesToMarkdown(nodes)
+    expect(md).toContain("```ts")
+    expect(md).toContain("```\n\n")
+  })
+})
+
+describe("Bug fix A5: Footnotes not silently dropped", () => {
+  test("footnote syntax is treated as plain text (not silently consumed)", () => {
+    // With footnote extensions removed, footnote syntax should be preserved as-is
+    // (either as plain text or as link syntax, not silently dropped)
+    const md = `# Doc\n\nSome text with a reference[^1].\n\n[^1]: This is the footnote.\n`
+    const output = roundtrip(md)
+    // The footnote reference and definition text should survive (not be dropped)
+    expect(output).toContain("reference")
+    expect(output).toContain("footnote")
+  })
+})
+
+describe("Bug fix A6: Malformed YAML frontmatter preserved", () => {
+  test("malformed YAML frontmatter is preserved verbatim on roundtrip", () => {
+    const md = `---\ninvalid: yaml: content: [broken\n---\n\n# Title\n\nContent.\n`
+    const output = roundtrip(md)
+    // The malformed YAML should be preserved, not silently discarded
+    expect(output).toContain("---")
+    expect(output).toContain("invalid: yaml: content: [broken")
+  })
+
+  test("valid YAML frontmatter still works normally", () => {
+    const md = `---\ntitle: My Doc\ntags:\n  - one\n  - two\n---\n\n# Title\n\nContent.\n`
+    const output = roundtrip(md)
+    expect(output).toContain("title: My Doc")
+  })
+})
+
+// =============================================================================
+// Bug fix B: km-markdown.ref-extraction-bugs (P1)
+// =============================================================================
+
+describe("Bug fix B: Refs not extracted from key:: value pairs", () => {
+  test("refs inside key:: value pairs are not extracted (false positive)", () => {
+    const md = `# Doc\n\n- [ ] Task blocked-by:: #feature-tag\n`
+    const nodes = parse(md)
+    const taskNode = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    // The #feature-tag is inside the value of blocked-by::, not in the content text.
+    // It should NOT be extracted as a tag on the node.
+    const tags = (taskNode?.data as Record<string, unknown>)?.tags as string[] | undefined
+    // If cleanText is used, the tag inside the property value should not be extracted
+    expect(tags).toBeUndefined()
+  })
+})
+
+// =============================================================================
+// Bug fix C: km-markdown.list-table-fidelity (P1)
+// =============================================================================
+
+describe("Bug fix C1: Ordered list start number preserved", () => {
+  test("ordered list starting at 1 uses 1.", () => {
+    const md = `# Doc\n\n1. First item\n1. Second item\n`
+    const output = roundtrip(md)
+    expect(output).toMatch(/1\. First item/)
+  })
+
+  test("ordered list stores list_start for non-1 start", () => {
+    // mdast preserves the start number for ordered lists
+    const md = `# Doc\n\n3. Third item\n4. Fourth item\n`
+    const nodes = parse(md)
+    const orderedItem = nodes.find((n) => n.list_marker === "1.")
+    // Should store list_start in data when start !== 1
+    expect((orderedItem?.data as Record<string, unknown>)?.list_start).toBe(3)
+  })
+})
+
+describe("Bug fix C2: Table alignment preserved", () => {
+  test("table with right-aligned column preserves alignment", () => {
+    const md = `# Doc\n\n| Left | Right |\n| --- | ---: |\n| a | 1 |\n`
+    const output = roundtrip(md)
+    // Separator should have right-alignment marker
+    expect(output).toMatch(/---+:/)
+  })
+
+  test("table with center-aligned column preserves alignment", () => {
+    const md = `# Doc\n\n| Name | Center |\n| --- | :---: |\n| a | b |\n`
+    const output = roundtrip(md)
+    // Separator should have center-alignment markers
+    expect(output).toMatch(/:---+:/)
+  })
+
+  test("table cell with pipe character is escaped", () => {
+    const md = `# Doc\n\n| A | B |\n| --- | --- |\n| x \\| y | z |\n`
+    const output = roundtrip(md)
+    // The pipe in cell content should be escaped
+    expect(output).toContain("\\|")
+  })
+})
+
+// =============================================================================
+// P2-1: Multi-paragraph list item serialization
+// =============================================================================
+
+describe("Multi-paragraph list item serialization", () => {
+  test("blank line between paragraphs in a list item", () => {
+    const md = `# Doc\n\n- first para\n\n  second para\n`
+    const output = roundtrip(md)
+    // The two paragraphs must be separated by a blank line inside the list item
+    expect(output).toContain("- first para\n\n  second para")
+  })
+
+  test("blank line before each extra paragraph in list item with multiple", () => {
+    const md = `# Doc\n\n- para one\n\n  para two\n\n  para three\n`
+    const output = roundtrip(md)
+    expect(output).toContain("- para one\n\n  para two\n\n  para three")
+  })
+
+  test("task list item with extra paragraph gets blank line", () => {
+    const md = `# Doc\n\n- [ ] task title\n\n  extra detail\n`
+    const output = roundtrip(md)
+    // Should have blank line between task line and extra paragraph
+    expect(output).toMatch(/- \[ \] task title\n\n  extra detail/)
+  })
+})
+
+// =============================================================================
+// P2-2: Ordered list sequential numbering
+// =============================================================================
+
+describe("Ordered list sequential numbering", () => {
+  test("ordered list starting at 3 uses sequential numbers", () => {
+    const md = `# Doc\n\n3. First\n4. Second\n5. Third\n`
+    const output = roundtrip(md)
+    expect(output).toContain("3. First")
+    expect(output).toContain("4. Second")
+    expect(output).toContain("5. Third")
+  })
+
+  test("ordered list starting at 1 uses sequential numbers", () => {
+    const md = `# Doc\n\n1. Alpha\n2. Beta\n3. Gamma\n`
+    const output = roundtrip(md)
+    expect(output).toContain("1. Alpha")
+    expect(output).toContain("2. Beta")
+    expect(output).toContain("3. Gamma")
+  })
+})

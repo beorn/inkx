@@ -384,18 +384,21 @@ export function serializeRules(rules: SectionRules): string {
 /**
  * Convert mdast table node to markdown table string with column alignment.
  * Pads cells so columns line up: | Key      | Value |
+ * Respects column alignment (left/center/right) and escapes | in cell text.
  */
 export function tableToMarkdown(node: RootContent): string {
   if (node.type !== "table" || !("children" in node)) return nodeToText(node)
 
-  const rows = (node as { children: RootContent[] }).children
+  const tableNode = node as { children: RootContent[]; align?: (string | null)[] }
+  const rows = tableNode.children
+  const align = tableNode.align ?? []
 
-  // First pass: extract all cell text and compute column widths
+  // First pass: extract all cell text (with pipe escaping) and compute column widths
   const allCells: string[][] = []
   for (const row of rows) {
     const r = row as { children?: RootContent[] }
     if (!r?.children) continue
-    allCells.push(r.children.map((cell) => nodeToText(cell as RootContent)))
+    allCells.push(r.children.map((cell) => escapeTableCell(nodeToText(cell as RootContent))))
   }
   if (allCells.length === 0) return nodeToText(node)
 
@@ -415,13 +418,30 @@ export function tableToMarkdown(node: RootContent): string {
     const padded = colWidths.map((w, c) => (cells[c] ?? "").padEnd(w))
     lines.push("| " + padded.join(" | ") + " |")
 
-    // Separator after header row
+    // Separator after header row — respects column alignment
     if (i === 0) {
-      lines.push("| " + colWidths.map((w) => "-".repeat(w)).join(" | ") + " |")
+      lines.push(
+        "| " +
+          colWidths
+            .map((w, c) => {
+              const colAlign = align[c] ?? null
+              if (colAlign === "center") return ":" + "-".repeat(Math.max(1, w - 2)) + ":"
+              if (colAlign === "right") return "-".repeat(Math.max(1, w - 1)) + ":"
+              if (colAlign === "left") return ":" + "-".repeat(Math.max(1, w - 1))
+              return "-".repeat(w) // no alignment
+            })
+            .join(" | ") +
+          " |",
+      )
     }
   }
 
   return lines.join("\n")
+}
+
+/** Escape pipe characters in table cell text to prevent breaking table structure */
+function escapeTableCell(text: string): string {
+  return text.replace(/\|/g, "\\|")
 }
 
 /**
