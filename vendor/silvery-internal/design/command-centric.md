@@ -6,23 +6,22 @@ _Part 1 of [AI-Native Apps](./ai-mode.md). This doc covers the architecture — 
 
 Apps have layers of internal structure — state, actions, UI components, layout — but they expose almost none of it. The only way in is through the surface the developer chose to build: a GUI, a CLI, an API. Each is a separate artifact that has to be designed, built, and maintained.
 
-**Command-centric design** inverts this. Instead of building surfaces and hiding internals, you build around a **command registry** — a typed collection of every action the app can perform. The registry IS the app's behavior. Everything else — keybindings, CLI, command palette, menus, MCP tools, tests, documentation — is a projection of it.
+**Command-centric design** inverts this. Instead of building surfaces and hiding internals, you build around a **command registry** — a typed collection of every action the app can perform. The registry is the discoverable surface over app behavior — model methods are canonical, but the registry makes them accessible to every consumer. Every surface projects the command registry differently — keybindings, CLI, command palette, menus, MCP tools, tests, documentation.
 
 ```
                     Command Registry
-                   (source of truth)
-                 id · name · description
-                 params · shortcuts · execute()
+                  (discoverable surface)
+                  id · title · description
+                  params · when · execute()
                          │
         ┌────────┬───────┼───────┬────────┐
         │        │       │       │        │
    Keybindings  CLI   Command  Menus    Code
    (j, Ctrl+K) (--help) Palette (GUI)  Driver
                         (⌘K)         (in-process)
-        │        │       │       │        │
-      REPL    Voice   Tools   DevTools  Tests
-    (console) (a11y)  (MCP/   (inspect) (assert)
-                       CLI)
+        │        │       │              │
+      REPL    Tools   DevTools        Tests
+    (console) (MCP)   (inspect)      (assert)
 ```
 
 The result: **every action the user can take is automatically available to code, tests, AI, CLI, and any other consumer** — because they all call the same `execute()`. No annotation gap. No drift. No incomplete API.
@@ -56,31 +55,43 @@ This is the same mistake web development made with accessibility before ARIA: tr
 Commands are organized as a **nested tree**. The tree structure is the single source of grouping — it auto-derives CLI subcommands, menu hierarchy, command palette categories, **domain objects** (typed groups like `app.task`, `app.navigation`), and TypeScript types. No separate `category`, `cli.path`, or `menu.group` fields needed.
 
 ```typescript
+interface CommandDef {
+  title: string
+  description?: string
+  params?: Record<string, ParamDef>
+  when?: () => boolean // availability predicate
+  execute: (params: any) => any // the actual behavior (calls model methods)
+}
+```
+
+Command `execute` functions typically use `op(app.model)` to route through the interception pipeline, enabling undo/tracing/recording. See [app-composition.md](./app-composition.md) for the `op()` proxy design.
+
+```typescript
 const commands = {
   task: {
     toggle_done: {
-      name: "Toggle Done",
+      title: "Toggle Done",
       description: "Toggle the done state of the current task",
       params: { nodeId: { type: "string", description: "Task to toggle" } },
-      execute: (ctx) => ctx.state.task.toggleDone({ nodeId: ctx.currentNodeId }),
+      execute: (ctx) => op(ctx.app.model).task.toggleDone({ nodeId: ctx.currentNodeId }),
       shortcuts: ["x"],
       modes: ["normal"],
     },
     set_priority: {
-      name: "Set Priority",
+      title: "Set Priority",
       description: "Set task priority (0=critical, 4=backlog)",
       params: { nodeId: { type: "string" }, priority: { type: "number" } },
-      execute: (ctx, { priority }) => ctx.state.task.setPriority({ nodeId: ctx.currentNodeId, priority }),
+      execute: (ctx, { priority }) => op(ctx.app.model).task.setPriority({ nodeId: ctx.currentNodeId, priority }),
     },
   },
   navigation: {
-    down: { name: "Move Down", execute: (ctx) => ctx.state.nav.moveCursor({ delta: 1 }), shortcuts: ["j"] },
-    up: { name: "Move Up", execute: (ctx) => ctx.state.nav.moveCursor({ delta: -1 }), shortcuts: ["k"] },
+    down: { title: "Move Down", execute: (ctx) => ctx.app.model.nav.moveCursor({ delta: 1 }), shortcuts: ["j"] },
+    up: { title: "Move Up", execute: (ctx) => ctx.app.model.nav.moveCursor({ delta: -1 }), shortcuts: ["k"] },
   },
 }
 ```
 
-`ctx` is the command execution context — `withCommands` provides it automatically. `ctx.state` is the app's [StateSurface](./state-api-redesign.md) with domain proxies (`ctx.state.task`, `ctx.state.nav`), so commands call the same update functions as any other code. `ctx.currentNodeId` and similar cursor/selection state come from the app's state model.
+`ctx` is the command execution context — `withCommands` provides it automatically. `ctx.app.model` gives access to domain models (`ctx.app.model.task`, `ctx.app.model.nav`), so commands call the same methods as any other code. `ctx.currentNodeId` and similar cursor/selection state come from the app's state model.
 
 The nesting does all the work by default:
 
@@ -93,9 +104,9 @@ The nesting does all the work by default:
 | **TypeScript types** | `task.toggle_done` → `KM.task.toggle_done()` | Nesting = interface hierarchy    |
 | **MCP tool**         | `task.toggle_done` → tool with dotted name   | Nesting = tool grouping          |
 
-Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `name`, `execute`, and optionally `shortcuts`.
+Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `title`, `execute`, and optionally `shortcuts`.
 
-Each command definition has a **universal core** (name, description, params, execute) and optional **surface-specific overrides** (shortcuts, modes, custom CLI flags). One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](./ai-mode.md#discovery-domain-objects--types)).
+Each command definition has a **universal core** (title, description, params, execute) and optional **surface-specific overrides** (shortcuts, modes, custom CLI flags). One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](./ai-mode.md#discovery-domain-objects--types)).
 
 The framework auto-derives every surface from the tree:
 
@@ -116,7 +127,7 @@ No other approach gets all of these from one definition.
 
 ### The Defining Properties
 
-- **Commands are the primary model.** They're how the app works, not a secondary export. No annotation gap — every user action is a command by definition.
+- **Commands are the discoverable surface over behavior.** Model methods are canonical, but every user action has a corresponding command. No annotation gap — if the user can do it, it's in the registry.
 - **Same code path.** `task.toggle_done()` runs the same `execute()` as pressing `x`. No drift.
 - **Self-describing at runtime.** The app enumerates every available command with metadata, grouped by domain category. The app describes itself.
 - **Structured state.** `getState()` returns typed application state. Consumers read data, not pixels.
@@ -136,18 +147,18 @@ Code (in-process driver)         ← primary: full power, typed, composable
 **In-process code** is the most powerful — typed, composable, full language:
 
 ```typescript
-const cursor = app.state((s) => s.cursor)
-await app.task.toggle_done()
+const cursor = app.model.cursor
+await app.invoke("task.toggle_done")
 
-for (const card of app.state((s) => s.columns[0].cardNodes)) {
+for (const card of app.model.columns[0].cardNodes) {
   if (card.task_status !== "done") {
-    await app.task.toggle_done()
-    await app.navigation.down()
+    await app.invoke("task.toggle_done")
+    await app.invoke("navigation.down")
   }
 }
 ```
 
-**CLI** is auto-generated — names become subcommands, descriptions become help text, `execute()` is the handler. Building a good CLI is hard: naming subcommands, writing help text, handling flags, structuring output. Most apps ship mediocre CLIs because the effort competes with UI work. Command-centric design makes it effortless: every command already has a name, description, and parameters. The CLI falls out automatically, and it's _complete_ — every user action is a subcommand by construction.
+**CLI** is auto-generated — titles become subcommands, descriptions become help text, `execute()` is the handler. Building a good CLI is hard: naming subcommands, writing help text, handling flags, structuring output. Most apps ship mediocre CLIs because the effort competes with UI work. Command-centric design makes it effortless: every command already has a title, description, and parameters. The CLI falls out automatically, and it's _complete_ — every user action is a subcommand by construction.
 
 **MCP** is auto-generated for remote scenarios — SaaS integrations, security boundaries. But for local interaction, in-process code and CLI are faster, cheaper, and more reliable.
 
@@ -163,7 +174,7 @@ No. The distinction matters:
 | **Completeness**   | Whatever the dev chose to expose       | 100% by construction — every user action exists |
 | **Granularity**    | Data-oriented (CRUD on resources)      | Intent-oriented (what the user wants to do)     |
 | **Discovery**      | External docs, OpenAPI specs           | Runtime `cmd.all()` — the app describes itself  |
-| **Maintenance**    | Second thing to build and keep in sync | First thing — everything else is derived        |
+| **Maintenance**    | Second thing to build and keep in sync | Derived from model methods — surfaces auto-sync |
 
 An API is _about_ the data. A command is _about_ what the user wants to accomplish. `PATCH /tasks/123 { done: true }` vs `toggle_done`. The command carries context (what's selected, what mode we're in), has a human-readable name, and runs the same code path the UI does.
 
@@ -187,21 +198,17 @@ Even if you don't care about AI agents, you want all of these.
 
 ## Industry Convergence
 
-This isn't a fringe idea. The industry is converging from multiple directions — but everyone's version has the same gap.
+The industry is converging on "define once, surface everywhere" — but every system except Emacs separates the automation layer from the UI code:
 
-**Emacs** (1976) pioneered it: every operation is a named command invokable via `M-x`, keybinding, or Lisp. 10,000+ commands, all introspectable at runtime. The closest historical precedent.
+| System                           | Approach                                                      | Gap                                              |
+| -------------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
+| **Emacs** (1976)                 | Every operation is a named command (M-x, keybinding, Lisp)    | Closest precedent — no gap                       |
+| **VS Code**                      | Extensions register commands for palette, shortcuts, menus    | Handlers registered separately from UI rendering |
+| **Apple App Intents** (2022+)    | Schema-first: `AppIntent` struct → Shortcuts, Siri, Spotlight | Separate Swift structs from view controllers     |
+| **Microsoft App Actions** (2025) | JSON manifest + `IActionProvider`                             | Separate manifest from UI code                   |
+| **Google App Actions**           | Built-in Intents (BIIs) — predefined semantic patterns        | Platform-controlled, most conservative           |
 
-**VS Code** brought it to modern IDEs: extensions register commands once; they're accessible via palette, shortcuts, menus, and `vscode.commands.executeCommand()`.
-
-**Apple App Intents** (2022+) is the most mature "define once, surface everywhere" system. An `AppIntent` struct with metadata, typed parameters, and `perform()` surfaces automatically in Shortcuts, Siri, Spotlight, Widgets, and the Action Button. Apple is **schema-first** — apps conform to predefined semantic categories. The platform handles NLP; apps just implement `perform()`. Trades expressiveness for reliability.
-
-**Microsoft App Actions** (2025) is the newest entry. Apps declare actions in a JSON manifest with typed entity inputs/outputs. The OS discovers them via `GetAllActions()` / `GetActionsForInputs()` and surfaces them contextually.
-
-**Google Android App Actions** uses Built-in Intents (BIIs) — predefined semantic patterns. The most conservative approach: the platform decides when to surface your app's actions, not you.
-
-**The gap in all of them:** In every system except Emacs, the automation layer is separate from the UI code. Apple's intents are separate Swift structs from view controllers. Microsoft's actions are a separate JSON manifest and `IActionProvider` class. VS Code's commands are closer, but extensions still register handlers separately from UI rendering.
-
-Command-centric design closes the gap: **the commands ARE the UI logic.** Nothing separate to maintain, nothing that can drift, nothing that can be incomplete.
+Command-centric design closes the gap: commands and UI share the same code path. Nothing separate to maintain, nothing that can drift.
 
 ---
 
@@ -221,8 +228,8 @@ The result is that Silvery apps are testable, scriptable, accessible, and AI-nat
 
 Silvery is a React-based TUI framework. Its command system already implements the core:
 
-- Nested command registry — tree structure with `name`, `description`, `shortcuts`, `execute()`
-- Domain object proxy — `app.task.toggle_done()` calls execute with same path as keypress
+- Nested command registry — tree structure with `title`, `description`, `shortcuts`, `execute()`
+- Domain object proxy — `app.invoke("task.toggle_done")` calls execute with same path as keypress
 - `cmd.search(query)` — fuzzy matching across all commands by name, description, path
 - `getState()` — structured application state
 - Virtual DOM — component tree with layout, props, state (unique among terminal frameworks)
@@ -233,7 +240,7 @@ Silvery is a React-based TUI framework. Its command system already implements th
 
 ### How Domain Objects Form
 
-Each [plugin](./state-api-redesign.md) contributes a subtree to the command tree — and that subtree becomes a domain object:
+Each [plugin](./app-composition.md#plugins) contributes a subtree to the command tree — and that subtree becomes a domain object:
 
 ```
 Command Tree                    Domain Object           Code / CLI / Menu
@@ -244,7 +251,7 @@ commands.navigation.down    →   navigation.down()   →   km navigation down
 commands.history.undo       →   history.undo()      →   km history undo
 ```
 
-Plugins compose the tree: `withCommands({ task: {...} })` adds a `task` subtree. `withUndo()` adds `history.undo` and `history.redo`. The composition IS the API surface — no separate schema to maintain. Commands are just function calls; invoking a command has negligible overhead (it's the same `execute()` the UI calls, not IPC or serialization).
+Plugins compose the tree: a chat plugin registers `chat.submit` and `chat.compact`, a history plugin adds `history.undo` and `history.redo`. The composition IS the discoverable surface — no separate schema to maintain. Commands are just function calls; invoking a command has negligible overhead (it's the same `execute()` the UI calls, not IPC or serialization).
 
 ## CLI Generation Feasibility
 
@@ -261,19 +268,19 @@ Examining a real app's 173 commands:
 
 ## Open Questions
 
-- **Nesting depth.** Two levels (domain.command) covers most cases. Three levels (domain.sub.command) for complex areas like `task.priority.set`. Should the framework enforce a max depth, or leave it to convention?
+- **Nesting depth.** Two levels (domain.command) covers most cases. Three levels for complex areas like `task.priority.set`. Convention or enforced?
 
-- **Typed parameters on CommandDef.** Should commands declare inputs with types and descriptions? Enables CLI arg generation, MCP schemas, palette prompts. But adds complexity to 173 commands where 58% take zero args.
+- **Typed parameters on CommandDef.** The `params` field enables CLI arg generation, MCP schemas, and palette prompts — but 58% of commands take zero args. Worth the overhead?
 
-- **Entity queries for parameter resolution.** When `goto` needs a board target, where do the options come from? Apple's `EntityQuery` model solves this cleanly. Should commands declare their parameter sources?
+- **Entity queries for parameter resolution.** When `goto` needs a board target, where do the options come from? Apple's `EntityQuery` model solves this. Should commands declare parameter sources?
 
-- **Context predicates.** VS Code uses `when` clauses to conditionally enable/disable commands. Should command definitions include context predicates beyond the current `modes` field?
+- **Context predicates.** The `when` field on `CommandDef` enables conditional availability. Should this subsume the `modes` field?
 
-- **Surface overrides.** The tree provides defaults for every surface, but sometimes you want a different CLI name or menu position than the tree implies. What's the override syntax? Probably optional fields on the command def.
+- **Surface overrides.** Sometimes you want a different CLI name or menu position than the tree implies. Override syntax is probably optional fields on the command def.
 
-- **Cross-app discovery.** How does an external consumer know an app is command-centric? Options: (a) `km describe`, (b) well-known CLI subcommand, (c) environment variable. Detection should be zero-config.
+- **Cross-app discovery.** How does an external consumer detect a command-centric app? Options: `km describe`, well-known CLI subcommand, or env var. Should be zero-config.
 
-- **Relationship to OS-level systems.** The command tree has enough metadata to generate Apple App Intents or Microsoft App Actions manifests. The hard part (defining actions, parameters, descriptions) is already done — it's just a translation task. Should this be built-in?
+- **OS-level manifest generation.** The command tree has enough metadata to generate Apple App Intents or Microsoft App Actions manifests automatically. Worth building in?
 
 ---
 

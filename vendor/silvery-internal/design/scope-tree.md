@@ -2,6 +2,23 @@
 
 _A unified tree for effects, concurrency, observability, and lifecycle. Connects [state-api-redesign.md](./state-api-redesign.md) (effects, async updates) with [loggily](../../loggily/) (spans, logs, tracing) and prior work in [legion/centurion](~/Code/legion/centurion/) (structured concurrency)._
 
+## v1 Surface vs Future
+
+**v1 (core)**:
+
+- Scope creation, disposal, and nesting (`Scope`, `createChild`, `[Symbol.dispose]`)
+- `fx.delay()`, `fx.interval()` — timer effects with scoped cleanup
+- AbortSignal-based cancellation cascade (parent cancel → child cancel → provider abort)
+- Testing with mock providers and `withTestClock()`
+- Scoped cleanup via DisposableStack (`scope.defer()`)
+
+**Future (defer)**:
+
+- `fx.from()` full API wrapping and execution/serialization policy matrix — see [Appendix: Advanced Effect Policies](#appendix-advanced-effect-policies)
+- Advanced plugins (`withRateLimit`, `withPriority`, `withSupervision`, `withRetry`) — see [Appendix: Advanced Plugins](#appendix-advanced-plugins)
+- Scope-level permissions and sandboxing
+- Full loggily-as-spans integration (scope = span, `withTracing()`)
+
 ## The Pattern
 
 A **tree of scopes where ownership, lifecycle, and communication follow the tree edges.** Parent owns children. Cancellation flows down. Errors and results flow up. Nothing outlives its parent.
@@ -27,17 +44,21 @@ This pattern appears in every major system — but each implements it for only o
 | **Legion/Centurion**  | TaskGroup tree         | TaskGroup       | AbortSignal            | Exception           |
 | **Silvery**           | Scope tree             | Scope           | Cancellation + cleanup | Error + spans       |
 
+## When Scopes Are Created
+
+- **App startup**: `run(app)` creates the root scope
+- **Command invocation**: `app.invoke(id)` creates a child scope
+- **`op()` intercepted async methods**: run in a child scope
+- **Direct method calls**: run in the caller's scope (or root if none)
+- **`app.rt.scope.spawn(name, fn)`**: explicit child scope
+
+## Providers vs Effect Providers
+
+Runtime providers (`app.rt.providers`) are plain typed objects providing I/O capabilities. Effect providers are the same objects — `fx.effect()` creates descriptors that look up the appropriate provider at execution time. There is one provider registry, not two.
+
 ## Why It's Not Native
 
-Every programmer uses this pattern daily (function calls form a tree, block scopes nest, React components unmount children). Yet no mainstream language provides it as a unified primitive. Why?
-
-**1. Async broke lexical scoping.** Block scoping works beautifully for synchronous code — the scope IS the lifetime. Promises broke this. `fetch(url)` returns a Promise that outlives the calling function. There's no ownership. Fire-and-forget is the default. Structured concurrency (Trio 2018, Kotlin, Swift, Java Loom) is the recent effort to restore scope-as-lifetime for async work.
-
-**2. Concerns evolved separately.** Memory management got RAII and GC. Concurrency got threads and async/await. Observability got logging frameworks. Error handling got try/catch. Each reinvented the tree independently, in separate code, with separate APIs. Nobody stepped back to notice they're all the same tree.
-
-**3. Flat namespaces in the OS.** PIDs, file descriptors, thread IDs are flat integers. The tree structure of process groups exists but is weakly enforced. Most runtimes inherit this flatness.
-
-**4. No unified effect model.** "Doing I/O," "managing concurrency," "handling errors," and "observing execution" are treated as separate concerns with separate mechanisms. A unified scope tree needs a unified model — which is what algebraic effects research explores, but hasn't reached mainstream languages.
+Every programmer uses this pattern daily, yet no mainstream language provides it as a unified primitive. Async broke lexical scoping (Promises outlive the calling function), and the four concerns — memory, concurrency, observability, error handling — each reinvented the tree independently. Structured concurrency (Trio 2018, Kotlin, Swift, Java Loom) is the recent effort to restore scope-as-lifetime for async work.
 
 ## What If Everything is Scoped?
 
@@ -214,124 +235,11 @@ const fx = {
 }
 ```
 
-### `fx.from()` — wrapping any API into effects
+### `fx.from()` and `fx.effect()` — future API wrapping
 
-Any object with methods can become a scoped effect provider in one line:
+`fx.from(impl)` will wrap any object's methods into scoped effect providers. `fx.effect(name)` declares abstract capabilities provided at runtime. Both are deferred to post-v1 — see [Appendix: Advanced Effect Policies](#appendix-advanced-effect-policies) for the full design including serialization and execution policy matrices.
 
-```typescript
-const fs = fx.from(nodeFs.promises)
-const db = fx.from(database)
-const http = fx.from(httpClient)
-```
-
-Each method call creates an `AsyncEffect` descriptor. The original function becomes the default provider. The descriptor is serializable data (`{ provider, method, args }`) — the provider is looked up by name at execution time, not carried on the descriptor.
-
-```typescript
-// What fs.readFile("/data.json", "utf8") creates:
-{
-  provider: "fs",
-  method: "readFile",
-  args: ["/data.json", "utf8"],
-  // Default provider: the real nodeFs.readFile
-}
-
-// What it returns: AsyncEffect<Buffer>
-// When awaited: scope lookup → provider call → real fs.readFile with { signal }
-```
-
-Single function wrapping also works:
-
-```typescript
-const readFile = fx.from(nodeFs.readFile)
-```
-
-**Type mapping** — TypeScript infers return types from the original API:
-
-```typescript
-type Effectified<T> = {
-  [K in keyof T]: T[K] extends (...args: infer A) => Promise<infer R>
-    ? (...args: A) => AsyncEffect<R>
-    : T[K] extends (...args: infer A) => infer R
-      ? (...args: A) => AsyncEffect<R>
-      : T[K]
-}
-```
-
-`fs.readFile(path)` returns `AsyncEffect<Buffer>` because `nodeFs.readFile` returns `Promise<Buffer>`.
-
-**Two flavors:**
-
-| Factory                    | Use case                   | Default provider               |
-| -------------------------- | -------------------------- | ------------------------------ |
-| `fx.from(impl)`            | Wrap an existing API       | The real implementation        |
-| `fx.effect<Args, R>(name)` | Declare an abstract effect | None — must provide at runtime |
-
-```typescript
-// Abstract effects — runtime provides implementation
-const toast = fx.effect<{ message: string; level?: string }, void>("toast")
-const confirm = fx.effect<{ title: string }, boolean>("confirm")
-
-// Wire at runtime:
-createRuntime({
-  toast: showToast,
-  confirm: showDialog,
-})
-
-// In tests:
-testScope({ toast: spy(), confirm: () => true })
-```
-
-`fx.from(impl)` wraps existing APIs — the real implementation IS the default provider. `fx.effect(name)` declares abstract capabilities that different runtimes provide differently (toast in terminal vs browser vs test).
-
-### Serialization and execution policies
-
-Effect descriptors are plain data (`{ provider, method, args }`). Two orthogonal configuration axes:
-
-**Creation policy** (configured on the fx definition) — controls how the descriptor is created:
-
-```typescript
-fx.from(impl) // raw args (zero overhead)
-fx.from(impl, { snapshot: true }) // structuredClone args at creation
-fx.from(impl, { track: false }) // no descriptor, call through directly
-```
-
-**Execution policy** (configured on the scope/provider) — controls what happens when awaited:
-
-| Mode                  | Descriptor       | Scope lookup | Recorded           | Runner called   | Overhead |
-| --------------------- | ---------------- | ------------ | ------------------ | --------------- | -------- |
-| **tracked** (default) | Yes              | Yes          | If `withRecording` | Yes             | ~1-5μs   |
-| **snapshot**          | Yes + clone args | Yes          | Yes (serializable) | Yes             | ~5-50μs  |
-| **direct**            | No               | No           | No                 | Yes (immediate) | ~0       |
-
-```typescript
-// Scope-level: record everything with serialized snapshots
-const scope = testScope({ recording: { snapshot: true } })
-
-// Runtime-level: skip all tracking in production
-createRuntime({ effectMode: "direct" })
-```
-
-**Layer priority**: runtime > scope > fx definition. Runtime says "direct mode" → everything bypasses, regardless of fx definition.
-
-**When to snapshot**: The mutation hazard (args changed between creation and execution) is real in theory but rare in practice — signal-based state management encourages immutable values. Default to raw args (zero overhead). Use `{ snapshot: true }` on specific `fx.from()` calls for APIs with mutable args, or `withRecording({ snapshot: true })` on scopes when recording for replay/DevTools.
-
-**When to go direct**: I/O effects dominate effect overhead (milliseconds of real work vs microseconds of scope bookkeeping). Don't optimize until profiling shows it matters. The `effectMode: "direct"` escape hatch exists but shouldn't be the default.
-
-### Built-in effects are just pre-wrapped APIs
-
-With `fx.from()`, the built-in timer effects aren't special — they're a pre-wrapped API:
-
-```typescript
-export const fx = {
-  ...timerEffects, // delay, interval, cancel — pre-wrapped
-  from, // wrap any API
-  effect, // declare abstract effect
-  all, // parallel with structured cancellation
-  merge, // merge async iterables
-}
-```
-
-Everything uses the same mechanism: `fx.delay(300)` creates an `AsyncEffect<void>` whose provider is `setTimeout`. `fs.readFile(path)` creates an `AsyncEffect<Buffer>` whose provider is `nodeFs.readFile`. Same scope routing, same cancellation, same recording.
+For v1, effects are created explicitly via `fx.delay()`, `fx.interval()`, and hand-written `AsyncEffect` constructors in the `fx` namespace.
 
 ### Effect providers — where AbortSignal meets I/O
 
@@ -513,79 +421,24 @@ Nothing outlives its parent. Every pending I/O operation aborts. Every timer cle
 
 ## Scope Plugins (`with*` composition)
 
-The base scope is minimal: AbortController + children + ALS context. Everything else is composable via `with*` wrappers — the same SlateJS-style plugin pattern used throughout Silvery.
+The base scope is minimal: AbortController + children + ALS context. Everything else is composable via `with*` wrappers — the same SlateJS-style plugin pattern used throughout Silvery. Each `with*` wraps `run()` — the single point where effects execute.
+
+**v1 plugins**: `withRecording()` (capture effect descriptors for testing), `withTestClock()` (controllable time for timer tests).
+
+**Future plugins**: `withTracing()`, `withRetry()`, `withRateLimit()`, `withSupervision()`, `withDevtools()` — see [Appendix: Advanced Plugins](#appendix-advanced-plugins).
 
 ```typescript
-// Runtime with plugins — all scopes get these behaviors
+// v1 — recording for tests
+const scope = pipe(createScope("test"), withRecording())
+await scope.run(() => todo.save(state))
+expect(scope.effects).toEqual([fx.persist({ data: items })])
+
+// Future — composing multiple plugins
 const runtime = pipe(
-  createRuntime({ fetch, persist, toast }),
-  withTracing(), // wraps scope.run() to add loggily spans
-  withRecording(), // wraps scope.run() to capture effect descriptors
-  withDevtools(), // exposes live scope tree to inspector
+  createRuntime({ fetch, persist }),
+  withTracing(), // loggily span per effect
+  withRecording(), // capture descriptors
 )
-
-// Per-scope plugins for specific behaviors
-const scope = pipe(
-  createScope("batchImport"),
-  withRetry({ attempts: 3, backoff: "exponential" }),
-  withRateLimit({ max: 10, per: "second" }),
-)
-```
-
-Each `with*` wraps `run()` — the single point where effects execute:
-
-```typescript
-// withTracing — wraps run() to create a loggily span per effect
-const withTracing =
-  () =>
-  <T extends { run: Function }>(scope: T) => {
-    const { run } = scope
-    scope.run = (effect) => {
-      const span = loggily.startSpan(effect.type, effect.args)
-      return run(effect).then(
-        (v) => {
-          span.end()
-          return v
-        },
-        (e) => {
-          span.end(e)
-          throw e
-        },
-      )
-    }
-    return scope
-  }
-
-// withRecording — wraps run() to capture effect descriptors
-const withRecording =
-  () =>
-  <T extends { run: Function }>(scope: T) => {
-    scope.effects = []
-    const { run } = scope
-    scope.run = (effect) => {
-      scope.effects.push(effect.descriptor)
-      return run(effect)
-    }
-    return scope
-  }
-
-// withRetry — wraps run() to retry failed effects
-const withRetry =
-  ({ attempts, backoff }) =>
-  <T extends { run: Function }>(scope: T) => {
-    const { run } = scope
-    scope.run = async (effect) => {
-      for (let i = 0; i < attempts; i++) {
-        try {
-          return await run(effect)
-        } catch (e) {
-          if (i === attempts - 1) throw e
-          if (backoff === "exponential") await delay(2 ** i * 100)
-        }
-      }
-    }
-    return scope
-  }
 ```
 
 Same composition model everywhere (see [state-api-redesign.md](./state-api-redesign.md) for the full two-surface architecture):
@@ -676,177 +529,30 @@ test("interval fires repeatedly", async () => {
 
 `withTestClock()` intercepts `fx.delay` and `fx.interval` providers. `clock.advance(ms)` resolves pending timers synchronously. No real `setTimeout` calls, no flaky timing. Works with `scope.cancel()` — cancelling the scope clears all pending timers.
 
-## How Loggily Becomes the Scope Tree
+## How Loggily Becomes the Scope Tree (Future)
 
-Loggily already has the infrastructure:
+Loggily already has span hierarchy, ALS propagation, Disposable cleanup, and zero-overhead conditional logging. The scope tree maps naturally: each scope IS a loggily span. Silvery adds cancellation propagation (AbortController per scope), effect recording (`withRecording()`), structured concurrency (`fx.all()`), and operational plugins (`withRetry()`, `withRateLimit()`).
 
-| Scope tree need             | Loggily feature                             |
-| --------------------------- | ------------------------------------------- |
-| Tree structure              | Span hierarchy (parentId, traceId)          |
-| Identity / namespace        | Colon-separated names (`app:todo:save`)     |
-| Lifetime tracking           | Span start/end with duration                |
-| Context inheritance         | Props merge from parent to child            |
-| Automatic parenting         | AsyncLocalStorage context propagation       |
-| Cleanup protocol            | `Disposable` / `Symbol.dispose()`           |
-| Collection for testing      | `startCollecting()` / `getCollectedSpans()` |
-| Worker thread support       | Worker message forwarding                   |
-| Zero-overhead when disabled | `log.debug?.()` conditional logging         |
-| Output modes                | Console (dev), JSON (prod), custom writers  |
+Two v1-adjacent additions that depend on scopes but not full loggily integration:
 
-What Silvery adds on top (via `with*` plugins on the scope):
-
-- **`withTracing()`** — each `scope.run()` becomes a loggily span
-- **`withRecording()`** — captures effect descriptors for testing/replay
-- **Cancellation propagation** — AbortController per scope, linked parent→child
-- **`withRetry()` / `withRateLimit()`** — operational policies
-- **`fx.all()`** — structured concurrency via child scopes
-- **`fx.mutex(key)`** — named mutex for exclusive resource access within async updates. Scoped — released when the update's scope ends. Multiple updates acquiring the same mutex queue behind each other; updates with different (or no) mutexes run concurrently.
-- **`fx.batch(updates)`** — group multiple updates into a single atomic batch. Signal mutations from all updates apply together, triggering one re-render instead of N.
-
-Loggily provides the tree. Silvery provides the semantics. Plugins compose behaviors.
-
-### Development experience
-
-```bash
-# See the full scope tree with timing
-TRACE=1 bun run app
-# → SPAN app:todo:importAndSave (246ms)
-# →   INFO  "starting import" {url: "..."}
-# →   SPAN app:todo:fetch (234ms)
-# →   SPAN app:todo:persist (12ms) {count: 42}
-
-# Filter to specific scopes
-TRACE=app:todo bun run app
-
-# JSON output for production
-TRACE_FORMAT=json bun run app
-# → {"name":"app:todo:fetch","duration":234,"traceId":"abc","parentId":"def"}
-
-# Debug logging for specific namespaces
-DEBUG=app:todo:* bun run app
-```
+- **`fx.mutex(key)`** — named mutex for exclusive resource access within async updates. Scoped — released when the update's scope ends.
+- **`fx.batch(updates)`** — group multiple updates into a single atomic batch, triggering one re-render instead of N.
 
 ## Why async/await Over Generators
 
-An earlier version of this design used generators (`yield*` with typed adapters). We switched to async/await because:
-
-1. **Natural TypeScript typing.** `await fx.fetch(url)` returns `Response` — no adapter trick needed. TypeScript's `Generator<Y, R, N>` has a single `Next` type for all yield points ([Design Limitation #32523](https://github.com/microsoft/TypeScript/issues/32523)), requiring a `yield*` adapter workaround per effect. `async/await` just works.
-
-2. **Scope captures effects via ALS.** The scope tree records every effect that passes through it automatically — no `collect(generator)` needed. Test by swapping providers and inspecting `scope.effects`.
-
-3. **AbortSignal is built-in.** The scope owns an `AbortController`. Providers receive the signal automatically. Native `fetch`, `setTimeout`, and every AbortSignal-aware API cancels automatically. No custom cancellation protocol.
-
-4. **Everyone knows async/await.** Generators with `yield*` are less familiar. Async functions are standard JavaScript — no learning curve.
-
-5. **Plugin composition.** `with*` wrappers on `scope.run()` compose naturally. Tracing, recording, retry, rate limiting — all just function wrapping on the same `run()` method.
-
-What we lose: generators' synchronous `collect()` (drive a generator without a runtime) and explicit step-by-step control (`gen.next(value)`). What we gain: natural typing, familiar syntax, platform-native cancellation, and the scope tree as the universal collection/tracing/cancellation mechanism.
+An earlier version used generators (`yield*` with typed adapters). We switched to async/await for three reasons: natural TypeScript typing (`await fx.fetch(url)` returns `Response` — no adapter trick for TS's single-`Next`-type limitation [#32523](https://github.com/microsoft/TypeScript/issues/32523)), platform-native cancellation via AbortSignal, and universal familiarity. What we lose: generators' synchronous `collect()` and explicit step-by-step control. What we gain: the scope tree as the universal collection/tracing/cancellation mechanism.
 
 ## Prior Art
 
-### Kotlin Coroutine Scopes — The Most Mature
+**Kotlin coroutines** (2018) — the most mature scope tree in a mainstream language. `CoroutineScope` maps almost 1:1 to our `Scope`. Key lesson: `SupervisorJob` (don't cancel siblings on failure) is the most-requested deviation from strict structured concurrency.
 
-Kotlin's [structured concurrency](https://kotlinlang.org/docs/coroutines-basics.html#structured-concurrency) (2018) is the most polished implementation of scope trees in a mainstream language. Every coroutine runs inside a `CoroutineScope`. Scopes form a tree. Cancellation flows down. Errors propagate up.
+**Effection v4** — <5KB structured concurrency for JavaScript using generators. Proves scope trees work in production JS. We differ: async/await for natural typing, integrated observability, state management integration.
 
-```kotlin
-// Kotlin — scope tree is built into the language
-coroutineScope {        // parent scope
-    val data = async {  // child — cancelled if parent cancels
-        fetchData(url)  // suspend function — like our async update
-    }
-    launch {            // child — fire-and-forget, still scoped
-        logProgress()
-    }
-    data.await()        // structured: parent waits for children
-}
-// ALL children complete (or cancel) before this line runs
-```
+**Effect.ts** — maximalist typed effect system. Powerful but heavyweight for a TUI framework. Their fiber tree validates scope-as-tree; their `Scope` with finalizers = our DisposableStack.
 
-**Key concepts that map directly:**
+**Legion/Centurion** — our own prototype. Standalone concurrency library with TaskGroup + AbortSignal. The scope tree completes what centurion started by adding effects-as-data, pluggable providers, and `with*` composition.
 
-| Kotlin                    | Silvery Scope Tree                         |
-| ------------------------- | ------------------------------------------ |
-| `CoroutineScope`          | `Scope`                                    |
-| `coroutineScope { }`      | `scope.createChild(name)`                  |
-| `Job` (lifecycle handle)  | AbortController (cancel/signal)            |
-| `Job.cancel()`            | `scope.cancel()`                           |
-| `Job.children`            | `scope.#children`                          |
-| `SupervisorJob`           | `withSupervision()` plugin (open question) |
-| `CoroutineContext`        | ALS context + providers                    |
-| `Dispatchers.IO/Main`     | Effect providers (the DI boundary)         |
-| `withContext(dispatcher)` | Provider selection per effect type         |
-| `ensureActive()`          | `signal.throwIfAborted()`                  |
-| `NonCancellable`          | No equivalent yet (open question)          |
-
-**What validates our design**: Kotlin proved that scope-as-tree is the right model for async work at production scale (Android, server). Our `Scope` maps almost 1:1 to `CoroutineScope` — we independently arrived at the same shape. Key differences: Kotlin's scopes are language-level (`suspend`); ours are library-level (ALS + AsyncEffect). Kotlin separates dispatchers from scopes; we unify providers with the scope tree. Kotlin has no effect recording or observability built in; we integrate both.
-
-**What we learn**: Kotlin's `SupervisorJob` (don't cancel siblings on failure) is the most-requested deviation from strict structured concurrency. Our `withSupervision()` open question is exactly this. Kotlin's `NonCancellable` context (for cleanup code that must complete) is worth considering.
-
-### Effection v4 — The Closest Cousin
-
-[Effection](https://frontside.com/effection) (Frontside) is a <5KB structured concurrency library for JavaScript using synchronous generators and a scope tree.
-
-**Core model**: Everything is a `Task` in a scope tree. Tasks own their children. Cancellation flows down. Errors propagate up. Nothing outlives its parent.
-
-**Two primitives**:
-
-- **`action()`** — bridges callback-based APIs into the scope tree. Returns a value, registers teardown.
-- **`resource()`** — a long-running process that provides a value. Yields its "ready" value, keeps running until scope closes.
-
-```typescript
-// Effection v4
-import { run, action, resource, spawn } from "effection"
-
-function* fetchData(url) {
-  const response = yield* action(function* (resolve, reject) {
-    const controller = new AbortController()
-    fetch(url, { signal: controller.signal }).then(resolve, reject)
-    return () => controller.abort() // teardown on scope cancel
-  })
-  return yield* action(function* (resolve, reject) {
-    response.json().then(resolve, reject)
-  })
-}
-
-await run(main)
-```
-
-**What validates our design**: Effection proves scope trees work in production JavaScript. We share the same structured concurrency semantics and auto-cleanup. Key differences: Effection uses generators (we use async/await for natural typing), Effection has no observability (we unify with loggily), Effection is standalone (we integrate with state management and React).
-
-### Effect.ts — The Maximalist Alternative
-
-[Effect](https://effect.website) is a comprehensive typed effect system for TypeScript. `Effect<Success, Error, Requirements>` — lazy, composable, with typed errors and compile-time DI.
-
-**Why not for Silvery**: Effect solves a different problem at a different scale. Its type-level encoding adds complexity that doesn't align with Silvery's sip progression. The dependency injection system (Layers, Context) is powerful but heavyweight for a TUI framework where the runtime IS the DI container.
-
-**What we learn**: The fiber tree is a scope tree with supervision. `Effect.all()` with concurrency options = our `fx.all()`. Their `Scope` with finalizers = our DisposableStack.
-
-### Legion/Centurion — The Prototype
-
-[Legion/centurion](~/Code/legion/centurion/) explored structured concurrency for JavaScript with TaskGroup hierarchies and AbortSignal propagation. Our scope tree completes what centurion prototyped:
-
-| Centurion                    | Silvery Scope Tree                           |
-| ---------------------------- | -------------------------------------------- |
-| `TaskGroup`                  | `Scope`                                      |
-| `TaskGroup.run(asyncFn)`     | `scope.run(() => update(s, args))`           |
-| `TaskGroup.spawn("child")`   | `scope.createChild("child")`                 |
-| `TaskGroup.signal`           | `scope.signal` (AbortSignal)                 |
-| `TaskGroup.abort(reason)`    | `scope.cancel(reason)`                       |
-| `[Symbol.dispose]` → abort   | `[Symbol.dispose]` → cancel + cleanup + span |
-| `AsyncLocalStorage` context  | ALS for scope + provider lookup              |
-| Manual `{ signal }` in tasks | Automatic — providers receive signal         |
-| No observability             | Scope IS a loggily span                      |
-| No effect recording          | `withRecording()` captures all effects       |
-| No pluggable providers       | Providers are the DI boundary                |
-| No plugins                   | `with*` composition on scope and runtime     |
-
-Centurion was a standalone concurrency library. Here, structured concurrency is integrated with effects-as-data, loggily's observability tree, pluggable providers, and `with*` composition. One tree, not two libraries.
-
-### Also Related
-
-**Redux Saga** — uses generator functions to `yield` effect descriptors (`call`, `put`, `take`) executed by middleware. Very similar "effects as data" model. We diverged: Saga runs a single global middleware; our effects are scoped to the update's scope tree. Saga uses generators; we use async/await. Saga has no structured concurrency (no automatic cancellation cascading). But the core insight — describe effects as data, test by inspecting descriptors — is the same lineage.
-
-**RxJS / Reactive Streams** — manage async via observable streams with operators (`map`, `filter`, `switchMap`). A different paradigm: Silvery is scope-based (tree of lifetimes), RxJS is stream-based (chain of transformations). RxJS handles backpressure and complex event composition well; Silvery handles lifecycle and cancellation well. They can coexist: wrap an Observable in a scope provider (subscribe on create, unsubscribe on abort). Not a replacement — different tools for different shapes of async work.
+**Redux Saga** — same "effects as data" lineage (yield descriptors, test by inspecting). We add structured concurrency and scoped providers instead of a single global middleware.
 
 | Dimension          | Kotlin coroutines        | Effection v4         | Effect.ts               | Silvery scope tree            |
 | ------------------ | ------------------------ | -------------------- | ----------------------- | ----------------------------- |
@@ -855,14 +561,11 @@ Centurion was a standalone concurrency library. Here, structured concurrency is 
 | **Type safety**    | Full (suspend typing)    | Minimal              | Maximum (3 type params) | Natural (await typing)        |
 | **DI**             | CoroutineContext         | None                 | Layers + Context        | Pluggable providers           |
 | **Observability**  | None built-in            | None built-in        | Built-in tracing        | Unified with loggily          |
-| **Learning curve** | Medium (Kotlin-specific) | Low                  | High                    | Lowest (async/await)          |
 | **Scope tree**     | Yes (Job hierarchy)      | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
 | **Cleanup**        | Job.invokeOnCompletion   | Generator teardown   | Scope finalizers        | DisposableStack + abort       |
 | **Cancellation**   | CancellationException    | Generator throw      | Fiber interruption      | AbortSignal (platform)        |
-| **State mgmt**     | None                     | None                 | Ref, FiberRef           | Signals (reactive)            |
 | **Plugins**        | CoroutineContext elems   | None                 | Layers                  | `with*` composition           |
 | **Testing**        | `runTest { }`            | Run generators       | Provide test layers     | Swap providers, inspect scope |
-| **Supervision**    | SupervisorJob            | None                 | Supervisor fiber        | `withSupervision()` (TBD)     |
 
 ## What This Enables
 
@@ -878,17 +581,82 @@ Centurion was a standalone concurrency library. Here, structured concurrency is 
 
 ## Open Questions
 
-- **Restart/supervision strategies.** Erlang's supervisor can restart failed children (one-for-one, one-for-all, rest-for-one). Should Silvery scopes support restart policies via a `withSupervision()` plugin? Or is cancel-on-error sufficient for TUI apps?
+- **Supervision strategies.** Should scopes support restart policies via `withSupervision()` (Erlang-style one-for-one, etc.), or is cancel-on-error sufficient for TUI apps?
 
-- **Scope-level error boundaries.** React has `ErrorBoundary` components. Should model scopes have configurable error handling via `withErrorBoundary()` (catch and recover vs propagate)?
+- **Scope-level error boundaries.** Should model scopes have `withErrorBoundary()` (catch and recover vs propagate)?
 
-- **Cross-scope communication beyond dispatch.** `fx.dispatch(Model, "update", args)` sends a message to another model. Should scopes be able to watch/subscribe to each other's state changes?
+- **Non-cancellable blocks.** Kotlin has `NonCancellable` for cleanup code that must complete. `scope.defer()` likely covers most cases; `withNonCancellable()` if needed.
 
-- **Scope priorities and scheduling.** Should some scopes have priority over others? (e.g., UI-critical effects before background sync) Could be a `withPriority()` plugin.
+---
 
-- **Resource limits per scope.** Maximum concurrent effects, memory budgets, timeout policies. Centurion explored concurrency limits and backpressure — `withConcurrencyLimit()` and `withTimeout()` plugins.
+## Appendix: Advanced Effect Policies
 
-- **Non-cancellable blocks.** Kotlin has `withContext(NonCancellable)` for cleanup code that must complete even during cancellation (e.g., flushing a buffer to disk). We don't have an equivalent. Options: (a) `scope.defer()` already runs during dispose — use it for must-complete cleanup, (b) add a `withNonCancellable()` wrapper that creates a detached scope with no parent signal, (c) just catch `AbortError` and continue. Likely (a) covers most cases; (b) if needed.
+_Deferred from v1. Included here for design completeness._
+
+### `fx.from()` — wrapping any API into effects
+
+Any object with methods can become a scoped effect provider: `const fs = fx.from(nodeFs.promises)`. Each method call creates an `AsyncEffect` descriptor. The original function becomes the default provider. The descriptor is serializable data (`{ provider, method, args }`) — looked up by name at execution time.
+
+Two flavors: `fx.from(impl)` wraps existing APIs (real implementation IS the default provider). `fx.effect(name)` declares abstract capabilities provided differently per runtime (toast in terminal vs browser vs test).
+
+### Serialization and execution policies
+
+Effect descriptors are plain data. Two orthogonal configuration axes:
+
+**Creation policy** (on the fx definition): `fx.from(impl)` (raw args, zero overhead), `fx.from(impl, { snapshot: true })` (structuredClone args), `fx.from(impl, { track: false })` (call through directly).
+
+**Execution policy** (on the scope/provider):
+
+| Mode                  | Descriptor       | Scope lookup | Recorded           | Overhead |
+| --------------------- | ---------------- | ------------ | ------------------ | -------- |
+| **tracked** (default) | Yes              | Yes          | If `withRecording` | ~1-5us   |
+| **snapshot**          | Yes + clone args | Yes          | Yes (serializable) | ~5-50us  |
+| **direct**            | No               | No           | No                 | ~0       |
+
+Layer priority: runtime > scope > fx definition. Default to raw args (zero overhead). Use `{ snapshot: true }` for mutable-arg APIs. Use `effectMode: "direct"` only when profiling shows it matters.
+
+## Appendix: Advanced Plugins
+
+_Deferred from v1. Included here for design completeness._
+
+Each `with*` wraps `scope.run()` — the single point where effects execute:
+
+```typescript
+// withRetry — wraps run() to retry failed effects
+const withRetry =
+  ({ attempts, backoff }) =>
+  <T extends { run: Function }>(scope: T) => {
+    const { run } = scope
+    scope.run = async (effect) => {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await run(effect)
+        } catch (e) {
+          if (i === attempts - 1) throw e
+          if (backoff === "exponential") await delay(2 ** i * 100)
+        }
+      }
+    }
+    return scope
+  }
+
+// withTracing — wraps run() to create a loggily span per effect
+const withTracing =
+  () =>
+  <T extends { run: Function }>(scope: T) => {
+    const { run } = scope
+    scope.run = (effect) => {
+      const span = loggily.startSpan(effect.type, effect.args)
+      return run(effect).then(
+        (v) => { span.end(); return v },
+        (e) => { span.end(e); throw e },
+      )
+    }
+    return scope
+  }
+```
+
+Additional plugin ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `withSupervision(strategy)`, `withConcurrencyLimit(n)`, `withTimeout(ms)`, `withDevtools()`.
 
 ---
 
