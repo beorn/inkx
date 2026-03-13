@@ -37,7 +37,7 @@ Headless terminal testing library (like Playwright for terminal apps). Tests TUI
 | 4 | **Cursor visibility** | Hidden/shown via `DECTCEM`. | `toHaveCursorVisible()`, `toHaveCursorHidden()` |
 | 5 | **Terminal modes** | 11 modes set via escape sequences: `altScreen`, `bracketedPaste`, `mouseTracking`, `applicationCursor`, `applicationKeypad`, `autoWrap`, `focusTracking`, `originMode`, `insertMode`, `reverseVideo`, `cursorVisible`. | `toBeInMode("altScreen")` |
 | 6 | **Resolved RGB colors** | After palette lookup, SGR processing, and theme application. Virtual renderers store token names (`$primary`), not resolved `{ r, g, b }`. | `toHaveFg("#ff0000")`, `toHaveBg({ r, g, b })` |
-| 7 | **Cell attributes** | Bold, italic, faint, strikethrough, inverse, underline style — as processed by the emulator. | `toBeBold()`, `toBeItalic()`, `toBeFaint()`, `toHaveUnderline("curly")` |
+| 7 | **Cell attributes** | Bold, italic, dim, strikethrough, inverse, underline style — as processed by the emulator. | `toBeBold()`, `toBeItalic()`, `toBeDim()`, `toHaveUnderline("curly")` |
 | 8 | **ANSI sequence correctness** | Malformed escapes, wrong parameter counts, unsupported sequences — only visible when a real emulator parses the output. | Feed raw ANSI via `term.feed()`, assert rendered result |
 | 9 | **Incremental rendering fidelity** | Cursor movement sequences (`CUP`, `CUU`, `CUD`) + partial updates. Verifies the ANSI output path produces correct screen state. | Compare `term.screen` text after incremental vs full render |
 | 10 | **Scroll regions (DECSTBM)** | Set Top and Bottom Margins — content scrolls within a region. No virtual equivalent. | Feed ANSI with scroll region, verify content positions |
@@ -198,13 +198,13 @@ region.containsText("foo")   // Boolean search
 
 ```typescript
 const cell = term.cell(0, 5)
-cell.text          // Character
+cell.char          // Character (grapheme cluster)
 cell.fg            // { r, g, b } | null
 cell.bg            // { r, g, b } | null
 cell.bold          // boolean
-cell.faint         // boolean
+cell.dim           // boolean (ECMA-48 "faint")
 cell.italic        // boolean
-cell.underline     // "none" | "single" | "double" | "curly" | "dotted" | "dashed"
+cell.underline     // false | "single" | "double" | "curly" | "dotted" | "dashed"
 cell.strikethrough // boolean
 cell.inverse       // boolean
 cell.wide          // boolean (CJK, emoji)
@@ -216,20 +216,23 @@ cell.wide          // boolean (CJK, emoji)
 
 Import: `import "@termless/test/matchers"`
 
-### Text (on RegionView)
+### Text (on RegionView) — auto-retry when awaited
 
 ```typescript
-expect(term.screen).toContainText("Dashboard")
-expect(term.row(0)).toHaveText("Title")          // Exact after trim
+expect(term.screen).toContainText("Dashboard")             // sync
+await expect(term.screen).toContainText("Dashboard")       // auto-retry up to 5s
+expect(term.row(0)).toHaveText("Title")                     // Exact after trim
 expect(term.screen).toMatchLines(["line1", "line2"])
+expect(term.screen).toHaveTextCount("error", 0)                // Occurrence counting
+await expect(term.screen).toHaveTextCount("item", 5)           // Auto-retry
 ```
 
-### Cell Style (on CellView)
+### Cell Style (on CellView) — always sync
 
 ```typescript
 expect(term.cell(0, 0)).toBeBold()
 expect(term.cell(0, 0)).toBeItalic()
-expect(term.cell(0, 0)).toBeFaint()
+expect(term.cell(0, 0)).toBeDim()
 expect(term.cell(0, 0)).toBeStrikethrough()
 expect(term.cell(0, 0)).toBeInverse()
 expect(term.cell(0, 0)).toBeWide()
@@ -238,7 +241,7 @@ expect(term.cell(0, 0)).toHaveFg("#ff0000")      // Hex or { r, g, b }
 expect(term.cell(0, 0)).toHaveBg({ r: 0, g: 0, b: 0 })
 ```
 
-### Terminal State
+### Terminal State — auto-retry when awaited
 
 ```typescript
 expect(term).toHaveCursorAt(5, 10)               // x, y
@@ -249,6 +252,33 @@ expect(term).toBeInMode("altScreen")
 expect(term).toHaveTitle("My App")
 expect(term).toHaveScrollbackLines(100)
 expect(term).toBeAtBottomOfScrollback()
+await expect(term).toHaveVisibleText("Ready!")     // Text on current screen
+await expect(term).toHaveHiddenText("old output")  // Text NOT on screen
+```
+
+### Auto-Retry (Playwright-Style)
+
+Terminal views (term.screen, term.scrollback) are lazy — they re-query the backend on each access, like Playwright locators. When you `await` a matcher, it auto-retries until it passes or times out.
+
+```typescript
+// Retries until "Ready!" appears (default 5s timeout)
+await expect(term.screen).toContainText("Ready!")
+
+// Retries until "Loading..." disappears (.not retry)
+await expect(term.screen).not.toContainText("Loading...")
+
+// Per-call timeout + custom error message
+await expect(term.screen).toContainText("loaded", {
+  timeout: 10_000,
+  message: "App should finish loading",
+})
+
+// Retry multiple assertions together
+import { pollFor } from "@termless/test"
+await pollFor(() => {
+  expect(term.screen).toContainText("ready")
+  expect(term).toHaveCursorAt(0, 5)
+})
 ```
 
 ### Terminal Modes
