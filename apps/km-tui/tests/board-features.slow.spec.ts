@@ -247,6 +247,261 @@ describe("Terminal Sizes", () => {
     // Visual positions (colIndex, cardIndex) are derived from cursorNodeId,
     // so they automatically update when terminal dimensions change.
   })
+
+  // =========================================================================
+  // Wide Terminal Tests (280+ cols)
+  //
+  // Regression: HorizontalVirtualList layout bug only manifested at 280+ col
+  // terminal widths. Columns overlapped or had gaps when the board was wider
+  // than typical terminals.
+  // =========================================================================
+
+  describe("wide terminal (280+ cols)", () => {
+    // 8 columns at 280 cols:
+    //   boardWidth = 280 - 2 (indicator reserved) = 278
+    //   maxExpandedCols = floor(278/35) = 7
+    //   So 7 columns fit, 1 overflows → right overflow indicator should show
+
+    test("280 cols: 8 columns shows 7 with overflow indicator (not all 8)", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("t1")),
+            item("col2", item("t2")),
+            item("col3", item("t3")),
+            item("col4", item("t4")),
+            item("col5", item("t5")),
+            item("col6", item("t6")),
+            item("col7", item("t7")),
+            item("col8", item("t8")),
+          ),
+        { columns: 280, rows: 40 },
+      )
+
+      const text = board.screenshot()
+
+      // First 7 columns should be visible
+      for (let i = 1; i <= 7; i++) {
+        board.expect(`#col${i}`).toExist()
+      }
+
+      // Right overflow indicator should appear (▸ arrows from VerticalScrollIndicator)
+      expect(text).toContain("▸")
+      // Left overflow indicator should NOT appear (we're at the start)
+      expect(text).not.toContain("◂")
+    })
+
+    test("280 cols: columns render without overlapping or gaps", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("Alpha", item("task-a1"), item("task-a2")),
+            item("Bravo", item("task-b1"), item("task-b2")),
+            item("Charlie", item("task-c1")),
+            item("Delta", item("task-d1"), item("task-d2")),
+            item("Echo", item("task-e1")),
+            item("Foxtrot", item("task-f1"), item("task-f2")),
+          ),
+        { columns: 280, rows: 40 },
+      )
+
+      const text = board.screenshot()
+      const lines = text.split("\n")
+
+      // All 6 columns should fit at 280 cols (floor(278/35) = 7, we only have 6)
+      expect(text).toContain("Alpha")
+      expect(text).toContain("Bravo")
+      expect(text).toContain("Charlie")
+      expect(text).toContain("Delta")
+      expect(text).toContain("Echo")
+      expect(text).toContain("Foxtrot")
+
+      // Verify no line exceeds terminal width (no horizontal overflow corruption)
+      for (const line of lines) {
+        expect(line.length).toBeLessThanOrEqual(280)
+      }
+
+      // Column headers should all appear on the same row (side by side, no wrapping)
+      const headerLine = lines.find(
+        (l) => l.includes("Alpha") && l.includes("Bravo") && l.includes("Charlie"),
+      )
+      expect(headerLine).toBeDefined()
+    })
+
+    test("320 cols: all 8 columns fit without overflow indicator", () => {
+      // At 320 cols: boardWidth = 320 - 2 = 318, maxExpandedCols = floor(318/35) = 9
+      // With 8 columns, all fit (9 > 8), no overflow needed
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("t1")),
+            item("col2", item("t2")),
+            item("col3", item("t3")),
+            item("col4", item("t4")),
+            item("col5", item("t5")),
+            item("col6", item("t6")),
+            item("col7", item("t7")),
+            item("col8", item("t8")),
+          ),
+        { columns: 320, rows: 40 },
+      )
+
+      const text = board.screenshot()
+
+      // All 8 columns should be visible
+      for (let i = 1; i <= 8; i++) {
+        board.expect(`#col${i}`).toExist()
+      }
+
+      // No overflow indicators should appear when all columns fit
+      expect(text).not.toContain("▸")
+      expect(text).not.toContain("◂")
+    })
+
+    test("280 cols: navigation works across visible and overflow columns", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("t1")),
+            item("col2", item("t2")),
+            item("col3", item("t3")),
+            item("col4", item("t4")),
+            item("col5", item("t5")),
+            item("col6", item("t6")),
+            item("col7", item("t7")),
+            item("col8", item("t8")),
+          ),
+        { columns: 280, rows: 40 },
+      )
+
+      // Start at col1
+      board.expect("#t1[data-cursor]").toExist()
+
+      // Navigate right through all columns — cursor should reach col8
+      for (let i = 2; i <= 8; i++) {
+        board.command("cursor_right")
+        board.expect(`#t${i}[data-cursor]`).toExist()
+      }
+
+      // After navigating to col8, col8 should be visible (scrolled into view)
+      board.expect("#col8").toExist()
+
+      // Left overflow indicator should now appear (scrolled past col1)
+      const textAtEnd = board.screenshot()
+      expect(textAtEnd).toContain("◂")
+
+      // Navigate back to col1
+      for (let i = 7; i >= 1; i--) {
+        board.command("cursor_left")
+        board.expect(`#t${i}[data-cursor]`).toExist()
+      }
+
+      // Back at col1: left indicator gone, right indicator back
+      const textAtStart = board.screenshot()
+      expect(textAtStart).not.toContain("◂")
+      expect(textAtStart).toContain("▸")
+    })
+
+    test("320 cols: vertical navigation works at wide width", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("a1"), item("a2"), item("a3")),
+            item("col2", item("b1"), item("b2"), item("b3")),
+          ),
+        { columns: 320, rows: 40 },
+      )
+
+      // j/k navigation within column at 320-col width
+      board.expect("#a1[data-cursor]").toExist()
+      board.command("cursor_down")
+      board.expect("#a2[data-cursor]").toExist()
+      board.command("cursor_down")
+      board.expect("#a3[data-cursor]").toExist()
+
+      // k back up
+      board.command("cursor_up")
+      board.expect("#a2[data-cursor]").toExist()
+
+      // Move to col2 from a2 — curswantY lands on b2 (similar Y position)
+      board.command("cursor_right")
+      board.expect("#b2[data-cursor]").toExist()
+      board.command("cursor_down")
+      board.expect("#b3[data-cursor]").toExist()
+
+      // Move back to col1 — cursor restores to a2's Y position
+      board.command("cursor_left")
+      // curswantY preserved: returns to card at similar Y
+      const cursor = board.q("[data-cursor]")
+      expect(cursor.count()).toBeGreaterThan(0)
+    })
+
+    test("280 cols: card content does not overflow into adjacent columns", () => {
+      // Use cards with longish titles to stress column boundary rendering
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("Todo", item("Implement the new dashboard feature"), item("Review pull request #42")),
+            item("InProgress", item("Write integration tests for API"), item("Deploy staging environment")),
+            item("Done", item("Fix authentication bug in login"), item("Update dependency versions")),
+          ),
+        { columns: 280, rows: 40 },
+      )
+
+      const text = board.screenshot()
+      const lines = text.split("\n")
+
+      // All columns visible (3 columns easily fits at 280)
+      expect(text).toContain("Todo")
+      expect(text).toContain("InProgress")
+      expect(text).toContain("Done")
+
+      // Column headers on the same line
+      const headerLine = lines.find((l) => l.includes("Todo") && l.includes("InProgress") && l.includes("Done"))
+      expect(headerLine).toBeDefined()
+
+      // No line exceeds terminal width
+      for (const line of lines) {
+        expect(line.length).toBeLessThanOrEqual(280)
+      }
+    })
+
+    test("320 cols: collapsed columns alongside expanded at very wide width", () => {
+      const { board } = testEnv(
+        () =>
+          item(
+            "board",
+            item("col1", item("t1")),
+            item("col2", item("t2")),
+            item("col3", item("t3")),
+            item("col4", item("t4")),
+          ),
+        { columns: 320, rows: 40 },
+      )
+
+      // Collapse col1
+      board.command("toggle_collapse")
+      board.expect("#t1").not.toExist()
+      board.expect("[data-collapsed]").toExist()
+
+      // Other columns should still be visible
+      board.expect("#col2").toExist()
+      board.expect("#col3").toExist()
+      board.expect("#col4").toExist()
+
+      // No line exceeds terminal width
+      const text = board.screenshot()
+      for (const line of text.split("\n")) {
+        expect(line.length).toBeLessThanOrEqual(320)
+      }
+    })
+  })
 })
 
 // Note: Move Mode tests deferred - feature not yet implemented
