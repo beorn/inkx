@@ -9,10 +9,14 @@ argument-hint: <topic>
 
 ```bash
 bun llm --deep -y "<topic>"
+bun llm --deep --model gpt-5.4-pro -y "<topic>"          # Pro model (~$5-15)
 bun llm --deep -y --context "context" "<topic>"
 bun llm --deep -y --context-file ./src/module.ts "<topic>"
 bun llm --deep -y --with-history "<topic>"
 ```
+
+**Pro model**: Use `--model gpt-5.4-pro` for thorough analysis. The `pro` keyword does NOT
+work with `--deep` (gets absorbed into topic text). Always use `--model gpt-5.4-pro`.
 
 See `/llm` for output format, flags, and background execution.
 

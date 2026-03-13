@@ -56,6 +56,7 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | Pro review/analysis | `bun llm pro "question"` |
 | Pro with context file | `bun llm pro --context-file /tmp/ctx.md -y "question"` |
 | Deep research | `bun llm --deep -y "topic"` |
+| Deep research with Pro | `bun llm --deep --model gpt-5.4-pro -y "topic"` |
 | With context | `bun llm --deep -y --context "context" "topic"` |
 | With history | `bun llm --deep -y --with-history "topic"` |
 | Second opinion | `bun llm opinion "question"` |
@@ -68,6 +69,7 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | `/ask <question>` | `bun llm --ask "<question>"` |
 | `/ask:pro <question>` | `bun llm pro "<question>"` |
 | `/deep <topic>` | `bun llm --deep -y "<topic>"` |
+| `/deep pro <topic>` | `bun llm --deep --model gpt-5.4-pro -y "<topic>"` |
 | `/ask:all <question>` | `bun llm debate -y "<question>"` |
 | `/deep:all <topic>` | `bun llm debate -y "<topic>"` |
 
@@ -80,6 +82,13 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | `opinion` | Second opinion from different provider | ~$0.02 |
 | `debate` | 3 models from different providers + synthesis | ~$1-3 |
 | `quick`/`cheap`/`mini`/`nano` | Fast/cheap (only if explicitly needed) | ~$0.01 |
+
+**WARNING**: Keywords (`pro`, `opinion`, etc.) do NOT work with `--deep` — they get absorbed
+into the topic text. To combine deep research with a specific model, use `--model`:
+```bash
+bun llm --deep --model gpt-5.4-pro -y "topic"   # Correct: deep + pro
+bun llm --deep pro -y "topic"                     # WRONG: "pro" becomes part of topic
+```
 
 ## Flags
 
@@ -159,6 +168,7 @@ This maximizes Pro's value: instead of $15 of "extract this duplicated code" adv
 | "Research this topic" | `bun llm --deep -y "topic"` |
 | "Deep dive on X" | `bun llm --deep -y "topic"` |
 | "Think deep about X" | `bun llm --deep -y "topic"` |
+| "/deep pro X" | `bun llm --deep --model gpt-5.4-pro -y "topic"` |
 | "What do other models think?" | `bun llm debate -y "question"` |
 
 **Note**: "deep" refers to OpenAI's deep research mode, NOT DeepSeek. DeepSeek queries are not supported.
