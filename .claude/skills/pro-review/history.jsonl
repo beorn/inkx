@@ -1,0 +1,1 @@
+{"date":"2026-03-13","package":"termless","path":"vendor/termless","loc":7377,"cost":3.38,"findings":{"P0":5,"P1":6,"P2":2,"P3":0},"bead":"km-termless.pro-review-0313","fixed":{"P0":5,"P1":6},"duration_min":9,"patterns":["backend contract drift","coordinate system inconsistency","fabricated state","snapshot matchers not wired","shell injection"]}
