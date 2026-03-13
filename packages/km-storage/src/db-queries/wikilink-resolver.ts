@@ -21,22 +21,24 @@ import { rowToNode } from "./utils.ts"
 export function findFileByName(db: Database, name: string): KNode | null {
   const normalizedName = name.toLowerCase().replace(/\.md$/, "")
 
-  // Single query: prefer exact name match, fall back to path match
-  // Uses ORDER BY to prioritize name matches over path matches
-  const row = db
+  // Query all matches and check for ambiguity
+  // Prefer exact name matches over path matches
+  const rows = db
     .query(
       `
     SELECT * FROM nodes
     WHERE LOWER(name) = ?
        OR (type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND LOWER(REPLACE(fs_path, '.md', '')) LIKE '%' || ? || '%')
     ORDER BY CASE WHEN LOWER(name) = ? THEN 0 ELSE 1 END
-    LIMIT 1
+    LIMIT 2
   `,
     )
-    .get(normalizedName, normalizedName, normalizedName) as Record<string, unknown> | null
+    .all(normalizedName, normalizedName, normalizedName) as Array<Record<string, unknown>>
 
-  if (!row) return null
-  return rowToNode(row)
+  if (rows.length === 0) return null
+  // Ambiguous — multiple nodes match, return null to avoid arbitrary resolution
+  if (rows.length > 1) return null
+  return rowToNode(rows[0]!)
 }
 
 /**

@@ -57,12 +57,24 @@ export function createLinkResolver(db: Database): LinkResolver {
     if (row.fs_path) {
       const basename = row.fs_path.split("/").pop()?.replace(/\.md$/i, "")
       if (basename) {
-        filesByName.set(basename.toLowerCase(), row.id)
+        const key = basename.toLowerCase()
+        const existing = filesByName.get(key)
+        if (existing === undefined) {
+          filesByName.set(key, row.id)
+        } else if (existing !== null && existing !== row.id) {
+          filesByName.set(key, null) // ambiguous — multiple nodes share this name
+        }
       }
     }
     // Also index by name from data field
     if (row.name) {
-      filesByName.set(row.name.toLowerCase(), row.id)
+      const key = row.name.toLowerCase()
+      const existing = filesByName.get(key)
+      if (existing === undefined) {
+        filesByName.set(key, row.id)
+      } else if (existing !== null && existing !== row.id) {
+        filesByName.set(key, null) // ambiguous — multiple nodes share this name
+      }
     }
   }
 
@@ -82,6 +94,8 @@ export function createLinkResolver(db: Database): LinkResolver {
       const normalized = targetName.toLowerCase().replace(/\.md$/i, "")
       const byName = filesByName.get(normalized)
       if (byName) return byName
+      // null means ambiguous (multiple nodes with that name) — don't resolve
+      if (byName === null) return null
 
       // Fallback: check if target is a node ID directly.
       // Handles ![[ULID]] embeds serialized from embed_source task targets.
@@ -109,7 +123,12 @@ export function createLinkResolver(db: Database): LinkResolver {
 
     addFile(id: string, name: string): void {
       const normalized = name.toLowerCase().replace(/\.md$/i, "")
-      filesByName.set(normalized, id)
+      const existing = filesByName.get(normalized)
+      if (existing === undefined) {
+        filesByName.set(normalized, id)
+      } else if (existing !== null && existing !== id) {
+        filesByName.set(normalized, null) // ambiguous — multiple nodes share this name
+      }
     },
 
     get size(): number {

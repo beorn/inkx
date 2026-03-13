@@ -618,3 +618,159 @@ describe("Property Query Execution", () => {
     expect(results.every((r) => r.id !== "task-blocked" && r.id !== "task-multi-blocked")).toBe(true)
   })
 })
+
+/**
+ * Phrase search via executeQuery (km-storage.query-bugs)
+ *
+ * The parser populates ast.phrases, but executeQuery must use them
+ * to filter results (via content LIKE for phrase ordering).
+ */
+describe("Phrase Search in executeQuery", () => {
+  let db: Database
+
+  beforeEach(() => {
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "doc1",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "The budget review meeting is scheduled",
+      },
+      {
+        id: "doc2",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Please review the budget before deadline",
+      },
+      {
+        id: "doc3",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Quarterly reports are ready",
+      },
+    ])
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  test('quoted phrase "budget review" only matches exact phrase order', () => {
+    const ast = parseQuery('"budget review"')
+    const results = executeQuery(db, ast)
+    expect(results.length).toBe(1)
+    expect(results[0]!.id).toBe("doc1")
+  })
+
+  test("unquoted terms match independently (both docs with budget or review)", () => {
+    const ast = parseQuery("budget review")
+    const results = executeQuery(db, ast)
+    expect(results.length).toBe(2)
+    expect(results.map((r) => r.id)).toContain("doc1")
+    expect(results.map((r) => r.id)).toContain("doc2")
+  })
+
+  test('phrase with no match returns empty: "review budget" (wrong order)', () => {
+    const ast = parseQuery('"review budget"')
+    const results = executeQuery(db, ast)
+    expect(results.length).toBe(0)
+  })
+
+  test("phrase combined with field filter", () => {
+    const ast = parseQuery('"budget review" status:todo')
+    const results = executeQuery(db, ast, "task")
+    expect(results.length).toBe(1)
+    expect(results[0]!.id).toBe("doc1")
+  })
+})
+
+/**
+ * Negated ref conditions (km-storage.query-bugs)
+ *
+ * Negated @mention / #tag / +project must check the specific JSON array path,
+ * not the entire JSON blob. Otherwise -@alice would exclude nodes that happen
+ * to have "alice" anywhere in their data.
+ */
+describe("Negated Ref Conditions", () => {
+  let db: Database
+
+  beforeEach(() => {
+    db = createTestDatabase()
+    seedTestData(db, [
+      {
+        id: "t1",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Task for @alice #frontend +alpha",
+        data: '{"mentions":["alice"],"tags":["frontend"],"projects":["alpha"]}',
+      },
+      {
+        id: "t2",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Task for @bob #backend +beta",
+        data: '{"mentions":["bob"],"tags":["backend"],"projects":["beta"]}',
+      },
+      {
+        id: "t3",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Task with no refs",
+        data: "{}",
+      },
+      {
+        // This node has "alice" as a tag but NOT in mentions.
+        // A buggy negated -@alice that checks the whole JSON blob
+        // would wrongly exclude this node because "alice" appears
+        // in the tags array.
+        id: "t4",
+        type: "p",
+        item: true,
+        task_status: "todo",
+        content: "Task #alice +gamma",
+        data: '{"tags":["alice"],"projects":["gamma"]}',
+      },
+    ])
+  })
+
+  afterEach(() => {
+    db.close()
+  })
+
+  test("-@alice excludes only nodes with alice in mentions, not in tags", () => {
+    const ast = parseQuery("-@alice")
+    const results = executeQuery(db, ast)
+    const ids = results.map((r) => r.id)
+    expect(ids).not.toContain("t1") // has alice in mentions
+    expect(ids).toContain("t2") // bob in mentions
+    expect(ids).toContain("t3") // no mentions
+    expect(ids).toContain("t4") // alice-review in tags, NOT in mentions
+  })
+
+  test("-#frontend excludes only nodes with frontend in tags", () => {
+    const ast = parseQuery("-#frontend")
+    const results = executeQuery(db, ast)
+    const ids = results.map((r) => r.id)
+    expect(ids).not.toContain("t1") // has frontend tag
+    expect(ids).toContain("t2")
+    expect(ids).toContain("t3")
+    expect(ids).toContain("t4")
+  })
+
+  test("-+alpha excludes only nodes with alpha in projects", () => {
+    const ast = parseQuery("-+alpha")
+    const results = executeQuery(db, ast)
+    const ids = results.map((r) => r.id)
+    expect(ids).not.toContain("t1") // has alpha project
+    expect(ids).toContain("t2")
+    expect(ids).toContain("t3")
+    expect(ids).toContain("t4")
+  })
+})

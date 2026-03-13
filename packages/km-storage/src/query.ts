@@ -75,6 +75,7 @@ export function executeQuery(db: Database, ast: QueryAST, baseType?: string, opt
   for (const special of ast.specials) {
     sql += buildBlockedCondition(special, outerTable)
   }
+  for (const phrase of ast.phrases) sql += buildPhraseCondition(phrase, params)
   for (const term of ast.text) sql += buildTextCondition(term, params)
   const pathColumn = needsPathFilter ? "effective_path" : "fs_path"
   for (const pathFilter of ast.paths) {
@@ -276,7 +277,7 @@ function buildRefCondition(ref: QueryRef, params: (string | number)[]): string {
 
   if (ref.negated) {
     params.push(`%"${ref.value}"%`)
-    return ` AND (data IS NULL OR json_extract(data, '$') NOT LIKE ?)`
+    return ` AND (data IS NULL OR json_extract(data, '$.${jsonPath}') IS NULL OR json_extract(data, '$.${jsonPath}') NOT LIKE ?)`
   }
   params.push(`%"${ref.value}"%`)
   return ` AND json_extract(data, '$.${jsonPath}') LIKE ?`
@@ -358,6 +359,12 @@ function buildBlockedCondition(special: QuerySpecial, outerTable: string): strin
 
   // blocked:false - no blocked-by property OR all blockers are done
   return ` AND (json_extract(data, '$.props.blocked-by') IS NULL OR NOT ${blockerSubquery})`
+}
+
+/** Build SQL for phrase search (exact phrase in content, order-sensitive) */
+function buildPhraseCondition(phrase: string, params: (string | number)[]): string {
+  params.push(`%${phrase}%`)
+  return " AND content LIKE ?"
 }
 
 /** Build SQL for text search with negation support */

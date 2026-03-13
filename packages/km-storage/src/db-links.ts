@@ -97,7 +97,7 @@ export function resolveLinks(db: Database, targetId: string, targetName: string)
   const unresolvedLinks = db
     .query(
       `
-    SELECT source_id, section, alias, embedded FROM links
+    SELECT source_id, section, block_id, alias, embedded FROM links
     WHERE target_id IS NULL
     AND LOWER(REPLACE(target_name, '.md', '')) = ?
   `,
@@ -105,6 +105,7 @@ export function resolveLinks(db: Database, targetId: string, targetName: string)
     .all(normalizedName) as Array<{
     source_id: string
     section: string | null
+    block_id: string | null
     alias: string | null
     embedded: number
   }>
@@ -121,7 +122,8 @@ export function resolveLinks(db: Database, targetId: string, targetName: string)
       }
     }
 
-    // Update this specific link
+    // Update this specific link — scope by section and block_id to avoid
+    // updating sibling links (e.g., [[doc#A]] vs [[doc#B]]) from the same source
     db.run(
       `
       UPDATE links
@@ -129,8 +131,10 @@ export function resolveLinks(db: Database, targetId: string, targetName: string)
       WHERE source_id = ?
       AND target_id IS NULL
       AND LOWER(REPLACE(target_name, '.md', '')) = ?
+      AND section IS ?
+      AND block_id IS ?
     `,
-      [actualTargetId, link.source_id, normalizedName],
+      [actualTargetId, link.source_id, normalizedName, link.section, link.block_id],
     )
     resolvedCount++
 
@@ -171,7 +175,7 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
   const unresolvedLinks = db
     .query(
       `
-    SELECT source_id, target_name, section, alias, embedded FROM links
+    SELECT source_id, target_name, section, block_id, alias, embedded FROM links
     WHERE target_id IS NULL
   `,
     )
@@ -179,6 +183,7 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
     source_id: string
     target_name: string
     section: string | null
+    block_id: string | null
     alias: string | null
     embedded: number
   }>
@@ -200,7 +205,8 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
       }
     }
 
-    // Update the link
+    // Update the link — scope by section and block_id to avoid
+    // updating sibling links (e.g., [[doc#A]] vs [[doc#B]]) from the same source
     db.run(
       `
       UPDATE links
@@ -208,8 +214,10 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
       WHERE source_id = ?
       AND target_id IS NULL
       AND LOWER(REPLACE(target_name, '.md', '')) = ?
+      AND section IS ?
+      AND block_id IS ?
     `,
-      [actualTargetId, link.source_id, normalized],
+      [actualTargetId, link.source_id, normalized, link.section, link.block_id],
     )
     resolved++
 
@@ -228,10 +236,19 @@ export function resolveLinksBatch(db: Database, targets: Array<{ id: string; nam
 
 /**
  * Update target_name in links when a node is renamed.
+ * When targetId is provided, only updates links pointing at that specific node
+ * (prevents corrupting links to other nodes that happen to share the same name).
  * Returns the number of links updated.
  */
-export function updateTargetName(db: Database, oldName: string, newName: string): number {
+export function updateTargetName(db: Database, oldName: string, newName: string, targetId?: string): number {
   const normalizedOld = oldName.toLowerCase().replace(/\.md$/, "")
+  if (targetId) {
+    const result = db.run(
+      `UPDATE links SET target_name = ? WHERE LOWER(REPLACE(target_name, '.md', '')) = ? AND target_id = ?`,
+      [newName, normalizedOld, targetId],
+    )
+    return result.changes
+  }
   const result = db.run(`UPDATE links SET target_name = ? WHERE LOWER(REPLACE(target_name, '.md', '')) = ?`, [
     newName,
     normalizedOld,

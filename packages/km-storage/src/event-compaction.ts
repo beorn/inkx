@@ -48,6 +48,14 @@ export function identifyStaleEvents(kmDir: string, db: Database): CompactionResu
     existingIds.add(row.id)
   }
 
+  // Build a set of node IDs that have later events (update, delete, move, etc.)
+  const nodesWithLaterEvents = new Set<string>()
+  for (const event of events) {
+    if (event.type !== "node_created" && event.target) {
+      nodesWithLaterEvents.add(event.target)
+    }
+  }
+
   const kept: Event[] = []
   let staleCount = 0
 
@@ -55,7 +63,10 @@ export function identifyStaleEvents(kmDir: string, db: Database): CompactionResu
     if (event.type === "node_created") {
       const data = event.data as Record<string, unknown>
       const id = data.id as string | undefined
-      if (id && existingIds.has(id)) {
+      // A node_created is only stale if the node exists in DB AND there are
+      // no later events referencing it. If later events exist, the create
+      // must be preserved for replay ordering.
+      if (id && existingIds.has(id) && !nodesWithLaterEvents.has(id)) {
         staleCount++
         continue
       }

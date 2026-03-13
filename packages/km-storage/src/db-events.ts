@@ -13,6 +13,7 @@ import { readFileSync } from "fs"
 import { getMarkerForStatus } from "@km/core"
 import type { Event, TaskStatus } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
+import { deleteSubtree } from "./db-ops.ts"
 
 // =============================================================================
 // Event Application
@@ -319,7 +320,7 @@ function applyNodeMoved(db: Database, event: Event): void {
 
 function applyNodeDeleted(db: Database, event: Event): void {
   if (!event.target) return
-  db.run("DELETE FROM nodes WHERE id = ?", [event.target])
+  deleteSubtree(db, event.target)
 }
 
 function applyTaskClaimed(db: Database, event: Event): void {

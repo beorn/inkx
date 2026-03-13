@@ -305,6 +305,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
         dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
         childrenCache.bust(parentId)
+        clearNameIndex()
+        clearResolveCache()
       })
       log.info?.(`mutation: update ${id}`, {
         changes: summarizeChanges(changes),
@@ -316,6 +318,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         dataStore.moveNode(ctx.nodeId, ctx.newParentId ?? newParentId, ctx.position ?? position)
         childrenCache.bust(oldParentId)
         childrenCache.bust(ctx.newParentId ?? newParentId)
+        clearNameIndex()
+        clearResolveCache()
       })
       log.info?.(`mutation: move ${id} → parent=${newParentId} pos=${position}`)
     },
@@ -324,6 +328,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         const deletedParentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
         dataStore.deleteNode(ctx.nodeId)
         childrenCache.bust(deletedParentId)
+        clearNameIndex()
+        clearResolveCache()
       })
       log.info?.(`mutation: delete ${id}`)
     },
@@ -332,6 +338,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         const id = dataStore.addNode(parentId, ctx.node ?? node)
         ctx.nodeId = id
         childrenCache.bust(parentId)
+        clearNameIndex()
+        clearResolveCache()
         return id
       })
       log.info?.(`mutation: add ${newId} parent=${parentId}`, {
@@ -365,6 +373,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       const cloneParentId = clonedNode.parent_id ?? null
       const id = dataStore.addNode(cloneParentId, clonedNode)
       childrenCache.bust(cloneParentId)
+      clearNameIndex()
+      clearResolveCache()
       return id
     },
     renameNode(id: string, newContent: string, onProgress?: (info: { updated: number; total: number }) => void) {
@@ -407,8 +417,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         onProgress?.({ updated, total })
       }
 
-      // 3. Update target_name in links table
-      dbUpdateTargetName(deps.db, oldName, newName)
+      // 3. Update target_name in links table (scoped to this node's links only)
+      dbUpdateTargetName(deps.db, oldName, newName, id)
 
       // 4. Update path references in rules and blocked-by property targets
       // Pass this (not mutations) so undo proxy intercepts through the proxy chain
@@ -916,6 +926,16 @@ export class IncompleteDatabase extends Error {
   }
 }
 
+/** Performance pragmas for disk-mode SQLite (WAL, cache, mmap) */
+function configurePragmas(db: Database): void {
+  db.run("PRAGMA journal_mode = WAL")
+  db.run("PRAGMA synchronous = NORMAL")
+  db.run("PRAGMA temp_store = MEMORY")
+  db.run("PRAGMA cache_size = -200000")
+  db.run("PRAGMA mmap_size = 268435456")
+  db.run("PRAGMA wal_autocheckpoint = 10000")
+}
+
 /**
  * Detect absolute fs_path values in the database.
  * These indicate a pre-migration database that must be rebuilt.
@@ -1295,13 +1315,7 @@ function* initWithFileLoading(
     }
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
-    // Performance pragmas for disk mode
-    db.run("PRAGMA journal_mode = WAL")
-    db.run("PRAGMA synchronous = NORMAL")
-    db.run("PRAGMA temp_store = MEMORY")
-    db.run("PRAGMA cache_size = -200000")
-    db.run("PRAGMA mmap_size = 268435456")
-    db.run("PRAGMA wal_autocheckpoint = 10000")
+    configurePragmas(db)
     migrateSchema(db)
     db.run(SCHEMA)
   } else {
@@ -1393,13 +1407,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
 
     const dbPath = join(kmDir, "state.db")
     db = new Database(dbPath)
-    // Performance pragmas for disk mode
-    db.run("PRAGMA journal_mode = WAL")
-    db.run("PRAGMA synchronous = NORMAL")
-    db.run("PRAGMA temp_store = MEMORY")
-    db.run("PRAGMA cache_size = -200000")
-    db.run("PRAGMA mmap_size = 268435456")
-    db.run("PRAGMA wal_autocheckpoint = 10000")
+    configurePragmas(db)
     migrateSchema(db)
     db.run(SCHEMA)
     dataStore = createDBDataStore(db, { emitter })

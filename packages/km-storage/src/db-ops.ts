@@ -59,6 +59,39 @@ export function createDbOps(db: Database, emitter?: Emitter): DbOps {
 }
 
 // =============================================================================
+// Shared Helpers
+// =============================================================================
+
+/**
+ * Recursively delete a node and all its descendants, cleaning up links.
+ * Used by both direct SQL (deleteNodeImpl) and event replay (applyNodeDeleted).
+ */
+export function deleteSubtree(db: Database, rootId: string): void {
+  const descendants = db
+    .query(
+      `WITH RECURSIVE tree AS (
+        SELECT id FROM nodes WHERE id = ?
+        UNION ALL
+        SELECT n.id FROM nodes n JOIN tree t ON n.parent_id = t.id
+      )
+      SELECT id FROM tree`,
+    )
+    .all(rootId) as { id: string }[]
+
+  if (descendants.length === 0) return
+
+  const ids = descendants.map((d) => d.id)
+  const placeholders = ids.map(() => "?").join(",")
+
+  // Clean up links referencing any deleted node
+  db.run(`DELETE FROM links WHERE source_id IN (${placeholders})`, ids)
+  db.run(`DELETE FROM links WHERE target_id IN (${placeholders})`, ids)
+
+  // Delete all nodes in the subtree
+  db.run(`DELETE FROM nodes WHERE id IN (${placeholders})`, ids)
+}
+
+// =============================================================================
 // Implementation Functions (internal)
 // =============================================================================
 
@@ -147,17 +180,25 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
 function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
   log.debug?.(`deleteNode: ${nodeId} emitter=${!!emitter}`)
   if (emitter) {
+    // Snapshot metadata before deletion so downstream (e.g. SyncManager) can act
+    const node = db.query("SELECT fs_path, type, parent_id, item FROM nodes WHERE id = ?").get(nodeId) as {
+      fs_path: string | null
+      type: string
+      parent_id: string | null
+      item: number
+    } | null
+
     emitter.emit(
       {
         type: "node_deleted",
         actor: "user",
         target: nodeId,
-        data: {},
+        data: node ? { fs_path: node.fs_path, type: node.type, parent_id: node.parent_id, item: node.item === 1 } : {},
       },
       { db },
     )
   } else {
-    db.run("DELETE FROM nodes WHERE id = ?", [nodeId])
+    deleteSubtree(db, nodeId)
   }
 }
 
