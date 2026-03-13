@@ -209,7 +209,7 @@
 2 vendor/silvery/examples/web/showcases/shared.tsx
 5 vendor/silvery/examples/web/showcases/text-input.tsx
 8 vendor/silvery/examples/web/showcases/theme-explorer.tsx
-2 vendor/silvery/examples/web/viewer-app.tsx
+3 vendor/silvery/examples/web/viewer-app.tsx
 11 vendor/silvery/packages/compat/src/ink-components.ts
 12 vendor/silvery/packages/compat/src/ink-hooks.ts
 24 vendor/silvery/packages/compat/src/ink-render.ts
@@ -313,7 +313,6 @@
 2 vendor/silvery/tests/features/inline-focus-reporting.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 4 vendor/silvery/tests/features/prop-removal.test.tsx
-14 vendor/silvery/tests/features/resize-garble.test.tsx
 3 vendor/silvery/tests/features/run-exit.test.tsx
 11 vendor/silvery/tests/features/scrollback-chaos.fuzz.tsx
 5 vendor/silvery/tests/features/scrollback-cross-backend.fuzz.tsx

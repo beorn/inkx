@@ -457,6 +457,36 @@ for await (const item of pipeline) { ... }
 - [ ] Generator pipelines — `for await (x of pipeline)` / not chained `Promise.all`
 - [ ] Single fan-out OK — `Promise.all([a, b, c])` / not `Promise.all(xs.map(...))`
 
+#### Async/Await vs Generators: Two Yield Mechanisms
+
+JavaScript has two yield mechanisms. Use each for its natural purpose:
+
+- **`async/await`** yields **control** — "do this I/O, give me the result back." The function pauses, the runtime executes the effect, and the function resumes with the return value.
+- **Generators** (`function*` / `async function*`) yield **content** — "here's the next chunk." The function produces a sequence of values, consumed by the caller.
+
+```typescript
+// async/await: yields control to perform effects
+async save(s) {
+  const data = await fx.fetch(url)  // control → runtime → result back
+  await fx.persist({ data })        // control → runtime → done
+}
+
+// async generator: yields content progressively
+async *respond(s) {
+  for await (const chunk of fx.stream("ai", { prompt })) {
+    s.text.value += chunk
+    yield  // content → "re-render with what I have so far"
+  }
+}
+```
+
+**Don't mix them up.** If an update does I/O but doesn't stream content, use `async`. If it streams progressive content to the view, use `async function*`. Don't use generators for control flow (that's Redux-Saga territory — more ceremony for no benefit when `await` works).
+
+**Guidelines:**
+- [ ] `async/await` for effects — `await fx.fetch()` / not `yield fx.fetch()`
+- [ ] `async function*` for streaming content — `yield` to push chunks / not timers + reveal fractions
+- [ ] Never use generators purely for control flow — `await` is simpler and idiomatic
+
 ---
 
 ## Part 2: The Fast Feedback Loop

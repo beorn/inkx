@@ -53,6 +53,8 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | Goal | Command |
 |------|---------|
 | Standard question | `bun llm "question"` |
+| Pro review/analysis | `bun llm pro "question"` |
+| Pro with context file | `bun llm pro --context-file /tmp/ctx.md -y "question"` |
 | Deep research | `bun llm --deep -y "topic"` |
 | With context | `bun llm --deep -y --context "context" "topic"` |
 | With history | `bun llm --deep -y --with-history "topic"` |
@@ -64,6 +66,7 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 | Shortcut | Equivalent |
 |----------|------------|
 | `/ask <question>` | `bun llm --ask "<question>"` |
+| `/ask:pro <question>` | `bun llm pro "<question>"` |
 | `/deep <topic>` | `bun llm --deep -y "<topic>"` |
 | `/ask:all <question>` | `bun llm debate -y "<question>"` |
 | `/deep:all <topic>` | `bun llm debate -y "<topic>"` |
@@ -72,7 +75,8 @@ Response is ALWAYS written to a file. The file path is printed on stderr both as
 
 | Keyword | What | Cost |
 |---------|------|------|
-| *(none)* | Best available model (gpt-5.2 preferred) | ~$0.02 |
+| *(none)* | Best available model (gpt-5.4 preferred) | ~$0.02 |
+| `pro` | Pro model (gpt-5.4-pro) — deep code reviews, thorough analysis | ~$5-15 |
 | `opinion` | Second opinion from different provider | ~$0.02 |
 | `debate` | 3 models from different providers + synthesis | ~$1-3 |
 | `quick`/`cheap`/`mini`/`nano` | Fast/cheap (only if explicitly needed) | ~$0.01 |
@@ -139,6 +143,7 @@ output file just like a normal completion — read it with the `Read` tool.
 | User Says | Action |
 |-----------|--------|
 | "Ask ChatGPT/GPT about X" | `bun llm "X"` |
+| "Pro review of X" | `bun llm pro --context-file /tmp/ctx.md -y "X"` |
 | "Get a second opinion" | `bun llm opinion "X"` |
 | "Research this topic" | `bun llm --deep -y "topic"` |
 | "Deep dive on X" | `bun llm --deep -y "topic"` |
