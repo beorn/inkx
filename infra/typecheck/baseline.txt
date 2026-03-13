@@ -146,8 +146,9 @@
 3 vendor/accountly/tests/providers/xai.test.ts
 1 vendor/accountly/tests/switcher.test.ts
 1 vendor/bearlymade/packages/vitest-silvery-dots/src/index.tsx
+9 vendor/flexily/bench/classic-vs-zero.bench.ts
 9 vendor/flexily/scripts/measure-bundle.ts
-2 vendor/flexily/src/classic/layout.ts
+4 vendor/flexily/src/classic/layout.ts
 2 vendor/flexily/src/layout-helpers.ts
 58 vendor/flexily/tests/layout.test.ts
 1 vendor/flexily/tests/test-utils.ts
@@ -156,6 +157,7 @@
 1 vendor/loggily/tests/features.test.ts
 42 vendor/loggily/tests/logger.test.ts
 1 vendor/loggily/tests/tracing.test.ts
+1 vendor/silvery-internal/prototype/aichat-v2/signal.ts
 13 vendor/silvery-internal/prototype/aichat-v2/view.tsx
 5 vendor/silvery/examples/inline/scrollback.tsx
 1 vendor/silvery/examples/interactive/_input-debug.tsx
@@ -310,8 +312,10 @@
 5 vendor/silvery/tests/features/ansi-sanitize.test.ts
 11 vendor/silvery/tests/features/cursor-compat.test.tsx
 1 vendor/silvery/tests/features/default-bg.test.tsx
+2 vendor/silvery/tests/features/fuzz-properties.fuzz.tsx
 2 vendor/silvery/tests/features/inline-focus-reporting.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
+1 vendor/silvery/tests/features/pipeline-bugfixes.test.tsx
 4 vendor/silvery/tests/features/prop-removal.test.tsx
 3 vendor/silvery/tests/features/run-exit.test.tsx
 11 vendor/silvery/tests/features/scrollback-chaos.fuzz.tsx
