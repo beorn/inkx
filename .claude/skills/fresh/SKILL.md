@@ -10,7 +10,7 @@ argument-hint: [<topic>]
 **When to use /fresh vs /llm vs /deep vs pro:**
 - `/fresh` — You're stuck. Each fix breaks something else. You need to stop, reflect, and get architectural advice. (Structured protocol: gather context → reflect → ask)
 - `/llm` — You have a question for another model. Quick query, second opinion, or debate. (Direct: ask → get answer)
-- `/llm pro` — Pro model (gpt-5.4-pro, ~$5-15). Use for thorough code reviews, deep analysis, or when standard isn't good enough. (Direct: ask → get answer, but with best model)
+- `/llm pro` — Pro model (gpt-5.4-pro, ~$5-15). Use for thorough code reviews, deep analysis, or when standard isn't good enough. **Always do your own `/code clean` review first** — fix obvious issues before paying Pro. Pro's value is finding what you missed. (Direct: ask → get answer, but with best model)
 - `/deep` — You want thorough research with web search and citations on a topic. (Expensive: ~$2-5, 2-15 min)
 
 Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/llm --deep`.

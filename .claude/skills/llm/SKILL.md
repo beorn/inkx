@@ -138,6 +138,17 @@ bun llm recover <id>         # Retrieve completed response by ID
 If the response isn't ready yet, wait a few minutes and try `recover` again. Recovery writes the
 output file just like a normal completion — read it with the `Read` tool.
 
+## Pro Reviews: Do Your Own Review First
+
+Before sending code to GPT 5.4 Pro ($5-15 per call), **always do your own thorough review first**:
+
+1. **Read the code yourself** — use your 200K context window to hold entire packages
+2. **Run `/code clean` dry-run** — find DRY violations, complexity hotspots, consistency issues
+3. **Fix what you find** — don't pay Pro to tell you about obvious issues
+4. **Then send cleaned code to Pro** — Pro's value is finding what you missed: subtle correctness bugs, architectural insights, edge cases
+
+This maximizes Pro's value: instead of $15 of "extract this duplicated code" advice, you get $15 of deep analysis.
+
 ## When to Use
 
 | User Says | Action |

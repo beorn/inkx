@@ -82,6 +82,14 @@ Task(subagent_type="general-purpose", prompt="run deep research on X")
 **If running from a subagent/Task**: Use foreground with `timeout=600000` as a last resort
 (subagents don't block the user). But prefer background when possible.
 
+## Pro Reviews: Do Your Own Review First
+
+Before sending code to Pro models ($5-15 per call), **do your own thorough review first**:
+1. Read the code yourself (200K context holds entire packages)
+2. Run `/code clean` dry-run — fix DRY violations, complexity, consistency
+3. Fix what you find — don't pay Pro for obvious issues
+4. Then send cleaned code — Pro's value is what you missed (subtle bugs, architecture, edge cases)
+
 ## Context Gathering (CRITICAL for Code Questions)
 
 **First**: Use `/recall` to search session history for prior work on the topic: `bun recall "topic"`. Read the results, extract relevant insights, and summarize them into `--context` — don't pass raw recall output.
