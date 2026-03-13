@@ -8,19 +8,25 @@ export const BOTTOM_BAR_HEIGHT = 1 // Workspace bottom bar (status counters + co
 export const FILTER_PANEL_WIDTH = 60
 export const COLLAPSED_COL_WIDTH = 3
 
-/** Compute uniform expanded column width given board width and collapsed state.
- *  Columns are flush (no gap/separator) — HVL renders them edge-to-edge. */
+/** Compute expanded column widths given board width and collapsed state.
+ *  Columns are flush (no gap/separator) — HVL renders them edge-to-edge.
+ *
+ *  Returns a base `expandedWidth` and a `remainder` count. The first `remainder`
+ *  expanded columns each get +1 char so that column widths sum exactly to the
+ *  available viewport (no trailing gap at wide terminals). */
 export function computeColumnWidths(
   boardWidth: number,
   columns: Array<{ node: { id: string } }>,
   collapsedNodes: Set<string>,
-): { expandedWidth: number; effectiveColCount: number } {
+): { expandedWidth: number; remainder: number; effectiveColCount: number } {
   const totalCollapsed = columns.reduce((n, col) => n + (collapsedNodes.has(col.node.id) ? 1 : 0), 0)
   const maxExpandedCols = Math.max(1, Math.floor((boardWidth - totalCollapsed * COLLAPSED_COL_WIDTH) / 35))
   const effectiveColCount = Math.min(columns.length, maxExpandedCols + totalCollapsed)
   const visibleCollapsed = Math.min(totalCollapsed, effectiveColCount)
   const visibleExpanded = Math.max(1, effectiveColCount - visibleCollapsed)
   const collapsedSpace = visibleCollapsed * COLLAPSED_COL_WIDTH
-  const expandedWidth = Math.max(20, Math.floor((boardWidth - collapsedSpace) / visibleExpanded))
-  return { expandedWidth, effectiveColCount }
+  const expandableSpace = boardWidth - collapsedSpace
+  const expandedWidth = Math.max(20, Math.floor(expandableSpace / visibleExpanded))
+  const remainder = expandableSpace - expandedWidth * visibleExpanded
+  return { expandedWidth, remainder, effectiveColCount }
 }

@@ -329,11 +329,28 @@ export function BoardCore({
     // The resetKey mechanism auto-recovers, and DEBUG_LOG captures errors via React's own logging.
   }, [])
 
-  // Column width calculation — uniform expanded width.
+  // Column width calculation — distribute viewport evenly across expanded columns.
   // Subtract 2 for the always-rendered overflow indicators (1 char each side).
+  // The remainder (from integer division) is distributed +1 to the first N expanded
+  // columns so that column widths sum exactly to the viewport (no trailing gap).
   const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
   const INDICATOR_RESERVED = 2
-  const { expandedWidth } = computeColumnWidths(termWidth - INDICATOR_RESERVED, columns, collapsedNodes)
+  const { expandedWidth, remainder } = computeColumnWidths(termWidth - INDICATOR_RESERVED, columns, collapsedNodes)
+
+  // Build per-column width lookup: first `remainder` expanded columns get +1
+  const columnWidths = useMemo(() => {
+    const widths: number[] = []
+    let bonusLeft = remainder
+    for (const col of columns) {
+      if (collapsedNodes.has(col.node.id)) {
+        widths.push(COLLAPSED_WIDTH)
+      } else {
+        widths.push(expandedWidth + (bonusLeft > 0 ? 1 : 0))
+        if (bonusLeft > 0) bonusLeft--
+      }
+    }
+    return widths
+  }, [columns, collapsedNodes, expandedWidth, remainder])
 
   return (
     <ConstraintRoot>
@@ -391,10 +408,10 @@ export function BoardCore({
                     items={columns}
                     width={termWidth}
                     height={contentHeight}
-                    itemWidth={(col) => (collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth)}
+                    itemWidth={(_col: ColumnView, index: number) => columnWidths[index] ?? expandedWidth}
                     scrollTo={isBoardSelected ? undefined : colIndex}
                     renderItem={(col, index) => {
-                      const colWidth = collapsedNodes.has(col.node.id) ? COLLAPSED_WIDTH : expandedWidth
+                      const colWidth = columnWidths[index] ?? expandedWidth
                       return (
                         <Column
                           column={col}

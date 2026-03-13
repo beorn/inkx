@@ -324,9 +324,7 @@ describe("Terminal Sizes", () => {
       }
 
       // Column headers should all appear on the same row (side by side, no wrapping)
-      const headerLine = lines.find(
-        (l) => l.includes("Alpha") && l.includes("Bravo") && l.includes("Charlie"),
-      )
+      const headerLine = lines.find((l) => l.includes("Alpha") && l.includes("Bravo") && l.includes("Charlie"))
       expect(headerLine).toBeDefined()
     })
 
@@ -469,6 +467,42 @@ describe("Terminal Sizes", () => {
       // No line exceeds terminal width
       for (const line of lines) {
         expect(line.length).toBeLessThanOrEqual(280)
+      }
+    })
+
+    test.each([
+      { cols: 280, numCols: 6, label: "280x6" },
+      { cols: 320, numCols: 6, label: "320x6" },
+      { cols: 400, numCols: 6, label: "400x6" },
+      { cols: 500, numCols: 8, label: "500x8" },
+    ])("$label: column widths fill full viewport (no remainder gap)", ({ cols, numCols }) => {
+      // computeColumnWidths uses Math.floor, which can leave a remainder of
+      // unused terminal columns at the right edge. At wide terminals this creates
+      // a visible gap. Verify the sum of column widths equals the available viewport.
+      const columns = Array.from({ length: numCols }, (_, i) => item(`col${i + 1}`, item(`t${i + 1}`)))
+      const { board } = testEnv(() => item("board", ...columns), { columns: cols, rows: 40 })
+
+      // Get column bounding boxes
+      const boxes = []
+      for (let i = 1; i <= numCols; i++) {
+        const box = board.screen.nodeBox(`col${i}`)
+        expect(box, `col${i} should have a bounding box`).not.toBeNull()
+        boxes.push(box!)
+      }
+
+      // Sort by x position
+      boxes.sort((a, b) => a.x - b.x)
+
+      // Check total width: all column widths should sum to the full viewport
+      // Viewport = termWidth - 2 (overflow indicator reservations)
+      const totalColWidth = boxes.reduce((sum, b) => sum + b.width, 0)
+      const expectedViewport = cols - 2 // indicator spacers
+      expect(totalColWidth).toBe(expectedViewport)
+
+      // Check adjacency: each column should start right where the previous ends
+      for (let i = 1; i < boxes.length; i++) {
+        const prevEnd = boxes[i - 1]!.x + boxes[i - 1]!.width
+        expect(boxes[i]!.x).toBe(prevEnd)
       }
     })
 
