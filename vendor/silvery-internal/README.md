@@ -24,6 +24,12 @@ Silvery's public docs live in [`vendor/silvery/docs/`](../silvery/docs/).
 | [design/virtual-columns-design.md](design/virtual-columns-design.md) | RFC — virtual columns component                |
 | [design/mouse-events-design.md](design/mouse-events-design.md)       | Implemented — mouse event design rationale     |
 
+### Prototypes
+
+| Directory                                   | What                                                                           | Bead                |
+| ------------------------------------------- | ------------------------------------------------------------------------------ | ------------------- |
+| [prototype/aichat-v2](prototype/aichat-v2/) | Era 2 API reference implementation (signals, async generators, factory models) | km-silvery.api-impl |
+
 ### Deep Dives
 
 | File                                                                     | What                                         |

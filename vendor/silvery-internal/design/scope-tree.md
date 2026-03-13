@@ -120,7 +120,7 @@ class Scope implements Disposable {
   constructor(
     readonly name: string,
     readonly parent?: Scope,
-    private runners: EffectRunners,
+    private providers: EffectProviders,
   ) {
     // Parent abort → child abort (structured concurrency)
     if (parent) {
@@ -140,14 +140,14 @@ class Scope implements Disposable {
   // Run an effect within this scope
   async run<T>(effect: AsyncEffect<T>): Promise<T> {
     this.#effects.push(effect)
-    const runner = this.runners[effect.type]
-    // Runner receives the scope's AbortSignal automatically
-    return runner(effect.args, { signal: this.signal, scope: this })
+    const provider = this.providers[effect.type]
+    // Provider receives the scope's AbortSignal automatically
+    return provider(effect.args, { signal: this.signal, scope: this })
   }
 
   // Create a child scope
   createChild(name: string): Scope {
-    return new Scope(`${this.name}:${name}`, this, this.runners)
+    return new Scope(`${this.name}:${name}`, this, this.providers)
   }
 
   // Cancel this scope and all children
@@ -180,7 +180,7 @@ class Scope implements Disposable {
 
 ### AsyncEffect — the effect descriptor that's also a thenable
 
-Each `fx.*` function returns an `AsyncEffect<T>` — a plain data descriptor that is also `await`-able. When `await`ed, it looks up the current scope via `AsyncLocalStorage` and delegates to the scope's runner.
+Each `fx.*` function returns an `AsyncEffect<T>` — a plain data descriptor that is also `await`-able. When `await`ed, it looks up the current scope via `AsyncLocalStorage` and delegates to the scope's provider.
 
 **Caveat: accidental execution.** Because `AsyncEffect` implements `.then()`, passing it to any Promise-aware utility (`Promise.resolve(effect)`, `Promise.all([effect])`, JSON serialization libraries that check for thenables) will trigger execution. Keep effects in typed variables; don't pass them through generic Promise utilities without `await`ing first.
 
@@ -224,7 +224,7 @@ const db = fx.from(database)
 const http = fx.from(httpClient)
 ```
 
-Each method call creates an `AsyncEffect` descriptor. The original function becomes the default runner. The descriptor is serializable data (`{ provider, method, args }`) — the runner is looked up by name at execution time, not carried on the descriptor.
+Each method call creates an `AsyncEffect` descriptor. The original function becomes the default provider. The descriptor is serializable data (`{ provider, method, args }`) — the provider is looked up by name at execution time, not carried on the descriptor.
 
 ```typescript
 // What fs.readFile("/data.json", "utf8") creates:
@@ -232,11 +232,11 @@ Each method call creates an `AsyncEffect` descriptor. The original function beco
   provider: "fs",
   method: "readFile",
   args: ["/data.json", "utf8"],
-  // Default runner: the real nodeFs.readFile
+  // Default provider: the real nodeFs.readFile
 }
 
 // What it returns: AsyncEffect<Buffer>
-// When awaited: scope lookup → runner call → real fs.readFile with { signal }
+// When awaited: scope lookup → provider call → real fs.readFile with { signal }
 ```
 
 Single function wrapping also works:
@@ -261,7 +261,7 @@ type Effectified<T> = {
 
 **Two flavors:**
 
-| Factory                    | Use case                   | Default runner                 |
+| Factory                    | Use case                   | Default provider               |
 | -------------------------- | -------------------------- | ------------------------------ |
 | `fx.from(impl)`            | Wrap an existing API       | The real implementation        |
 | `fx.effect<Args, R>(name)` | Declare an abstract effect | None — must provide at runtime |
@@ -273,14 +273,15 @@ const confirm = fx.effect<{ title: string }, boolean>("confirm")
 
 // Wire at runtime:
 createRuntime({
-  runners: { toast: showToast, confirm: showDialog },
+  toast: showToast,
+  confirm: showDialog,
 })
 
 // In tests:
 testScope({ toast: spy(), confirm: () => true })
 ```
 
-`fx.from(impl)` wraps existing APIs — the real implementation IS the default runner. `fx.effect(name)` declares abstract capabilities that different runtimes implement differently (toast in terminal vs browser vs test).
+`fx.from(impl)` wraps existing APIs — the real implementation IS the default provider. `fx.effect(name)` declares abstract capabilities that different runtimes provide differently (toast in terminal vs browser vs test).
 
 ### Serialization and execution policies
 
@@ -294,7 +295,7 @@ fx.from(impl, { snapshot: true }) // structuredClone args at creation
 fx.from(impl, { track: false }) // no descriptor, call through directly
 ```
 
-**Execution policy** (configured on the scope/runner) — controls what happens when awaited:
+**Execution policy** (configured on the scope/provider) — controls what happens when awaited:
 
 | Mode                  | Descriptor       | Scope lookup | Recorded           | Runner called   | Overhead |
 | --------------------- | ---------------- | ------------ | ------------------ | --------------- | -------- |
@@ -330,14 +331,14 @@ export const fx = {
 }
 ```
 
-Everything uses the same mechanism: `fx.delay(300)` creates an `AsyncEffect<void>` whose runner is `setTimeout`. `fs.readFile(path)` creates an `AsyncEffect<Buffer>` whose runner is `nodeFs.readFile`. Same scope routing, same cancellation, same recording.
+Everything uses the same mechanism: `fx.delay(300)` creates an `AsyncEffect<void>` whose provider is `setTimeout`. `fs.readFile(path)` creates an `AsyncEffect<Buffer>` whose provider is `nodeFs.readFile`. Same scope routing, same cancellation, same recording.
 
-### Effect runners — where AbortSignal meets I/O
+### Effect providers — where AbortSignal meets I/O
 
-Runners are where effects actually execute. Every runner receives the scope's `AbortSignal` automatically — no manual threading.
+Providers are where effects actually execute. Every provider receives the scope's `AbortSignal` automatically — no manual threading.
 
 ```typescript
-const runners: EffectRunners = {
+const providers: EffectProviders = {
   // fetch — signal passed to native fetch automatically
   async fetch({ url }, { signal }) {
     const response = await fetch(url, { signal })
@@ -391,48 +392,49 @@ const runners: EffectRunners = {
 The developer writes plain async functions. Scoping, cancellation, tracing, and effect recording are automatic:
 
 ```typescript
-const Todo = createModel({
-  state: () => ({
-    items: signal<Item[]>([]),
-    autoSave: signal<Disposable | null>(null),
-  }),
+// createModel wraps a factory → typed hook (see state-api-redesign.md §Sip 3)
+const useTodo = createModel(() => {
+  const items = signal<Item[]>([])
+  const autoSave = signal<Disposable | null>(null)
 
-  updates: {
-    // No effects — plain function (same as before)
-    add(s, { text }) {
-      s.items.value = [...s.items.value, { text, done: false }]
+  return {
+    items,
+    autoSave,
+
+    // No effects — plain function
+    add({ text }: { text: string }) {
+      items.value = [...items.value, { text, done: false }]
     },
 
     // Effects — async function, await typed effects
-    async save(s) {
-      await fx.persist({ data: s.items.value })
+    async save() {
+      await fx.persist({ data: items.value })
     },
 
     // Sequential — each await is scoped, abortable, traced
-    async importAndSave(s, { url }) {
+    async importAndSave({ url }: { url: string }) {
       const data = await fx.fetch(url) // Response — typed naturally
-      s.items.value = data
+      items.value = data
       await fx.persist({ data })
     },
 
     // Ongoing effects — returns Disposable
-    async startAutoSave(s) {
-      s.autoSave.value = await fx.interval(30_000, "save")
+    async startAutoSave() {
+      autoSave.value = await fx.interval(30_000, "save")
     },
 
     // Parallel — structured concurrency
-    async batchImport(s, { urls }) {
+    async batchImport({ urls }: { urls: string[] }) {
       const results = await fx.all(urls.map((url) => fx.fetch(url)))
       // If any fails, siblings are cancelled (scope cancel propagates)
       await fx.persist({ data: results })
     },
 
     // Cross-model dispatch
-    async confirm(s) {
-      s.open.value = false
-      await fx.dispatch(Board, "addItem", { text: s.value.value })
+    async confirm() {
+      await fx.dispatch(useBoard, "addItem", { text: items.value[0]?.text })
     },
-  },
+  }
 })
 ```
 
@@ -445,8 +447,8 @@ const Todo = createModel({
 async importAndSave(s, { url }) {
   // 2. await fx.fetch(url)
   //    → AsyncEffect.then() looks up scope via ALS
-  //    → scope.run() calls fetch runner with { signal: scope.signal }
-  //    → runner calls native fetch(url, { signal })
+  //    → scope.run() calls fetch provider with { signal: scope.signal }
+  //    → provider calls native fetch(url, { signal })
   const data = await fx.fetch(url)
 
   // 3. If the model unmounts DURING the fetch:
@@ -516,7 +518,7 @@ The base scope is minimal: AbortController + children + ALS context. Everything 
 ```typescript
 // Runtime with plugins — all scopes get these behaviors
 const runtime = pipe(
-  createRuntime({ runners: { fetch, persist, toast } }),
+  createRuntime({ fetch, persist, toast }),
   withTracing(), // wraps scope.run() to add loggily spans
   withRecording(), // wraps scope.run() to capture effect descriptors
   withDevtools(), // exposes live scope tree to inspector
@@ -606,7 +608,7 @@ test("save persists items", async () => {
   expect(effects).toEqual([fx.persist({ data: items })])
 })
 
-// Level 2: Data-dependent effects — provide mock runners
+// Level 2: Data-dependent effects — provide mock providers
 // Required when downstream code uses effect results (common case)
 test("importAndSave fetches then persists", async () => {
   const scope = testScope({ fetch: () => mockData })
@@ -627,21 +629,21 @@ test("cancellation aborts pending effects", async () => {
 })
 ```
 
-`collect()` is a thin wrapper — recording scope with no-op runners:
+`collect()` is a thin wrapper — recording scope with no-op providers:
 
 ```typescript
 async function collect(fn: () => Promise<void>): Promise<AsyncEffect[]> {
   const scope = pipe(createScope("collect"), withRecording())
-  await scope.run(fn) // effects recorded, runners are no-ops
+  await scope.run(fn) // effects recorded, providers are no-ops
   return scope.effects
 }
 ```
 
-Level 1 works for fire-and-forget effects (`fx.persist(data)`, `fx.toast(msg)`) where the update doesn't use the return value. But when downstream code depends on effect results (`const data = await fx.fetch(url); s.items.value = data`), mock runners are required — `collect()` returns `undefined` and downstream code breaks. This is the same constraint generators have: `const data = yield* fx.fetch(url)` requires the test driver to provide `data` via `.next(data)`. There's no free lunch — if your code uses an effect's result, the test must provide it.
+Level 1 works for fire-and-forget effects (`fx.persist(data)`, `fx.toast(msg)`) where the update doesn't use the return value. But when downstream code depends on effect results (`const data = await fx.fetch(url); s.items.value = data`), mock providers are required — `collect()` returns `undefined` and downstream code breaks. There's no free lunch — if your code uses an effect's result, the test must provide it.
 
 ### Testing timer effects: `withTestClock()`
 
-Timer effects (`fx.delay`, `fx.interval`) are time-dependent — tests shouldn't wait for real time to pass. The `withTestClock()` plugin replaces timer runners with a controllable clock:
+Timer effects (`fx.delay`, `fx.interval`) are time-dependent — tests shouldn't wait for real time to pass. The `withTestClock()` plugin replaces timer providers with a controllable clock:
 
 ```typescript
 test("debounced search waits 300ms then fires", async () => {
@@ -672,7 +674,7 @@ test("interval fires repeatedly", async () => {
 })
 ```
 
-`withTestClock()` intercepts `fx.delay` and `fx.interval` runners. `clock.advance(ms)` resolves pending timers synchronously. No real `setTimeout` calls, no flaky timing. Works with `scope.cancel()` — cancelling the scope clears all pending timers.
+`withTestClock()` intercepts `fx.delay` and `fx.interval` providers. `clock.advance(ms)` resolves pending timers synchronously. No real `setTimeout` calls, no flaky timing. Works with `scope.cancel()` — cancelling the scope clears all pending timers.
 
 ## How Loggily Becomes the Scope Tree
 
@@ -698,6 +700,8 @@ What Silvery adds on top (via `with*` plugins on the scope):
 - **Cancellation propagation** — AbortController per scope, linked parent→child
 - **`withRetry()` / `withRateLimit()`** — operational policies
 - **`fx.all()`** — structured concurrency via child scopes
+- **`fx.mutex(key)`** — named mutex for exclusive resource access within async updates. Scoped — released when the update's scope ends. Multiple updates acquiring the same mutex queue behind each other; updates with different (or no) mutexes run concurrently.
+- **`fx.batch(updates)`** — group multiple updates into a single atomic batch. Signal mutations from all updates apply together, triggering one re-render instead of N.
 
 Loggily provides the tree. Silvery provides the semantics. Plugins compose behaviors.
 
@@ -728,9 +732,9 @@ An earlier version of this design used generators (`yield*` with typed adapters)
 
 1. **Natural TypeScript typing.** `await fx.fetch(url)` returns `Response` — no adapter trick needed. TypeScript's `Generator<Y, R, N>` has a single `Next` type for all yield points ([Design Limitation #32523](https://github.com/microsoft/TypeScript/issues/32523)), requiring a `yield*` adapter workaround per effect. `async/await` just works.
 
-2. **Scope captures effects via ALS.** The scope tree records every effect that passes through it automatically — no `collect(generator)` needed. Test by swapping runners and inspecting `scope.effects`.
+2. **Scope captures effects via ALS.** The scope tree records every effect that passes through it automatically — no `collect(generator)` needed. Test by swapping providers and inspecting `scope.effects`.
 
-3. **AbortSignal is built-in.** The scope owns an `AbortController`. Runners receive the signal automatically. Native `fetch`, `setTimeout`, and every AbortSignal-aware API cancels automatically. No custom cancellation protocol.
+3. **AbortSignal is built-in.** The scope owns an `AbortController`. Providers receive the signal automatically. Native `fetch`, `setTimeout`, and every AbortSignal-aware API cancels automatically. No custom cancellation protocol.
 
 4. **Everyone knows async/await.** Generators with `yield*` are less familiar. Async functions are standard JavaScript — no learning curve.
 
@@ -768,13 +772,13 @@ coroutineScope {        // parent scope
 | `Job.cancel()`            | `scope.cancel()`                           |
 | `Job.children`            | `scope.#children`                          |
 | `SupervisorJob`           | `withSupervision()` plugin (open question) |
-| `CoroutineContext`        | ALS context + runners                      |
-| `Dispatchers.IO/Main`     | Effect runners (the DI boundary)           |
-| `withContext(dispatcher)` | Runner selection per effect type           |
+| `CoroutineContext`        | ALS context + providers                    |
+| `Dispatchers.IO/Main`     | Effect providers (the DI boundary)         |
+| `withContext(dispatcher)` | Provider selection per effect type         |
 | `ensureActive()`          | `signal.throwIfAborted()`                  |
 | `NonCancellable`          | No equivalent yet (open question)          |
 
-**What validates our design**: Kotlin proved that scope-as-tree is the right model for async work at production scale (Android, server). Our `Scope` maps almost 1:1 to `CoroutineScope` — we independently arrived at the same shape. Key differences: Kotlin's scopes are language-level (`suspend`); ours are library-level (ALS + AsyncEffect). Kotlin separates dispatchers from scopes; we unify runners with the scope tree. Kotlin has no effect recording or observability built in; we integrate both.
+**What validates our design**: Kotlin proved that scope-as-tree is the right model for async work at production scale (Android, server). Our `Scope` maps almost 1:1 to `CoroutineScope` — we independently arrived at the same shape. Key differences: Kotlin's scopes are language-level (`suspend`); ours are library-level (ALS + AsyncEffect). Kotlin separates dispatchers from scopes; we unify providers with the scope tree. Kotlin has no effect recording or observability built in; we integrate both.
 
 **What we learn**: Kotlin's `SupervisorJob` (don't cancel siblings on failure) is the most-requested deviation from strict structured concurrency. Our `withSupervision()` open question is exactly this. Kotlin's `NonCancellable` context (for cleanup code that must complete) is worth considering.
 
@@ -829,46 +833,46 @@ await run(main)
 | `TaskGroup.signal`           | `scope.signal` (AbortSignal)                 |
 | `TaskGroup.abort(reason)`    | `scope.cancel(reason)`                       |
 | `[Symbol.dispose]` → abort   | `[Symbol.dispose]` → cancel + cleanup + span |
-| `AsyncLocalStorage` context  | ALS for scope + runner lookup                |
-| Manual `{ signal }` in tasks | Automatic — runners receive signal           |
+| `AsyncLocalStorage` context  | ALS for scope + provider lookup              |
+| Manual `{ signal }` in tasks | Automatic — providers receive signal         |
 | No observability             | Scope IS a loggily span                      |
 | No effect recording          | `withRecording()` captures all effects       |
-| No pluggable runners         | Runners are the DI boundary                  |
+| No pluggable providers       | Providers are the DI boundary                |
 | No plugins                   | `with*` composition on scope and runtime     |
 
-Centurion was a standalone concurrency library. Here, structured concurrency is integrated with effects-as-data, loggily's observability tree, pluggable runners, and `with*` composition. One tree, not two libraries.
+Centurion was a standalone concurrency library. Here, structured concurrency is integrated with effects-as-data, loggily's observability tree, pluggable providers, and `with*` composition. One tree, not two libraries.
 
 ### Also Related
 
 **Redux Saga** — uses generator functions to `yield` effect descriptors (`call`, `put`, `take`) executed by middleware. Very similar "effects as data" model. We diverged: Saga runs a single global middleware; our effects are scoped to the update's scope tree. Saga uses generators; we use async/await. Saga has no structured concurrency (no automatic cancellation cascading). But the core insight — describe effects as data, test by inspecting descriptors — is the same lineage.
 
-**RxJS / Reactive Streams** — manage async via observable streams with operators (`map`, `filter`, `switchMap`). A different paradigm: Silvery is scope-based (tree of lifetimes), RxJS is stream-based (chain of transformations). RxJS handles backpressure and complex event composition well; Silvery handles lifecycle and cancellation well. They can coexist: wrap an Observable in a scope runner (subscribe on create, unsubscribe on abort). Not a replacement — different tools for different shapes of async work.
+**RxJS / Reactive Streams** — manage async via observable streams with operators (`map`, `filter`, `switchMap`). A different paradigm: Silvery is scope-based (tree of lifetimes), RxJS is stream-based (chain of transformations). RxJS handles backpressure and complex event composition well; Silvery handles lifecycle and cancellation well. They can coexist: wrap an Observable in a scope provider (subscribe on create, unsubscribe on abort). Not a replacement — different tools for different shapes of async work.
 
-| Dimension          | Kotlin coroutines        | Effection v4         | Effect.ts               | Silvery scope tree          |
-| ------------------ | ------------------------ | -------------------- | ----------------------- | --------------------------- |
-| **Size**           | Language built-in        | <5KB                 | ~200KB+                 | Part of Silvery             |
-| **Approach**       | `suspend` + dispatchers  | Generators + runtime | Typed effect values     | async/await + AsyncEffect   |
-| **Type safety**    | Full (suspend typing)    | Minimal              | Maximum (3 type params) | Natural (await typing)      |
-| **DI**             | CoroutineContext         | None                 | Layers + Context        | Pluggable runners           |
-| **Observability**  | None built-in            | None built-in        | Built-in tracing        | Unified with loggily        |
-| **Learning curve** | Medium (Kotlin-specific) | Low                  | High                    | Lowest (async/await)        |
-| **Scope tree**     | Yes (Job hierarchy)      | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)    |
-| **Cleanup**        | Job.invokeOnCompletion   | Generator teardown   | Scope finalizers        | DisposableStack + abort     |
-| **Cancellation**   | CancellationException    | Generator throw      | Fiber interruption      | AbortSignal (platform)      |
-| **State mgmt**     | None                     | None                 | Ref, FiberRef           | Signals (reactive)          |
-| **Plugins**        | CoroutineContext elems   | None                 | Layers                  | `with*` composition         |
-| **Testing**        | `runTest { }`            | Run generators       | Provide test layers     | Swap runners, inspect scope |
-| **Supervision**    | SupervisorJob            | None                 | Supervisor fiber        | `withSupervision()` (TBD)   |
+| Dimension          | Kotlin coroutines        | Effection v4         | Effect.ts               | Silvery scope tree            |
+| ------------------ | ------------------------ | -------------------- | ----------------------- | ----------------------------- |
+| **Size**           | Language built-in        | <5KB                 | ~200KB+                 | Part of Silvery               |
+| **Approach**       | `suspend` + dispatchers  | Generators + runtime | Typed effect values     | async/await + AsyncEffect     |
+| **Type safety**    | Full (suspend typing)    | Minimal              | Maximum (3 type params) | Natural (await typing)        |
+| **DI**             | CoroutineContext         | None                 | Layers + Context        | Pluggable providers           |
+| **Observability**  | None built-in            | None built-in        | Built-in tracing        | Unified with loggily          |
+| **Learning curve** | Medium (Kotlin-specific) | Low                  | High                    | Lowest (async/await)          |
+| **Scope tree**     | Yes (Job hierarchy)      | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
+| **Cleanup**        | Job.invokeOnCompletion   | Generator teardown   | Scope finalizers        | DisposableStack + abort       |
+| **Cancellation**   | CancellationException    | Generator throw      | Fiber interruption      | AbortSignal (platform)        |
+| **State mgmt**     | None                     | None                 | Ref, FiberRef           | Signals (reactive)            |
+| **Plugins**        | CoroutineContext elems   | None                 | Layers                  | `with*` composition           |
+| **Testing**        | `runTest { }`            | Run generators       | Provide test layers     | Swap providers, inspect scope |
+| **Supervision**    | SupervisorJob            | None                 | Supervisor fiber        | `withSupervision()` (TBD)     |
 
 ## What This Enables
 
-**Testing**: Swap runners, run updates, inspect `scope.effects` + state. No mocks for the effect system itself — mock at the runner boundary.
+**Testing**: Swap providers, run updates, inspect `scope.effects` + state. No mocks for the effect system itself — mock at the provider boundary.
 
 **Debugging**: `TRACE=1` shows the live scope tree — which effects are running, how long they took, what failed. No separate debugging infrastructure.
 
 **AI agents**: The scope tree is inspectable at runtime. An AI agent can see what effects are active, what's pending, what failed. Combined with the command registry and state access, the agent has full visibility into the app's execution.
 
-**Replay**: Record `scope.effects` + runner results. Replay by providing a runner that feeds back recorded results in sequence.
+**Replay**: Record `scope.effects` + provider results. Replay by providing a provider that feeds back recorded results in sequence.
 
 **Time-travel debugging**: Snapshot state at scope boundaries. Step forward/backward through scopes. Each scope is a self-contained unit with clear inputs (args), outputs (state mutations + effects), and duration.
 
