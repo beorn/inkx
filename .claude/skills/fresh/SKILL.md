@@ -1,13 +1,18 @@
 ---
-description: Fresh perspective via deep research when stuck. Systematically gathers what you've tried, what failed, and asks for architectural advice.
+description: "Fresh perspective when stuck on a problem for 20+ minutes. Stops coding, gathers what was tried, and asks an external LLM for architectural advice. NOT for general questions — use /llm for that. NOT for standalone deep research — use /deep for that."
 argument-hint: [<topic>]
 ---
 
 # /fresh — Fresh Perspective on a Stuck Problem
 
-**Keywords**: stuck, fresh perspective, step back, second opinion, architectural advice, rethink
+**Keywords**: stuck, fresh perspective, step back, rethink, going in circles, each fix breaks something, tried everything
 
-Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/deep`.
+**When to use /fresh vs /llm vs /deep:**
+- `/fresh` — You're stuck. Each fix breaks something else. You need to stop, reflect, and get architectural advice. (Structured protocol: gather context → reflect → ask)
+- `/llm` — You have a question for another model. Quick query, second opinion, or debate. (Direct: ask → get answer)
+- `/deep` — You want thorough research with web search and citations on a topic. (Expensive: ~$2-5, 2-15 min)
+
+Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/llm --deep`.
 
 ## Protocol
 

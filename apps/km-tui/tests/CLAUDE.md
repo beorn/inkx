@@ -246,13 +246,24 @@ test("board renders correct colors through real terminal", () => {
 
 ## Related Test Types
 
-| Type           | Location                | When                                                                   |
-| -------------- | ----------------------- | ---------------------------------------------------------------------- |
-| **Termless**   | `*.termless.test.ts`    | ANSI output verification through real terminal emulator (CI-friendly). |
-| **Fuzz/chaos** | `*.fuzz.ts`             | Randomized keypresses, monkey testing. Run with `bun run test:fuzz`.   |
-| **Benchmarks** | `*.bench.ts`            | Rendering, scroll, navigation perf. Run with `bun run bench`.          |
-| **GUI/TTY**    | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI).                |
-| **Storybook**  | `bun storybook`         | Interactive component catalog for visual inspection.                   |
+| Type                    | Location                | When                                                                                       |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------------ |
+| **Termless**            | `*.termless.test.ts`    | ANSI output verification through real terminal emulator (CI-friendly).                     |
+| **Fuzz/chaos**          | `*.fuzz.ts`             | Randomized keypresses, monkey testing. Run with `FUZZ=1`.                                  |
+| **Property invariants** | `*.fuzz.tsx` (silvery)  | Mathematical rendering invariants (idempotence, inverse ops, clipping). Run with `FUZZ=1`. |
+| **Benchmarks**          | `*.bench.ts`            | Rendering, scroll, navigation perf. Run with `bun run bench`.                              |
+| **GUI/TTY**             | Via `mcp__tty__*` tools | Real terminal verification for visual bugs (not in CI).                                    |
+| **Storybook**           | `bun storybook`         | Interactive component catalog for visual inspection.                                       |
+
+## Fuzz Testing Patterns
+
+`render-fuzz.fuzz.ts` uses several patterns for randomized rendering validation (run with `FUZZ=1`):
+
+- **Large fixtures** (`largeFixture`, 100 items) — stress test incremental rendering at scale
+- **Nested fixtures** (`nestedFixture`) — deeply nested tree structures
+- **Extended fixtures** — `scrolling-tiny` (30x10) and `scrolling-wide` (200x50) terminal sizes
+- **Mutation keys** — `z/Z` (zoom), `f/F` (fold), `Enter/Escape`, `Tab` — keys that trigger structural DOM changes, not just cursor moves
+- **Property invariants** (in silvery's `property-invariants.fuzz.tsx`) — idempotence, no-op stability, inverse operations, viewport clipping bounds
 
 ## See Also
 

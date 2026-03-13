@@ -341,6 +341,43 @@ const { board } = testEnv(() =>
 
 ---
 
+## Common Testing Pitfalls (Lessons from Recent Regressions)
+
+### Inline mode tests must simulate real terminal conditions
+Inline mode bugs (cursor overshoot, screen clearing) only manifest when the terminal has existing scrollback above the app. Tests that start with an empty terminal miss these.
+
+```typescript
+// BAD: empty terminal — doesn't match real inline usage
+const term = createTermless({ cols: 80, rows: 24 })
+
+// GOOD: pre-populate scrollback like a real terminal
+const term = createTermless({ cols: 80, rows: 24 })
+term.write("$ previous-command\r\n$ another-command\r\n")
+```
+
+### Multi-pass layout tests
+Some component structures trigger layout feedback loops (multiple `doRender` passes). Standard tests don't exercise this. If a bug involves layout feedback (pass 2 uses incremental rendering on pass 1's buffer with consumed dirty flags), create a component that deliberately triggers multi-pass layout (e.g., content that changes height based on measured width).
+
+### Test fixtures must match production complexity
+All 1106 TUI tests pass with `SILVERY_STRICT=1`, but real vault data triggers mismatches. When investigating bugs that only appear with real data, use large fixtures (50+ items, scroll containers, sticky headers, mixed node types) or load actual vault snapshots.
+
+### Init-sequence bugs need startup tests
+Startup timing bugs (like focus reporting before stdin listener) can't be caught by tests that start with everything initialized. Use `createTermless` tests that verify the startup ANSI sequence order.
+
+---
+
+## Fuzz / Property-Invariant Tests
+
+Fuzz tests run only with `FUZZ=1` and are not part of CI. They surface pre-existing incremental rendering bugs under randomized conditions.
+
+| File | What |
+|------|------|
+| `vendor/silvery/tests/features/property-invariants.fuzz.tsx` | 7 property invariants: idempotence, no-op, inverse operations (2), viewport clipping (2), combined |
+| `vendor/silvery/tests/features/incremental-rendering.fuzz.tsx` | Stress: scrollable lists, nested bg inheritance, wrap boundaries, absolute positioning, multi-column boards |
+| `apps/km-tui/tests/render-fuzz.fuzz.ts` | km-specific: large/nested fixtures, scrolling at various sizes, mutation keys (z/Z/f/F/Enter/Escape/Tab) |
+
+**Property-invariant testing pattern**: Tests that verify mathematical properties of the rendering system (e.g., rendering twice produces identical output, a resize followed by resize-back produces the original, clipping never renders outside viewport bounds). These complement deterministic regression tests by exploring the state space randomly.
+
 ## Location
 
 - Acceptance tests: `apps/km-tui/tests/board.spec.ts`

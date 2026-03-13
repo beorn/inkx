@@ -1,12 +1,12 @@
 ---
-description: Performance diagnostics and profiling. Use when debugging slow startup, laggy navigation, event loop blocks, or any performance issue.
+description: Performance diagnostics and profiling. Use when debugging slow startup, laggy navigation, jank, stutter, event loop blocks, unresponsive UI, or any performance issue.
 argument-hint: [startup|render|storage|diagnose]
 allowed-tools: Task, Read, Glob, Grep, Bash
 ---
 
 # Performance Diagnostics
 
-**Keywords**: slow, perf, performance, lag, event loop, blocked, timing, profile, benchmark
+**Keywords**: slow, perf, performance, lag, jank, stutter, unresponsive, event loop, blocked, timing, profile, benchmark, latency
 
 Diagnose and fix performance issues across all layers: storage, board state, React rendering, silvery pipeline, and terminal output.
 

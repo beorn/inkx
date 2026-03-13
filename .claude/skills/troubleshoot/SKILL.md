@@ -1,11 +1,11 @@
 ---
-description: Systematic troubleshooting for bugs and regressions. Reproduce, instrument, bisect, escalate.
+description: Systematic troubleshooting for bugs, crashes, errors, and regressions. Reproduce, instrument, bisect, escalate. Use when something is broken and you need a structured debugging protocol.
 argument-hint: [symptom description]
 ---
 
 # Troubleshoot
 
-**Keywords**: debug, troubleshoot, diagnose, regression, broken, fix, bisect, reproduce
+**Keywords**: debug, troubleshoot, diagnose, regression, broken, fix, bisect, reproduce, crash, fail, error, exception, not working, bug
 
 **Symptom**: $ARGUMENTS
 

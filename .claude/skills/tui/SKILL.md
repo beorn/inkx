@@ -1,14 +1,14 @@
 ---
-description: TUI development - design system, debugging, performance. Use when building Ink components, fixing rendering bugs, or optimizing TUI performance.
+description: TUI development - design system, km-specific rendering bugs, performance. Use when building silvery components for km, fixing km-tui visual bugs, or optimizing TUI performance. For silvery pipeline bugs (dirty flags, incremental rendering, scroll tiers), use /silvery instead.
 argument-hint: [fix|design|perf]
 allowed-tools: Task, Read, Glob, Grep, Bash
 ---
 
 # TUI Development
 
-**Keywords**: TUI, Ink, styling, colors, slow, rendering, performance, design system
+**Keywords**: TUI, silvery, styling, colors, slow, rendering, performance, design system, km-tui, board, card, column
 
-Build and maintain the Ink-based TUI.
+Build and maintain the km TUI. For silvery rendering pipeline issues (incremental rendering, dirty flags, scroll tiers, sticky children), use `/silvery` instead.
 
 ## Quick Reference
 

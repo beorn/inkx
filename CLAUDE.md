@@ -117,31 +117,54 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 ## Skills (load when needed)
 
+### Rendering & Visual Bugs (choose the right one!)
+
+| Symptom                                      | Skill                                                          |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| Silvery pipeline bug (dirty flags, incremental ≠ fresh, scroll tiers, sticky) | [silvery/](.claude/skills/silvery/) |
+| km-tui visual bug (card layout, column rendering, board components) | [tui/](.claude/skills/tui/) |
+| Flexily layout bug (wrong sizes, caching, fingerprinting) | [flexily/](.claude/skills/flexily/) |
+| Performance (slow, jank, stutter, event loop blocks) | [perf/](.claude/skills/perf/) |
+| Bug hunting / fuzz testing                   | [explore/](.claude/skills/explore/) |
+
+### External LLMs (choose the right one!)
+
+| Need                                         | Skill                                                          |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| Question for GPT/Gemini/Grok (quick or deep) | [llm/](.claude/skills/llm/) — `/llm "question"` or `/llm --deep` |
+| Stuck 20+ min, need architectural advice     | [fresh/](.claude/skills/fresh/) — structured protocol: gather → reflect → ask |
+| Want to discuss alternatives before coding   | [discuss/](.claude/skills/discuss/) — checkpoints context to bead |
+
+### Core Workflow
+
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [pm/](.claude/skills/pm/)                                           | Issue tracking (beads)                                                |
-| [tests/](.claude/skills/tests/)                                     | Writing/running tests                                                 |
+| [tests/](.claude/skills/tests/)                                     | Writing/running tests, TDD workflow                                   |
 | [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
 | [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
-| [tui/](.claude/skills/tui/)                                         | TUI development                                                       |
-| [explore/](.claude/skills/explore/)                                 | Bug hunting/fuzz testing                                              |
+| [troubleshoot/](.claude/skills/troubleshoot/)                       | Something broken — systematic debugging (reproduce, instrument, bisect) |
 | [git/](.claude/skills/git/)                                         | Commits and releases                                                  |
-| [claude/](.claude/skills/claude/)                                   | Claude Code config                                                    |
-| [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
-| [max/](.claude/skills/max/)                                         | Parallel agents                                                       |
-| [silvery/](.claude/skills/silvery/)                                       | Silvery rendering bugs (dirty flags, scroll tiers, sticky, getCellBg)    |
+| [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
+| [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
+| [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
+
+### Silvery Development
+
+| Skill                                                               | Use When                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md)     | Building with silvery — canonical components, anti-patterns              |
 | [Silvery Styling](vendor/silvery/docs/guide/styling.md)             | Semantic colors, typography presets, theme tokens (`$primary`, `$muted`) |
-| [flexily/](.claude/skills/flexily/)                                     | Flexily layout bugs (caching, fingerprinting, benchmarking)             |
-| [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
+| [logging/](.claude/skills/logging/)                                 | Debug output                                                          |
+
+### Infrastructure & Maintenance
+
+| Skill                                                               | Use When                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
 | [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |
 | [repo-health/](.claude/skills/repo-health/)                         | Package health audit (license, metadata, gitignore, docs, CI)        |
-| [discuss/](.claude/skills/discuss/)                                 | Pause implementation to discuss architecture/alternatives             |
-| [fresh/](.claude/skills/fresh/)                                     | Fresh perspective via deep research when stuck on a problem           |
-| [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
-| [perf/](.claude/skills/perf/)                                       | Performance diagnostics and profiling (all layers)                    |
-| [troubleshoot/](.claude/skills/troubleshoot/)                       | Systematic troubleshooting (reproduce, instrument, bisect, escalate)  |
 | [npm/](.claude/skills/npm/)                                         | Check npm package/scope availability                                  |
 | [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
 | [batch-refactor](vendor/tools/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

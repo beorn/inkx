@@ -7,6 +7,15 @@ argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven 
 
 **Issue**: $ARGUMENTS
 
+## Diagnostic Quick Reference
+
+| Env Var | What It Catches | What It Misses | When to Use |
+|---------|----------------|----------------|-------------|
+| `SILVERY_STRICT=1` | Content-phase bugs: incremental ≠ fresh buffer (~88% of rendering bugs). **Auto-includes content-phase stats and cell attribution in errors** — no separate INSTRUMENT/CELL_DEBUG step needed for STRICT failures. | Output-phase, ANSI generation, startup timing, multi-pass | First tool for any visual glitch after interaction |
+| `SILVERY_STRICT_OUTPUT=1` | Output-phase bugs: correct buffer → wrong ANSI (CJK drift, true-color, row pre-check) | Content-phase bugs (use STRICT for those) | Colors wrong but chars correct; wide char garble |
+| `SILVERY_INSTRUMENT=1` | Performance: skip/render counts, cascade depth, scroll tier decisions | Nothing automatic — data on `globalThis.__silvery_content_detail` | Too many nodes rendering; performance regression (still useful independently of STRICT) |
+| `SILVERY_CELL_DEBUG=x,y` | Cell attribution: which nodes render to (x,y) | Only one cell | After STRICT gives a mismatch position (STRICT errors now include this automatically, but standalone use is still useful for non-STRICT debugging) |
+
 ## Decision Tree
 
 ```
@@ -21,8 +30,14 @@ I see a visual glitch
 │   └── getCellBg coupling → Step 6: Check bg inheritance
 ├── Border artifacts after color change?
 │   └── paintDirty cascading → Step 5: Check contentAreaAffected
+├── Colors wrong but characters correct? (progressive garble)
+│   └── Output phase bug → SILVERY_STRICT_OUTPUT=1
+├── CJK/wide char shifts text right?
+│   └── bufferToAnsi cursor drift → SILVERY_STRICT_OUTPUT=1
+├── Bug only appears with real vault, not test fixtures?
+│   └── Test fixtures too simple → use real-vault test or larger fixture
 └── Ghost characters or stale pixels?
-    └── Output phase or region clearing → Step 1: SILVERY_STRICT
+    └── Region clearing or output phase → Step 1: SILVERY_STRICT, then SILVERY_STRICT_OUTPUT
 ```
 
 ## Diagnostic Steps
@@ -60,12 +75,16 @@ bun vitest run apps/km-tui/tests/
 
 **Note**: testEnv's `checkIncremental` catches bugs in the test renderer path. Some bugs (like ghost dialogs) only manifest in the production `createApp` path — use `SILVERY_STRICT=1` with the real app for those.
 
-If SILVERY_STRICT throws `IncrementalRenderMismatchError`, the error output includes:
+If SILVERY_STRICT throws `IncrementalRenderMismatchError`, the error output automatically includes:
 - **Cell values** (incremental vs fresh) — shows exactly what diverged
 - **Node path** — which component owns the mismatched cell
 - **Dirty flags** — whether the node was clean when it shouldn't have been
 - **Scroll context** — visible range, offset changes
 - **Fast-path analysis** — WHY the node was likely skipped
+- **Content-phase stats** — nodes visited/rendered/skipped, per-flag breakdown (why nodes weren't skipped), scroll container diagnostics
+- **Cell attribution** — mismatch debug context from `debug-mismatch.ts`
+
+This means you no longer need separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEBUG` steps when diagnosing a STRICT failure — the error has everything.
 
 ### Step 2: Write a Failing Test
 
@@ -102,8 +121,8 @@ console.log(formatMismatchContext(ctx))
 In `content-phase.ts`, `renderNodeToBuffer`:
 
 ```typescript
-layoutChanged       = !rectEqual(node.prevLayout, node.contentRect)
-contentAreaAffected = contentDirty || layoutChanged || childPositionChanged || childrenDirty || bgDirty
+layoutChanged       = node.layoutChangedThisFrame
+contentAreaAffected = contentDirty || layoutChanged || childPositionChanged || childrenDirty || bgDirty || absoluteChildMutated || descendantOverflowChanged
 parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
 skipBgFill          = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
 parentRegionChanged = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
@@ -113,16 +132,18 @@ Common mistakes:
 - Using `needsOwnRepaint` where `contentAreaAffected` is needed (cascades border changes)
 - Missing `bgDirty` in `contentAreaAffected` (stale bg when backgroundColor removed)
 - Wrong `parentRegionCleared` propagation (transparent Boxes must propagate, colored Boxes break cascade)
+- Checking `!rectEqual(prevLayout, contentRect)` instead of `layoutChangedThisFrame` (stale when layout phase skipped)
 
-### Step 6: getCellBg Coupling
+### Step 6: Text Background Inheritance
 
-**Critical insight**: Text nodes without explicit bg read the buffer via `getCellBg`. Any change to when/how regions are cleared changes what Text renders.
+Text nodes inherit bg from nearest ancestor with `backgroundColor` via explicit `inheritedBg` parameter (computed by `findInheritedBg()`). The old `getCellBg` buffer-read approach was replaced to decouple text rendering from buffer state.
 
-Check: At the time Text renders, is the buffer state at its position identical to what a fresh render would produce?
+**Check**: Is `inheritedBg` correct at the time Text renders? Does region clearing use the same bg that `findInheritedBg()` would return?
 
 Common violations:
 - Clearing viewport to inherited bg instead of `null` (fresh starts with null)
 - Stale bg from previous frames' sticky positions still in cloned buffer
+- `getCellBg` fallback still used by scroll indicators in render-box.ts — can diverge from `inheritedBg`
 - Region cleared but Text already rendered (ordering issue)
 
 ## Parallel Diagnosis Strategy
@@ -176,6 +197,28 @@ SILVERY_STRICT=1 bun km view /path
 | `src/debug-mismatch.ts` | Mismatch diagnostics, node attribution |
 | `src/with-diagnostics.ts` | Diagnostic plugin, VirtualTerminal |
 | `src/pipeline/CLAUDE.md` | Full pipeline internals reference |
+
+## Related Skills (load the right one)
+
+| Symptom | Use |
+|---------|-----|
+| Silvery pipeline bug (this skill) | `/silvery` — dirty flags, incremental rendering, scroll tiers |
+| km-tui component bug (card/column/board) | `/tui` — km-specific TUI development |
+| Flexily layout bug (wrong sizes/positions) | `/flexily` — layout engine caching, fingerprinting |
+| Performance issue (slow render, jank) | `/perf` — profiling and diagnostics |
+| Need a failing test first | `/troubleshoot` — structured debugging protocol |
+
+## Fuzz Tests
+
+Property-invariant and stress fuzz tests verify rendering correctness under randomized conditions. Run with `FUZZ=1`:
+
+| File | What it tests |
+|------|--------------|
+| `vendor/silvery/tests/features/property-invariants.fuzz.tsx` | 7 property invariants: idempotence, no-op, inverse operations, viewport clipping, combined |
+| `vendor/silvery/tests/features/incremental-rendering.fuzz.tsx` | Stress tests: scrollable lists, nested bg, wrap boundaries, absolute positioning, multi-column boards |
+| `apps/km-tui/tests/render-fuzz.fuzz.ts` | km-specific fuzz: large fixtures (100 items), nested fixtures, scrolling at various sizes, mutation keys (z/Z/f/F/Enter/Escape/Tab) |
+
+These tests surface pre-existing incremental rendering bugs and run only with `FUZZ=1` (not in CI).
 
 ## Cross-References
 
