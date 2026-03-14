@@ -345,4 +345,4 @@ const myCommand = {
 
 - [architecture.md](../architecture.md) - Overall system architecture
 - [ui.md](ui.md) - TUI design system and views
-- [testing.md](../dev/testing.md) - Testing commands with mdtest
+- [testing.md](../dev/testing.md) - Testing commands with mdspec

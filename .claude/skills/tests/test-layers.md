@@ -35,7 +35,7 @@ Layer 0d: ansi (.test.ts)        → Terminal primitives: color/style in, ANSI s
 ── vendor (infrastructure) ─────────────────────────────────────────────
 Layer 0e: logger (.test.ts)      → Log routing: calls in, formatted output out
 Layer 0f: vimonkey (.test.ts)     → Test tooling: generators in, fuzz/chaos sequences out
-Layer 0g: mdtest (.test.ts)      → Test runner: markdown in, shell execution + assertion out
+Layer 0g: mdspec (.test.ts)      → Test runner: markdown in, shell execution + assertion out
 Layer 0h: tools (.test.ts)       → Dev CLI: commands in, file/API effects out
 Layer 0i: accountly (.test.ts)   → Credentials: provider config in, auth tokens out
 Layer 0j: tap (.test.ts)         → TAP orchestration: streams in, merged output out
@@ -70,7 +70,7 @@ Layer 0k: watcher-chaos (.test.ts) → Chaos simulation: events in, dropped/reor
 |-------|---------------------|---------------------|
 | **logger** | Namespace filtering, log level propagation, span timing, structured output. | Nothing — standalone. |
 | **vimonkey** | Fuzz generators (`gen`/`take`), chaos transformers (drop/reorder/burst). | vitest API is correct. |
-| **mdtest** | Markdown code block extraction, shell session execution, output assertion. | Nothing — standalone test runner. |
+| **mdspec** | Markdown code block extraction, shell session execution, output assertion. | Nothing — standalone test runner. |
 | **tools** | Refactor CLI (AST transforms), recall (session search), LLM bridge. | Filesystem, external APIs. |
 | **accountly** | Multi-provider credential management, keychain abstraction, token refresh. | Nothing — mocks all system APIs. |
 | **tap** | TAP stream merging, format conversion. | Nothing — standalone. |
@@ -361,7 +361,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 | **km-storage** | 44 | Pipeline integrity (L3) | `createTestDatabase()`, `createTestSyncManager()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
 | **km-markdown** | 15 | Parse fidelity (L2) | `parse()`, `roundtrip()`, `makeTestNode()` | [tests/CLAUDE.md](../../../packages/km-markdown/tests/CLAUDE.md) |
 | **km-core** | 11 | Contracts (L1) | None (pure functions) | [tests/CLAUDE.md](../../../packages/km-core/tests/CLAUDE.md) |
-| **km-cli** | 7 | Command output | mdtest plugin, `km-repl.ts` | [tests/CLAUDE.md](../../../apps/km-cli/tests/CLAUDE.md) |
+| **km-cli** | 7 | Command output | mdspec plugin, `km-repl.ts` | [tests/CLAUDE.md](../../../apps/km-cli/tests/CLAUDE.md) |
 
 ### Vendor TUI stack
 
@@ -378,7 +378,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 |---------|-------|-------|---------------|-------------|
 | **logger** | 2 | Logging (L0e) | Namespace filtering, level propagation, span timing | Mock console |
 | **vimonkey** | 5+1 fuzz | Test tooling (L0f) | Fuzz generators, chaos transformers | Self-testing (tests its own tools) |
-| **mdtest** | 9 | Test runner (L0g) | Markdown code block extraction, shell execution, output assertion | Shell session capture |
+| **mdspec** | 9 | Test runner (L0g) | Markdown code block extraction, shell execution, output assertion | Shell session capture |
 | **tools** | 10 | Dev CLI (L0h) | Refactor (AST transforms), recall (session search), LLM bridge | Temp filesystem, mock fetch |
 | **accountly** | 11 | Credentials (L0i) | Multi-provider management, keychain abstraction, token refresh | Mock keychain, mock fetch |
 | **tap** | 1 | TAP (L0j) | Stream merging, format conversion | Minimal (tiny package) |

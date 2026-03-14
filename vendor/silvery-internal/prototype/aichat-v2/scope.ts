@@ -5,17 +5,14 @@
  * and pending sleeps resolve immediately. The `using` keyword
  * ensures cleanup even on early exit.
  *
- * The current scope is ambient via AsyncLocalStorage — no need to
- * thread it through function arguments. `useScope()` retrieves it.
+ * Scope is passed explicitly via ModelContext — no ambient lookup,
+ * no AsyncLocalStorage. This makes models testable (pass a test scope)
+ * and composable (multiple models share an app scope).
  *
  * Same pattern at every level: app scope → model scope → keymap-local scope.
  */
 
-import { AsyncLocalStorage } from "node:async_hooks"
-
 type Pending = { id: ReturnType<typeof setTimeout>; resolve: () => void }
-
-const scopeStorage = new AsyncLocalStorage<Scope>()
 
 export interface Scope extends Disposable {
   /** True after disposal — loops should check this after each await. */
@@ -42,11 +39,8 @@ export function createScope(): Scope {
     },
 
     sleep(ms) {
+      if (cancelled) return Promise.resolve()
       return new Promise<void>((resolve) => {
-        if (cancelled) {
-          resolve()
-          return
-        }
         const entry: Pending = {
           id: setTimeout(() => {
             pending.delete(entry)
@@ -92,14 +86,33 @@ export function createScope(): Scope {
   }
 }
 
-/** Retrieve the current scope from AsyncLocalStorage. */
-export function useScope(): Scope {
-  const scope = scopeStorage.getStore()
-  if (!scope) throw new Error("No scope — call runInScope() first")
-  return scope
-}
+/**
+ * Timing trickery — a scope where all delays resolve immediately.
+ * For tests and `--fast` dev mode. Same interface, zero wall-clock cost.
+ */
+export function createInstantScope(): Scope {
+  const cleanups: (() => void)[] = []
+  let cancelled = false
 
-/** Run a function within a scope's AsyncLocalStorage context. */
-export function runInScope<T>(scope: Scope, fn: () => T): T {
-  return scopeStorage.run(scope, fn)
+  return {
+    get cancelled() {
+      return cancelled
+    },
+    sleep() {
+      return Promise.resolve()
+    },
+    timeout(_, fn) {
+      fn()
+      return () => {}
+    },
+    onDispose(fn) {
+      if (cancelled) fn()
+      else cleanups.push(fn)
+    },
+    [Symbol.dispose]() {
+      cancelled = true
+      for (const fn of cleanups) fn()
+      cleanups.length = 0
+    },
+  }
 }

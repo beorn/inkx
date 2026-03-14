@@ -36,7 +36,7 @@ Follow the [test-first protocol](test-first-protocol.md).
 | ---------------- | ---------------------- | -------------------------- |
 | Fast unit        | `.test.ts`             | Core logic, pure functions |
 | Slow integration | `.slow.test.ts`        | Real DB, workers           |
-| Spec/acceptance  | `.spec.ts`, `.test.md` | UI behavior, CLI           |
+| Spec/acceptance  | `.spec.ts`, `.spec.md` | UI behavior, CLI           |
 | Chaos            | `chaos/*.test.ts`      | Sync edge cases            |
 | Ad-hoc/scratch   | `.scratch.ts`          | Temporary investigation    |
 
@@ -68,5 +68,5 @@ bun km view /tmp/test-repo
 Acceptance tests at outermost level:
 
 - **TUI**: `board.spec.ts` - CSS selectors, interactions
-- **CLI**: `km-*.test.md` - shell commands via mdtest
+- **CLI**: `km-*.spec.md` - shell commands via mdspec
 - Run with `TEST_MODE=mock bun run test:fast` to skip watcher tests (~20s faster)

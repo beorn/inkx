@@ -24,7 +24,7 @@ export const TEST_PATTERNS = {
     exclude: [
       "**/node_modules/**",
       "**/*.slow.test.ts",
-      // Exclude mdtest wrapper files (they're in the mdtest suite)
+      // Exclude mdspec wrapper files (they're in the mdspec suite)
       "tests/km.test.ts",
       "tests/agent.test.ts",
       "apps/km-cli/tests/km-repl.test.ts",
@@ -39,15 +39,15 @@ export const TEST_PATTERNS = {
     ],
     exclude: ["**/node_modules/**"],
   },
-  mdtest: {
-    // All mdtest wrapper files (which load .test.md files)
-    // Note: These are .test.ts files that import from @beorn/mdtest/vitest
+  mdspec: {
+    // All mdspec wrapper files (which load .spec.md files)
+    // Note: These are .test.ts files that import from mdspec/vitest
     include: [
       "tests/km.test.ts",
       "tests/agent.test.ts",
       "apps/km-cli/tests/km-repl.test.ts",
       "apps/km-cli/tests/sh/sh-tests.test.ts",
-      "vendor/mdtest/tests/mdtest-e2e.test.ts",
+      "vendor/mdtest/tests/mdspec-e2e.test.ts",
     ],
     exclude: ["**/node_modules/**"],
   },
@@ -58,7 +58,7 @@ export type TestType = keyof typeof TEST_PATTERNS
 /**
  * Discovers test files matching the specified test type patterns
  *
- * @param type - Test type to discover (fast, slow, mdtest)
+ * @param type - Test type to discover (fast, slow, mdspec)
  * @returns Array of file paths matching the patterns
  */
 export async function discoverTests(type: TestType): Promise<string[]> {

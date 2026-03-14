@@ -104,7 +104,7 @@ Add workspace packages as devDependencies in root `package.json`:
 {
   "devDependencies": {
     "@silvery/ansi": "workspace:*",
-    "@beorn/mdtest": "workspace:*",
+    "mdspec": "workspace:*",
     "Silvery": "workspace:*"
   }
 }
@@ -160,10 +160,10 @@ echo 'import "@silvery/ansi"' > /tmp/test.ts && bun tsc --noEmit /tmp/test.ts
 
 ```typescript
 // BAD - hardcoded path
-import { foo } from "../../../vendor/beorn-mdtest/src/types.js"
+import { foo } from "../../../vendor/beorn-mdspec/src/types.js"
 
 // GOOD - package name
-import { foo } from "@beorn/mdtest"
+import { foo } from "mdspec"
 ```
 
 ### Duplicate resolution config

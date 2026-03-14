@@ -1,22 +1,22 @@
 /**
  * Chat view — pure rendering + signal reads.
  *
- * All state mutations go through invoke(). View-local concerns
- * (pulse animation, elapsed timer) live in hooks, not the model.
+ * No input handling here — all key dispatch happens outside React
+ * via withTerminal()'s term:key handler. The view only reads signals
+ * and renders UI.
  *
  * Era 2 aspirations (marked with "Era 2:" comments below):
  * - Focus, dimensions, elapsed time are all signals from the runtime
- * - No useInput hook — the surface owns the input source loop
+ * - Animation/streaming would be a scope-owned effect, not model logic
  * - No special-purpose hooks — just useSignal() for everything
  */
 
-import React, { useState, useEffect, useCallback } from "react"
-import { Box, Text, Link, Spinner, ScrollbackList, TextInput, useTerminalFocused } from "@silvery/react"
-import { useInput, type Key } from "@silvery/term/runtime"
+import React, { useState, useEffect, useCallback, type JSX } from "react"
+import { Box, Text, Link, Spinner, ScrollbackList, TextArea, useTerminalFocused } from "@silvery/react"
 import { signal, useSignal, type Signal } from "./signal.js"
 import { useChat, formatTokens, formatCost, computeCumulativeTokens } from "./model.js"
-import { invoke, type Mapping } from "./app.js"
-import type { Exchange, ToolCall } from "./types.js"
+import { invoke } from "./app.js"
+import type { Message, ToolCall } from "./types.js"
 import {
   TOOL_COLORS,
   URL_RE,
@@ -30,41 +30,26 @@ const NEVER_PENDING = signal(false) as Signal<boolean>
 // ChatView — top-level component
 // ============================================================================
 
-export function ChatView({
-  keys,
-  ctrlDPending,
-}: {
-  keys?: Mapping<string>
-  ctrlDPending?: Signal<boolean>
-}): JSX.Element {
+export function ChatView({ ctrlDPending }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
   const chat = useChat.get()
-  const exchanges = useSignal(chat.exchanges)
+  const messages = useSignal(chat.messages)
   const isCompacting = useSignal(chat.compacting)
-
-  // Era 2: the surface owns the input→keymap→invoke loop. No useInput here —
-  // withTerminal({ view, keys }) wires it automatically via for-await source.
-  // The view doesn't know about key dispatch at all.
-  useInput((input: string, key: Key) => {
-    const keyStr = normalizeKey(input, key)
-    const inv = keys?.(keyStr)
-    if (inv) invoke(inv)
-  })
 
   return (
     <Box flexDirection="column" paddingX={1}>
       <ScrollbackList
-        items={exchanges}
-        keyExtractor={(ex) => ex.id}
+        items={messages}
+        keyExtractor={(msg: Message) => msg.id}
         markers={true}
         footer={<DemoFooter ctrlDPending={ctrlDPending} />}
       >
-        {(exchange, index) => {
-          const isLatest = index === exchanges.length - 1
+        {(message: Message, index: number) => {
+          const isLatest = index === messages.length - 1
           return (
             <Box flexDirection="column">
               {index > 0 && <Text> </Text>}
               {isCompacting && isLatest && <CompactingOverlay />}
-              <ExchangeItem exchange={exchange} isLatest={isLatest} />
+              <MessageItem message={message} isLatest={isLatest} />
             </Box>
           )
         }}
@@ -83,7 +68,6 @@ export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Si
   // not a special hook. Same for dimensions: useSignal(app.dims).
   const terminalFocused = useTerminalFocused()
   const isDone = useSignal(chat.done)
-  const chatPhase = useSignal(chat.phase)
   const isCompacting = useSignal(chat.compacting)
   const autoText = useSignal(chat.autoTypingText)
   const pending = useSignal(ctrlDPending)
@@ -124,10 +108,12 @@ export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Si
           {"❯"}{" "}
         </Text>
         <Box flexShrink={1} flexGrow={1}>
-          <TextInput
+          <TextArea
             value={displayText}
             onChange={autoText ? () => {} : setInputText}
             onSubmit={handleSubmit}
+            submitKey="enter"
+            height={1}
             placeholder={placeholder}
             isActive={!isDone && !autoText && terminalFocused}
           />
@@ -141,10 +127,10 @@ export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Si
 }
 
 // ============================================================================
-// ExchangeItem
+// MessageItem
 // ============================================================================
 
-export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLatest: boolean }): JSX.Element {
+export function MessageItem({ message, isLatest }: { message: Message; isLatest: boolean }): JSX.Element {
   const chat = useChat.get()
   const chatPhase = useSignal(chat.phase)
   const streamContent = useSignal(chat.currentContent)
@@ -154,46 +140,46 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
   const pulseVal = usePulse()
 
   const phase = isLatest ? chatPhase : ("idle" as const)
-  const displayContent = isLatest && chatPhase === "streaming" ? streamContent : exchange.content
+  const displayContent = isLatest && chatPhase === "streaming" ? streamContent : message.content
 
-  if (exchange.role === "system") {
+  if (message.role === "system") {
     return (
       <Box flexDirection="column">
         <Text> </Text>
         <Text bold>AI Chat</Text>
         <Text> </Text>
-        <Text color="$muted">{exchange.content}</Text>
+        <Text color="$muted">{message.content}</Text>
         <Text> </Text>
       </Box>
     )
   }
 
-  if (exchange.role === "user") {
+  if (message.role === "user") {
     return (
       <Box paddingX={1} flexDirection="row" backgroundColor="$surface-bg">
         <Text bold color="$focusring">
           {"❯"}{" "}
         </Text>
         <Box flexShrink={1}>
-          <Text>{exchange.content}</Text>
+          <Text>{message.content}</Text>
         </Box>
       </Box>
     )
   }
 
-  const toolCalls = exchange.toolCalls ?? []
+  const toolCalls = message.toolCalls ?? []
   const toolRevealCount = phase === "tools" || phase === "idle" ? toolCalls.length : 0
-  const hasOperations = toolCalls.length > 0 || !!exchange.thinking
+  const hasOperations = toolCalls.length > 0 || !!message.thinking
 
   const metaParts: string[] = []
-  if (exchange.tokens && phase === "idle") metaParts.push(`${formatTokens(exchange.tokens.output)} tokens`)
-  if (exchange.thinking && (phase === "idle" || phase === "streaming")) metaParts.push("thought for 1s")
+  if (message.tokens && phase === "idle") metaParts.push(`${formatTokens(message.tokens.output)} tokens`)
+  if (message.thinking && (phase === "idle" || phase === "streaming")) metaParts.push("thought for 1s")
   const metaStr = metaParts.length > 0 ? ` (${metaParts.join(" · ")})` : ""
 
-  const { title, body } = splitTitleBody(exchange.content)
+  const { title, body } = splitTitleBody(message.content)
   const bulletColor = hasOperations ? "$success" : "$muted"
   const contentText = displayContent ? (title ? body || displayContent : displayContent) : ""
-  const showCursor = phase === "streaming" && streamContent.length < exchange.content.length
+  const showCursor = phase === "streaming" && streamContent.length < message.content.length
 
   return (
     <Box flexDirection="column">
@@ -224,8 +210,8 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
         borderBottom={false}
         paddingLeft={1}
       >
-        {exchange.thinking && (phase === "thinking" || phase === "streaming") && (
-          <ThinkingBlock text={exchange.thinking} done={phase !== "thinking"} />
+        {message.thinking && (phase === "thinking" || phase === "streaming") && (
+          <ThinkingBlock text={message.thinking} done={phase !== "thinking"} />
         )}
 
         {(phase === "streaming" || phase === "tools" || phase === "idle") && contentText && (
@@ -257,11 +243,11 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
 
 function StatusBar({ elapsed, ctrlDPending }: { elapsed: number; ctrlDPending: boolean }): JSX.Element {
   const chat = useChat.get()
-  const exchanges = useSignal(chat.exchanges)
+  const messages = useSignal(chat.messages)
   const isCompacting = useSignal(chat.compacting)
   const baseline = useSignal(chat.contextBaseline)
 
-  const cumulative = computeCumulativeTokens(exchanges)
+  const cumulative = computeCumulativeTokens(messages)
   const cost = formatCost(cumulative.input, cumulative.output)
   const minutes = Math.floor(elapsed / 60)
   const seconds = elapsed % 60
@@ -299,7 +285,7 @@ function CompactingOverlay(): JSX.Element {
         <Spinner type="arc" /> Compacting context
       </Text>
       <Text> </Text>
-      <Text color="$muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
+      <Text color="$muted">Freezing messages into terminal scrollback. Scroll up to review.</Text>
     </Box>
   )
 }
@@ -419,12 +405,6 @@ function useElapsed(): number {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-function normalizeKey(input: string, key: Key): string {
-  if (key.escape) return "escape"
-  if (key.ctrl) return `ctrl+${input}`
-  return input
-}
 
 function splitTitleBody(content: string): { title: string; body: string } {
   const match = content.match(/^(.+?[.!?])\s+(.+)$/s)

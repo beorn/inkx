@@ -9,7 +9,7 @@ Generated: 2026-01-23
 | Core (fast)         | 77    | ~1,200 | ~18k  | keep                   |
 | Sync (slow)         | 13    | ~140   | ~3k   | keep                   |
 | Chaos/fuzzer        | 10    | ~160   | ~3k   | keep                   |
-| Acceptance (mdtest) | 13    | ~200   | ~2k   | keep                   |
+| Acceptance (mdspec) | 13    | ~200   | ~2k   | keep                   |
 | Playwright          | 2     | 14     | 400   | **migrate to silvery**    |
 | Vendor              | 37    | ~500   | ~10k  | keep (owned by vendor) |
 
@@ -163,28 +163,28 @@ The plan identified potential overlap between 3 navigation test files. Analysis 
 | cli-unit.test.ts | 28    | 432   | core | fast  | keep        |
 | cli.slow.test.ts | 75    | 1,592 | core | slow  | keep        |
 
-### mdtest Acceptance Tests
+### mdspec Acceptance Tests
 
 | File                       | Tests | Lines | Type       | Speed | Disposition |
 | -------------------------- | ----- | ----- | ---------- | ----- | ----------- |
-| sh/cmd-mode.test.md        | ~6    | 82    | acceptance | fast  | keep        |
-| sh/history.test.md         | ~11   | 113   | acceptance | fast  | keep        |
-| sh/json-mode.test.md       | ~18   | 151   | acceptance | fast  | keep        |
-| sh/key-sequences.test.md   | ~15   | 146   | acceptance | fast  | keep        |
-| sh/keys.test.md            | ~45   | 444   | acceptance | fast  | keep        |
-| sh/mutations.test.md       | ~17   | 147   | acceptance | fast  | keep        |
-| sh/navigation.test.md      | ~12   | 182   | acceptance | fast  | keep        |
-| sh/path-navigation.test.md | ~20   | 204   | acceptance | fast  | keep        |
-| sh/selection.test.md       | ~10   | 103   | acceptance | fast  | keep        |
-| sh/view-controls.test.md   | ~21   | 209   | acceptance | fast  | keep        |
-| sh/views.test.md           | ~7    | 73    | acceptance | fast  | keep        |
+| sh/cmd-mode.spec.md        | ~6    | 82    | acceptance | fast  | keep        |
+| sh/history.spec.md         | ~11   | 113   | acceptance | fast  | keep        |
+| sh/json-mode.spec.md       | ~18   | 151   | acceptance | fast  | keep        |
+| sh/key-sequences.spec.md   | ~15   | 146   | acceptance | fast  | keep        |
+| sh/keys.spec.md            | ~45   | 444   | acceptance | fast  | keep        |
+| sh/mutations.spec.md       | ~17   | 147   | acceptance | fast  | keep        |
+| sh/navigation.spec.md      | ~12   | 182   | acceptance | fast  | keep        |
+| sh/path-navigation.spec.md | ~20   | 204   | acceptance | fast  | keep        |
+| sh/selection.spec.md       | ~10   | 103   | acceptance | fast  | keep        |
+| sh/view-controls.spec.md   | ~21   | 209   | acceptance | fast  | keep        |
+| sh/views.spec.md           | ~7    | 73    | acceptance | fast  | keep        |
 
-### Top-level mdtest
+### Top-level mdspec
 
 | File                | Tests | Lines | Type       | Speed | Disposition |
 | ------------------- | ----- | ----- | ---------- | ----- | ----------- |
-| tests/agent.test.md | ~17   | 160   | acceptance | fast  | keep        |
-| tests/km.test.md    | ~22   | 275   | acceptance | fast  | keep        |
+| tests/agent.spec.md | ~17   | 160   | acceptance | fast  | keep        |
+| tests/km.spec.md    | ~22   | 275   | acceptance | fast  | keep        |
 
 ## Other Packages
 

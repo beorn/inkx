@@ -75,7 +75,7 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 
 ## Vendor Packages (Git Submodules)
 
-Packages in `vendor/` (silvery, ansi, mdtest, flexily, etc.) are **git submodules** that are part of km.
+Packages in `vendor/` (silvery, ansi, mdspec, flexily, etc.) are **git submodules** that are part of km.
 If they have bugs or shortcomings, fix or implement it directly - do not work around them.
 Each package has its own CLAUDE.md with API documentation. See [.claude/skills/git/commit.md]
 

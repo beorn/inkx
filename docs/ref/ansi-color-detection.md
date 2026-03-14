@@ -121,7 +121,7 @@ const isTTY = "isTTY" in output ? output.isTTY : undefined
 
 ## Related
 
-- [mdtest color detection](../../vendor/mdtest/src/utils.ts) - Uses FORCE_COLOR env var
+- [mdspec color detection](../../vendor/mdtest/src/utils.ts) - Uses FORCE_COLOR env var
 - [TAP consumer](../../vendor/tap/src/consumer.ts) - Full implementation
 - [NO_COLOR standard](https://no-color.org/)
 - [FORCE_COLOR convention](https://force-color.org/)

@@ -14,6 +14,8 @@
 /* eslint-disable promise/prefer-await-to-callbacks -- Implements Node.js stream.write() API which requires callback support */
 
 import { beforeEach, afterEach, expect, vi } from "vitest"
+import { drainWarnings } from "@termless/core"
+import type { EmulatorWarning } from "@termless/core"
 
 // Register custom TUI testing matchers
 import "../../../apps/km-tui/tests/helpers/matchers.js"
@@ -155,6 +157,29 @@ afterEach(() => {
 })
 
 // =============================================================================
+// Emulator Warning Detection
+// =============================================================================
+//
+// Terminal emulator backends (e.g., Ghostty WASM) produce warnings when they
+// encounter unsupported escape sequences. These warnings are oracle output —
+// the emulator saying "your portability assumption is false." We surface them
+// as test failures instead of silently ignoring them.
+//
+// To allow a specific warning pattern in a test, add it to ALLOWED_EMULATOR_WARNINGS.
+// Patterns are matched against the warning's `code` field.
+
+/** Warning codes that are expected and should not fail tests. */
+const ALLOWED_EMULATOR_WARNINGS: string[] = [
+  // Add codes here to suppress known/expected warnings, e.g.:
+  // "UNSUPPORTED_OSC",  // If all OSC warnings are expected
+]
+
+/** Check if an emulator warning is explicitly allowed */
+function isAllowedWarning(warning: EmulatorWarning): boolean {
+  return ALLOWED_EMULATOR_WARNINGS.includes(warning.code)
+}
+
+// =============================================================================
 // Console Detection
 // =============================================================================
 
@@ -260,5 +285,19 @@ afterEach(() => {
   if (allOutput.length > 0) {
     const summary = allOutput.map((s) => `  ${JSON.stringify(s)}`).join("\n")
     throw new Error(`Test produced stdout/stderr output:\n${summary}`)
+  }
+
+  // Check emulator warnings (from terminal backends like Ghostty WASM)
+  const emulatorWarnings = drainWarnings()
+  const unexpected = emulatorWarnings.filter((w) => !isAllowedWarning(w))
+  if (unexpected.length > 0) {
+    const summary = unexpected
+      .map((w: EmulatorWarning) => `  [${w.backend}] ${w.code}: ${w.message}`)
+      .join("\n")
+    throw new Error(
+      `Unexpected emulator warnings (${unexpected.length}):\n${summary}\n\n` +
+        `These warnings indicate the terminal emulator does not support sequences your code emitted.\n` +
+        `Fix the code to not emit unsupported sequences, or add the warning code to ALLOWED_EMULATOR_WARNINGS in vitest/setup.ts.`,
+    )
   }
 })

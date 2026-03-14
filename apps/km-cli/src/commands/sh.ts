@@ -303,7 +303,7 @@ const osc133D = (exitCode: number) => `\x1b]133;D;${exitCode}\x07` // Command en
 /**
  * Determine if we should emit OSC 133 sequences
  * - Auto-enabled when stdout is a real TTY (interactive terminal)
- * - Force-enabled via TERM_SHELL_INTEGRATION=1 (for mdtest PTY mode)
+ * - Force-enabled via TERM_SHELL_INTEGRATION=1 (for mdspec PTY mode)
  * - Force-disabled via TERM_SHELL_INTEGRATION=0
  */
 function shouldEmitOsc133(): boolean {

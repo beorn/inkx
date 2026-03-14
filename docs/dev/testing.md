@@ -71,14 +71,14 @@ const syncManager = new SyncManager({ db, useWorker: false })
 **Reserved for acceptance tests:**
 
 - `.spec.ts` - TUI UI-level acceptance tests (board.spec.ts)
-- `.spec.md` - CLI acceptance tests (reserved, not yet used)
+- `.spec.md` - CLI acceptance tests (mdspec)
 
 **For unit/integration tests:**
 
 - `.test.ts` - Fast unit/integration tests (<1s each)
 - `.slow.test.ts` - Slow tests (heavy integration)
 - `.fuzz.ts` - Fuzz/chaos tests (excluded from test:all, run via test:fuzz)
-- `.test.md` - mdtest CLI tests (current convention, may migrate to `.spec.md`)
+- `.spec.md` - mdspec CLI tests
 
 | Suffix          | Purpose                   | Test Level | Included in         |
 | --------------- | ------------------------- | ---------- | ------------------- |
@@ -86,8 +86,8 @@ const syncManager = new SyncManager({ db, useWorker: false })
 | `.test.ts`      | Unit/integration tests    | Unit/Int   | test:fast, test:all |
 | `.slow.test.ts` | Slow integration          | Int/E2E    | test:all only       |
 | `.fuzz.ts`      | Fuzz/chaos tests          | Fuzz       | test:fuzz only      |
-| `.test.md`      | mdtest CLI tests          | E2E        | test:fast, test:all |
-| `.slow.test.md` | Slow mdtest CLI tests     | E2E        | test:all only       |
+| `.spec.md`      | mdspec CLI tests          | E2E        | test:fast, test:all |
+| `.slow.spec.md` | Slow mdspec CLI tests     | E2E        | test:all only       |
 
 **Rule**: Use `.spec.ts` ONLY for acceptance tests (board UI-level, CLI workflows). All other tests use `.test.ts`.
 
@@ -101,7 +101,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │         (end-user visible, documentation-like)              │
 ├──────────────────────────┬──────────────────────────────────┤
 │  VISUAL (TUI)            │  CLI                             │
-│  Silvery createRenderer│  mdtest (.test.md)               │
+│  Silvery createRenderer│  mdspec (.spec.md)               │
 │  + InkxLocator           │                                  │
 │  - Screen coordinates    │  - Command output                │
 │  - Representative fixtures│ - Error messages                │
@@ -274,9 +274,9 @@ expect(col1).toHaveWidth(20)
 - `.test.ts` - Unit tests can use `handleKey()` directly (faster, focused)
 - Both are valid - use the right tool for the test level
 
-### 1.2 CLI Tests (mdtest)
+### 1.2 CLI Tests (mdspec)
 
-**Framework**: mdtest (`.test.md` files) with km-repl plugin
+**Framework**: mdspec (`.spec.md` files) with km-repl plugin
 
 **Location**: `apps/km-cli/tests/sh/`
 
@@ -286,7 +286,7 @@ expect(col1).toHaveWidth(20)
 
 ```yaml
 ---
-mdtest:
+mdspec:
   plugin: ../km-repl.ts
   fixture: two-columns
   memory: true # ← CRITICAL: Use in-memory database
@@ -332,7 +332,7 @@ Use subprocess (`$ bun km ...`) only when testing:
 
 These tests should be in separate slow test files.
 
-**Doctrine:** mdtest asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdtest.
+**Doctrine:** mdspec asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdspec.
 
 ---
 
@@ -581,7 +581,7 @@ This section maps km's testing tools to industry-standard terminology, helping d
 | Monkey Testing       | Exploratory Testing  | `/explore`, `explore-tui.ts`   | TUI (keyboard)      |
 | Differential Testing | Oracle-Based Testing | Flexily fuzz vs Yoga             | Layout engine       |
 | Property-Based       | Invariant Checking   | Both chaos + explore           | Invariants          |
-| Acceptance Testing   | E2E Testing          | mdtest, Silvery specs          | CLI, TUI            |
+| Acceptance Testing   | E2E Testing          | mdspec, Silvery specs          | CLI, TUI            |
 
 ### Exploration Testing (Unified Pattern)
 
@@ -599,7 +599,7 @@ All exploration tests follow the same pattern:
 ```
 Dynamic Testing
 ├── Functional
-│   ├── Acceptance (mdtest, Silvery specs) → verifies user-visible behavior
+│   ├── Acceptance (mdspec, Silvery specs) → verifies user-visible behavior
 │   ├── Regression (preserved failing tests) → prevents re-introduction
 │   └── Smoke (quick sanity) → fast CI gate
 ├── Exploration
@@ -731,8 +731,8 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | `.slow.test.ts` | Slow tests (integration)        | test:all only       |
 | `.fuzz.ts`      | Fuzz/chaos tests                | test:fuzz only      |
 | `.spec.ts`      | TUI acceptance tests            | test:fast, test:all |
-| `.test.md`      | mdtest CLI tests                | test:fast, test:all |
-| `.slow.test.md` | Slow mdtest CLI tests           | test:all only       |
+| `.spec.md`      | mdspec CLI tests                | test:fast, test:all |
+| `.slow.spec.md` | Slow mdspec CLI tests           | test:all only       |
 
 ### Test File Guidelines
 
@@ -770,9 +770,9 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | Testing Need             | Use This                | Not This         |
 | ------------------------ | ----------------------- | ---------------- |
 | TUI rendering/navigation | Silvery createRenderer | Playwright       |
-| CLI command output       | mdtest (.test.md)       | Unit test        |
+| CLI command output       | mdspec (.spec.md)       | Unit test        |
 | Domain object behavior   | Unit test with DI       | Integration test |
-| Pure function logic      | Unit test               | mdtest           |
+| Pure function logic      | Unit test               | mdspec           |
 | Sync edge cases          | Chaos tests             | More unit tests  |
 | Visual debugging         | `km screenshot`         | Peekaboo         |
 
@@ -781,7 +781,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 ```
 Is it end-user visible behavior?
 ├── Yes, TUI → Visual acceptance test (Silvery)
-├── Yes, CLI → mdtest (.test.md)
+├── Yes, CLI → mdspec (.spec.md)
 └── No
     ├── Is it a domain object? → Unit test (factory, DI)
     ├── Is it a pure function? → Unit test
@@ -826,8 +826,8 @@ grep -r "getDb()" packages/*/tests/*.test.ts
 # Find tests creating raw Database
 grep -r "new Database" packages/*/tests/*.test.ts | grep -v ".slow."
 
-# Find mdtests without memory: true
-grep -L "memory: true" apps/km-cli/tests/sh/*.test.md
+# Find mdspecs without memory: true
+grep -L "memory: true" apps/km-cli/tests/sh/*.spec.md
 ```
 
 ### File Naming Rules

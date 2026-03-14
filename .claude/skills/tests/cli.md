@@ -1,12 +1,12 @@
 ---
-description: CLI testing with mdtest - command output testing
+description: CLI testing with mdspec - command output testing
 ---
 
-# CLI Tests (mdtest)
+# CLI Tests (mdspec)
 
-Command output testing via mdtest vitest plugin.
+Command output testing via mdspec vitest plugin.
 
-**Keywords**: CLI test, mdtest, command output, km-repl
+**Keywords**: CLI test, mdspec, command output, km-repl
 
 ---
 
@@ -19,8 +19,8 @@ Command output testing via mdtest vitest plugin.
 
 ## File Pattern
 
-- `*.test.md` - Fast CLI tests
-- `*.slow.test.md` - Slow CLI tests (subprocess, real I/O)
+- `*.spec.md` - Fast CLI tests
+- `*.slow.spec.md` - Slow CLI tests (subprocess, real I/O)
 
 ---
 
@@ -28,10 +28,10 @@ Command output testing via mdtest vitest plugin.
 
 ```yaml
 ---
-mdtest:
+mdspec:
   plugin: ../km-repl.ts
   fixture: two-columns
-  memory: true # ← CRITICAL: Use in-memory database
+  memory: true # <- CRITICAL: Use in-memory database
 ---
 ```
 
@@ -76,22 +76,22 @@ Use subprocess (`$ bun km ...`) only when testing:
 - Environment variable handling
 - Actual binary execution
 
-These tests should be in separate `.slow.test.md` files.
+These tests should be in separate `.slow.spec.md` files.
 
 ---
 
 ## Doctrine
 
-mdtest asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdtest.
+mdspec asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdspec.
 
 ---
 
 ## Location
 
-`apps/km-cli/tests/sh/*.test.md`
+`apps/km-cli/tests/sh/*.spec.md`
 
 ---
 
 ## See Also
 
-- [mdtest README](../../vendor/mdtest/README.md)
+- [mdspec README](../../vendor/mdtest/README.md)

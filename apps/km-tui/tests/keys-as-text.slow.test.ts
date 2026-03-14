@@ -306,7 +306,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
   })
 
-  test("rapid Enter after search confirm does not trigger inline edit (grace period)", { retry: 2 }, () => {
+  test("rapid Enter after search confirm does not trigger inline edit (grace period)", () => {
     // P1 Bug: If Enter propagates or user double-taps Enter, the second Enter
     // would trigger ENTER_INLINE_EDIT on the card selected by search.
     // The dialog confirm grace period should suppress this.
@@ -326,8 +326,8 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     board.press("Enter") // Confirms search, closes dialog
 
     // Immediately press Enter again (simulating double-tap or propagation).
-    // The grace period (100ms) is checked inside board.press synchronously,
-    // so it will still be active regardless of system load.
+    // The grace period uses a one-shot flag (not a time window), so it
+    // suppresses the next ENTER_INLINE_EDIT regardless of system load.
     board.press("Enter")
 
     // CRITICAL: Should NOT be in inline edit mode despite the second Enter

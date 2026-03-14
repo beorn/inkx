@@ -12,7 +12,7 @@ Reference for reviewing, pruning, and organizing the km test suite.
 | ----------------- | ---------------------------- | ------ | ---------------------------------- |
 | `.test.ts`        | `packages/*/tests/`          | Fast   | Core tests (logic, domain objects) |
 | `.slow.test.ts`   | `packages/*/tests/`          | Medium | Slow tests (sync, multi-component) |
-| `.test.md`        | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdtest)      |
+| `.spec.md`        | `apps/km-cli/tests/sh/`      | Medium | CLI acceptance tests (mdspec)      |
 | `.playwright.ts`  | `apps/km-tui/tests/`         | Slow   | Visual TUI tests (deprecated)      |
 | `sync/chaos/*.ts` | `packages/km-storage/tests/` | Slow   | Property-based sync fuzzing        |
 
@@ -24,8 +24,8 @@ Reference for reviewing, pruning, and organizing the km test suite.
 | Storage (`@km/storage`) | ~40%     | Domain + Sync + Chaos    | Yes (isolated) |
 | Tree (`@km/tree`)       | ~5%      | Query logic              | No             |
 | Board (`@km/board`)     | ~15%     | State machine (fixtures) | No             |
-| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdtest      | No             |
-| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdtest)      | Yes            |
+| TUI (`apps/km-tui`)     | ~20%     | Acceptance + mdspec      | No             |
+| CLI (`apps/km-cli`)     | ~15%     | Acceptance (mdspec)      | Yes            |
 
 **Health check**: Fast tests (~24s) should catch 90% of regressions. Slow tests for edge cases only.
 
@@ -85,7 +85,7 @@ Reference for reviewing, pruning, and organizing the km test suite.
 | Layout utilities (truncate, wrap) | Database queries         |
 | Text formatting                   | File operations          |
 
-**Pattern**: Ink testing library, mdtest for golden files.
+**Pattern**: Ink testing library, mdspec for golden files.
 
 ### CLI Layer (`apps/km-cli`)
 
@@ -96,7 +96,7 @@ Reference for reviewing, pruning, and organizing the km test suite.
 | Error messages      |                          |
 | Output formatting   |                          |
 
-**Pattern**: mdtest (`.test.md`) for golden file testing, integration tests for workflows.
+**Pattern**: mdspec (`.spec.md`) for golden file testing, integration tests for workflows.
 
 ---
 
@@ -166,9 +166,9 @@ test("should display cards view", async ({ page }) => {
 **Preferred alternatives**:
 
 - `Silvery/testing` with `createRenderer()` for visual assertions
-- `km sh` + mdtest for scripted TUI testing
+- `km sh` + mdspec for scripted TUI testing
 
-### mdtest / `km sh` Tests (`apps/km-cli/tests/sh/*.test.md`)
+### mdspec / `km sh` Tests (`apps/km-cli/tests/sh/*.spec.md`)
 
 Golden file testing for CLI and TUI state.
 
@@ -181,14 +181,14 @@ $ echo -e "move_down\nstate" | km sh -r $PWD/repo @inbox.md
 > position: col=0 card=1
 ```
 
-**When to use mdtest**:
+**When to use mdspec**:
 
 - CLI command output validation
 - TUI state transitions (via `km sh`)
 - Reproducible, deterministic tests
 - Easy to read and update
 
-**When to add new mdtest**:
+**When to add new mdspec**:
 
 - New CLI command
 - New TUI keybinding or behavior

@@ -36,7 +36,7 @@ URLS[flexture]="git@github.com:beorn/flexture.git"
 URLS[swatch]="git@github.com:beorn/swatch.git"
 URLS[decant]="git@github.com:beorn/decant.git"
 URLS[vitestx]="git@github.com:beorn/vitestx.git"
-URLS[mdtest]="git@github.com:beorn/mdtest.git"
+URLS[mdtest]="git@github.com:beorn/mdspec.git"
 URLS[termless]="git@github.com:beorn/termless.git"
 URLS[tools]="git@github.com:beorn/tools.git"
 

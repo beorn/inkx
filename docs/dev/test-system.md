@@ -92,7 +92,7 @@ bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit
 ┌─────────────────────────────────────────────────────────┐
 │  Vitest (Test Framework)                                │
 │  - Runs on Bun runtime (not Node.js)                    │
-│  - Executes .test.ts, .spec.ts, .test.md files         │
+│  - Executes .test.ts, .spec.ts, .spec.md files         │
 │  - Full access to bun:sqlite and other Bun APIs         │
 │  - Optional HTML report + JUnit XML (:html commands)    │
 └─────────────────────────────────────────────────────────┘
@@ -324,7 +324,7 @@ describe("Repo sync", () => {
 })
 ```
 
-#### Markdown Tests (`.test.md`)
+#### Markdown Tests (`.spec.md`)
 
 Executable markdown tests for CLI commands and end-to-end flows.
 
@@ -611,7 +611,7 @@ km/
 ├── packages/*/tests/          # Package tests
 │   ├── *.test.ts             # Fast unit/integration tests
 │   ├── *.slow.test.ts        # Slow integration tests
-│   └── *.test.md             # Markdown executable tests
+│   └── *.spec.md             # Markdown executable tests
 ├── apps/*/tests/              # App tests (same structure)
 ├── benchmarks/                # System benchmarks
 │   ├── layout.bench.ts

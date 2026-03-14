@@ -6,13 +6,14 @@
  * - Commands ({ fn, args? } — the primary interface)
  * - Async generators (streaming)
  *
- * Timers go through scope.sleep() / scope.timeout() — the scope
- * owns their lifecycle and cancels them on dispose.
+ * The model receives scope via ModelContext — no ambient lookup,
+ * no useScope(), no AsyncLocalStorage. This makes models testable
+ * (pass a test scope) and composable (share an app scope).
  */
 
-import { signal, createModel } from "./signal.js"
-import { useScope } from "./scope.js"
-import type { Exchange, ScriptEntry } from "./types.js"
+import { z } from "zod"
+import { signal, createModel, type ModelContext } from "./signal.js"
+import type { Message, ScriptEntry } from "./types.js"
 import {
   RANDOM_AGENT_RESPONSES,
   INPUT_COST_PER_M,
@@ -24,15 +25,11 @@ export type Phase = "idle" | "thinking" | "streaming" | "tools"
 
 // ── Chat Model Factory ──────────────────────────────────────
 
-/**
- * `fast` skips animation delays (for tests and --fast CLI flag).
- * In a real app, animation speed would be a theme/config concern.
- */
-export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
-  const scope = useScope()
+export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
+  const { scope } = ctx
 
   // ── Signals ────────────────────────────────────────────────
-  const exchanges = signal<Exchange[]>([{ id: 0, role: "system", content: INTRO_TEXT }])
+  const messages = signal<Message[]>([{ id: 0, role: "system", content: INTRO_TEXT }])
   const phase = signal<Phase>("idle")
   const currentContent = signal("")
   const activeToolIndex = signal(-1)
@@ -48,7 +45,7 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
 
   const commands = {
     submit: {
-      args: { parse: (input: any) => input as { text: string } },
+      args: z.object({ text: z.string() }),
       fn({ text }: { text: string }) {
         if (done.value) return
 
@@ -61,7 +58,7 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
 
         if (!text.trim()) return
 
-        addExchange({
+        addMessage({
           role: "user",
           content: text,
           tokens: { input: text.length * 4, output: 0 },
@@ -75,8 +72,8 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
       async fn() {
         if (done.value || compacting.value) return
         compacting.value = true
-        contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
-        await scope.sleep(opts.fast ? 300 : 3000)
+        contextBaseline.value = computeCumulativeTokens(messages.value).currentContext
+        await scope.sleep(3000)
         compacting.value = false
       },
     },
@@ -91,7 +88,7 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
   // ── Return ─────────────────────────────────────────────────
 
   return {
-    exchanges,
+    messages,
     phase,
     currentContent,
     activeToolIndex,
@@ -101,7 +98,7 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
     autoTypingText,
     commands,
     respond,
-    addExchange,
+    addMessage,
     advance,
     getNextHint,
     CONTEXT_WINDOW,
@@ -109,38 +106,36 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
 
   // ── Internal (hoisted) ─────────────────────────────────────
 
-  function addExchange(entry: Omit<Exchange, "id">): Exchange {
-    const ex: Exchange = { ...entry, id: nextId++ }
-    exchanges.value = [...exchanges.value, ex]
-    return ex
+  function addMessage(entry: Omit<Message, "id">): Message {
+    const msg: Message = { ...entry, id: nextId++ }
+    messages.value = [...messages.value, msg]
+    return msg
   }
 
   /** Streaming — thinking → content (word by word) → tools → idle. */
   async function* respond(entry: ScriptEntry): AsyncGenerator<void> {
-    const ex = addExchange({ ...entry, content: opts.fast ? entry.content : "" })
+    const msg = addMessage({ ...entry, content: "" })
 
-    if (entry.thinking && !opts.fast) {
+    if (entry.thinking) {
       phase.value = "thinking"
       await scope.sleep(1200)
     }
 
-    if (!opts.fast) {
-      phase.value = "streaming"
-      currentContent.value = ""
-      for (const word of entry.content.split(/(\s+)/)) {
-        currentContent.value += word
-        yield
-        if (word.trim()) await scope.sleep(50)
-      }
-      const exs = [...exchanges.value]
-      const idx = exs.findIndex((e) => e.id === ex.id)
-      if (idx >= 0) exs[idx] = { ...exs[idx]!, content: entry.content }
-      exchanges.value = exs
-      currentContent.value = ""
+    phase.value = "streaming"
+    currentContent.value = ""
+    for (const word of entry.content.split(/(\s+)/)) {
+      currentContent.value += word
+      yield
+      if (word.trim()) await scope.sleep(50)
     }
+    const msgs = [...messages.value]
+    const idx = msgs.findIndex((m) => m.id === msg.id)
+    if (idx >= 0) msgs[idx] = { ...msgs[idx]!, content: entry.content }
+    messages.value = msgs
+    currentContent.value = ""
 
     const tools = entry.toolCalls ?? []
-    if (tools.length > 0 && !opts.fast) {
+    if (tools.length > 0) {
       phase.value = "tools"
       for (let i = 0; i < tools.length; i++) {
         activeToolIndex.value = i
@@ -167,7 +162,7 @@ export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
 
     const entry = script[scriptIdx++]!
     if (entry.role === "user") {
-      addExchange(entry)
+      addMessage(entry)
       const agentEntry = findNextAgentEntry()
       if (agentEntry) drain(respond(agentEntry))
     } else {
@@ -211,7 +206,7 @@ export function formatCost(inputTokens: number, outputTokens: number): string {
   return `$${cost.toFixed(2)}`
 }
 
-export function computeCumulativeTokens(exchanges: Exchange[]): {
+export function computeCumulativeTokens(messages: Message[]): {
   input: number
   output: number
   currentContext: number
@@ -219,11 +214,11 @@ export function computeCumulativeTokens(exchanges: Exchange[]): {
   let input = 0
   let output = 0
   let currentContext = 0
-  for (const ex of exchanges) {
-    if (ex.tokens) {
-      input += ex.tokens.input
-      output += ex.tokens.output
-      if (ex.tokens.input > currentContext) currentContext = ex.tokens.input
+  for (const msg of messages) {
+    if (msg.tokens) {
+      input += msg.tokens.input
+      output += msg.tokens.output
+      if (msg.tokens.input > currentContext) currentContext = msg.tokens.input
     }
   }
   return { input, output, currentContext }

@@ -6,7 +6,7 @@
 	url = git@github.com:beorn/loggily.git
 [submodule "vendor/mdtest"]
 	path = vendor/mdtest
-	url = git@github.com:beorn/mdtest.git
+	url = git@github.com:beorn/mdspec.git
 [submodule "vendor/termless"]
 	path = vendor/termless
 	url = git@github.com:beorn/termless.git

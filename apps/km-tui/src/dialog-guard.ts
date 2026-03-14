@@ -19,9 +19,11 @@ import { createModeStack, type InputMode, type ModeStack } from "./input-mode.ts
 // Module-level singleton mode stack
 const modeStack: ModeStack = createModeStack()
 
-// Grace period timestamp for Enter key propagation suppression
+// Grace period timestamp for Enter key propagation suppression.
+// 500ms is generous enough to survive CI load where performance.now()
+// can advance significantly between synchronous board.press() calls.
 let dialogConfirmedAt = 0
-const DIALOG_CONFIRM_GRACE_MS = 100
+const DIALOG_CONFIRM_GRACE_MS = 500
 
 /** Get the shared mode stack instance. */
 export function getModeStack(): ModeStack {
@@ -31,6 +33,7 @@ export function getModeStack(): ModeStack {
 /** Reset the mode stack to command mode. Used by test helpers between test runs. */
 export function resetModeStack(): void {
   modeStack.clear()
+  dialogConfirmedAt = 0
 }
 
 /** Push a dialog mode onto the stack (called when a dialog opens). */

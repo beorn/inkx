@@ -133,7 +133,7 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 |----------|------|-------|
 | **TUI Tests** | Component + board testing (silvery) | [tui.md](tui.md) |
 | **Terminal Tests** | ANSI/cell/cursor verification (termless) | [termless.md](termless.md) |
-| **CLI Tests** | Command output (mdtest) | [cli.md](cli.md) |
+| **CLI Tests** | Command output (mdspec) | [cli.md](cli.md) |
 | **GUI/TTY Tests** | Screenshots (MCP/playwright) | [gui.md](gui.md) |
 | **Fuzz / Chaos** | Property-based, gen/take/test.fuzz (vimonkey) | [chaos.md](chaos.md) |
 | **Exploration** | Interactive AI probing + monkey testing | `/explore` |
@@ -156,7 +156,7 @@ I want to test...
 │   └── Multi-backend workspace [termless.md]
 │
 ├── CLI command output
-│   └── mdtest (.test.md files) [cli.md]
+│   └── mdspec (.spec.md files) [cli.md]
 │
 ├── Visual pixel verification / manual debugging
 │   └── TTY MCP tools [gui.md]
@@ -202,7 +202,7 @@ I want to test...
 | `.slow.spec.ts` | Heavy user-level journeys (>5s) | km-tui (Layer 5) |
 | `.bench.ts`     | Performance measurement (vitest bench) | Any |
 | `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) | Any |
-| `.test.md`      | CLI commands via mdtest         | km-cli |
+| `.spec.md`      | CLI commands via mdspec         | km-cli |
 
 **When to use `.spec.ts`**: If the test presses keys and asserts what the user sees + what got saved, use `.spec.ts`. If it calls internal functions or checks internal state, use `.test.ts`. See [test-layers.md](test-layers.md#when-suffix-should-be-spects-vs-testts) for details.
 
@@ -303,7 +303,7 @@ See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for detai
 | Test layering philosophy     | [test-layers.md](test-layers.md)                |
 | TUI testing (silvery)        | [tui.md](tui.md)                                |
 | Terminal testing (termless)  | [termless.md](termless.md)                      |
-| CLI testing (mdtest)         | [cli.md](cli.md)                                |
+| CLI testing (mdspec)         | [cli.md](cli.md)                                |
 | GUI/TTY testing (MCP/screenshots) | [gui.md](gui.md)                           |
 | Benchmarks                   | [bench.md](bench.md)                            |
 | Fuzz/chaos testing (vimonkey) | [chaos.md](chaos.md)                           |

@@ -1,12 +1,12 @@
-/** Tool call in an exchange (Read, Edit, Bash, etc.). */
+/** Tool call in a message (Read, Edit, Bash, etc.). */
 export interface ToolCall {
   tool: string
   args: string
   output: string[]
 }
 
-/** A single exchange in the conversation. */
-export interface Exchange {
+/** A single message in the conversation. */
+export interface Message {
   id: number
   role: "user" | "agent" | "system"
   content: string
@@ -15,5 +15,5 @@ export interface Exchange {
   tokens?: { input: number; output: number }
 }
 
-/** Script entry — exchange data before id is assigned. */
-export type ScriptEntry = Omit<Exchange, "id">
+/** Script entry — message data before id is assigned. */
+export type ScriptEntry = Omit<Message, "id">

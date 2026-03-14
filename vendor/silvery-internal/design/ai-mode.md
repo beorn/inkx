@@ -249,7 +249,7 @@ km code "
 
 No MCP server to configure. No tool schemas to load. The AI writes JavaScript — something it's better at than any tool-calling format.
 
-### Testing with mdtest
+### Testing with mdspec
 
 Code mode is a natural fit for **executable documentation**. Tests written as markdown with embedded code blocks run in the same sandbox as `app code`:
 

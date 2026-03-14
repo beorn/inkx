@@ -90,10 +90,10 @@
 9 apps/km-tui/tests/visual.test.ts
 16 apps/km-tui/tests/windowing-wire.test.ts
 4 apps/km-tui/tests/workspace-persist.test.ts
-1 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/gen.ts
-1 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/regression.ts
-3 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/test-fuzz.ts
-4 node_modules/.bun/vimonkey@github+beorn+vimonkey+db48faf+3bebe14d576d1f82/node_modules/vimonkey/src/random.ts
+1 node_modules/.bun/vimonkey@github+beorn+vimonkey+1a4a6cc+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/gen.ts
+1 node_modules/.bun/vimonkey@github+beorn+vimonkey+1a4a6cc+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/regression.ts
+3 node_modules/.bun/vimonkey@github+beorn+vimonkey+1a4a6cc+3bebe14d576d1f82/node_modules/vimonkey/src/fuzz/test-fuzz.ts
+4 node_modules/.bun/vimonkey@github+beorn+vimonkey+1a4a6cc+3bebe14d576d1f82/node_modules/vimonkey/src/random.ts
 2 packages/km-beads/src/migrate.ts
 1 packages/km-beads/src/sync.ts
 1 packages/km-commands/src/commands/tui.ts
@@ -159,8 +159,6 @@
 1 vendor/loggily/tests/file-writer-safety.test.ts
 42 vendor/loggily/tests/logger.test.ts
 1 vendor/loggily/tests/tracing.test.ts
-1 vendor/silvery-internal/prototype/aichat-v2/signal.ts
-13 vendor/silvery-internal/prototype/aichat-v2/view.tsx
 5 vendor/silvery/examples/inline/scrollback.tsx
 1 vendor/silvery/examples/interactive/_input-debug.tsx
 1 vendor/silvery/examples/interactive/_textarea-bare.tsx
@@ -315,6 +313,8 @@
 1 vendor/silvery/tests/features/text-input.test.tsx
 5 vendor/silvery/tests/features/transform.test.tsx
 1 vendor/silvery/tests/hooks/use-textarea.test.tsx
+8 vendor/silvery/tests/output-phase-wide-char-matrix.test.ts
+12 vendor/silvery/tests/output-phase-xterm-replay.test.ts
 1 vendor/tap/src/parallel-tui.ts
 2 vendor/termless/packages/alacritty/src/backend.ts
 5 vendor/termless/packages/alacritty/tests/backend.test.ts

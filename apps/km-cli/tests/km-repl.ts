@@ -1,5 +1,5 @@
 /**
- * km-repl - In-process km command execution for mdtest
+ * km-repl - In-process km command execution for mdspec
  *
  * This plugin enables fast in-process execution of km commands during testing,
  * avoiding subprocess overhead. Provides ~8-15x speedup over bunShell approach.
@@ -7,7 +7,7 @@
  * Usage:
  * ```yaml
  * ---
- * mdtest:
+ * mdspec:
  *   plugin: ./km-repl.ts
  *   fixture: two-columns
  *   memory: true  # Use :memory: database for max speed
@@ -21,7 +21,7 @@ process.env.NO_COLOR = "1"
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "fs"
 import { tmpdir } from "os"
 import { join } from "path"
-import type { Plugin, ReplResult } from "@beorn/mdtest/types"
+import type { Plugin, ReplResult } from "mdspec/types"
 import { executeKmCommand } from "../src/execute.ts"
 
 interface Opts {

@@ -48,9 +48,9 @@ Run in parallel to count tests:
 # Test file counts by type
 echo "=== Test File Counts ==="
 echo "Fast unit (ts): $(find packages apps -name '*.test.ts' ! -name '*.slow*' ! -name '*.playwright*' 2>/dev/null | wc -l)"
-echo "Fast mdtest (md): $(find packages apps tests -name '*.test.md' ! -name '*.slow*' 2>/dev/null | wc -l)"
+echo "Fast mdspec (md): $(find packages apps tests -name '*.spec.md' ! -name '*.slow*' 2>/dev/null | wc -l)"
 echo "Slow integration: $(find packages apps -name '*.slow.test.ts' 2>/dev/null | wc -l)"
-echo "Slow mdtest: $(find packages apps tests -name '*.slow.test.md' 2>/dev/null | wc -l)"
+echo "Slow mdspec: $(find packages apps tests -name '*.slow.spec.md' 2>/dev/null | wc -l)"
 echo "Playwright: $(find packages apps -name '*.playwright.ts' 2>/dev/null | wc -l)"
 echo "Chaos: $(find packages -path '*/chaos/*.test.ts' 2>/dev/null | wc -l)"
 echo "Yoga (vendor): $(find vendor/flexily/tests/yoga -name '*.test.ts' 2>/dev/null | wc -l)"
@@ -66,7 +66,7 @@ For `--full`, also generate taxonomy:
 
 ```bash
 # Detailed file listing
-find packages apps -name "*.test.ts" -o -name "*.slow.test.ts" -o -name "*.test.md" | \
+find packages apps -name "*.test.ts" -o -name "*.slow.test.ts" -o -name "*.spec.md" | \
   xargs wc -l 2>/dev/null | sort -n | tail -30
 ```
 
@@ -83,9 +83,9 @@ grep -r "getDb()\|setDb(" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/d
 echo "=== Raw Database Creation ==="
 grep -r "new Database" packages/*/tests/*.test.ts apps/*/tests/*.test.ts 2>/dev/null | grep -v ".slow." | wc -l
 
-# mdtests without memory: true (SHOULD BE ZERO for fast tests)
-echo "=== mdtests without memory: true ==="
-for f in apps/km-cli/tests/sh/*.test.md; do
+# mdspecs without memory: true (SHOULD BE ZERO for fast tests)
+echo "=== mdspecs without memory: true ==="
+for f in apps/km-cli/tests/sh/*.spec.md; do
   grep -q "memory: true" "$f" || echo "$f"
 done
 
@@ -118,7 +118,7 @@ done 2>/dev/null
 
 - Singleton usage: 0
 - Raw Database in fast tests: 0
-- mdtests without memory: 0
+- mdspecs without memory: 0
 - Real watcher in fast tests: 0
 - Console output in fast tests: 0 (tests should be silent on success)
 - TUI tests using withTestEnv: 0 (should use createFakeRepo)
@@ -556,7 +556,7 @@ Output structured findings:
 | ----------------------------- | ----- | ------ | ------ |
 | Singleton usage (getDb/setDb) | N     | 0      | ✅/❌  |
 | Raw Database in fast tests    | N     | 0      | ✅/❌  |
-| mdtests without memory: true  | N     | 0      | ✅/❌  |
+| mdspecs without memory: true  | N     | 0      | ✅/❌  |
 | Real watcher in fast tests    | N     | 0      | ✅/❌  |
 | Console output in fast tests  | N     | 0      | ✅/❌  |
 | Test helpers >150 lines       | N     | 0      | ✅/❌  |
@@ -874,9 +874,9 @@ grep -rn "\.only(" apps/*/tests/*.test.ts apps/*/tests/*.spec.ts packages/*/test
 grep -l "Database\|createVault\|withTestEnv" packages/*/tests/*.test.ts 2>/dev/null | \
   grep -v ".slow.test.ts"
 
-# mdtest files that should be marked slow (taking >1s per test)
-# Note: .test.md files now follow the same slow/fast convention as .test.ts
-# Use .slow.test.md suffix for slow mdtest files
+# mdspec files that should be marked slow (taking >1s per test)
+# Note: .spec.md files now follow the same slow/fast convention as .test.ts
+# Use .slow.spec.md suffix for slow mdspec files
 ```
 
 **Keywords**: test review, prune tests, test cleanup, test organization, test audit, test smell, test pyramid, chaos testing, playwright

@@ -1,15 +1,17 @@
 /**
  * Minimal signal + createModel implementation for the prototype.
  *
- * In production, these would come from `import { signal, createModel } from "silvery"`.
+ * In production, these would come from `@silvery/signal` and `@silvery/tea`.
  *
- * Three layers:
- * - Layer 1: signal<T>() — fine-grained reactive state cells
- * - Layer 2: createModel(factory) — wraps factory → typed hook + namespace
- * - Layer 3: useChat(selector) — signal-aware selector with auto-unwrapping
+ * - signal<T>() — fine-grained reactive state cells (L0)
+ * - createModel(factory) — wraps factory → typed hook + namespace (L3)
+ *
+ * createModel passes a context object to the factory — the model receives
+ * its runtime dependencies explicitly, not via ambient lookup.
  */
 
 import { useSyncExternalStore } from "react"
+import type { Scope } from "./scope.js"
 
 type Listener = () => void
 
@@ -22,7 +24,7 @@ export interface WritableSignal<T> extends Signal<T> {
   value: T
 }
 
-// ── Layer 1: Signal Primitive ──────────────────────────────────
+// ── Layer 0: Signal Primitive ──────────────────────────────────
 
 export function signal<T>(initial: T): WritableSignal<T> {
   let current = initial
@@ -52,7 +54,18 @@ export function useSignal<T>(sig: Signal<T>): T {
   )
 }
 
-// ── Layer 2: createModel ───────────────────────────────────────
+// ── Layer 3: createModel ───────────────────────────────────────
+
+/**
+ * Context passed to model factories by createModel.
+ *
+ * The model receives its runtime dependencies explicitly — no ambient
+ * lookup via useScope() or AsyncLocalStorage. This makes models testable
+ * (pass a test scope) and composable (multiple models share an app scope).
+ */
+export interface ModelContext {
+  scope: Scope
+}
 
 /** Check if a value looks like a Signal (has .value + .subscribe). */
 function isSignal(v: unknown): v is Signal<unknown> {
@@ -73,7 +86,7 @@ function isSignal(v: unknown): v is Signal<unknown> {
 function createUnwrappingProxy<T extends Record<string, any>>(obj: T): T {
   return new Proxy(obj, {
     get(target, prop, receiver) {
-      const val = Reflect.get(target, prop, receiver)
+      const val: unknown = Reflect.get(target, prop, receiver)
       if (isSignal(val)) return val.value
       return val
     },
@@ -99,19 +112,23 @@ function subscribeToAllSignals(instance: Record<string, any>, callback: () => vo
 }
 
 /**
- * createModel — wraps a factory function into a Zustand-like typed hook.
+ * createModel — wraps a factory function into a typed hook.
+ *
+ * The factory receives a ModelContext (scope + signal factory) as its first
+ * argument, followed by any domain-specific args. This matches the design:
+ *
+ *   const useChat = createModel((ctx, script) => { ... })
+ *   useChat.bind({ scope }, script)       // main.tsx
+ *   useChat.create({ scope }, script)     // tests
  *
  * Returns a callable selector hook + namespace:
  * - `useChat(m => m.phase)` — signal-aware selector (auto-unwraps signals)
  * - `useChat.get()` — direct access to raw instance (with signal fields)
- * - `useChat.create(...args)` — create isolated instance (for tests)
- * - `useChat.bind(...args)` — initialize the singleton with args
- *
- * If the factory takes no arguments, the singleton is created immediately.
- * If it takes arguments, call `.bind(args)` or pass to `createApp()` first.
+ * - `useChat.create(ctx, ...args)` — create isolated instance (for tests)
+ * - `useChat.bind(ctx, ...args)` — initialize the singleton with args
  */
 export function createModel<A extends any[], T extends Record<string, any>>(
-  factory: (...args: A) => T,
+  factory: (ctx: ModelContext, ...args: A) => T,
 ): ModelHook<A, T> {
   let instance: T | null = null
 
@@ -133,17 +150,12 @@ export function createModel<A extends any[], T extends Record<string, any>>(
   }
 
   /** Create an isolated instance — for tests. Does not affect the singleton. */
-  useHook.create = (...args: A): T => factory(...args)
+  useHook.create = (ctx: ModelContext, ...args: A): T => factory(ctx, ...args)
 
   /** Initialize the singleton with arguments. */
-  useHook.bind = (...args: A): T => {
-    instance = factory(...args)
+  useHook.bind = (ctx: ModelContext, ...args: A): T => {
+    instance = factory(ctx, ...args)
     return instance
-  }
-
-  // Zero-arg factory: auto-initialize
-  if (factory.length === 0) {
-    instance = (factory as () => T)()
   }
 
   return useHook as ModelHook<A, T>
@@ -156,7 +168,7 @@ export interface ModelHook<A extends any[], T> {
   /** Direct access to the raw instance (signals NOT unwrapped). */
   get(): T
   /** Create an isolated instance for testing. */
-  create(...args: A): T
+  create(ctx: ModelContext, ...args: A): T
   /** Initialize the singleton with arguments. */
-  bind(...args: A): T
+  bind(ctx: ModelContext, ...args: A): T
 }

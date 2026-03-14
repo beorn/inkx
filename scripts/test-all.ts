@@ -4,7 +4,7 @@
  *
  * Strategy:
  * - Vitest for fast/slow tests: bunx --bun vitest
- * - Bun test for mdtest wrappers: bun test (requires bun:sqlite, etc.)
+ * - Bun test for mdspec wrappers: bun test (requires bun:sqlite, etc.)
  *
  * For parallel TUI mode with silvery, use: bun run test:all:tui
  *
@@ -18,7 +18,7 @@ import { discoverTests } from "./test-patterns"
 const [fastTests, slowTests, mdTests] = await Promise.all([
 	discoverTests("fast"),
 	discoverTests("slow"),
-	discoverTests("mdtest"),
+	discoverTests("mdspec"),
 ])
 
 // Vitest runs fast/slow tests

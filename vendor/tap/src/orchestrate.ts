@@ -29,7 +29,7 @@ import type { Writable } from "node:stream"
 export interface Suite {
   name: string
   runner: "bun" | "vitest" | "custom"
-  command?: string[] // For custom runners like mdtest
+  command?: string[] // For custom runners like mdspec
   files: string[]
 }
 

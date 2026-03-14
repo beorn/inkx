@@ -1,0 +1,587 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="720">
+<rect width="100%" height="100%" fill="#1e1e1e"/>
+<rect x="0" y="0" width="8.4" height="18" fill="#d9dce2"/>
+<rect x="25.200000000000003" y="0" width="277.2" height="18" fill="#d9dce2"/>
+<rect x="319.2" y="0" width="680.4" height="18" fill="#d9dce2"/>
+<rect x="672" y="90" width="302.40000000000003" height="18" fill="#4c566a"/>
+<rect x="655.2" y="648" width="336" height="18" fill="#383d49"/>
+<rect x="655.2" y="666" width="16.8" height="18" fill="#383d49"/>
+<rect x="688.8000000000001" y="666" width="302.40000000000003" height="18" fill="#383d49"/>
+<rect x="8.4" y="684" width="319.2" height="18" fill="#666666"/>
+<rect x="655.2" y="684" width="336" height="18" fill="#383d49"/>
+<text x="0" y="14" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#000000"> </tspan>
+<tspan x="8.4">  </tspan>
+<tspan x="25.200000000000003" fill="#000000" opacity="0.5"> asana / stabell / </tspan>
+<tspan x="184.8" fill="#000000" font-weight="bold">early-orbit</tspan>
+<tspan x="277.2" fill="#000000" opacity="0.5"> &gt; </tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#000000" opacity="0.5"> Launch Academy &gt; INBOX</tspan>
+<tspan x="512.4">                                          </tspan>
+<tspan x="865.2" fill="#000000" opacity="0.5"> CARDS VIEW CL:3</tspan>
+<tspan x="999.6"> </tspan>
+</text>
+<text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                                                                        </tspan>
+</text>
+<text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4"> </tspan>
+<tspan x="16.8" fill="#eceff4" font-weight="bold">§</tspan>
+<tspan x="25.200000000000003" fill="#4c566a" font-weight="bold"> </tspan>
+<tspan x="33.6" font-weight="bold"> Early Orbit</tspan>
+<tspan x="134.4">                          </tspan>
+<tspan x="352.8" fill="#eceff4" font-weight="bold">§</tspan>
+<tspan x="361.2" font-weight="bold"> MIP</tspan>
+<tspan x="394.8">                                  </tspan>
+<tspan x="680.4" fill="#eceff4" font-weight="bold">§</tspan>
+<tspan x="688.8000000000001" fill="#4c566a" font-weight="bold"> </tspan>
+<tspan x="697.2" font-weight="bold">Ph</tspan>
+<tspan x="714" fill="#4c566a" font-weight="bold"> Launch Academy</tspan>
+<tspan x="840">                    </tspan>
+</text>
+<text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#8d929a">──────────────────────────────────────</tspan>
+<tspan x="327.6"> </tspan>
+<tspan x="336" fill="#8d929a">──────────────────────────────────────</tspan>
+<tspan x="655.2"> </tspan>
+<tspan x="663.6" fill="#8d929a">──────────────────────────────────────</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="86" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">╭────────────────────────────────────╮</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="104" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" fill="#a0a4ac">·</tspan>
+<tspan x="25.200000000000003"> </tspan>
+<tspan x="33.6" fill="#a0a4ac" font-weight="bold" opacity="0.5">(01KJXQC0)</tspan>
+<tspan x="117.60000000000001">                        </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">    </tspan>
+<tspan x="361.2" fill="#a0a4ac" opacity="0.5">(empty)</tspan>
+<tspan x="420">                             </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672" fill="#eceff4">§ </tspan>
+<tspan x="688.8000000000001" fill="#eceff4" font-weight="bold">INBOX</tspan>
+<tspan x="730.8000000000001">                         </tspan>
+<tspan x="940.8000000000001" fill="#eceff4"> 1/2</tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="122" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">╰────────────────────────────────────╯</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672" fill="#eceff4">□</tspan>
+<tspan x="680.4"> [Maybe] Shanshan WP @michael-…  </tspan>
+<tspan x="957.6" fill="#8d929a"> 2</tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="140" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac">·</tspan>
+<tspan x="688.8000000000001"> Apply at border (only requirem…  </tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="158" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" fill="#eceff4">§</tspan>
+<tspan x="25.200000000000003"> </tspan>
+<tspan x="33.6" fill="#a0a4ac" font-weight="bold" opacity="0.5">(untitled section)</tspan>
+<tspan x="184.8">                </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#eceff4">□</tspan>
+<tspan x="688.8000000000001"> Inform Craig &amp; Co when she pla…  </tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="176" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">╰────────────────────────────────────╯</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672" opacity="0.5">✓ Attend Traction conf Aug 10-1…</tspan>
+<tspan x="940.8000000000001">  </tspan>
+<tspan x="957.6" fill="#8d929a"> 2</tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="194" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> </tspan>
+<tspan x="697.2" fill="#5e81ac" opacity="0.5" text-decoration="underline">share.hsforms.com/1t4jtegvgTe2</tspan>
+<tspan x="949.2" opacity="0.5">…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="212" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" fill="#eceff4">§</tspan>
+<tspan x="25.200000000000003"> </tspan>
+<tspan x="33.6" font-weight="bold">Overview &amp; Inbox</tspan>
+<tspan x="168">              </tspan>
+<tspan x="285.6" fill="#8d929a"> 1/1</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" opacity="0.5">✓ Sign up for Traction</tspan>
+<tspan x="865.2">             </tspan>
+<tspan x="974.4000000000001" fill="#4c566a">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="230" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ Prepare immigration office hour…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4c566a">╰────────────────────────────────────╯</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="248" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">╰────────────────────────────────────╯</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="266" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" fill="#eceff4">§</tspan>
+<tspan x="680.4"> </tspan>
+<tspan x="688.8000000000001" font-weight="bold">PROJECTS &amp; PHASES</tspan>
+<tspan x="831.6">           </tspan>
+<tspan x="924" fill="#8d929a"> 41/42</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="284" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" fill="#eceff4">§</tspan>
+<tspan x="25.200000000000003"> </tspan>
+<tspan x="33.6" font-weight="bold">MAPLE Milestones</tspan>
+<tspan x="168">              </tspan>
+<tspan x="285.6" fill="#8d929a"> 9/9</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Monthly investor updates to …</tspan>
+<tspan x="932.4000000000001">  </tspan>
+<tspan x="949.2" fill="#8d929a"> 12</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="302" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ ◆ ——— </tspan>
+<tspan x="84">  </tspan>
+<tspan x="100.80000000000001" opacity="0.5">MAPLE Phase 1 ———</tspan>
+<tspan x="243.60000000000002">         </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> </tspan>
+<tspan x="697.2" fill="#5e81ac" opacity="0.5" text-decoration="underline">visible.vc/blog/how-to-write-t</tspan>
+<tspan x="949.2" opacity="0.5">…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="320" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ ◆ </tspan>
+<tspan x="50.400000000000006">  </tspan>
+<tspan x="67.2" opacity="0.5">Company incorporated</tspan>
+<tspan x="235.20000000000002">        </tspan>
+<tspan x="302.40000000000003" fill="#8d929a"> 1</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> The monthly update should incl…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="338" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#eceff4" opacity="0.5">•</tspan>
+<tspan x="33.6" opacity="0.5"> ✓ [W: Brock] EOSC Incorporat…</tspan>
+<tspan x="285.6">  </tspan>
+<tspan x="302.40000000000003" fill="#8d929a"> 3</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> New milestones or wins for you…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="356" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ ◆ </tspan>
+<tspan x="50.400000000000006">  </tspan>
+<tspan x="67.2" opacity="0.5">Imm path &amp; WP clear</tspan>
+<tspan x="226.8">         </tspan>
+<tspan x="302.40000000000003" fill="#8d929a"> 4</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Monthly investor updates to …</tspan>
+<tspan x="932.4000000000001">  </tspan>
+<tspan x="949.2" fill="#8d929a"> 13</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="374" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> ^1201289317003500</tspan>
+<tspan x="184.8">                </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> </tspan>
+<tspan x="697.2" fill="#5e81ac" opacity="0.5" text-decoration="underline">visible.vc/blog/how-to-write-t</tspan>
+<tspan x="949.2" opacity="0.5">…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="392" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> Pushed to PR-related</tspan>
+<tspan x="210">             </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> The monthly update should incl…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="410" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> ^1201410893693409</tspan>
+<tspan x="184.8">                </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> New milestones or wins for you…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="428" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">╰────────────────</tspan>
+<tspan x="151.20000000000002" fill="#8d929a"> +7 </tspan>
+<tspan x="184.8" fill="#4b505b">────────────────╯</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Monthly investor updates to …</tspan>
+<tspan x="932.4000000000001">  </tspan>
+<tspan x="949.2" fill="#8d929a"> 14</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="446" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> Ray recommended </tspan>
+<tspan x="831.6" fill="#5e81ac" opacity="0.5" text-decoration="underline">adamantventure</tspan>
+<tspan x="949.2" opacity="0.5">…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="464" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" fill="#eceff4">§</tspan>
+<tspan x="25.200000000000003"> </tspan>
+<tspan x="33.6" font-weight="bold">MAPLE Program</tspan>
+<tspan x="142.8">               </tspan>
+<tspan x="268.8" fill="#8d929a"> 14/14</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> </tspan>
+<tspan x="697.2" fill="#5e81ac" opacity="0.5" text-decoration="underline">visible.vc/blog/how-to-write-t</tspan>
+<tspan x="949.2" opacity="0.5">…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="482" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ Prepare for huddle • Draft a…</tspan>
+<tspan x="277.2">  </tspan>
+<tspan x="294" fill="#8d929a"> 11</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="688.8000000000001" opacity="0.5"> The monthly update should incl…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="500" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> A Look back at 2021</tspan>
+<tspan x="201.60000000000002">              </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">╰───────────────</tspan>
+<tspan x="798" fill="#8d929a"> +39 </tspan>
+<tspan x="840" fill="#4b505b">────────────────╯</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="518" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> What were your BIG 3 goals las…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">╭────────────────────────────────────╮</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="536" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#eceff4" opacity="0.5">•</tspan>
+<tspan x="33.6" opacity="0.5"> (01KJE4W9)</tspan>
+<tspan x="126">                     </tspan>
+<tspan x="302.40000000000003" fill="#8d929a"> 1</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" fill="#eceff4">§</tspan>
+<tspan x="680.4"> </tspan>
+<tspan x="688.8000000000001" font-weight="bold">Phase 2</tspan>
+<tspan x="747.6">                       </tspan>
+<tspan x="940.8000000000001" fill="#8d929a"> 6/6</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="554" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ </tspan>
+<tspan x="33.6">  </tspan>
+<tspan x="50.400000000000006" opacity="0.5"> MAPLE program</tspan>
+<tspan x="168">               </tspan>
+<tspan x="294" fill="#8d929a"> 20</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Shanshan&apos;s Work Permit =&gt; didn&apos;…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="572" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> </tspan>
+<tspan x="42" fill="#5e81ac" opacity="0.5" text-decoration="underline">docs.google.com/document/d/1VM</tspan>
+<tspan x="294" opacity="0.5">…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Michael&apos;s Work Permit #</tspan>
+<tspan x="882">         </tspan>
+<tspan x="957.6" fill="#8d929a"> 1</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="590" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> Phase 1: INFO - 1 month (start…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" opacity="0.5">✓ [W: Craig] Michael and Shansha…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="608" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> Phase 2: ROADMAPPING -</tspan>
+<tspan x="226.8">           </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672" opacity="0.5">✓ Bjorn Work Permit #</tspan>
+<tspan x="848.4000000000001">             </tspan>
+<tspan x="957.6" fill="#8d929a"> 4</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="626" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8" opacity="0.5">✓ </tspan>
+<tspan x="33.6">  </tspan>
+<tspan x="50.400000000000006" opacity="0.5"> EOSC SUV/LA Roadmap @mich…</tspan>
+<tspan x="277.2">  </tspan>
+<tspan x="294" fill="#8d929a"> 21</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" opacity="0.5">✓ Ray: Confirm commitment certif…</tspan>
+<tspan x="957.6">  </tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="644" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> Detailed plan of work to be un…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                        </tspan>
+<tspan x="663.6" fill="#4b505b">│</tspan>
+<tspan x="672"> </tspan>
+<tspan x="680.4" opacity="0.5">✓ Mexico WP trip @bjørn-stabe…</tspan>
+<tspan x="932.4000000000001">  </tspan>
+<tspan x="949.2" fill="#8d929a"> 11</tspan>
+<tspan x="974.4000000000001" fill="#4b505b">│</tspan>
+<tspan x="982.8000000000001">   </tspan>
+</text>
+<text x="0" y="662" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" fill="#a0a4ac" opacity="0.5">·</tspan>
+<tspan x="33.6" opacity="0.5"> See ~icloud/Early Orbit/Busine…</tspan>
+<tspan x="302.40000000000003">  </tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                       </tspan>
+<tspan x="655.2" fill="#4b505b">╭──────────────────────────────────────╮</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="680" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5"> </tspan>
+<tspan x="8.4" fill="#4b505b">│</tspan>
+<tspan x="16.8"> </tspan>
+<tspan x="25.200000000000003" opacity="0.5">✓ 15:00 Fill in form and uploa…</tspan>
+<tspan x="285.6">  </tspan>
+<tspan x="302.40000000000003" fill="#8d929a"> 1</tspan>
+<tspan x="319.2" fill="#4b505b">│</tspan>
+<tspan x="327.6">                                       </tspan>
+<tspan x="655.2" fill="#4b505b">│</tspan>
+<tspan x="663.6"> </tspan>
+<tspan x="672" fill="#4b505b">──</tspan>
+<tspan x="688.8000000000001" fill="#ebcb8b"> 1 log messages — press ` to see</tspan>
+<tspan x="957.6">   </tspan>
+<tspan x="982.8000000000001" fill="#4b505b">│</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="698" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0" fill="#a0a4ac" opacity="0.5">◂</tspan>
+<tspan x="8.4" fill="#eaeaea">                  ▼7                  </tspan>
+<tspan x="327.6">                                       </tspan>
+<tspan x="655.2" fill="#4b505b">╰──────────────────────────────────────╯</tspan>
+<tspan x="991.2">  </tspan>
+</text>
+<text x="0" y="716" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
+<tspan x="0">                                                                     </tspan>
+<tspan x="579.6" opacity="0.5">DISK ~/Code/pim/km/imports/asana</tspan>
+<tspan x="848.4000000000001"> </tspan>
+<tspan x="856.8000000000001" opacity="0.5">sa</tspan>
+<tspan x="873.6">2</tspan>
+<tspan x="882" opacity="0.5"> </tspan>
+<tspan x="890.4000000000001"> </tspan>
+<tspan x="898.8000000000001" opacity="0.5">a212741</tspan>
+<tspan x="957.6"> </tspan>
+<tspan x="966" opacity="0.5">27</tspan>
+<tspan x="982.8000000000001">12 </tspan>
+</text>
+</svg>

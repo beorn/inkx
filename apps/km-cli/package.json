@@ -10,7 +10,7 @@
   "module": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./mdtest": "./tests/mdtest-plugin.ts"
+    "./mdspec": "./tests/mdspec-plugin.ts"
   },
   "dependencies": {
     "@beorn/tools": "workspace:*",

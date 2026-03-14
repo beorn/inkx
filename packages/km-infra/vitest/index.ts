@@ -17,7 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export interface VitestConfigOptions {
   /**
-   * Additional Vite/Vitest plugins (e.g., mdtest)
+   * Additional Vite/Vitest plugins (e.g., mdspec)
    */
   plugins?: Plugin[]
 

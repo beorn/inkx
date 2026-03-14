@@ -1,4 +1,4 @@
-import { mdtest } from "@beorn/mdtest/vitest-plugin"
+import { mdspec } from "mdspec/vitest-plugin"
 import { defineConfig } from "vitest/config"
 import { availableParallelism } from "node:os"
 
@@ -9,7 +9,7 @@ const alwaysExclude = [
 	"**/.direnv/**",
 	"**/.claude/worktrees/**",
 	// Uses bun:test integration — incompatible with vitest runner
-	"vendor/mdtest/tests/mdtest-e2e.slow.test.ts",
+	"vendor/mdtest/tests/mdspec-e2e.slow.test.ts",
 	// Spawns real km subprocess with PTY (via termless) — needs full CPU, can't run in parallel
 	"apps/km-tui/tests/pty-integration.slow.spec.ts",
 	// Playwright tests — run via `bun run test:showcase` in vendor/silvery, not vitest
@@ -42,7 +42,7 @@ const sharedTest = {
 const projects = hasProjectFlag
 	? [
 			{
-				plugins: [mdtest()],
+				plugins: [mdspec()],
 				test: {
 					name: "default",
 					...sharedTest,
@@ -51,7 +51,7 @@ const projects = hasProjectFlag
 				},
 			},
 			{
-				plugins: [mdtest()],
+				plugins: [mdspec()],
 				test: {
 					name: "slow",
 					...sharedTest,
@@ -60,7 +60,7 @@ const projects = hasProjectFlag
 				},
 			},
 			{
-				plugins: [mdtest()],
+				plugins: [mdspec()],
 				test: {
 					name: "vendor",
 					...sharedTest,
@@ -73,7 +73,7 @@ const projects = hasProjectFlag
 
 export default defineConfig({
 	cacheDir: "node_modules/.vitest",
-	plugins: [mdtest()],
+	plugins: [mdspec()],
 	test: {
 		reporter: "dot",
 		includeTaskLocation: true,

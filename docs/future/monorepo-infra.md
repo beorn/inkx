@@ -46,7 +46,7 @@ packages/km-infra/
 │   ├── config.ts       # createVitestConfig() factory
 │   ├── setup.ts        # test quality enforcement
 │   └── plugins/
-│       └── mdtest.ts   # .test.md support (or re-export from mdtest)
+│       └── mdspec.ts   # .spec.md support (or re-export from mdspec)
 ├── eslint/
 │   └── config.ts       # flat config preset
 ├── typescript/
@@ -101,7 +101,7 @@ The infra package should auto-detect:
 
 1. **Workspace packages** - Read `package.json` workspaces, generate TypeScript paths
 2. **Framework detection** - React, Ink, Node.js - configure appropriately
-3. **Test file patterns** - `.test.ts`, `.test.md`, `.spec.ts`
+3. **Test file patterns** - `.test.ts`, `.spec.md`, `.spec.ts`
 4. **Source structure** - `src/`, `tests/`, `packages/`
 
 ## Quality Enforcement
@@ -293,13 +293,13 @@ infra/                     # All shared config
 1. **Package name**: `@km/infra`, `km-infra`, or `@beorn/monorepo-infra` (for reuse)?
 2. **Bundling**: Should this be published or workspace-only?
 3. **vite-tsconfig-paths**: Re-export or peer dependency?
-4. **mdtest integration**: Bundle or separate package?
+4. **mdspec integration**: Bundle or separate package?
 5. **Location**: `.config/` (XDG-style) vs `infra/` vs `packages/infra/`?
 6. **TypeScript paths**: Generate at install time or resolve at runtime?
 
 ## Related
 
-- `vendor/mdtest` - Markdown test framework
+- `vendor/mdtest` - Markdown test framework (mdspec)
 - `tests/vitest-setup.ts` - Current vitest quality enforcement
 - `tests/fail-on-console.ts` - Current bun:test quality enforcement
 

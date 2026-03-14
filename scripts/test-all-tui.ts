@@ -9,7 +9,7 @@
  * Test suites displayed as separate rows:
  * - vitest:fast - Fast tests (~11s)
  * - vitest:slow - Slow tests (sync, chaos)
- * - vitest:md - Markdown tests (.test.md files)
+ * - vitest:md - Markdown tests (.spec.md files)
  *
  * Features:
  * - Real-time colored dots as tests complete
@@ -26,7 +26,7 @@ import { discoverTests } from "./test-patterns"
 const [fastTests, slowTests, mdTests] = await Promise.all([
 	discoverTests("fast"),
 	discoverTests("slow"),
-	discoverTests("mdtest"),
+	discoverTests("mdspec"),
 ])
 
 const orchestrator = createOrchestrator({

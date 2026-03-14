@@ -2,11 +2,11 @@
  * In-process km command execution for testing
  *
  * Provides programmatic access to km CLI commands without spawning a subprocess.
- * Used by mdtest plugin for fast test execution.
+ * Used by mdspec plugin for fast test execution.
  */
 
 import { Writable } from "stream"
-import type { ReplResult } from "@beorn/mdtest/types"
+import type { ReplResult } from "mdspec/types"
 import { configureProgram } from "./program.ts"
 
 /**

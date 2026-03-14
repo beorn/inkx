@@ -81,7 +81,7 @@ bd create --id km-storage-15 \
 
 ```
 km-vitestx             # Test framework tracking epic
-km-vitestx.mdtest      # mdtest vitest plugin subtask
+km-vitestx.mdspec      # mdspec vitest plugin subtask
 km-infra.ci-fuzz       # CI fuzzing (cross-cutting infra)
 
 km-silvery                # silvery tracking epic

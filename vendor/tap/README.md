@@ -13,7 +13,7 @@ Running tests in parallel is fast. Merging their output is hard.
 ```
 Terminal 1: bun test tests/fast/**  → 142 tests passed
 Terminal 2: bun test tests/slow/**  → 23 tests passed
-Terminal 3: mdtest tests/**/*.md    → 18 tests passed
+Terminal 3: mdspec tests/**/*.md    → 18 tests passed
 ───────────────────────────────────────────────────────
 Result: 3 separate outputs, manual aggregation, no unified summary
 ```
@@ -24,7 +24,7 @@ Result: 3 separate outputs, manual aggregation, no unified summary
 $ bun run test:all
 ···········X·······································
 ✗ 183 tests: 182 passed, 1 failed, 0 skipped
-Timing: bun:fast: 1.2s, bun:slow: 3.4s, mdtest: 0.8s
+Timing: bun:fast: 1.2s, bun:slow: 3.4s, mdspec: 0.8s
 Total: 3.5s
 ```
 
@@ -245,13 +245,13 @@ const consumer = createConsumer({ dots: true })
 // Start multiple test runners in parallel
 const { stdout: fastStdout } = runBunTap({ args: ["tests/fast/**/*.test.ts"] })
 const { stdout: slowStdout } = runBunTap({ args: ["tests/slow/**/*.test.ts"] })
-const mdProc = spawn(["mdtest", "tests/**/*.md", "--tap"], { stdout: "pipe" })
+const mdProc = spawn(["mdspec", "tests/**/*.md", "--tap"], { stdout: "pipe" })
 
 // Merge streams (auto-converts Bun ReadableStreams to Node streams)
 const merged = mergeStreams([
   { name: "fast", stream: fastStdout },
   { name: "slow", stream: slowStdout },
-  { name: "mdtest", stream: mdProc.stdout },
+  { name: "mdspec", stream: mdProc.stdout },
 ])
 
 // Pipe merged stream to consumer

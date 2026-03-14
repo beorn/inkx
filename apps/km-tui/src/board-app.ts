@@ -17,7 +17,7 @@ import { isBoardPane, isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
-import { getModeStack } from "./dialog-guard.ts"
+import { getModeStack, resetModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import { clearSelection } from "./keyboard/keyboard-helpers.ts"
@@ -881,6 +881,7 @@ function describeKey(input: string, key: Key): string {
  */
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
   let exitFn: (() => void) | null = null
+  resetModeStack()
 
   const app = createApp<Record<string, unknown>, BoardAppStore>(() => createBoardAppStoreState(storeParams), {
     "term:key": (data, ctx) => {

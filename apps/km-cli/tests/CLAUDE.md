@@ -1,6 +1,6 @@
 # km-cli Tests
 
-**CLI Commands**: Command output testing via mdtest (markdown-driven tests).
+**CLI Commands**: Command output testing via mdspec (markdown-driven tests).
 
 ## What to Test Here
 
@@ -10,9 +10,9 @@
 
 ## Patterns
 
-### mdtest (preferred for CLI tests)
+### mdspec (preferred for CLI tests)
 
-Tests are written as markdown files with command blocks. The mdtest plugin executes via `bunShell` (fast, no subprocess overhead).
+Tests are written as markdown files with command blocks. The mdspec plugin executes via `bunShell` (fast, no subprocess overhead).
 
 ```markdown
 # km list
@@ -21,7 +21,7 @@ $ km list --format=json
 [{"id": "...", "title": "..."}]
 ```
 
-**All fast mdtest files must include `memory: true`** in their frontmatter to use in-memory database.
+**All fast mdspec files must include `memory: true`** in their frontmatter to use in-memory database.
 
 ### Unit tests
 
@@ -40,8 +40,8 @@ test("parseArgs handles --format flag", () => {
 | File                   | Purpose                              |
 | ---------------------- | ------------------------------------ |
 | `km-repl.ts`           | REPL harness for interactive testing |
-| `mdtest-plugin.ts`     | km command executor (bunShell)       |
-| `mdtest-sh-plugin.ts`  | Shell fallback plugin                |
+| `mdspec-plugin.ts`     | km command executor (bunShell)       |
+| `mdspec-sh-plugin.ts`  | Shell fallback plugin                |
 | `import/fake-asana.ts` | Mock Asana API for import tests      |
 
 ## Ad-Hoc Testing
@@ -60,9 +60,9 @@ bun km import --help               # Check argument parsing
 
 ## Efficiency
 
-- **All fast mdtest files must have `memory: true`** — uses in-memory DB, no disk I/O.
-- mdtest with bunShell is much faster than spawning subprocesses.
-- Tests needing real filesystem or real vault must be `.slow.test.md`.
+- **All fast mdspec files must have `memory: true`** — uses in-memory DB, no disk I/O.
+- mdspec with bunShell is much faster than spawning subprocesses.
+- Tests needing real filesystem or real vault must be `.slow.spec.md`.
 
 ## See Also
 

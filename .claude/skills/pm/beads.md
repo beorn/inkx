@@ -74,7 +74,7 @@ bd list --priority 0        # P0 only
 bd list --priority-max 1    # P0 and P1
 bd list --assignee beorn
 bd list --no-assignee       # Unassigned
-bd list --title mdtest      # Search title
+bd list --title mdspec      # Search title
 bd list --all               # Include closed
 bd list --limit 0           # Unlimited
 bd list --tree              # Hierarchical tree format

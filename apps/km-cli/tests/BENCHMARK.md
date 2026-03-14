@@ -1,4 +1,4 @@
-# mdtest Performance Benchmark
+# mdspec Performance Benchmark
 
 ## In-Process Execution Speedup
 
@@ -24,10 +24,10 @@ Comparison of subprocess (bunShell) vs in-process (km-repl) execution.
 
 ```bash
 # Subprocess
-time bun run vendor/mdtest/src/index.ts /tmp/benchmark-subprocess.test.md
+time bun run vendor/mdtest/src/index.ts /tmp/benchmark-subprocess.spec.md
 
 # In-process
-time bun run vendor/mdtest/src/index.ts /tmp/benchmark-inprocess.test.md
+time bun run vendor/mdtest/src/index.ts /tmp/benchmark-inprocess.spec.md
 ```
 
 ### Why So Fast?
