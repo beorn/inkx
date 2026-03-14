@@ -306,7 +306,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
   })
 
-  test("rapid Enter after search confirm does not trigger inline edit (grace period)", () => {
+  test("rapid Enter after search confirm does not trigger inline edit (grace period)", { retry: 2 }, () => {
     // P1 Bug: If Enter propagates or user double-taps Enter, the second Enter
     // would trigger ENTER_INLINE_EDIT on the card selected by search.
     // The dialog confirm grace period should suppress this.

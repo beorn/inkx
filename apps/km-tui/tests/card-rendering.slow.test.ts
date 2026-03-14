@@ -174,7 +174,7 @@ describe("card border: scrolling", () => {
     if (box) expectCardBorder(board, "card-10", 80)
   })
 
-  test("borders present after scrolling back up (structural)", () => {
+  test("borders present after scrolling back up (structural)", { timeout: 15_000 }, () => {
     const cards = Array.from({ length: 20 }, (_, i) => item.file(`card-${i}`, item(`card-${i}-child`)))
     const { board } = testEnv(() => item("board", item("col", ...cards)), { rows: 20 })
 

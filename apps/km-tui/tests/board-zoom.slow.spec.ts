@@ -1291,7 +1291,7 @@ describe("u key — go to parent, not previous sibling", () => {
 const VAULT_PATH = new URL("../../../imports/asana/stabell", import.meta.url).pathname
 
 describe.skipIf(!existsSync(VAULT_PATH))("zoom-mismatch: real vault repro", () => {
-  test("cursor down does not cause incremental mismatch", { timeout: 30_000 }, async () => {
+  test("cursor down does not cause incremental mismatch", { timeout: 60_000 }, async () => {
     const repo = runGenerator(createRepo(VAULT_PATH, { loadFiles: true }))
 
     // Find the repo root

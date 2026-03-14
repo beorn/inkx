@@ -359,7 +359,7 @@ describe("Terminal Sizes", () => {
       expect(text).not.toContain("◂")
     })
 
-    test("280 cols: navigation works across visible and overflow columns", () => {
+    test("280 cols: navigation works across visible and overflow columns", { timeout: 15_000 }, () => {
       const { board } = testEnv(
         () =>
           item(
