@@ -9,18 +9,25 @@
 import { describe, it, expect } from "vitest"
 import { useChat } from "./model.js"
 import { invoke } from "./app.js"
+import { createScope, runInScope } from "./scope.js"
 import { SCRIPT } from "../../../silvery/examples/interactive/aichat/script.js"
+
+/** Create a chat model inside a fresh scope (ambient via ALS). */
+function createChat(...args: Parameters<typeof useChat.create>) {
+  const scope = createScope()
+  return runInScope(scope, () => useChat.create(...args))
+}
 
 describe("createChat", () => {
   it("creates model with initial system exchange", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     expect(chat.exchanges.value).toHaveLength(1)
     expect(chat.exchanges.value[0]!.role).toBe("system")
     expect(chat.exchanges.value[0]!.content).toContain("AI Chat v2")
   })
 
   it("submit via invoke adds user exchange", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     invoke({ command: chat.commands.submit, args: { text: "hello" } })
     expect(chat.exchanges.value).toHaveLength(2)
     expect(chat.exchanges.value[1]!.role).toBe("user")
@@ -28,20 +35,20 @@ describe("createChat", () => {
   })
 
   it("submit ignores empty text", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     chat.commands.submit.fn({ text: "   " })
     expect(chat.exchanges.value).toHaveLength(1)
   })
 
   it("submit ignores when done", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     chat.done.value = true
     chat.commands.submit.fn({ text: "hello" })
     expect(chat.exchanges.value).toHaveLength(1)
   })
 
   it("respond streams agent content via async generator", async () => {
-    const chat = useChat.create([], { fast: true })
+    const chat = createChat([], { fast: true })
     const entry = { role: "agent" as const, content: "Hello world", tokens: { input: 100, output: 50 } }
 
     for await (const _ of chat.respond(entry)) {
@@ -55,7 +62,7 @@ describe("createChat", () => {
   })
 
   it("respond handles thinking phase", async () => {
-    const chat = useChat.create([], { fast: true })
+    const chat = createChat([], { fast: true })
     const entry = {
       role: "agent" as const,
       content: "Fixed the bug.",
@@ -73,7 +80,7 @@ describe("createChat", () => {
   })
 
   it("respond handles tool calls", async () => {
-    const chat = useChat.create([], { fast: true })
+    const chat = createChat([], { fast: true })
     const entry = {
       role: "agent" as const,
       content: "Looking at the file.",
@@ -91,7 +98,7 @@ describe("createChat", () => {
   })
 
   it("compact sets contextBaseline and resets", async () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     chat.commands.submit.fn({ text: "hello" })
     expect(chat.compacting.value).toBe(false)
 
@@ -102,7 +109,7 @@ describe("createChat", () => {
   })
 
   it("compact is no-op when already compacting", async () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     chat.compacting.value = true
     const baseline = chat.contextBaseline.value
     await chat.commands.compact.fn()
@@ -110,25 +117,25 @@ describe("createChat", () => {
   })
 
   it("advance progresses through script", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     const initialLen = chat.exchanges.value.length
     chat.advance()
     expect(chat.exchanges.value.length).toBeGreaterThan(initialLen)
   })
 
   it("getNextHint returns next scripted user message", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     expect(chat.getNextHint()).toBe(SCRIPT[0]!.content)
   })
 
   it("getNextHint returns empty when done", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     chat.done.value = true
     expect(chat.getNextHint()).toBe("")
   })
 
   it("signals notify subscribers on change", () => {
-    const chat = useChat.create(SCRIPT, { fast: true })
+    const chat = createChat(SCRIPT, { fast: true })
     let notified = false
     const unsubscribe = chat.exchanges.subscribe(() => {
       notified = true

@@ -3,6 +3,11 @@
  *
  * All state mutations go through invoke(). View-local concerns
  * (pulse animation, elapsed timer) live in hooks, not the model.
+ *
+ * Era 2 aspirations (marked with "Era 2:" comments below):
+ * - Focus, dimensions, elapsed time are all signals from the runtime
+ * - No useInput hook — the surface owns the input source loop
+ * - No special-purpose hooks — just useSignal() for everything
  */
 
 import React, { useState, useEffect, useCallback } from "react"
@@ -36,7 +41,9 @@ export function ChatView({
   const exchanges = useSignal(chat.exchanges)
   const isCompacting = useSignal(chat.compacting)
 
-  // All key dispatch goes through keymap → invoke()
+  // Era 2: the surface owns the input→keymap→invoke loop. No useInput here —
+  // withTerminal({ view, keys }) wires it automatically via for-await source.
+  // The view doesn't know about key dispatch at all.
   useInput((input: string, key: Key) => {
     const keyStr = normalizeKey(input, key)
     const inv = keys?.(keyStr)
@@ -72,12 +79,16 @@ export function ChatView({
 
 export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
   const chat = useChat.get()
+  // Era 2: useSignal(app.focused) — focus is a signal the runtime provides,
+  // not a special hook. Same for dimensions: useSignal(app.dims).
   const terminalFocused = useTerminalFocused()
   const isDone = useSignal(chat.done)
   const chatPhase = useSignal(chat.phase)
   const isCompacting = useSignal(chat.compacting)
   const autoText = useSignal(chat.autoTypingText)
   const pending = useSignal(ctrlDPending)
+  // Era 2: elapsed would be a signal from a timer plugin — scope.interval(1000)
+  // returns a Signal<number> that increments every second. No useEffect needed.
   const elapsed = useElapsed()
 
   const [inputText, setInputText] = useState("")
@@ -138,6 +149,8 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
   const chatPhase = useSignal(chat.phase)
   const streamContent = useSignal(chat.currentContent)
   const toolIdx = useSignal(chat.activeToolIndex)
+  // Era 2: pulse would be a derived signal — derived(() => Math.floor(app.now.value / 400) % 2 === 0)
+  // where app.now is a frame-synced timestamp signal. No setInterval needed.
   const pulseVal = usePulse()
 
   const phase = isLatest ? chatPhase : ("idle" as const)
@@ -383,6 +396,8 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
 
 // ── View-local hooks ─────────────────────────────────────────
 // These are view concerns — not model state.
+// Era 2: these would be replaced by runtime-provided signals
+// (app.focused, scope.interval(), app.now) composed with derived().
 
 function usePulse(ms = 400): boolean {
   const [val, setVal] = useState(false)

@@ -6,11 +6,12 @@
  * - Commands ({ fn, args? } — the primary interface)
  * - Async generators (streaming)
  *
- * Everything else (pulse animation, elapsed timer, key dispatch,
- * double-press detection) lives in the view or keymap layer.
+ * Timers go through scope.sleep() / scope.timeout() — the scope
+ * owns their lifecycle and cancels them on dispose.
  */
 
 import { signal, createModel } from "./signal.js"
+import { useScope } from "./scope.js"
 import type { Exchange, ScriptEntry } from "./types.js"
 import {
   RANDOM_AGENT_RESPONSES,
@@ -23,13 +24,12 @@ export type Phase = "idle" | "thinking" | "streaming" | "tools"
 
 // ── Chat Model Factory ──────────────────────────────────────
 
-export interface ChatOpts {
-  fast: boolean
-  delay?: (ms: number) => Promise<void>
-}
-
-export function createChat(script: ScriptEntry[], opts: ChatOpts) {
-  const delayFn = opts.delay ?? delay
+/**
+ * `fast` skips animation delays (for tests and --fast CLI flag).
+ * In a real app, animation speed would be a theme/config concern.
+ */
+export function createChat(script: ScriptEntry[], opts: { fast: boolean }) {
+  const scope = useScope()
 
   // ── Signals ────────────────────────────────────────────────
   const exchanges = signal<Exchange[]>([{ id: 0, role: "system", content: INTRO_TEXT }])
@@ -76,7 +76,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
         if (done.value || compacting.value) return
         compacting.value = true
         contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
-        await delayFn(opts.fast ? 300 : 3000)
+        await scope.sleep(opts.fast ? 300 : 3000)
         compacting.value = false
       },
     },
@@ -121,7 +121,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
 
     if (entry.thinking && !opts.fast) {
       phase.value = "thinking"
-      await delayFn(1200)
+      await scope.sleep(1200)
     }
 
     if (!opts.fast) {
@@ -130,7 +130,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
       for (const word of entry.content.split(/(\s+)/)) {
         currentContent.value += word
         yield
-        if (word.trim()) await delayFn(50)
+        if (word.trim()) await scope.sleep(50)
       }
       const exs = [...exchanges.value]
       const idx = exs.findIndex((e) => e.id === ex.id)
@@ -145,7 +145,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
       for (let i = 0; i < tools.length; i++) {
         activeToolIndex.value = i
         yield
-        await delayFn(600)
+        await scope.sleep(600)
       }
       activeToolIndex.value = -1
     }
@@ -156,7 +156,9 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
   function scheduleResponse() {
     const agentEntry = findNextAgentEntry()
     const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-    delayFn(150).then(() => drain(respond(entry)))
+    scope.sleep(150).then(() => {
+      if (!scope.cancelled) drain(respond(entry))
+    })
   }
 
   function advance() {
@@ -227,16 +229,13 @@ export function computeCumulativeTokens(exchanges: Exchange[]): {
   return { input, output, currentContext }
 }
 
-export function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 const INTRO_TEXT = [
   "AI Chat v2 — Era 2 API prototype:",
   " \u2022 Signals — fine-grained reactive state",
   " \u2022 Commands — { fn, args? } as the interface",
   " \u2022 Keymap — declarative key→command dispatch via invoke()",
   " \u2022 Async generators — streaming replaces timer-driven reveals",
+  " \u2022 Scope — structured concurrency for timers and lifecycle",
   " \u2022 Factory functions — models are plain objects",
   " \u2022 Pure tests — model tests need no React rendering",
 ].join("\n")

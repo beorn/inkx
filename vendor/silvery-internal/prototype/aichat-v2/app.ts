@@ -6,11 +6,13 @@
  * - invoke() — single dispatch point
  * - keymap(), when() — declarative key→command mapping
  * - doublePress() — chord-like stateful binding
- * - autoAdvance() — behavioral plugin
+ * - autoAdvance(), idleAutoSubmit() — behavioral plugins
+ *
+ * All timers go through the ambient scope (via useScope() / ALS).
  */
 
 import { signal } from "./signal.js"
-import { delay } from "./model.js"
+import { useScope } from "./scope.js"
 import type { ChatModel } from "./model.js"
 import type { ScriptEntry } from "./types.js"
 import type { Signal } from "./signal.js"
@@ -63,27 +65,33 @@ export function when(predicate: Signal<boolean>, bindings: Record<string, Comman
  * doublePress() — chord-like binding requiring two presses within a timeout.
  *
  * State lives in the keymap closure as a signal (same primitive, narrower scope).
- * The `pending` signal is returned so the view can show "press again to exit".
+ * Timer lifecycle is owned by the ambient scope — cancelled on dispose.
  */
 export function doublePress(
   key: string,
   command: Command,
-  timeoutMs = 2000,
+  opts?: { timeout?: number },
 ): { bindings: Binding[]; pending: Signal<boolean> } {
+  const scope = useScope()
+  const timeoutMs = opts?.timeout ?? 2000
   const pending = signal(false)
-  let timer: ReturnType<typeof setTimeout> | null = null
+  let cancelTimer: (() => void) | null = null
 
   const wrapper: Command = {
     fn() {
       if (pending.value) {
         pending.value = false
-        if (timer) clearTimeout(timer)
+        if (cancelTimer) {
+          cancelTimer()
+          cancelTimer = null
+        }
         command.fn()
       } else {
         pending.value = true
-        timer = setTimeout(() => {
+        cancelTimer = scope.timeout(timeoutMs, () => {
           pending.value = false
-        }, timeoutMs)
+          cancelTimer = null
+        })
       }
     },
   }
@@ -117,16 +125,19 @@ export function pipe<T>(value: T, ...fns: Array<(v: T) => T>): T {
 
 /** Auto-advance — drives the script programmatically (--auto mode). */
 export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: { fast: boolean }): Promise<void> {
+  const scope = useScope()
+
   for (const entry of script) {
-    if (chat.done.value) break
+    if (chat.done.value || scope.cancelled) break
 
     if (entry.role === "user") {
       if (!opts.fast) {
         for (let i = 0; i <= entry.content.length; i++) {
           chat.autoTypingText.value = entry.content.slice(0, i)
-          await delay(30)
+          await scope.sleep(30)
+          if (scope.cancelled) return
         }
-        await delay(300)
+        await scope.sleep(300)
         chat.autoTypingText.value = null
       }
       chat.addExchange({ role: "user", content: entry.content, tokens: entry.tokens })
@@ -136,32 +147,34 @@ export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: 
       }
     }
 
-    if (!opts.fast) await delay(400)
+    if (!opts.fast) await scope.sleep(400)
   }
 
   chat.done.value = true
 }
 
 /** Idle auto-submit — submits the next hint after idle delay (interactive demo). */
-export function idleAutoSubmit(chat: ChatModel, delayMs = 10_000): () => void {
-  let timer: ReturnType<typeof setTimeout> | null = null
+export function idleAutoSubmit(chat: ChatModel, opts?: { delay?: number }): void {
+  const scope = useScope()
+  const delayMs = opts?.delay ?? 10_000
+  let cancelTimer: (() => void) | null = null
 
   const schedule = () => {
-    if (timer) {
-      clearTimeout(timer)
-      timer = null
+    if (cancelTimer) {
+      cancelTimer()
+      cancelTimer = null
     }
-    if (chat.done.value || chat.compacting.value || chat.phase.value !== "idle") return
+    if (scope.cancelled || chat.done.value || chat.compacting.value || chat.phase.value !== "idle") return
     const hint = chat.getNextHint()
     if (!hint) return
-    timer = setTimeout(() => invoke({ command: chat.commands.submit, args: { text: hint } }), delayMs)
+    cancelTimer = scope.timeout(delayMs, () => {
+      invoke({ command: chat.commands.submit, args: { text: hint } })
+    })
   }
 
   const unsubs = [chat.phase.subscribe(schedule), chat.done.subscribe(schedule), chat.exchanges.subscribe(schedule)]
-  schedule()
-
-  return () => {
-    if (timer) clearTimeout(timer)
+  scope.onDispose(() => {
     for (const fn of unsubs) fn()
-  }
+  })
+  schedule()
 }
