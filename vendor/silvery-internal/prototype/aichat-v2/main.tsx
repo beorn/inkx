@@ -1,22 +1,17 @@
 /**
  * AI Chat v2 — Entry point.
  *
- * Demonstrates Era 2 composition: factory → createModel → bind → run.
+ * Demonstrates Era 2 composition:
+ *   signals → commands → keymap → surface
  *
  * Flags: --auto (auto-advance) --fast (skip animation) --stress (200 exchanges)
- *
- * Compare with the current entry point (index.tsx: 208 lines):
- * - No useMemo for update function creation
- * - No useTea hook
- * - No footerControlRef pattern
- * - No <Provider> wrapping — useChat.bind() initializes the singleton
- * - Model lives outside React — created once, accessed via useChat.get()
  */
 
 import React from "react"
 import { run } from "@silvery/term/runtime"
+import { signal } from "./signal.js"
 import { useChat } from "./model.js"
-import { autoAdvance } from "./app.js"
+import { keymap, when, autoAdvance } from "./app.js"
 import { ChatView } from "./view.js"
 import { SCRIPT, generateStressScript } from "../../../silvery/examples/interactive/aichat/script.js"
 
@@ -27,25 +22,25 @@ async function main() {
   const script = args.includes("--stress") ? generateStressScript() : SCRIPT
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
 
-  // ── Era 2 composition (aspirational) ────────────────────────
-  // const commands = chat.commands
-  // const isNormal = derived(() => true) // simplified — no modes in this demo
-  // const keys = keymap(
-  //   when(isNormal, { enter: commands.submit, "ctrl+l": commands.compact }),
-  //   { escape: commands.exit },
-  // )
-  // using app = withTerminal({ view: <ChatView autoStart={auto} />, keys })
-
-  // 1. Initialize model — bind factory args, singleton ready for useChat.get()
+  // 1. Initialize model
   const chat = useChat.bind(script, { fast })
 
-  // 2. Run — no Provider wrapping needed
-  using handle = await run(<ChatView autoStart={auto} />, {
+  // 2. Compose keymap (Era 2 — declarative key→command mapping)
+  const isActive = signal(true) // simplified — no modal modes in this demo
+  const keys = keymap(
+    when(isActive, {
+      "ctrl+l": chat.commands.compact,
+    }),
+    { escape: chat.commands.exit },
+  )
+
+  // 3. Run — surface owns the renderer + dispatch loop
+  using handle = await run(<ChatView autoStart={auto} keys={keys} />, {
     mode: mode as "inline" | "fullscreen",
     focusReporting: true,
   })
 
-  // 3. Auto-advance drives the script externally (clean separation)
+  // 4. Auto-advance drives the script externally (clean separation)
   if (auto) {
     autoAdvance(chat, script, { fast }).catch(console.error)
   }

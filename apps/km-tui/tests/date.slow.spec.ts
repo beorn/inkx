@@ -15,12 +15,12 @@
  *
  * Key bindings:
  *   td = open due date prompt
- *   ts = open start date prompt
+ *   ts = cycle task status
  *   tr = open recurrence prompt
  *   t! = cycle priority
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { formatDate } from "@km/core"
@@ -42,6 +42,16 @@ function daysFromNow(n: number): string {
 }
 
 describe("Date Badge Display Journeys", () => {
+  // Freeze time so hardcoded dates like "2026-03-15" always render as absolute
+  // "Mar 15" rather than relative names like "Sunday" when tests run near that date.
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T12:00:00Z"))
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
   test("card with overdue date shows badge, future date shows badge, no-date card has none", () => {
     const nodes = item(
       "board",
@@ -167,16 +177,18 @@ describe("Date Badge Display Journeys", () => {
     expect(task.due_at).toBeFalsy()
   })
 
-  test("start date (ts) and recurrence (tr) dialogs open and close cleanly", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Recurring task"))))
+  test("ts cycles task status, tr opens recurrence dialog", () => {
+    // ts was remapped from set_start_date to cycle_task_status
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Recurring task"))))
 
-    // Step 1: Open start date dialog
-    board.command("cycle_task_status")
-    expect(board.screenshot()).toContain("Set Start Date")
-
-    // Step 2: Cancel
-    board.press("Escape")
+    // Step 1: ts cycles task status (no dialog)
+    board.command("cycle_task_status_t")
     expect(board.screenshot()).not.toContain("Set Start Date")
+
+    // Step 2: Verify status was cycled
+    const col = repo.getChildren("board")[0]!
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.task_status).not.toBe("todo")
 
     // Step 3: Open recurrence dialog
     board.command("set_recurring")

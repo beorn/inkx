@@ -14,6 +14,7 @@ import { Box, Text, Link, Spinner, ScrollbackList, TextInput, useTerminalFocused
 import { useInput, useExit, type Key } from "@silvery/term/runtime"
 import { useSignal } from "./signal.js"
 import { useChat, formatTokens, formatCost, computeCumulativeTokens } from "./model.js"
+import { invoke, type Mapping } from "./app.js"
 import type { Exchange, ToolCall } from "./types.js"
 import {
   TOOL_COLORS,
@@ -23,15 +24,8 @@ import {
 } from "../../../silvery/examples/interactive/aichat/script.js"
 
 // ============================================================================
-// Internal Components (unchanged from current — these are pure visual)
+// Internal Components
 // ============================================================================
-
-function splitTitleBody(content: string): { title: string; body: string } {
-  const match = content.match(/^(.+?[.!?])\s+(.+)$/s)
-  if (match && match[1]!.length <= 40) return { title: match[1]!, body: match[2]! }
-  if (content.length <= 40) return { title: content, body: "" }
-  return { title: "", body: content }
-}
 
 function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }): JSX.Element {
   const parts: JSX.Element[] = []
@@ -401,7 +395,7 @@ function SessionComplete(): JSX.Element {
 // ChatView — top-level component
 // ============================================================================
 
-export function ChatView({ autoStart }: { autoStart: boolean }): JSX.Element {
+export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mapping<string> }): JSX.Element {
   const exit = useExit()
   const chat = useChat.get()
   const exchanges = useSignal(chat.exchanges)
@@ -426,16 +420,23 @@ export function ChatView({ autoStart }: { autoStart: boolean }): JSX.Element {
     return () => clearTimeout(timer)
   }, [autoStart, isDone, exit])
 
-  // Key bindings — in production, these become named commands
+  // Era 2 key dispatch — keymap resolves key → Invocation, invoke() calls fn
   useInput((input: string, key: Key) => {
-    if (key.escape) return "exit"
-    if (key.ctrl && input === "d") {
-      if (chat.confirmExit()) return "exit"
+    // Normalize key to string for keymap lookup
+    const keyStr = key.escape
+      ? "escape"
+      : key.ctrl && input === "d"
+        ? "ctrl+d"
+        : key.ctrl && input === "l"
+          ? "ctrl+l"
+          : input
+    const inv = keys?.(keyStr)
+    if (inv) {
+      invoke(inv)
       return
     }
-    if (key.ctrl && input === "l") {
-      chat.compact()
-    }
+    // Ctrl+D double-press for exit (not in keymap — requires stateful confirmation)
+    if (key.ctrl && input === "d" && chat.confirmExit()) return "exit"
   })
 
   return (
@@ -455,4 +456,13 @@ export function ChatView({ autoStart }: { autoStart: boolean }): JSX.Element {
       </ScrollbackList>
     </Box>
   )
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+
+function splitTitleBody(content: string): { title: string; body: string } {
+  const match = content.match(/^(.+?[.!?])\s+(.+)$/s)
+  if (match && match[1]!.length <= 40) return { title: match[1]!, body: match[2]! }
+  if (content.length <= 40) return { title: content, body: "" }
+  return { title: "", body: content }
 }

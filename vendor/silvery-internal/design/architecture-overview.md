@@ -54,15 +54,14 @@ How apps are assembled from plugins.
 - **Surface plugins** (terminal, browser) contribute to both model and runtime — they're just plugins, no special abstraction
 - **Composition via `pipe()`**: `pipe(createApp(), withPersist(...), withChat(...), withHistory(), withTerminal(...))`
 
-### 3. Commands → [command-centric.md](./command-centric.md)
+### 3. Commands + Input → [command-centric.md](./command-centric.md), [input-system.md](./input-system.md)
 
-Every user action is a discoverable command. The command tree auto-derives every surface.
+Every user action is a discoverable command. Commands are `{ fn, args? }` objects organized as a nested tree.
 
-- **Commands are `{ fn, args? }` objects** — `fn` is the behavior, `args` is an optional schema with `.parse()`
-- **Tree structure** auto-generates CLI subcommands, menus, palette categories, MCP tools, TypeScript types
+- **Commands** are `{ fn, args? }` objects — `fn` is the behavior, `args` is an optional schema with `.parse()`
+- **Keymaps** bind keys to commands with `when` predicates — see [input-system.md](./input-system.md)
 - **Same code path** — pressing `x` and calling `commands.task.toggle_done.fn()` run the same function
 - **Complete by construction** — if the user can do it, there's a command for it
-- **Keymaps** bind keys to commands with `when` predicates; **input sources** are async iterables — see [input-system.md](./input-system.md)
 
 ### 4. Scope Tree → [scope-tree.md](./scope-tree.md)
 
@@ -80,7 +79,7 @@ State API (signals, models)
     ↓ models expose methods
 App Composition (plugins, op(), apply())
     ↓ commands are { fn, args? } objects
-Commands + Input (keymaps, surfaces)
+Commands + Input (keymaps, dispatch)
     ↓ effects execute in scoped context
 Scope Tree (concurrency, lifecycle)
 ```

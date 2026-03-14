@@ -147,7 +147,8 @@ const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
 
 // createApp binds model factories to providers automatically:
 const app = createApp(<ChatView />, { providers, models: { chat: useChat } })
-await app.run()
+using handle = await run(app)
+await handle.waitUntilExit()
 
 // ── Sip 6: Cross-cutting plugins ───────────────────────────────
 // Plugins wrap app.apply() to intercept operations routed through op().
@@ -355,7 +356,7 @@ app.model.chat.submit({ text })
 app.rt.providers.fs.write(path)
 ```
 
-See [app-composition.md](./app-composition.md) for `op()` implementation, surface plugins, command registry, and composition examples.
+See [app-composition.md](./app-composition.md) for `op()` implementation, surface plugins, command tree, and composition examples.
 
 ### The inner loop
 
@@ -634,7 +635,7 @@ useChat(m => m.phase)        → Phase                   (signal-aware selector)
 createApp(view, { providers, models }) → App  (binds model factories to providers)
 pipe(app, ...plugins)        → Same app, enriched      (behavioral plugins)
 
-await app.run()              → void                    (interactive lifecycle)
+await run(app)               → void                    (interactive lifecycle)
 ```
 
 Four concepts: **Provider** (I/O factory on `app.rt`), **Model** (state + behavior on `app.model`), **App** (composition root with `apply()`), **Plugin** (`(app) => app`). The `op()` proxy makes method calls interceptable; `commands` makes them discoverable.
@@ -675,7 +676,7 @@ For automation known at app creation — auto-advance, AI agent, recording:
 function withAutoAdvance(script): AppPlugin {
   return (app) => {
     // Async work in the app's scope — scoped, cancellable, traced
-    app.scope.spawn("autoAdvance", async () => {
+    app.rt.scope.spawn("autoAdvance", async () => {
       for (const entry of script) {
         useChat.get().submit({ text: entry.content })
         await useChat.get().streaming.waitFor(v => !v)
@@ -691,7 +692,8 @@ const app = pipe(
   createApp(<AIChat />, { providers, models: { chat: useChat } }),
   args.auto ? withAutoAdvance(SCRIPT) : identity,
 )
-await app.run()
+using handle = await run(app)
+await handle.waitUntilExit()
 ```
 
 ### 2. `run(app, fn)` (runtime callback)
@@ -765,7 +767,7 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 17. **Structured concurrency via scope tree.** See [scope-tree.md](./scope-tree.md).
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
 
-19. **`run()` owns lifecycle.** Creates root scope, applies `withTerm()` by default, returns awaitable handle. `run(app, fn)` for automation/testing.
+19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle. `run(app, fn)` for automation/testing.
 20. **Async/await for updates, generators for content.** `async` yields control (effects/I/O); `async function*` yields content (streaming chunks). Replaces `useTea`'s `streamPhase`/timer-tick pattern.
 21. **Providers are plain objects via `createProviders()`.** Single source of truth for I/O types. Models depend via `Pick<typeof providers, "key">`.
 22. **Per-invocation concurrency, not global serialization.** `fx.mutex(key)` for exclusive access; `fx.batch(updates)` for atomic batches. No global `withSerialUpdates()`.
@@ -785,17 +787,17 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 
 ## What Changes
 
-| Current                                              | New                                                                  | Why                                   |
-| ---------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------- |
-| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string                 | 4 → 1                                 |
-| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                                     | 2 → 1                                 |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` → typed hook              | 2 → one wrapper                       |
-| `useApp(selector)`                                   | `useChat(m => m.phase)` — per-model typed selector hook              | O(1) subscribe, no Provider           |
-| `tea()`, `createStore()`                             | Removed                                                              | Internal, no longer needed            |
-| Providers (DI with scoped contract)                  | `createProviders({...})` — plain frozen object                       | Types inferred, deps via `Pick`       |
-| Runtime = monolith (event loop + I/O + effects)      | Providers (I/O) + behavioral plugins (tracing, recording)            | Data composition + behavioral plugins |
-| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields                  | Behavioral composition, not just data |
-| Handle = the control surface                         | StateSurface IS the control surface, external code calls it directly | No separate Handle shape              |
+| Current                                              | New                                                           | Why                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` — one function, returns string          | 4 → 1                                 |
+| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 → 1                                 |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` → typed hook       | 2 → one wrapper                       |
+| `useApp(selector)`                                   | `useChat(m => m.phase)` — per-model typed selector hook       | O(1) subscribe, no Provider           |
+| `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
+| Providers (DI with scoped contract)                  | `createProviders({...})` — plain frozen object                | Types inferred, deps via `Pick`       |
+| Runtime = monolith (event loop + I/O + effects)      | Providers (I/O) + behavioral plugins (tracing, recording)     | Data composition + behavioral plugins |
+| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
+| Handle = the control surface                         | Model IS the control surface, external code calls it directly | No separate Handle shape              |
 
 ## Current State & Migration Path
 
@@ -833,7 +835,7 @@ Read before proposing changes — many alternatives were explored and rejected.
 
 - **2026-03-11: Initial design finalized.** Eight Sips progression, two-surface architecture, SlateJS-style plugins, models as factory functions. Validated by O3 deep research.
 - **2026-03-12: Model shape decisions.** Flat shape (`state:` only reserved key), providers not runners, `fx.mutex`/`fx.batch` over global serialization, async/await over generators for effects.
-- **2026-03-12: Two-surface architecture rewrite.** Replaced Runtime/App split with StateSurface/RuntimeSurface/AppSurface. Branded types prevent cross-surface plugin misapplication.
+- **2026-03-12: Two-surface architecture rewrite.** Replaced Runtime/App split with model + runtime. Branded types prevent cross-surface plugin misapplication.
 - **2026-03-12: Prototype (aichat-v2).** Validated design against real AI chat demo. Reduced 327-line TEA state machine to ~140 lines, eliminated 12 of 14 message types. See `vendor/silvery-internal/prototype/aichat-v2/`.
 - **2026-03-12: App composition v2.** Simplified from four concerns to two (model, runtime). Introduced `op()` proxy for opt-in interception. See [app-composition.md](./app-composition.md).
 - **2026-03-13: Signals vs Zustand decision.** Zustand's O(n) selector fanout and `Object.is` change detection are fundamentally incompatible with stable signal references. Resolution: `createModel()` wraps factories into signal-aware typed hooks with Zustand-like ergonomics but O(1) performance. Prior sessions confirmed dual-system approaches always duplicated concepts. GPT 5.4 Pro review validated this as Option C (signals with Zustand-like API).
@@ -842,4 +844,4 @@ Read before proposing changes — many alternatives were explored and rejected.
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command tree, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

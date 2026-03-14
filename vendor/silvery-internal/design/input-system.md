@@ -26,7 +26,7 @@ A mapping is a pure function: event in, invocation out. If it returns null, the 
 type Mapping<E> = (event: E) => Invocation | null
 ```
 
-Any input source — keyboard, mouse, network, timer, voice — produces typed events. Any mapping function can resolve those events to commands. The two are decoupled: a mapping doesn't know where the event came from, and a source doesn't know what the mapping will do with it.
+Sources and mappings are fully decoupled — any source (keyboard, mouse, network, timer) can feed any mapping.
 
 ## `Invocation`
 
@@ -43,13 +43,13 @@ The `args` field carries values extracted from the event — a click's coordinat
 
 ## `invoke()`
 
-Single dispatch point. Merges event-provided overrides with signal defaults via the schema's `.parse()`. Commands can verify internally — return false or throw for failure.
+Single dispatch point. Merges event-provided overrides with signal defaults via the schema's `.parse()`. Commands can verify internally — return false or throw for failure. Commands may be async (e.g., network, file I/O), so callers should await the result.
 
 ```typescript
-function invoke({ command, args }: Invocation) {
+function invoke({ command, args }: Invocation): unknown {
   if (command.args) {
     const resolved = command.args.parse(args ?? {}) // overrides + signal defaults
-    return command.fn(resolved)
+    return command.fn(resolved) // may return a promise for async commands
   }
   return command.fn()
 }
@@ -64,15 +64,16 @@ Sources are async iterables. The for-await loop IS the lifecycle — structured 
 ```typescript
 for await (const e of termKeySource(stdin)) {
   const inv = keys(e)
-  if (inv) invoke(inv)
+  if (inv) {
+    const result = await invoke(inv) // await — commands may be async
+    if (result === false) bell()
+  }
 }
 ```
 
-No `handle(channel, mapping)` registration. No cleanup. Break or cancel stops it.
+No registration, no cleanup — break or cancel stops it. The loop IS the scope: when it ends, no dangling listeners.
 
-**Why not pub/sub?** Registration is a cleanup nightmare. Listeners must be removed in the right order, at the right time, in the right scope. With async iterables, the loop IS the scope. When the scope ends, the loop ends. No dangling listeners. No `off()` calls that someone forgot. No listener leaks.
-
-Async iterables also compose naturally:
+Async iterables compose naturally:
 
 ```typescript
 // Merge two sources
@@ -91,8 +92,11 @@ for await (const e of filter(termKeySource(stdin), (e) => !e.ctrl)) {
 `keymap()` builds a `Mapping<KeyStroke>` from binding groups. Chord and count state live in the closure — keymap-local signals, same primitive, narrower scope.
 
 ```typescript
+type Binding = { key: string; command: Command; when?: Signal<boolean> }
+type BindingGroup = Record<string, Command> | Binding[]
+
 function keymap(...groups: BindingGroup[]): Mapping<KeyStroke> {
-  const bindings = flatten(groups)
+  const bindings = flatten(groups) // normalize records + arrays into flat Binding[]
   const chord = signal<string | null>(null) // keymap-local
   const count = signal<number | null>(null) // keymap-local
 
@@ -106,7 +110,7 @@ function keymap(...groups: BindingGroup[]): Mapping<KeyStroke> {
 }
 ```
 
-The returned function is a plain `Mapping<KeyStroke>` — it doesn't know about sources, loops, or surfaces. It takes a keystroke, returns an invocation or null. Chord state (`d d`, `g g`) and count state (`3 j`) are signals scoped to the keymap closure, not global state.
+The returned function is a plain `Mapping<KeyStroke>`. Chord state (`d d`, `g g`) and count state (`3 j`) are signals scoped to the keymap closure, not global state.
 
 ## `when(signal, bindings)`
 
@@ -120,12 +124,7 @@ const keys = keymap(
 )
 ```
 
-This separates two concerns that other systems conflate:
-
-- **Can the command run?** — determined by the `args` schema (see [command-centric.md](./command-centric.md#command-availability)). If signal defaults can't satisfy required params, `parse()` fails.
-- **Should this key trigger the command?** — determined by `when()` predicates on the keymap. Mode-specific, input-channel-specific.
-
-A command like `remove` has no `when` field. It's always available (assuming a node is selected). But the key `d d` only triggers it in normal mode. The command doesn't know or care about modes — that's the keymap's job.
+Two separate concerns: **can the command run?** (args schema — `parse()` fails if signal defaults are nullish) vs **should this key trigger it?** (`when()` predicates, mode-specific). A command like `remove` is always available; the key `d d` only triggers it in normal mode. Commands don't know about modes — that's the keymap's job.
 
 ## Command Availability
 
@@ -168,11 +167,11 @@ for await (event)
        (from fn rejection)
 ```
 
-Steps 1-4 happen inside the for-await loop body. There's no event bus, no middleware chain for events, no event propagation. The loop body IS the dispatch logic. Different sources can have different dispatch logic — a mouse source might update `hover.value` in step 1, while a keyboard source updates `chord.value`.
+All steps happen inside the for-await loop body — no event bus, no middleware chain. Different sources can have different dispatch logic (a mouse source updates `hover.value` in step 1; a keyboard source updates `chord.value`).
 
 ## Canonical Event Vocabularies
 
-Two flat event types. `HasModifiers` is a capability interface that both share.
+Two flat event types sharing a `HasModifiers` interface:
 
 ```typescript
 interface HasModifiers {
@@ -183,9 +182,12 @@ interface HasModifiers {
 }
 
 interface KeyStroke extends HasModifiers {
-  key: string // "a", "Enter", "Escape", "ArrowDown"
+  key: string // raw event values: "a", "Enter", "Escape", "ArrowDown"
   sequence?: string // raw terminal escape sequence
 }
+// Note: keymap patterns use normalized lowercase names ("enter", "escape"),
+// while KeyStroke.key carries the raw event value ("Enter", "Escape").
+// The keymap's matches() function handles the normalization.
 
 interface PointerEvent extends HasModifiers {
   type: "press" | "release" | "move" | "scroll"
@@ -195,11 +197,13 @@ interface PointerEvent extends HasModifiers {
 }
 ```
 
-These are minimal, flat, framework-agnostic. No inheritance hierarchy, no event classes, no `preventDefault()`. Sources produce them; mappings consume them.
+Minimal, flat, framework-agnostic. No event classes, no `preventDefault()`.
 
 ## Surfaces Own the Loop
 
-`withTerminal()` creates source, runs for-await, manages lifecycle. One declaration, one lifecycle, `using` for cleanup:
+`withTerminal()` exists at two layers:
+
+**L2 — standalone convenience** for simple apps that just need a terminal:
 
 ```typescript
 using app = withTerminal({
@@ -208,7 +212,17 @@ using app = withTerminal({
 })
 ```
 
-Internally, the surface plugin wires the loop:
+**L3 — plugin** in the app composition system:
+
+```typescript
+const app = pipe(
+  createApp(),
+  withTerminal({ view: <ListView />, keys }),
+)
+using handle = await run(app)
+```
+
+Both wire the same loop internally:
 
 ```typescript
 function withTerminal({ view, keys }): Plugin {
@@ -216,14 +230,12 @@ function withTerminal({ view, keys }): Plugin {
     app.rt.hooks.onStart.push(async () => {
       const term = app.rt.providers.term
 
-      // Mount React
       term.render(view, app)
 
-      // Input loop — structured concurrency cancels on dispose
       app.rt.scope.spawn("input", async (signal) => {
         for await (const e of termKeySource(term.stdin, { signal })) {
           const inv = keys(e)
-          if (inv) invoke(inv)
+          if (inv) await invoke(inv)
         }
       })
     })
@@ -233,7 +245,7 @@ function withTerminal({ view, keys }): Plugin {
 }
 ```
 
-The loop runs inside the app's scope tree. When the app disposes, the scope cancels, the AbortSignal fires, the async iterable terminates, the for-await exits. No explicit cleanup. See [scope-tree.md](./scope-tree.md) for structured concurrency details.
+The standalone form calls `createApp()` + `pipe()` + `run()` internally — it's sugar, not a different system. The loop runs inside the app's scope tree. When the app disposes, the scope cancels, the AbortSignal fires, the async iterable terminates, the for-await exits. See [scope-tree.md](./scope-tree.md) for structured concurrency details.
 
 ## Signal Scopes
 
@@ -245,15 +257,15 @@ All state is signals, scoped by visibility:
 | **Keymap-local** | `chord`, `count`          | Keymap instance        |
 | **Derived**      | `isNormal`, `isInsert`    | Derived from universal |
 
-No special "scope" concept — just closures. Universal signals live on the model. Keymap-local signals live inside `keymap()`'s closure. Derived signals are `computed()` from universal ones. Same `signal()` primitive everywhere, different lexical scope.
+No special "scope" concept — just closures and the same `signal()` primitive at different lexical scopes.
 
 ```typescript
 // Universal — lives on the model
 const mode = signal<"normal" | "insert">("normal")
 
-// Derived — computed from universal
-const isNormal = computed(() => mode.value === "normal")
-const isInsert = computed(() => mode.value === "insert")
+// Derived — derived from universal
+const isNormal = derived(() => mode.value === "normal")
+const isInsert = derived(() => mode.value === "insert")
 
 // Keymap-local — lives inside keymap() closure
 const keys = keymap(
@@ -273,9 +285,7 @@ const keys = keymap(
 | **L3** | App framework    | `createModel()`, `withTerminal()`, `pipe()`, plugins, `op()`   | `@silvery/tea`        |
 | **L4** | Domain framework | `withDocument()`, `withHistory()`, `withCursor()`              | `docily`              |
 
-Key insight: `createApp`, `createModel`, even `keymap()` are helpers that produce the shapes, not the architecture itself. The architecture is defined by the shapes — `Command`, `Invocation`, `Mapping<E>`, `signal()`. Helpers are convenience; shapes are load-bearing.
-
-A `Mapping<KeyStroke>` is just a function. You don't need `keymap()` to create one:
+Helpers produce the shapes; shapes are the architecture. A `Mapping<KeyStroke>` is just a function — you don't need `keymap()` to create one:
 
 ```typescript
 // keymap() factory — convenient
@@ -288,14 +298,14 @@ const keys: Mapping<KeyStroke> = (e) => {
 }
 ```
 
-Both produce the same shape. The framework doesn't care which you used.
+Both produce the same shape.
 
 ## Canonical Small Example
 
 Six concepts: signals, commands, keymap, view, withTerminal, run.
 
 ```typescript
-import { signal, computed } from "@silvery/signal"
+import { signal, derived } from "@silvery/signal"
 import { keymap, when, invoke } from "@silvery/input"
 import { createModel, withTerminal, run, pipe, createApp } from "@silvery/tea"
 
@@ -345,7 +355,7 @@ using handle = await run(app)
 await handle.waitUntilExit()
 ```
 
-No event emitters. No `useInput()` hooks. No `onKeyPress` callbacks. No `addEventListener`. No `removeEventListener`. The keymap is a function; the source is an async iterable; the loop is the lifecycle.
+No event emitters, no `useInput()` hooks, no `addEventListener`. The keymap is a function; the source is an async iterable; the loop is the lifecycle.
 
 ## Migration from km's Current System
 
@@ -358,8 +368,8 @@ No event emitters. No `useInput()` hooks. No `onKeyPress` callbacks. No `addEven
 | `buildCommandContexts()`     | Eliminated (signal defaults serve triple duty) |
 | `CommandRegistry.register()` | Commands are plain objects — no registration   |
 
-The migration path is incremental. Commands are already `{ fn, args? }` objects in the current system — the shape doesn't change. What changes is how they're wired to input: registration-based dispatch becomes a mapping function, imperative key processing becomes a for-await loop, and context building becomes signal defaults.
+Incremental migration: command shapes don't change (`{ fn, args? }`). What changes is wiring — registration becomes a mapping function, imperative key processing becomes a for-await loop, context building becomes signal defaults.
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [command-centric.md](./command-centric.md) (command tree, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency)._

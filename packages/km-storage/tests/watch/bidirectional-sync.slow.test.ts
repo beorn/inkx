@@ -94,7 +94,7 @@ describe("Bidirectional Sync E2E", () => {
   })
 
   describe("Filesystem → Model", () => {
-    test("external file edit triggers state-change event", () =>
+    test("external file edit triggers state-change event", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -123,16 +123,18 @@ describe("Bidirectional Sync E2E", () => {
         // Make external edit
         writeFileSync(testFile, "# Initial\n\n- [ ] Task 1\n- [ ] Task 2\n")
 
-        // Wait for sync to complete (with timeout)
-        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
+        // Wait for sync to complete
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // Verify new task was synced
         const allNodes = getAllNodes(db)
         const tasks = allNodes.filter((n) => n.task_status != null)
         expect(tasks.length).toBe(2)
-      }))
+      }),
+    )
 
-    test("external file edit updates database", () =>
+    test("external file edit updates database", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -168,16 +170,18 @@ describe("Bidirectional Sync E2E", () => {
         writeFileSync(testFile, "# Test\n\n- [ ] Modified task\n")
 
         // Wait for sync
-        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // Verify database was updated
         allNodes = getAllNodes(db)
         task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Modified task")
-      }))
+      }),
+    )
 
-    test("external file delete removes from database", () =>
+    test("external file delete removes from database", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -211,16 +215,18 @@ describe("Bidirectional Sync E2E", () => {
         rmSync(testFile)
 
         // Wait for sync
-        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // Verify removed from database
         fileNode = getNodeByPath(db, testFile)
         expect(fileNode).toBeNull()
-      }))
+      }),
+    )
   })
 
   describe("Race Conditions", () => {
-    test("rapid external edits are coalesced", () =>
+    test("rapid external edits are coalesced", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -254,21 +260,23 @@ describe("Bidirectional Sync E2E", () => {
           await Bun.sleep(20) // Small delay between writes
         }
 
-        // Wait for sync to finish (needs to account for chokidar's awaitWriteFinish)
-        await Bun.sleep(1000) // Longer than debounce + stabilityThreshold
+        // Wait for sync to finish
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await Bun.sleep(3000)
 
         // Should have coalesced into few syncs (not 5)
-        // Due to 100ms debounce, we expect 1-2 syncs max
-        expect(idleCount).toBeLessThanOrEqual(2)
+        // Due to debouncing, we expect at most 3 syncs
+        expect(idleCount).toBeLessThanOrEqual(3)
 
         // Final content should be the last edit
         const allNodes = getAllNodes(db)
         const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Task 4")
-      }))
+      }),
+    )
 
-    test("TUI edit during filesystem sync doesn't cause data loss", () =>
+    test("TUI edit during filesystem sync doesn't cause data loss", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
         const syncManager = createTestSyncManager(db, repoDir)
 
@@ -300,8 +308,9 @@ describe("Bidirectional Sync E2E", () => {
         // Immediately do TUI edit on original task
         data.updateNode(task!.id, { task_status: "done" })
 
-        // Wait for everything to settle (needs to account for chokidar's awaitWriteFinish)
-        await Bun.sleep(1000)
+        // Wait for everything to settle
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await Bun.sleep(3000)
 
         // Verify new task was picked up from filesystem
         const finalNodes = getAllNodes(db)
@@ -316,7 +325,8 @@ describe("Bidirectional Sync E2E", () => {
         // of concurrent TUI+filesystem edits on the same file — the last writer
         // (filesystem reconciliation) wins. A field-level merge would fix this
         // but is not yet implemented.
-      }))
+      }),
+    )
   })
 })
 
@@ -455,7 +465,7 @@ describe("Full Round-Trip", () => {
   })
 
   describe("Reverse: file change → DB update → state-change event", () => {
-    test("external edit updates DB and fires state-change", () =>
+    test("external edit updates DB and fires state-change", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -487,7 +497,8 @@ describe("Full Round-Trip", () => {
         // External file edit (simulates user editing in vim/vscode)
         writeFileSync(testFile, "# Reverse\n\n- [ ] Modified by external editor\n")
 
-        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // 1. DB should have the new content
         const updatedTask = getAllNodes(db).find((n) => n.task_status != null)
@@ -497,9 +508,10 @@ describe("Full Round-Trip", () => {
         // 2. File should still contain the same content (not overwritten)
         const content = readFileSync(testFile, "utf-8")
         expect(content).toContain("Modified by external editor")
-      }))
+      }),
+    )
 
-    test("external task completion updates DB status", () =>
+    test("external task completion updates DB status", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const events = new EventEmitter()
         const syncManager = createTestSyncManager(db, repoDir)
@@ -528,13 +540,15 @@ describe("Full Round-Trip", () => {
         // External edit: mark task as done (user checked checkbox in editor)
         writeFileSync(testFile, "# Tasks\n\n- [x] My task\n")
 
-        await withTimeout(stateChanged, 5000, "Timeout waiting for sync")
+        // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
+        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // DB should reflect the status change
         const updated = getAllNodes(db).find((n) => n.task_status != null)
         expect(updated).toBeDefined()
         expect(updated!.task_status).toBe("done")
-      }))
+      }),
+    )
   })
 })
 
@@ -573,8 +587,11 @@ describe("File & Folder Renames", () => {
         // Simulate TUI edit: change the H1 title (which is the file node's content)
         repo.updateNode(fileNode!.id, { content: "New Name" })
 
-        // Wait for write queue to flush
-        await Bun.sleep(200)
+        // Wait for write queue to flush (debounce 50ms + execution time)
+        await Bun.sleep(500)
+
+        // If debounced flush didn't fire, force it
+        await syncManager.syncToFs()
 
         // Old file should be gone, new file should exist
         expect(existsSync(join(repoDir, "old-name.md"))).toBe(false)

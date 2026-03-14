@@ -42,7 +42,7 @@ const NAV_KEYS = ["j", "k", "h", "l", "g", "G", "ArrowUp", "ArrowDown", "ArrowLe
 
 describe("list view incremental rendering", () => {
   // Exact reproduction of fuzz seed=42 medium/list (fails at iteration 49)
-  test("medium/list seed=42: exact fuzz sequence", () => {
+  test("medium/list seed=42: exact fuzz sequence", { timeout: 15_000 }, () => {
     const rand = createPRNG(42)
     // Disable auto-check — we do our own comparison with seed/iteration context.
     // This avoids a redundant freshRender() on every press.
@@ -91,7 +91,7 @@ describe("list view incremental rendering", () => {
   })
 
   // Exact reproduction of scrolling/list seed=9999 (originally failed at iteration 0, key="l")
-  test("scrolling/list seed=9999: exact fuzz sequence", () => {
+  test("scrolling/list seed=9999: exact fuzz sequence", { timeout: 15_000 }, () => {
     const rand = createPRNG(9999)
     // Disable auto-check — we do our own comparison with seed/iteration context.
     const { board } = testEnv(

@@ -177,108 +177,111 @@ describe("Visual mode", () => {
 // =============================================================================
 
 describe("J/K block navigation", () => {
-  test("J drills into first child of current card", () => {
+  // J/K now behave identically to j/k (spatial up/down navigation).
+  // The old drill-in/drill-out behavior was removed in favor of unified navigation.
+
+  test("J moves to next sibling card (same as j)", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
     // Cursor starts on Parent
     board.expect("#Parent[data-cursor]").toExist()
 
-    // J drills into first child
+    // J moves to next sibling card, not into children
     board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("K drills out to parent", () => {
+  test("K moves to previous sibling card (same as k)", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
-    // Move to child-1
-    board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    // Move to sibling first
+    board.command("cursor_down")
+    board.expect("#sibling[data-cursor]").toExist()
 
-    // K drills out to parent
+    // K moves back to Parent
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
 
-  test("J at leaf node (no children) rings bell", () => {
+  test("J at last card rings bell (boundary)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("leaf-task"))))
 
     board.expect("#leaf-task[data-cursor]").toExist()
 
-    // J on a leaf node should ring bell (no children to drill into)
+    // J on the only card hits boundary
     board.command("block_nav_down")
     expect(board.bell).toBe(true)
   })
 
-  test("K at column level rings bell", () => {
+  test("K at column level navigates to board", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Move cursor up to column header
     board.command("cursor_up")
 
-    // K at column level should try to drill out and hit boundary
+    // K at column level navigates to board level (same as k)
     board.command("block_nav_up")
-    // Either bell or at root
-    const screen = board.screenshot()
     // We should still be at a valid position
     board.expectCursorVisible()
   })
 
-  test("J auto-unfolds folded card to reveal children", () => {
+  test("J on folded card moves to next sibling (does not auto-unfold)", () => {
     const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
     // Fold the parent
     board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-1")
 
-    // J should auto-unfold and drill into the first child
+    // J moves to next sibling card, children stay hidden
     board.command("block_nav_down")
-    expect(board.screenshot()).toContain("child-1")
-    board.expect("#child-1[data-cursor]").toExist()
+    expect(board.screenshot()).not.toContain("child-1")
+    board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("J then K round-trip preserves position", () => {
+  test("J then K round-trip between sibling cards", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
     board.expect("#Parent[data-cursor]").toExist()
 
-    // Drill in and back out
+    // J moves to next sibling, K returns
     board.command("block_nav_down")
-    board.expect("#child-1[data-cursor]").toExist()
+    board.expect("#sibling[data-cursor]").toExist()
 
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
 
-  test("J navigates through deep hierarchy (auto-unfolds each level)", () => {
-    // Use flat children (not nested folders) to avoid auto-fold complexity.
-    // J drills into children; auto-unfold is tested separately.
-    const { board } = testEnv(() => item("board", item("col1", item.folder("L1", item("child-a"), item("child-b")))), {
+  test("J navigates between cards sequentially", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))), {
       rows: 30,
       checkIncremental: false,
     })
 
-    board.expect("#L1[data-cursor]").toExist()
+    board.expect("#task-a[data-cursor]").toExist()
 
-    // J drills into first child of L1
+    // J moves to next card
     board.command("block_nav_down")
-    board.expect("#child-a[data-cursor]").toExist()
+    board.expect("#task-b[data-cursor]").toExist()
 
-    // J on leaf hits boundary
+    // J moves to next card again
+    board.command("block_nav_down")
+    board.expect("#task-c[data-cursor]").toExist()
+
+    // J at last card hits boundary
     board.command("block_nav_down")
     expect(board.bell).toBe(true)
 
-    // K drills back to L1
+    // K navigates back
     board.command("block_nav_up")
-    board.expect("#L1[data-cursor]").toExist()
+    board.expect("#task-b[data-cursor]").toExist()
   })
 })
 
@@ -755,7 +758,9 @@ describe("Escape priority layering", () => {
 // =============================================================================
 
 describe("J/K block navigation edge cases", () => {
-  test("J on folded card auto-unfolds then enters first child", () => {
+  // J/K now behave identically to j/k (spatial up/down navigation).
+
+  test("J on folded card moves to next sibling (does not auto-unfold)", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { checkIncremental: false },
@@ -765,23 +770,23 @@ describe("J/K block navigation edge cases", () => {
     board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-a")
 
-    // J auto-unfolds and enters
+    // J moves to next sibling, children stay folded
     board.command("block_nav_down")
-    expect(board.screenshot()).toContain("child-a")
-    board.expect("#child-a[data-cursor]").toExist()
+    expect(board.screenshot()).not.toContain("child-a")
+    board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("K from child navigates to immediate parent", () => {
+  test("K from second card moves to first card", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")))),
+      () => item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")), item("sibling"))),
       { rows: 30, checkIncremental: false },
     )
 
-    // J drills into first child
+    // Move to sibling
     board.command("block_nav_down")
-    board.expect("#child-x[data-cursor]").toExist()
+    board.expect("#sibling[data-cursor]").toExist()
 
-    // K drills back out to Parent
+    // K moves back to Parent
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
@@ -793,18 +798,18 @@ describe("J/K block navigation edge cases", () => {
       { rows: 30, checkIncremental: false },
     )
 
-    // Navigate around with J and K
-    board.command("block_nav_down") // A -> a1
+    // J/K navigate between cards A, B, C (same as j/k)
+    board.command("block_nav_down") // A -> B
     board.expectCursorVisible()
 
-    board.command("block_nav_up") // a1 -> A
+    board.command("block_nav_up") // B -> A
     board.expectCursorVisible()
 
     board.command("cursor_down") // A -> B
-    board.command("block_nav_down") // B -> b1
+    board.command("block_nav_down") // B -> C
     board.expectCursorVisible()
 
-    board.command("block_nav_up") // b1 -> B
+    board.command("block_nav_up") // C -> B
     board.expectCursorVisible()
   })
 })

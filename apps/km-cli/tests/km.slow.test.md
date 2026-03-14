@@ -76,8 +76,7 @@ inbox / .md
 Get a task and mark it done:
 
 ```console
-$ TASK_ID=$(km tasks --json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-$ km status "$TASK_ID" done
+$ TASK_ID=$(km tasks --json | grep -o '"id": "[^"]*"' | head -1 | cut -d'"' -f4) && km status "$TASK_ID" done
 [...]done[...]
 ```
 
@@ -90,7 +89,7 @@ Commands accept filenames like `@next`:
 ```console
 $ km show @next
 ID: ...
-Type: oi
+Type: ...
 Path: .../@next.md
 Title: Next Actions
 [...]
@@ -103,7 +102,7 @@ Commands accept relative paths:
 ```console
 $ km show ./@next.md
 ID: ...
-Type: oi
+Type: ...
 Path: .../@next.md
 Title: Next Actions
 [...]
@@ -129,6 +128,7 @@ Next steps:
 $ ls /tmp/km-mdtest-init/.km
 events.jsonl
 state.db
+[...]
 
 $ rm -rf /tmp/km-mdtest-init
 ```
@@ -173,7 +173,7 @@ Add (link) all tasks from projects to @next (also adds @next sigil to source tas
 
 ```console
 $ km add @next './projects**'
-✓ Linked 3 task(s) to Next Actions...
+✓ Linked 3 task(s) to Next Actions
 [...]
 ✓ Added @next to 3 task(s)
 ```
@@ -185,7 +185,7 @@ $ km show --tree @next
 [...]
 Children:
 [...]
-[...]oi[...]Inbox...
+[...]h[...]Inbox
 [...]
 ```
 
@@ -233,7 +233,7 @@ The file node should display with the H1 title "Welcome to My Project":
 ```console
 $ km show docs/readme.md
 ID: ...
-Type: oi
+Type: ...
 Path: .../docs/readme.md
 Title: Welcome to My Project
 [...]
@@ -246,9 +246,9 @@ $ km show --tree docs/readme.md
 [...]
 Children:
 [...]p[...]This is the intro paragraph.
-[...]oi[...]Getting Started
-[...]li[...]Read the docs
-[...]li[...]Install dependencies
+[...]h[...]Getting Started
+[...]p[...]Read the docs
+[...]p[...]Install dependencies
 ```
 
 Clean up:
@@ -284,7 +284,7 @@ List all nodes in the repo:
 ```console
 $ km ls
 [...]
-inbox/
+  inbox/
 [...]
 ... node(s)
 ```

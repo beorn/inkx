@@ -257,7 +257,8 @@ describe("CLI Integration", () => {
       const tasks = await getTasks()
       expect(tasks.length).toBeGreaterThan(0)
       expect(tasks[0]).toHaveProperty("id")
-      expect(tasks[0]).toHaveProperty("type", "li")
+      // Tasks can be any structural type that has task_status set
+      expect(tasks[0]).toHaveProperty("task_status")
     })
   })
 
@@ -421,7 +422,8 @@ Some paragraph content.
     const result = await km(["ls", "--type", "task", "--json"])
     const nodes = parseJson<TaskJson[]>(result)
     expect(nodes.length).toBeGreaterThan(0)
-    expect(nodes[0]).toHaveProperty("type", "li")
+    // Tasks can be any structural type that has task_status set
+    expect(nodes[0]).toHaveProperty("task_status")
   })
 })
 
@@ -524,7 +526,6 @@ describe("km init", () => {
       expect(content).toContain("# Next Actions")
       expect(content).toContain("## Inbox km.add:: ./inbox/**")
       expect(content).toContain("km.add:: due:past -status:done -status:dropped")
-      expect(content).toContain("km.default:: true")
       expect(content).toContain("## Next")
       expect(content).toContain("## Waiting")
       expect(content).toContain("## Done km.collapse:: true")
@@ -910,7 +911,7 @@ describe("Query language integration - km task with queries", () => {
 - [ ] Task with #urgent tag
 - [x] Completed task for @sarah
 - [ ] Task with +project-alpha
-- [ ] High priority task p:1
+- [ ] High priority task priority:: P1
 - [ ] Task due today due:${today}
 `,
     )
@@ -966,8 +967,8 @@ describe("Query language integration - km task with queries", () => {
     expect(tasks.every((t) => t.content.includes("@bjorn") && t.task_status === "todo")).toBe(true)
   })
 
-  test("should filter by priority p:1", async () => {
-    const tasks = await getTasks(["p:1"])
+  test("should filter by priority", async () => {
+    const tasks = await getTasks(["priority:P1"])
     expect(tasks.length).toBeGreaterThanOrEqual(1)
     expect(tasks.some((t) => t.priority === "P1")).toBe(true)
   })

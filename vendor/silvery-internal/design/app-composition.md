@@ -2,7 +2,7 @@
 
 _Status: finalized (v2, 2026-03-13). How apps are assembled from plugins._
 
-_See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command registry, surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
+_See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command tree, surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
 
 ## The Shape
 
@@ -12,7 +12,7 @@ An app has two concerns, a command tree, and an interception pipeline:
 interface App {
   model: Record<string, any> // all state — domain models + surface view models
   rt: Runtime // all I/O — providers, scope, lifecycle
-  commands: Record<string, Command> // { fn, args? } objects, nested tree
+  commands: Record<string, Command> // discoverable tree — fn typically delegates to op(app.model).*
   apply(o: Op): unknown // interception pipeline (wrappable by plugins)
   run(): Promise<RunHandle>
   dispose(): void
@@ -28,11 +28,11 @@ interface Runtime {
 }
 ```
 
-**Two concerns.** Model holds all reactive state and behavior — both domain state (`chat.exchanges`) and surface state (`term.inputText`). Runtime holds all I/O capabilities and effect lifecycle. Commands are `{ fn, args? }` objects living on the model — not a separate concern, just callable behavior with optional schema validation.
+**Two concerns.** Model holds all reactive state and behavior — both domain state (`chat.exchanges`) and surface state (`term.inputText`). Runtime holds all I/O capabilities and effect lifecycle. `app.commands` is the discoverable command tree — `{ fn, args? }` objects where `fn` typically delegates to model methods via `op()`. Model methods are the canonical behavior; commands are thin wrappers that make them discoverable, bindable, and schema-validated.
 
 **Why only two?** We started with four (state, events, runtime, view) and simplified:
 
-- "Events" (commands) belong in the model — they're `{ fn, args? }` objects that update state and trigger effects.
+- "Events" (commands) are thin wrappers over model methods — command `fn` delegates to `op(app.model).*`, so the behavior lives in the model.
 - "View" is the rendering half of a surface, and surfaces are plugins that contribute to both model and runtime.
 - What's left: state+behavior (model) and I/O+lifecycle (runtime). Everything else composes into these two boxes.
 
@@ -243,7 +243,7 @@ function withTerminal({
         for await (const e of termKeySource(term.stdin)) {
           const inv = keys?.(e)
           if (inv) {
-            const result = invoke(inv)
+            const result = await invoke(inv) // invoke returns a promise for async commands
             if (result === false) bell()
           }
         }
@@ -307,14 +307,14 @@ function withHistory(): Plugin {
 Commands are `{ fn, args? }` objects — minimal shape where `fn` is the behavior and `args` is an optional schema with `.parse()`.
 
 ```typescript
-// Direct — typed, autocomplete
-commands.chat.submit({ text: "hello" })
+// Direct model method — typed, autocomplete
+app.model.chat.submit({ text: "hello" })
 
 // Via invoke() — resolves signal defaults, validates schema
 invoke({ command: commands.chat.submit, args: { text: "hello" } })
 ```
 
-Both call the same `fn`. `invoke()` additionally resolves signal defaults from the `args` schema and validates input. See [command-centric.md](./command-centric.md) for the full command design and [input-system.md](./input-system.md) for keymaps and dispatch.
+Model methods are the canonical behavior. `invoke()` additionally resolves signal defaults from the `args` schema and validates input before calling the command's `fn`, which typically delegates to `op(app.model).*`. See [command-centric.md](./command-centric.md) for the full command design and [input-system.md](./input-system.md) for keymaps and dispatch.
 
 ## The Runner
 

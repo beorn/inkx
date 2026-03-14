@@ -6,10 +6,10 @@ _Part 1 of [AI-Native Apps](./ai-mode.md). This doc covers the architecture — 
 
 Apps have layers of internal structure — state, actions, UI components, layout — but they expose almost none of it. The only way in is through the surface the developer chose to build: a GUI, a CLI, an API. Each is a separate artifact that has to be designed, built, and maintained.
 
-**Command-centric design** inverts this. Instead of building surfaces and hiding internals, you build around a **command registry** — a typed collection of every action the app can perform. The registry is the discoverable surface over app behavior — model methods are canonical, but the registry makes them accessible to every consumer. Every surface projects the command registry differently — keybindings, CLI, command palette, menus, MCP tools, tests, documentation.
+**Command-centric design** inverts this. Instead of building surfaces and hiding internals, you build around a **command tree** — a typed collection of every action the app can perform. The tree is the discoverable surface over app behavior — model methods are canonical, but the tree makes them accessible to every consumer. Every surface projects the command tree differently — keybindings, CLI, command palette, menus, MCP tools, tests, documentation.
 
 ```
-                    Command Registry
+                     Command Tree
                   (discoverable surface)
                   id · title · description
                   fn · args
@@ -56,12 +56,12 @@ Commands are organized as a **nested tree**. The tree structure is the single so
 
 ```typescript
 interface CommandDef {
-  fn: (...args: any[]) => any // the behavior — reads/writes signals directly
+  fn: (...args: any[]) => any // the behavior
   args?: { parse(input: any): any } // optional schema with .parse() (Zod-compatible)
 }
 ```
 
-Commands read signals directly — no execution context, no `op()` wrapper. The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
+Command `fn` functions contain the behavior. Simple commands read/write signals directly. Commands that need interception (undo, tracing, collaboration) call through `op(app.model)` — the same opt-in choice as any other code (see [app-composition.md](./app-composition.md)). The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
 
 ```typescript
 const commands = {
@@ -159,7 +159,7 @@ No other approach gets all of these from one definition.
 
 ### The Defining Properties
 
-- **Commands are the discoverable surface over behavior.** Model methods are canonical, but every user action has a corresponding command. No annotation gap — if the user can do it, it's in the registry.
+- **Commands are the discoverable surface over behavior.** Model methods are canonical, but every user action has a corresponding command. No annotation gap — if the user can do it, it's in the tree.
 - **Same code path.** `task.toggle_done()` runs the same `fn()` as pressing `x`. No drift.
 - **Self-describing at runtime.** The app enumerates every available command with metadata, grouped by domain category. The app describes itself.
 - **Structured state.** `getState()` returns typed application state. Consumers read data, not pixels.
@@ -180,12 +180,12 @@ Code (in-process driver)         ← primary: full power, typed, composable
 
 ```typescript
 const cursor = model.cursor
-invoke(commands.task.toggle_done)
+invoke({ command: commands.task.toggle_done })
 
 for (const card of model.columns[0].cardNodes) {
   if (card.task_status !== "done") {
-    invoke(commands.task.toggle_done)
-    invoke(commands.navigation.down)
+    invoke({ command: commands.task.toggle_done })
+    invoke({ command: commands.navigation.down })
   }
 }
 ```
@@ -261,14 +261,14 @@ The result is that Silvery apps are testable, scriptable, accessible, and AI-nat
 Silvery is a React-based TUI framework. Its command system already implements the core:
 
 - Nested command tree — plain objects with `title`, `description`, `fn()`, optional `args`
-- Direct invocation — `invoke(commands.task.toggle_done)` calls `fn()` with args resolved from signals
+- Direct invocation — `invoke({ command: commands.task.toggle_done })` calls `fn()` with args resolved from signals
 - `cmd.search(query)` — fuzzy matching across all commands by name, description, path
 - `getState()` — structured application state
 - Virtual DOM — component tree with layout, props, state (unique among terminal frameworks)
 
 **Terminal-specific value:** Terminal apps have no accessibility tree. The OS sees a character grid, not UI elements. Silvery's virtual DOM creates structured, introspectable UI where none exists. The virtual DOM gives consumers not just commands and state, but the full element tree — component hierarchy, layout data, scroll positions, focus state.
 
-**Persistence:** How state is stored is an app-level decision — SQLite, files, remote API, CRDT, or anything else. The command registry is agnostic to storage; it cares about actions and state shape, not where the data lives.
+**Persistence:** How state is stored is an app-level decision — SQLite, files, remote API, CRDT, or anything else. The command tree is agnostic to storage; it cares about actions and state shape, not where the data lives.
 
 ### How Domain Objects Form
 
@@ -283,7 +283,7 @@ commands.navigation.down    →   navigation.down()   →   km navigation down
 commands.history.undo       →   history.undo()      →   km history undo
 ```
 
-Plugins compose the tree: a chat plugin defines `commands.chat.submit` and `commands.chat.compact`, a history plugin adds `commands.history.undo` and `commands.history.redo`. Commands are plain objects on the model — the tree structure IS the discoverable surface, no separate registry to maintain. Invoking a command has negligible overhead (it's the same `fn()` the UI calls, not IPC or serialization).
+Plugins compose the tree: a chat plugin defines `commands.chat.submit` and `commands.chat.compact`, a history plugin adds `commands.history.undo` and `commands.history.redo`. Commands are plain objects on the model — the tree structure IS the discoverable surface, no separate registration step. Invoking a command has negligible overhead (it's the same `fn()` the UI calls, not IPC or serialization).
 
 ## CLI Generation Feasibility
 

@@ -11,18 +11,12 @@
  * verify buffer correctness (STRICT) AND compare with fresh render at size B.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { createFakeRepo, type Repo } from "@km/storage"
-import { createBoardDriver, type BoardDriver } from "../src/driver.ts"
+import { describe, test, expect } from "vitest"
+import { createFakeRepo } from "@km/storage"
+import { createBoardDriver } from "../src/driver.ts"
 import { item } from "./helpers/board-test.ts"
 
-// Enable all STRICT checks during these tests
-beforeEach(() => {
-  process.env.SILVERY_STRICT = "1"
-})
-afterEach(() => {
-  delete process.env.SILVERY_STRICT
-})
+// SILVERY_STRICT=1 is set globally in vitest/setup.ts — no need to set it here.
 
 // ============================================================================
 // Fixtures — mimics Asana board complexity
@@ -77,7 +71,7 @@ function asanaLikeBoard() {
 
 describe("resize garble regression", () => {
   // Test: resize via App.resize() + store.setDimensions(), then navigate
-  test("zoom out 3x with navigation produces correct incremental render", () => {
+  test("zoom out 3x with navigation produces correct incremental render", { timeout: 15_000 }, () => {
     const nodes = asanaLikeBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board", {
@@ -152,7 +146,7 @@ describe("resize garble regression", () => {
   })
 
   // Test: rapid resize without navigation in between
-  test("rapid resize (no navigation between) produces correct render", () => {
+  test("rapid resize (no navigation between) produces correct render", { timeout: 15_000 }, () => {
     const nodes = asanaLikeBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board", {
@@ -183,7 +177,7 @@ describe("resize garble regression", () => {
   })
 
   // Control: does the mismatch happen WITHOUT resize?
-  test("navigation without resize does NOT produce mismatch", () => {
+  test("navigation without resize does NOT produce mismatch", { timeout: 15_000 }, () => {
     const nodes = asanaLikeBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board", {
@@ -202,7 +196,7 @@ describe("resize garble regression", () => {
   })
 
   // Test: resize DOWN (zoom in) then UP (zoom out)
-  test("zoom in then zoom out roundtrip", () => {
+  test("zoom in then zoom out roundtrip", { timeout: 15_000 }, () => {
     const nodes = asanaLikeBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board", {

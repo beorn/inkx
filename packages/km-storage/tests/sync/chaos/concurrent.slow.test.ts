@@ -133,7 +133,7 @@ function getAllTasks(ctx: ConcurrentTestCtx) {
 
 /** Run a concurrent edit test with fake timers and test environment */
 async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<void>): Promise<void> {
-  const clock: InstalledClock = FakeTimers.install({
+  let clock: InstalledClock | null = FakeTimers.install({
     toFake: ["setTimeout", "setInterval", "clearTimeout", "clearInterval", "Date"],
     shouldAdvanceTime: false,
   })
@@ -143,7 +143,7 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
       async ({ repoDir, data, emitter }) => {
         const testWatcher = new TestWatcher(100)
 
-        await using syncManager = new SyncManager({
+        const syncManager = new SyncManager({
           db: data.database,
           repoPath: repoDir,
           debounceFs: 100,
@@ -153,27 +153,40 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
           watcher: testWatcher,
         })
 
-        await using stack = new AsyncDisposableStack()
         emitter.setFsSync(syncManager)
-        stack.defer(() => emitter.setFsSync(null))
 
-        await fn({
-          repoDir,
-          data,
-          syncManager,
-          testWatcher,
-          advanceTime: (ms) => clock.tickAsync(ms),
-          flushTimers: () => clock.tickAsync(1000),
-          writeAndTrigger: (path, content) => {
-            writeFileSync(path, content)
-            testWatcher.triggerChange(path)
-          },
-        })
+        try {
+          await fn({
+            repoDir,
+            data,
+            syncManager,
+            testWatcher,
+            advanceTime: (ms) => clock!.tickAsync(ms),
+            flushTimers: () => clock!.tickAsync(1000),
+            writeAndTrigger: (path, content) => {
+              writeFileSync(path, content)
+              testWatcher.triggerChange(path)
+            },
+          })
+        } finally {
+          // CRITICAL: Uninstall fake timers BEFORE stopping the sync manager.
+          // handleFsSync uses worker threads (parse pool) for markdown parsing,
+          // and worker thread communication is blocked by fake timers.
+          emitter.setFsSync(null)
+          if (clock) {
+            clock.uninstall()
+            clock = null
+          }
+          await syncManager.stop()
+        }
       },
       { mode: "real" },
     )
   } finally {
-    clock.uninstall()
+    if (clock) {
+      clock.uninstall()
+      clock = null
+    }
   }
 }
 
@@ -195,11 +208,16 @@ describe("Concurrent Edit Tests", () => {
           ctx.writeAndTrigger(filePath, content + "- [ ] Task 3\n")
         } else {
           ctx.writeAndTrigger(filePath, "# Tasks\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] New task\n")
+          // Advance past debounce (100ms) to trigger handleFsSync
           await ctx.advanceTime(300)
+          // handleFsSync is async — wait for real I/O (parse pool, reconcile) to complete
+          await ctx.syncManager.waitForInflight()
           ctx.data.updateNode(task1!.id, { task_status: "done" })
         }
 
+        // Advance past writeQueue debounce (50ms) and flush
         await ctx.advanceTime(500)
+        await ctx.syncManager.waitForInflight()
         await ctx.flushTimers()
 
         const finalTasks = getAllTasks(ctx)
@@ -214,8 +232,11 @@ describe("Concurrent Edit Tests", () => {
       withConcurrentTestEnv(async (ctx) => {
         const { filePath } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task\n")
 
+        // Count reconciliation cycles via state transitions to "idle"
         let syncCount = 0
-        ctx.syncManager.on("sync-complete", () => syncCount++)
+        ctx.syncManager.on("state-change", (state: string) => {
+          if (state === "idle") syncCount++
+        })
 
         for (let i = 1; i <= 10; i++) {
           ctx.writeAndTrigger(filePath, `# Tasks\n\n- [ ] Edit ${i}\n`)
@@ -223,6 +244,7 @@ describe("Concurrent Edit Tests", () => {
         }
 
         await ctx.advanceTime(500)
+        await ctx.syncManager.waitForInflight()
         await ctx.flushTimers()
 
         expect(findTask(ctx, "Edit")?.content).toBe("Edit 10")
@@ -240,6 +262,7 @@ describe("Concurrent Edit Tests", () => {
         }
 
         await ctx.advanceTime(300)
+        await ctx.flushTimers()
         await ctx.flushTimers()
 
         const content = readFileSync(filePath, "utf-8")
@@ -261,13 +284,14 @@ describe("Concurrent Edit Tests", () => {
 
         await ctx.advanceTime(500)
         await ctx.flushTimers()
+        await ctx.flushTimers()
 
         const finalTask = getAllTasks(ctx)[0]
         expect(finalTask).toBeDefined()
         expect(["DB version", "FS version"]).toContain(finalTask!.content ?? "")
       }))
 
-    test("task deleted in FS while edited in DB handles gracefully", () =>
+    test("task deleted in FS while edited in DB handles gracefully", { timeout: 15000 }, () =>
       withConcurrentTestEnv(async (ctx) => {
         const { filePath, tasks } = await initTestFile(ctx, "tasks.md", "# Tasks\n\n- [ ] Task to delete\n")
         const taskId = tasks[0]!.id
@@ -276,11 +300,13 @@ describe("Concurrent Edit Tests", () => {
         ctx.writeAndTrigger(filePath, "# Tasks\n\n")
 
         await ctx.advanceTime(500)
+        await ctx.syncManager.waitForInflight()
         await ctx.flushTimers()
 
         // No crash = success
         expect(true).toBe(true)
-      }))
+      }),
+    )
   })
 
   describe("Multi-File Concurrent Edits", () => {
@@ -297,10 +323,17 @@ describe("Concurrent Edit Tests", () => {
         const task1 = findTask(ctx, "Task 1")
         expect(task1).toBeDefined()
 
+        // DB edit: mark task1 done. Let write queue flush to disk before FS sync fires.
         ctx.data.updateNode(task1!.id, { task_status: "done" })
+        // Advance past write queue debounce (50ms) so file1 is updated on disk
+        await ctx.advanceTime(60)
+
+        // Now trigger FS change to file2
         ctx.writeAndTrigger(file2, "# File 2\n\n- [x] Task 2 modified\n")
 
+        // Advance past sync debounce (100ms) and wait for async reconciliation
         await ctx.advanceTime(500)
+        await ctx.syncManager.waitForInflight()
         await ctx.flushTimers()
 
         expect(findTask(ctx, "Task 1")?.task_status).toBe("done")
@@ -327,6 +360,7 @@ describe("Concurrent Edit Tests", () => {
         ctx.writeAndTrigger(filePath, content + "- [ ] Task D\n")
 
         await ctx.advanceTime(500)
+        await ctx.flushTimers()
         await ctx.flushTimers()
 
         const taskContents = getAllTasks(ctx).map((t) => t.content)
@@ -363,6 +397,7 @@ Important notes here.
         ctx.data.updateNode(activeTask!.id, { task_status: "done" })
 
         await ctx.advanceTime(300)
+        await ctx.flushTimers()
         await ctx.flushTimers()
 
         const content = readFileSync(filePath, "utf-8")

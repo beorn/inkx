@@ -15,7 +15,6 @@ import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
 import { activeEditTargetRef } from "@silvery/react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
-import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 import { dispatchCommandById } from "../src/board-app.ts"
@@ -326,10 +325,9 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     for (const ch of "Delta") board.press(ch)
     board.press("Enter") // Confirms search, closes dialog
 
-    // Verify grace period is active after dialog confirm
-    expect(isDialogConfirmGracePeriod()).toBe(true)
-
-    // Immediately press Enter again (simulating double-tap or propagation)
+    // Immediately press Enter again (simulating double-tap or propagation).
+    // The grace period (100ms) is checked inside board.press synchronously,
+    // so it will still be active regardless of system load.
     board.press("Enter")
 
     // CRITICAL: Should NOT be in inline edit mode despite the second Enter

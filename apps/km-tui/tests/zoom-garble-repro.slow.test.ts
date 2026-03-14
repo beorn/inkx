@@ -10,6 +10,7 @@
  */
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 
 // Build a tree deep enough for zoom: root > child-board > grandchild columns with cards
 function deepTree() {
@@ -90,5 +91,136 @@ describe("Zoom-out rendering at wide terminal", () => {
     // Second zoom out
     board.press("Z")
     board.expectIncrementalMatchesFresh()
+  })
+
+  test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", () => {
+    const cols = 200
+    const { board } = testEnv(deepTree, { columns: cols, rows: 50 })
+
+    // Zoom into child-board, then zoom back out
+    board.press("z")
+    board.expect("#gc-col-A").toExist()
+    board.press("Z")
+    board.expect("#child-board").toExist()
+
+    // Row 0 is the breadcrumb/top bar. It should have a consistent background
+    // color across its full width -- no black/null gaps at the left edge.
+    const col0Bg = board.screen.cell(0, 0).bg
+    const col1Bg = board.screen.cell(1, 0).bg
+
+    // Column 0 must have the same bg as column 1 (no black gap at left edge)
+    expect(col0Bg, "breadcrumb bar column 0 bg should match column 1").toEqual(col1Bg)
+
+    // Check that every cell in row 0 has a non-null background (the top bar
+    // should fill the entire row with $selection-bg or similar).
+    const nullBgCells: number[] = []
+    for (let x = 0; x < cols; x++) {
+      const cell = board.screen.cell(x, 0)
+      if (cell.bg === null) {
+        nullBgCells.push(x)
+      }
+    }
+    expect(
+      nullBgCells,
+      `breadcrumb bar row 0 has ${nullBgCells.length} cells with null bg at columns: [${nullBgCells.slice(0, 10).join(", ")}${nullBgCells.length > 10 ? "..." : ""}]`,
+    ).toHaveLength(0)
+  })
+
+  test("selection background stays within selected card bounds after zoom out at 200 cols", () => {
+    const cols = 200
+    const rows = 50
+    const { board } = testEnv(deepTree, { columns: cols, rows })
+
+    // Zoom into child-board, then zoom back out
+    board.press("z")
+    board.expect("#gc-col-A").toExist()
+    board.press("Z")
+    board.expect("#child-board").toExist()
+
+    // Move cursor down to select a different card (j moves to next card)
+    board.press("j")
+
+    // Find the bounding box of the currently selected card via [data-cursor]
+    const cursorLoc = board.q("[data-cursor]")
+    expect(cursorLoc.count(), "cursor element should exist after pressing j").toBeGreaterThan(0)
+    const selectedNodeId = cursorLoc.getAttribute("id")
+    expect(selectedNodeId, "cursor element should have an id attribute").toBeTruthy()
+
+    const selectedBox = cursorLoc.boundingBox()
+    expect(selectedBox, `selected node "${selectedNodeId}" should have a bounding box`).not.toBeNull()
+    if (!selectedBox) return
+
+    // Sample the selection background color from a cell within the selected card.
+    // Find the first cell with $selection-bg inside the card bounds.
+    const selectionBg = TC["$selection-bg"]
+    let foundSelectionBg = false
+    for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
+      const cell = board.screen.cell(x, selectedBox.y)
+      if (cell.bg === selectionBg) {
+        foundSelectionBg = true
+        break
+      }
+    }
+    expect(
+      foundSelectionBg,
+      `selected card "${selectedNodeId}" should have $selection-bg (${selectionBg}) somewhere in its row`,
+    ).toBe(true)
+
+    // Check cells ABOVE the selected card -- they should NOT have $selection-bg.
+    // Skip row 0 (breadcrumb bar) which legitimately uses the same bg token.
+    const rowsAbove: { x: number; y: number }[] = []
+    for (let y = Math.max(1, selectedBox.y - 3); y < selectedBox.y; y++) {
+      for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
+        const cell = board.screen.cell(x, y)
+        if (cell.bg === selectionBg) {
+          rowsAbove.push({ x, y })
+        }
+      }
+    }
+    expect(
+      rowsAbove,
+      `selection bg (${selectionBg}) bleeds above selected card at: ${rowsAbove
+        .slice(0, 5)
+        .map((p) => `(${p.x},${p.y})`)
+        .join(", ")}`,
+    ).toHaveLength(0)
+
+    // Check cells BELOW the selected card -- they should NOT have $selection-bg
+    const rowsBelow: { x: number; y: number }[] = []
+    for (let y = selectedBox.y + selectedBox.height; y < Math.min(rows, selectedBox.y + selectedBox.height + 3); y++) {
+      for (let x = selectedBox.x; x < selectedBox.x + selectedBox.width; x++) {
+        const cell = board.screen.cell(x, y)
+        if (cell.bg === selectionBg) {
+          rowsBelow.push({ x, y })
+        }
+      }
+    }
+    expect(
+      rowsBelow,
+      `selection bg (${selectionBg}) bleeds below selected card at: ${rowsBelow
+        .slice(0, 5)
+        .map((p) => `(${p.x},${p.y})`)
+        .join(", ")}`,
+    ).toHaveLength(0)
+
+    // Check cells to the LEFT of the selected card's column -- no bleed
+    if (selectedBox.x > 0) {
+      const leftBleed: { x: number; y: number }[] = []
+      for (let y = selectedBox.y; y < selectedBox.y + selectedBox.height; y++) {
+        for (let x = 0; x < selectedBox.x; x++) {
+          const cell = board.screen.cell(x, y)
+          if (cell.bg === selectionBg) {
+            leftBleed.push({ x, y })
+          }
+        }
+      }
+      expect(
+        leftBleed,
+        `selection bg (${selectionBg}) bleeds left of selected card at: ${leftBleed
+          .slice(0, 5)
+          .map((p) => `(${p.x},${p.y})`)
+          .join(", ")}`,
+      ).toHaveLength(0)
+    }
   })
 })

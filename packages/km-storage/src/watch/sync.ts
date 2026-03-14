@@ -99,6 +99,10 @@ export class SyncManager extends EventEmitter {
   private emitter: Emitter // Emitter domain object for event emission
   private parsePool: ParsePoolService | undefined
 
+  // In-flight sync tracking — prevents teardown from closing DB while syncs are running
+  private inFlightSyncs: Set<Promise<void>> = new Set()
+  private stopped = false
+
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
   // Timer ID type - setInterval returns Timer in Node/Bun
@@ -144,7 +148,7 @@ export class SyncManager extends EventEmitter {
 
     // Wire up events
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
-    this.watcher.on("sync", (data) => void this.handleFsSync(data))
+    this.watcher.on("sync", (data) => this.handleFsSync(data))
     this.watcher.on("error", (error) => this.emit("error", error))
     this.watcher.on("ready", () => this.emit("ready"))
 
@@ -175,12 +179,20 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Stop watching and syncing
+   * Stop watching and syncing.
+   * Awaits any in-flight handleFsSync operations to prevent
+   * "Cannot use a closed database" errors during teardown.
    */
   async stop(): Promise<void> {
     log.debug?.("stopping sync manager")
+    this.stopped = true
     this.stopHeartbeat()
     await this.watcher.stop()
+    // Wait for in-flight syncs to complete before clearing resources
+    if (this.inFlightSyncs.size > 0) {
+      log.debug?.(`waiting for ${this.inFlightSyncs.size} in-flight syncs`)
+      await Promise.allSettled([...this.inFlightSyncs])
+    }
     this.writeQueue.clear()
     if (this.parsePool) {
       await this.parsePool[Symbol.asyncDispose]()
@@ -233,6 +245,8 @@ export class SyncManager extends EventEmitter {
    * Run heartbeat reconciliation if idle
    */
   private async runHeartbeat(): Promise<void> {
+    if (this.stopped) return
+
     const now = Date.now()
     const idleTime = now - this.lastActivityTime
 
@@ -278,7 +292,7 @@ export class SyncManager extends EventEmitter {
           ops,
           repoRoot: this.config.repoPath,
           emitter: this.emitter,
-          parsePool: this.getParsePool(),
+          parsePool: await this.getParsePool(),
         })
 
         // Emit event so consumers know about drift
@@ -348,30 +362,60 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Get or create the parse pool for async markdown parsing
+   * Wait for all in-flight sync operations to complete.
+   * Useful in tests to ensure async reconciliation finishes before asserting.
    */
-  private getParsePool(): ParsePoolService {
+  async waitForInflight(): Promise<void> {
+    if (this.inFlightSyncs.size > 0) {
+      await Promise.allSettled([...this.inFlightSyncs])
+    }
+  }
+
+  /**
+   * Get number of in-flight sync operations (for test polling with fake timers).
+   */
+  getInFlightCount(): number {
+    return this.inFlightSyncs.size
+  }
+
+  /**
+   * Get or create the parse pool for async markdown parsing.
+   * Lazily creates and starts the pool on first use.
+   */
+  private async getParsePool(): Promise<ParsePoolService> {
     if (!this.parsePool) {
       this.parsePool = createParsePool()
+      await this.parsePool.start()
     }
     return this.parsePool
   }
 
   /**
-   * Handle filesystem sync event — async to allow parallel markdown parsing
+   * Handle filesystem sync event — async to allow parallel markdown parsing.
+   * Tracks in-flight promises so stop() can await them before closing resources.
    */
-  private async handleFsSync(data: { paths: string[]; directories: string[] }): Promise<void> {
+  private handleFsSync(data: { paths: string[]; directories: string[] }): void {
+    const promise = this.handleFsSyncInner(data)
+    this.inFlightSyncs.add(promise)
+    promise.finally(() => this.inFlightSyncs.delete(promise))
+  }
+
+  private async handleFsSyncInner(data: { paths: string[]; directories: string[] }): Promise<void> {
+    // Bail out if stop() has been called to prevent accessing closed resources
+    if (this.stopped) return
+
     using span = log.span("fs-sync", { paths: data.paths.length, dirs: data.directories.length })
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
 
     try {
       for (const dir of data.directories) {
+        if (this.stopped) break
         using dirSpan = span.span("reconcile-dir", { dir })
         const ops = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
         dirSpan.spanData.ops = ops.length
 
-        if (ops.length > 0) {
+        if (ops.length > 0 && !this.stopped) {
           this.setState("emitting")
           using applySpan = dirSpan.span("apply")
           await applyReconcileOpsAsync({
@@ -379,17 +423,21 @@ export class SyncManager extends EventEmitter {
             ops,
             repoRoot: this.config.repoPath,
             emitter: this.emitter,
-            parsePool: this.getParsePool(),
+            parsePool: await this.getParsePool(),
           })
           applySpan.spanData.ops = ops.length
         }
       }
     } catch (error) {
+      // Suppress errors after stop (DB closed, temp dir removed — expected during teardown)
+      if (this.stopped) return
       span.error?.(error instanceof Error ? error : String(error))
       this.emit("error", error)
     }
-    this.lastActivityTime = Date.now()
-    this.setState("idle")
+    if (!this.stopped) {
+      this.lastActivityTime = Date.now()
+      this.setState("idle")
+    }
   }
 
   private setState(newState: SyncState): void {
@@ -630,11 +678,12 @@ export class SyncManager extends EventEmitter {
     // Queue the file rename
     this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
 
-    // Update DB: fs_path and name
+    // Update DB: fs_path, name, and title (title is used by nodesToMarkdown for H1 heading)
     const newName = newFileName.replace(/\.md$/i, "")
-    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, title = ?, updated_at = ? WHERE id = ?", [
       newFsPath,
       newName,
+      newTitle,
       Date.now(),
       fileNode.id,
     ])

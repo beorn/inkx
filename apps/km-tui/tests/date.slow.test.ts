@@ -12,7 +12,7 @@
  * - onNodeChanged creating embeds after interactive td
  */
 
-import { describe, test, it, expect } from "vitest"
+import { describe, test, it, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { __triggerChordTimeout } from "../src/board-app.ts"
@@ -100,6 +100,16 @@ function findInboxSection(db: Database): { id: string } | undefined {
 // ---------------------------------------------------------------------------
 
 describe("date badge display", () => {
+  // Freeze time so hardcoded dates like "2026-03-15" always render as absolute
+  // "Mar 15" rather than relative names like "Sunday" when tests run near that date.
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T12:00:00Z"))
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
   it("formatDateBadge returns badge for node with due_at", () => {
     // Use a date 30+ days out so it renders as "Mon DD" not relative
     const badge = formatDateBadge({ due_at: "2026-03-15" } as KNode)
@@ -666,15 +676,27 @@ describe("date prompt (td)", () => {
     expect(text).not.toContain("Set Due Date")
   })
 
-  test("ts chord opens start date dialog", () => {
-    const { board } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
+  test("ts chord cycles task status (not start date dialog)", () => {
+    // ts was remapped from set_start_date to cycle_task_status
+    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Buy groceries"))))
 
     board.press("j")
+
+    // Task starts as "todo" (item.task creates with task_status)
+    const col = repo.getChildren("board")[0]!
+    const task = repo.getChildren(col.id)[0]!
+    expect(task.task_status).toBe("todo")
+
     board.press("t")
     board.press("s")
 
+    // Should NOT open start date dialog
     const text = board.screenshot()
-    expect(text).toContain("Set Start Date")
+    expect(text).not.toContain("Set Start Date")
+
+    // Should have cycled task status
+    const updatedTask = repo.getChildren(col.id)[0]!
+    expect(updatedTask.task_status).not.toBe("todo")
   })
 
   test("tr chord opens recurrence dialog", () => {

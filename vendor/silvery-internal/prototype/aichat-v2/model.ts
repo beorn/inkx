@@ -25,53 +25,6 @@ import {
 
 export type Phase = "idle" | "thinking" | "streaming" | "tools"
 
-const INTRO_TEXT = [
-  "AI Chat v2 — New API prototype:",
-  " \u2022 Signals — fine-grained reactive state, no full-object spreads",
-  " \u2022 Async generators — streaming replaces timer-driven reveal fractions",
-  " \u2022 Factory functions — models are plain objects with typed methods",
-  " \u2022 Plugin composition — commands, keybindings, auto-advance as plugins",
-  " \u2022 TestClock — deterministic time control for async tests",
-  " \u2022 Pure tests — model tests need no React rendering",
-].join("\n")
-
-/** Default delay — replaced by TestClock in tests. */
-export function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-// ── Token & Cost Utilities ──────────────────────────────────────
-
-export function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
-  return String(n)
-}
-
-export function formatCost(inputTokens: number, outputTokens: number): string {
-  const cost = (inputTokens * INPUT_COST_PER_M + outputTokens * OUTPUT_COST_PER_M) / 1_000_000
-  if (cost < 0.01) return `$${cost.toFixed(4)}`
-  return `$${cost.toFixed(2)}`
-}
-
-export function computeCumulativeTokens(exchanges: Exchange[]): {
-  input: number
-  output: number
-  currentContext: number
-} {
-  let input = 0
-  let output = 0
-  let currentContext = 0
-  for (const ex of exchanges) {
-    if (ex.tokens) {
-      input += ex.tokens.input
-      output += ex.tokens.output
-      if (ex.tokens.input > currentContext) currentContext = ex.tokens.input
-    }
-  }
-  return { input, output, currentContext }
-}
-
 // ── Chat Model Factory ──────────────────────────────────────
 
 export interface ChatOpts {
@@ -106,111 +59,56 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     pulse.value = !pulse.value
   }, 400)
 
-  function addExchange(entry: Omit<Exchange, "id">): Exchange {
-    const ex: Exchange = { ...entry, id: nextId++ }
-    exchanges.value = [...exchanges.value, ex]
-    return ex
+  // ── Commands (Era 2 shape: { fn, args? }) ─────────────────
+  // Model methods are canonical behavior. Commands are thin
+  // wrappers providing the discoverable { fn, args? } shape
+  // for keymap dispatch, CLI, MCP, and command palette.
+
+  const commands = {
+    submit: {
+      fn({ text }: { text: string }) {
+        if (done.value) return
+
+        // Fast-forward if still streaming
+        if (phase.value !== "idle") {
+          phase.value = "idle"
+          currentContent.value = ""
+          activeToolIndex.value = -1
+        }
+
+        if (!text.trim()) return
+
+        addExchange({
+          role: "user",
+          content: text,
+          tokens: { input: text.length * 4, output: 0 },
+        })
+
+        // Schedule scripted agent response (uses injectable delay)
+        const agentEntry = findNextAgentEntry()
+        const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+        delayFn(150).then(() => consumeGenerator(respond(entry)))
+      },
+    },
+
+    compact: {
+      async fn() {
+        if (done.value || compacting.value) return
+        compacting.value = true
+        contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
+        await delayFn(opts.fast ? 300 : 3000)
+        compacting.value = false
+      },
+    },
+
+    exit: {
+      fn() {
+        done.value = true
+      },
+    },
   }
 
-  /**
-   * Stream an agent response — the headline feature.
-   *
-   * This async generator replaces 200+ lines of switch/case (streamTick,
-   * endThinking, endTools, revealFraction arithmetic) with a linear control
-   * flow: thinking → streaming → tools → idle.
-   *
-   * Each `yield` signals the view to re-render with accumulated content.
-   * No revealFraction, no streamTick timer, no named timer effects.
-   */
-  async function* respond(entry: ScriptEntry): AsyncGenerator<void> {
-    const ex = addExchange({ ...entry, content: opts.fast ? entry.content : "" })
-
-    // Phase 1: Thinking
-    if (entry.thinking && !opts.fast) {
-      phase.value = "thinking"
-      await delayFn(1200)
-    }
-
-    // Phase 2: Streaming content — word by word
-    if (!opts.fast) {
-      phase.value = "streaming"
-      currentContent.value = ""
-      for (const word of entry.content.split(/(\s+)/)) {
-        currentContent.value += word
-        yield // signal the view to re-render with accumulated content
-        if (word.trim()) await delayFn(50)
-      }
-
-      // Finalize content on the exchange
-      const exs = [...exchanges.value]
-      const idx = exs.findIndex((e) => e.id === ex.id)
-      if (idx >= 0) exs[idx] = { ...exs[idx]!, content: entry.content }
-      exchanges.value = exs
-      currentContent.value = ""
-    }
-
-    // Phase 3: Tool calls
-    const tools = entry.toolCalls ?? []
-    if (tools.length > 0 && !opts.fast) {
-      phase.value = "tools"
-      for (let i = 0; i < tools.length; i++) {
-        activeToolIndex.value = i
-        yield
-        await delayFn(600)
-      }
-      activeToolIndex.value = -1
-    }
-
-    phase.value = "idle"
-  }
-
-  async function consumeGenerator(gen: AsyncGenerator): Promise<void> {
-    for await (const _ of gen) {
-    }
-  }
-
-  function findNextAgentEntry(): ScriptEntry | null {
-    while (scriptIdx < script.length && script[scriptIdx]!.role === "user") scriptIdx++
-    if (scriptIdx >= script.length) return null
-    return script[scriptIdx++]!
-  }
-
-  // ── Extracted functions (shared by methods + commands) ──────
-  function submitFn({ text }: { text: string }) {
-    if (done.value) return
-
-    // Fast-forward if still streaming
-    if (phase.value !== "idle") {
-      phase.value = "idle"
-      currentContent.value = ""
-      activeToolIndex.value = -1
-    }
-
-    if (!text.trim()) return
-
-    addExchange({
-      role: "user",
-      content: text,
-      tokens: { input: text.length * 4, output: 0 },
-    })
-
-    // Schedule scripted agent response (uses injectable delay)
-    const agentEntry = findNextAgentEntry()
-    const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-    delayFn(150).then(() => consumeGenerator(respond(entry)))
-  }
-
-  async function compactFn() {
-    if (done.value || compacting.value) return
-    compacting.value = true
-    contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
-    await delayFn(opts.fast ? 300 : 3000)
-    compacting.value = false
-  }
-
-  function exitFn() {
-    done.value = true
-  }
+  // ── Return ─────────────────────────────────────────────────
 
   return {
     // Signals (reactive state)
@@ -226,22 +124,25 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     ctrlDPending,
     elapsed,
 
+    // Commands (Era 2 — the primary interface)
+    commands,
+
     // Internal (for auto-advance plugin)
     addExchange,
 
     // Constants
     CONTEXT_WINDOW,
 
-    // Methods (behavior) — replaces 14-variant DemoMsg discriminated union
+    // Methods — convenience wrappers around commands + non-command behavior
 
     /** Add a user exchange and trigger scripted agent response. */
-    submit: submitFn,
+    submit: commands.submit.fn,
 
     /** Expose the generator directly for auto-advance and testing. */
     respond,
 
     /** Compact context — simulates pruning old exchanges. */
-    compact: compactFn,
+    compact: commands.compact.fn,
 
     /** Advance to the next script entry (for initial mount). */
     advance() {
@@ -295,15 +196,77 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
       if (elapsedTimer) clearInterval(elapsedTimer)
       if (ctrlDResetTimer) clearTimeout(ctrlDResetTimer)
     },
+  }
 
-    // ── Commands ({ fn, args? } shape) ────────────────────────────
-    // Era 2 structured commands — same behavior, discoverable shape.
-    // In production, commands would be the primary interface.
-    commands: {
-      submit: { fn: submitFn },
-      compact: { fn: compactFn },
-      exit: { fn: exitFn },
-    },
+  // ── Internal helpers (hoisted) ──────────────────────────────
+
+  function addExchange(entry: Omit<Exchange, "id">): Exchange {
+    const ex: Exchange = { ...entry, id: nextId++ }
+    exchanges.value = [...exchanges.value, ex]
+    return ex
+  }
+
+  /**
+   * Stream an agent response — the headline feature.
+   *
+   * This async generator replaces 200+ lines of switch/case (streamTick,
+   * endThinking, endTools, revealFraction arithmetic) with a linear control
+   * flow: thinking → streaming → tools → idle.
+   *
+   * Each `yield` signals the view to re-render with accumulated content.
+   */
+  async function* respond(entry: ScriptEntry): AsyncGenerator<void> {
+    const ex = addExchange({ ...entry, content: opts.fast ? entry.content : "" })
+
+    // Phase 1: Thinking
+    if (entry.thinking && !opts.fast) {
+      phase.value = "thinking"
+      await delayFn(1200)
+    }
+
+    // Phase 2: Streaming content — word by word
+    if (!opts.fast) {
+      phase.value = "streaming"
+      currentContent.value = ""
+      for (const word of entry.content.split(/(\s+)/)) {
+        currentContent.value += word
+        yield // signal the view to re-render with accumulated content
+        if (word.trim()) await delayFn(50)
+      }
+
+      // Finalize content on the exchange
+      const exs = [...exchanges.value]
+      const idx = exs.findIndex((e) => e.id === ex.id)
+      if (idx >= 0) exs[idx] = { ...exs[idx]!, content: entry.content }
+      exchanges.value = exs
+      currentContent.value = ""
+    }
+
+    // Phase 3: Tool calls
+    const tools = entry.toolCalls ?? []
+    if (tools.length > 0 && !opts.fast) {
+      phase.value = "tools"
+      for (let i = 0; i < tools.length; i++) {
+        activeToolIndex.value = i
+        yield
+        await delayFn(600)
+      }
+      activeToolIndex.value = -1
+    }
+
+    phase.value = "idle"
+  }
+
+  async function consumeGenerator(gen: AsyncGenerator): Promise<void> {
+    for await (const _ of gen) {
+      /* drain */
+    }
+  }
+
+  function findNextAgentEntry(): ScriptEntry | null {
+    while (scriptIdx < script.length && script[scriptIdx]!.role === "user") scriptIdx++
+    if (scriptIdx >= script.length) return null
+    return script[scriptIdx++]!
   }
 }
 
@@ -318,3 +281,50 @@ export type ChatModel = ReturnType<typeof createChat>
 //   useChat.bind(script, opts)  — initialize the singleton
 //
 export const useChat = createModel(createChat)
+
+// ── Token & Cost Utilities ──────────────────────────────────────
+
+export function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
+  return String(n)
+}
+
+export function formatCost(inputTokens: number, outputTokens: number): string {
+  const cost = (inputTokens * INPUT_COST_PER_M + outputTokens * OUTPUT_COST_PER_M) / 1_000_000
+  if (cost < 0.01) return `$${cost.toFixed(4)}`
+  return `$${cost.toFixed(2)}`
+}
+
+export function computeCumulativeTokens(exchanges: Exchange[]): {
+  input: number
+  output: number
+  currentContext: number
+} {
+  let input = 0
+  let output = 0
+  let currentContext = 0
+  for (const ex of exchanges) {
+    if (ex.tokens) {
+      input += ex.tokens.input
+      output += ex.tokens.output
+      if (ex.tokens.input > currentContext) currentContext = ex.tokens.input
+    }
+  }
+  return { input, output, currentContext }
+}
+
+/** Default delay — replaced by TestClock in tests. */
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+const INTRO_TEXT = [
+  "AI Chat v2 — New API prototype:",
+  " \u2022 Signals — fine-grained reactive state, no full-object spreads",
+  " \u2022 Async generators — streaming replaces timer-driven reveal fractions",
+  " \u2022 Factory functions — models are plain objects with typed methods",
+  " \u2022 Plugin composition — commands, keybindings, auto-advance as plugins",
+  " \u2022 TestClock — deterministic time control for async tests",
+  " \u2022 Pure tests — model tests need no React rendering",
+].join("\n")

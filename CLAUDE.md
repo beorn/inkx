@@ -48,9 +48,12 @@ bun km view <path>   # Run TUI
 bun run test:fast | head -400   # Default project: non-slow, non-vendor (~190 files)
 bun run test:vendor | head -400 # Vendor tests only (~182 files)
 bun run test:all | head -400    # All 3 projects (~393 files)
+bun run test:ci              # Comprehensive: typecheck + lint + fast + slow + vendor + fuzz (~3-5 min)
 bun vitest run <dir> # Tests in directory (excludes .slow. and vendor automatically)
 bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 ```
+
+**`test:ci`** is the full suite — run it periodically (pre-push hook reminds you if >24h since last run). It catches what `test:fast` misses: slow tests, vendor tests, fuzz tests.
 
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
 

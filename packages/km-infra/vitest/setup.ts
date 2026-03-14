@@ -13,7 +13,7 @@
 
 /* eslint-disable promise/prefer-await-to-callbacks -- Implements Node.js stream.write() API which requires callback support */
 
-import { beforeEach, afterEach, vi } from "vitest"
+import { beforeEach, afterEach, expect, vi } from "vitest"
 
 // Register custom TUI testing matchers
 import "../../../apps/km-tui/tests/helpers/matchers.js"
@@ -68,24 +68,74 @@ process.env.SILVERY_STRICT = "1"
 // ENABLED implicitly via SILVERY_STRICT=1 above (tracked as km-silvery.strict-style-verify).
 // process.env.SILVERY_STRICT_OUTPUT = "1"
 
-// Catch IncrementalRenderMismatchError as warnings instead of test-killing errors.
-// These are thrown asynchronously from SILVERY_STRICT's render comparison, and vitest
-// counts them as "unhandled errors" even when all tests pass. The bg-bleed issue
-// (km-silvery.bg-bleed) is tracked — we want it visible but not blocking CI.
-let _mismatchCount = 0
+// =============================================================================
+// SILVERY_STRICT Mismatch Detection
+// =============================================================================
+//
+// IncrementalRenderMismatchError is thrown asynchronously from SILVERY_STRICT's
+// render comparison. We intercept via unhandledRejection to collect mismatches,
+// then check in afterEach whether to fail or warn.
+//
+// By default, mismatches FAIL the test. To suppress known mismatches during
+// incremental fixes, set SILVERY_STRICT_KNOWN to comma-separated glob patterns
+// matching test names (e.g., "zoom*,*garble*"). Matched tests get a warning
+// instead of a failure.
+
+/** Simple glob matcher supporting * wildcards */
+function matchGlob(pattern: string, str: string): boolean {
+  // Escape regex special chars except *, then convert * to .*
+  const regex = new RegExp("^" + pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$")
+  return regex.test(str)
+}
+
+/** Parse SILVERY_STRICT_KNOWN env var into glob patterns */
+function getKnownPatterns(): string[] {
+  const raw = process.env.SILVERY_STRICT_KNOWN
+  if (!raw) return []
+  return raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)
+}
+
+/** Check if a test name matches any known-mismatch pattern */
+function isKnownMismatch(testName: string): boolean {
+  const patterns = getKnownPatterns()
+  return patterns.some((p) => matchGlob(p, testName))
+}
+
+let _mismatchErrors: Error[] = []
 process.on("unhandledRejection", (reason: unknown) => {
   if (reason instanceof Error && reason.name === "IncrementalRenderMismatchError") {
-    _mismatchCount++
-    return // suppress — tracked as km-silvery.bg-bleed
+    _mismatchErrors.push(reason)
+    return // intercepted — will be checked in afterEach
   }
 })
+
 afterEach(() => {
-  if (_mismatchCount > 0) {
+  if (_mismatchErrors.length === 0) return
+
+  const errors = _mismatchErrors
+  _mismatchErrors = []
+
+  const testName = expect.getState().currentTestName ?? "<unknown>"
+
+  if (isKnownMismatch(testName)) {
+    // Known mismatch — warn but don't fail
     _originalConsoleError(
-      `[SILVERY_STRICT] ${_mismatchCount} IncrementalRenderMismatchError(s) suppressed (km-silvery.bg-bleed)`,
+      `[SILVERY_STRICT] ${errors.length} IncrementalRenderMismatchError(s) suppressed for known mismatch: ${testName}`,
     )
-    _mismatchCount = 0
+    return
   }
+
+  // Unknown mismatch — fail the test with details
+  const details = errors.map((e) => e.message).join("\n\n---\n\n")
+  expect.fail(
+    `[SILVERY_STRICT] ${errors.length} IncrementalRenderMismatchError(s) detected.\n` +
+      `Test: ${testName}\n` +
+      `To suppress known mismatches, add a pattern to SILVERY_STRICT_KNOWN env var.\n\n` +
+      details,
+  )
 })
 
 // =============================================================================
