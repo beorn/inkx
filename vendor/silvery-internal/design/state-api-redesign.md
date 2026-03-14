@@ -74,16 +74,16 @@ await run(<ChatView />)
 
 // ── Sip 4: App composition + commands ─────────────────────────
 // An app has two concerns: model (state + behavior) and runtime (I/O + lifecycle).
-// Commands are metadata over model methods. Plugins extend both.
+// Commands are { fn, args? } objects. Keymaps bind keys to commands with when predicates.
 const app = pipe(
   createApp(),
-  withChat(), // adds app.model.chat (domain state + methods)
-  withCommands({
-    // registers command metadata for discoverability
-    "chat.submit": { title: "Send Message", execute: (p) => op(app.model).chat.submit(p) },
-    "chat.clear": { title: "Clear History", execute: () => op(app.model).chat.clear() },
+  withChat(), // adds app.model.chat — domain state + methods + commands
+  withTerminal({
+    view: <ChatView />,
+    keys: keymap(when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }), {
+      escape: commands.app.exit,
+    }),
   }),
-  withTerminal(<ChatView />, { enter: "chat.submit", "ctrl+l": "chat.clear" }),
 )
 using handle = await run(app)
 await handle.waitUntilExit()
@@ -162,7 +162,12 @@ const app = pipe(
   withUndo(), // wraps apply() — records model ops for undo
   withTracing(), // wraps apply() — logs all ops
   withRecording(), // wraps apply() — captures ops for replay
-  withTerminal(<ChatView />, { enter: "chat.submit", "ctrl+l": "chat.clear" }),
+  withTerminal({
+    view: <ChatView />,
+    keys: keymap(when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }), {
+      escape: commands.app.exit,
+    }),
+  }),
 )
 
 using handle = await run(app)
@@ -268,8 +273,8 @@ An app has two concerns: **model** (all state + behavior) and **runtime** (all I
 │  └────────────────────────────┘ └────────────────────────────┘│
 │                                                                │
 │  app.apply(op)  ← plugins wrap this (withUndo, withTracing)    │
-│  app.invoke(id) ← command dispatch for surfaces                │
-│  app.commands   ← metadata registry over model methods         │
+│  invoke({ command, args })  ← resolves schema, calls fn       │
+│  commands.*     ← { fn, args? } objects, nested tree           │
 │                                                                │
 │  op(app.model).chat.submit()  → routes through apply()         │
 │  op(app.rt).providers.fs.write() → routes through apply()      │
@@ -593,8 +598,13 @@ Connects providers + models + view. Behavioral plugins compose on top.
 const app = pipe(
   createApp(<ChatApp />, { providers, models: { chat: useChat } }),
   withUndo(),
-  withCommands({ ... }),
-  withKeybindings({ enter: "submit" }),
+  withTerminal({
+    view: <ChatView />,
+    keys: keymap(
+      when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }),
+      { escape: commands.app.exit },
+    ),
+  }),
 )
 
 // Shape (varies by plugins applied):
@@ -604,8 +614,7 @@ const app = pipe(
   view: JSX.Element,
 
   // From plugins:
-  commands?: CommandTree,        // from withCommands
-  keybindings?: KeybindingMap,   // from withKeybindings
+  commands: Record<string, Command>, // { fn, args? } objects, nested tree
   screen?: { text: string, lines: string[] },
 }
 ```
@@ -680,7 +689,6 @@ function withAutoAdvance(script): AppPlugin {
 // Compose at definition time — no separate "driver" concept:
 const app = pipe(
   createApp(<AIChat />, { providers, models: { chat: useChat } }),
-  withCommands(...),
   args.auto ? withAutoAdvance(SCRIPT) : identity,
 )
 await app.run()
@@ -741,7 +749,7 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [app-composition.md](./app-composition.md).
 2. **SlateJS-style plugin composition.** Plugins wrap `app.apply()` via closure. One type: `(app: App) => App`.
 3. **`op()` proxy for opt-in interception.** `op(app.model).chat.submit()` routes through `app.apply()`; direct calls bypass it.
-4. **Commands are metadata over model methods.** The command registry adds names/descriptions for discoverability. See [command-centric.md](./command-centric.md).
+4. **Commands are `{ fn, args? }` objects.** `fn` is the behavior (reads/writes signals directly), `args` is an optional schema with `.parse()`. No registry, no string IDs — commands are referenced directly. See [command-centric.md](./command-centric.md) and [input-system.md](./input-system.md).
 5. **Surfaces are plugins.** A surface plugin contributes to both `app.model` (view state) and `app.rt` (I/O).
 6. **No driver abstraction.** Three patterns: app plugins (definition-time), `run(app, fn)` (runtime), direct calls (tests).
 7. **Plugin composition via spread.** TypeScript intersection types accumulate. Last-write-wins; dev mode warns on collisions.
@@ -753,7 +761,7 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 13. **Async effects with `AsyncEffect<T>`.** Async functions `await` typed effect descriptors; scoped via `AsyncLocalStorage`. See [scope-tree.md](./scope-tree.md).
 14. **Built-in timer effects.** `fx.delay(ms)`, `fx.interval(ms, update)` with auto-cleanup via scope.
 15. **Auto-cleanup via AbortSignal.** Cancellation propagates down; errors up. No effect outlives its parent.
-16. **Homebrew params, no schema library.** Plain `{ type, description }` descriptors; runtime schema generation is trivial.
+16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(cursor)`), not a dependency.
 17. **Structured concurrency via scope tree.** See [scope-tree.md](./scope-tree.md).
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
 
@@ -834,4 +842,4 @@ Read before proposing changes — many alternatives were explored and rejected.
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

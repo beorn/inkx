@@ -2,19 +2,18 @@
 
 _Status: finalized (v2, 2026-03-13). How apps are assembled from plugins._
 
-_See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command registry, surfaces), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
+_See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command registry, surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
 
 ## The Shape
 
-An app has two concerns, a command registry, and an interception pipeline:
+An app has two concerns, a command tree, and an interception pipeline:
 
 ```typescript
 interface App {
   model: Record<string, any> // all state — domain models + surface view models
   rt: Runtime // all I/O — providers, scope, lifecycle
-  commands: CommandRegistry // metadata/discovery over model methods
+  commands: Record<string, Command> // { fn, args? } objects, nested tree
   apply(o: Op): unknown // interception pipeline (wrappable by plugins)
-  invoke(id: string, params?): any // command dispatch for surfaces
   run(): Promise<RunHandle>
   dispose(): void
 }
@@ -29,11 +28,11 @@ interface Runtime {
 }
 ```
 
-**Two concerns.** Model holds all reactive state and behavior — both domain state (`chat.exchanges`) and surface state (`term.inputText`). Runtime holds all I/O capabilities and effect lifecycle. Commands are a metadata registry over model methods — not a separate concern, just discoverability.
+**Two concerns.** Model holds all reactive state and behavior — both domain state (`chat.exchanges`) and surface state (`term.inputText`). Runtime holds all I/O capabilities and effect lifecycle. Commands are `{ fn, args? }` objects living on the model — not a separate concern, just callable behavior with optional schema validation.
 
 **Why only two?** We started with four (state, events, runtime, view) and simplified:
 
-- "Events" (commands) belong in the model — they're just named methods that update state and trigger effects.
+- "Events" (commands) belong in the model — they're `{ fn, args? }` objects that update state and trigger effects.
 - "View" is the rendering half of a surface, and surfaces are plugins that contribute to both model and runtime.
 - What's left: state+behavior (model) and I/O+lifecycle (runtime). Everything else composes into these two boxes.
 
@@ -59,6 +58,7 @@ op(app.rt).providers.fs.write("data.json", state)
 - The **method call is the operation boundary** — plugins see one op per method call, regardless of how many signals it writes internally
 - Plugins can observe, wrap, or cancel execution via `app.apply()`
 - Apps can run in **loose mode** (direct calls allowed) or **strict mode** (state-changing methods must go through `op()` or `invoke()`)
+- `invoke()` is a standalone function that takes `Invocation` objects (`{ command, args }`) — not string-based dispatch
 - `op()` does NOT intercept signal reads — components read signals directly via `.value` or selectors
 
 > **Note**: The implementation below is illustrative pseudocode. A production implementation must handle nested path accumulation, receiver binding, proxy identity caching, async generator methods, and symbol properties.
@@ -130,19 +130,13 @@ For some apps, `op()` may be required for all state mutations (e.g., rich text e
 ### End-to-end: keypress → state change
 
 ```typescript
-// 1. Terminal surface receives "enter" keypress
-// 2. Keybinding maps "enter" → "chat.submit"
-// 3. app.invoke("chat.submit", { text: inputText.value })
-//    → looks up command in registry
-//    → calls execute(), which does:
-// 4. op(app.model).chat.submit({ text })
-//    → proxy creates op: { target: "model", path: ["chat","submit"], args, run }
-//    → routes through app.apply()
-// 5. app.apply(op)
-//    → withHistory plugin records the op
-//    → withTracing plugin logs it
-//    → op.run() executes the actual method
-// 6. chat.submit() runs:
+// 1. Terminal source yields keystroke via async iterable
+// 2. for-await loop receives the keystroke
+// 3. keymap checks when predicates, matches key → Invocation | null
+// 4. invoke({ command, args })
+//    → command.args?.parse(args ?? {}) merges overrides + signal defaults
+//    → command.fn(resolved) executes
+// 5. fn() writes signals directly:
 //    → exchanges.value = [...exchanges.value, { role: "user", content: text }]
 //    → signal notifies subscribers → React re-renders
 ```
@@ -183,18 +177,18 @@ function withChat(script: ScriptEntry[], opts: ChatOpts): Plugin {
       },
     }
 
-    // Register commands — metadata over the methods
-    app.commands.register({
-      "chat.submit": { title: "Send Message", execute: (p) => op(app.model).chat.submit(p) },
-      "chat.compact": { title: "Compact Context", execute: () => op(app.model).chat.compact() },
-    })
+    // Commands — { fn, args? } on the model
+    app.commands.chat = {
+      submit: { fn: (p) => op(app.model).chat.submit(p) },
+      compact: { fn: () => op(app.model).chat.compact() },
+    }
 
     return app
   }
 }
 ```
 
-Note: `execute` uses `op()` so plugin-intercepted invocation goes through `apply()`. Direct calls (`app.model.chat.submit()`) bypass it — the app decides which is appropriate.
+Note: `fn` uses `op()` so plugin-intercepted invocation goes through `apply()`. Direct calls (`app.model.chat.submit()`) bypass it — the app decides which is appropriate.
 
 ### Runtime plugin — add I/O capability
 
@@ -219,36 +213,41 @@ function withPersist(dir: string): Plugin {
 A surface is just a plugin that contributes to both model and runtime. No special abstraction.
 
 ```typescript
-function withTerminal(element: JSX.Element, bindings: Record<string, string>): Plugin {
+function withTerminal({
+  view,
+  keys,
+  pointer,
+}: {
+  view: JSX.Element
+  keys?: Mapping<KeyStroke>
+  pointer?: Mapping<PointerEvent>
+}): Plugin {
   return (app) => {
     // View model — surface-specific state
     app.model.term = {
       inputText: signal(""),
       scrollOffset: signal(0),
       focused: signal(true),
-      ctrlDPending: signal(false),
-      elapsed: signal(0),
     }
 
     // Runtime — terminal I/O + rendering
-    app.rt.providers.term = createTerminalProvider()
+    const term = createTerminalProvider()
+    app.rt.providers.term = term
 
     app.rt.hooks.onStart.push(async () => {
-      const term = app.rt.providers.term
+      // Rendering
+      term.render(view, app)
 
-      // Keyboard → commands
-      term.onKey((key) => {
-        const commandId = bindings[key]
-        if (commandId) app.invoke(commandId)
+      // Input — for-await loop IS the lifecycle
+      app.rt.scope.run(async () => {
+        for await (const e of termKeySource(term.stdin)) {
+          const inv = keys?.(e)
+          if (inv) {
+            const result = invoke(inv)
+            if (result === false) bell()
+          }
+        }
       })
-
-      // Rendering — mount React (or Svelte, etc.)
-      term.render(element, app)
-    })
-
-    // Surface-specific commands
-    app.commands.register({
-      "term.clear": { title: "Clear Screen", execute: () => app.rt.providers.term.clear() },
     })
 
     return app
@@ -285,20 +284,18 @@ function withHistory(): Plugin {
     }
 
     // Undo/redo commands
-    app.commands.register({
-      "history.undo": {
-        title: "Undo",
-        execute: () => {
+    app.commands.history = {
+      undo: {
+        fn: () => {
           /* pop and invert */
         },
       },
-      "history.redo": {
-        title: "Redo",
-        execute: () => {
+      redo: {
+        fn: () => {
           /* re-apply */
         },
       },
-    })
+    }
 
     return app
   }
@@ -307,18 +304,17 @@ function withHistory(): Plugin {
 
 ## Commands
 
-Commands are **metadata over model methods** — not a separate concern.
-
-Model methods are the real behavior. The command registry makes them discoverable for surfaces, help text, CLI generation, MCP tools, and AI agents:
+Commands are `{ fn, args? }` objects — minimal shape where `fn` is the behavior and `args` is an optional schema with `.parse()`.
 
 ```typescript
-app.model.chat.submit({ text }) // direct — typed, autocomplete
-app.invoke("chat.submit", { text }) // via registry — for surfaces, remote
+// Direct — typed, autocomplete
+commands.chat.submit({ text: "hello" })
+
+// Via invoke() — resolves signal defaults, validates schema
+invoke({ command: commands.chat.submit, args: { text: "hello" } })
 ```
 
-Both call the same code. `invoke()` looks up the command and calls its `execute`, which calls the model method (potentially through `op()`).
-
-See [command-centric.md](./command-centric.md) for the full command tree design.
+Both call the same `fn`. `invoke()` additionally resolves signal defaults from the `args` schema and validates input. See [command-centric.md](./command-centric.md) for the full command design and [input-system.md](./input-system.md) for keymaps and dispatch.
 
 ## The Runner
 
@@ -353,11 +349,11 @@ expect(app.model.chat.exchanges.value).toHaveLength(1)
 
 // AI agent — drive via commands
 for (const intent of plan) {
-  await app.invoke(intent.command, intent.params)
+  invoke({ command: intent.command, args: intent.params })
 }
 
 // CLI — single command
-const result = await app.invoke(parsedArgs.command, parsedArgs.params)
+invoke({ command: parsedArgs.command, args: parsedArgs.params })
 ```
 
 ## Composition
@@ -365,6 +361,12 @@ const result = await app.invoke(parsedArgs.command, parsedArgs.params)
 Apps assemble via `pipe`:
 
 ```typescript
+// ── Keymap ───────────────────────────────────────────
+const keys = keymap(
+  { "ctrl+c": commands.quit },
+  when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }),
+)
+
 const app = pipe(
   createApp(),
 
@@ -380,11 +382,7 @@ const app = pipe(
   withTracing(),
 
   // Surface — view model + I/O + rendering
-  withTerminal(<ChatView />, {
-    enter: "chat.submit",
-    escape: "app.exit",
-    "ctrl+l": "chat.compact",
-  }),
+  withTerminal({ view: <ChatView />, keys }),
 )
 
 using handle = await run(app)
@@ -430,7 +428,7 @@ const editor = pipe(
   withCollaboration(),    // CRDT — wraps document ops
 
   // Surface
-  withTerminal(<EditorView />, keymap),
+  withTerminal({ view: <EditorView />, keys: editorKeys }),
 )
 ```
 
@@ -446,7 +444,7 @@ const app = pipe(
   withPersist("./data"),          // App & { rt: { providers: { persist: PersistAPI } } }
   withChat(script),               // ... & { model: { chat: ChatModel } }
   withHistory(),                  // ... (wraps apply(), registers commands — no new fields)
-  withTerminal(<View />, keys),   // ... & { model: { term: TermModel }, rt: { providers: { term: TermAPI } } }
+  withTerminal({ view: <View />, keys }), // ... & { model: { term: TermModel }, rt: { providers: { term: TermAPI } } }
 )
 // app.model.chat — fully typed
 // app.rt.providers.persist — fully typed
@@ -506,16 +504,16 @@ Plugins wrap `apply()` to intercept ops. Plugins that don't care about a particu
 Apps declare their interception policy:
 
 - **Loose mode** (default): Direct calls and `op()` calls coexist. The app's conventions decide which to use.
-- **Strict mode**: State-changing model methods must go through `op()` or `invoke()`. Direct calls in strict mode throw in dev (warn in prod). Useful for rich text editors where undo must see every mutation.
+- **Strict mode**: State-changing model methods must go through `op()` or `invoke()`. Direct calls in strict mode throw in dev (warn in prod). Useful for rich text editors where undo must see every mutation. `invoke()` is a standalone function taking `{ command, args }` — see [command-centric.md](./command-centric.md).
 
 ### Command integration
 
-Command `execute()` functions use `op()` to route through the pipeline:
+Command `fn` functions use `op()` to route through the pipeline:
 
 ```
-app.invoke("chat.submit", { text })
-  → command registry lookup
-    → execute({ text })
+invoke({ command: commands.chat.submit, args: { text } })
+  → command.args?.parse(args) resolves signal defaults, validates
+    → command.fn({ text })
       → op(app.model).chat.submit({ text })
         → app.apply({ target: "model", path: ["chat","submit"], args: [{ text }], run })
           → withHistory records the op
@@ -523,7 +521,7 @@ app.invoke("chat.submit", { text })
               → run() → chat.submit() → signal writes → re-render
 ```
 
-Every surface (keybinding, CLI, palette, MCP, AI agent, test) goes through the same path.
+Every surface (keymap, CLI, palette, MCP, AI agent, test) goes through the same path.
 
 ## Open Questions
 
@@ -547,12 +545,12 @@ State, Events, Runtime, View — each a separate slot with its own `apply()`. Th
 
 ### v2: Two concerns + `op()`
 
-Model (all state + behavior) and Runtime (all I/O + lifecycle). Commands are metadata over model methods. Surfaces are plugins that contribute to both. One `apply()` pipeline. `op()` proxy for opt-in interception.
+Model (all state + behavior) and Runtime (all I/O + lifecycle). Commands are `{ fn, args? }` objects alongside the model. Surfaces are plugins that contribute to both. One `apply()` pipeline. `op()` proxy for opt-in interception.
 
 **Key insights**:
 
 - Surfaces are views (bidirectional I/O channels)
-- Commands belong in the model (they're state updates that can trigger effects)
+- Commands belong in the model (they're `{ fn, args? }` objects — state updates that can trigger effects)
 - Surface plugins have their own state (view model) — they're mini-models
 - "All we have is model and runtime" — everything else is plugins
 - `op()` proxy resolves the apply() tension: callers use natural methods, plugins intercept via apply(), the proxy bridges them

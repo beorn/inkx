@@ -18,12 +18,12 @@ Silvery apps are built from four concepts: **signals** (reactive state), **model
 │  └──────────────────────────┘  └───────────────────────────┘ │
 │                                                             │
 │  ┌─ Commands ─────────────────────────────────────────────┐ │
-│  │ metadata registry over model methods                   │ │
+│  │ { fn, args? } objects, nested tree                     │ │
 │  │ → keybindings, CLI, palette, MCP, tests, docs          │ │
 │  └────────────────────────────────────────────────────────┘ │
 │                                                             │
 │  apply(op)  ← plugins wrap this (undo, tracing, recording) │
-│  invoke(id) ← command dispatch for all surfaces            │
+│  invoke()   ← resolves args schema, calls fn               │
 │  op(target) ← proxy that routes method calls → apply()     │
 │                                                             │
 │  Plugins: withChat, withTerminal, withHistory, withAI, ...  │
@@ -58,10 +58,11 @@ How apps are assembled from plugins.
 
 Every user action is a discoverable command. The command tree auto-derives every surface.
 
-- **Command registry** maps `id → { title, description, params, execute() }`
+- **Commands are `{ fn, args? }` objects** — `fn` is the behavior, `args` is an optional schema with `.parse()`
 - **Tree structure** auto-generates CLI subcommands, menus, palette categories, MCP tools, TypeScript types
-- **Same code path** — pressing `x` and calling `task.toggle_done()` run the same `execute()`
-- **Complete by construction** — if the user can do it, it's in the registry
+- **Same code path** — pressing `x` and calling `commands.task.toggle_done.fn()` run the same function
+- **Complete by construction** — if the user can do it, there's a command for it
+- **Keymaps** bind keys to commands with `when` predicates; **input sources** are async iterables — see [input-system.md](./input-system.md)
 
 ### 4. Scope Tree → [scope-tree.md](./scope-tree.md)
 
@@ -78,17 +79,17 @@ Structured concurrency, effects, observability, and lifecycle in one tree.
 State API (signals, models)
     ↓ models expose methods
 App Composition (plugins, op(), apply())
-    ↓ commands wrap model methods
-Commands (registry, surfaces)
+    ↓ commands are { fn, args? } objects
+Commands + Input (keymaps, surfaces)
     ↓ effects execute in scoped context
 Scope Tree (concurrency, lifecycle)
 ```
 
 A concrete flow — user presses Enter in the terminal:
 
-1. **Scope Tree**: Terminal surface receives keypress event within its scope
-2. **Commands**: Keybinding maps Enter → `"chat.submit"`; `app.invoke()` looks up the command
-3. **App Composition**: Command's `execute()` calls `op(app.model).chat.submit()` → routes through `apply()` → plugins intercept (undo records, tracing logs)
+1. **Scope Tree**: Terminal source yields keypress event via async iterable within its scope
+2. **Input System**: Keymap maps Enter → `{ command: commands.chat.submit }` via `when` predicates; `invoke()` resolves args
+3. **App Composition**: `fn()` calls `op(app.model).chat.submit()` → routes through `apply()` → plugins intercept (undo records, tracing logs)
 4. **State API**: `chat.submit()` writes to `exchanges` signal → O(1) subscriber notification → React re-renders
 
 ## Plugin Composition: Type-Safe Accumulation
@@ -129,18 +130,18 @@ op(app.model).chat.submit({ text }) // intercepted — undo, tracing, recording 
 
 **How it works**: `op()` returns a Proxy that accumulates property access into a path, then on method invocation creates an `Op` descriptor (`{ target, path, args, run }`) and passes it to `app.apply()`. Plugins wrap `apply()` to intercept. The `run` field holds the original method call — plugins that don't care just call `run()`.
 
-**Command integration**: Command `execute()` functions use `op()` to route through the pipeline. `app.invoke("chat.submit")` → command's `execute()` → `op(app.model).chat.submit()` → `apply()` → plugins → actual method. This means commands, keybindings, CLI, and MCP all go through the same interception pipeline.
+**Command integration**: Command `fn()` functions use `op()` to route through the pipeline. `invoke({ command: commands.chat.submit, args })` → resolves signal defaults via `args.parse()` → `fn()` → `op(app.model).chat.submit()` → `apply()` → plugins → actual method. This means keybindings, CLI, MCP, and AI agents all go through the same interception pipeline.
 
 ## Design Principles
 
 1. **Progressive disclosure.** Sip 1 is just React. Each sip adds one concept. Nothing rewrites.
 2. **Two boxes.** Model and runtime. Everything else is a plugin that contributes to one or both.
 3. **Signals for state, methods for behavior.** No discriminated unions, no switch-case dispatch.
-4. **Same code path everywhere.** UI keypress, CLI invocation, AI agent, and test assertion all call the same `execute()`.
+4. **Same code path everywhere.** UI keypress, CLI invocation, AI agent, and test assertion all call the same `fn()`.
 5. **Native JS composition.** Plain objects, function composition, `Pick` for dependencies. No framework-specific abstractions where JS already has the concept.
 6. **Opt-in interception.** `op()` makes calls interceptable. Direct calls are always available. The app decides.
 7. **Structured concurrency.** Every async operation lives in a scope. Cancellation flows down, errors flow up. Nothing outlives its parent.
 
 ---
 
-_See also: [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

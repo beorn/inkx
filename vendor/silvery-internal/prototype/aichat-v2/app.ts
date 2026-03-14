@@ -6,7 +6,7 @@
  * - `withAutoAdvance()` as a behavioral plugin
  * - Models accessed via `useChat.get()` (no React context, no prop drilling)
  *
- * In production, `createApp`, `pipe`, `withCommands`, `withKeybindings` would
+ * In production, `createApp`, `pipe`, `keymap`, `withTerminal` would
  * come from `@silvery/tea`. This prototype provides minimal working versions.
  */
 
@@ -61,25 +61,61 @@ export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: 
   chat.done.value = true
 }
 
-// ── Aspirational API Shape ──────────────────────────────────────
+// ── Era 2 API Shape ─────────────────────────────────────────────
 //
-// The full Era 2 API would compose like this:
+// Types:
+//   type Command = { fn: (...args: any[]) => any; args?: { parse(input: any): any } }
+//   type Invocation = { command: Command; args?: Record<string, unknown> }
+//   type Mapping<E> = (event: E) => Invocation | null
 //
-//   // Models — module-level, no Provider ceremony
-//   const useChat = createModel(createChat)
+// invoke():
+//   function invoke({ command, args }: Invocation) {
+//     if (command.args) {
+//       const resolved = command.args.parse(args ?? {})
+//       return command.fn(resolved)
+//     }
+//     return command.fn()
+//   }
 //
-//   // Initialize with deps at startup
-//   useChat.bind(script, { fast, delay: fx.delay })
+// keymap():
+//   function keymap(...groups): Mapping<KeyStroke> {
+//     const bindings = flatten(groups)
+//     return (e: KeyStroke) => {
+//       for (const b of bindings) {
+//         if (b.when && !b.when.value) continue
+//         if (matches(b.key, e)) return { command: b.command }
+//       }
+//       return null
+//     }
+//   }
 //
-//   const app = pipe(
-//     createApp(<ChatView />, { providers }),
-//     withCommands({
-//       "chat.submit": { name: "Send Message", action: () => useChat.get().submit({ text }) },
-//       "chat.compact": { name: "Compact Context", action: () => useChat.get().compact() },
-//       "app.exit": { name: "Exit", action: () => exit() },
-//     }),
-//     withKeybindings({ enter: "chat.submit", "ctrl+l": "chat.compact", escape: "app.exit" }),
-//     args.auto ? withAutoAdvance(SCRIPT) : identity,
+// withTerminal():
+//   function withTerminal({ view, keys }: {
+//     view: JSX.Element
+//     keys?: Mapping<KeyStroke>
+//   }): Disposable {
+//     const term = enterAlternateScreen(stdout)
+//     const renderer = createRenderer(term)
+//     renderer.render(view)
+//     const scope = createScope()
+//     scope.run(async () => {
+//       for await (const e of termKeySource(stdin)) {
+//         const inv = keys?.(e)
+//         if (inv) invoke(inv)
+//       }
+//     })
+//     return {
+//       [Symbol.dispose]() {
+//         scope.cancel()
+//         renderer.unmount()
+//         term.restore()
+//       }
+//     }
+//   }
+//
+// Full composition:
+//   const keys = keymap(
+//     when(isNormal, { enter: commands.submit, "ctrl+l": commands.compact }),
+//     { escape: commands.exit },
 //   )
-//
-//   await app.run()
+//   using app = withTerminal({ view: <ChatView />, keys })

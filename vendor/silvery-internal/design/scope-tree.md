@@ -47,7 +47,7 @@ This pattern appears in every major system — but each implements it for only o
 ## When Scopes Are Created
 
 - **App startup**: `run(app)` creates the root scope
-- **Command invocation**: `app.invoke(id)` creates a child scope
+- **Command invocation**: `invoke({ command, args })` creates a child scope
 - **`op()` intercepted async methods**: run in a child scope
 - **Direct method calls**: run in the caller's scope (or root if none)
 - **`app.rt.scope.spawn(name, fn)`**: explicit child scope
@@ -573,7 +573,7 @@ An earlier version used generators (`yield*` with typed adapters). We switched t
 
 **Debugging**: `TRACE=1` shows the live scope tree — which effects are running, how long they took, what failed. No separate debugging infrastructure.
 
-**AI agents**: The scope tree is inspectable at runtime. An AI agent can see what effects are active, what's pending, what failed. Combined with the command registry and state access, the agent has full visibility into the app's execution.
+**AI agents**: The scope tree is inspectable at runtime. An AI agent can see what effects are active, what's pending, what failed. Combined with the command tree and state access, the agent has full visibility into the app's execution.
 
 **Replay**: Record `scope.effects` + provider results. Replay by providing a provider that feeds back recorded results in sequence.
 
@@ -666,4 +666,4 @@ Additional plugin ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](./state-api-redesign.md) (signals, models, sip progression), [command-centric.md](./command-centric.md) (command registry, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](./state-api-redesign.md) (signals, models, sip progression), [command-centric.md](./command-centric.md) (command shapes, auto-derived surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

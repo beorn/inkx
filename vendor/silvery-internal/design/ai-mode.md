@@ -112,9 +112,9 @@ _¹ tRPC = TypeScript Remote Procedure Call — end-to-end type inference with n
 **Bundle:** `withAI() = withCode() + withAIAgent()`. One call to get the full AI surface. `withRepl()` is separate — it's a human dev tool, not part of the AI surface.
 
 ```typescript
-pipe(app, withCommands(...), withAI())           // full AI surface
-pipe(app, withCommands(...), withCode())          // just code, no LLM
-pipe(app, withCommands(...), withRepl())          // human REPL (dev tool)
+pipe(app, withChat(), withAI()) // full AI surface
+pipe(app, withChat(), withCode()) // just code, no LLM
+pipe(app, withChat(), withRepl()) // human REPL (dev tool)
 ```
 
 All three share the same headless app instance with the same domain objects. The differences are protocol, whether an LLM is in the loop, and interactivity.
@@ -522,9 +522,9 @@ withRepl()                               ← separate (dev tool)
 ## Silvery Implementation Roadmap
 
 ```
-withCommands()       ← exists: registry, cmd proxy, getState()
+commands + keymap()  ← exists: { fn, args? } objects, invoke(), getState()
   ↓
-withCli()            ← next: auto-generated CLI from command registry
+withCli()            ← next: auto-generated CLI from command tree
                        myapp --help, cheat sheet, man pages
   ↓
 withRepl()           ← then: interactive command REPL for humans

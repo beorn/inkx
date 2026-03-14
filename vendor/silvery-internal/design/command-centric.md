@@ -12,7 +12,7 @@ Apps have layers of internal structure — state, actions, UI components, layout
                     Command Registry
                   (discoverable surface)
                   id · title · description
-                  params · when · execute()
+                  fn · args
                          │
         ┌────────┬───────┼───────┬────────┐
         │        │       │       │        │
@@ -24,7 +24,7 @@ Apps have layers of internal structure — state, actions, UI components, layout
     (console) (MCP)   (inspect)      (assert)
 ```
 
-The result: **every action the user can take is automatically available to code, tests, AI, CLI, and any other consumer** — because they all call the same `execute()`. No annotation gap. No drift. No incomplete API.
+The result: **every action the user can take is automatically available to code, tests, AI, CLI, and any other consumer** — because they all call the same `fn()`. No annotation gap. No drift. No incomplete API.
 
 This is good for AI (see [AI Mode](./ai-mode.md)), but it's good for _everyone_. The properties that make an app AI-native — self-describing, programmatically drivable, structured state — also make it more testable, more accessible, more composable, and self-documenting.
 
@@ -56,15 +56,12 @@ Commands are organized as a **nested tree**. The tree structure is the single so
 
 ```typescript
 interface CommandDef {
-  title: string
-  description?: string
-  params?: Record<string, ParamDef>
-  when?: () => boolean // availability predicate
-  execute: (params: any) => any // the actual behavior (calls model methods)
+  fn: (...args: any[]) => any // the behavior — reads/writes signals directly
+  args?: { parse(input: any): any } // optional schema with .parse() (Zod-compatible)
 }
 ```
 
-Command `execute` functions typically use `op(app.model)` to route through the interception pipeline, enabling undo/tracing/recording. See [app-composition.md](./app-composition.md) for the `op()` proxy design.
+Commands read signals directly — no execution context, no `op()` wrapper. The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
 
 ```typescript
 const commands = {
@@ -72,26 +69,61 @@ const commands = {
     toggle_done: {
       title: "Toggle Done",
       description: "Toggle the done state of the current task",
-      params: { nodeId: { type: "string", description: "Task to toggle" } },
-      execute: (ctx) => op(ctx.app.model).task.toggleDone({ nodeId: ctx.currentNodeId }),
-      shortcuts: ["x"],
-      modes: ["normal"],
+      fn(a: { nodeId: string }) {
+        model.task.toggleDone(a.nodeId)
+      },
+      args: z.object({ nodeId: z.string().default(currentNodeId) }),
     },
     set_priority: {
       title: "Set Priority",
       description: "Set task priority (0=critical, 4=backlog)",
-      params: { nodeId: { type: "string" }, priority: { type: "number" } },
-      execute: (ctx, { priority }) => op(ctx.app.model).task.setPriority({ nodeId: ctx.currentNodeId, priority }),
+      fn(a: { nodeId: string; priority: number }) {
+        model.task.setPriority(a)
+      },
+      args: z.object({ nodeId: z.string().default(currentNodeId), priority: z.number() }),
     },
   },
   navigation: {
-    down: { title: "Move Down", execute: (ctx) => ctx.app.model.nav.moveCursor({ delta: 1 }), shortcuts: ["j"] },
-    up: { title: "Move Up", execute: (ctx) => ctx.app.model.nav.moveCursor({ delta: -1 }), shortcuts: ["k"] },
+    down: {
+      title: "Move Down",
+      fn() {
+        model.nav.moveCursor({ delta: 1 })
+      },
+    },
+    up: {
+      title: "Move Up",
+      fn() {
+        model.nav.moveCursor({ delta: -1 })
+      },
+    },
   },
 }
 ```
 
-`ctx` is the command execution context — `withCommands` provides it automatically. `ctx.app.model` gives access to domain models (`ctx.app.model.task`, `ctx.app.model.nav`), so commands call the same methods as any other code. `ctx.currentNodeId` and similar cursor/selection state come from the app's state model.
+### Command Availability
+
+The `args` schema serves triple duty: it defines what parameters a command accepts, resolves defaults from signals, and determines availability. If a signal default is nullish, `parse()` fails — command unavailable. No separate `when` field needed for args-based availability.
+
+General utilities on command collections:
+
+```typescript
+canInvoke(command, provided?)     // try parse → boolean
+available(commands, provided?)    // filter to invocable commands
+missingParams(command, provided?) // which args aren't resolvable
+```
+
+| Surface             | Query                 | Purpose                                  |
+| ------------------- | --------------------- | ---------------------------------------- |
+| **Command palette** | `available(commands)` | Show what user can do now                |
+| **CLI --help**      | `missingParams(cmd)`  | Show required flags (no signal defaults) |
+| **MCP tools**       | `missingParams(cmd)`  | Tell AI what params to provide           |
+| **Keyboard help**   | `available(commands)` | Dim unavailable shortcuts                |
+
+Three sources of args are handled uniformly:
+
+- **Interactive**: signal defaults fill everything
+- **CLI**: explicit args, no signals
+- **Mixed**: event provides some, signals fill rest
 
 The nesting does all the work by default:
 
@@ -104,9 +136,9 @@ The nesting does all the work by default:
 | **TypeScript types** | `task.toggle_done` → `KM.task.toggle_done()` | Nesting = interface hierarchy    |
 | **MCP tool**         | `task.toggle_done` → tool with dotted name   | Nesting = tool grouping          |
 
-Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `title`, `execute`, and optionally `shortcuts`.
+Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `title` and `fn`, plus `args` if they take parameters.
 
-Each command definition has a **universal core** (title, description, params, execute) and optional **surface-specific overrides** (shortcuts, modes, custom CLI flags). One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](./ai-mode.md#discovery-domain-objects--types)).
+Each command definition has a **universal core** (title, description, fn, args) and optional **surface-specific overrides** (custom CLI flags, menu position). Keybindings and modes live on keymap bindings, not command definitions. One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](./ai-mode.md#discovery-domain-objects--types)).
 
 The framework auto-derives every surface from the tree:
 
@@ -128,7 +160,7 @@ No other approach gets all of these from one definition.
 ### The Defining Properties
 
 - **Commands are the discoverable surface over behavior.** Model methods are canonical, but every user action has a corresponding command. No annotation gap — if the user can do it, it's in the registry.
-- **Same code path.** `task.toggle_done()` runs the same `execute()` as pressing `x`. No drift.
+- **Same code path.** `task.toggle_done()` runs the same `fn()` as pressing `x`. No drift.
 - **Self-describing at runtime.** The app enumerates every available command with metadata, grouped by domain category. The app describes itself.
 - **Structured state.** `getState()` returns typed application state. Consumers read data, not pixels.
 - **Complete by construction.** If the user can do it, it's a command. No opt-in, no forgetting to expose something.
@@ -147,18 +179,18 @@ Code (in-process driver)         ← primary: full power, typed, composable
 **In-process code** is the most powerful — typed, composable, full language:
 
 ```typescript
-const cursor = app.model.cursor
-await app.invoke("task.toggle_done")
+const cursor = model.cursor
+invoke(commands.task.toggle_done)
 
-for (const card of app.model.columns[0].cardNodes) {
+for (const card of model.columns[0].cardNodes) {
   if (card.task_status !== "done") {
-    await app.invoke("task.toggle_done")
-    await app.invoke("navigation.down")
+    invoke(commands.task.toggle_done)
+    invoke(commands.navigation.down)
   }
 }
 ```
 
-**CLI** is auto-generated — titles become subcommands, descriptions become help text, `execute()` is the handler. Building a good CLI is hard: naming subcommands, writing help text, handling flags, structuring output. Most apps ship mediocre CLIs because the effort competes with UI work. Command-centric design makes it effortless: every command already has a title, description, and parameters. The CLI falls out automatically, and it's _complete_ — every user action is a subcommand by construction.
+**CLI** is auto-generated — titles become subcommands, descriptions become help text, `fn()` is the handler, `args` becomes flags. Building a good CLI is hard: naming subcommands, writing help text, handling flags, structuring output. Most apps ship mediocre CLIs because the effort competes with UI work. Command-centric design makes it effortless: every command already has a title, description, and parameters. The CLI falls out automatically, and it's _complete_ — every user action is a subcommand by construction.
 
 **MCP** is auto-generated for remote scenarios — SaaS integrations, security boundaries. But for local interaction, in-process code and CLI are faster, cheaper, and more reliable.
 
@@ -178,7 +210,7 @@ No. The distinction matters:
 
 An API is _about_ the data. A command is _about_ what the user wants to accomplish. `PATCH /tasks/123 { done: true }` vs `toggle_done`. The command carries context (what's selected, what mode we're in), has a human-readable name, and runs the same code path the UI does.
 
-Consider a concrete example: in the UI, the user has a cursor on a task and presses `x` to toggle it done. The command uses `ctx.currentNodeId` — it knows what's selected. An API call like `PATCH /tasks/123` requires the caller to supply the ID explicitly. An AI scripting via commands can say `task.toggle_done()` and trust that the cursor context is there. With a traditional API, the AI must first query for the ID, then construct the right PATCH — two calls instead of one, and it has to manage state the app already knows.
+Consider a concrete example: in the UI, the user has a cursor on a task and presses `x` to toggle it done. The command's `args` schema resolves `nodeId` from a signal default — it knows what's selected. An API call like `PATCH /tasks/123` requires the caller to supply the ID explicitly. An AI scripting via commands can say `task.toggle_done()` and trust that the signal default fills in the current node. With a traditional API, the AI must first query for the ID, then construct the right PATCH — two calls instead of one, and it has to manage state the app already knows.
 
 APIs are opt-in and always incomplete. A command registry is complete by construction — if the user can do it, it's a command. The analogy is AppleScript dictionaries: apps that exposed a scripting dictionary were automatable; apps that didn't forced users into GUI scripting.
 
@@ -228,8 +260,8 @@ The result is that Silvery apps are testable, scriptable, accessible, and AI-nat
 
 Silvery is a React-based TUI framework. Its command system already implements the core:
 
-- Nested command registry — tree structure with `title`, `description`, `shortcuts`, `execute()`
-- Domain object proxy — `app.invoke("task.toggle_done")` calls execute with same path as keypress
+- Nested command tree — plain objects with `title`, `description`, `fn()`, optional `args`
+- Direct invocation — `invoke(commands.task.toggle_done)` calls `fn()` with args resolved from signals
 - `cmd.search(query)` — fuzzy matching across all commands by name, description, path
 - `getState()` — structured application state
 - Virtual DOM — component tree with layout, props, state (unique among terminal frameworks)
@@ -251,7 +283,7 @@ commands.navigation.down    →   navigation.down()   →   km navigation down
 commands.history.undo       →   history.undo()      →   km history undo
 ```
 
-Plugins compose the tree: a chat plugin registers `chat.submit` and `chat.compact`, a history plugin adds `history.undo` and `history.redo`. The composition IS the discoverable surface — no separate schema to maintain. Commands are just function calls; invoking a command has negligible overhead (it's the same `execute()` the UI calls, not IPC or serialization).
+Plugins compose the tree: a chat plugin defines `commands.chat.submit` and `commands.chat.compact`, a history plugin adds `commands.history.undo` and `commands.history.redo`. Commands are plain objects on the model — the tree structure IS the discoverable surface, no separate registry to maintain. Invoking a command has negligible overhead (it's the same `fn()` the UI calls, not IPC or serialization).
 
 ## CLI Generation Feasibility
 
@@ -270,11 +302,11 @@ Examining a real app's 173 commands:
 
 - **Nesting depth.** Two levels (domain.command) covers most cases. Three levels for complex areas like `task.priority.set`. Convention or enforced?
 
-- **Typed parameters on CommandDef.** The `params` field enables CLI arg generation, MCP schemas, and palette prompts — but 58% of commands take zero args. Worth the overhead?
+- ~~**Typed parameters on CommandDef.**~~ **Resolved.** The `args` field with `.parse()` interface handles this elegantly. 58% of commands are zero-arg and simply omit `args`. No overhead for simple commands, full validation and signal-default resolution for complex ones.
 
 - **Entity queries for parameter resolution.** When `goto` needs a board target, where do the options come from? Apple's `EntityQuery` model solves this. Should commands declare parameter sources?
 
-- **Context predicates.** The `when` field on `CommandDef` enables conditional availability. Should this subsume the `modes` field?
+- ~~**Context predicates.**~~ **Resolved.** `when` lives on keymap bindings, not commands. The `args` schema handles availability for args-based predicates (nullish signal default → `parse()` fails → unavailable). Mode-based predicates are channel-specific (`when(isNormal, ...)` on keymaps).
 
 - **Surface overrides.** Sometimes you want a different CLI name or menu position than the tree implies. Override syntax is probably optional fields on the command def.
 

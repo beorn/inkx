@@ -175,6 +175,43 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     return script[scriptIdx++]!
   }
 
+  // ── Extracted functions (shared by methods + commands) ──────
+  function submitFn({ text }: { text: string }) {
+    if (done.value) return
+
+    // Fast-forward if still streaming
+    if (phase.value !== "idle") {
+      phase.value = "idle"
+      currentContent.value = ""
+      activeToolIndex.value = -1
+    }
+
+    if (!text.trim()) return
+
+    addExchange({
+      role: "user",
+      content: text,
+      tokens: { input: text.length * 4, output: 0 },
+    })
+
+    // Schedule scripted agent response (uses injectable delay)
+    const agentEntry = findNextAgentEntry()
+    const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+    delayFn(150).then(() => consumeGenerator(respond(entry)))
+  }
+
+  async function compactFn() {
+    if (done.value || compacting.value) return
+    compacting.value = true
+    contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
+    await delayFn(opts.fast ? 300 : 3000)
+    compacting.value = false
+  }
+
+  function exitFn() {
+    done.value = true
+  }
+
   return {
     // Signals (reactive state)
     exchanges,
@@ -198,41 +235,13 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     // Methods (behavior) — replaces 14-variant DemoMsg discriminated union
 
     /** Add a user exchange and trigger scripted agent response. */
-    submit({ text }: { text: string }) {
-      if (done.value) return
-
-      // Fast-forward if still streaming
-      if (phase.value !== "idle") {
-        phase.value = "idle"
-        currentContent.value = ""
-        activeToolIndex.value = -1
-      }
-
-      if (!text.trim()) return
-
-      addExchange({
-        role: "user",
-        content: text,
-        tokens: { input: text.length * 4, output: 0 },
-      })
-
-      // Schedule scripted agent response (uses injectable delay)
-      const agentEntry = findNextAgentEntry()
-      const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-      delayFn(150).then(() => consumeGenerator(respond(entry)))
-    },
+    submit: submitFn,
 
     /** Expose the generator directly for auto-advance and testing. */
     respond,
 
     /** Compact context — simulates pruning old exchanges. */
-    async compact() {
-      if (done.value || compacting.value) return
-      compacting.value = true
-      contextBaseline.value = computeCumulativeTokens(exchanges.value).currentContext
-      await delayFn(opts.fast ? 300 : 3000)
-      compacting.value = false
-    },
+    compact: compactFn,
 
     /** Advance to the next script entry (for initial mount). */
     advance() {
@@ -285,6 +294,15 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
       clearInterval(pulseTimer)
       if (elapsedTimer) clearInterval(elapsedTimer)
       if (ctrlDResetTimer) clearTimeout(ctrlDResetTimer)
+    },
+
+    // ── Commands ({ fn, args? } shape) ────────────────────────────
+    // Era 2 structured commands — same behavior, discoverable shape.
+    // In production, commands would be the primary interface.
+    commands: {
+      submit: { fn: submitFn },
+      compact: { fn: compactFn },
+      exit: { fn: exitFn },
     },
   }
 }

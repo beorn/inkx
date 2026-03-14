@@ -148,8 +148,8 @@ using app = pipe(
   // ...
 )
 
-// In keybindings:
-bindings: { key: { "ctrl+z": "undo", "ctrl+shift+z": "redo" } }
+// In keymap:
+const keys = keymap({ "ctrl+z": commands.history.undo, "ctrl+shift+z": commands.history.redo })
 ```
 
 Because the model is one serializable object, snapshotting is `structuredClone(model)`. Restoring is replacing the model. No custom logic per feature — undo works across all slices at once.

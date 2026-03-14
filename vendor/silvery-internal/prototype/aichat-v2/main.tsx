@@ -27,6 +27,15 @@ async function main() {
   const script = args.includes("--stress") ? generateStressScript() : SCRIPT
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
 
+  // ── Era 2 composition (aspirational) ────────────────────────
+  // const commands = chat.commands
+  // const isNormal = derived(() => true) // simplified — no modes in this demo
+  // const keys = keymap(
+  //   when(isNormal, { enter: commands.submit, "ctrl+l": commands.compact }),
+  //   { escape: commands.exit },
+  // )
+  // using app = withTerminal({ view: <ChatView autoStart={auto} />, keys })
+
   // 1. Initialize model — bind factory args, singleton ready for useChat.get()
   const chat = useChat.bind(script, { fast })
 
