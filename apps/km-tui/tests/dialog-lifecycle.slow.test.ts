@@ -116,19 +116,19 @@ describe("DatePromptDialog lifecycle", () => {
     expect(task.due_at).toBeFalsy()
   })
 
-  test("ts opens start date dialog and Escape cancels", () => {
+  test("td opens due date dialog and Escape cancels", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item.task("Task1"))))
 
     board.command("cursor_down")
-    board.command("cycle_task_status")
+    board.command("set_due_date")
 
     expect(store.getState().ui.datePrompt).toBeTruthy()
-    expect(board.screenshot()).toContain("Set Start Date")
+    expect(board.screenshot()).toContain("Set Due Date")
 
     board.press("Escape")
 
     expect(store.getState().ui.datePrompt).toBeNull()
-    expect(board.screenshot()).not.toContain("Set Start Date")
+    expect(board.screenshot()).not.toContain("Set Due Date")
   })
 })
 

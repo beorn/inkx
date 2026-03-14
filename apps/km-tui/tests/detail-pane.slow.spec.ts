@@ -187,7 +187,7 @@ describe("Detail Pane Journeys", () => {
     expect(updated?.content).toContain("-ok")
   })
 
-  test("Enter during inline edit saves and exits (no stray sibling)", () => {
+  test("Escape during inline edit saves and exits (no stray sibling)", () => {
     const { board, store, repo } = testEnv(
       () => item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
       { checkIncremental: false, incremental: false },
@@ -201,9 +201,10 @@ describe("Detail Pane Journeys", () => {
     // Type something
     for (const c of "-ok") board.press(c)
 
-    // Enter again should save and exit edit mode (not create a new sibling)
+    // Escape saves and exits edit mode for body blocks in the detail pane
+    // (Enter would split the paragraph since child-a is a body block with editBlockIndex > 0)
     const childrenBefore = repo.getChildren("parent").length
-    board.press("Enter")
+    board.press("Escape")
     expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
     expect(repo.getChildren("parent").length).toBe(childrenBefore) // no stray node
     expect(repo.getNode("child-a")?.content).toContain("-ok") // saved

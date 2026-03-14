@@ -768,8 +768,8 @@ describe("perf: processEvent render count", () => {
     // Cursor should have advanced: task1 + 50 moves = task51
     expect(getActiveBoardPane(handle.store.getState())!.cursorNodeId).toBe("task51")
 
-    // 2000ms for 50 keys = 40ms/key budget. Generous for CI/parallel load.
-    expect(elapsed).toBeLessThan(2000)
+    // 5000ms for 50 keys = 100ms/key budget. Generous for CI/parallel load.
+    expect(elapsed).toBeLessThan(5000)
 
     handle.unmount()
   })

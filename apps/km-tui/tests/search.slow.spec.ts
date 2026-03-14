@@ -795,19 +795,10 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 // =============================================================================
 
 describe("BUG: j/k broken when cursor is on body-card descendant", () => {
-  test("j/k navigates between body cards when cursor is on a descendant", () => {
-    // This is the core bug scenario:
-    //
-    // After search navigates to a subtask, the board zooms to the subtask's
-    // grandparent (flatList). flatList has only li children (no oi), so
-    // the board is a single Description column. The cursor lands on task1
-    // (the parent body card), but if cursorTarget was the subtask, j/k
-    // tries to navigate at the subtask level, not the body card level.
-    //
-    // With the fix, findZoomTarget should walk cursorTarget up to the
-    // body card level. But even without that fix, navigateVertical should
-    // handle this case by detecting body-card descendants and resolving
-    // them to the body card for navigation.
+  test("j/k navigates between subtasks when cursor is on a descendant", () => {
+    // When cursor is on a subtask (child of a body card), j/k navigates
+    // between sibling subtasks within the same body card. Once at the last
+    // subtask, j moves to the next body card.
     const flatListNode = makeOiNode("flatList", null, 0)
     const task1Nodes = makeLiNode("task1", "flatList", 0, ["subtask1", "subtask2"])
     const task2Nodes = makeLiNode("task2", "flatList", 1)
@@ -827,8 +818,11 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
     const paneAfterZoom = getActiveBoardPane(store.getState())!
     expect(paneAfterZoom.rootId).toBe("flatList")
 
-    // With the fix in findZoomTarget, cursorNodeId should be walked up to task1
-    // (or the navigation layer handles it). Either way, j should move to task2.
+    // j moves to next subtask within the same body card
+    board.command("cursor_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("subtask2")
+
+    // j from last subtask moves to next body card
     board.command("cursor_down")
     expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task2")
 

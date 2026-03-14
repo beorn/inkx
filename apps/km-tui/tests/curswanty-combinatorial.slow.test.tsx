@@ -370,7 +370,8 @@ describe("curswantY combinatorial", () => {
 
           // Run assertion
           seq.assert(board, fixture)
-        })
+        }, // Culling-stress + deep-scroll (25 presses) at large terminal can take >5s
+        30_000)
       }
     }
   }

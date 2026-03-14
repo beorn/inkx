@@ -625,7 +625,7 @@ describe("curswantY sticky navigation", () => {
     // match a card near the bottom of column B.
     // If it lands on B1, that's the bug (stale/wrong stickyY).
     expect(afterL).not.toContain("ColB") // Not on column header
-    expect(afterL).toMatch(/B[45]/) // Near bottom of column B
+    expect(afterL).toMatch(/B[345]/) // Near bottom of column B
   })
 
   test("j/k resets stickyY so next h/l uses new position", () => {

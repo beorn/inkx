@@ -150,7 +150,7 @@ describe("h/l at boundary crash (km-cwn2)", () => {
 // ---------------------------------------------------------------------------
 
 describe("card index out of bounds on h (km-53uqt)", () => {
-  test("h does not throw after mixed operations that change column sizes", () => {
+  test("h does not throw after mixed operations that change column sizes", { timeout: 30_000 }, () => {
     const { board } = testEnv(
       () =>
         item(

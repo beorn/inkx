@@ -10,13 +10,28 @@
  * are inserted at cursor positions.
  */
 
+import { act } from "react"
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
 import { activeEditTargetRef } from "@silvery/react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { isDialogConfirmGracePeriod } from "../src/dialog-guard.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
+import { dispatchCommandById } from "../src/board-app.ts"
+import type { StoreApi } from "zustand"
+
+/**
+ * Open the search dialog via the "search" command.
+ * After dispatching, press Backspace to flush the silvery render pipeline.
+ */
+function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<typeof testEnv>["board"]) {
+  act(() => {
+    dispatchCommandById("search", store.getState as () => BoardAppStore)
+    store.setState((s) => s)
+  })
+  board.press("Backspace") // flush silvery render pipeline
+}
 
 describe("P1: Navigation keys must not corrupt card text", () => {
   test("h/l/j/k navigation does not insert characters into card content", () => {
@@ -241,8 +256,8 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
     expect(store.getState().ui.showSearchDialog).toBe(false)
 
-    // Open search
-    board.press("cmd+f")
+    // Open search dialog via command dispatch (cmd+f opens local find, not search dialog)
+    openSearchDialog(store, board)
     expect(store.getState().ui.showSearchDialog).toBe(true)
 
     // Type a query that matches "Delta task"
@@ -306,8 +321,8 @@ describe("P1: Navigation keys must not corrupt card text", () => {
       { columns: 120, rows: 40 },
     )
 
-    // Open search, type query, select result
-    board.press("cmd+f")
+    // Open search dialog, type query, select result
+    openSearchDialog(store, board)
     for (const ch of "Delta") board.press(ch)
     board.press("Enter") // Confirms search, closes dialog
 
