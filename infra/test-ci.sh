@@ -17,7 +17,7 @@ cd "$REPO_ROOT"
 TOTAL_START=$SECONDS
 RESULTS=()
 PHASE=0
-TOTAL_PHASES=6
+TOTAL_PHASES=5
 
 # Run a phase: name, command...
 run_phase() {
@@ -87,5 +87,6 @@ run_phase "Slow Tests" bun vitest run --project slow
 # Phase 5: Vendor tests
 run_phase "Vendor Tests" bun vitest run --project vendor
 
-# Phase 6: Fuzz tests (bounded iteration count for CI)
-run_phase "Fuzz Tests" env FUZZ=1 FUZZ_REPEATS=50 bun vitest run
+# Fuzz tests are NOT included in test:ci — they're too slow for a quick feedback loop.
+# Run fuzz separately: FUZZ=1 FUZZ_REPEATS=100 bun vitest run
+# The pre-push hook reminds you to run fuzz periodically.
