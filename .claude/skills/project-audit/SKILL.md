@@ -71,7 +71,20 @@ Directory organization — if a single directory has 20+ files that could be
   subdirectories with only 1-2 files each, flag as "over-organized."
 ```
 
-### 1E: Security and dependency scan (optional)
+### 1E: Package metadata & SEO
+
+```
+If package.json exists, check npm discoverability:
+  - description: present, clear, specific, searchable (not too abstract, <120 chars)
+  - keywords: array with 5-8+ relevant terms (what it does, ecosystem, alternatives)
+  - homepage: points to docs/site if one exists
+  - repository: set (object or shorthand)
+  - license: set and matches LICENSE file
+  - author/contributors: set
+For monorepos: spot-check 3-4 sub-packages for consistent metadata
+```
+
+### 1F: Security and dependency scan (optional)
 
 ```
 Secret scan — grep for API_KEY, SECRET=, password=, token= in source files
@@ -95,6 +108,7 @@ Synthesize findings into categorized issues. For each issue, classify:
 | **Structure** | Doc organization, file sizes | Medium | 627-line getting-started is really 2 docs |
 | **Overlap** | Duplicate content | Medium | comparison.md and ink-comparison.md share 80% |
 | **Narrative** | README doesn't sell the project | High | Tagline undersells, features are a flat dump |
+| **Pkg metadata** | Missing/weak npm discoverability fields | Medium | No keywords, abstract description, blank homepage |
 | **Provenance** | Numbers without dates/methodology | Medium | 3 different benchmark runs, no dates |
 
 ### Severity rules
@@ -203,6 +217,10 @@ Don't rewrite the README based on intuition alone. Get external input.
 ### Naming Inconsistencies (N issues)
 | # | Issue | Scope | Severity |
 |---|-------|-------|----------|
+
+### Package Metadata & SEO (N issues)
+| # | Issue | Details | Severity |
+|---|-------|---------|----------|
 
 ### Documentation Structure (N issues)
 | # | Issue | Details | Severity |

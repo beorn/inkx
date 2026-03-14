@@ -61,6 +61,16 @@ See [narrative.md](narrative.md) for the full framework.
 - [ ] **CI status**: Is CI configured? Do README badges reflect current build status? Is the badge up-to-date?
 - [ ] **Quick-start verification**: Does the README's example actually work if run? (If feasible, try it.)
 
+## Package Metadata & SEO
+
+- [ ] **`description` field**: Is it present, clear, specific, and searchable? Should convey what the package does in one sentence — not too abstract ("utilities"), not too long (>120 chars). Think: what would someone type into npm search to find this?
+- [ ] **`keywords` array**: Does it exist with at least 5-8 relevant terms? Should cover: what it does, what ecosystem it belongs to, what it replaces/competes with. Example: a TUI framework should have `["tui", "terminal", "cli", "react", "terminal-ui", "console", "ink-alternative"]`.
+- [ ] **`homepage` field**: Does it point to docs or a project site if one exists? An empty homepage when docs/ exists is a missed opportunity.
+- [ ] **`repository` field**: Is it set? Should be the full object form `{ "type": "git", "url": "..." }` or shorthand `"github:user/repo"`. npm/GitHub use this for linking.
+- [ ] **`license` field**: Is it set and does it match the LICENSE file? Missing license field makes the package appear proprietary on npm.
+- [ ] **`author` / `contributors`**: Is the author field set? For org packages, does it match the org identity?
+- [ ] **Consistency across workspace**: In monorepos, do sub-packages have consistent metadata (same author, license, repository root)? Or do some have defaults/blanks while others are filled in?
+
 ## Security & Dependencies (optional)
 
 - [ ] **Committed secrets**: Grep for `API_KEY`, `SECRET=`, `password=`, `token=` in source. Flag any hardcoded credentials.
