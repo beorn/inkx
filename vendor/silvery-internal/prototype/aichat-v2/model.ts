@@ -48,6 +48,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
 
   const commands = {
     submit: {
+      args: { parse: (input: any) => input as { text: string } },
       fn({ text }: { text: string }) {
         if (done.value) return
 

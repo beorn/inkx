@@ -33,7 +33,7 @@ export type Mapping<E> = (event: E) => Invocation | null
 
 export function invoke({ command, args }: Invocation): unknown {
   if (command.args) return command.fn(command.args.parse(args ?? {}))
-  return command.fn(args)
+  return command.fn()
 }
 
 export function canInvoke(command: Command, args?: Record<string, unknown>): boolean {
@@ -113,8 +113,9 @@ export function pipe<T>(value: T, ...fns: Array<(v: T) => T>): T {
   return fns.reduce((v, fn) => fn(v), value)
 }
 
-// ── Auto-advance Plugin ─────────────────────────────────────
+// ── Plugins ─────────────────────────────────────────────────
 
+/** Auto-advance — drives the script programmatically (--auto mode). */
 export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: { fast: boolean }): Promise<void> {
   for (const entry of script) {
     if (chat.done.value) break
@@ -139,4 +140,28 @@ export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: 
   }
 
   chat.done.value = true
+}
+
+/** Idle auto-submit — submits the next hint after idle delay (interactive demo). */
+export function idleAutoSubmit(chat: ChatModel, delayMs = 10_000): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  const schedule = () => {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+    if (chat.done.value || chat.compacting.value || chat.phase.value !== "idle") return
+    const hint = chat.getNextHint()
+    if (!hint) return
+    timer = setTimeout(() => invoke({ command: chat.commands.submit, args: { text: hint } }), delayMs)
+  }
+
+  const unsubs = [chat.phase.subscribe(schedule), chat.done.subscribe(schedule), chat.exchanges.subscribe(schedule)]
+  schedule()
+
+  return () => {
+    if (timer) clearTimeout(timer)
+    for (const fn of unsubs) fn()
+  }
 }

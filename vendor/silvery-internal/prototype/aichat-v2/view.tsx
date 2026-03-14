@@ -7,8 +7,8 @@
 
 import React, { useState, useEffect, useCallback } from "react"
 import { Box, Text, Link, Spinner, ScrollbackList, TextInput, useTerminalFocused } from "@silvery/react"
-import { useInput, useExit, type Key } from "@silvery/term/runtime"
-import { useSignal, type Signal } from "./signal.js"
+import { useInput, type Key } from "@silvery/term/runtime"
+import { signal, useSignal, type Signal } from "./signal.js"
 import { useChat, formatTokens, formatCost, computeCumulativeTokens } from "./model.js"
 import { invoke, type Mapping } from "./app.js"
 import type { Exchange, ToolCall } from "./types.js"
@@ -19,33 +19,22 @@ import {
   CONTEXT_WINDOW,
 } from "../../../silvery/examples/interactive/aichat/script.js"
 
+const NEVER_PENDING = signal(false) as Signal<boolean>
+
 // ============================================================================
 // ChatView — top-level component
 // ============================================================================
 
 export function ChatView({
-  autoStart,
   keys,
   ctrlDPending,
 }: {
-  autoStart: boolean
   keys?: Mapping<string>
   ctrlDPending?: Signal<boolean>
 }): JSX.Element {
-  const exit = useExit()
   const chat = useChat.get()
   const exchanges = useSignal(chat.exchanges)
-  const isDone = useSignal(chat.done)
   const isCompacting = useSignal(chat.compacting)
-
-  useEffect(() => chat.advance(), [chat])
-
-  // Auto-exit in auto mode
-  useEffect(() => {
-    if (!autoStart || !isDone) return
-    const timer = setTimeout(exit, 1000)
-    return () => clearTimeout(timer)
-  }, [autoStart, isDone, exit])
 
   // All key dispatch goes through keymap → invoke()
   useInput((input: string, key: Key) => {
@@ -68,7 +57,6 @@ export function ChatView({
             <Box flexDirection="column">
               {index > 0 && <Text> </Text>}
               {isCompacting && isLatest && <CompactingOverlay />}
-              {isDone && autoStart && isLatest && <SessionComplete />}
               <ExchangeItem exchange={exchange} isLatest={isLatest} />
             </Box>
           )
@@ -82,16 +70,14 @@ export function ChatView({
 // DemoFooter
 // ============================================================================
 
-const AUTO_SUBMIT_DELAY = 10_000
-
-export function DemoFooter({ ctrlDPending }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
+export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
   const chat = useChat.get()
   const terminalFocused = useTerminalFocused()
   const isDone = useSignal(chat.done)
   const chatPhase = useSignal(chat.phase)
   const isCompacting = useSignal(chat.compacting)
   const autoText = useSignal(chat.autoTypingText)
-  const pending = ctrlDPending ? useSignal(ctrlDPending) : false
+  const pending = useSignal(ctrlDPending)
   const elapsed = useElapsed()
 
   const [inputText, setInputText] = useState("")
@@ -111,25 +97,6 @@ export function DemoFooter({ ctrlDPending }: { ctrlDPending?: Signal<boolean> })
     },
     [chat, effectiveMessage],
   )
-
-  // Auto-submit after idle delay (demo behavior)
-  useEffect(() => {
-    if (
-      isDone ||
-      isCompacting ||
-      chatPhase !== "idle" ||
-      !effectiveMessage ||
-      inputText ||
-      autoText ||
-      !terminalFocused
-    )
-      return
-    const timer = setTimeout(
-      () => invoke({ command: chat.commands.submit, args: { text: effectiveMessage } }),
-      AUTO_SUBMIT_DELAY,
-    )
-    return () => clearTimeout(timer)
-  }, [isDone, isCompacting, chatPhase, effectiveMessage, inputText, autoText, chat, terminalFocused])
 
   const displayText = autoText ?? inputText
 
@@ -320,17 +287,6 @@ function CompactingOverlay(): JSX.Element {
       </Text>
       <Text> </Text>
       <Text color="$muted">Freezing exchanges into terminal scrollback. Scroll up to review.</Text>
-    </Box>
-  )
-}
-
-function SessionComplete(): JSX.Element {
-  return (
-    <Box flexDirection="column" borderStyle="round" borderColor="$success" paddingX={1}>
-      <Text color="$success" bold>
-        {"✓"} Session complete
-      </Text>
-      <Text color="$muted">Scroll up to review — colors, borders, and hyperlinks preserved in scrollback.</Text>
     </Box>
   )
 }
