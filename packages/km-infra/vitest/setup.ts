@@ -291,9 +291,7 @@ afterEach(() => {
   const emulatorWarnings = drainWarnings()
   const unexpected = emulatorWarnings.filter((w) => !isAllowedWarning(w))
   if (unexpected.length > 0) {
-    const summary = unexpected
-      .map((w: EmulatorWarning) => `  [${w.backend}] ${w.code}: ${w.message}`)
-      .join("\n")
+    const summary = unexpected.map((w: EmulatorWarning) => `  [${w.backend}] ${w.code}: ${w.message}`).join("\n")
     throw new Error(
       `Unexpected emulator warnings (${unexpected.length}):\n${summary}\n\n` +
         `These warnings indicate the terminal emulator does not support sequences your code emitted.\n` +
