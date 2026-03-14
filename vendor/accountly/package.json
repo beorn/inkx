@@ -2,7 +2,18 @@
   "name": "@beorn/accountly",
   "version": "0.2.0",
   "private": true,
-  "description": "Multi-account manager for Claude Code and other AI providers",
+  "description": "Multi-account manager for Claude Code and other AI coding assistants — credential switching, quota monitoring, and auto-rotation",
+  "keywords": [
+    "account-manager",
+    "ai",
+    "anthropic",
+    "claude",
+    "claude-code",
+    "credentials",
+    "keychain",
+    "multi-account",
+    "quota"
+  ],
   "license": "MIT",
   "author": "Beorn",
   "repository": {

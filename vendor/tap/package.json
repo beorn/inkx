@@ -5,15 +5,20 @@
   "description": "TAP stream orchestration: merge parallel test runners, convert formats (Bun JUnit, Playwright), beautiful terminal output",
   "keywords": [
     "bun",
+    "ci",
     "junit",
+    "merge",
     "orchestration",
     "parallel",
     "playwright",
     "reporter",
+    "stream",
     "tap",
     "test",
     "test-anything-protocol",
-    "testing"
+    "test-runner",
+    "testing",
+    "vitest"
   ],
   "homepage": "https://github.com/beorn/tap#readme",
   "bugs": {

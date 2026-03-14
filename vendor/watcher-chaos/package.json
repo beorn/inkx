@@ -1,14 +1,18 @@
 {
   "name": "@beorn/watcher-chaos",
   "version": "0.2.0",
-  "description": "Drop-in replacement file watcher for chaos testing - simulates edge cases like dropped events, reordering, and coalescing",
+  "description": "Drop-in chaos file watcher for testing — simulates dropped events, reordering, coalescing, atomic writes, and event storms with deterministic replay",
   "keywords": [
     "chaos",
+    "chaos-engineering",
     "chokidar",
+    "deterministic",
     "file-watching",
     "fsevents",
     "fuzz",
     "inotify",
+    "seeded-random",
+    "simulation",
     "testing",
     "watcher"
   ],
