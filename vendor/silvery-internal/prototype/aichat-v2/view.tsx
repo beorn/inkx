@@ -24,95 +24,160 @@ import {
 } from "../../../silvery/examples/interactive/aichat/script.js"
 
 // ============================================================================
-// Internal Components
+// ChatView — top-level component
 // ============================================================================
 
-function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }): JSX.Element {
-  const parts: JSX.Element[] = []
-  let lastIndex = 0
-  let match: RegExpExecArray | null
+export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mapping<string> }): JSX.Element {
+  const exit = useExit()
+  const chat = useChat.get()
+  const exchanges = useSignal(chat.exchanges)
+  const isDone = useSignal(chat.done)
+  const isCompacting = useSignal(chat.compacting)
 
-  URL_RE.lastIndex = 0
-  while ((match = URL_RE.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(
-        <Text key={`t${lastIndex}`} dim={dim} color={color}>
-          {text.slice(lastIndex, match.index)}
-        </Text>,
-      )
+  // Initial advance
+  useEffect(() => chat.advance(), [chat])
+
+  // Auto-compact when context exceeds 95%
+  useEffect(() => {
+    if (isDone || isCompacting) return
+    const cumulative = computeCumulativeTokens(exchanges)
+    const effective = Math.max(0, cumulative.currentContext - chat.contextBaseline.value)
+    if (effective >= CONTEXT_WINDOW * 0.95) chat.compact()
+  }, [exchanges, isDone, isCompacting, chat])
+
+  // Auto-exit in auto mode
+  useEffect(() => {
+    if (!autoStart || !isDone) return
+    const timer = setTimeout(exit, 1000)
+    return () => clearTimeout(timer)
+  }, [autoStart, isDone, exit])
+
+  // Era 2 key dispatch — keymap resolves key → Invocation, invoke() calls fn
+  useInput((input: string, key: Key) => {
+    const keyStr = key.escape
+      ? "escape"
+      : key.ctrl && input === "d"
+        ? "ctrl+d"
+        : key.ctrl && input === "l"
+          ? "ctrl+l"
+          : input
+    const inv = keys?.(keyStr)
+    if (inv) {
+      invoke(inv)
+      return
     }
-    const url = match[0]
-    parts.push(
-      <Link key={`l${match.index}`} href={url} dim={dim}>
-        {url}
-      </Link>,
-    )
-    lastIndex = match.index + url.length
-  }
-  if (lastIndex < text.length) {
-    parts.push(
-      <Text key={`t${lastIndex}`} dim={dim} color={color}>
-        {text.slice(lastIndex)}
-      </Text>,
-    )
-  }
-  if (parts.length === 0) {
-    return (
-      <Text dim={dim} color={color}>
-        {text}
-      </Text>
-    )
-  }
-  return <Text>{parts}</Text>
-}
+    // Ctrl+D double-press for exit (not in keymap — requires stateful confirmation)
+    if (key.ctrl && input === "d" && chat.confirmExit()) return "exit"
+  })
 
-function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Element {
-  if (done)
-    return (
-      <Text color="$muted" italic>
-        {"▸ thought"}
-      </Text>
-    )
   return (
-    <Text color="$muted" wrap="truncate" italic>
-      {text}
-    </Text>
+    <Box flexDirection="column" paddingX={1}>
+      <ScrollbackList items={exchanges} keyExtractor={(ex) => ex.id} markers={true} footer={<DemoFooter />}>
+        {(exchange, index) => {
+          const isLatest = index === exchanges.length - 1
+          return (
+            <Box flexDirection="column">
+              {index > 0 && <Text> </Text>}
+              {isCompacting && isLatest && <CompactingOverlay />}
+              {isDone && autoStart && isLatest && <SessionComplete />}
+              <ExchangeItem exchange={exchange} isLatest={isLatest} />
+            </Box>
+          )
+        }}
+      </ScrollbackList>
+    </Box>
   )
 }
 
-function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "running" | "done" }): JSX.Element {
-  const color = TOOL_COLORS[call.tool] ?? "$muted"
+// ============================================================================
+// DemoFooter — 0 props! (was 11 in the TEA version)
+// ============================================================================
+
+const AUTO_SUBMIT_DELAY = 10_000
+
+export function DemoFooter(): JSX.Element {
+  const chat = useChat.get()
+  const terminalFocused = useTerminalFocused()
+  const isDone = useSignal(chat.done)
+  const chatPhase = useSignal(chat.phase)
+  const isCompacting = useSignal(chat.compacting)
+  const autoText = useSignal(chat.autoTypingText)
+  const ctrlDPending = useSignal(chat.ctrlDPending)
+  const elapsed = useSignal(chat.elapsed)
+
+  const [inputText, setInputText] = useState("")
+  const [randomIdx, setRandomIdx] = useState(() => Math.floor(Math.random() * RANDOM_USER_COMMANDS.length))
+
+  // Start elapsed timer on mount
+  useEffect(() => {
+    chat.startTimer()
+  }, [chat])
+
+  const nextHint = chat.getNextHint()
+  const randomPlaceholder = RANDOM_USER_COMMANDS[randomIdx % RANDOM_USER_COMMANDS.length]!
+  const effectiveMessage = nextHint || randomPlaceholder
+  const placeholder = !terminalFocused
+    ? "Click to focus"
+    : ctrlDPending
+      ? "Press Ctrl-D again to exit"
+      : effectiveMessage
+
+  const handleSubmit = useCallback(
+    (text: string) => {
+      if (!text.trim() && effectiveMessage) {
+        chat.submit({ text: effectiveMessage })
+      } else {
+        chat.submit({ text })
+      }
+      setInputText("")
+      setRandomIdx((i) => i + 1)
+    },
+    [chat, effectiveMessage],
+  )
+
+  // Auto-submit after idle delay
+  useEffect(() => {
+    if (
+      isDone ||
+      isCompacting ||
+      chatPhase !== "idle" ||
+      !effectiveMessage ||
+      inputText ||
+      autoText ||
+      !terminalFocused
+    )
+      return
+    const timer = setTimeout(() => chat.submit({ text: effectiveMessage }), AUTO_SUBMIT_DELAY)
+    return () => clearTimeout(timer)
+  }, [isDone, isCompacting, chatPhase, effectiveMessage, inputText, autoText, chat, terminalFocused])
+
+  const displayText = autoText ?? inputText
 
   return (
-    <Box flexDirection="column">
-      <Text>
-        {phase === "running" ? (
-          <>
-            <Spinner type="dots" />{" "}
-          </>
-        ) : phase === "done" ? (
-          <Text color="$success">{"✓ "}</Text>
-        ) : (
-          <Text color="$muted">{"○ "}</Text>
-        )}
-        <Text color={color} bold>
-          {call.tool}
-        </Text>{" "}
-        {call.tool === "Bash" || call.tool === "Grep" || call.tool === "Glob" ? (
-          <Text color="$muted">{call.args}</Text>
-        ) : (
-          <Link href={`file://${call.args}`}>{call.args}</Link>
-        )}
-      </Text>
-      {phase === "done" && (
-        <Box flexDirection="column" paddingLeft={2}>
-          {call.output.map((line, i) => {
-            if (line.startsWith("+")) return <LinkifiedLine key={i} text={line} color="$success" />
-            if (line.startsWith("-")) return <LinkifiedLine key={i} text={line} color="$error" />
-            return <LinkifiedLine key={i} text={line} />
-          })}
+    <Box flexDirection="column" width="100%">
+      <Text> </Text>
+      <Box
+        flexDirection="row"
+        borderStyle="round"
+        borderColor={!isDone && terminalFocused ? "$focusborder" : "$inputborder"}
+        paddingX={1}
+      >
+        <Text bold color="$focusring">
+          {"❯"}{" "}
+        </Text>
+        <Box flexShrink={1} flexGrow={1}>
+          <TextInput
+            value={displayText}
+            onChange={autoText ? () => {} : setInputText}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+            isActive={!isDone && !autoText && terminalFocused}
+          />
         </Box>
-      )}
+      </Box>
+      <Box paddingX={2} width="100%">
+        <StatusBar elapsed={elapsed} ctrlDPending={ctrlDPending} />
+      </Box>
     </Box>
   )
 }
@@ -231,7 +296,7 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
 }
 
 // ============================================================================
-// StatusBar — single compact row
+// Sub-components (pure visual, no model access)
 // ============================================================================
 
 function StatusBar({ elapsed, ctrlDPending }: { elapsed: number; ctrlDPending: boolean }): JSX.Element {
@@ -271,103 +336,6 @@ function StatusBar({ elapsed, ctrlDPending }: { elapsed: number; ctrlDPending: b
   )
 }
 
-// ============================================================================
-// DemoFooter — 0 props! (was 11 in the TEA version)
-// ============================================================================
-
-const AUTO_SUBMIT_DELAY = 10_000
-
-export function DemoFooter(): JSX.Element {
-  const chat = useChat.get()
-  const terminalFocused = useTerminalFocused()
-  const isDone = useSignal(chat.done)
-  const chatPhase = useSignal(chat.phase)
-  const isCompacting = useSignal(chat.compacting)
-  const autoText = useSignal(chat.autoTypingText)
-  const ctrlDPending = useSignal(chat.ctrlDPending)
-  const elapsed = useSignal(chat.elapsed)
-
-  const [inputText, setInputText] = useState("")
-  const [randomIdx, setRandomIdx] = useState(() => Math.floor(Math.random() * RANDOM_USER_COMMANDS.length))
-
-  // Start elapsed timer on mount
-  useEffect(() => {
-    chat.startTimer()
-  }, [chat])
-
-  const nextHint = chat.getNextHint()
-  const randomPlaceholder = RANDOM_USER_COMMANDS[randomIdx % RANDOM_USER_COMMANDS.length]!
-  const effectiveMessage = nextHint || randomPlaceholder
-  const placeholder = !terminalFocused
-    ? "Click to focus"
-    : ctrlDPending
-      ? "Press Ctrl-D again to exit"
-      : effectiveMessage
-
-  const handleSubmit = useCallback(
-    (text: string) => {
-      if (!text.trim() && effectiveMessage) {
-        chat.submit({ text: effectiveMessage })
-      } else {
-        chat.submit({ text })
-      }
-      setInputText("")
-      setRandomIdx((i) => i + 1)
-    },
-    [chat, effectiveMessage],
-  )
-
-  // Auto-submit after idle delay
-  useEffect(() => {
-    if (
-      isDone ||
-      isCompacting ||
-      chatPhase !== "idle" ||
-      !effectiveMessage ||
-      inputText ||
-      autoText ||
-      !terminalFocused
-    )
-      return
-    const timer = setTimeout(() => chat.submit({ text: effectiveMessage }), AUTO_SUBMIT_DELAY)
-    return () => clearTimeout(timer)
-  }, [isDone, isCompacting, chatPhase, effectiveMessage, inputText, autoText, chat, terminalFocused])
-
-  const displayText = autoText ?? inputText
-
-  return (
-    <Box flexDirection="column" width="100%">
-      <Text> </Text>
-      <Box
-        flexDirection="row"
-        borderStyle="round"
-        borderColor={!isDone && terminalFocused ? "$focusborder" : "$inputborder"}
-        paddingX={1}
-      >
-        <Text bold color="$focusring">
-          {"❯"}{" "}
-        </Text>
-        <Box flexShrink={1} flexGrow={1}>
-          <TextInput
-            value={displayText}
-            onChange={autoText ? () => {} : setInputText}
-            onSubmit={handleSubmit}
-            placeholder={placeholder}
-            isActive={!isDone && !autoText && terminalFocused}
-          />
-        </Box>
-      </Box>
-      <Box paddingX={2} width="100%">
-        <StatusBar elapsed={elapsed} ctrlDPending={ctrlDPending} />
-      </Box>
-    </Box>
-  )
-}
-
-// ============================================================================
-// Inline UI fragments
-// ============================================================================
-
 function CompactingOverlay(): JSX.Element {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="$warning" paddingX={1} overflow="hidden">
@@ -391,71 +359,94 @@ function SessionComplete(): JSX.Element {
   )
 }
 
-// ============================================================================
-// ChatView — top-level component
-// ============================================================================
+function ThinkingBlock({ text, done }: { text: string; done: boolean }): JSX.Element {
+  if (done)
+    return (
+      <Text color="$muted" italic>
+        {"▸ thought"}
+      </Text>
+    )
+  return (
+    <Text color="$muted" wrap="truncate" italic>
+      {text}
+    </Text>
+  )
+}
 
-export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mapping<string> }): JSX.Element {
-  const exit = useExit()
-  const chat = useChat.get()
-  const exchanges = useSignal(chat.exchanges)
-  const isDone = useSignal(chat.done)
-  const isCompacting = useSignal(chat.compacting)
-
-  // Initial advance
-  useEffect(() => chat.advance(), [chat])
-
-  // Auto-compact when context exceeds 95%
-  useEffect(() => {
-    if (isDone || isCompacting) return
-    const cumulative = computeCumulativeTokens(exchanges)
-    const effective = Math.max(0, cumulative.currentContext - chat.contextBaseline.value)
-    if (effective >= CONTEXT_WINDOW * 0.95) chat.compact()
-  }, [exchanges, isDone, isCompacting, chat])
-
-  // Auto-exit in auto mode
-  useEffect(() => {
-    if (!autoStart || !isDone) return
-    const timer = setTimeout(exit, 1000)
-    return () => clearTimeout(timer)
-  }, [autoStart, isDone, exit])
-
-  // Era 2 key dispatch — keymap resolves key → Invocation, invoke() calls fn
-  useInput((input: string, key: Key) => {
-    // Normalize key to string for keymap lookup
-    const keyStr = key.escape
-      ? "escape"
-      : key.ctrl && input === "d"
-        ? "ctrl+d"
-        : key.ctrl && input === "l"
-          ? "ctrl+l"
-          : input
-    const inv = keys?.(keyStr)
-    if (inv) {
-      invoke(inv)
-      return
-    }
-    // Ctrl+D double-press for exit (not in keymap — requires stateful confirmation)
-    if (key.ctrl && input === "d" && chat.confirmExit()) return "exit"
-  })
+function ToolCallBlock({ call, phase }: { call: ToolCall; phase: "pending" | "running" | "done" }): JSX.Element {
+  const color = TOOL_COLORS[call.tool] ?? "$muted"
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      <ScrollbackList items={exchanges} keyExtractor={(ex) => ex.id} markers={true} footer={<DemoFooter />}>
-        {(exchange, index) => {
-          const isLatest = index === exchanges.length - 1
-          return (
-            <Box flexDirection="column">
-              {index > 0 && <Text> </Text>}
-              {isCompacting && isLatest && <CompactingOverlay />}
-              {isDone && autoStart && isLatest && <SessionComplete />}
-              <ExchangeItem exchange={exchange} isLatest={isLatest} />
-            </Box>
-          )
-        }}
-      </ScrollbackList>
+    <Box flexDirection="column">
+      <Text>
+        {phase === "running" ? (
+          <>
+            <Spinner type="dots" />{" "}
+          </>
+        ) : phase === "done" ? (
+          <Text color="$success">{"✓ "}</Text>
+        ) : (
+          <Text color="$muted">{"○ "}</Text>
+        )}
+        <Text color={color} bold>
+          {call.tool}
+        </Text>{" "}
+        {call.tool === "Bash" || call.tool === "Grep" || call.tool === "Glob" ? (
+          <Text color="$muted">{call.args}</Text>
+        ) : (
+          <Link href={`file://${call.args}`}>{call.args}</Link>
+        )}
+      </Text>
+      {phase === "done" && (
+        <Box flexDirection="column" paddingLeft={2}>
+          {call.output.map((line, i) => {
+            if (line.startsWith("+")) return <LinkifiedLine key={i} text={line} color="$success" />
+            if (line.startsWith("-")) return <LinkifiedLine key={i} text={line} color="$error" />
+            return <LinkifiedLine key={i} text={line} />
+          })}
+        </Box>
+      )}
     </Box>
   )
+}
+
+function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }): JSX.Element {
+  const parts: JSX.Element[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  URL_RE.lastIndex = 0
+  while ((match = URL_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(
+        <Text key={`t${lastIndex}`} dim={dim} color={color}>
+          {text.slice(lastIndex, match.index)}
+        </Text>,
+      )
+    }
+    const url = match[0]
+    parts.push(
+      <Link key={`l${match.index}`} href={url} dim={dim}>
+        {url}
+      </Link>,
+    )
+    lastIndex = match.index + url.length
+  }
+  if (lastIndex < text.length) {
+    parts.push(
+      <Text key={`t${lastIndex}`} dim={dim} color={color}>
+        {text.slice(lastIndex)}
+      </Text>,
+    )
+  }
+  if (parts.length === 0) {
+    return (
+      <Text dim={dim} color={color}>
+        {text}
+      </Text>
+    )
+  }
+  return <Text>{parts}</Text>
 }
 
 // ── Helpers ──────────────────────────────────────────────────

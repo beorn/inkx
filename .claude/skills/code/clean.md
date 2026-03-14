@@ -74,12 +74,13 @@ Catalog opportunities in these categories:
 | Pure delegators        | Direct call            | `f(x) { return g(x) }` → call `g(x)` directly                    |
 | Wrapper types          | Delete                 | `interface XDeps { db: Database }` → use inline or infer         |
 
-### Narrative Flow
+### Narrative Flow (Inverse Pyramid)
 
+**Don't bury the lead.** The most important thing to understand should be the first thing you read. Ask: "if someone opens this file, what do they need to understand first?" That goes at the top. Details and helpers go below.
+
+- **Inverse pyramid**: Main export → major sub-components → minor sub-components → helpers → constants/types. A reader scanning top-down should get the big picture before any details. This is the #1 structural issue to look for.
 - **Core logic <15 lines** (from principles.md). The main exported function should read as a summary of what happens. Helpers go after return (hoisted `function` declarations) or at bottom of file (module-level). This works for all function types including `function*` and `async function*` — they all hoist.
-- **Top**: Main export (the "what")
-- **Middle**: Implementation details
-- **Bottom**: Helper functions, constants, types
+- **React/view files**: The top-level component (`ChatView`, `App`, `Board`) goes first — it's the entry point. Sub-components follow in descending importance. Pure visual helpers and utilities go last. Function declarations hoist, so ordering is free.
 - Group related code; separate with section comments if large
 
 ### Consistency Checks
