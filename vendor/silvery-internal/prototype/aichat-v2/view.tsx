@@ -1,18 +1,14 @@
 /**
- * Chat view — UI components using useChat.get() + useSignal().
+ * Chat view — pure rendering + signal reads.
  *
- * Key improvements over the current components.tsx + index.tsx:
- * - DemoFooter: 0 props (was 11) — reads from model directly via useChat.get()
- * - No controlRef pattern — footer calls chat.submit() directly
- * - No revealFraction — streaming content grows naturally via currentContent signal
- * - No streamPhase prop threading — components read chat.phase signal directly
- * - No Provider wrapping — useChat is a module-level singleton
+ * All state mutations go through invoke(). View-local concerns
+ * (pulse animation, elapsed timer) live in hooks, not the model.
  */
 
 import React, { useState, useEffect, useCallback } from "react"
 import { Box, Text, Link, Spinner, ScrollbackList, TextInput, useTerminalFocused } from "@silvery/react"
 import { useInput, useExit, type Key } from "@silvery/term/runtime"
-import { useSignal } from "./signal.js"
+import { useSignal, type Signal } from "./signal.js"
 import { useChat, formatTokens, formatCost, computeCumulativeTokens } from "./model.js"
 import { invoke, type Mapping } from "./app.js"
 import type { Exchange, ToolCall } from "./types.js"
@@ -27,23 +23,22 @@ import {
 // ChatView — top-level component
 // ============================================================================
 
-export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mapping<string> }): JSX.Element {
+export function ChatView({
+  autoStart,
+  keys,
+  ctrlDPending,
+}: {
+  autoStart: boolean
+  keys?: Mapping<string>
+  ctrlDPending?: Signal<boolean>
+}): JSX.Element {
   const exit = useExit()
   const chat = useChat.get()
   const exchanges = useSignal(chat.exchanges)
   const isDone = useSignal(chat.done)
   const isCompacting = useSignal(chat.compacting)
 
-  // Initial advance
   useEffect(() => chat.advance(), [chat])
-
-  // Auto-compact when context exceeds 95%
-  useEffect(() => {
-    if (isDone || isCompacting) return
-    const cumulative = computeCumulativeTokens(exchanges)
-    const effective = Math.max(0, cumulative.currentContext - chat.contextBaseline.value)
-    if (effective >= CONTEXT_WINDOW * 0.95) chat.compact()
-  }, [exchanges, isDone, isCompacting, chat])
 
   // Auto-exit in auto mode
   useEffect(() => {
@@ -52,27 +47,21 @@ export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mappi
     return () => clearTimeout(timer)
   }, [autoStart, isDone, exit])
 
-  // Era 2 key dispatch — keymap resolves key → Invocation, invoke() calls fn
+  // All key dispatch goes through keymap → invoke()
   useInput((input: string, key: Key) => {
-    const keyStr = key.escape
-      ? "escape"
-      : key.ctrl && input === "d"
-        ? "ctrl+d"
-        : key.ctrl && input === "l"
-          ? "ctrl+l"
-          : input
+    const keyStr = normalizeKey(input, key)
     const inv = keys?.(keyStr)
-    if (inv) {
-      invoke(inv)
-      return
-    }
-    // Ctrl+D double-press for exit (not in keymap — requires stateful confirmation)
-    if (key.ctrl && input === "d" && chat.confirmExit()) return "exit"
+    if (inv) invoke(inv)
   })
 
   return (
     <Box flexDirection="column" paddingX={1}>
-      <ScrollbackList items={exchanges} keyExtractor={(ex) => ex.id} markers={true} footer={<DemoFooter />}>
+      <ScrollbackList
+        items={exchanges}
+        keyExtractor={(ex) => ex.id}
+        markers={true}
+        footer={<DemoFooter ctrlDPending={ctrlDPending} />}
+      >
         {(exchange, index) => {
           const isLatest = index === exchanges.length - 1
           return (
@@ -90,52 +79,40 @@ export function ChatView({ autoStart, keys }: { autoStart: boolean; keys?: Mappi
 }
 
 // ============================================================================
-// DemoFooter — 0 props! (was 11 in the TEA version)
+// DemoFooter
 // ============================================================================
 
 const AUTO_SUBMIT_DELAY = 10_000
 
-export function DemoFooter(): JSX.Element {
+export function DemoFooter({ ctrlDPending }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
   const chat = useChat.get()
   const terminalFocused = useTerminalFocused()
   const isDone = useSignal(chat.done)
   const chatPhase = useSignal(chat.phase)
   const isCompacting = useSignal(chat.compacting)
   const autoText = useSignal(chat.autoTypingText)
-  const ctrlDPending = useSignal(chat.ctrlDPending)
-  const elapsed = useSignal(chat.elapsed)
+  const pending = ctrlDPending ? useSignal(ctrlDPending) : false
+  const elapsed = useElapsed()
 
   const [inputText, setInputText] = useState("")
   const [randomIdx, setRandomIdx] = useState(() => Math.floor(Math.random() * RANDOM_USER_COMMANDS.length))
 
-  // Start elapsed timer on mount
-  useEffect(() => {
-    chat.startTimer()
-  }, [chat])
-
   const nextHint = chat.getNextHint()
   const randomPlaceholder = RANDOM_USER_COMMANDS[randomIdx % RANDOM_USER_COMMANDS.length]!
   const effectiveMessage = nextHint || randomPlaceholder
-  const placeholder = !terminalFocused
-    ? "Click to focus"
-    : ctrlDPending
-      ? "Press Ctrl-D again to exit"
-      : effectiveMessage
+  const placeholder = !terminalFocused ? "Click to focus" : pending ? "Press Ctrl-D again to exit" : effectiveMessage
 
   const handleSubmit = useCallback(
     (text: string) => {
-      if (!text.trim() && effectiveMessage) {
-        chat.submit({ text: effectiveMessage })
-      } else {
-        chat.submit({ text })
-      }
+      const msg = !text.trim() && effectiveMessage ? effectiveMessage : text
+      invoke({ command: chat.commands.submit, args: { text: msg } })
       setInputText("")
       setRandomIdx((i) => i + 1)
     },
     [chat, effectiveMessage],
   )
 
-  // Auto-submit after idle delay
+  // Auto-submit after idle delay (demo behavior)
   useEffect(() => {
     if (
       isDone ||
@@ -147,7 +124,10 @@ export function DemoFooter(): JSX.Element {
       !terminalFocused
     )
       return
-    const timer = setTimeout(() => chat.submit({ text: effectiveMessage }), AUTO_SUBMIT_DELAY)
+    const timer = setTimeout(
+      () => invoke({ command: chat.commands.submit, args: { text: effectiveMessage } }),
+      AUTO_SUBMIT_DELAY,
+    )
     return () => clearTimeout(timer)
   }, [isDone, isCompacting, chatPhase, effectiveMessage, inputText, autoText, chat, terminalFocused])
 
@@ -176,14 +156,14 @@ export function DemoFooter(): JSX.Element {
         </Box>
       </Box>
       <Box paddingX={2} width="100%">
-        <StatusBar elapsed={elapsed} ctrlDPending={ctrlDPending} />
+        <StatusBar elapsed={elapsed} ctrlDPending={pending} />
       </Box>
     </Box>
   )
 }
 
 // ============================================================================
-// ExchangeItem — reads streaming state from model signals
+// ExchangeItem
 // ============================================================================
 
 export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLatest: boolean }): JSX.Element {
@@ -191,9 +171,8 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
   const chatPhase = useSignal(chat.phase)
   const streamContent = useSignal(chat.currentContent)
   const toolIdx = useSignal(chat.activeToolIndex)
-  const pulseVal = useSignal(chat.pulse)
+  const pulseVal = usePulse()
 
-  // Only the latest exchange uses streaming state
   const phase = isLatest ? chatPhase : ("idle" as const)
   const displayContent = isLatest && chatPhase === "streaming" ? streamContent : exchange.content
 
@@ -222,7 +201,6 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
     )
   }
 
-  // Agent exchange
   const toolCalls = exchange.toolCalls ?? []
   const toolRevealCount = phase === "tools" || phase === "idle" ? toolCalls.length : 0
   const hasOperations = toolCalls.length > 0 || !!exchange.thinking
@@ -235,8 +213,6 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
   const { title, body } = splitTitleBody(exchange.content)
   const bulletColor = hasOperations ? "$success" : "$muted"
   const contentText = displayContent ? (title ? body || displayContent : displayContent) : ""
-
-  // Show cursor when streaming and content is still accumulating
   const showCursor = phase === "streaming" && streamContent.length < exchange.content.length
 
   return (
@@ -296,7 +272,7 @@ export function ExchangeItem({ exchange, isLatest }: { exchange: Exchange; isLat
 }
 
 // ============================================================================
-// Sub-components (pure visual, no model access)
+// Sub-components
 // ============================================================================
 
 function StatusBar({ elapsed, ctrlDPending }: { elapsed: number; ctrlDPending: boolean }): JSX.Element {
@@ -449,7 +425,35 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
   return <Text>{parts}</Text>
 }
 
+// ── View-local hooks ─────────────────────────────────────────
+// These are view concerns — not model state.
+
+function usePulse(ms = 400): boolean {
+  const [val, setVal] = useState(false)
+  useEffect(() => {
+    const id = setInterval(() => setVal((v) => !v), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return val
+}
+
+function useElapsed(): number {
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    const start = Date.now()
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return elapsed
+}
+
 // ── Helpers ──────────────────────────────────────────────────
+
+function normalizeKey(input: string, key: Key): string {
+  if (key.escape) return "escape"
+  if (key.ctrl) return `ctrl+${input}`
+  return input
+}
 
 function splitTitleBody(content: string): { title: string; body: string } {
   const match = content.match(/^(.+?[.!?])\s+(.+)$/s)

@@ -1,8 +1,7 @@
 /**
- * AI Chat v2 — Entry point.
+ * AI Chat v2 — Era 2 composition.
  *
- * Demonstrates Era 2 composition:
- *   signals → commands → keymap → surface
+ * signals → commands → keymap → surface
  *
  * Flags: --auto (auto-advance) --fast (skip animation) --stress (200 exchanges)
  */
@@ -11,7 +10,7 @@ import React from "react"
 import { run } from "@silvery/term/runtime"
 import { signal } from "./signal.js"
 import { useChat } from "./model.js"
-import { keymap, when, autoAdvance } from "./app.js"
+import { keymap, when, doublePress, autoAdvance } from "./app.js"
 import { ChatView } from "./view.js"
 import { SCRIPT, generateStressScript } from "../../../silvery/examples/interactive/aichat/script.js"
 
@@ -22,31 +21,28 @@ async function main() {
   const script = args.includes("--stress") ? generateStressScript() : SCRIPT
   const mode = args.includes("--fullscreen") ? "fullscreen" : "inline"
 
-  // 1. Initialize model
+  // 1. Model
   const chat = useChat.bind(script, { fast })
 
-  // 2. Compose keymap (Era 2 — declarative key→command mapping)
-  const isActive = signal(true) // simplified — no modal modes in this demo
+  // 2. Keymap — all key dispatch is declarative
+  const isActive = signal(true)
+  const ctrlD = doublePress("ctrl+d", chat.commands.exit)
   const keys = keymap(
-    when(isActive, {
-      "ctrl+l": chat.commands.compact,
-    }),
+    when(isActive, { "ctrl+l": chat.commands.compact }),
     { escape: chat.commands.exit },
+    ctrlD.bindings,
   )
 
-  // 3. Run — surface owns the renderer + dispatch loop
-  using handle = await run(<ChatView autoStart={auto} keys={keys} />, {
+  // 3. Surface
+  using handle = await run(<ChatView autoStart={auto} keys={keys} ctrlDPending={ctrlD.pending} />, {
     mode: mode as "inline" | "fullscreen",
     focusReporting: true,
   })
 
-  // 4. Auto-advance drives the script externally (clean separation)
-  if (auto) {
-    autoAdvance(chat, script, { fast }).catch(console.error)
-  }
+  // 4. Auto-advance (composed externally, not embedded in state machine)
+  if (auto) autoAdvance(chat, script, { fast }).catch(console.error)
 
   await handle.waitUntilExit()
-  chat.dispose()
 }
 
 if (import.meta.main) {

@@ -1,17 +1,13 @@
 /**
- * Chat model — factory function with signals + async generator.
+ * Chat model — pure state + commands + async generators.
  *
- * Replaces the 327-line TEA state machine (state.ts) with ~140 lines:
- * signals for state, methods for behavior, async generators for streaming.
- * No discriminated unions, no switch/case, no timer effects.
+ * No timers, no I/O, no view concerns. The model owns:
+ * - Signals (reactive state)
+ * - Commands ({ fn, args? } — the primary interface)
+ * - Async generators (streaming)
  *
- * Key improvements over the TEA version:
- * - 14 message types → 5 named methods (submit, respond, compact, advance, confirmExit)
- * - 12-field DemoState → 11 independent signals (fine-grained reactivity)
- * - Timer-driven reveal fractions → natural async/await flow
- * - 200+ lines of switch/case → 15-line async generator
- * - Injectable delay for deterministic testing (TestClock)
- * - ctrlDPending + elapsed moved from view to model (no component side effects)
+ * Everything else (pulse animation, elapsed timer, key dispatch,
+ * double-press detection) lives in the view or keymap layer.
  */
 
 import { signal, createModel } from "./signal.js"
@@ -29,40 +25,26 @@ export type Phase = "idle" | "thinking" | "streaming" | "tools"
 
 export interface ChatOpts {
   fast: boolean
-  /** Injectable delay for TestClock. Defaults to real setTimeout. */
   delay?: (ms: number) => Promise<void>
 }
 
 export function createChat(script: ScriptEntry[], opts: ChatOpts) {
   const delayFn = opts.delay ?? delay
 
-  // ── Signals (reactive state) ──────────────────────────────
+  // ── Signals ────────────────────────────────────────────────
   const exchanges = signal<Exchange[]>([{ id: 0, role: "system", content: INTRO_TEXT }])
   const phase = signal<Phase>("idle")
   const currentContent = signal("")
   const activeToolIndex = signal(-1)
   const done = signal(false)
   const compacting = signal(false)
-  const pulse = signal(false)
   const contextBaseline = signal(0)
   const autoTypingText = signal<string | null>(null)
-  const ctrlDPending = signal(false)
-  const elapsed = signal(0)
 
   let scriptIdx = 0
   let nextId = 1
-  let ctrlDResetTimer: ReturnType<typeof setTimeout> | null = null
-  let elapsedTimer: ReturnType<typeof setInterval> | null = null
 
-  // Pulse timer (visual heartbeat for activity indicator)
-  const pulseTimer = setInterval(() => {
-    pulse.value = !pulse.value
-  }, 400)
-
-  // ── Commands (Era 2 shape: { fn, args? }) ─────────────────
-  // Model methods are canonical behavior. Commands are thin
-  // wrappers providing the discoverable { fn, args? } shape
-  // for keymap dispatch, CLI, MCP, and command palette.
+  // ── Commands ({ fn, args? } — the primary interface) ───────
 
   const commands = {
     submit: {
@@ -84,10 +66,7 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
           tokens: { input: text.length * 4, output: 0 },
         })
 
-        // Schedule scripted agent response (uses injectable delay)
-        const agentEntry = findNextAgentEntry()
-        const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
-        delayFn(150).then(() => consumeGenerator(respond(entry)))
+        scheduleResponse()
       },
     },
 
@@ -111,94 +90,23 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
   // ── Return ─────────────────────────────────────────────────
 
   return {
-    // Signals (reactive state)
     exchanges,
     phase,
     currentContent,
     activeToolIndex,
     done,
     compacting,
-    pulse,
     contextBaseline,
     autoTypingText,
-    ctrlDPending,
-    elapsed,
-
-    // Commands (Era 2 — the primary interface)
     commands,
-
-    // Internal (for auto-advance plugin)
-    addExchange,
-
-    // Constants
-    CONTEXT_WINDOW,
-
-    // Methods — convenience wrappers around commands + non-command behavior
-
-    /** Add a user exchange and trigger scripted agent response. */
-    submit: commands.submit.fn,
-
-    /** Expose the generator directly for auto-advance and testing. */
     respond,
-
-    /** Compact context — simulates pruning old exchanges. */
-    compact: commands.compact.fn,
-
-    /** Advance to the next script entry (for initial mount). */
-    advance() {
-      if (done.value || compacting.value || phase.value !== "idle") return
-      if (scriptIdx >= script.length) return
-
-      const entry = script[scriptIdx++]!
-      if (entry.role === "user") {
-        addExchange(entry)
-        // After user entry, auto-play agent response
-        const agentEntry = findNextAgentEntry()
-        if (agentEntry) consumeGenerator(respond(agentEntry))
-      } else {
-        consumeGenerator(respond(entry))
-      }
-    },
-
-    /** Next scripted user message (for footer placeholder hint). */
-    getNextHint(): string {
-      if (done.value || phase.value !== "idle") return ""
-      const entry = script[scriptIdx]
-      return entry?.role === "user" ? entry.content : ""
-    },
-
-    /** Returns true if should exit (double ctrl+d within 2s). */
-    confirmExit(): boolean {
-      if (ctrlDPending.value) {
-        ctrlDPending.value = false
-        if (ctrlDResetTimer) clearTimeout(ctrlDResetTimer)
-        return true
-      }
-      ctrlDPending.value = true
-      ctrlDResetTimer = setTimeout(() => {
-        ctrlDPending.value = false
-      }, 2000)
-      return false
-    },
-
-    /** Start elapsed-time counter. Call once on app start. */
-    startTimer() {
-      if (elapsedTimer) return
-      const startTime = Date.now()
-      elapsedTimer = setInterval(() => {
-        elapsed.value = Math.floor((Date.now() - startTime) / 1000)
-      }, 1000)
-    },
-
-    /** Cleanup all timers. In production, structured concurrency handles this. */
-    dispose() {
-      clearInterval(pulseTimer)
-      if (elapsedTimer) clearInterval(elapsedTimer)
-      if (ctrlDResetTimer) clearTimeout(ctrlDResetTimer)
-    },
+    addExchange,
+    advance,
+    getNextHint,
+    CONTEXT_WINDOW,
   }
 
-  // ── Internal helpers (hoisted) ──────────────────────────────
+  // ── Internal (hoisted) ─────────────────────────────────────
 
   function addExchange(entry: Omit<Exchange, "id">): Exchange {
     const ex: Exchange = { ...entry, id: nextId++ }
@@ -206,35 +114,23 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     return ex
   }
 
-  /**
-   * Stream an agent response — the headline feature.
-   *
-   * This async generator replaces 200+ lines of switch/case (streamTick,
-   * endThinking, endTools, revealFraction arithmetic) with a linear control
-   * flow: thinking → streaming → tools → idle.
-   *
-   * Each `yield` signals the view to re-render with accumulated content.
-   */
+  /** Streaming — thinking → content (word by word) → tools → idle. */
   async function* respond(entry: ScriptEntry): AsyncGenerator<void> {
     const ex = addExchange({ ...entry, content: opts.fast ? entry.content : "" })
 
-    // Phase 1: Thinking
     if (entry.thinking && !opts.fast) {
       phase.value = "thinking"
       await delayFn(1200)
     }
 
-    // Phase 2: Streaming content — word by word
     if (!opts.fast) {
       phase.value = "streaming"
       currentContent.value = ""
       for (const word of entry.content.split(/(\s+)/)) {
         currentContent.value += word
-        yield // signal the view to re-render with accumulated content
+        yield
         if (word.trim()) await delayFn(50)
       }
-
-      // Finalize content on the exchange
       const exs = [...exchanges.value]
       const idx = exs.findIndex((e) => e.id === ex.id)
       if (idx >= 0) exs[idx] = { ...exs[idx]!, content: entry.content }
@@ -242,7 +138,6 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
       currentContent.value = ""
     }
 
-    // Phase 3: Tool calls
     const tools = entry.toolCalls ?? []
     if (tools.length > 0 && !opts.fast) {
       phase.value = "tools"
@@ -257,10 +152,30 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
     phase.value = "idle"
   }
 
-  async function consumeGenerator(gen: AsyncGenerator): Promise<void> {
-    for await (const _ of gen) {
-      /* drain */
+  function scheduleResponse() {
+    const agentEntry = findNextAgentEntry()
+    const entry = agentEntry ?? RANDOM_AGENT_RESPONSES[Math.floor(Math.random() * RANDOM_AGENT_RESPONSES.length)]!
+    delayFn(150).then(() => drain(respond(entry)))
+  }
+
+  function advance() {
+    if (done.value || compacting.value || phase.value !== "idle") return
+    if (scriptIdx >= script.length) return
+
+    const entry = script[scriptIdx++]!
+    if (entry.role === "user") {
+      addExchange(entry)
+      const agentEntry = findNextAgentEntry()
+      if (agentEntry) drain(respond(agentEntry))
+    } else {
+      drain(respond(entry))
     }
+  }
+
+  function getNextHint(): string {
+    if (done.value || phase.value !== "idle") return ""
+    const entry = script[scriptIdx]
+    return entry?.role === "user" ? entry.content : ""
   }
 
   function findNextAgentEntry(): ScriptEntry | null {
@@ -271,18 +186,15 @@ export function createChat(script: ScriptEntry[], opts: ChatOpts) {
 }
 
 export type ChatModel = ReturnType<typeof createChat>
-
-// ── Model Hook ─────────────────────────────────────────────────
-//
-// createModel wraps the factory → typed hook with Zustand-like API:
-//   useChat(m => m.phase)       — signal-aware selector (auto-unwraps)
-//   useChat.get()               — raw instance (signals NOT unwrapped)
-//   useChat.create(script, opts) — isolated instance (for tests)
-//   useChat.bind(script, opts)  — initialize the singleton
-//
 export const useChat = createModel(createChat)
 
-// ── Token & Cost Utilities ──────────────────────────────────────
+// ── Utilities ────────────────────────────────────────────────
+
+async function drain(gen: AsyncGenerator): Promise<void> {
+  for await (const _ of gen) {
+    /* drain */
+  }
+}
 
 export function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -314,17 +226,16 @@ export function computeCumulativeTokens(exchanges: Exchange[]): {
   return { input, output, currentContext }
 }
 
-/** Default delay — replaced by TestClock in tests. */
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 const INTRO_TEXT = [
-  "AI Chat v2 — New API prototype:",
-  " \u2022 Signals — fine-grained reactive state, no full-object spreads",
-  " \u2022 Async generators — streaming replaces timer-driven reveal fractions",
-  " \u2022 Factory functions — models are plain objects with typed methods",
-  " \u2022 Plugin composition — commands, keybindings, auto-advance as plugins",
-  " \u2022 TestClock — deterministic time control for async tests",
+  "AI Chat v2 — Era 2 API prototype:",
+  " \u2022 Signals — fine-grained reactive state",
+  " \u2022 Commands — { fn, args? } as the interface",
+  " \u2022 Keymap — declarative key→command dispatch via invoke()",
+  " \u2022 Async generators — streaming replaces timer-driven reveals",
+  " \u2022 Factory functions — models are plain objects",
   " \u2022 Pure tests — model tests need no React rendering",
 ].join("\n")

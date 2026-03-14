@@ -1,53 +1,41 @@
 /**
- * App composition — Era 2 input system + auto-advance plugin.
+ * Era 2 input system + composition helpers.
  *
- * This file implements the Era 2 API primitives:
- * - `invoke()` — resolve args via schema, call command fn
- * - `keymap()` + `when()` — declarative key→command mapping
- * - `pipe()` — standard FP left-to-right composition
- * - `autoAdvance()` — behavioral plugin driving scripted conversation
- *
- * In production, `invoke`, `keymap`, `when` come from `@silvery/input`.
- * This prototype provides minimal working versions.
+ * Implements the core primitives from @silvery/input:
+ * - Command, Invocation, Mapping<E> — the shapes
+ * - invoke() — single dispatch point
+ * - keymap(), when() — declarative key→command mapping
+ * - doublePress() — chord-like stateful binding
+ * - autoAdvance() — behavioral plugin
  */
 
+import { signal } from "./signal.js"
 import { delay } from "./model.js"
 import type { ChatModel } from "./model.js"
 import type { ScriptEntry } from "./types.js"
 import type { Signal } from "./signal.js"
 
-// ── Era 2 Input System ───────────────────────────────────────
+// ── Shapes ───────────────────────────────────────────────────
 
-/** A command is a plain object: fn + optional args schema. */
 export interface Command {
   fn: (...args: any[]) => any
   args?: { parse(input: any): any }
 }
 
-/** Output of a mapping — which command to invoke, with what args. */
 export interface Invocation {
   command: Command
   args?: Record<string, unknown>
 }
 
-/** A mapping resolves an event to a command invocation (or null). */
 export type Mapping<E> = (event: E) => Invocation | null
 
-/**
- * invoke() — the single dispatch point.
- *
- * Merges event-provided args with signal defaults via schema.parse(),
- * then calls fn. Commands without args just call fn() directly.
- */
+// ── Dispatch ─────────────────────────────────────────────────
+
 export function invoke({ command, args }: Invocation): unknown {
-  if (command.args) {
-    const resolved = command.args.parse(args ?? {})
-    return command.fn(resolved)
-  }
-  return command.fn()
+  if (command.args) return command.fn(command.args.parse(args ?? {}))
+  return command.fn(args)
 }
 
-/** Check if a command can be invoked with the given args. */
 export function canInvoke(command: Command, args?: Record<string, unknown>): boolean {
   if (!command.args) return true
   try {
@@ -56,15 +44,6 @@ export function canInvoke(command: Command, args?: Record<string, unknown>): boo
   } catch {
     return false
   }
-}
-
-/** Filter commands to those currently invocable. */
-export function available(commands: Record<string, Command>, args?: Record<string, unknown>): Record<string, Command> {
-  const result: Record<string, Command> = {}
-  for (const [name, cmd] of Object.entries(commands)) {
-    if (canInvoke(cmd, args)) result[name] = cmd
-  }
-  return result
 }
 
 // ── Keymap ───────────────────────────────────────────────────
@@ -76,41 +55,47 @@ interface Binding {
   when?: Signal<boolean>
 }
 
-/**
- * when() — stamps a predicate on a group of bindings.
- *
- * Channel-specific (mode, modifier state), NOT on the command itself.
- * A CLI can invoke the same command regardless of TUI mode.
- */
 export function when(predicate: Signal<boolean>, bindings: Record<string, Command>): Binding[] {
-  return Object.entries(bindings).map(([key, command]) => ({
-    key,
-    command,
-    when: predicate,
-  }))
+  return Object.entries(bindings).map(([key, command]) => ({ key, command, when: predicate }))
 }
 
 /**
- * keymap() — compose binding groups into a Mapping<string>.
+ * doublePress() — chord-like binding requiring two presses within a timeout.
  *
- * Takes any mix of:
- * - `when(signal, { key: command })` — conditional bindings
- * - `{ key: command }` — unconditional bindings
- *
- * Returns a mapping function: key string → Invocation | null.
+ * State lives in the keymap closure as a signal (same primitive, narrower scope).
+ * The `pending` signal is returned so the view can show "press again to exit".
  */
+export function doublePress(
+  key: string,
+  command: Command,
+  timeoutMs = 2000,
+): { bindings: Binding[]; pending: Signal<boolean> } {
+  const pending = signal(false)
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  const wrapper: Command = {
+    fn() {
+      if (pending.value) {
+        pending.value = false
+        if (timer) clearTimeout(timer)
+        command.fn()
+      } else {
+        pending.value = true
+        timer = setTimeout(() => {
+          pending.value = false
+        }, timeoutMs)
+      }
+    },
+  }
+
+  return { bindings: [{ key, command: wrapper }], pending }
+}
+
 export function keymap(...groups: Array<Binding[] | Record<string, Command>>): Mapping<string> {
   const bindings: Binding[] = []
-
   for (const group of groups) {
-    if (Array.isArray(group)) {
-      bindings.push(...group)
-    } else {
-      // Plain record — unconditional bindings
-      for (const [key, command] of Object.entries(group)) {
-        bindings.push({ key, command })
-      }
-    }
+    if (Array.isArray(group)) bindings.push(...group)
+    else for (const [key, command] of Object.entries(group)) bindings.push({ key, command })
   }
 
   return (event: string) => {
@@ -122,31 +107,19 @@ export function keymap(...groups: Array<Binding[] | Record<string, Command>>): M
   }
 }
 
-// ── pipe() ───────────────────────────────────────────────────
+// ── Composition ──────────────────────────────────────────────
 
-/** Compose functions left-to-right. Standard FP pipe. */
 export function pipe<T>(value: T, ...fns: Array<(v: T) => T>): T {
   return fns.reduce((v, fn) => fn(v), value)
 }
 
 // ── Auto-advance Plugin ─────────────────────────────────────
 
-/**
- * Auto-advance plugin — drives the chat model through a scripted conversation.
- *
- * Replaces the auto-advance logic that was deeply embedded in the TEA state
- * machine (autoAdvance msg, autoTyping sub-state, typingTick timer, etc.)
- * with a clean external driver that composes at the app level.
- *
- * In production:
- *   pipe(createApp(...), args.auto ? withAutoAdvance(SCRIPT) : identity)
- */
 export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: { fast: boolean }): Promise<void> {
   for (const entry of script) {
     if (chat.done.value) break
 
     if (entry.role === "user") {
-      // Auto-type the user message character by character
       if (!opts.fast) {
         for (let i = 0; i <= entry.content.length; i++) {
           chat.autoTypingText.value = entry.content.slice(0, i)
@@ -155,11 +128,10 @@ export async function autoAdvance(chat: ChatModel, script: ScriptEntry[], opts: 
         await delay(300)
         chat.autoTypingText.value = null
       }
-      // Add user exchange via model's addExchange (preserves nextId sequence)
       chat.addExchange({ role: "user", content: entry.content, tokens: entry.tokens })
     } else {
-      // Drive agent response via async generator
       for await (const _ of chat.respond(entry)) {
+        /* drain */
       }
     }
 
