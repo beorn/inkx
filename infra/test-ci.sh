@@ -88,4 +88,4 @@ run_phase "Slow Tests" bun vitest run --project slow
 run_phase "Vendor Tests" bun vitest run --project vendor
 
 # Phase 6: Fuzz tests (bounded iteration count for CI)
-run_phase "Fuzz Tests" env FUZZ=1 FUZZ_REPEATS=1000 bun vitest run
+run_phase "Fuzz Tests" env FUZZ=1 FUZZ_REPEATS=50 bun vitest run

@@ -30,5 +30,6 @@ $ km list
       [ ] Task C
     ## Done
       [x] Task D
+
 8 node(s)
 ```

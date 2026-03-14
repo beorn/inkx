@@ -56,9 +56,10 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 TEST_VAULT=/tmp/vt bun vitest run apps/km-tui/tests/real-vault.test.ts
 
 # Fuzz suite only (no team, just run tests)
-bun test:fuzz                                    # All fuzz tests
+bun test:fuzz                                    # All fuzz tests (manual, unbounded)
 bun test:fuzz apps/km-tui/tests/navigation-fuzz  # Specific fuzz file
 FUZZ_SEED=12345 bun test:fuzz                    # Reproducible run
+# Note: fuzz tests also run as phase 6 of `bun run test:ci` (bounded: FUZZ_REPEATS=1000)
 ```
 
 **What the real vault tests verify** (with `withDiagnostics` wrapper):

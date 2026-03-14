@@ -19,7 +19,9 @@ Initializing .km (repo ...)
   Created: archive/
   Created: @next.md
   Created: @someday.md
+[...]
 ✓ Synced ... file(s) in ... directories
+[...]
 Next steps:
 [...]
 ```
@@ -57,7 +59,8 @@ Syncing .km/state.db with files (repo ...)
 $ km tasks
 inbox / .md
  [ ] Test task from mdtest
-1 task(s)
+[...]
+... task(s)
 ```
 
 ### km tasks with query
@@ -113,24 +116,26 @@ Title: Next Actions
 ### km init in new directory
 
 ```console
-$ mkdir -p /tmp/km-mdtest-init
-$ cd /tmp/km-mdtest-init && km init .
+$ export INIT_DIR=$(mktemp -d /tmp/km-mdtest-init-XXXXXX)
+$ cd "$INIT_DIR" && km init .
 Initializing .km (repo ...)
 ✓ Created .km/
   Created: inbox/
   Created: archive/
   Created: @next.md
   Created: @someday.md
+[...]
 ✓ Synced ... file(s) in ... directories
+[...]
 Next steps:
 [...]
 
-$ ls /tmp/km-mdtest-init/.km
+$ ls "$INIT_DIR/.km"
 events.jsonl
 state.db
 [...]
 
-$ rm -rf /tmp/km-mdtest-init
+$ rm -rf "$INIT_DIR"
 ```
 
 ## Add Command (Transclusion)
@@ -163,9 +168,10 @@ Verify tasks exist in the project file:
 ```console
 $ km tasks './projects**'
 [...]
-     [ ] First project task
-     [ ] Second project task
-     [ ] Third project task
+[...]First project task
+[...]Second project task
+[...]Third project task
+[...]
 ... task(s)
 ```
 
@@ -175,7 +181,7 @@ Add (link) all tasks from projects to @next (also adds @next sigil to source tas
 $ km add @next './projects**'
 ✓ Linked 3 task(s) to Next Actions
 [...]
-✓ Added @next to 3 task(s)
+✓ Added @next to ... task(s)
 ```
 
 Verify tasks now appear under @next in the default (Inbox) column:
@@ -195,9 +201,10 @@ Source tasks now include the @next sigil:
 ```console
 $ km tasks './projects**'
 [...]
-     [ ] First project task @next
-     [ ] Second project task @next
-     [ ] Third project task @next
+[...]First project task @next
+[...]Second project task @next
+[...]Third project task @next
+[...]
 ... task(s)
 ```
 

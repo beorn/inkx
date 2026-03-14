@@ -15,6 +15,9 @@ Every test should answer: **"Does this test what THIS layer adds?"**
 ## The Layers
 
 ```
+── comprehensive ───────────────────────────────────────────────────────
+Layer 6: test:ci (bun run test:ci)    → All checks: typecheck + lint + fast + slow + vendor + fuzz
+
 ── km app ──────────────────────────────────────────────────────────────
 Layer 5b: Termless (.termless.test.ts) → ANSI output verification: buffer → real terminal emulator
 Layer 5a: km-tui (.spec.ts)           → User journeys: keys in, screen + persistence out  ← TOP PRIORITY

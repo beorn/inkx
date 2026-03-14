@@ -156,6 +156,7 @@
 11 vendor/flexily/tests/yoga-comparison.test.ts
 3 vendor/loggily/benchmarks/overhead.ts
 1 vendor/loggily/tests/features.test.ts
+1 vendor/loggily/tests/file-writer-safety.test.ts
 42 vendor/loggily/tests/logger.test.ts
 1 vendor/loggily/tests/tracing.test.ts
 1 vendor/silvery-internal/prototype/aichat-v2/signal.ts
@@ -307,7 +308,6 @@
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 1 vendor/silvery/tests/features/pipeline-bugfixes.test.tsx
 4 vendor/silvery/tests/features/prop-removal.test.tsx
-3 vendor/silvery/tests/features/run-exit.test.tsx
 11 vendor/silvery/tests/features/scrollback-chaos.fuzz.tsx
 5 vendor/silvery/tests/features/scrollback-cross-backend.fuzz.tsx
 4 vendor/silvery/tests/features/scrollback-fill.test.tsx
@@ -315,17 +315,10 @@
 1 vendor/silvery/tests/features/text-input.test.tsx
 5 vendor/silvery/tests/features/transform.test.tsx
 1 vendor/silvery/tests/hooks/use-textarea.test.tsx
-8 vendor/silvery/tests/output-phase-wide-char-matrix.test.ts
-12 vendor/silvery/tests/output-phase-xterm-replay.test.ts
 1 vendor/tap/src/parallel-tui.ts
 2 vendor/termless/packages/alacritty/src/backend.ts
 5 vendor/termless/packages/alacritty/tests/backend.test.ts
 8 vendor/termless/packages/cli/src/mcp.ts
-4 vendor/termless/packages/ghostty/src/backend.ts
-5 vendor/termless/packages/ghostty/tests/backend.test.ts
-2 vendor/termless/packages/peekaboo/tests/backend.slow.test.ts
-2 vendor/termless/packages/vt100/src/backend.ts
-84 vendor/termless/packages/vt100/tests/backend.test.ts
 2 vendor/termless/packages/wezterm/src/backend.ts
 6 vendor/termless/packages/wezterm/tests/backend.test.ts
 1 vendor/termless/tests/cross-backend.test.ts

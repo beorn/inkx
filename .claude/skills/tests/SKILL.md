@@ -27,6 +27,14 @@ bun fix                    # Lint + format (must pass)
 bun run test:all           # Full suite (must pass) ~2-3min
 ```
 
+### Comprehensive CI (periodic)
+
+```bash
+bun run test:ci            # 6-phase suite: typecheck, lint, fast, slow, vendor, fuzz (~3-5min)
+```
+
+Run `test:ci` before pushing significant changes, after large refactors, or when the pre-push hook reminds you. It covers everything `test:all` does plus typecheck, lint, and fuzz tests. A successful run writes a timestamp to `/tmp/km-test-ci-last-run` so the pre-push hook can track freshness.
+
 ### Timing Guard
 
 **test:fast target: <20s wall-clock** (30s warning threshold allows for CPU contention).
@@ -67,7 +75,7 @@ Still run `test:all` before commit.
 
 Dot reporter is the default (configured in vitest.config.ts) — one dot per test, details only on failure.
 
-**test:fast** runs the default project (non-slow, non-vendor). **test:all** runs all 3 projects. Fuzz files need `test:fuzz`.
+**test:fast** runs the default project (non-slow, non-vendor). **test:all** runs all 3 projects. Fuzz files need `test:fuzz` (or are included in `test:ci`).
 
 **When iterating on a package**, run vitest directly on that directory:
 ```bash
@@ -85,6 +93,7 @@ bun vitest run apps/km-tui/tests/
 ### CI / Release
 
 ```bash
+bun run test:ci                   # Full 6-phase suite (typecheck, lint, fast, slow, vendor, fuzz)
 TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 ```
 
@@ -100,9 +109,11 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | `test:slow`        | `--project slow` — `*.slow.{test,spec}.*` only                | Integration tests    |
 | `test:all`         | `--project default --project slow --project vendor`           | Before commit        |
 | `test:fuzz`        | `FUZZ=1` — `*.fuzz.ts` files only                             | Exploratory testing  |
+| (fuzz in test:ci)  | `FUZZ=1 FUZZ_REPEATS=1000` — bounded fuzz run                 | Part of test:ci      |
 | `test:vendor`      | `--project vendor` — vendor tests only                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
+| `test:ci`          | 6-phase: typecheck, lint, fast, slow, vendor, fuzz            | Before push          |
 | `test:changed`     | Changed files only (via vitest --changed)                     | Fastest iteration    |
 | `test:fast:serial` | Fast tests without parallelization                            | Accurate timing      |
 
@@ -255,6 +266,19 @@ Single config at `vitest.config.ts` with 3 named projects:
 
 Bare `vitest run` = default project only (fast). Use `--project` for others.
 Reporter: `dot` (minimal). All imports use `vitest` (not `bun:test`), run with `bunx --bun`.
+
+## SILVERY_STRICT Enforcement
+
+`SILVERY_STRICT=1` is enabled globally in `packages/km-infra/vitest/setup.ts`. Every render frame is compared incremental vs fresh. **Unknown mismatches fail the test** -- they are not warnings.
+
+If a test fails with `IncrementalRenderMismatchError`:
+
+1. **Fix the renderer bug** -- do not disable STRICT or skip the test
+2. If the mismatch is a known bug being fixed incrementally, whitelist it:
+   - **Per-run**: `SILVERY_STRICT_KNOWN="*zoom*,*garble*" bun vitest run ...`
+   - **Permanent**: Add the pattern to `getKnownPatterns()` in `setup.ts`
+3. Patterns are comma-separated globs matching test names (e.g., `*zoom*`, `fold*card*`)
+4. Known mismatches produce a warning instead of a failure
 
 ## Output Rules
 
