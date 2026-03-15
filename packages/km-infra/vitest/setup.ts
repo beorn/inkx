@@ -13,7 +13,7 @@
 
 /* eslint-disable promise/prefer-await-to-callbacks -- Implements Node.js stream.write() API which requires callback support */
 
-import { beforeEach, afterEach, expect, vi } from "vitest"
+import { beforeAll, beforeEach, afterEach, expect, vi } from "vitest"
 import { drainWarnings } from "@termless/core"
 import type { EmulatorWarning } from "@termless/core"
 
@@ -55,6 +55,17 @@ console.error = function (...args: unknown[]) {
 // Also set IS_REACT_ACT_ENVIRONMENT to false as a baseline, though silvery/testing
 // will override it to true when imported.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false
+
+// Pre-initialize Ghostty WASM for SILVERY_STRICT_TERMINAL=ghostty|both.
+// Must use beforeAll (not top-level await) because vitest setup files
+// don't block test execution on top-level awaits.
+const _strictTerminalEnv = process.env.SILVERY_STRICT_TERMINAL
+if (_strictTerminalEnv === "ghostty" || _strictTerminalEnv === "both") {
+  const { initGhostty } = require("@termless/ghostty") as typeof import("@termless/ghostty")
+  beforeAll(async () => {
+    await initGhostty()
+  })
+}
 
 // SILVERY_STRICT: Compare incremental vs fresh render on every frame.
 // DO NOT DISABLE THIS. If tests fail with IncrementalRenderMismatchError,
