@@ -61,12 +61,12 @@ Write the test to `/tmp/` first, promote to `apps/km-tui/tests/` when stable.
 
 **Never hypothesize without data.** Use the instrumentation that exists:
 
+For rendering bugs, see **[debugging.md](vendor/silvery/docs/guide/debugging.md)** — canonical reference for STRICT modes, what each catches/misses, and diagnostic workflow.
+
 | Bug type | Instrumentation | What it shows |
 |----------|----------------|---------------|
-| Rendering (garbled, stale pixels) | `SILVERY_STRICT=1` | Exact cell mismatch, node trace, cascade decisions |
-| Rendering (pipeline) | `SILVERY_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
-| Rendering (ANSI output) | `SILVERY_STRICT_TERMINAL=vt100` (or compat: `SILVERY_STRICT_OUTPUT=1`) | ANSI output verification |
-| Performance | `SILVERY_INSTRUMENT=1` + component timing hooks | Per-phase timing, node counts |
+| Rendering | `SILVERY_STRICT=1` (always on in tests) | Exact cell mismatch, node trace, cascade decisions |
+| Performance | `SILVERY_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
 | Behavior (state) | `DEBUG=<namespace> DEBUG_LOG=/tmp/debug.log` | Runtime traces |
 | Event loop blocks | Built-in block detection | Timing + stack |
 

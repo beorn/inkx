@@ -9,12 +9,9 @@ argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven 
 
 ## Diagnostic Quick Reference
 
-| Env Var | What It Catches | What It Misses | When to Use |
-|---------|----------------|----------------|-------------|
-| `SILVERY_STRICT=1` | Content-phase bugs: incremental ≠ fresh buffer (~88% of rendering bugs). **Auto-includes content-phase stats and cell attribution in errors** — no separate INSTRUMENT/CELL_DEBUG step needed for STRICT failures. | Output-phase, ANSI generation, startup timing, multi-pass | First tool for any visual glitch after interaction |
-| `SILVERY_STRICT_TERMINAL=vt100` | Output-phase bugs: correct buffer → wrong ANSI (CJK drift, true-color, row pre-check). Also: `SILVERY_STRICT_OUTPUT=1` (compat alias) | Content-phase bugs (use STRICT for those) | Colors wrong but chars correct; wide char garble |
-| `SILVERY_INSTRUMENT=1` | Performance: skip/render counts, cascade depth, scroll tier decisions | Nothing automatic — data on `globalThis.__silvery_content_detail` | Too many nodes rendering; performance regression (still useful independently of STRICT) |
-| `SILVERY_CELL_DEBUG=x,y` | Cell attribution: which nodes render to (x,y) | Only one cell | After STRICT gives a mismatch position (STRICT errors now include this automatically, but standalone use is still useful for non-STRICT debugging) |
+See **[debugging.md](vendor/silvery/docs/guide/debugging.md)** for the canonical env var reference, what each mode catches/misses, and CI strategy.
+
+Key modes: `SILVERY_STRICT=1` (buffer-level, always on in tests), `SILVERY_STRICT_TERMINAL=xterm` (independent terminal check), `SILVERY_INSTRUMENT=1` (performance counters), `SILVERY_CELL_DEBUG=x,y` (cell attribution). STRICT errors auto-include instrumentation — no separate run needed.
 
 ## Decision Tree
 
