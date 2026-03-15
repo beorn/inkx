@@ -218,6 +218,7 @@
 1 vendor/silvery/packages/term/src/kitty-manager.ts
 1 vendor/silvery/packages/term/src/layout.ts
 4 vendor/silvery/packages/term/src/pipeline/content-phase-adapter.ts
+1 vendor/silvery/packages/term/src/pipeline/content-phase.ts
 3 vendor/silvery/packages/term/src/pipeline/index.ts
 1 vendor/silvery/packages/term/src/pipeline/output-phase.ts
 4 vendor/silvery/packages/term/src/renderer.ts
@@ -316,6 +317,7 @@
 5 vendor/silvery/tests/features/transform.test.tsx
 1 vendor/silvery/tests/hooks/use-textarea.test.tsx
 2 vendor/silvery/tests/output-phase-xterm-replay.test.ts
+2 vendor/silvery/tests/scroll-tier.test.ts
 1 vendor/tap/src/parallel-tui.ts
 2 vendor/termless/packages/alacritty/src/backend.ts
 5 vendor/termless/packages/alacritty/tests/backend.test.ts
