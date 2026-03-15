@@ -56,11 +56,16 @@ console.error = function (...args: unknown[]) {
 // will override it to true when imported.
 globalThis.IS_REACT_ACT_ENVIRONMENT = false
 
-// Pre-initialize Ghostty WASM for SILVERY_STRICT_TERMINAL=ghostty|both.
+// Pre-initialize Ghostty WASM for SILVERY_STRICT_TERMINAL values that include ghostty.
 // Must use beforeAll (not top-level await) because vitest setup files
 // don't block test execution on top-level awaits.
-const _strictTerminalEnv = process.env.SILVERY_STRICT_TERMINAL
-if (_strictTerminalEnv === "ghostty" || _strictTerminalEnv === "both") {
+const _strictTerminalEnv = (process.env.SILVERY_STRICT_TERMINAL ?? "").toLowerCase().trim()
+if (
+  _strictTerminalEnv === "ghostty" ||
+  _strictTerminalEnv === "both" ||
+  _strictTerminalEnv === "all" ||
+  _strictTerminalEnv.includes("ghostty")
+) {
   const { initGhostty } = require("@termless/ghostty") as typeof import("@termless/ghostty")
   beforeAll(async () => {
     await initGhostty()
