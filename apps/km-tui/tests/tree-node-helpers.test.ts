@@ -181,14 +181,14 @@ describe("implicit task rendering", () => {
     const nodes = item("board", item("col", item("task1")))
     // Modify the leaf node to be an implicit task (has due_at but no task_status)
     const taskNode = nodes.find((n) => n.id === "task1")!
-    taskNode.due_at = "2026-03-20"
+    taskNode.due_at = "2099-08-15"
     // Remove explicit task status/marker that item() sets by default
     taskNode.task_status = undefined
     taskNode.task_marker = undefined
 
     const { board } = testEnv(() => nodes)
-    // Date badge should show "Mar 20"
-    board.expectScreen("Mar 20")
+    // Date badge should show "Aug 15" (far future date avoids relative display)
+    board.expectScreen("Aug 15")
   })
 
   it("node with priority shows priority badge", () => {

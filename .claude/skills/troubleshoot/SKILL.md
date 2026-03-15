@@ -65,7 +65,7 @@ Write the test to `/tmp/` first, promote to `apps/km-tui/tests/` when stable.
 |----------|----------------|---------------|
 | Rendering (garbled, stale pixels) | `SILVERY_STRICT=1` | Exact cell mismatch, node trace, cascade decisions |
 | Rendering (pipeline) | `SILVERY_INSTRUMENT=1` | Skip/render counts, cascade depth, scroll tier |
-| Rendering (ANSI output) | `SILVERY_STRICT_OUTPUT=1` | ANSI output verification |
+| Rendering (ANSI output) | `SILVERY_STRICT_TERMINAL=vt100` (or compat: `SILVERY_STRICT_OUTPUT=1`) | ANSI output verification |
 | Performance | `SILVERY_INSTRUMENT=1` + component timing hooks | Per-phase timing, node counts |
 | Behavior (state) | `DEBUG=<namespace> DEBUG_LOG=/tmp/debug.log` | Runtime traces |
 | Event loop blocks | Built-in block detection | Timing + stack |

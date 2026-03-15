@@ -12,7 +12,7 @@ argument-hint: [symptom] (describe the visual glitch, or "fuzz" for fuzz-driven 
 | Env Var | What It Catches | What It Misses | When to Use |
 |---------|----------------|----------------|-------------|
 | `SILVERY_STRICT=1` | Content-phase bugs: incremental ≠ fresh buffer (~88% of rendering bugs). **Auto-includes content-phase stats and cell attribution in errors** — no separate INSTRUMENT/CELL_DEBUG step needed for STRICT failures. | Output-phase, ANSI generation, startup timing, multi-pass | First tool for any visual glitch after interaction |
-| `SILVERY_STRICT_OUTPUT=1` | Output-phase bugs: correct buffer → wrong ANSI (CJK drift, true-color, row pre-check) | Content-phase bugs (use STRICT for those) | Colors wrong but chars correct; wide char garble |
+| `SILVERY_STRICT_TERMINAL=vt100` | Output-phase bugs: correct buffer → wrong ANSI (CJK drift, true-color, row pre-check). Also: `SILVERY_STRICT_OUTPUT=1` (compat alias) | Content-phase bugs (use STRICT for those) | Colors wrong but chars correct; wide char garble |
 | `SILVERY_INSTRUMENT=1` | Performance: skip/render counts, cascade depth, scroll tier decisions | Nothing automatic — data on `globalThis.__silvery_content_detail` | Too many nodes rendering; performance regression (still useful independently of STRICT) |
 | `SILVERY_CELL_DEBUG=x,y` | Cell attribution: which nodes render to (x,y) | Only one cell | After STRICT gives a mismatch position (STRICT errors now include this automatically, but standalone use is still useful for non-STRICT debugging) |
 
@@ -31,13 +31,13 @@ I see a visual glitch
 ├── Border artifacts after color change?
 │   └── paintDirty cascading → Step 5: Check contentAreaAffected
 ├── Colors wrong but characters correct? (progressive garble)
-│   └── Output phase bug → SILVERY_STRICT_OUTPUT=1
+│   └── Output phase bug → SILVERY_STRICT_TERMINAL=vt100
 ├── CJK/wide char shifts text right?
-│   └── bufferToAnsi cursor drift → SILVERY_STRICT_OUTPUT=1
+│   └── bufferToAnsi cursor drift → SILVERY_STRICT_TERMINAL=xterm
 ├── Bug only appears with real vault, not test fixtures?
 │   └── Test fixtures too simple → use real-vault test or larger fixture
 └── Ghost characters or stale pixels?
-    └── Region clearing or output phase → Step 1: SILVERY_STRICT, then SILVERY_STRICT_OUTPUT
+    └── Region clearing or output phase → Step 1: SILVERY_STRICT, then SILVERY_STRICT_TERMINAL=vt100
 ```
 
 ## Diagnostic Steps

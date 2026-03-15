@@ -78,13 +78,12 @@ if (
 // Disabling this hides real production bugs where incremental rendering diverges.
 process.env.SILVERY_STRICT = "1"
 
-// SILVERY_STRICT_OUTPUT: Per-frame ANSI output verification (virtual terminal replay).
-// Replays incremental ANSI through a virtual terminal and compares with fresh render.
-// Catches output-phase bugs that SILVERY_STRICT misses (cursor drift from wide chars,
-// true-color diffs, etc.). NOTE: isStrictOutput() in output-phase.ts falls back to
-// SILVERY_STRICT when SILVERY_STRICT_OUTPUT is unset, so output verification is ALREADY
-// ENABLED implicitly via SILVERY_STRICT=1 above (tracked as km-silvery.strict-style-verify).
-// process.env.SILVERY_STRICT_OUTPUT = "1"
+// SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
+// Accepts comma-separated list: vt100 (fast internal parser), xterm (xterm.js headless),
+// ghostty (Ghostty WASM). Aliases: all, both, 1/true. Example: SILVERY_STRICT_TERMINAL=vt100,xterm
+// SILVERY_STRICT=1 above auto-enables vt100 backend (the fast internal parser).
+// SILVERY_STRICT_OUTPUT=1 is a compat alias for SILVERY_STRICT_TERMINAL=vt100.
+// To add independent terminal verification: process.env.SILVERY_STRICT_TERMINAL = "xterm"
 
 // =============================================================================
 // SILVERY_STRICT Mismatch Detection
