@@ -26,7 +26,7 @@ I see a visual glitch
 ├── Sticky header shows wrong bg or corrupts items?
 │   └── getCellBg coupling → Step 6: Check bg inheritance
 ├── Border artifacts after color change?
-│   └── paintDirty cascading → Step 5: Check contentAreaAffected
+│   └── stylePropsDirty cascading → Step 5: Check contentAreaAffected
 ├── Colors wrong but characters correct? (progressive garble)
 │   └── Output phase bug → SILVERY_STRICT_TERMINAL=vt100
 ├── CJK/wide char shifts text right?
@@ -118,17 +118,17 @@ console.log(formatMismatchContext(ctx))
 In `content-phase.ts`, `renderNodeToBuffer`:
 
 ```typescript
-layoutChanged       = node.layoutChangedThisFrame
-contentAreaAffected = contentDirty || layoutChanged || childPositionChanged || childrenDirty || bgDirty || absoluteChildMutated || descendantOverflowChanged
-parentRegionCleared = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
-skipBgFill          = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
-parentRegionChanged = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
+layoutChanged            = node.layoutChangedThisFrame
+contentAreaAffected      = contentDirty || layoutChanged || childPositionChanged || childrenDirty || bgDirty || absoluteChildMutated || descendantOverflowChanged
+contentRegionCleared     = (hasPrevBuffer || ancestorCleared) && contentAreaAffected && !props.backgroundColor
+skipBgFill               = hasPrevBuffer && !ancestorCleared && !contentAreaAffected
+childrenNeedFreshRender  = (hasPrevBuffer || ancestorCleared) && contentAreaAffected
 ```
 
 Common mistakes:
 - Using `needsOwnRepaint` where `contentAreaAffected` is needed (cascades border changes)
 - Missing `bgDirty` in `contentAreaAffected` (stale bg when backgroundColor removed)
-- Wrong `parentRegionCleared` propagation (transparent Boxes must propagate, colored Boxes break cascade)
+- Wrong `contentRegionCleared` propagation (transparent Boxes must propagate, colored Boxes break cascade)
 - Checking `!rectEqual(prevLayout, contentRect)` instead of `layoutChangedThisFrame` (stale when layout phase skipped)
 
 ### Step 6: Text Background Inheritance

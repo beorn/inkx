@@ -72,7 +72,6 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 |----------|--------|
 | `SILVERY_INSTRUMENT=1` | Content-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
 | `SILVERY_STRICT=1` | Compare incremental vs fresh render every frame (crashes on mismatch) |
-| `SILVERY_CHECK_INCREMENTAL=1` | Same as STRICT but logs instead of crashing |
 | `SILVERY_DEV=1` | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
 | `SILVERY_PROFILE_RENDER=1` | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
 

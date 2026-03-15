@@ -124,7 +124,7 @@ git log --oneline -- <file>    # History of specific file
 Once you have a reproduction and know what changed, narrow systematically:
 
 **For rendering pipeline bugs:**
-1. Is it the content phase cascade? (check `parentRegionChanged`, `skipBgFill`, `childHasPrev`)
+1. Is it the content phase cascade? (check `childrenNeedFreshRender`, `skipBgFill`, `childHasPrev`)
 2. Is it dirty flag propagation? (check which flags are set/cleared when)
 3. Is it the output phase? (compare buffer content vs ANSI output)
 4. Is it scroll-specific? (check scroll tier selection, sticky children)

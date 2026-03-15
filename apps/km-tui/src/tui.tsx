@@ -215,7 +215,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   const handleError = (error: Error) => {
     restoreTerminal()
     if (error instanceof IncrementalRenderMismatchError) {
-      // SILVERY_CHECK_INCREMENTAL detected a bug - show message and exit
+      // SILVERY_STRICT detected a bug - show message and exit
       process.stderr.write("\n\n[silvery] Incremental render mismatch detected!\n")
       process.stderr.write(error.message + "\n")
       process.stderr.write("\nThis indicates a bug in incremental rendering. File an issue or run\n")

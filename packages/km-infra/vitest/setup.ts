@@ -80,9 +80,8 @@ process.env.SILVERY_STRICT = "1"
 
 // SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
 // Accepts comma-separated list: vt100 (fast internal parser), xterm (xterm.js headless),
-// ghostty (Ghostty WASM). Aliases: all, both, 1/true. Example: SILVERY_STRICT_TERMINAL=vt100,xterm
+// ghostty (Ghostty WASM). Use "all" for all backends. Example: SILVERY_STRICT_TERMINAL=vt100,xterm
 // SILVERY_STRICT=1 above auto-enables vt100 backend (the fast internal parser).
-// SILVERY_STRICT_OUTPUT=1 is a compat alias for SILVERY_STRICT_TERMINAL=vt100.
 // To add independent terminal verification: process.env.SILVERY_STRICT_TERMINAL = "xterm"
 
 // =============================================================================

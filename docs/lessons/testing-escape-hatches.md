@@ -1,6 +1,6 @@
 # Testing Escape Hatches: Two Rendering Bugs That Evaded Detection
 
-Two rendering bugs persisted for weeks despite SILVERY_STRICT, SILVERY_STRICT_OUTPUT, 43 wide-char matrix tests, PTY integration tests, fuzz tests, and three terminal emulator backends. This document analyzes why the testing infrastructure failed to catch them and what systemic changes prevent recurrence.
+Two rendering bugs persisted for weeks despite SILVERY_STRICT (including vt100 output verification), 43 wide-char matrix tests, PTY integration tests, fuzz tests, and three terminal emulator backends. This document analyzes why the testing infrastructure failed to catch them and what systemic changes prevent recurrence.
 
 ## The Bugs
 
@@ -72,11 +72,11 @@ Our case exhibited signs 1, 2, 4, 5, and 6.
 
 ## Specific Questions Answered
 
-### Is SILVERY_STRICT_OUTPUT useful?
+### Is vt100 output verification (via SILVERY_STRICT) useful?
 
 **Yes, but not as primary correctness oracle.** It is useful for fast deterministic regression checks, serializer/parser round-trip sanity, debugging ANSI generation, and style/cursor expectations within the semantic model. It is NOT sufficient for terminal compatibility, private escape sequence support, scroll/wrap side effects, or stateful physical-screen correctness.
 
-**Keep it, but relabel its role**: it is really `INTERNAL_OUTPUT_CONSISTENCY`, not ground truth. Add a second layer: `STRICT_TERMINAL` — feed output into an independent terminal emulator and compare visible cell grid + cursor position + scroll state.
+**Its role**: internal output consistency, not ground truth. `STRICT_TERMINAL` feeds output into an independent terminal emulator and compares visible cell grid + cursor position + scroll state for real-world correctness.
 
 ### Why wasn't `detectTextSizingSupport()` wired up?
 

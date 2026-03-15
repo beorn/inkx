@@ -18,6 +18,7 @@ Systematic project-wide quality audit. Produces a prioritized plan covering code
 | `/project-audit --code-only <path>` | Code DRY + structural issues only |
 | `/project-audit --docs-only <path>` | Documentation quality + staleness only |
 | `/project-audit --narrative <path>` | README/landing page narrative review |
+| `/project-audit silvery` | Deep review: silvery pipeline (4 parallel reviewers, ~$5-15) |
 
 ## Target
 
@@ -254,9 +255,22 @@ Don't rewrite the README based on intuition alone. Get external input.
 - **Treating all issues as equal**: Stale API names in docs (actively misleading) are more urgent than casing inconsistencies (cosmetic). Prioritize.
 - **Auditing without a plan**: The audit produces a plan. The plan gets executed. Don't just list problems — structure the solution.
 
+## Project-Specific Deep Reviews
+
+When a project area has a dedicated workflow, use it for deeper, more targeted analysis. These workflows combine Claude agents + GPT 5.4 Pro for cross-perspective analysis with automated synthesis, deduplication, and consensus tracking.
+
+| Command | Workflow | Cost |
+|---------|----------|------|
+| `/project-audit silvery` | [silvery-pipeline.md](workflows/silvery-pipeline.md) — rendering pipeline algorithm, tests, docs, env vars | ~$5-15 |
+
+**How they differ from standard audits**: Standard `/project-audit` is a broad health check (DRY, docs, naming, structure). Deep reviews target a specific subsystem with 4 parallel reviewers (3 Claude agents + 1 GPT 5.4 Pro), each covering a focused dimension, then synthesize findings across perspectives. Use standard audits for breadth, deep reviews for depth.
+
+**Adding new workflows**: Copy an existing workflow as a template, replace file lists and review dimensions, keep synthesis/triage/implementation steps unchanged. See the "Adapting This Workflow" section in any workflow file.
+
 ## Sub-Skills
 
 | File | Purpose |
 |------|---------|
 | [checklist.md](checklist.md) | Detailed audit checklist for each category |
 | [narrative.md](narrative.md) | README narrative analysis framework |
+| [workflows/silvery-pipeline.md](workflows/silvery-pipeline.md) | Deep review: silvery rendering pipeline |

@@ -168,11 +168,11 @@ Developers can opt-out for performance testing, but the default catches bugs.
 Invariants document assumptions that are easy to violate during refactoring:
 
 ```typescript
-// This documents: "parentRegionCleared must propagate to children"
-const childHasPrev = parentRegionCleared ? false : hasPrevBuffer
+// This documents: "contentRegionCleared must propagate to children"
+const childHasPrev = contentRegionCleared ? false : hasPrevBuffer
 
 // Without the invariant, a future dev might "optimize" to:
-const childHasPrev = hasPrevBuffer  // Bug: ignores parentRegionCleared
+const childHasPrev = hasPrevBuffer  // Bug: ignores contentRegionCleared
 ```
 
 The SILVERY_STRICT check catches this immediately in tests.
@@ -213,7 +213,7 @@ mismatch but I can't find the root cause.
 [paste content-phase.ts - the ENTIRE file, not snippets]
 
 ## What I've Tried
-1. Added parentRegionCleared flag - didn't help
+1. Added contentRegionCleared flag - didn't help
 2. Checked dirty flag propagation - looks correct
 3. ...
 
@@ -260,7 +260,7 @@ Incremental rendering clones the previous buffer, then only re-renders changed n
 if (
   hasPrevBuffer &&
   !node.contentDirty &&
-  !node.paintDirty &&
+  !node.stylePropsDirty &&
   !layoutChanged &&
   !node.subtreeDirty &&
   !childPositionChanged
@@ -273,8 +273,8 @@ if (
 
 | Pattern | Symptom | Root Cause | Fix |
 |---------|---------|------------|-----|
-| **Blank regions** | Content disappears after navigation | Parent cleared region but children skipped by fast-path | Propagate `parentRegionCleared` to disable child fast-path |
-| **Stale backgrounds** | Old highlight color persists | Node had backgroundColor, now doesn't | Check `paintDirty` flag, clear region on removal |
+| **Blank regions** | Content disappears after navigation | Parent cleared region but children skipped by fast-path | Propagate `contentRegionCleared` to disable child fast-path |
+| **Stale backgrounds** | Old highlight color persists | Node had backgroundColor, now doesn't | Check `stylePropsDirty` flag, clear region on removal |
 | **Sibling shift artifacts** | Gap pixels between moved children | Child positions changed but parent didn't clear | Detect `childPositionChanged`, clear parent region |
 | **Overlay bleed** | Dialog background leaks through | Dialog closed but underlying content not restored | Re-render content behind dialog |
 
@@ -370,7 +370,7 @@ Trace through with the question: "Why is this node skipped?"
 | Flag | Meaning | Set When |
 |------|---------|----------|
 | `contentDirty` | Text/structure changed | Text content changes |
-| `paintDirty` | Visual props changed | backgroundColor, color, border changes |
+| `stylePropsDirty` | Visual props changed | backgroundColor, color, border changes |
 | `subtreeDirty` | Descendant is dirty | Any child has a dirty flag |
 | `childrenDirty` | Children added/removed/reordered | React reconciliation changes children |
 | `layoutDirty` | Layout props changed | Width, height, flex props change |

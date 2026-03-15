@@ -17,8 +17,7 @@ import { runGenerator } from "@km/core"
 import { createBoardDriver } from "../src/driver.ts"
 import { item } from "./helpers/board-test.ts"
 
-// Enable buffer-level + ANSI output verification.
-// SILVERY_STRICT now includes SILVERY_STRICT_OUTPUT automatically.
+// Enable buffer-level + vt100 ANSI output verification.
 beforeEach(() => {
   process.env.SILVERY_STRICT = "1"
 })
@@ -42,7 +41,7 @@ describe("Incremental ANSI output verification", () => {
     })
 
     // Navigation that exercises various changesToAnsi patterns:
-    // - Cursor outline moving between cards (paintDirty, border changes)
+    // - Cursor outline moving between cards (stylePropsDirty, border changes)
     // - Moving between columns (large area changes)
     // - Moving to different levels (column vs card)
     const sequence = [
@@ -77,8 +76,7 @@ describe("Incremental ANSI output verification", () => {
 
     for (const key of sequence) {
       await driver.press(key)
-      // SILVERY_STRICT verifies buffer content
-      // SILVERY_STRICT_OUTPUT verifies ANSI output via virtual terminal replay
+      // SILVERY_STRICT verifies buffer content and ANSI output (vt100 backend)
     }
 
     expect(true).toBe(true)

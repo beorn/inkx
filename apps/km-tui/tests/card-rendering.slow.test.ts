@@ -982,10 +982,7 @@ describe("col-header-last-char", () => {
  * Fix: reset SGR before CUF when bg is set (output-phase.ts).
  */
 
-// Enable style-aware output verification for col-header-dup tests
-const _prevStrictOutput = process.env.SILVERY_STRICT_OUTPUT
-process.env.SILVERY_STRICT_OUTPUT = "1"
-
+// vt100 output verification is auto-enabled via SILVERY_STRICT=1 (vitest/setup.ts)
 describe("col-header-dup: column header style transition", () => {
   test("incremental render matches fresh during card/column navigation", async () => {
     const nodes = item.root(
