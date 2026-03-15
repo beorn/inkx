@@ -218,7 +218,6 @@
 1 vendor/silvery/packages/term/src/kitty-manager.ts
 1 vendor/silvery/packages/term/src/layout.ts
 4 vendor/silvery/packages/term/src/pipeline/content-phase-adapter.ts
-1 vendor/silvery/packages/term/src/pipeline/content-phase.ts
 3 vendor/silvery/packages/term/src/pipeline/index.ts
 1 vendor/silvery/packages/term/src/pipeline/output-phase.ts
 4 vendor/silvery/packages/term/src/renderer.ts
