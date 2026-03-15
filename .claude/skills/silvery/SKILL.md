@@ -92,10 +92,11 @@ Follow the [test-first protocol](../tests/test-first-protocol.md). Write a faili
 Enable performance instrumentation to see skip/render counts:
 
 ```bash
-SILVERY_INSTRUMENT=1 bun km view /path
+# Enable stats collection + loggily output
+SILVERY_INSTRUMENT=1 DEBUG=silvery:content DEBUG_LOG=/tmp/silvery.log bun km view /path
 ```
 
-Exposed on `globalThis.__silvery_content_detail` (per-frame) and `globalThis.__silvery_content_all` (array):
+Output via loggily `silvery:content` namespace. Also exposed on `globalThis.__silvery_content_detail` (per-frame) and `globalThis.__silvery_content_all` (array) for programmatic access:
 - `nodesVisited`, `nodesRendered`, `nodesSkipped` — too many renders = over-invalidation
 - `clearOps` — how many region clears happened
 - `cascadeMinDepth`, `cascadeNodes` — cascade analysis

@@ -37,8 +37,8 @@ DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
 # Heartbeat reports: "event loop blocked for 1173ms — key='l' → cursor_right — render: content=800ms output=200ms (total=1050ms)"
 
 # silvery instrumentation (skip/render counts per frame)
-SILVERY_INSTRUMENT=1 DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
-# Read: globalThis.__silvery_content_detail
+SILVERY_INSTRUMENT=1 DEBUG=silvery:content DEBUG_LOG=/tmp/km.log bun km view --repo <path> <board>
+# Output via loggily; also readable from globalThis.__silvery_content_detail
 
 # Full render pipeline debug trace
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view --repo <path> <board>
@@ -195,7 +195,19 @@ grep "event loop blocked" /tmp/km.log
 | `measure` | fit-content measurement on many nodes |
 | No pipeline data | Block outside render (storage query, filesystem, etc.) |
 
-## globalThis Instrumentation
+## Diagnostic Output
+
+Diagnostic output is routed through loggily structured logging. Use `DEBUG=silvery:content` for content phase stats, `TRACE=silvery:pipeline` for phase timing spans.
+
+| Loggily Namespace | What |
+|-------------------|------|
+| `silvery:pipeline` | Frame-level spans with per-phase timing |
+| `silvery:content` | Content phase stats per frame (render/skip counts) |
+| `silvery:content:trace` | Per-node trace entries (skip/render decisions) |
+| `silvery:content:cell` | Per-cell debug (node coverage at target coords) |
+| `silvery:measure` | Measure phase debug (text measurement calls) |
+
+Stats are also retained on globalThis for programmatic access:
 
 | Variable | Set By | Contents |
 |----------|--------|----------|
