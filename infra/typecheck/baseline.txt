@@ -295,6 +295,8 @@
 4 vendor/silvery/tests/compat/ink/helpers/create-stdin.ts
 2 vendor/silvery/tests/compat/ink/helpers/create-term.ts
 2 vendor/silvery/tests/compat/ink/helpers/test-renderer.ts
+1 vendor/silvery/tests/cross-backend-output.test.ts
+1 vendor/silvery/tests/emulator-warnings.test.ts
 1 vendor/silvery/tests/examples/ai-chat-showcase.test.tsx
 1 vendor/silvery/tests/examples/ai-chat.test.tsx
 5 vendor/silvery/tests/features/ansi-sanitize.test.ts
@@ -313,8 +315,7 @@
 1 vendor/silvery/tests/features/text-input.test.tsx
 5 vendor/silvery/tests/features/transform.test.tsx
 1 vendor/silvery/tests/hooks/use-textarea.test.tsx
-8 vendor/silvery/tests/output-phase-wide-char-matrix.test.ts
-12 vendor/silvery/tests/output-phase-xterm-replay.test.ts
+2 vendor/silvery/tests/output-phase-xterm-replay.test.ts
 1 vendor/tap/src/parallel-tui.ts
 2 vendor/termless/packages/alacritty/src/backend.ts
 5 vendor/termless/packages/alacritty/tests/backend.test.ts
