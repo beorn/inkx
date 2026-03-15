@@ -1,0 +1,306 @@
+# Composability — Universal Rendering Architecture
+
+_Status: draft (2026-03-15). What silvery's components are, how they compose, the tradeoffs vs platform-specific approaches, and what's theoretically possible._
+
+_See also: [packaging-model.md](./packaging-model.md) (package structure, dependencies, migration path), [architecture-overview.md](./architecture-overview.md) (concepts, op spectrum)._
+
+## The Question
+
+What if one codebase could render to terminal, web, and canvas — using React, Svelte, or Solid — with shared state, shared commands, and shared behavior? What would the components look like? What would you gain? What would you lose?
+
+## Silvery's Five Components
+
+Silvery decomposes into five independent components. Each solves one problem. They compose freely along two axes (engine × platform), with an optional app framework independent of both.
+
+### 1. Abstract Nodes (@silvery/core)
+
+A data model for UI. Box, Text, and their properties (flexDirection, color, overflow, etc.) are pure data descriptions — not React components, not DOM elements.
+
+**Analogy**: Like React Native's `<View>` and `<Text>` — UI intent, not platform specifics.
+
+**The contract**: engines create these nodes, platforms render them. That's the entire interface.
+
+### 2. Pipeline Interface (@silvery/core)
+
+The abstract rendering phases: measure → layout → diff → output. Core defines the contracts; platforms provide implementations.
+
+- **@silvery/term**: implements all capabilities — flexily for layout, ANSI buffer for diff/output. Engines produce abstract nodes; the terminal platform renders them.
+- **@silvery/web**: provides mapping and normalization only — node types → DOM elements, props → CSS, theme → custom properties. Engines use their native DOM capabilities (react-dom, Svelte compiler, Solid runtime) for reconciliation. The browser handles layout (CSS flexbox) and rendering.
+- **@silvery/canvas**: flexily for layout, draw calls for output. Similar to terminal — engines produce abstract nodes, platform renders them.
+
+**Note:** Terminal and canvas are **platform-rendered** — the platform owns the full pipeline. Web is **engine-rendered** — the engine uses its native DOM capabilities through the platform's mapping layer. This means engine × platform is not fully orthogonal: terminal works identically regardless of engine, but web rendering depends on the engine's DOM capabilities.
+
+Core is thin — types, interfaces, theme tokens, utilities. Heavy lifting lives in platform packages.
+
+### 3. Engine Adapters (@silvery/react, @silvery/svelte, ...)
+
+Bridges between view frameworks and silvery's abstract nodes.
+
+| Engine     | How it works                                                  | Virtual DOM?                     |
+| ---------- | ------------------------------------------------------------- | -------------------------------- |
+| **React**  | `react-reconciler` diffs virtual tree, patches abstract nodes | Yes                              |
+| **Svelte** | Compiler generates direct abstract node operations            | No — compile-time knowledge      |
+| **Solid**  | Fine-grained signal subscriptions update nodes directly       | No — subscription-time knowledge |
+
+All produce the same abstract nodes. The pipeline downstream is identical.
+
+Engines also provide **framework-specific bindings** for kit's primitives:
+
+- React: `useSignal()` via `useSyncExternalStore`
+- Svelte: signal store adapter via Svelte 5 runes
+- Solid: trivial — Solid signals ≈ silvery signals
+
+### 4. Platform Adapters (@silvery/term, @silvery/web, ...)
+
+Bridges between the pipeline and a rendering target.
+
+| Platform     | Output                    | Layout             | Input                           | Theme                 |
+| ------------ | ------------------------- | ------------------ | ------------------------------- | --------------------- |
+| **Terminal** | ANSI sequences            | flexily            | stdin parsing → normalized keys | OSC palette detection |
+| **Web**      | DOM elements (via engine) | Native CSS flexbox | DOM listeners → normalized keys | CSS custom properties |
+| **Canvas**   | Draw calls                | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
+
+**Input normalization**: each platform converts its native events to a common format (normalized key strings like `"ctrl+d"`, `"j"`, `"escape"`) before they reach kit's `keymap()`. The app framework never sees platform-specific event types.
+
+### 5. App Framework (@silvery/kit)
+
+Engine-agnostic, platform-agnostic state and behavior. Signals, commands, keymaps, models, scopes, op(). Zero dependency on core, engines, or platforms.
+
+See [packaging-model.md](./packaging-model.md#silverykit--app-framework) for details.
+
+## How They Compose
+
+### The engine × platform matrix
+
+Every cell is a valid combination:
+
+```
+                  Platforms
+                  @silvery/term    @silvery/web    @silvery/canvas
+Engines           ─────────────    ────────────    ───────────────
+@silvery/react    ✓ (today)        future          future
+@silvery/svelte   future           future          future
+@silvery/solid    future           future          future
+```
+
+### One model, multiple views
+
+Because kit is independent of rendering, one model can drive multiple views simultaneously:
+
+```
+                    @silvery/kit (model)
+                    ┌───────────────────┐
+                    │ signals + commands │
+                    └─────────┬─────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+         React + term    Svelte + web     AI agent
+         (CLI app)       (dashboard)      (automation)
+              │               │               │
+           Terminal         Browser         No view
+           (ANSI)           (DOM)           (headless)
+```
+
+This works because:
+
+1. **Signals are `{ value, subscribe }`** — any subscriber model can read them
+2. **Commands are `{ fn, args? }`** — any caller can invoke them
+3. **Abstract nodes are data** — any engine can create them, any platform can render them
+
+**Supported topology: single-process shared model.** Today, "one model, multiple views" means one JavaScript process with one model instance and multiple view subscribers. This covers the primary use cases: a terminal CLI and a web dashboard in the same Node.js process, or a headless test and a rendered view in the same test process.
+
+Future topologies (server-authoritative model, replicated/event-sourced model across processes) require op-as-data serialization and are not yet designed. The op() infrastructure lays the groundwork — once ops are serializable records (not just local descriptors), they can be transmitted and replayed — but the synchronization protocol, conflict resolution, and failure handling are open design problems.
+
+## The Tradeoffs
+
+### What you gain from the universal approach
+
+**Write once, render anywhere.** A component written with `<Box>` and `<Text>` works on terminal, web, and canvas without changes.
+
+**The model IS the app.** Views are projections. Ship a CLI today, add a web dashboard later — the model doesn't change. Let an AI agent drive the app — it invokes the same commands.
+
+**Progressive adoption.** Start with `silvery` (React + terminal). Extract state to signals when you need sharing. Add commands when you need automation. Use op() when you need undo. Each step is independent — you never rewrite.
+
+**Test without rendering.** Kit models are pure state + behavior. Create with `createInstantScope()`, invoke commands, assert on signals. No DOM, no terminal, no framework.
+
+### What you lose compared to platform-native development
+
+The abstract component model can only express what ALL platforms can render. Anything platform-specific is either abstracted with graceful degradation, or excluded from the model.
+
+| Capability                | Native web                       | Silvery universal                         | Status                                                                                                           |
+| ------------------------- | -------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Flexbox**               | Full CSS flexbox                 | Full (same semantics)                     | Parity                                                                                                           |
+| **Grid**                  | CSS Grid                         | Not yet abstracted                        | Closable — add grid props; term emulates via flexily, web passes to native                                       |
+| **Animations**            | CSS transitions/keyframes        | Not yet abstracted                        | Closable — add animation system; term: frame-by-frame, web: CSS                                                  |
+| **Accessibility**         | ARIA roles, labels, live regions | Not yet abstracted                        | Closable — add role/aria-\* props; term ignores, web passes to DOM. **Priority: legally required for web apps.** |
+| **Form elements**         | Native `<input>`, `<select>`     | Custom components (TextInput, SelectList) | Functional parity; web can delegate to native for a11y + mobile keyboard                                         |
+| **SVG**                   | Full SVG spec                    | Not yet abstracted                        | Closable — add SVG components; term: box-drawing/braille, web: real SVG                                          |
+| **Images**                | `<img>`, srcset                  | Not yet abstracted                        | Closable — add `<Image>`; term: sixel/kitty/ASCII, web: `<img>`                                                  |
+| **Rich inline text**      | `<em>`, `<strong>`, `<a>`        | Bold/italic/link on Text                  | Closable — add inline formatting nodes                                                                           |
+| **Arbitrary CSS**         | Full CSS                         | Not available                             | Escape hatch — className/style for web, term ignores                                                             |
+| **Proportional fonts**    | Standard                         | Fixed-width on terminal                   | **Fundamental** — accept graceful degradation                                                                    |
+| **Sub-pixel positioning** | Standard                         | Cell-grid on terminal                     | **Fundamental** — accept graceful degradation                                                                    |
+
+**Two kinds of gaps:**
+
+1. **Closable** — extend the abstract model. Each platform implements what it can, degrades gracefully where it can't. Tracked in bead: km-silvery.web-platform-gap.
+2. **Fundamental** — proportional vs fixed-width fonts, unlimited vs 256 colors, pixel vs cell positioning. These are inherent platform differences. Design for the lowest common denominator, enhance on richer platforms.
+
+**Accessibility deserves early investment.** Unlike other closable gaps, accessibility is legally required for web apps and structurally hard to retrofit. The recommendation: add semantic props (`role`, `aria-label`, `aria-live`, `tabIndex`) to `@silvery/core`'s abstract node types NOW, even though only `@silvery/web` uses them initially. Terminal ignores them (screen readers don't read terminal apps). Canvas would need a parallel accessibility tree. By including them in core early, all components and engines build with accessibility in mind from the start, avoiding the expensive "bolt it on later" pattern.
+
+**Design principle**: the abstract model is the **floor**, not the ceiling. Platforms can render MORE than the model specifies (progressive enhancement). An `<Image>` shows a full image on web, falls back to ASCII art on terminal. What must NOT happen: a platform inventing components that don't exist in the abstract model.
+
+### When to use the universal approach
+
+- **Terminal + web** — same app, CLI and dashboard, shared model and commands
+- **Multi-engine** — ship React today, explore Svelte later, model unchanged
+- **AI-driven apps** — model is the API surface, views are optional
+- **Portable component libraries** — write once, use in any silvery app
+
+### When to use platform-specific instead
+
+- **Web-only app** — use react-dom. Full CSS, full DOM API, no abstraction overhead.
+- **Performance-critical rendering** — direct DOM/ANSI avoids pipeline indirection.
+- **Platform-specific features** — WebGL, sixel graphics, native gestures don't abstract.
+
+### The hybrid approach
+
+**Four layers of app code, with different portability expectations:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Domain model (universal)                             │
+│   signals, commands, business logic                  │
+│   → works everywhere: terminal, web, test, AI        │
+├─────────────────────────────────────────────────────┤
+│ Surface model (per-platform)                         │
+│   terminal state (cursor mode, alt screen)           │
+│   browser state (scroll position, viewport)          │
+│   → specific to a platform, but still model code     │
+├─────────────────────────────────────────────────────┤
+│ View components (portable or platform-specific)      │
+│   <Box>/<Text> → portable across platforms           │
+│   <div>/<span> → web-only                            │
+│   ANSI sequences → terminal-only                     │
+├─────────────────────────────────────────────────────┤
+│ Runtime (per-deployment)                             │
+│   providers, lifecycle, I/O                           │
+│   → specific to how/where the app runs               │
+└─────────────────────────────────────────────────────┘
+```
+
+The domain model is the portable core. Surface models handle platform-specific concerns. Views can be universal (using silvery abstractions) or platform-specific (using native APIs). Runtime is always deployment-specific.
+
+Most real apps will be hybrid. The MODEL is universal (kit signals + commands). The VIEW uses abstract components where portability matters, platform-specific code where it doesn't:
+
+```typescript
+// Universal model — works everywhere
+const chat = createModel(({ scope }) => {
+  const messages = signal<Message[]>([])
+  const commands = {
+    submit: { fn(a: { text: string }) { ... }, args: z.object({ text: z.string() }) },
+  }
+  return { messages, commands }
+})
+
+// Universal component — works on terminal + web
+function MessageList() {
+  const msgs = useSignal(chat.get().messages)
+  return (
+    <Box flexDirection="column" gap={1}>
+      {msgs.map(m => (
+        <Text key={m.id} color={m.role === 'user' ? '$primary' : '$text'}>
+          {m.content}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+
+// Platform-specific component — richer web experience
+function WebMessageList() {
+  const msgs = useSignal(chat.get().messages)
+  return (
+    <div className="message-list" style={{ scrollBehavior: 'smooth' }}>
+      {msgs.map(m => (
+        <div key={m.id} className={`message ${m.role}`}
+             dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }} />
+      ))}
+    </div>
+  )
+}
+```
+
+The model doesn't know or care which view renders it.
+
+## What's Theoretically Possible
+
+### Today
+
+- ✅ React + terminal (silvery's primary use case)
+- ✅ Headless / AI / test (kit alone, no rendering)
+- ✅ Terminal in browser (xterm.js backend in @silvery/term)
+- ✅ Model shared between view and non-view consumers
+
+### Near-term (new packages, architecture ready)
+
+- 🔲 @silvery/web — React terminal apps also run as web apps
+- 🔲 @silvery/svelte — same model, different view framework
+- 🔲 Terminal + web simultaneously — CLI and dashboard share a model
+
+### Theoretical limit (requires closing all gaps)
+
+- One app, N views, M engines, K platforms — all sharing one model
+- A Svelte web dashboard, a React terminal CLI, and an AI agent all controlling the same app
+- Full undo/replay/collaboration via op-as-data
+- Components that look native on every platform (graceful degradation + progressive enhancement)
+
+### Fundamental limits (NOT possible)
+
+- Visual parity between terminal and web — terminals have fixed-width cells, limited colors
+- Zero-overhead abstraction — the abstract pipeline adds indirection vs direct rendering
+- Abstracting everything — some capabilities are inherently platform-specific
+
+The architecture is designed so these limits are explicit tradeoffs per-component, not global constraints on the app.
+
+## What's Fundamentally Hard
+
+| Challenge                         | Why                                                                                                                                                         | Mitigation                                                                                   |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Terminal ↔ web visual parity**  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                            | Accept graceful degradation. Design for terminal, enhance on web.                            |
+| **Engine interop**                | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                             | Practical case is different views for different deployments, not mixing engines in one view. |
+| **Component library abstraction** | SelectList, TextInput etc. are React components with hooks today. Making them engine-agnostic requires headless logic + engine-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.             |
+| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                         | Future @silvery/native package, or @silvery/web in a WebView.                                |
+| **Performance at scale**          | Abstract nodes add indirection vs direct rendering.                                                                                                         | Negligible for most apps. Platforms can short-circuit for hot paths.                         |
+
+## The Gradual Path
+
+Two products, one gradient. See [packaging-model.md](./packaging-model.md#what-should-i-use) for the full decision tree and when to adopt each step.
+
+**Silvery** (rendering) is the terminal pipeline, components, and theme. **Kit** (app framework) is commands, keymaps, op(), plugins, structured concurrency. Kit is optional and adopted gradually — each step adds capability without rewriting previous work.
+
+```
+"I want a terminal app"
+  → npm install silvery. Use useState, zustand, whatever. Done.
+
+"My state is getting tangled"
+  → Add kit signals. Shared state outside React.
+
+"I want AI/tests to drive my app"
+  → Add commands. invoke() from anywhere — same code path as keyboard.
+
+"I want vim-style keybindings"
+  → Add keymaps. Declarative bindings with mode predicates.
+
+"I want undo/replay"
+  → Route mutations through op(). Serializable records for replay.
+
+"I want the same app on the web"
+  → Use silvery components (Box/Text). Add @silvery/web. Kit code unchanged.
+
+"I want Svelte instead of React"
+  → Add @silvery/svelte. Kit code unchanged. Only views need rewriting.
+```
+
+Each step is independently valuable. Each solves a specific pain point. You never rewrite — you extract and recompose.
